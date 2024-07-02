@@ -30,6 +30,120 @@ The `core` model is responsible for:
 - **Timekeeping**: the `core` model is also responsible for the timekeeping of the
   simulation - ensuring that the models execute the right commands at the right time.
 
+## Abiotic Model
+
+The Abiotic Model provides the three-dimensional microclimate for the Virtual Ecosystem.
+Using a small set of input variables from external sources such as reanalysis or
+regional climate models, the model calculates atmospheric and soil parameters that
+drive the dynamics of plants, animals, and microbes at different vertical levels:
+
+- above canopy (canopy height + reference measurement height, typically 2 m)
+- canopy (dynamic heights provided by plant model)
+- surface (10 cm above ground)
+- topsoil (25 cm below ground)
+- subsoil (minimum of one layer at 1 m depth)
+
+At the moment, the default option is the
+[abiotic_simple](../api/models/abiotic_simple.md) model, a simple regression
+model that estimates microclimatic variables based on empirical data for a monthly
+model timestep.
+In parallel, we are working on a process-based
+[abiotic](../api/models/abiotic.md) model, which will provide microclimate on
+a (sub-)daily resolution. Both versions of the abiotic model provide the following key
+variables at relevant vertical levels:
+
+- Air temperature (°C), relative humidity (-), and vapour pressure deficit (VPD, kPa)
+- Soil temperature (°C)
+- Atmospheric $\ce{CO_{2}}$ concentration (ppm)
+- Atmospheric Pressure (kPa)
+
+### Simple Abiotic Model
+
+The [abiotic_simple](../api/models/abiotic_simple.md) model is a one-column model
+that operates on a grid cell basis and does not consider horizontal exchange of energy,
+atmospheric water, and momentum. The model uses linear regressions from
+{cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
+atmospheric temperature, relative humidity, and vapour pressure deficit
+at ground level (1.5 m) given the above canopy conditions and leaf area index of
+intervening canopy. A vertical profile across all atmospheric layers is then
+interpolated using a logarithmic curve between the above canopy observation and ground
+level prediction. Soil temperature is interpolated between the surface layer and the
+soil temperature at 1 m depth which roughly equals the mean annual temperature.
+The model also provides a constant vertical profile of atmospheric pressure and
+atmospheric $\ce{CO_{2}}$ based on external inputs.
+
+### Process-based Abiotic Model
+
+The process-based [abiotic](../api/models/abiotic.md) model will contain a sub-daily
+mechanistic representation of the radiation balance, the energy
+balance, and wind profiles. Submodules will be closely coupled to the hydrology and
+plants models through the exchange of energy and water. The model will also provides a
+constant vertical profile of atmospheric pressure and atmospheric $\ce{CO_{2}}$ based on
+external inputs. Most processes will be calculated on a per grid cell basis; horizontal
+exchange of properties will be considered at a later stage. The first model draft is
+loosely based on the 'microclimc' model by {cite}`maclean_microclimc_2021`.
+
+```{note}
+Some of the features described here are not yet implemented.
+```
+
+#### Radiation balance
+
+The radiation balance submodule will calculate location-specific solar irradiance
+(shortwave), reflection and scattering of shortwave radiation from canopy and surface, a
+vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
+and surface. A basic version of the surface and canopy radiation balance is currently
+included in the energy balance submodule.
+
+#### Energy balance
+
+The [energy balance](../api/models/abiotic/energy_balance.md) and
+[soil energy balance](../api/models/abiotic/soil_energy_balance.md) submodules will
+derive sensible and latent heat fluxes from canopy layers and surface to the atmosphere.
+Part of the net radiation will be converted into soil heat flux. Based on these
+turbulent fluxes, air temperature, canopy temperature, relative humidity, and soil
+temperature will be updated simultaneously at each level. The vertical mixing between
+layers is assumed to be driven by
+[heat conductance](../api/models/abiotic/conductivities.md) because turbulence is
+typically low below the canopy {cite}`maclean_microclimc_2021`.
+
+#### Wind
+
+The [wind](../api/models/abiotic/wind.md) submodule will calculate the above- and
+within-canopy wind profiles for the Virtual Ecosystem. These profiles determine the
+exchange of heat and water between soil and atmosphere below the canopy
+as well as the exchange with the atmosphere above the canopy.
+
+## Hydrology Model
+
+The [hydrology](../api/models/hydrology.md) model simulates the hydrological
+processes in the Virtual Ecosystem. We placed hydrology in a separate model to allow
+easy replacement with a different hydrology model. Also, this separation provides more
+flexibility in defining the order of models an/or processes in the overall Virtual
+Ecosystem workflow.
+
+```{note}
+Some of the features described here are not yet implemented.
+```
+
+### Vertical hydrology components
+
+The vertical component of the hydrology model determines the water balance within each
+grid cell. This includes [above ground](../api/models/hydrology/above_ground.md)
+processes such as rainfall, intercept, and surface runoff out of the grid cell.
+The [below ground](../api/models/hydrology/below_ground.md) component considers
+infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
+potential, horizontal sub-surface flow out of the grid cell, and changes in
+groundwater storage.
+The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`.
+
+### Horizontal hydrology components
+
+The second part of the hydrology model calculates the horizontal water movement across
+the full model grid including accumulated surface runoff and sub-surface flow, and river
+discharge rate, [see](../api/models/hydrology/above_ground.md). The flow direction is
+based on a digital elevation model.
+
 ## Plant Model
 
 The Plant Model models the primary production from plants in the Virtual Ecosystem. We
@@ -97,106 +211,6 @@ Further theoretical background for the Soil Model can be found
 [here](./soil/soil_details.md).
 
 ## Animal Model
-
-## Abiotic Model
-
-The Abiotic Model provides the microclimate for the Virtual Ecosystem.
-Using a small set of input variables from external sources such as reanalysis or
-regional climate models, the model calculates atmospheric and soil parameters that
-drive the dynamics of plants, animals, and microbes at different vertical levels:
-
-- above canopy (canopy height + reference measurement height, typically 2m)
-- canopy layers (maximum of ten layers, minimum one layers)
-- subcanopy (2 m)
-- surface layer (10 cm)
-- soil layers (currently one near surface layer and one layer at 1 m below ground)
-
-At the moment, the default option is a simple regression model that estimates
-microclimate for a monthly time step. We are also working on a process-based abiotic
-model that runs on a shorter time step, typically sub-daily, and could be used to run
-the Virtual Ecosystem in high temporal resolution or for representative days per month.
-Both versions of the abiotic model provide the following variables at different vertical
-levels:
-
-- Air temperature, relative humidity, and vapour pressure deficit
-- Soil temperature
-- Atmospheric $\ce{CO_{2}}$ concentration
-- Atmospheric Pressure
-
-### Simple Abiotic Model
-
-The Simple Abiotic Model is a one-column model that operates on a grid cell basis and
-does not consider horizontal exchange of energy, atmospheric water, and momentum.
-The model uses linear regressions from {cite}`hardwick_relationship_2015` and
-{cite}`jucker_canopy_2018` to predict
-atmospheric temperature, relative humidity, and vapour pressure deficit
-at ground level (1.5 m) given the above canopy conditions and leaf area index of
-intervening canopy. A vertical profile across all atmospheric layers is then
-interpolated using a logarithmic curve between the above canopy observation and ground
-level prediction. Soil temperature is interpolated between the surface layer and the air
-temperature at around 1 m depth which equals the mean annual temperature.
-The model also provides a constant vertical profile of atmospheric pressure and
-atmospheric $\ce{CO_{2}}$.
-
-### Process-based Abiotic Model
-
-The Process-based Abiotic Model will contain five subroutines: radiation, energy balance
-, water balance, wind, and atmospheric $\ce{CO_{2}}$. The model will be based on the
-'microclimc' model by {cite}`maclean_microclimc_2021`.
-
-#### Radiation
-
-The Radiation submodule calculates location-specific solar irradiance
-(shortwave), reflection and scattering of shortwave radiation from canopy and surface,
-vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
-and surface. This will likely be replaced by the SPLASH model in the future.
-
-#### Energy balance
-
-The Energy balance submodule derives sensible and latent heat fluxes from canopy and
-surface to the atmosphere, and updates air temperature, relative humidity, and vapor
-pressure deficit at each level. The vertical mixing between levels is assumed to be
-driven by heat conductance because turbulence is typically low below the canopy
-{cite}`maclean_microclimc_2021`. Part of the net radiation is converted into soil heat
-flux. The vertical exchange of heat between soil levels is coupled to the atmospheric
-mixing.
-
-#### Water balance
-
-The Water balance submodule will link atmospheric humidity to the hydrology model and
-coordinate the exchange of water between pools, i.e. between the soil, plants, animals,
-and the atmosphere.
-
-#### Wind
-
-The wind submodule calculates the above- and within-canopy wind profiles for the Virtual
-Ecosystem. These profiles will determine the exchange of heat, water, and $\ce{CO_{2}}$
-between soil and atmosphere below the canopy as well as the exchange with the atmsophere
-above the canopy.
-
-#### Atmospheric $\ce{CO_{2}}$
-
-The Atmospheric $\ce{CO_{2}}$ submodule will calculate the vertical profile of
-atmospheric $\ce{CO_{2}}$ below the canopy. It will include the carbon assimilation/
-respiration from plants and respiration from animals and soil microbes and mix
-vertically depending on wind speed below the canopy.
-
-## Hydrology Model
-
-The Hydrology model simulates the hydrological processes in the Virtual Ecosystem. We
-placed hydrology in a separate model in order to allow easy replacement with a different
-hydrology model. Also, this provides more flexibility in defining the order of
-models an/or processes in the overall Virtual Ecosystem workflow.
-
-The first part of the Hydrology model determines the water balance within each
-grid cell including rainfall, intercept, surface runoff out of the grid cell,
-infiltration, percolation (= vertical flow), soil moisture profile, and
-horizontal sub-surface flow out of the grid
-cell.
-
-The second part of the submodule calculates the water balance across the full model
-grid including accumulated surface runoff, sub-surface flow, return flow, and streamflow
-. This second part is still in development.
 
 ## Disturbance Model
 
