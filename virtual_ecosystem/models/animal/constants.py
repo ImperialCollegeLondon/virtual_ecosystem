@@ -53,30 +53,6 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
-    fat_mass_terms: dict[TaxaType, tuple[float, float]] = field(
-        default_factory=lambda: {
-            TaxaType.MAMMAL: (1.19, 0.02),  # Scaling of mammalian herbivore fat mass
-            TaxaType.BIRD: (1.19, 0.05),  # Toy Values
-            TaxaType.INSECT: (1.19, 0.05),  # Toy Values
-        }
-    )
-
-    muscle_mass_terms: dict[TaxaType, tuple[float, float]] = field(
-        default_factory=lambda: {
-            TaxaType.MAMMAL: (1.0, 0.38),  # Scaling of mammalian herbivore muscle mass
-            TaxaType.BIRD: (1.0, 0.40),  # Toy Values
-            TaxaType.INSECT: (1.0, 0.40),  # Toy Values
-        }
-    )
-
-    intake_rate_terms: dict[TaxaType, tuple[float, float]] = field(
-        default_factory=lambda: {
-            TaxaType.MAMMAL: (0.71, 0.63),  # Mammalian maximum intake rate
-            TaxaType.BIRD: (0.7, 0.50),  # Toy Values
-            TaxaType.INSECT: (0.7, 0.50),  # Toy Values
-        }
-    )
-
     energy_density: dict[str, float] = field(
         default_factory=lambda: {
             "meat": 7000.0,  # Energy of mammal meat [J/g]
