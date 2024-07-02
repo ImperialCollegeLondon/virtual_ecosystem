@@ -1,50 +1,42 @@
 # The theory of the Virtual Ecosystem
 
 Ecosystems are complex systems that arise from the interplay between animals, plants,
-and microbles with their abiotic environment. Many of these interactions are non-linear
-and happen across a wide range of spatial and temporal scales which makes ecosystem
-dynamics and emergent phenomena such as resilience to environmental stressors
+and microbes with their abiotic environment (Figure 1). Many of these interactions are
+non-linear and happen across a wide range of spatial and temporal scales which makes
+ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
 challenging to understand and predict.
 
-The Virtual Ecosystem is a holistic ecosystem model that aims to replicate the many
-connections among individual organisms and their complex interactions with the abiotic
-environment with the goal to explicitly reveal ecosystem-level emergent phenomena.
-The model represents fundamental physiological processes governing the birth, growth,
-reproduction, and survival of microbes, plants, and animals. Additionally, it simulates
-physical processes such as microclimate and hydrology, which both influence and are
-influenced by the biotic components of the ecosystem. Simultaneously, the Virtual
-Ecosystem aims to balance energy, water, carbon, nitrogen, and phosphorus
-levels by simulating how these flow through plants, animals, and microbes. (Figure 1).
+Figure here
 
-**FIGURE HERE**
-*Figure 1. The key processes in the Virtual Ecosystem (reference here).
+**Figure 1. The key processes in the Virtual Ecosystem** (from {cite}`ewers_new_2024`).
 The model replicates ecosystem dynamics across four ecological domains, each represented
 by a separate module that generates the dynamics of plants, animals, soil, and the
 abiotic environment. The essential metabolic processes operating at the scale of
 individual organisms—plants, animals, and microbes—are incorporated into the plant,
 faunal, and soil modules, respectively. These modules are dynamically connected through
-the transfer of matter and energy.*
+the transfer of matter and energy.
 
-The biotic domains of the model are driven by organismal physiology, including the
-dependence of vital rates (e.g. birth, death, metabolism) on temperature and body size
-(Gillooly et al. 2001, White et al. 2006), and stoichiometry – the balance of carbon,
-nitrogen and phosphorus within organisms
-(Sterner and Elser 2002, Agren 2008, Cherif and Loreau 2013). The physical domain of the
-model is based on fundamental principles of physics (Maclean and Klinges 2021).
+Despite rapid advancements in the development of detailed ecological models for
+terrestrial ecosystems
+*(Clark et al. 2011, Harfoot et al. 2014, Fatichi et al. 2019, Geary et al. 2020)*,
+most models are limited in the breadth of processes being incorporated, and in the
+diversity of users that might benefit from such models.
 
-To serve a diverse range of user strories, the model attempts to replicate processes
-across wide spatial and temporal scales. Simulations can run with spatial extents from
-the typical area of natural area management that range from 1 to 40,000 ha
-(UNEP-WCMC and IUCN 2024), and time scales range from short-term management periods
-(one year or more) to long-term data series spanning decades, essential for accurately
-detecting changes in ecosystem resilience (Boulton et al. 2022).
+The Virtual Ecosystem aims
+to provide a fully mechanistic, fully integrated representation of key abiotic and
+biotic processes that govern three key emergent properties of terrestrical ecosystems:
+their stability, resilience, and sustainability.
+The development serves the perspectives of a wide variety of users and disciplines
+(Box 1; Virtual Ecosystem Project Team 2024).
 
-```{admonition} User Stories
+:::{card} User Stories
 User stories serve as a project management tool that outlines the criteria for project
-success. Below, we present eight example user stories as outlined in Ewers et al.,
+success. Below, we present eight example user stories as outlined in {cite}`ewers_new_2024`,
 each equally vital in defining the success of a holistic ecosystem model. Fulfilling
 the requirements of all user stories is necessary for the model to achieve complete
 success.
+
+Core user stories
 
 * As a systems ecologist, I will be able to identify any core components and
 sub-networks that exert strong control over the full system dynamics, so that I can
@@ -58,14 +50,30 @@ of the ecosystem.
 * As a biogeochemist, I will be able to track the flow of carbon, nitrogen and
 phosphorus through the ecosystem, so that I can quantify elemental balances and
 residence times.
+* As a computational ecologist, I will have a modular tool that will allow me to
+contrast different approaches to modelling ecosystems, so that I can better understand
+the processes that drive ecosystem dynamics.
+* As a community ecologist, I will be able to predict the spatial and temporal
+distribution of biomass within and among functional groups, so that I can understand how
+functional diversity is maintained.
+
+Applied User stories
+
 * As a hydrologist, I will be able to predict the frequency and magnitude of flood
 events, so that I can design downstream flood defences.
 * As a field ecologist, I will be able to identify knowledge gaps that significantly
 impair our ability to predict ecosystem dynamics, so that I can prioritise future data
-collection activities. As an applied ecologist, I will be able to examine the impact of
-climate change and extreme climatic events on ecosystem dynamics, so that I can predict
-the likely future state of the ecosystem.
+collection activities.
+* As an applied ecologist, I will be able to examine the impact of climate change and
+extreme climatic events on ecosystem dynamics, so that I can predict the likely future
+state of the ecosystem.
+* As a conservation biologist, I will be able to examine the impacts of invasion,
+introduction and extinction on ecosystem dynamics, so that I can quantify the
+importance of species-level conservation actions.
+* As a climate scientist or carbon offsetting company, I will be able to examine the net
+carbon sequestration potential of an ecosystem over decadal to centennial timescales.
 * As a resource manager, I will be able to predict the outcomes of competing sets of
 management strategies, so that I can make informed decisions about implementing
 cost-effective management actions.
-```
+
+:::
