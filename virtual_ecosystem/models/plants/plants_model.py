@@ -258,6 +258,7 @@ class PlantsModel(
 
         # Store the absorbed irradiance in the data object and add the remaining
         # irradiance at the surface layer level
+        # NOTE - this is only the _PPFD_ at ground level not the SWDown.
         self.data["layer_absorbed_irradiation"][:] = absorbed_irradiance
         ground = np.where(self.data["layer_roles"].data == "surface")[0]
         self.data["layer_absorbed_irradiation"][ground] = ground_irradiance
