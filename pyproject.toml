@@ -92,6 +92,7 @@ addopts = """
   --cov=virtual_ecosystem
   --cov-report=html:htmlcov/coverage
   --doctest-modules --ignore=virtual_ecosystem/__main__.py
+  --import-mode importlib
   """
 python_files = 'test_*.py'
 testpaths = ['tests']
