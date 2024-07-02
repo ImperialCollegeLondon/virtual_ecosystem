@@ -2,11 +2,6 @@
 constants" (fitting relationships taken from the literature) required by the broader
 :mod:`~virtual_ecosystem.models.animal` module
 
-The near-future intention is to rework the relationship between these constants and the
-AnimalCohort objects in which they are used such that there is a FunctionalType class
-in-between them. This class will hold the specific scaling, rate, and conversion
-parameters required for determining the function of a specific AnimalCohort and will
-avoid frequent searches through this constants file for values.
 """  # noqa: D205, D415
 
 from dataclasses import dataclass, field
@@ -21,7 +16,11 @@ from virtual_ecosystem.models.animal.animal_traits import (
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
-    """Dataclass to store all constants related to metabolic rates."""
+    """Dataclass to store all constants related to metabolic rates.
+
+    TODO: Remove unused constants.
+
+    """
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
         default_factory=lambda: {

@@ -100,6 +100,8 @@ class AnimalCommunity:
         Currently, the number of individuals in a cohort is handled using Damuth's Law,
         which only holds for mammals.
 
+        TODO: Move populate_community to following Madingley instead of damuth
+
         """
         for functional_group in self.functional_groups:
             individuals = damuths_law(
@@ -121,8 +123,8 @@ class AnimalCommunity:
         This function should take a cohort and a destination community and then pop the
         cohort from this community to the destination.
 
-        Travel distance is not currently a function of body-size or locomotion for
-        starvation dispersal.
+        TODO: travel distance should be a function of body-size or locomotion once
+              multi-grid occupancy is integrated.
 
         Args:
             migrant: The AnimalCohort moving between AnimalCommunities.
@@ -282,8 +284,7 @@ class AnimalCommunity:
         """Collect suitable prey for a given consumer cohort.
 
         This is a helper function for forage_community to isolate the prey selection
-        functionality. It was already getting confusing and it will get much more so
-        as the Animal Module develops.
+        functionality.
 
         Args:
             consumer_cohort: The AnimalCohort for which a prey list is being collected
@@ -326,6 +327,8 @@ class AnimalCommunity:
         Respiration wastes are totaled because they are CO2 and not tracked spatially.
         Excretion wastes are handled cohort by cohort because they will need to be
         spatially explicit with multi-grid occupancy.
+
+        TODO: Rework with stoichiometry
 
         Args:
             temperature: Current air temperature (K).

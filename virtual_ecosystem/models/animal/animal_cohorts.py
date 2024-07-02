@@ -96,6 +96,8 @@ class AnimalCohort:
         This method will later drive the processing of carbon and nitrogen metabolic
         products.
 
+        TODO: Update with stoichiometry
+
         Args:
             temperature: Current air temperature (K)
             dt: Number of days over which the metabolic costs should be calculated.
@@ -134,6 +136,8 @@ class AnimalCohort:
         current metabolic wastes are carbonaceous and so all this does is provide a link
         joining metabolism to a soil pool for later use.
 
+        TODO: Update with stoichiometry
+
         Args:
             excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
             excrement_pool: The pool of wastes to which the excreted nitrogenous wastes
@@ -151,6 +155,8 @@ class AnimalCohort:
         current metabolic wastes are carbonaceous and so all this does is return the
         excreta mass for updating data["total_animal_respiration"] in metabolize
         community.
+
+        TODO: Update with stoichiometry
 
         Args:
             excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
@@ -174,6 +180,7 @@ class AnimalCohort:
 
         TODO: Rework after update litter pools for mass
         TODO: update for current conversion efficiency
+        TODO: Update with stoichiometry
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
@@ -310,6 +317,8 @@ class AnimalCohort:
         which an individual herbivore searches its environment, factoring in the
         herbivore's current mass.
 
+        TODO: update name
+
         Returns:
             A float representing the search efficiency rate in [ha/(day*g)].
         """
@@ -324,6 +333,8 @@ class AnimalCohort:
         This method computes the potential consumed biomass based on the search
         efficiency (alpha),the fraction of the total plant stock available to the cohort
         (phi), and the biomass of the target plant.
+
+        TODO: give A_cell a grid size reference
 
         Args:
             target_plant: The plant resource being targeted by the herbivore cohort.
@@ -346,6 +357,8 @@ class AnimalCohort:
         This aggregates the handling times for consuming each plant resource in the
         list, incorporating the search efficiency and other scaling factors to compute
         the total handling time required by the cohort.
+
+        TODO: give A_cell a grid size reference.
 
         Args:
             plant_list: A sequence of plant resources available for consumption by the
@@ -378,6 +391,8 @@ class AnimalCohort:
         plant resources to determine the rate at which the target plant is consumed by
         the cohort.
 
+        TODO: update name
+
         Args:
             plant_list: A sequence of plant resources available for consumption by the
                  cohort.
@@ -399,6 +414,8 @@ class AnimalCohort:
 
     def calculate_theta_opt_i(self) -> float:
         """Calculate the optimal predation param based on predator-prey mass ratio.
+
+        TODO: update name
 
         Returns:
             Float value of the optimal predation parameter for use in calculating the
@@ -446,6 +463,8 @@ class AnimalCohort:
         self, alpha: float, theta_i_j: float
     ) -> float:
         """Calculate the potential number of prey consumed.
+
+        TODO: give A_cell a grid size reference
 
         Args:
             alpha: the predation search rate
@@ -507,6 +526,8 @@ class AnimalCohort:
         the target cohort is consumed, and then calculates the actual mass to be
         consumed based on this rate and other model parameters.
 
+        TODO: Replace delta_t with time step reference
+
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
                 predator.
@@ -516,7 +537,7 @@ class AnimalCohort:
             The mass to be consumed from the target cohort by the predator (in kg).
         """
         F = self.F_i_j_individual(animal_list, target_cohort)
-        delta_t = 30.0  # days, TODO: Replace with actual reference or model parameter
+        delta_t = 30.0  # days
 
         # Calculate the consumed mass based on Mad. formula for delta_mass_predation
         consumed_mass = (
@@ -573,6 +594,8 @@ class AnimalCohort:
         plant is consumed, and then calculates the actual mass to be consumed based on
         this rate and other model parameters.
 
+        TODO: Replace delta_t with actual time step reference
+
         Args:
             plant_list: A sequence of plant resources that can be consumed by the
                 herbivore.
@@ -582,7 +605,7 @@ class AnimalCohort:
             The mass to be consumed from the target plant by the herbivore (in kg).
         """
         F = self.F_i_k(plant_list, target_plant)  # Adjusting this call as necessary
-        delta_t = 30.0  # days, TODO: Replace with actual reference or model parameter
+        delta_t = 30.0  # days
 
         consumed_mass = target_plant.mass_current * (
             1 - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
@@ -593,6 +616,8 @@ class AnimalCohort:
         self, plant_list: Sequence[Resource], excrement_pool: DecayPool
     ) -> float:
         """This method handles mass assimilation from herbivory.
+
+        TODO: update name
 
         Args:
             plant_list: A sequence of plant resources available for herbivory.
@@ -661,7 +686,8 @@ class AnimalCohort:
         Madingley
 
         TODO: current format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference
+        TODO: update A_cell with real reference to grid zie
+        TODO: update name
 
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
@@ -685,7 +711,7 @@ class AnimalCohort:
         It assumes the `mass_consumed` has already been calculated and processed
         through `get_eaten`.
 
-        TODO: nonreproductive functional groups should not store any reproductive mass
+        TODO: non-reproductive functional groups should not store any reproductive mass
 
         Args:
             mass_consumed: The mass consumed by this consumer, calculated externally.
@@ -727,6 +753,7 @@ class AnimalCohort:
         """The probability that a juvenile cohort will migrate to a new grid cell.
 
         TODO: This does not hold for diagonal moves or non-square grids.
+        TODO: update A_cell to grid size reference
 
         Following Madingley's assumption that the probability of juvenile dispersal is
         equal to the proportion of the cohort individuals that would arrive in the
@@ -752,7 +779,7 @@ class AnimalCohort:
 
         """
 
-        A_cell = 1.0  # TODO: update this to actual grid reference
+        A_cell = 1.0  # temporary
         grid_side = sqrt(A_cell)
         velocity = sf.juvenile_dispersal_speed(
             self.mass_current,
@@ -770,6 +797,9 @@ class AnimalCohort:
         self, dt: float, carcass_pool: CarcassPool
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
+
+        TODO: Review logic of mass_max = adult_mass
+        TODO: Review the use of ceil in number_dead, it fails for large animals.
 
         Args:
             dt: The time passed in the timestep (days).
@@ -807,7 +837,6 @@ class AnimalCohort:
         u_t = u_bg + u_se + u_st
 
         # Calculate the total number of dead individuals
-        # TODO: the use of ceil here might have unintended outcomes, keep an eye on it
         number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
 
         # Remove the dead individuals from the cohort

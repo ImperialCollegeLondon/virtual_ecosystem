@@ -47,7 +47,11 @@ class FunctionalGroup:
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
-        """The constructor for the FunctionalGroup class."""
+        """The constructor for the FunctionalGroup class.
+
+        TODO: Remove unused attributes.
+
+        """
 
         self.name = name
         """The name of the functional group."""
@@ -103,15 +107,12 @@ def import_functional_groups(
 ) -> list[FunctionalGroup]:
     """The function to import pre-defined functional groups.
 
-    This function is a first-pass of how we might import pre-defined functional groups.
-    The current expected csv structure is:
-    - ["name", "taxa", "diet", "metabolic_type", "birth_mass", "adult_mass"]
+    This function is a first-pass of how we might import pre-defined functional groups,
     the specific options of which can be found in functional_group.py.
     This allows a user to set out a basic outline of functional groups that accept our
     definitions of parameters and scaling relationships based on those traits.
 
-    We will need a structure for users changing those underlying definitions but that
-    can be constructed later.
+    TODO: A structure for user-selection of which traits to employ.
 
     Args:
         fg_csv_file: The location of the csv file holding the functional group
