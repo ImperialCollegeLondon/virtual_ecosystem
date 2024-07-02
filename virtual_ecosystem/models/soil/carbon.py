@@ -24,16 +24,24 @@ class MicrobialChanges:
     """Changes due to microbial uptake, biomass production and losses."""
 
     lmwc_uptake: NDArray[np.float32]
-    """Total rate of microbial LMWC uptake [kg C m^-3 day^-1]."""
+    """Total rate of microbial uptake of low molecular weight carbon.
+    
+    Units of [kg C m^-3 day^-1]."""
 
     microbe: NDArray[np.float32]
     """Rate of change of microbial biomass pool [kg C m^-3 day^-1]."""
 
     pom_enzyme: NDArray[np.float32]
-    """Rate of change of POM degrading enzyme pool [kg C m^-3 day^-1]."""
+    """Rate of change of particulate organic matter degrading enzyme pool.
+
+    Units of [kg C m^-3 day^-1].
+    """
 
     maom_enzyme: NDArray[np.float32]
-    """Rate of change of MAOM degrading enzyme pool [kg C m^-3 day^-1]."""
+    """Rate of change of mineral associated organic matter degrading enzyme pool.
+    
+    Units of [kg C m^-3 day^-1].
+    """
 
     necromass_generation: NDArray[np.float32]
     """Rate at which necromass is being produced [kg C m^-3 day^-1]."""
@@ -44,10 +52,16 @@ class EnzymeMediatedRates:
     """Rates of each enzyme mediated transfer between pools."""
 
     pom_to_lmwc: NDArray[np.float32]
-    """Rate of POM decomposition to LMWC [kg C m^-3 day^-1]."""
+    """Rate of particulate organic matter decomposition to low molecular weight carbon.
+    
+    Units of [kg C m^-3 day^-1].
+    """
 
     maom_to_lmwc: NDArray[np.float32]
-    """Rate of MAOM decomposition to LMWC [kg C m^-3 day^-1]."""
+    """Rate of mineral associated organic matter decomposition to LMWC.
+    
+    Units of [kg C m^-3 day^-1].
+    """
 
 
 # TODO - This function should probably be shortened. I've done some work on this
