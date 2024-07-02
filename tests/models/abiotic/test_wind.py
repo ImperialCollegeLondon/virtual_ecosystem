@@ -205,15 +205,15 @@ def test_calculate_wind_attenuation_coefficient(
     # My updates assume the former approach, so I've updated this test to match. The
     # results have changed.
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
-        lyr_str.index_filled_atmosphere
+        lyr_strct.index_filled_atmosphere
     ].to_numpy()
 
     relative_turbulence_intensity = dummy_climate_data_varying_canopy[
         "relative_turbulence_intensity"
-    ][lyr_str.index_filled_atmosphere].to_numpy()
+    ][lyr_strct.index_filled_atmosphere].to_numpy()
 
     # TODO - create a scalar index for this canopy top layer [1]
     canopy_height = (
@@ -329,7 +329,7 @@ def test_calculate_wind_canopy(
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_canopy
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     # TODO we want to use fixture here, but there is a conflict with expected results
     # in conductivities (attenuation coefficient two orders of magnitude different, and
@@ -345,7 +345,7 @@ def test_calculate_wind_canopy(
 
     layer_heights_np = dummy_climate_data_varying_canopy["layer_heights"].to_numpy()
     layer_heights = layer_heights_np[
-        np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface)
+        np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface)
     ]
     canopy_height = layer_heights_np[1]
 
@@ -374,18 +374,18 @@ def test_calculate_wind_profile(
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     # VIVI - same deal here. Feeding the full true aboveground rows into this, not just
     # the true canopy rows. Seeing minor test value changes as a result.
     leaf_area_index = dummy_climate_data_varying_canopy["leaf_area_index"][
-        lyr_str.index_filled_atmosphere
+        lyr_strct.index_filled_atmosphere
     ].to_numpy()
     layer_heights = dummy_climate_data_varying_canopy["layer_heights"][
-        lyr_str.index_filled_atmosphere
+        lyr_strct.index_filled_atmosphere
     ].to_numpy()
     air_temperature = dummy_climate_data_varying_canopy["air_temperature"][
-        lyr_str.index_filled_atmosphere
+        lyr_strct.index_filled_atmosphere
     ].to_numpy()
 
     wind_update = calculate_wind_profile(

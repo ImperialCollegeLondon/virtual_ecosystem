@@ -90,37 +90,37 @@ def fixture_canopy_layer_data(fixture_core_components):
     TODO: This is currently convoluted because of the way in which layer_heights is set
     within the plants model.
     """
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     return {
         "layer_heights_full": (
             "layer_heights",
             np.array([32, 30, 20, 10, 0.1, -0.5, -1]),
-            np.logical_or(lyr_str.index_filled_atmosphere, lyr_str.index_all_soil),
+            np.logical_or(lyr_strct.index_filled_atmosphere, lyr_strct.index_all_soil),
         ),
         "layer_heights_canopy": (
             "layer_heights",
             np.array([32, 30, 20, 10]),
-            np.logical_or(lyr_str.index_above, lyr_str.index_filled_canopy),
+            np.logical_or(lyr_strct.index_above, lyr_strct.index_filled_canopy),
         ),
         "leaf_area_index": (
             "leaf_area_index",
             np.array([1, 1, 1]),
-            lyr_str.index_filled_canopy,
+            lyr_strct.index_filled_canopy,
         ),
         "layer_fapar": (
             "layer_fapar",
             np.array([0.4, 0.2, 0.1]),
-            lyr_str.index_filled_canopy,
+            lyr_strct.index_filled_canopy,
         ),
         "layer_absorbed_irradiation": (
             "layer_absorbed_irradiation",
             np.array([400, 200, 100, 300]),
-            np.logical_or(lyr_str.index_filled_canopy, lyr_str.index_surface),
+            np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface),
         ),
         "layer_leaf_mass": (
             "layer_leaf_mass",
             np.array([10000, 10000, 10000]),
-            lyr_str.index_filled_canopy,
+            lyr_strct.index_filled_canopy,
         ),
     }

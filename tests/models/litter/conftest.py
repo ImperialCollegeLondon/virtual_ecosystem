@@ -30,7 +30,7 @@ def dummy_litter_data(fixture_core_components):
 
     from virtual_ecosystem.core.data import Data
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     # Setup the data object with four cells.
     data = Data(fixture_core_components.grid)
@@ -55,16 +55,16 @@ def dummy_litter_data(fixture_core_components):
         data[var] = DataArray(vals, dims=["cell_id"])
 
     # Vertically structured variables
-    data["soil_temperature"] = lyr_str.from_template()
-    data["soil_temperature"][lyr_str.index_all_soil] = 20
+    data["soil_temperature"] = lyr_strct.from_template()
+    data["soil_temperature"][lyr_strct.index_all_soil] = 20
 
     # At present the soil model only uses the top soil layer, so this is the
     # only one with real test values in
-    data["matric_potential"] = lyr_str.from_template()
-    data["matric_potential"][lyr_str.index_topsoil] = [-10.0, -25.0, -100.0, -100.0]
+    data["matric_potential"] = lyr_strct.from_template()
+    data["matric_potential"][lyr_strct.index_topsoil] = [-10.0, -25.0, -100.0, -100.0]
 
-    data["air_temperature"] = lyr_str.from_template()
-    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+    data["air_temperature"] = lyr_strct.from_template()
+    data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
 

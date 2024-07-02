@@ -13,10 +13,10 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         initialise_conductivities,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     result = initialise_conductivities(
-        layer_structure=lyr_str,
+        layer_structure=lyr_strct,
         layer_heights=dummy_climate_data["layer_heights"],
         initial_air_conductivity=50.0,
         top_leaf_vapour_conductivity=0.32,
@@ -25,18 +25,18 @@ def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
         bottom_leaf_air_conductivity=0.13,
     )
 
-    exp_air_cond = lyr_str.from_template()
-    exp_air_cond[lyr_str.index_atmosphere] = np.repeat(
+    exp_air_cond = lyr_strct.from_template()
+    exp_air_cond[lyr_strct.index_atmosphere] = np.repeat(
         a=[4.166667, 3.33333333, 6.66666667], repeats=[1, 10, 1]
     )[:, None]
 
-    exp_leaf_vap_cond = lyr_str.from_template()
-    exp_leaf_vap_cond[lyr_str.index_filled_canopy] = np.array(
+    exp_leaf_vap_cond = lyr_strct.from_template()
+    exp_leaf_vap_cond[lyr_strct.index_filled_canopy] = np.array(
         [0.254389, 0.276332, 0.298276]
     )[:, None]
 
-    exp_leaf_air_cond = lyr_str.from_template()
-    exp_leaf_air_cond[lyr_str.index_filled_canopy] = np.array(
+    exp_leaf_air_cond = lyr_strct.from_template()
+    exp_leaf_air_cond[lyr_strct.index_filled_canopy] = np.array(
         [0.133762, 0.152571, 0.171379]
     )[:, None]
 
@@ -58,24 +58,24 @@ def test_interpolate_along_heights(dummy_climate_data, fixture_core_components):
         interpolate_along_heights,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     layer_heights = dummy_climate_data["layer_heights"].to_numpy()
 
     result = interpolate_along_heights(
-        start_height=layer_heights[lyr_str.index_surface],
-        end_height=layer_heights[lyr_str.index_above],
-        target_heights=layer_heights[lyr_str.index_filled_atmosphere],
+        start_height=layer_heights[lyr_strct.index_surface],
+        end_height=layer_heights[lyr_strct.index_above],
+        target_heights=layer_heights[lyr_strct.index_filled_atmosphere],
         start_value=50.0,
         end_value=20.0,
     )
 
     # Get layer structure and reduce to only atmospheric layers
-    exp_result = lyr_str.from_template()
-    exp_result[lyr_str.index_filled_atmosphere] = np.array(
+    exp_result = lyr_strct.from_template()
+    exp_result[lyr_strct.index_filled_atmosphere] = np.array(
         [20.0, 21.88087774, 31.28526646, 40.68965517, 50.0]
     )[:, None]
-    exp_result = exp_result[lyr_str.index_filled_atmosphere]
+    exp_result = exp_result[lyr_strct.index_filled_atmosphere]
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
@@ -89,11 +89,11 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
         interpolate_along_heights,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     # Extract the block of atmospheric layer heights.
     layer_heights = dummy_climate_data["layer_heights"][
-        lyr_str.index_atmosphere
+        lyr_strct.index_atmosphere
     ].to_numpy()
 
     # Interpolate from the top to bottom across the atmosphere
@@ -107,11 +107,11 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
 
     # The function only returns values for the atmospheric layers, so fill the template
     # and then truncate to the atmosphere.
-    exp_result = lyr_str.from_template()
-    exp_result[lyr_str.index_filled_atmosphere] = np.array(
+    exp_result = lyr_strct.from_template()
+    exp_result[lyr_strct.index_filled_atmosphere] = np.array(
         [20.0, 21.88087774, 31.28526646, 40.68965517, 50.0]
     )[:, None]
-    exp_result = exp_result[lyr_str.index_atmosphere]
+    exp_result = exp_result[lyr_strct.index_atmosphere]
 
     np.testing.assert_allclose(
         result, exp_result, rtol=1e-04, atol=1e-04, equal_nan=True
@@ -183,7 +183,7 @@ def test_calculate_leaf_air_heat_conductivity(
         calculate_leaf_air_heat_conductivity,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
     abiotic_consts = AbioticConsts()
 
     result = calculate_leaf_air_heat_conductivity(
@@ -206,10 +206,10 @@ def test_calculate_leaf_air_heat_conductivity(
             abiotic_consts.negative_free_conductance_parameter
         ),
     )
-    exp_result = lyr_str.from_template()
-    exp_result[lyr_str.index_filled_canopy] = np.array([0.065242, 0.065062, 0.064753])[
-        :, None
-    ]
+    exp_result = lyr_strct.from_template()
+    exp_result[lyr_strct.index_filled_canopy] = np.array(
+        [0.065242, 0.065062, 0.064753]
+    )[:, None]
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
@@ -235,7 +235,7 @@ def test_calculate_current_conductivities(dummy_climate_data, fixture_core_compo
         calculate_current_conductivities,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     result = calculate_current_conductivities(
         data=dummy_climate_data,
@@ -244,26 +244,26 @@ def test_calculate_current_conductivities(dummy_climate_data, fixture_core_compo
         abiotic_constants=AbioticConsts(),
     )
 
-    exp_gt = lyr_str.from_template()
-    exp_gt[lyr_str.index_above] = np.array(
+    exp_gt = lyr_strct.from_template()
+    exp_gt[lyr_strct.index_above] = np.array(
         [1.460964e02, 6.087350e01, 2.434940e01, 2.434940e01]
     )
-    exp_gt[lyr_str.index_flux_layers] = np.array(
+    exp_gt[lyr_strct.index_flux_layers] = np.array(
         [1.95435e03, 1.414247e01, 0.125081, 13.654908]
     )[:, None]
 
-    exp_gv = lyr_str.from_template()
-    exp_gv[lyr_str.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
+    exp_gv = lyr_strct.from_template()
+    exp_gv[lyr_strct.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
         :, None
     ]
 
-    exp_gha = lyr_str.from_template()
-    exp_gha[lyr_str.index_filled_canopy] = np.array([0.206312, 0.205743, 0.204766])[
+    exp_gha = lyr_strct.from_template()
+    exp_gha[lyr_strct.index_filled_canopy] = np.array([0.206312, 0.205743, 0.204766])[
         :, None
     ]
 
-    exp_gtr = lyr_str.from_template()
-    exp_gtr[lyr_str.index_flux_layers] = np.array(
+    exp_gtr = lyr_strct.from_template()
+    exp_gtr[lyr_strct.index_flux_layers] = np.array(
         [1.954354e03, 1.403429e01, 0.123447, 0.604689]
     )[:, None]
 

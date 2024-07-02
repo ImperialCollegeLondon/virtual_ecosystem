@@ -13,13 +13,13 @@ def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_componen
         initialise_absorbed_radiation,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     leaf_area_index_true = dummy_climate_data["leaf_area_index"][
-        lyr_str.index_filled_canopy
+        lyr_strct.index_filled_canopy
     ]
     layer_heights_canopy = dummy_climate_data["layer_heights"][
-        lyr_str.index_filled_canopy
+        lyr_strct.index_filled_canopy
     ]
 
     result = initialise_absorbed_radiation(
@@ -42,9 +42,11 @@ def test_initialise_canopy_temperature(dummy_climate_data, fixture_core_componen
         initialise_canopy_temperature,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
-    air_temperature = dummy_climate_data["air_temperature"][lyr_str.index_filled_canopy]
+    air_temperature = dummy_climate_data["air_temperature"][
+        lyr_strct.index_filled_canopy
+    ]
 
     absorbed_radiation = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
 
@@ -138,51 +140,51 @@ def test_calculate_leaf_and_air_temperature(
     )
     from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     result = calculate_leaf_and_air_temperature(
         data=dummy_climate_data,
         time_index=1,
-        layer_structure=lyr_str,
+        layer_structure=lyr_strct,
         abiotic_constants=AbioticConsts(),
         abiotic_simple_constants=AbioticSimpleConsts(),
         core_constants=CoreConsts(),
     )
 
-    exp_air_temp = lyr_str.from_template()
-    exp_air_temp[lyr_str.index_filled_atmosphere] = np.array(
+    exp_air_temp = lyr_strct.from_template()
+    exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.999969, 29.995439, 28.796977, 20.08797]
     )[:, None]
 
-    exp_leaf_temp = lyr_str.from_template()
-    exp_leaf_temp[lyr_str.index_filled_canopy] = np.array(
+    exp_leaf_temp = lyr_strct.from_template()
+    exp_leaf_temp[lyr_strct.index_filled_canopy] = np.array(
         [30.078613, 29.091601, 26.951191]
     )[:, None]
 
-    exp_vp = lyr_str.from_template()
-    exp_vp[lyr_str.index_filled_atmosphere] = np.array(
+    exp_vp = lyr_strct.from_template()
+    exp_vp[lyr_strct.index_filled_atmosphere] = np.array(
         [0.14, 0.140323, 0.18372, 1.296359, 0.023795]
     )[:, None]
 
-    exp_vpd = lyr_str.from_template()
-    exp_vpd[lyr_str.index_filled_atmosphere] = np.array(
+    exp_vpd = lyr_strct.from_template()
+    exp_vpd[lyr_strct.index_filled_atmosphere] = np.array(
         [0.098781, 0.099009, 0.129644, 0.94264, 0.021697]
     )[:, None]
 
-    exp_gv = lyr_str.from_template()
-    exp_gv[lyr_str.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
+    exp_gv = lyr_strct.from_template()
+    exp_gv[lyr_strct.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
         :, None
     ]
 
     # TODO - flux layer index does not include above but these tests do - what is best.
-    flux_index = np.logical_or(lyr_str.index_flux_layers, lyr_str.index_above)
+    flux_index = np.logical_or(lyr_strct.index_flux_layers, lyr_strct.index_above)
 
-    exp_sens_heat = lyr_str.from_template()
+    exp_sens_heat = lyr_strct.from_template()
     exp_sens_heat[flux_index] = np.array([0.0, 1.397746, 1.315211, -1.515519, 1.0])[
         :, None
     ]
 
-    exp_latent_heat = lyr_str.from_template()
+    exp_latent_heat = lyr_strct.from_template()
     exp_latent_heat[flux_index] = np.array([0.0, 8.330748, 8.426556, 11.740824, 1.0])[
         :, None
     ]
@@ -219,25 +221,25 @@ def test_leaf_and_air_temperature_linearisation(
         leaf_and_air_temperature_linearisation,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    lyr_strct = fixture_core_components.layer_structure
 
     a_A, b_A = leaf_and_air_temperature_linearisation(
         conductivity_from_ref_height=(
             dummy_climate_data["conductivity_from_ref_height"][
-                lyr_str.index_filled_canopy
+                lyr_strct.index_filled_canopy
             ]
         ),
         conductivity_from_soil=np.repeat(0.1, 4),
         leaf_air_heat_conductivity=(
             dummy_climate_data["leaf_air_heat_conductivity"][
-                lyr_str.index_filled_canopy
+                lyr_strct.index_filled_canopy
             ]
         ),
         air_temperature_ref=(
             dummy_climate_data["air_temperature_ref"].isel(time_index=0).to_numpy()
         ),
         top_soil_temperature=dummy_climate_data["soil_temperature"][
-            lyr_str.index_topsoil
+            lyr_strct.index_topsoil
         ].to_numpy(),
     )
 

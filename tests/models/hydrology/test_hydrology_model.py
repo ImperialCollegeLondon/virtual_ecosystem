@@ -225,7 +225,7 @@ def test_setup(
     # Build the config object and core components
     fixture_config["core"]["timing"]["update_interval"] = update_interval
     core_components = CoreComponents(fixture_config)
-    lyr_str = core_components.layer_structure
+    lyr_strct = core_components.layer_structure
 
     with raises:
         # initialise model
@@ -239,8 +239,8 @@ def test_setup(
 
         # Test soil moisture
 
-        exp_soilm_setup = lyr_str.from_template()
-        soil_indices = lyr_str.index_all_soil
+        exp_soilm_setup = lyr_strct.from_template()
+        soil_indices = lyr_strct.index_all_soil
         exp_soilm_setup[soil_indices] = np.array([[250], [250]])
 
         np.testing.assert_allclose(
@@ -278,7 +278,7 @@ def test_setup(
         }
 
         for var_name, expected_vals in expected_2d.items():
-            exp_var = lyr_str.from_template()
+            exp_var = lyr_strct.from_template()
             exp_var[soil_indices] = expected_vals
 
             np.testing.assert_allclose(
