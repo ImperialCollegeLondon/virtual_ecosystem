@@ -5,7 +5,7 @@ constants (fitting relationships taken from the literature) required by the broa
 
 from dataclasses import dataclass
 
-from numpy import log
+import numpy as np
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
@@ -256,7 +256,7 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
-    necromass_decay_rate: float = (1 / 3) * log(2)
+    necromass_decay_rate: float = (1 / 3) * np.log(2)
     """Rate at which microbial necromass decays to low molecular weight carbon [day^-1]
 
     I have not been able to track down any data on this, so for now choosing a rate that
@@ -280,7 +280,7 @@ class SoilConsts(ConstantsDataclass):
     absence of microbes. This is another key target for sensitivity analysis.
     """
 
-    necromass_sorption_rate: float = 1 * log(2)
+    necromass_sorption_rate: float = 1.0 * np.log(2)
     """Rate constant for necromass sorption to minerals [day^-1]
     
     The default value was chosen to be three times the value of
