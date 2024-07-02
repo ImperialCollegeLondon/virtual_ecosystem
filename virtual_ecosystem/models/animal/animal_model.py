@@ -224,16 +224,11 @@ class AnimalModel(
         # initialize values
         self.update_population_densities()
 
-        # Debugging output
-        # print("Data variables after setup:", list(self.data.data.data_vars))
-
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
 
     def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to step the animal model through time.
-
-        Temporary solution.
 
         This method sets the order of operations for the animal module. In nature, these
         events would be simultaneous. The ordering within the method is less a question
