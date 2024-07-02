@@ -288,7 +288,7 @@ class LayerStructure:
     # Attributes populated by __post_init__
     n_canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layer_depth: NDArray[np.float32] = field(init=False)
+    soil_layer_depths: NDArray[np.float32] = field(init=False)
     """A list of the depths of soil layer boundaries."""
     n_soil_layers: int = field(init=False)
     """The number of soil layers."""
@@ -364,8 +364,8 @@ class LayerStructure:
         self.n_canopy_layers = _validate_positive_integer(lcfg["canopy_layers"])
 
         # Soil layers are negative floats
-        self.soil_layer_depth = np.array(_validate_soil_layers(lcfg["soil_layers"]))
-        self.n_soil_layers = len(self.soil_layer_depth)
+        self.soil_layer_depths = np.array(_validate_soil_layers(lcfg["soil_layers"]))
+        self.n_soil_layers = len(self.soil_layer_depths)
 
         # Other heights should all be positive floats
         self.above_canopy_height_offset = _validate_positive_finite_numeric(
@@ -394,7 +394,7 @@ class LayerStructure:
 
         # Check that the maximum depth of the last layer is greater than the max depth
         # of microbial activity.
-        if self.soil_layer_depth[-1] > -self.max_depth_of_microbial_activity:
+        if self.soil_layer_depths[-1] > -self.max_depth_of_microbial_activity:
             to_raise = ConfigurationError(
                 "Maximum depth of soil layers is less than the maximum depth "
                 "of microbial activity"
@@ -403,7 +403,7 @@ class LayerStructure:
             raise to_raise
 
         # Set up soil layer thickness and the thickness of microbially active soil
-        soil_layer_boundaries = np.array([0, *self.soil_layer_depth])
+        soil_layer_boundaries = np.array([0, *self.soil_layer_depths])
         self.soil_layer_thickness = -np.diff(soil_layer_boundaries)
         self.soil_layer_active_thickness = np.clip(
             np.minimum(

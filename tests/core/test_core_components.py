@@ -51,7 +51,7 @@ ALTERNATE_CANOPY = np.array(
             "[core]",
             {
                 "n_canopy_layers": 10,
-                "soil_layer_depth": np.array([-0.25, -1.0]),
+                "soil_layer_depths": np.array([-0.25, -1.0]),
                 "above_canopy_height_offset": 2.0,
                 "surface_layer_height": 0.1,
                 "n_layers": 14,
@@ -84,7 +84,7 @@ ALTERNATE_CANOPY = np.array(
             """,
             {
                 "n_canopy_layers": 3,
-                "soil_layer_depth": np.array([-0.1, -0.5, -0.9]),
+                "soil_layer_depths": np.array([-0.1, -0.5, -0.9]),
                 "above_canopy_height_offset": 1.5,
                 "surface_layer_height": 0.2,
                 "n_layers": 8,
@@ -140,7 +140,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             does_not_raise(),
             dict(
                 n_canopy_layers=10,
-                soil_layer_depth=np.array([-0.25, -1.0]),
+                soil_layer_depths=np.array([-0.25, -1.0]),
                 offset_height=2.0,
                 surface_height=0.1,
                 layer_roles=DEFAULT_CANOPY,
@@ -174,7 +174,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             does_not_raise(),
             dict(
                 n_canopy_layers=3,
-                soil_layer_depth=np.array([-0.1, -0.5, -0.9]),
+                soil_layer_depths=np.array([-0.1, -0.5, -0.9]),
                 offset_height=1.5,
                 surface_height=0.2,
                 layer_roles=ALTERNATE_CANOPY,
@@ -208,7 +208,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
             does_not_raise(),
             dict(
                 n_canopy_layers=3,
-                soil_layer_depth=np.array(
+                soil_layer_depths=np.array(
                     [-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9]
                 ),
                 offset_height=1.5,
@@ -288,7 +288,7 @@ def test_LayerStructure_init(
         assert layer_structure.n_canopy_layers == expected_values["n_canopy_layers"]
         assert np.all(
             np.equal(
-                layer_structure.soil_layer_depth, expected_values["soil_layer_depth"]
+                layer_structure.soil_layer_depths, expected_values["soil_layer_depths"]
             )
         )
         assert (

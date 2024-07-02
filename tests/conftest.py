@@ -365,7 +365,7 @@ def dummy_climate_data(fixture_core_components):
         [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height]
     )[:, None]
 
-    data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depth[:, None]
+    data["layer_heights"][lyr_str.index_all_soil] = lyr_str.soil_layer_depths[:, None]
 
     # Microclimate and energy balance
     # - Vertically structured
