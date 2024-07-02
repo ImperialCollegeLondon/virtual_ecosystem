@@ -175,7 +175,7 @@ class LayerStructure:
     * ``canopy_layers``: a fixed number of layers with the ``canopy`` role. Not all of
       these necessarily contain canopy during a simulation as the canopy structure
       within these layers is dynamic.
-    * ``surface_layer_heights``: the height above ground level of the ground surface
+    * ``surface_layer_height``: the height above ground level of the ground surface
       atmospheric layer.
     * ``soil_layers``: this provides the depths of the soil horizons to be used in the
       simulation and so sets the number of soil layers and the horizon depth for each
