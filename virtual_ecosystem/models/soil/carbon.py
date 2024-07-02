@@ -28,16 +28,16 @@ class MicrobialChanges:
     
     Units of [kg C m^-3 day^-1]."""
 
-    microbe: NDArray[np.float32]
+    microbe_change: NDArray[np.float32]
     """Rate of change of microbial biomass pool [kg C m^-3 day^-1]."""
 
-    pom_enzyme: NDArray[np.float32]
+    pom_enzyme_change: NDArray[np.float32]
     """Rate of change of particulate organic matter degrading enzyme pool.
 
     Units of [kg C m^-3 day^-1].
     """
 
-    maom_enzyme: NDArray[np.float32]
+    maom_enzyme_change: NDArray[np.float32]
     """Rate of change of mineral associated organic matter degrading enzyme pool.
     
     Units of [kg C m^-3 day^-1].
@@ -59,7 +59,7 @@ class EnzymeMediatedRates:
 
     maom_to_lmwc: NDArray[np.float32]
     """Rate of mineral associated organic matter decomposition to LMWC.
-    
+
     Units of [kg C m^-3 day^-1].
     """
 
@@ -189,7 +189,7 @@ def calculate_soil_carbon_updates(
         - enzyme_mediated.maom_to_lmwc
         - maom_desorption_to_lmwc
     )
-    delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe
+    delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
     delta_pools_ordered["soil_c_pool_pom"] = (
         mineralisation_rate - enzyme_mediated.pom_to_lmwc
     )
@@ -198,8 +198,8 @@ def calculate_soil_carbon_updates(
         - necromass_decay_to_lmwc
         - necromass_sorption_to_maom
     )
-    delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme
-    delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme
+    delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
+    delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 
     # Create output array of pools in desired order
     return np.concatenate(list(delta_pools_ordered.values()))
@@ -269,9 +269,9 @@ def calculate_microbial_changes(
 
     return MicrobialChanges(
         lmwc_uptake=microbial_uptake,
-        microbe=biomass_growth - biomass_loss,
-        pom_enzyme=pom_enzyme_net_change,
-        maom_enzyme=maom_enzyme_net_change,
+        microbe_change=biomass_growth - biomass_loss,
+        pom_enzyme_change=pom_enzyme_net_change,
+        maom_enzyme_change=maom_enzyme_net_change,
         necromass_generation=enzyme_denaturation + true_loss,
     )
 

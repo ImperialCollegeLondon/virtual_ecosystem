@@ -85,9 +85,9 @@ def test_calculate_microbial_changes(
 
     # Check that each rate matches expectation
     assert np.allclose(mic_changes.lmwc_uptake, expected_lmwc_uptake)
-    assert np.allclose(mic_changes.microbe, expected_microbe)
-    assert np.allclose(mic_changes.pom_enzyme, expected_pom_enzyme)
-    assert np.allclose(mic_changes.maom_enzyme, expected_maom_enzyme)
+    assert np.allclose(mic_changes.microbe_change, expected_microbe)
+    assert np.allclose(mic_changes.pom_enzyme_change, expected_pom_enzyme)
+    assert np.allclose(mic_changes.maom_enzyme_change, expected_maom_enzyme)
     assert np.allclose(mic_changes.necromass_generation, expected_necromass)
 
 
