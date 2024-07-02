@@ -100,12 +100,6 @@ class SoilModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        # Get top soil layer index as a scalar
-        self.top_soil_layer_index: int = self.layer_structure.role_indices[
-            "topsoil"
-        ].item()
-        """The layer in the data object representing the topsoil layer."""
-
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
         self.model_constants: SoilConsts = model_constants
@@ -214,7 +208,7 @@ class SoilModel(
             args=(
                 self.data,
                 no_cells,
-                self.top_soil_layer_index,
+                self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
                 self.core_constants,

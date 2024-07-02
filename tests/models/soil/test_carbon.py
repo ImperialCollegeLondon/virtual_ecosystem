@@ -9,7 +9,7 @@ import pytest
 from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
-def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
+def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
@@ -38,13 +38,15 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
         soil_moisture=dummy_carbon_data["soil_moisture"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         soil_water_potential=dummy_carbon_data["matric_potential"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         vertical_flow_rate=dummy_carbon_data["vertical_flow"],
-        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         clay_fraction=dummy_carbon_data["clay_fraction"],
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
         delta_pools_ordered=pool_order,
@@ -59,7 +61,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, top_soil_layer_index):
 
 
 def test_determine_microbial_biomass_losses(
-    dummy_carbon_data, top_soil_layer_index, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Check that the determination of microbial biomass losses works correctly."""
     from virtual_ecosystem.models.soil.carbon import determine_microbial_biomass_losses
@@ -72,7 +74,9 @@ def test_determine_microbial_biomass_losses(
 
     losses = determine_microbial_biomass_losses(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         clay_factor_decay=environmental_factors["clay_decay"],
         constants=SoilConsts,
     )
@@ -96,7 +100,7 @@ def test_determine_microbial_biomass_losses(
 
 
 def test_calculate_maintenance_biomass_synthesis(
-    dummy_carbon_data, top_soil_layer_index
+    dummy_carbon_data, fixture_core_components
 ):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_ecosystem.models.soil.carbon import (
@@ -107,21 +111,25 @@ def test_calculate_maintenance_biomass_synthesis(
 
     actual_loss = calculate_maintenance_biomass_synthesis(
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         constants=SoilConsts,
     )
 
     assert np.allclose(actual_loss, expected_loss)
 
 
-def test_calculate_carbon_use_efficiency(dummy_carbon_data, top_soil_layer_index):
+def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_components):
     """Check carbon use efficiency calculates correctly."""
     from virtual_ecosystem.models.soil.carbon import calculate_carbon_use_efficiency
 
     expected_cues = [0.36, 0.33, 0.3, 0.48]
 
     actual_cues = calculate_carbon_use_efficiency(
-        dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         SoilConsts.reference_cue,
         SoilConsts.cue_reference_temp,
         SoilConsts.cue_with_temperature,
@@ -159,7 +167,7 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
 
 
 def test_calculate_microbial_carbon_uptake(
-    dummy_carbon_data, top_soil_layer_index, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_ecosystem.models.soil.carbon import calculate_microbial_carbon_uptake
@@ -173,7 +181,7 @@ def test_calculate_microbial_carbon_uptake(
         water_factor=environmental_factors["water"],
         pH_factor=environmental_factors["pH"],
         soil_temp=dummy_carbon_data["soil_temperature"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         constants=SoilConsts,
     )
@@ -183,7 +191,7 @@ def test_calculate_microbial_carbon_uptake(
 
 
 def test_calculate_enzyme_mediated_decomposition(
-    dummy_carbon_data, top_soil_layer_index, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_ecosystem.models.soil.carbon import (
@@ -198,7 +206,9 @@ def test_calculate_enzyme_mediated_decomposition(
         water_factor=environmental_factors["water"],
         pH_factor=environmental_factors["pH"],
         clay_factor_saturation=environmental_factors["clay_saturation"],
-        soil_temp=dummy_carbon_data["soil_temperature"][top_soil_layer_index],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         reference_temp=SoilConsts.arrhenius_reference_temp,
         max_decomp_rate=SoilConsts.max_decomp_rate_pom,
         activation_energy_rate=SoilConsts.activation_energy_pom_decomp_rate,
