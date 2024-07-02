@@ -86,14 +86,6 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
-    longevity_scaling_terms: dict[TaxaType, tuple[float, float]] = field(
-        default_factory=lambda: {
-            TaxaType.MAMMAL: (0.25, 0.02),  # Toy values
-            TaxaType.BIRD: (0.25, 0.05),  # Toy values
-            TaxaType.INSECT: (0.25, 0.05),  # Toy values
-        }
-    )
-
     birth_mass_threshold: float = 1.5  # Threshold for reproduction
     flow_to_reproductive_mass_threshold: float = (
         1.0  # Threshold of trophic flow to reproductive mass

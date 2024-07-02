@@ -92,8 +92,6 @@ class FunctionalGroup:
             self.taxa
         ]
         """The predator-prey mass ratio scaling relationship."""
-        self.longevity_scaling = self.constants.longevity_scaling_terms[self.taxa]
-        """The coefficient and exponent for lifespan allometry."""
 
 
 def import_functional_groups(
