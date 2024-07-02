@@ -38,7 +38,7 @@ def fixture_soil_model(
 
 
 @pytest.fixture
-def environmental_factors(dummy_carbon_data, top_soil_layer_index):
+def environmental_factors(dummy_carbon_data, fixture_core_components):
     """Environmental factors based on dummy carbon data."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
@@ -51,7 +51,7 @@ def environmental_factors(dummy_carbon_data, top_soil_layer_index):
 
     water_factors = calculate_water_potential_impact_on_microbes(
         water_potential=dummy_carbon_data["matric_potential"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         water_potential_halt=soil_constants.soil_microbe_water_potential_halt,
         water_potential_opt=soil_constants.soil_microbe_water_potential_optimum,

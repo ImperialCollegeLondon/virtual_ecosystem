@@ -98,14 +98,13 @@ def setup_hydrology_input_current_timestep(
     # named 'surface_...' for now TODO needs to be replaced with 2m above ground
     # We explicitly get a scalar index for the surface layer to extract the values as a
     # 1D array of grid cells and not a 2D array with a singleton layer dimension.
-    surface_index = layer_structure.role_indices["surface"].item()
     for out_var, in_var in (
         ("surface_temperature", "air_temperature"),
         ("surface_humidity", "relative_humidity"),
         ("surface_wind_speed", "wind_speed"),
         ("surface_pressure", "atmospheric_pressure"),
     ):
-        output[out_var] = data[in_var][surface_index].to_numpy()
+        output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
@@ -121,7 +120,7 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_residual * soil_layer_thickness_mm[0]
     )
     output["current_soil_moisture"] = (  # drop above ground layers
-        data["soil_moisture"][layer_structure.role_indices["all_soil"]]
+        data["soil_moisture"][layer_structure.index_all_soil]
     ).to_numpy()
 
     # Get accumulated runoff/flow and ground water level from previous time step
@@ -161,7 +160,7 @@ def initialise_soil_moisture_mm(
     # The layer_structure.soil_layer_thickness is an np.array so as long as initial soil
     # moisture is either a scalar or an np array of similar length, this will broadcast
     # into the soil layers as a column vector.
-    soil_moisture[layer_structure.role_indices["all_soil"]] = (
+    soil_moisture[layer_structure.index_all_soil] = (
         initial_soil_moisture * soil_layer_thickness
     )
 

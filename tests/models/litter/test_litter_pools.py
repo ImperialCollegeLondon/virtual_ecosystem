@@ -10,18 +10,22 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 @pytest.fixture
-def temp_and_water_factors(
-    dummy_litter_data, surface_layer_index, top_soil_layer_index
-):
+def temp_and_water_factors(dummy_litter_data, fixture_core_components):
     """Temperature and water factors for the various litter layers."""
     from virtual_ecosystem.models.litter.litter_pools import (
         calculate_environmental_factors,
     )
 
     environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
-        topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
-        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
+        surface_temp=dummy_litter_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
+        topsoil_temp=dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        water_potential=dummy_litter_data["matric_potential"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         constants=LitterConsts,
     )
 
@@ -52,9 +56,7 @@ def decay_rates(dummy_litter_data, temp_and_water_factors):
     }
 
 
-def test_calculate_environmental_factors(
-    dummy_litter_data, surface_layer_index, top_soil_layer_index
-):
+def test_calculate_environmental_factors(dummy_litter_data, fixture_core_components):
     """Test that the calculation of the environmental factors works as expected."""
     from virtual_ecosystem.models.litter.litter_pools import (
         calculate_environmental_factors,
@@ -65,9 +67,15 @@ def test_calculate_environmental_factors(
     expected_temp_below_factors = [0.2732009, 0.2732009, 0.2732009, 0.2732009]
 
     environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
-        topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
-        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
+        surface_temp=dummy_litter_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
+        topsoil_temp=dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        water_potential=dummy_litter_data["matric_potential"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         constants=LitterConsts,
     )
 
@@ -77,7 +85,7 @@ def test_calculate_environmental_factors(
 
 
 def test_calculate_temperature_effect_on_litter_decomp(
-    dummy_litter_data, top_soil_layer_index
+    dummy_litter_data, fixture_core_components
 ):
     """Test that temperature effects on decomposition are calculated correctly."""
     from virtual_ecosystem.models.litter.litter_pools import (
@@ -87,7 +95,9 @@ def test_calculate_temperature_effect_on_litter_decomp(
     expected_factor = [0.2732009, 0.2732009, 0.2732009, 0.2732009]
 
     actual_factor = calculate_temperature_effect_on_litter_decomp(
-        dummy_litter_data["soil_temperature"][top_soil_layer_index],
+        dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         reference_temp=LitterConsts.litter_decomp_reference_temp,
         offset_temp=LitterConsts.litter_decomp_offset_temp,
         temp_response=LitterConsts.litter_decomp_temp_response,
@@ -96,7 +106,7 @@ def test_calculate_temperature_effect_on_litter_decomp(
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_moisture_effect_on_litter_decomp(top_soil_layer_index):
+def test_calculate_moisture_effect_on_litter_decomp():
     """Test that soil moisture effects on decomposition are calculated correctly."""
     from virtual_ecosystem.models.litter.litter_pools import (
         calculate_moisture_effect_on_litter_decomp,
@@ -134,7 +144,7 @@ def test_calculate_litter_chemistry_factor():
 
 
 def test_calculate_change_in_litter_variables(
-    dummy_litter_data, surface_layer_index, top_soil_layer_index
+    dummy_litter_data, fixture_core_components
 ):
     """Test that litter pool update calculation is correct."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -156,13 +166,13 @@ def test_calculate_change_in_litter_variables(
 
     result = calculate_change_in_litter_variables(
         surface_temp=dummy_litter_data["air_temperature"][
-            surface_layer_index
+            fixture_core_components.layer_structure.index_surface_scalar
         ].to_numpy(),
         topsoil_temp=dummy_litter_data["soil_temperature"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         water_potential=dummy_litter_data["matric_potential"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
         above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),

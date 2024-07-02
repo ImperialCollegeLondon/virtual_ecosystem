@@ -110,14 +110,14 @@ def run_microclimate(
     # Mean atmospheric pressure profile, [kPa]
     # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_pressure"] = layer_structure.from_template()
-    output["atmospheric_pressure"][layer_structure.role_indices["atmosphere"]] = data[
+    output["atmospheric_pressure"][layer_structure.index_atmosphere] = data[
         "atmospheric_pressure_ref"
     ].isel(time_index=time_index)
 
     # Mean atmospheric C02 profile, [ppm]
     # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_co2"] = layer_structure.from_template()
-    output["atmospheric_co2"][layer_structure.role_indices["atmosphere"]] = data[
+    output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
         "atmospheric_co2_ref"
     ].isel(time_index=time_index)
 
@@ -126,7 +126,7 @@ def run_microclimate(
     output["soil_temperature"] = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         surface_temperature=output["air_temperature"].isel(
-            layers=layer_structure.role_indices["surface"]
+            layers=layer_structure.index_surface
         ),
         mean_annual_temperature=data["mean_annual_temperature"],
         layer_structure=layer_structure,
@@ -273,8 +273,8 @@ def interpolate_soil_temperature(
     """
 
     # select surface layer (atmosphere) and generate interpolation heights
-    surface_layer = layer_heights[layer_structure.role_indices["surface"]].to_numpy()
-    soil_depths = layer_heights[layer_structure.role_indices["all_soil"]].to_numpy()
+    surface_layer = layer_heights[layer_structure.index_surface].to_numpy()
+    soil_depths = layer_heights[layer_structure.index_all_soil].to_numpy()
     interpolation_heights = np.concatenate(
         [surface_layer, -1 * soil_depths + surface_layer]
     )
@@ -294,6 +294,6 @@ def interpolate_soil_temperature(
 
     # return
     return_xarray = layer_structure.from_template()
-    return_xarray[layer_structure.role_indices["all_soil"]] = layer_values[1:]
+    return_xarray[layer_structure.index_all_soil] = layer_values[1:]
 
     return return_xarray

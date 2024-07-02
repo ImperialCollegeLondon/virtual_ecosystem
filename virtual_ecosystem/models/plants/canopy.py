@@ -192,11 +192,11 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
 
     # Initialise the fixed layer heights
     # TODO: See issue #442 about centralising the layer_heights variable initialisation
-    data["layer_heights"].loc[dict(layers=layer_structure.role_indices["all_soil"])] = (
-        layer_structure.soil_layers.reshape(-1, 1)
+    data["layer_heights"].loc[dict(layers=layer_structure.index_all_soil)] = (
+        layer_structure.soil_layer_depths.reshape(-1, 1)
     )
 
-    data["layer_heights"].loc[dict(layers=layer_structure.role_indices["surface"])] = (
+    data["layer_heights"].loc[dict(layers=layer_structure.index_surface)] = (
         layer_structure.surface_layer_height
     )
 
