@@ -56,21 +56,25 @@ def test_calculate_soil_evaporation(dens_air, latvap):
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
 
 
-def test_find_lowest_neighbour(dummy_climate_data):
+def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):
     """Test finding lowest neighbours."""
 
-    from math import sqrt
+    # FIXME: At the moment this is being tested on a 2x2 grid with these elevations and
+    #        the implementation uses rook case neighbours. There is some odd behaviour
+    #        with the ties.
+    #
+    #     200, 100
+    #      10, 10
 
     from virtual_ecosystem.models.hydrology.above_ground import find_lowest_neighbour
 
     data = dummy_climate_data
-    data.grid.set_neighbours(distance=sqrt(data.grid.cell_area))
 
-    neighbours = data.grid.neighbours
-    elevation = np.array(data["elevation"])
-    result = find_lowest_neighbour(neighbours, elevation)
+    grid = fixture_core_components.grid
+    grid.set_neighbours(distance=np.sqrt(grid.cell_area))
+    result = find_lowest_neighbour(grid.neighbours, data["elevation"].to_numpy())
 
-    exp_result = [1, 2, 2]
+    exp_result = [2, 3, 2, 2]
     assert result == exp_result
 
 

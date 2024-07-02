@@ -166,6 +166,6 @@ basic flow is:
    main PyPI site, which is also configured to trust publications from the repository.
 
 ```{eval-rst}
-.. include:: ../../../.github/workflows/publish.yml
+.. include:: ../../../../.github/workflows/publish.yml
     :code: yaml
 ```

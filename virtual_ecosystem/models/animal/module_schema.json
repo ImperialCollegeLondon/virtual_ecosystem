@@ -35,6 +35,9 @@
                             "offspring_functional_group": {
                                 "type": "string"
                             },
+                            "excretion_type": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },
@@ -51,6 +54,7 @@
                             "development_type",
                             "development_status",
                             "offspring_functional_group",
+                            "excretion_type",
                             "birth_mass",
                             "adult_mass"
                         ]

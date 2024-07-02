@@ -128,8 +128,7 @@ def initialise_canopy_and_soil_fluxes(
     topofcanopy_radiation: DataArray,
     leaf_area_index: DataArray,
     layer_heights: DataArray,
-    true_canopy_indexes: NDArray[np.integer],
-    topsoil_layer_index: int,
+    layer_structure: LayerStructure,
     light_extinction_coefficient: float,
     canopy_temperature_ini_factor: float,
 ) -> dict[str, DataArray]:
@@ -144,9 +143,7 @@ def initialise_canopy_and_soil_fluxes(
         topofcanopy_radiation: Top of canopy radiation, [W m-2]
         leaf_area_index: Leaf area index, [m m-2]
         layer_heights: Layer heights, [m]
-        true_canopy_indexes: Indexes of canopy layers that are not NaN (maximum extent
-            to capture all depths even if grid cells have different number of layers)
-        topsoil_layer_index: Index of topsoil layer
+        layer_structure: Instance of LayerStructure
         light_extinction_coefficient: Light extinction coefficient for canopy
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
             function of air temperature and absorbed shortwave radiation
@@ -155,6 +152,16 @@ def initialise_canopy_and_soil_fluxes(
         Dictionary with absorbed radiation (canopy), canopy temperature, sensible
             and latent heat flux (canopy and soil), and ground heat flux [W m-2].
     """
+
+    # Indexes of canopy layers that are not NaN (maximum extent to capture all depths
+    # even if grid cells have different number of layers)
+    true_canopy_indexes = (
+        leaf_area_index[leaf_area_index["layer_roles"] == "canopy"]
+        .dropna(dim="layers", how="all")
+        .indexes["layers"]
+    )
+    # Index of top soil layer
+    topsoil_layer_index = layer_structure.role_indices["topsoil"].item()
 
     output = {}
 
@@ -282,9 +289,6 @@ def calculate_slope_of_saturated_pressure_curve(
 def calculate_leaf_and_air_temperature(
     data: Data,
     time_index: int,
-    topsoil_layer_index: int,
-    true_canopy_indexes: NDArray[np.integer],
-    true_canopy_layers_n: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
     abiotic_simple_constants: AbioticSimpleConsts,
@@ -394,9 +398,6 @@ def calculate_leaf_and_air_temperature(
     Args:
         data: Instance of data object
         time_index: Time index
-        topsoil_layer_index: Index of top soil layer
-        true_canopy_indexes: indexes of canopy layers that are not NaN
-        true_canopy_layers_n: Maximum number of canopy layers that are not NaN
         layer_structure: Instance of LayerStructure that countains details about layers
         abiotic_constants: Set of abiotic constants
         abiotic_simple_constants: Set of abiotic constants
@@ -406,6 +407,18 @@ def calculate_leaf_and_air_temperature(
         air temperature, [C], canopy temperature, [C], vapour pressure [kPa], vapour
         pressure deficit, [kPa]
     """
+
+    # indexes of canopy layers that are not NaN
+    true_canopy_indexes = (
+        data["leaf_area_index"][data["leaf_area_index"]["layer_roles"] == "canopy"]
+        .dropna(dim="layers", how="all")
+        .indexes["layers"]
+    )
+    # Maximum number of canopy layers that are not NaN
+    true_canopy_layers_n = len(true_canopy_indexes)
+
+    # Index of top soil layer
+    topsoil_layer_index = layer_structure.role_indices["topsoil"].item()
 
     output = {}
 

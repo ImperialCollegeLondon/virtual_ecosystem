@@ -22,13 +22,12 @@ in a real ecosystem including the:
 - biotic and abiotic processes within the soil, and the
 - growth and demography of heterotrophs.
 
-## Project details
+::::{grid} 1 1 2 2
 
-This project is funded by a 2021 Distinguished Scientist award from the
-[NOMIS Foundation](https://nomisfoundation.ch) to Professor Robert Ewers:
+:::{grid-item-card} Project details
 
-- [NOMIS Award details](https://nomisfoundation.ch/people/robert-ewers/)
-- [NOMIS project summary](https://nomisfoundation.ch/research-projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/)
+This project is funded by a 2021 [Distinguished Scientist award](<https://nomisfoundation.ch/projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/>)
+from the [NOMIS Foundation](https://nomisfoundation.ch) to Professor Ewers.
 
 ```{image} _static/images/logo-nomis-822-by-321.png
 :alt: NOMIS logo
@@ -38,13 +37,15 @@ This project is funded by a 2021 Distinguished Scientist award from the
 
 The research is based at [Imperial College London](https://imperial.ac.uk):
 
-```{image} _static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png
+```{image} _static/images/IMPERIAL_logo_RGB_Blue_safe_area_2024.png
 :alt: Imperial logo
 :class: bg-primary
 :width: 250px
 ```
 
-## Project Team
+:::
+
+:::{grid-item-card} Project Team
 
 - Professor Robert Ewers
 - Olivia Daniel
@@ -53,9 +54,10 @@ The research is based at [Imperial College London](https://imperial.ac.uk):
 - Dr. Vivienne Groner
 - Dr. Jacob Cook
 - Dr. Taran Rallings
+- Professor Priyanga Amarasekare
 
 The research team are supported by the Imperial College London
-[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/)
+[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
 team.
 
 ```{eval-rst}

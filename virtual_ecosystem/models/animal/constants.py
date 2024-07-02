@@ -2,11 +2,6 @@
 constants" (fitting relationships taken from the literature) required by the broader
 :mod:`~virtual_ecosystem.models.animal` module
 
-The near-future intention is to rework the relationship between these constants and the
-AnimalCohort objects in which they are used such that there is a FunctionalType class
-in-between them. This class will hold the specific scaling, rate, and conversion
-parameters required for determining the function of a specific AnimalCohort and will
-avoid frequent searches through this constants file for values.
 """  # noqa: D205, D415
 
 from dataclasses import dataclass, field
@@ -23,8 +18,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
 class AnimalConsts(ConstantsDataclass):
     """Dataclass to store all constants related to metabolic rates.
 
-    TODO: The entire constants fille will be reworked in this style after the energy to
-    mass conversion.
+    TODO: Remove unused constants.
 
     """
 
@@ -251,6 +245,14 @@ class AnimalConsts(ConstantsDataclass):
     metamorph_mortality = 0.1  # toy [unitless]
     """The mortality proportion inflicted on a larval cohort undergoing
     metamorphosis. """
+
+    carbon_excreta_proportion = 1.0  # toy [unitless]
+    """The proportion of metabolic wastes that are carbonaceous. This is a temporary
+    fix to facilitate building the machinery and will be updated with stoichiometry."""
+
+    nitrogen_excreta_proportion = 0.0  # toy [unitless]
+    """The proportion of metabolic wastes that are nitrogenous. This is a temporary
+    fix to facilitate building the machinery and will be updated with stoichiometry."""
 
 
 DECAY_FRACTION_EXCREMENT: float = 0.5
