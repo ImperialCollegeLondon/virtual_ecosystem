@@ -14,36 +14,36 @@ from virtual_ecosystem.example_data.generation_scripts.common import cell_displa
 gradient = np.outer(cell_displacements / 90, cell_displacements / 90)
 
 # Generate a range of plausible values (3.5-4.5) for the soil pH [unitless].
-pH_values = 3.5 + 1.00 * (gradient) / (64)
+pH_values = 3.5 + 1.00 * gradient / (64)
 
 # Generate a range of plausible values (1200-1800) for the bulk density [kg m^-3].
-bulk_density_values = 1200.0 + 600.0 * (gradient) / (64)
+bulk_density_values = 1200.0 + 600.0 * gradient / (64)
 
 # Generate a range of plausible values (0.27-0.40) for the clay fraction [fraction].
-clay_fraction_values = 0.27 + 0.13 * (gradient) / (64)
+clay_fraction_values = 0.27 + 0.13 * gradient / (64)
 
 # Generate a range of plausible values (0.005-0.01) for the lmwc pool [kg C m^-3].
-lmwc_values = 0.005 + 0.005 * (gradient) / (64)
+lmwc_values = 0.005 + 0.005 * gradient / (64)
 
 # Generate a range of plausible values (1.0-3.0) for the maom pool [kg C m^-3].
-maom_values = 1.0 + 2.0 * (gradient) / (64)
+maom_values = 1.0 + 2.0 * gradient / (64)
 
 # Generate a range of plausible values (0.0015-0.005) for the microbial C pool
 # [kg C m^-3].
-microbial_C_values = 0.0015 + 0.0035 * (gradient) / (64)
+microbial_C_values = 0.0015 + 0.0035 * gradient / (64)
 
 # Generate a range of plausible values (0.1-1.0) for the POM pool [kg C m^-3].
-pom_values = 0.1 + 0.9 * (gradient) / (64)
+pom_values = 0.1 + 0.9 * gradient / (64)
 
 # Generate a range of plausible values (0.00015-0.0005) for the microbial necromass pool
 # [kg C m^-3].
-necromass_values = 0.00015 + 0.00035 * (gradient) / (64)
+necromass_values = 0.00015 + 0.00035 * gradient / (64)
 
 # Generate a range of plausible values (0.01-0.5) for the POM enzyme pool [kg C m^-3].
-pom_enzyme_values = 0.01 + 0.49 * (gradient) / (64)
+pom_enzyme_values = 0.01 + 0.49 * gradient / (64)
 
 # Generate a range of plausible values (0.01-0.5) for the MAOM enzyme pool [kg C m^-3].
-maom_enzyme_values = 0.01 + 0.49 * (gradient) / (64)
+maom_enzyme_values = 0.01 + 0.49 * gradient / (64)
 
 # Make example soil dataset
 example_soil_data = Dataset(

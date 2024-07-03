@@ -17,25 +17,25 @@ gradient = np.multiply.outer(cell_displacements / 90, cell_displacements / 90)
 
 # Generate a range of plausible values (0.05-0.5) for the above ground metabolic litter
 # pools [kg C m^-2].
-above_metabolic_values = 0.05 + 0.45 * (gradient) / (64)
+above_metabolic_values = 0.05 + 0.45 * gradient / (64)
 
 # Generate a range of plausible values (0.05-0.5) for the above ground structural litter
 # pools [kg C m^-2].
-above_structural_values = 0.05 + 0.45 * (gradient) / (64)
+above_structural_values = 0.05 + 0.45 * gradient / (64)
 
 # Generate range of plausible values (4.75-12.0) for the woody litter pools [kg C m^-2].
-woody_values = 4.75 + 7.25 * (gradient) / (64)
+woody_values = 4.75 + 7.25 * gradient / (64)
 
 # Generate a range of plausible values (0.03-0.08) for the below ground metabolic litter
 # pools [kg C m^-2].
-below_metabolic_values = 0.03 + 0.05 * (gradient) / (64)
+below_metabolic_values = 0.03 + 0.05 * gradient / (64)
 
 # Generate range of plausible values (0.05-0.125) for the below ground structural litter
 # pools [kg C m^-2].
-below_structural_values = 0.05 + 0.075 * (gradient) / (64)
+below_structural_values = 0.05 + 0.075 * gradient / (64)
 
 # Generate a range of plausible values (0.01-0.9) for lignin proportions of the pools.
-lignin_values = 0.01 + 0.89 * (gradient) / (64)
+lignin_values = 0.01 + 0.89 * gradient / (64)
 
 # Make example litter dataset
 example_litter_data = Dataset(
