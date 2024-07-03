@@ -49,6 +49,8 @@ def dummy_litter_data(fixture_core_components):
         "lignin_below_structural": [0.5, 0.25, 0.75, 0.75],
         "decomposed_excrement": [8e-07, 8.42857e-07, 3.28571e-05, 3.28571e-05],
         "decomposed_carcasses": [1.0714e-4, 4.8571e-4, 1.15714e-3, 1.15714e-3],
+        "leaf_turnover_lignin_proportion": [0.05, 0.25, 0.3, 0.57],
+        "leaf_turnover_c_n_ratio": [15.0, 25.5, 29.7, 17.5],
     }
 
     for var, vals in pool_values.items():
