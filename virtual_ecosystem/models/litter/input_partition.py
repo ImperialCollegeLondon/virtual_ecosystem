@@ -7,12 +7,17 @@ from numpy.typing import NDArray
 
 from virtual_ecosystem.core.logger import LOGGER
 
-# TODO - Add this page and the env_factors page into the API documentation
+# TODO - It makes sense for the animal pools to be handled here, but need to think about
+# how the partition works with the plant partition, Animals do not contain lignin, so if
+# I used the standard function on animal carcasses and excrement the maximum amount
+# (85%) will end up in the metabolic pool, which I think is basically fine, with bones
+# not being explicitly modelled I think this is fine. This will have to change once
+# bones are included.
+
+# TODO - Generally need to think about lignin units through the litter model
 
 # TODO - This partition needs to take in information of total mass, lignin content, and
 # nitrogen content
-
-# TODO - Generally need to think about lignin units
 
 
 def split_pool_into_metabolic_and_structural_litter(
@@ -57,10 +62,3 @@ def split_pool_into_metabolic_and_structural_litter(
         raise to_raise
     else:
         return metabolic_fraction
-
-
-# TODO - It makes sense for the animal pools to be handled here, but need to think about
-# how the partition works with the plant partition
-# Animals do not contain lignin, so if I used the standard function on animal carcasses
-# and excrement the maximum amount (85%) will end up in the metabolic pool, which I
-# think is basically fine, when bones aren't explicitly modelled I think this is fine
