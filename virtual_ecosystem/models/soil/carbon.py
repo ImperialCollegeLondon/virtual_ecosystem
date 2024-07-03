@@ -234,7 +234,7 @@ def calculate_microbial_changes(
         constants: Set of constants for the soil model.
 
     Returns:
-        A dataclass containing, the rate at which microbes uptake LMWC, the rate of
+        A dataclass containing the rate at which microbes uptake LMWC, the rate of
         change in the microbial biomass pool and the enzyme pools.
     """
 
