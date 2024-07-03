@@ -23,8 +23,6 @@ class EnvironmentalEffectFactors:
     """Impact of soil pH on enzymatic rates [unitless]."""
     clay_saturation: NDArray[np.float32]
     """Impact of soil clay fraction on enzyme saturation constants [unitless]."""
-    clay_decay: NDArray[np.float32]
-    """Impact of soil clay fraction on necromass decay destination [unitless]."""
 
 
 def calculate_environmental_effect_factors(
@@ -71,17 +69,12 @@ def calculate_environmental_effect_factors(
         base_protection=constants.base_soil_protection,
         protection_with_clay=constants.soil_protection_with_clay,
     )
-    clay_factor_decay = calculate_clay_impact_on_necromass_decay(
-        clay_fraction=clay_fraction,
-        decay_exponent=constants.clay_necromass_decay_exponent,
-    )
 
     # Combine all factors into a single EnvironmentalFactors object
     return EnvironmentalEffectFactors(
         water=water_factor,
         pH=pH_factor,
         clay_saturation=clay_factor_saturation,
-        clay_decay=clay_factor_decay,
     )
 
 
@@ -246,26 +239,6 @@ def calculate_clay_impact_on_enzyme_saturation(
     """
 
     return base_protection + protection_with_clay * clay_fraction
-
-
-def calculate_clay_impact_on_necromass_decay(
-    clay_fraction: NDArray[np.float32], decay_exponent: float
-) -> NDArray[np.float32]:
-    """Calculate the impact that soil clay has on necromass decay to LMWC.
-
-    Necromass which doesn't breakdown fully gets added to the POM pool instead.
-
-    Args:
-        clay_fraction: The fraction of the soil which is clay [unitless]
-        decay_exponent: Controls the impact that differences in soil clay content
-            have on the proportion of necromass that decays to LMWC [unitless]
-
-    Returns:
-        A multiplicative factor capturing the impact that soil clay has on the
-        proportion of necromass decay which sorbs to form POM [unitless]
-    """
-
-    return np.exp(decay_exponent * clay_fraction)
 
 
 def calculate_leaching_rate(
