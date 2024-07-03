@@ -10,18 +10,22 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 @pytest.fixture
-def temp_and_water_factors(
-    dummy_litter_data, surface_layer_index, top_soil_layer_index
-):
+def temp_and_water_factors(dummy_litter_data, fixture_core_components):
     """Temperature and water factors for the various litter layers."""
     from virtual_ecosystem.models.litter.env_factors import (
         calculate_environmental_factors,
     )
 
     environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][surface_layer_index],
-        topsoil_temp=dummy_litter_data["soil_temperature"][top_soil_layer_index],
-        water_potential=dummy_litter_data["matric_potential"][top_soil_layer_index],
+        surface_temp=dummy_litter_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ],
+        topsoil_temp=dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        water_potential=dummy_litter_data["matric_potential"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
         constants=LitterConsts,
     )
 
@@ -65,7 +69,7 @@ def test_calculate_litter_chemistry_factor():
 
 
 def test_calculate_change_in_litter_variables(
-    dummy_litter_data, surface_layer_index, top_soil_layer_index
+    dummy_litter_data, fixture_core_components
 ):
     """Test that litter pool update calculation is correct."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -87,13 +91,13 @@ def test_calculate_change_in_litter_variables(
 
     result = calculate_change_in_litter_variables(
         surface_temp=dummy_litter_data["air_temperature"][
-            surface_layer_index
+            fixture_core_components.layer_structure.index_surface_scalar
         ].to_numpy(),
         topsoil_temp=dummy_litter_data["soil_temperature"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         water_potential=dummy_litter_data["matric_potential"][
-            top_soil_layer_index
+            fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
         above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
         above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),

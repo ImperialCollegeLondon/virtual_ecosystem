@@ -5,6 +5,8 @@ constants (fitting relationships taken from the literature) required by the broa
 
 from dataclasses import dataclass
 
+import numpy as np
+
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 # TODO - Once lignin is tracked a large number of constants will have to be duplicated
@@ -200,12 +202,6 @@ class SoilConsts(ConstantsDataclass):
     [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
 
-    necromass_to_lmwc: float = 0.25
-    """Proportion of necromass that flows to LMWC rather than POM [unitless].
-
-    Value taken from :cite:t:`wang_development_2013`.
-    """
-
     # TODO - The 4 constants below should take different values for fungi and bacteria,
     # once that separation is implemented.
     min_pH_microbes: float = 2.5
@@ -253,23 +249,42 @@ class SoilConsts(ConstantsDataclass):
     The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    clay_necromass_decay_exponent: float = -0.8
-    """Change in proportion of necromass which decays with increasing soil clay content.
-
-    [unitless]. The function this is used in is an exponential, and the sign should be
-    negative so increases in clay leads to a lower proportion of necromass decaying to
-    LMWC. The value of this constant is taken from :cite:t:`fatichi_mechanistic_2019`.
-    """
-
-    pom_decomposition_fraction_lmwc: float = 0.5
-    """Fraction of decomposed POM that becomes LMWC rather than MAOM [unitless].
-
-    Value taken from :cite:t:`wang_development_2013`.
-    """
-
     solubility_coefficient_lmwc: float = 0.05
     """Solubility coefficient for low molecular weight organic carbon [unitless].
 
     Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
     a loose manner.
+    """
+
+    necromass_decay_rate: float = (1 / 3) * np.log(2)
+    """Rate at which microbial necromass decays to low molecular weight carbon [day^-1]
+
+    I have not been able to track down any data on this, so for now choosing a rate that
+    corresponds to halving every three days. This parameter is a key target for tracking
+    down data for and for sensitivity analysis.
+    """
+
+    maom_desorption_rate: float = 1e-5
+    """Rate constant for mineral associated organic matter desorption [day^-1]
+    
+    The default value of this rate is not based on data. It was instead chosen to be
+    small relative to the rate at which microbes breakdown LMWC. This is another key
+    target for sensitivity analysis.
+    """
+
+    lmwc_sorption_rate: float = 1e-3
+    """Rate constant for low molecular weight carbon sorption to minerals [day^-1]
+    
+    The default value of this rate is not based on data. It was instead chosen so that
+    the ratio of LWMC to mineral associated organic matter would tend to 1/100, in the
+    absence of microbes. This is another key target for sensitivity analysis.
+    """
+
+    necromass_sorption_rate: float = 1.0 * np.log(2)
+    """Rate constant for necromass sorption to minerals [day^-1]
+    
+    The default value was chosen to be three times the value of
+    :attr:`necromass_decay_rate`, this means that 75% of necromass becomes MAOM with the
+    remainder becoming LMWC. Replacing this with a function that depends on
+    environmental conditions is a post release goal.
     """

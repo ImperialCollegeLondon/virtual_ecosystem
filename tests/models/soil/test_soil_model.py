@@ -229,6 +229,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_microbe = [5.8, 2.3, 11.3, 1.0]
     end_pom = [0.25, 2.34, 0.746, 0.3467]
+    end_necromass = [0.058, 0.015, 0.093, 0.105]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -238,6 +239,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             soil_c_pool_maom=DataArray(end_maom, dims="cell_id"),
             soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
             soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
+            soil_c_pool_necromass=DataArray(end_necromass, dims="cell_id"),
         )
     )
 
@@ -251,6 +253,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     assert np.allclose(dummy_carbon_data["soil_c_pool_maom"], end_maom)
     assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
     assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
+    assert np.allclose(dummy_carbon_data["soil_c_pool_necromass"], end_necromass)
 
 
 @pytest.mark.parametrize(
@@ -262,16 +265,20 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.04826774, 0.02126701, 0.09200601, 0.00544793], dims="cell_id"
+                        [0.05110324, 0.0229453, 0.09239938, 0.01485271], dims="cell_id"
                     ),
                     maom=DataArray(
-                        [2.49936689, 1.70118553, 4.50085129, 0.50000614], dims="cell_id"
+                        [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
                     ),
                     microbe=DataArray(
-                        [5.77512315, 2.2899636, 11.24827514, 0.99640928], dims="cell_id"
+                        [5.7752035, 2.29002929, 11.24843316, 0.99642482],
+                        dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.12397575, 1.00508662, 0.7389913, 0.35583206], dims="cell_id"
+                        [0.10088985, 0.99607906, 0.69401895, 0.35272921], dims="cell_id"
+                    ),
+                    necromass=DataArray(
+                        [0.05840539, 0.01865113, 0.10632815, 0.06904724], dims="cell_id"
                     ),
                     enzyme_pom=DataArray(
                         [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
@@ -317,6 +324,7 @@ def test_integrate_soil_model(
         assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
         assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
         assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
+        assert np.allclose(new_pools["soil_c_pool_necromass"], final_pools["necromass"])
         assert np.allclose(new_pools["soil_enzyme_pom"], final_pools["enzyme_pom"])
         assert np.allclose(new_pools["soil_enzyme_maom"], final_pools["enzyme_maom"])
 
@@ -390,29 +398,33 @@ def test_order_independance(
         assert np.allclose(output[pool_name], output_reversed[pool_name])
 
 
-def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
+def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        -0.00371115,
-        0.00278502,
-        -0.01849181,
-        0.00089995,
-        -1.28996257e-3,
-        2.35822401e-3,
-        1.5570399e-3,
-        1.2082886e-5,
+        0.0022585928,
+        0.0060483065,
+        -0.019175058,
+        0.024247214,
+        0.038767651,
+        0.00829848,
+        0.05982197,
+        0.07277182,
         -0.04978105,
         -0.02020101,
         -0.10280967,
         -0.00719517,
-        4.80916464e-2,
-        1.02354410e-2,
-        7.85372753e-2,
-        1.16756409e-2,
+        0.00178122,
+        -0.00785937,
+        -0.01201551,
+        0.00545857,
+        0.001137474,
+        0.009172067,
+        0.033573266,
+        -0.08978050,
         1.17571917e-8,
         1.67442231e-8,
         1.83311362e-9,
@@ -445,7 +457,7 @@ def test_construct_full_soil_model(dummy_carbon_data, top_soil_layer_index):
         pools=pools,
         data=dummy_carbon_data,
         no_cells=4,
-        top_soil_layer_index=top_soil_layer_index,
+        top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
         core_constants=CoreConsts,
