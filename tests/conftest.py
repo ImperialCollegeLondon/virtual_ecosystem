@@ -247,16 +247,17 @@ def dummy_carbon_data(fixture_core_components):
     # Setup the data object with four cells.
     data = Data(fixture_core_components.grid)
 
-    # The required data is now added. This includes the four carbon pools: mineral
-    # associated organic matter, low molecular weight carbon, microbial carbon and
-    # particulate organic matter. It also includes various factors of the physical
-    # environment: pH, bulk density, soil moisture, soil temperature, percentage clay in
-    # soil.
+    # The required data is now added. This includes the five carbon pools: mineral
+    # associated organic matter, low molecular weight carbon, microbial biomass and
+    # necromass carbon and particulate organic matter. It also includes various factors
+    # of the physical environment: pH, bulk density, soil moisture, soil temperature,
+    # percentage clay in soil.
     data_values = {
         "soil_c_pool_lmwc": [0.05, 0.02, 0.1, 0.005],
         "soil_c_pool_maom": [2.5, 1.7, 4.5, 0.5],
         "soil_c_pool_microbe": [5.8, 2.3, 11.3, 1.0],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
+        "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
         "soil_enzyme_pom": [0.022679, 0.009576, 0.050051, 0.003010],
         "soil_enzyme_maom": [0.0356, 0.0117, 0.02509, 0.00456],
         "pH": [3.0, 7.5, 9.0, 5.7],

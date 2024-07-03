@@ -2,6 +2,8 @@
 
 import pytest
 
+from virtual_ecosystem.models.soil.env_factors import EnvironmentalEffectFactors
+
 
 @pytest.fixture
 def fixture_soil_config():
@@ -41,7 +43,6 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_clay_impact_on_enzyme_saturation,
-        calculate_clay_impact_on_necromass_decay,
         calculate_pH_suitability,
         calculate_water_potential_impact_on_microbes,
     )
@@ -71,14 +72,6 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
         protection_with_clay=soil_constants.soil_protection_with_clay,
     )
 
-    clay_decay_factors = calculate_clay_impact_on_necromass_decay(
-        clay_fraction=dummy_carbon_data["clay_fraction"].to_numpy(),
-        decay_exponent=soil_constants.clay_necromass_decay_exponent,
+    return EnvironmentalEffectFactors(
+        water=water_factors, pH=pH_factors, clay_saturation=clay_saturation_factors
     )
-
-    return {
-        "water": water_factors,
-        "pH": pH_factors,
-        "clay_saturation": clay_saturation_factors,
-        "clay_decay": clay_decay_factors,
-    }
