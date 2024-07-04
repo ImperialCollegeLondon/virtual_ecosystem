@@ -1,190 +1,193 @@
 root: index
 subtrees:
-- titlesonly: True
-  maxdepth: 0
-  caption: The Virtual Ecosystem
-  entries:
-    - file: virtual_ecosystem/theory.md
-      title: Theory
-    - file: virtual_ecosystem/implementation.md
-      title: Implementation
-      entries:
-      - file: virtual_ecosystem/module_overview
-      - file: virtual_ecosystem/main_simulation
-      - file: virtual_ecosystem/soil/soil_details
-
-- caption: Using the Virtual Ecosystem
-  entries:
-  - file: using_the_ve/getting_started
-    entries: 
-    - file: using_the_ve/ve_run
-    - file: using_the_ve/example_data
-    - file: using_the_ve/virtual_ecosystem_in_use
-  - file: using_the_ve/configuration/config
-    title: Configuring your model
-    entries:  
-    - file: using_the_ve/configuration/axes
-    - file: using_the_ve/configuration/grid
-    - file: using_the_ve/configuration/constants
-  - file: using_the_ve/data/data
-    title: Adding data to the model
+  - titlesonly: True
+    maxdepth: 0
+    caption: The Virtual Ecosystem
     entries:
-    - file: using_the_ve/data/CDS_toolbox_template
-    - file: using_the_ve/data/climate_data_recipes
+      - file: virtual_ecosystem/theory.md
+        title: Theory
+        entries:
+          - file: virtual_ecosystem/abiotic_theory.md
+            entries:
+              - file: virtual_ecosystem/microclimate_theory.md
+              - file: virtual_ecosystem/hydrology_theory.md
+      - file: virtual_ecosystem/implementation.md
+        title: Implementation
+        entries:
+          - file: virtual_ecosystem/module_overview
+          - file: virtual_ecosystem/main_simulation
+          - file: virtual_ecosystem/soil/soil_details
 
-- caption: Development
-  entries:
-  - file: development/contributing
+  - caption: Using the Virtual Ecosystem
     entries:
-    - file: development/contributing/code_development_strategy
-    - file: development/contributing/developer_setup
-    - file: development/contributing/package_releases
-  - file: development/design
+      - file: using_the_ve/getting_started
+        entries:
+          - file: using_the_ve/ve_run
+          - file: using_the_ve/example_data
+          - file: using_the_ve/virtual_ecosystem_in_use
+      - file: using_the_ve/configuration/config
+        title: Configuring your model
+        entries:
+          - file: using_the_ve/configuration/axes
+          - file: using_the_ve/configuration/grid
+          - file: using_the_ve/configuration/constants
+      - file: using_the_ve/data/data
+        title: Adding data to the model
+        entries:
+          - file: using_the_ve/data/CDS_toolbox_template
+          - file: using_the_ve/data/climate_data_recipes
+
+  - caption: Development
     entries:
-    - file: development/design/core
-    - file: development/design/defining_new_models
-  - file: development/documentation
+      - file: development/contributing
+        entries:
+          - file: development/contributing/code_development_strategy
+          - file: development/contributing/developer_setup
+          - file: development/contributing/package_releases
+      - file: development/design
+        entries:
+          - file: development/design/core
+          - file: development/design/defining_new_models
+      - file: development/documentation
+        entries:
+          - file: development/documentation/api_generation
+          - file: development/documentation/docstring_style
+          - file: development/documentation/jupyter_notebooks
+          - file: development/documentation/overview
+
+  - caption: API
     entries:
-    - file: development/documentation/api_generation
-    - file: development/documentation/docstring_style
-    - file: development/documentation/jupyter_notebooks
-    - file: development/documentation/overview
+      - file: api/core.md
+        title: The core module
+        subtrees:
+          - titlesonly: True
+            entries:
+              - file: api/core/axes
+                title: The axes submodule
+              - file: api/core/base_model.md
+                title: The base_model submodule
+              - file: api/core/config.md
+                title: The config submodule
+              - file: api/core/constants.md
+                title: The constants submodule
+              - file: api/core/constants_class.md
+                title: The constants_class submodule
+              - file: api/core/constants_loader.md
+                title: The constants_loader submodule
+              - file: api/core/core_components.md
+                title: The core_components submodule
+              - file: api/core/data.md
+                title: The data submodule
+              - file: api/core/exceptions.md
+                title: The exceptions submodule
+              - file: api/core/grid.md
+                title: The grid submodule
+              - file: api/core/logger.md
+                title: The logger submodule
+              - file: api/core/readers.md
+                title: The readers submodule
+              - file: api/core/registry.md
+                title: The registry submodule
+              - file: api/core/schema.md
+                title: The schema submodule
+              - file: api/core/utils.md
+                title: The utils submodule
+      - file: api/main.md
+        title: The main submodule
+      - file: api/models.md
+        entries:
+          - file: api/models/abiotic.md
+            title: The abiotic model
+            entries:
+              - file: api/models/abiotic/abiotic_model
+                title: The abiotic_model submodule
+              - file: api/models/abiotic/abiotic_constants
+                title: The abiotic_constants submodule
+              - file: api/models/abiotic/abiotic_tools
+                title: The abiotic_tools submodule
+              - file: api/models/abiotic/conductivities
+                title: The conductivities submodule
+              - file: api/models/abiotic/energy_balance
+                title: The energy_balance submodule
+              - file: api/models/abiotic/soil_energy_balance
+                title: The soil_energy_balance submodule
+              - file: api/models/abiotic/wind
+                title: The wind submodule
+          - file: api/models/abiotic_simple
+            title: The abiotic_simple model
+            entries:
+              - file: api/models/abiotic_simple/abiotic_simple_constants
+                title: The abiotic_simple_constants submodule
+              - file: api/models/abiotic_simple/abiotic_simple_model
+                title: The abiotic_simple_model submodule
+              - file: api/models/abiotic_simple/microclimate
+                title: The microclimate submodule
+          - file: api/models/animal
+            title: The animal model
+            entries:
+              - file: api/models/animal/animal_cohorts
+                title: The animal_cohorts submodule
+              - file: api/models/animal/animal_communities
+                title: The animal_communities submodule
+              - file: api/models/animal/animal_model
+                title: The animal_model submodule
+              - file: api/models/animal/animal_traits
+                title: The animal_traits submodule
+              - file: api/models/animal/constants
+                title: The constants submodule
+              - file: api/models/animal/decay
+                title: The decay submodule
+              - file: api/models/animal/functional_group
+                title: The functional_group submodule
+              - file: api/models/animal/plant_resources
+                title: The plant_resources submodule
+              - file: api/models/animal/protocols
+                title: The protocols submodule
+              - file: api/models/animal/scaling_functions
+                title: The scaling_functions submodule
+          - file: api/models/hydrology
+            title: The hydrology model
+            entries:
+              - file: api/models/hydrology/above_ground
+                title: The above_ground submodule
+              - file: api/models/hydrology/below_ground
+                title: The below_ground submodule
+              - file: api/models/hydrology/constants
+                title: The constants submodule
+              - file: api/models/hydrology/hydrology_model
+                title: The hydrology_model submodule
+          - file: api/models/litter
+            title: The litter model
+            entries:
+              - file: api/models/litter/constants
+                title: The constants submodule
+              - file: api/models/litter/litter_model
+                title: The litter_model submodule
+              - file: api/models/litter/litter_pools
+                title: The litter_pools submodule
+          - file: api/models/soil
+            title: The soil model
+            entries:
+              - file: api/models/soil/carbon
+                title: The carbon submodule
+              - file: api/models/soil/constants
+                title: The constants submodule
+              - file: api/models/soil/env_factors
+                title: The env_factors submodule
+              - file: api/models/soil/soil_model
+                title: The soil_model submodule
+          - file: api/models/plants
+            title: The plants model
+            entries:
+              - file: api/models/plants/plant_structures
+                title: The plant_structures submodule
+              - file: api/models/plants/plants_model
+                title: The plants_model submodule
+      - file: api/example_data
+        title: The example_data submodule
 
-- caption: API
-  entries:
-  - file: api/core.md
-    title: The core module
-    subtrees:
-    - titlesonly: True
-      entries:
-      - file: api/core/axes
-        title: The axes submodule
-      - file: api/core/base_model.md
-        title: The base_model submodule
-      - file: api/core/config.md
-        title: The config submodule
-      - file: api/core/constants.md
-        title: The constants submodule
-      - file: api/core/constants_class.md
-        title: The constants_class submodule
-      - file: api/core/constants_loader.md
-        title: The constants_loader submodule
-      - file: api/core/core_components.md
-        title: The core_components submodule
-      - file: api/core/data.md
-        title: The data submodule
-      - file: api/core/exceptions.md
-        title: The exceptions submodule
-      - file: api/core/grid.md
-        title: The grid submodule
-      - file: api/core/logger.md
-        title: The logger submodule
-      - file: api/core/readers.md
-        title: The readers submodule
-      - file: api/core/registry.md
-        title: The registry submodule
-      - file: api/core/schema.md
-        title: The schema submodule
-      - file: api/core/utils.md
-        title: The utils submodule
-  - file: api/main.md
-    title: The main submodule
-  - file: api/models.md
+  - caption: Reference
     entries:
-    - file: api/models/abiotic.md
-      title: The abiotic model
-      entries:
-      - file: api/models/abiotic/abiotic_model
-        title: The abiotic_model submodule
-      - file: api/models/abiotic/abiotic_constants
-        title: The abiotic_constants submodule
-      - file: api/models/abiotic/abiotic_tools
-        title: The abiotic_tools submodule
-      - file: api/models/abiotic/conductivities
-        title: The conductivities submodule
-      - file: api/models/abiotic/energy_balance
-        title: The energy_balance submodule
-      - file: api/models/abiotic/soil_energy_balance
-        title: The soil_energy_balance submodule
-      - file: api/models/abiotic/wind
-        title: The wind submodule
-    - file: api/models/abiotic_simple
-      title: The abiotic_simple model
-      entries:
-      - file: api/models/abiotic_simple/abiotic_simple_constants
-        title: The abiotic_simple_constants submodule
-      - file: api/models/abiotic_simple/abiotic_simple_model
-        title: The abiotic_simple_model submodule
-      - file: api/models/abiotic_simple/microclimate
-        title: The microclimate submodule
-    - file: api/models/animal
-      title: The animal model
-      entries:
-      - file: api/models/animal/animal_cohorts 
-        title: The animal_cohorts submodule
-      - file: api/models/animal/animal_communities 
-        title: The animal_communities submodule
-      - file: api/models/animal/animal_model 
-        title: The animal_model submodule
-      - file: api/models/animal/animal_traits 
-        title: The animal_traits submodule
-      - file: api/models/animal/constants 
-        title: The constants submodule
-      - file: api/models/animal/decay 
-        title: The decay submodule
-      - file: api/models/animal/functional_group 
-        title: The functional_group submodule
-      - file: api/models/animal/plant_resources 
-        title: The plant_resources submodule
-      - file: api/models/animal/protocols 
-        title: The protocols submodule
-      - file: api/models/animal/scaling_functions 
-        title: The scaling_functions submodule
-    - file: api/models/hydrology
-      title: The hydrology model
-      entries:
-      - file: api/models/hydrology/above_ground
-        title: The above_ground submodule
-      - file: api/models/hydrology/below_ground
-        title: The below_ground submodule
-      - file: api/models/hydrology/constants
-        title: The constants submodule
-      - file: api/models/hydrology/hydrology_model
-        title: The hydrology_model submodule
-    - file: api/models/litter
-      title: The litter model
-      entries:
-      - file: api/models/litter/constants
-        title: The constants submodule
-      - file: api/models/litter/litter_model
-        title: The litter_model submodule
-      - file: api/models/litter/litter_pools
-        title: The litter_pools submodule
-    - file: api/models/soil
-      title: The soil model
-      entries:
-      - file: api/models/soil/carbon
-        title: The carbon submodule
-      - file: api/models/soil/constants
-        title: The constants submodule
-      - file: api/models/soil/env_factors
-        title: The env_factors submodule
-      - file: api/models/soil/soil_model
-        title: The soil_model submodule
-    - file: api/models/plants
-      title: The plants model
-      entries:
-      - file: api/models/plants/plant_structures
-        title: The plant_structures submodule
-      - file: api/models/plants/plants_model
-        title: The plants_model submodule
-  - file: api/example_data
-    title: The example_data submodule
-
-- caption: Reference
-  entries:
-  - file: bibliography
-  - file: genindex
-  - file: modindex
-
-
+      - file: bibliography
+      - file: genindex
+      - file: modindex
