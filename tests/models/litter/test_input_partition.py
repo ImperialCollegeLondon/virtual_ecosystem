@@ -9,6 +9,44 @@ from tests.conftest import log_check
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
+def test_partion_plant_inputs_between_pools(dummy_litter_data):
+    """Check function to partition inputs into litter pools works as expected."""
+
+    from virtual_ecosystem.models.litter.input_partition import (
+        partion_plant_inputs_between_pools,
+    )
+
+    expected_woody = [2.5e-3, 3.3e-3, 2.1e-3, 1.1e-3]
+    expected_above_meta = [0.000837625, 0.0002166395, 0.00055402316, 0.0007423585]
+    expected_above_struct = [0.000162375, 4.33605e-5, 0.00023097684, 0.0003326415]
+    expected_below_meta = [0.000699228, 0.000393904, 6.88162e-6, 0.0005435504]
+    expected_below_struct = [0.000200772, 0.000306096, 3.11838e-6, 0.0002864496]
+
+    actual_splits = partion_plant_inputs_between_pools(
+        deadwood_production_rate=dummy_litter_data["deadwood_production_rate"],
+        leaf_turnover=dummy_litter_data["leaf_turnover"],
+        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
+        root_turnover=dummy_litter_data["root_turnover"],
+        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
+        reproduct_turnover_lignin_proportion=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_lignin"
+        ],
+        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ],
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        constants=LitterConsts,
+    )
+
+    assert np.allclose(actual_splits["woody"], expected_woody)
+    assert np.allclose(actual_splits["above_ground_metabolic"], expected_above_meta)
+    assert np.allclose(actual_splits["above_ground_structural"], expected_above_struct)
+    assert np.allclose(actual_splits["below_ground_metabolic"], expected_below_meta)
+    assert np.allclose(actual_splits["below_ground_structural"], expected_below_struct)
+
+
 def test_split_pool_into_metabolic_and_structural_litter(dummy_litter_data):
     """Check function to split input biomass between litter pools works as expected."""
 
@@ -19,7 +57,7 @@ def test_split_pool_into_metabolic_and_structural_litter(dummy_litter_data):
     expected_split = [0.8365, 0.73525, 0.68962, 0.67045]
 
     actual_split = split_pool_into_metabolic_and_structural_litter(
-        lignin_proportion=dummy_litter_data["leaf_turnover_lignin_proportion"],
+        lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
         carbon_nitrogen_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
         max_metabolic_fraction=LitterConsts.max_metabolic_fraction_of_input,
         split_sensitivity=LitterConsts.structural_metabolic_split_sensitivity,

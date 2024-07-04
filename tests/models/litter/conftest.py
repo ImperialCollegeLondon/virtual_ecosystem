@@ -49,8 +49,16 @@ def dummy_litter_data(fixture_core_components):
         "lignin_below_structural": [0.5, 0.25, 0.75, 0.75],
         "decomposed_excrement": [8e-07, 8.42857e-07, 3.28571e-05, 3.28571e-05],
         "decomposed_carcasses": [1.0714e-4, 4.8571e-4, 1.15714e-3, 1.15714e-3],
-        "leaf_turnover_lignin_proportion": [0.05, 0.25, 0.3, 0.57],
+        "deadwood_production_rate": [2.5e-3, 3.3e-3, 2.1e-3, 1.1e-3],
+        "leaf_turnover": [9e-4, 1e-5, 7e-4, 9.5e-4],
+        "plant_reproductive_tissue_turnover": [1e-4, 2.5e-4, 8.5e-5, 1.25e-4],
+        "root_turnover": [9e-4, 7e-4, 1e-5, 8.3e-4],
+        "leaf_turnover_lignin": [0.05, 0.25, 0.3, 0.57],
+        "plant_reproductive_tissue_turnover_lignin": [0.01, 0.03, 0.04, 0.02],
+        "root_turnover_lignin": [0.2, 0.35, 0.27, 0.4],
         "leaf_turnover_c_n_ratio": [15.0, 25.5, 29.7, 17.5],
+        "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
+        "root_turnover_c_n_ratio": [20.3, 45.6, 33.3, 27.1],
     }
 
     for var, vals in pool_values.items():
