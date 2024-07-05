@@ -6,15 +6,19 @@ non-linear and happen across a wide range of spatial and temporal scales which m
 ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
 challenging to understand and predict.
 
-Figure here
+:::{figure} ../_static/images/ve_diagram.svg
+:alt: A diagram of the four domains in the Virtual Ecosystem
+:scale: 70 %
+:align: left
 
-**Figure 1. The key processes in the Virtual Ecosystem** (from {cite}`ewers_new_2024`).
-The model replicates ecosystem dynamics across four ecological domains, each represented
-by a separate module that generates the dynamics of plants, animals, soil, and the
-abiotic environment. The essential metabolic processes operating at the scale of
-individual organisms—plants, animals, and microbes—are incorporated into the plant,
-faunal, and soil modules, respectively. These modules are dynamically connected through
-the transfer of matter and energy.
+**Figure 1. The key processes in the Virtual Ecosystem** (from
+{cite:alp}`ewers_new_2024`). The model replicates ecosystem dynamics across four
+ecological domains, each represented by a separate module that generates the dynamics of
+plants, animals, soil, and the abiotic environment. The essential metabolic processes
+operating at the scale of individual organisms—plants, animals, and microbes—are
+incorporated into the plant, faunal, and soil modules, respectively. These modules are
+dynamically connected through the transfer of matter and energy.
+:::
 
 Despite rapid advancements in the development of detailed ecological models for
 terrestrial ecosystems
