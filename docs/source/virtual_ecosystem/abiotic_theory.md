@@ -7,7 +7,7 @@ processes, which are critical for understanding and predicting ecological
 responses of organisms to various environmental conditions, interactions between
 organisms that shape communities, and the geographical distribution of species.
 
-```{image} ../_static/images/abiotic_sketch.png
+```{image} ../_static/images/abiotic_sketch.jpg
 :alt: Abiotic sketch
 :class: bg-primary
 :width: 650px
