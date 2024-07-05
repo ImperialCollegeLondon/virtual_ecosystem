@@ -22,6 +22,9 @@ from numpy.typing import NDArray
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import calculate_environmental_factors
+from virtual_ecosystem.models.litter.input_partition import (
+    partion_plant_inputs_between_pools,
+)
 
 
 def calculate_change_in_litter_variables(
@@ -36,6 +39,16 @@ def calculate_change_in_litter_variables(
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
+    deadwood_production: NDArray[np.float32],
+    leaf_turnover: NDArray[np.float32],
+    reproduct_turnover: NDArray[np.float32],
+    root_turnover: NDArray[np.float32],
+    leaf_turnover_lignin_proportion: NDArray[np.float32],
+    reproduct_turnover_lignin_proportion: NDArray[np.float32],
+    root_turnover_lignin_proportion: NDArray[np.float32],
+    leaf_turnover_c_n_ratio: NDArray[np.float32],
+    reproduct_turnover_c_n_ratio: NDArray[np.float32],
+    root_turnover_c_n_ratio: NDArray[np.float32],
     decomposed_excrement: NDArray[np.float32],
     decomposed_carcasses: NDArray[np.float32],
     update_interval: float,
@@ -60,6 +73,21 @@ def calculate_change_in_litter_variables(
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
         lignin_below_structural: Proportion of below ground structural pool which is
             lignin [unitless]
+        deadwood_production: Amount of dead wood is produced [kg C m^-2]
+        leaf_turnover: Amount of leaf turnover [kg C m^-2]
+        reproduct_turnover: Turnover of plant reproductive tissues (i.e. fruits and
+            flowers) [kg C m^-2]
+        root_turnover: Turnover of roots (coarse and fine) turnover [kg C m^-2]
+        leaf_turnover_lignin_proportion: Proportion of carbon in turned over leaves that
+            is lignin [kg lignin kg C^-1]
+        reproduct_turnover_lignin_proportion: Proportion of carbon in turned over
+            reproductive tissues that is lignin [kg lignin kg C^-1]
+        root_turnover_lignin_proportion: Proportion of carbon in turned over roots that
+            is lignin [kg lignin kg C^-1]
+        leaf_turnover_c_n_ratio: Carbon:nitrogen ratio of turned over leaves [unitless]
+        reproduct_turnover_c_n_ratio: Carbon:nitrogen ratio of turned over reproductive
+            tissues [unitless]
+        root_turnover_c_n_ratio: Carbon:nitrogen ratio of turned over roots [unitless]
         decomposed_excrement: Input rate of excrement from the animal model [kg C m^-2
             day^-1]
         decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
@@ -100,6 +128,21 @@ def calculate_change_in_litter_variables(
         decay_rates, model_constants=model_constants, core_constants=core_constants
     )
 
+    # Find the plant inputs to each of the litter pools
+    plant_inputs = partion_plant_inputs_between_pools(
+        deadwood_production=deadwood_production,
+        leaf_turnover=leaf_turnover,
+        reproduct_turnover=reproduct_turnover,
+        root_turnover=root_turnover,
+        leaf_turnover_lignin_proportion=leaf_turnover_lignin_proportion,
+        reproduct_turnover_lignin_proportion=reproduct_turnover_lignin_proportion,
+        root_turnover_lignin_proportion=root_turnover_lignin_proportion,
+        leaf_turnover_c_n_ratio=leaf_turnover_c_n_ratio,
+        reproduct_turnover_c_n_ratio=reproduct_turnover_c_n_ratio,
+        root_turnover_c_n_ratio=root_turnover_c_n_ratio,
+        constants=model_constants,
+    )
+
     # Calculate the updated pool masses
     updated_pools = calculate_updated_pools(
         above_metabolic=above_metabolic,
@@ -110,8 +153,8 @@ def calculate_change_in_litter_variables(
         decomposed_excrement=decomposed_excrement,
         decomposed_carcasses=decomposed_carcasses,
         decay_rates=decay_rates,
+        plant_inputs=plant_inputs,
         update_interval=update_interval,
-        constants=model_constants,
     )
 
     # Find the changes in the lignin concentrations of the 3 relevant pools
@@ -281,8 +324,8 @@ def calculate_updated_pools(
     decomposed_excrement: NDArray[np.float32],
     decomposed_carcasses: NDArray[np.float32],
     decay_rates: dict[str, NDArray[np.float32]],
+    plant_inputs: dict[str, NDArray[np.float32]],
     update_interval: float,
-    constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the updated mass of each litter pool.
 
@@ -301,6 +344,8 @@ def calculate_updated_pools(
             the animal model [kg C m^-2 day^-1]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
+        plant_inputs: Dictionary containing the amount of each litter type that is added
+            from the plant model in this time step [kg C m^-2]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -313,23 +358,20 @@ def calculate_updated_pools(
     # Net pool changes are found by combining input and decay rates, and then
     # multiplying by the update time step.
     change_in_metabolic_above = (
-        constants.litter_input_to_metabolic_above
-        + decomposed_excrement
-        + decomposed_carcasses
-        - decay_rates["metabolic_above"]
-    ) * update_interval
-    change_in_structural_above = (
-        constants.litter_input_to_structural_above - decay_rates["structural_above"]
-    ) * update_interval
-    change_in_woody = (
-        constants.litter_input_to_woody - decay_rates["woody"]
-    ) * update_interval
-    change_in_metabolic_below = (
-        constants.litter_input_to_metabolic_below - decay_rates["metabolic_below"]
-    ) * update_interval
-    change_in_structural_below = (
-        constants.litter_input_to_structural_below - decay_rates["structural_below"]
-    ) * update_interval
+        plant_inputs["above_ground_metabolic"]
+        + (decomposed_excrement + decomposed_carcasses - decay_rates["metabolic_above"])
+        * update_interval
+    )
+    change_in_structural_above = plant_inputs["above_ground_structural"] - (
+        decay_rates["structural_above"] * update_interval
+    )
+    change_in_woody = plant_inputs["woody"] - (decay_rates["woody"] * update_interval)
+    change_in_metabolic_below = plant_inputs["below_ground_metabolic"] - (
+        decay_rates["metabolic_below"] * update_interval
+    )
+    change_in_structural_below = plant_inputs["below_ground_structural"] - (
+        decay_rates["structural_below"] * update_interval
+    )
 
     # New value for each pool is found and returned in a dictionary
     return {

@@ -19,7 +19,7 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 def partion_plant_inputs_between_pools(
-    deadwood_production_rate: NDArray[np.float32],
+    deadwood_production: NDArray[np.float32],
     leaf_turnover: NDArray[np.float32],
     reproduct_turnover: NDArray[np.float32],
     root_turnover: NDArray[np.float32],
@@ -40,12 +40,11 @@ def partion_plant_inputs_between_pools(
     lignin concentration and carbon nitrogen ratios.
 
     Args:
-        deadwood_production_rate: Rate at which dead wood is being produced [kg C m^-2
-            day^-1]
-        leaf_turnover: Rate of leaf turnover [kg C m^-2 day^-1]
-        reproduct_turnover: Rate of turnover of plant reproductive tissues (i.e. fruits
-            and flowers) [kg C m^-2 day^-1]
-        root_turnover: Rate of root (coarse and fine) turnover [kg C m^-2 day^-1]
+        deadwood_production: Amount of dead wood is produced [kg C m^-2]
+        leaf_turnover: Amount of leaf turnover [kg C m^-2]
+        reproduct_turnover: Turnover of plant reproductive tissues (i.e. fruits and
+            flowers) [kg C m^-2]
+        root_turnover: Turnover of roots (coarse and fine) turnover [kg C m^-2]
         leaf_turnover_lignin_proportion: Proportion of carbon in turned over leaves that
             is lignin [kg lignin kg C^-1]
         reproduct_turnover_lignin_proportion: Proportion of carbon in turned over
@@ -85,7 +84,7 @@ def partion_plant_inputs_between_pools(
     )
 
     # Calculate input to each of the five litter pools
-    woody_input = deadwood_production_rate
+    woody_input = deadwood_production
     above_ground_metabolic_input = (
         leaves_metabolic_split * leaf_turnover
         + repoduct_metabolic_split * reproduct_turnover

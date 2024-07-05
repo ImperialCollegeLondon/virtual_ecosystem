@@ -33,7 +33,7 @@ def temp_and_water_factors(dummy_litter_data, fixture_core_components):
 
 
 @pytest.fixture
-def decay_rates(dummy_litter_data, temp_and_water_factors):
+def decay_rates():
     """Decay rates for the various litter pools."""
 
     return {
@@ -78,11 +78,11 @@ def test_calculate_change_in_litter_variables(
     )
 
     expected_pools = {
-        "litter_pool_above_metabolic": [0.29587973, 0.14851276, 0.07041856, 0.07041856],
-        "litter_pool_above_structural": [0.50055126, 0.25010012, 0.0907076, 0.0907076],
-        "litter_pool_woody": [4.702103, 11.802315, 7.300997, 7.300997],
-        "litter_pool_below_metabolic": [0.38949196, 0.36147436, 0.06906041, 0.06906041],
-        "litter_pool_below_structural": [0.6001163, 0.3098996, 0.0204775, 0.0204775],
+        "litter_pool_above_metabolic": [0.32072785, 0.15473132, 0.08675863, 0.09240869],
+        "litter_pool_above_structural": [0.5047038, 0.2506822, 0.0969182, 0.0999681],
+        "litter_pool_woody": [4.774517, 11.898729, 7.361411, 7.331411],
+        "litter_pool_below_metabolic": [0.4100488, 0.37287148, 0.06884686, 0.08494692],
+        "litter_pool_below_structural": [0.6056595, 0.3186025, 0.0200911, 0.0285910],
         "lignin_above_structural": [0.4996410, 0.1004310, 0.6964345, 0.6964345],
         "lignin_woody": [0.49989001, 0.79989045, 0.34998229, 0.34998229],
         "lignin_below_structural": [0.499760108, 0.249922519, 0.737107757, 0.737107757],
@@ -107,6 +107,26 @@ def test_calculate_change_in_litter_variables(
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
+        deadwood_production=dummy_litter_data["deadwood_production"].to_numpy(),
+        leaf_turnover=dummy_litter_data["leaf_turnover"].to_numpy(),
+        reproduct_turnover=dummy_litter_data[
+            "plant_reproductive_tissue_turnover"
+        ].to_numpy(),
+        root_turnover=dummy_litter_data["root_turnover"].to_numpy(),
+        leaf_turnover_lignin_proportion=dummy_litter_data[
+            "leaf_turnover_lignin"
+        ].to_numpy(),
+        reproduct_turnover_lignin_proportion=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_lignin"
+        ].to_numpy(),
+        root_turnover_lignin_proportion=dummy_litter_data[
+            "root_turnover_lignin"
+        ].to_numpy(),
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"].to_numpy(),
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ].to_numpy(),
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"].to_numpy(),
         decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
         update_interval=1.0,
@@ -168,11 +188,19 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
     from virtual_ecosystem.models.litter.litter_pools import calculate_updated_pools
 
     expected_pools = {
-        "above_metabolic": [0.291759466, 0.147025527, 0.070837127, 0.070837127],
-        "above_structural": [0.501102522, 0.251269950, 0.091377105, 0.091377105],
-        "woody": [4.7042056, 11.802745, 7.3036710, 7.3036710],
-        "below_metabolic": [0.38828994, 0.34846022, 0.06801166, 0.06801166],
-        "below_structural": [0.60054236, 0.31054401, 0.02094207, 0.02094207],
+        "above_metabolic": [0.31632696, 0.152963456, 0.0868965658, 0.092546626],
+        "above_structural": [0.504536392, 0.251133385, 0.0968690302, 0.09991897],
+        "woody": [4.7740336, 11.896573, 7.361499, 7.331499],
+        "below_metabolic": [0.40842678, 0.35943734, 0.0673781086, 0.083478172],
+        "below_structural": [0.60560552, 0.31876689, 0.0200756214, 0.028575558],
+    }
+
+    plant_inputs = {
+        "woody": [0.075, 0.099, 0.063, 0.033],
+        "above_ground_metabolic": [0.02512875, 0.006499185, 0.0166206948, 0.022270755],
+        "above_ground_structural": [0.00487125, 0.001300815, 0.0069293052, 0.009979245],
+        "below_ground_metabolic": [0.02097684, 0.01181712, 0.0002064486, 0.016306512],
+        "below_ground_structural": [0.00602316, 0.00918288, 9.35514e-5, 0.008593488],
     }
 
     actual_pools = calculate_updated_pools(
@@ -184,8 +212,8 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
         decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
         decay_rates=decay_rates,
+        plant_inputs=plant_inputs,
         update_interval=2.0,
-        constants=LitterConsts,
     )
 
     for name in expected_pools.keys():

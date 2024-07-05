@@ -16,14 +16,14 @@ def test_partion_plant_inputs_between_pools(dummy_litter_data):
         partion_plant_inputs_between_pools,
     )
 
-    expected_woody = [2.5e-3, 3.3e-3, 2.1e-3, 1.1e-3]
-    expected_above_meta = [0.000837625, 0.0002166395, 0.00055402316, 0.0007423585]
-    expected_above_struct = [0.000162375, 4.33605e-5, 0.00023097684, 0.0003326415]
-    expected_below_meta = [0.000699228, 0.000393904, 6.88162e-6, 0.0005435504]
-    expected_below_struct = [0.000200772, 0.000306096, 3.11838e-6, 0.0002864496]
+    expected_woody = [0.075, 0.099, 0.063, 0.033]
+    expected_above_meta = [0.02512875, 0.006499185, 0.0166206948, 0.022270755]
+    expected_above_struct = [0.00487125, 0.001300815, 0.0069293052, 0.009979245]
+    expected_below_meta = [0.02097684, 0.01181712, 0.0002064486, 0.016306512]
+    expected_below_struct = [0.00602316, 0.00918288, 9.35514e-5, 0.008593488]
 
     actual_splits = partion_plant_inputs_between_pools(
-        deadwood_production_rate=dummy_litter_data["deadwood_production_rate"],
+        deadwood_production_rate=dummy_litter_data["deadwood_production"],
         leaf_turnover=dummy_litter_data["leaf_turnover"],
         reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
         root_turnover=dummy_litter_data["root_turnover"],

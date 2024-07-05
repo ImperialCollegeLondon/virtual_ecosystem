@@ -64,6 +64,16 @@ class LitterModel(
         ("lignin_above_structural", ("spatial",)),
         ("lignin_woody", ("spatial",)),
         ("lignin_below_structural", ("spatial",)),
+        ("deadwood_production", ("spatial",)),
+        ("leaf_turnover", ("spatial",)),
+        ("reproduct_turnover", ("spatial",)),
+        ("root_turnover", ("spatial",)),
+        ("leaf_turnover_lignin_proportion", ("spatial",)),
+        ("reproduct_turnover_lignin_proportion", ("spatial",)),
+        ("root_turnover_lignin_proportion", ("spatial",)),
+        ("leaf_turnover_c_n_ratio", ("spatial",)),
+        ("reproduct_turnover_c_n_ratio", ("spatial",)),
+        ("root_turnover_c_n_ratio", ("spatial",)),
     ),
     vars_updated=(
         "litter_pool_above_metabolic",
@@ -207,6 +217,26 @@ class LitterModel(
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
+            deadwood_production=self.data["deadwood_production"].to_numpy(),
+            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
+            reproduct_turnover=self.data[
+                "plant_reproductive_tissue_turnover"
+            ].to_numpy(),
+            root_turnover=self.data["root_turnover"].to_numpy(),
+            leaf_turnover_lignin_proportion=self.data[
+                "leaf_turnover_lignin"
+            ].to_numpy(),
+            reproduct_turnover_lignin_proportion=self.data[
+                "plant_reproductive_tissue_turnover_lignin"
+            ].to_numpy(),
+            root_turnover_lignin_proportion=self.data[
+                "root_turnover_lignin"
+            ].to_numpy(),
+            leaf_turnover_c_n_ratio=self.data["leaf_turnover_c_n_ratio"].to_numpy(),
+            reproduct_turnover_c_n_ratio=self.data[
+                "plant_reproductive_tissue_turnover_c_n_ratio"
+            ].to_numpy(),
+            root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
             decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
             decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
         )
