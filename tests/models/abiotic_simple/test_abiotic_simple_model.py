@@ -167,6 +167,8 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         AbioticSimpleModel,
     )
 
+    lyr_strct = fixture_core_components.layer_structure
+
     # initialise model
     model = AbioticSimpleModel(
         data=dummy_climate_data_varying_canopy,
@@ -175,7 +177,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
 
     model.setup()
 
-    exp_soil_temp = fixture_core_components.layer_structure.from_template()
+    exp_soil_temp = lyr_strct.from_template()
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(
@@ -200,8 +202,8 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     ]:
         assert var in model.data
 
-    exp_air_temp = fixture_core_components.layer_structure.from_template()
-    exp_air_temp[[0, 1, 2, 3, 11], :] = [
+    exp_air_temp = lyr_strct.from_template()
+    exp_air_temp[lyr_strct.index_filled_atmosphere] = [
         [30.0, 30.0, 30.0, 30.0],
         [29.91965, 29.946434, 29.973217, 29.973217],
         [29.414851, 29.609901, np.nan, np.nan],
@@ -210,8 +212,8 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     ]
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
-    exp_soil_temp = fixture_core_components.layer_structure.from_template()
-    exp_soil_temp[[12, 13], :] = [
+    exp_soil_temp = lyr_strct.from_template()
+    exp_soil_temp[lyr_strct.index_all_soil] = [
         [20.712458, 21.317566, 21.922674, 21.922674],
         [20.0, 20.0, 20.0, 20.0],
     ]

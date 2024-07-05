@@ -21,4 +21,5 @@ kernelspec:
     :autosummary:
     :members: 
     :special-members: __post_init__
+    :private-members: _role_indices_bool, _role_indices_int
 ```
