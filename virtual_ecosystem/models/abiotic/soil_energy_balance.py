@@ -233,8 +233,8 @@ def calculate_soil_heat_balance(
         temperature
     """
 
-    topsoil_layer_index = layer_structure.role_indices["topsoil"]
-    surface_layer_index = layer_structure.role_indices["surface"]
+    topsoil_layer_index = layer_structure.index_topsoil
+    surface_layer_index = layer_structure.index_surface
 
     output = {}
 

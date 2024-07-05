@@ -71,6 +71,8 @@ def test_PlantsModel_update_canopy_layers(
 ):
     """Simple test that update canopy layers restores overwritten data."""
 
+    from_template = fixture_core_components.layer_structure.from_template
+
     # Overwrite the existing canopy derived data in each layer - this also nukes the
     # soil and surface depths _which_ are not correctly regenerated in this test, so the
     # test makes use of the canopy only layer heights in the fixture_canopy_layer_data
@@ -80,9 +82,7 @@ def test_PlantsModel_update_canopy_layers(
     del fixture_canopy_layer_data["layer_leaf_mass"]
 
     for layer, _, _ in fixture_canopy_layer_data.values():
-        fxt_plants_model.data[layer] = (
-            fixture_core_components.layer_structure.from_template()
-        )
+        fxt_plants_model.data[layer] = from_template()
 
     # Calling the method resets to the expected values
     fxt_plants_model.update_canopy_layers()
@@ -91,14 +91,13 @@ def test_PlantsModel_update_canopy_layers(
     # canopy_absorption, which should not have been regenerated yet
     del fixture_canopy_layer_data["canopy_absorption"]
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        expected = fixture_core_components.layer_structure.from_template()
+        expected = from_template()
         expected[layer_indices] = layer_vals[:, None]
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
     # Check canopy_absorption is indeed still empty
     xarray.testing.assert_allclose(
-        fxt_plants_model.data["canopy_absorption"],
-        fixture_core_components.layer_structure.from_template(),
+        fxt_plants_model.data["canopy_absorption"], from_template()
     )
 
 
@@ -106,6 +105,8 @@ def test_PlantsModel_set_canopy_absorption(
     fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
 ):
     """Simple test that update canopy layers restores overwritten data."""
+
+    from_template = fixture_core_components.layer_structure.from_template
 
     # Overwrite the existing canopy derived data in each layer - this also nukes the
     # soil and surface depths _which_ are not correctly regenerated in this test, so the
@@ -116,22 +117,22 @@ def test_PlantsModel_set_canopy_absorption(
     del fixture_canopy_layer_data["layer_leaf_mass"]
 
     for layer, _, _ in fixture_canopy_layer_data.values():
-        fxt_plants_model.data[layer] = (
-            fixture_core_components.layer_structure.from_template()
-        )
+        fxt_plants_model.data[layer] = from_template()
 
     # Check that calling the method after update resets to the expected values
     fxt_plants_model.update_canopy_layers()
     fxt_plants_model.set_canopy_absorption(time_index=0)
 
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        expected = fixture_core_components.layer_structure.from_template()
+        expected = from_template()
         expected[layer_indices] = layer_vals[:, None]
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
 
 def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     """Test the estimate_gpp method."""
+
+    lyr_str = fixture_core_components.layer_structure
 
     # Set the canopy and absorbed irradiance
     fxt_plants_model.update_canopy_layers()
@@ -143,24 +144,24 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     # Check calculated quantities - this is currently very basic.
 
     # - Light use efficiency: currently asserted fixed value
-    exp_lue = fixture_core_components.layer_structure.from_template()
-    exp_lue[1:4] = 0.3
+    exp_lue = lyr_str.from_template()
+    exp_lue[lyr_str.index_filled_canopy] = 0.3
     xarray.testing.assert_allclose(
         fxt_plants_model.data["layer_light_use_efficiency"],
         exp_lue,
     )
 
     # Same for evapotranspiration
-    exp_evapo = fixture_core_components.layer_structure.from_template()
-    exp_evapo[1:4] = 20
+    exp_evapo = lyr_str.from_template()
+    exp_evapo[lyr_str.index_filled_canopy] = 20
     xarray.testing.assert_allclose(
         fxt_plants_model.data["evapotranspiration"],
         exp_evapo,
     )
 
     # - Canopy fapar to expected gpp per m2
-    exp_fapar = fixture_core_components.layer_structure.from_template()
-    exp_fapar[[1, 2, 3, 11]] = [[0.4], [0.2], [0.1], [0.3]]
+    exp_fapar = lyr_str.from_template()
+    exp_fapar[lyr_str.index_flux_layers] = [[0.4], [0.2], [0.1], [0.3]]
     exp_gpp_per_m2 = exp_lue * 1000 * exp_fapar
 
     assert np.allclose(
@@ -187,16 +188,17 @@ def test_PlantsModel_update(
     # TODO - amend this as and when layer heights gets centralised
     del fixture_canopy_layer_data["layer_heights_full"]
 
+    from_template = fixture_core_components.layer_structure.from_template
+
     for layer, _, _ in fixture_canopy_layer_data.values():
-        fxt_plants_model.data[layer] = (
-            fixture_core_components.layer_structure.from_template()
-        )
+        fxt_plants_model.data[layer] = from_template()
+
     # Check reset
     fxt_plants_model.update(time_index=0)
 
     # Check the canopy has been initialised and updated
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        expected = fixture_core_components.layer_structure.from_template()
+        expected = from_template()
         expected[layer_indices] = layer_vals[:, None]
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
