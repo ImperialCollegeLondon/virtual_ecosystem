@@ -214,7 +214,7 @@ Further theoretical background for the Soil Model can be found
 
 The Animal Model simulates the animal consumers for the Virtual Ecosystem. We follow the
 Madingley Model {cite}`harfoot_madingley_2014` to provide the foundational structure
-as well as some of the dynamics. The key processes of which are:
+as well as some of the dynamics. The key processes of the model are:
 
 - foraging and trophic dynamics
 - migration
