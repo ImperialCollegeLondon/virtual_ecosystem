@@ -142,7 +142,7 @@ class PlantsModel(
         # cohort data and then initialise the irradiance using the first observation for
         # PPFD.
         self.update_canopy_layers()
-        self.set_absorbed_irradiance(time_index=0)
+        self.set_canopy_absorption(time_index=0)
 
     @classmethod
     def from_config(
@@ -205,7 +205,7 @@ class PlantsModel(
 
         # Update the canopy layers
         self.update_canopy_layers()
-        self.set_absorbed_irradiance(time_index=time_index)
+        self.set_canopy_absorption(time_index=time_index)
 
         # Estimate the GPP and growth with the updated this update
         self.estimate_gpp(time_index=time_index)
@@ -248,7 +248,7 @@ class PlantsModel(
             + self.layer_structure.above_canopy_height_offset
         )
 
-    def set_absorbed_irradiance(self, time_index: int) -> None:
+    def set_canopy_absorption(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
 
         This method takes the photosynthetic photon flux density at the top of the

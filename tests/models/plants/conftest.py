@@ -111,8 +111,8 @@ def fixture_canopy_layer_data():
             np.array([0.4, 0.2, 0.1]),
             np.array([1, 2, 3]),
         ),
-        "layer_absorbed_irradiation": (
-            "layer_absorbed_irradiation",
+        "canopy_absorption": (
+            "canopy_absorption",
             np.array([400, 200, 100, 300]),
             np.array([1, 2, 3, 11]),
         ),
