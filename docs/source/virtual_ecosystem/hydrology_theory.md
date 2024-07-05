@@ -14,6 +14,4 @@
 
 ## Hydrology modelling
 
-### State of the art
-
-### Challenges and limitations
+## Challenges and limitations
