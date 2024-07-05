@@ -198,6 +198,6 @@ basic flow is:
    official released versions.
 
 ```{eval-rst}
-.. include::  ../../../.github/workflows/pyrealm_publish.yaml
+.. include::  ../../../../.github/workflows/publish.yml
     :code: yaml
 ```

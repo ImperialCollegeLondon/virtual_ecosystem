@@ -35,10 +35,7 @@ it produces stable outputs. The test suite can be run from repository using:
 poetry run pytest
 ```
 
-The `setup.cfg` file contains `pytest` configuration details. By default, we do not
-include the slow-running `profiling` tests as part of the standard `pytest` suite. See
-the [profiling page](./profiling_and_benchmarking.md) for details on running those
-tests.
+The `pyproject.toml` file contains `pytest` configuration details.
 
 ## Using `doctest`
 
@@ -57,7 +54,7 @@ poetry run python -m doctest pyrealm/pmodel/pmodel.py
 Normally, `doctest` is just used to test a return value: the value tested is the value
 printed to the console, so it is common to use some form of `round` to make sure values
 match. It can also be used to check that an error or warning is raised. See the
-docstring for {meth}`~pyrealm.core.hygro.convert_rh_to_vpd` to see how checking for
+docstring for **TODO: DO WE USE THIS** to see how checking for
 warning text can be included in a doctest.
 
 ## Using `pytest-coverage` and `codecov`

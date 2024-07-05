@@ -250,30 +250,17 @@ run.
 poetry run pytest
 ```
 
-### Code profiling
+### The `example_data` module
 
-We use a specific set of `pytest` tests to carry out code profiling using
-the `pytest-profile` plugin. This makes it easier to spot functions that are running
-slowly within the `pyrealm` code. We also use our own `profiling/run-benchmarking.py`
-script to compare code profiles between versions to check that new code has not impacted
-performance.
-
-See the [profiling and benchmarking page](./profiling_and_benchmarking.md) for more
-details on running profiling.
-
-### The `pyrealm-build-data` package
-
-The `pyrealm` repository includes the [`pyrealm-build-data`
-package](./pyrealm_build_data.md), which is used to provide a range of datasets used in
-package testing and in documentation.
+The `virtual_ecosystem` package includes the `example_data` submodule TODO: LINK
 
 ### Documentation
 
 We use `sphinx` to maintain the documentation for `pyrealm` and Google style docstrings
 using the `napoleon` formatting to provide API documentation for the code. We use MyST
 Markdown to provide dynamically built usage examples. See the [documentation
-page](./documentation.md) for details but to get started, the following code can be used
-to build the documentation.
+pages](../documentation/documentation.md) for details but to get started, the following
+code can be used to build the documentation.
 
 ```bash
 # Build docs using sphinx
