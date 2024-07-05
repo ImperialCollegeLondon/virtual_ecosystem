@@ -226,7 +226,7 @@ as well as some of the dynamics. The key processes of the model are:
 ### Functional Groups
 
 Animals within the Animal Model are sorted into functional groups, not biological
-species. Functional groups share functional traits and body-mass ranges in common and
+species. Functional groups share functional traits and body-mass ranges and
 so behave similarly within the ecosystem. Defining a functional group within the
 Animal Model requires the following traits:
 
