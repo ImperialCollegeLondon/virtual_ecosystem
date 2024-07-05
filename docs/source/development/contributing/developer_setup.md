@@ -1,5 +1,11 @@
 # Developer setup
 
+:::{note}
+
+Outdated: to be merged into new developer docs
+
+:::
+
 This document is a help file for developers setting up a computer to work with the
 Virtual Ecosystem codebase.
 

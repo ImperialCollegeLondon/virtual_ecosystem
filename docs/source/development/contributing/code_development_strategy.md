@@ -1,5 +1,11 @@
 # Development strategy and tool stack
 
+:::{note}
+
+Outdated: to be merged into new developer docs
+
+:::
+
 > Author: Currently, David Orme but intended to be collaborative.
 
 This document describes the key development tools and principles for the project. It
