@@ -75,9 +75,9 @@ The local water balance can be represented by the equation:
 
 $$\Delta S = P − ET − R$$
 
-where $$\Delta S$$ represents the net change in water stored in the system, $$P$$ stands
-for precipitation, the total water input, $$ET$$ is the evapotranspiration with accounts
-for water loss to the atmosphere, and runoff $$R$$ represents water that flows out of
+where $\Delta S$ represents the net change in water stored in the system, $P$ stands
+for precipitation, the total water input, $ET$ is the evapotranspiration with accounts
+for water loss to the atmosphere, and runoff $R$ represents water that flows out of
 the system.
 
 The water balance include above and below ground processes that together describe the
