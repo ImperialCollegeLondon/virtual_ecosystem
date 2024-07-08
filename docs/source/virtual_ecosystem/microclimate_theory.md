@@ -4,7 +4,7 @@ Microclimates are defined as the local climate conditions that organisms and eco
 are exposed to. In terrestrial ecosystems, microclimates often deviate strongly from the
 climate representative of a large geographic region, the macroclimate
 {cite}`kemppinen_microclimate_2024`.
-For example, the temperature directly above a rainforest canopy might be modulated the
+For example, the temperature directly above a rainforest canopy might be modulated
 due to small scale variations in topography and aspect. The temperature above the canopy
 is typically several degrees higher than near the surface, the surface
 under a dense canopy tends to be cooler than unshaded surface spots, and temperatures
@@ -16,6 +16,8 @@ range between 0.1-100 m horizontally, 10-100 m vertically, and seconds to minute
 temporally {cite}`bramer_chapter_2018`.
 
 ## Factors affecting microclimate
+
+Microclimates are mediated by macroclimate, topography, vegetation structure, and soil.
 
 ### Macroclimate
 
@@ -99,12 +101,13 @@ changes in heat storage.
 * **Water balance**: The water balance refers to the equilibrium of absorbed and released
 water by different (here abiotic) ecosystem components. This balance is linked to the
 energy balance via evapotranspiration and latent heat flux from the soil surface.
-The hydrology on catchment scale is described in more detail [here](./microclimate_theory.md).
+The hydrology on catchment scale is described in more detail [here](./hydrology_theory.md).
 * **Carbon balance**: The carbon balance is linked to the radiation, energy and water
 balance by net primary productivity: the conversion of light, atmospheric carbon, water,
 (and nutrients) into biomass minus respiration. The carbon cycle continues as plant biomass
-is either eaten by herbivores or falls to the ground. If not respired by animals or
-plants, carbon enters the soil where it is and eventually recycled to the atmosphere.
+is either eaten by herbivores or falls to the ground where it is decomposed. If not
+respired by animals or plants, carbon enters the soil where it is and eventually
+recycled to the atmosphere.
 * **Turbulent transfer**: The turbulent transfer and wind mix all the atmospheric
 properties vertically and horizontally, leading to ecosystem characteristic patterns and
 profiles of microclimatic variables.
@@ -181,6 +184,11 @@ in the balance of energy through its critical role in photosynthesis. It should 
 be considered when studying the dynamics on ecosystems.
 
 ## Links to biotic components
+
+Microclimates affect biota in a number of ways. Physically, microclimate shapes the
+3-dimensional vegetation structure that organisms live in. Physiologically, temperatures
+in particular affect metabolic rates. Further, microclimates drive behaviour, species
+interactions, and evolutionary processes.
 
 ### Habitat suitability
 
