@@ -15,6 +15,18 @@ suitable habitats for a diverse range of species. Scales of microclimates typica
 range between 0.1-100 m horizontally, 10-100 m vertically, and seconds to minutes
 temporally {cite}`bramer_chapter_2018`.
 
+This page provides an overview of the [key factors](#factors-affecting-microclimate)
+influencing the microclimate of an ecosystem, the
+[main processes](#balancing-energy-water-and-carbon) that drive the energy, carbon, and
+water cycle,
+required [input and state variables](#key-microclimatic-variables) used to
+estimate these processes and
+the [interactions with biotic process](#links-to-biotic-components).
+Further, this page offers a brief overview over
+microclimate [data collection](#microclimate-data-collection) and
+[modelling](#microclimate-modelling) approaches as well as open
+[challenges and limitations](#challenges-and-limitations) in microclimate research.
+
 ## Factors affecting microclimate
 
 Microclimates are mediated by macroclimate, topography, vegetation tye and structure, and

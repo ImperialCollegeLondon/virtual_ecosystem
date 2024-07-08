@@ -12,6 +12,18 @@ habitats for a wide range of species which supports biodiversity. Additionally, 
 bodies influence microclimates by regulating temperatures through heat
 absorption and release.
 
+This page provides an overview of the [key factors](#factors-affecting-hydrology)
+influencing the hydrology of an ecosystem, the main processes that drive the
+hydrological cycle at [local scale](#local-water-balance) and
+[catchment scale](#catchment-scale-water-balance),
+required [input and state variables](#key-hydrological-variables-and-processes) used to
+estimate these processes and
+the [interactions with biotic process](#links-to-the-biotic-components).
+Further, this page offers a brief overview over
+hydrological [data collection](#data-collection) and [modelling](#hydrology-modelling)
+approaches as well as open
+[challenges and limitations](#challenges-and-limitations) in hydrological research.
+
 ## Factors affecting hydrology
 
 The hydrology on an ecosystem is mostly determined by macro- and microclimate,
@@ -73,7 +85,7 @@ The local water balance is, similar to the microclimate, driven by large scale h
 patterns and affects the living conditions for organisms at the local scale.
 The local water balance can be represented by the equation:
 
-$$\Delta S = P − ET − R$$
+$$\Delta S = P − ET − R$$ (water_balance)
 
 where $\Delta S$ represents the net change in water stored in the system, $P$ stands
 for precipitation, the total water input, $ET$ is the evapotranspiration with accounts
