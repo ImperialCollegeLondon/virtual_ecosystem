@@ -25,6 +25,22 @@ The package release process has four stages. The last two steps are automated:
   that users will install and use. The `virtual_ecosystem` package uses the trusted
   publishing mechanism to make it easy to add new release to PyPI.
 
+## Pre-release candidates and experimental releases
+
+The documentation below describes the process for 'official' releases of the Virtual
+Ecosystem, but it is sometimes useful to be able to release a test version or a release
+candidate. This can of course follow exactly the same instructions as below - an
+official release candidate is fine! However, you _can_ create a release from any
+branch, so it is possible to make a test release from `release/X.Y.Z` branch. This
+should always be discussed with the wider developer team.
+
+In this case, you may want to include the text `test-pypi-only` in the release name.
+This will publish the package on the Test PyPI archive but not the main PyPI archive.
+This has some advantages - we don't clutter up the official releases with experimental
+versions - but the test archive does not necessarily include all the versions of
+required packages needed and so is not really suitable for versions intended for testing
+by end users. See below for more information on how this option works.
+
 ## Generate the code commit to be released
 
 The release process for new versions of the `virtual_ecosystem` package is managed using
@@ -105,16 +121,8 @@ a target branch. The steps are:
    good practice to save the draft and then have a discussion with the other developers
    about whether to publish it.
 
-1. Once everyone is agreed **publish the release**.
-
-## Publish the package on Zenodo
-
-The `virtual_ecosystem` package is set up to publish on Zenodo automatically when a
-release is published. This saves a zip file of the repository as a new Zenodo record,
-under the [`virtual_ecosystem` concept ID](https://zenodo.org/doi/10.5281/zenodo.8366847).
-
-This process can be turned off for test releases but only through the owning Zenodo
-account, which belongs to David Orme.
+1. Once everyone is agreed **publish the release**: this will **automatically** publish
+   the release on PyPI.
 
 ## Publish the package on PyPI
 
@@ -125,58 +133,6 @@ We publish to _two_ package servers:
   to make sure that the package build and publication process is working as expected.
 * The package builds are then published to the main
   [PyPI](https://pypi.org/project/virtual_ecosystem/) server for public use.
-
-The GitHub action automates the publication process but the process can also be carried
-out manually.
-
-### Manual publication
-
-The publication process _can_ be carried out from the command line. The manual process
-looks like this:
-
-```sh
-# Use poetry to create package builds in the dist directory
-poetry build
-# Building virtual_ecosystem (x.y.z)
-#  - Building sdist
-#  - Built virtual_ecosystem.y.z.tar.gz
-#  - Building wheel
-#  - Built virtual_ecosystem.y.z-py3-none-any.whl
-
-# Use twine to validate publication to TestPyPI
-twine upload --repository testpypi --config-file .pypirc dist/*
-
-# Use twine to publish to PyPI
-twine upload --repository pypi --config-file .pypirc dist/*
-```
-
-The tricky bit is that you need to provide a config file containining authentication
-tokens to permit publication. Those tokens **must not be included in the repository**
-and so need to be carefully shared with developers who make releases. If this is being
-used the `.pypirc` file contents will look something like:
-
-```ini
-[distutils]
-index-servers =
-    pypi
-    testpypi
-
-[pypi]
-repository = https://upload.pypi.org/legacy/
-username = __token__
-password = pypi-longAuthToken
-
-
-[testpypi]
-repository = https://test.pypi.org/legacy/
-username = __token__
-password = pypi-anotherLongAuthToken
-```
-
-At this point, you should also upload the built package wheel and source files to the
-assets section of the GitHub release.
-
-### Trusted publishing
 
 The `virtual_ecosystem` repository is set up to use trusted publishing through a Github
 Actions workflow. The workflow details are shown below, along with comments, but the

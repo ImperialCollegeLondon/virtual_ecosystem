@@ -112,8 +112,8 @@ the commands together into a single script, currently only for Linux.
 ### Python environment
 
 You will need to install Python to develop `virtual_ecosystem`. The package is currently
-tested against the following Python versions: 3.10 and 3.11. You should install one of
-these versions before you start developing `virtual_ecosystem`.
+tested against the following Python versions: 3.10, 3.11 and 3.12. You should install
+one of these versions before you start developing `virtual_ecosystem`.
 
 We highly recommend using [`pyenv`](https://github.com/pyenv/pyenv) or
 [`pyenv-win`](https://github.com/pyenv-win/pyenv-win) to manage your Python
@@ -155,12 +155,11 @@ poetry install
 
 Poetry uses a virtual environment for package development: all packages are installed to
 a stand-alone python environment that is only used for `virtual_ecosystem` development.
-This makes
-sure that the development environment is consistent across python versions and different
-developers. However, when you are working on the command line, you need to **explicitly
-use the `virtual_ecosystem` environment** to run any command that needs to use the
-`virtual_ecosystem` environment - and that is pretty much everything described in this
-document. There are two options to do this:
+This makes sure that the development environment is consistent across python versions
+and different developers. However, when you are working on the command line, you need to
+**explicitly use the `virtual_ecosystem` environment** to run any command that needs to
+use the `virtual_ecosystem` environment - and that is pretty much everything described
+in this document. There are two options to do this:
 
 1. You can add `poetry run` before a command to make sure that single command is run
    using the `poetry` environment. This approach is used in the example commands below.
@@ -175,6 +174,21 @@ installed and is showing the current version.
 poetry run python -c "import virtual_ecosystem; print(virtual_ecosystem.__version__)"
 ```
 
+### Key developer tools
+
+This is not an exhaustive list, but the packages installed by `poetry` including the
+following standalone tools that can be used in developing your code and documentation.
+
+- `ipython`: an improved interactive Python shell. If you are running code in Python
+  from the command line, this is the one to use. Visual Studio Code likes to use it.
+
+- `jupyterlab`: an interactive computing server, providing elegant notebooks for
+  documentation and how-to guides, as well as debugging and development discussion.
+
+- `jupytext`: this allows `jupyter` to use Markdown formatted notebooks - in particular
+  the extended [MyST Markdown](https://myst-parser.readthedocs.io/en/latest/) variety
+  which will also be used for documentation.
+
 ### Updating `poetry` and package versions
 
 You will not need to do this when setting up your development environment but one of the
@@ -183,15 +197,15 @@ The `pyproject.toml` files sets constraints on package versions, but the particu
 combination to be used for a given commit is resolved and stored in the `poetry.lock`
 file.
 
-* If you want to **add a package** - either using `poetry add` or by manually updating
+- If you want to **add a package** - either using `poetry add` or by manually updating
   `pyproject.toml` - you will then need to run `poetry update` to check that a
   compatible set of package versions exists and to update the `poetry.lock` file.
 
-* If you want to **update a package** then `poetry update` will update all the required
+- If you want to **update a package** then `poetry update` will update all the required
   packages and update `poetry.lock`. You can use `poetry update package_name` to only
   update a particular requirement.
 
-* The `poetry install` command - as shown above - can be re-run to re-install the
+- The `poetry install` command - as shown above - can be re-run to re-install the
   package. You will typically only need to do this if commands provided by the package
   have changed and need to be updated.
 
@@ -208,8 +222,8 @@ simple quality assurance checks and uses some common formatting standards.
 
 There is a detailed description of the `pre-commit` output and the  configured checks
 and update process on the [code quality assurance page](./code_qa_and_typing.md).
-Briefly, we use `pre-commit` to catch inconsistent formatting and variable typing and to
-run the widely-used `flake8` code checking suite.
+Briefly, the main elements are to use `pre-commit` to run code quality and formatting
+checks using the `ruff` tool and static typing using `mypy`.
 
 The `pre-commit` tool is installed by the `poetry install` step above, so you now need
 to install the `virtual_ecosystem` configuration for `pre-commit` and run the tool to
@@ -236,11 +250,10 @@ quality assurance page](./code_qa_and_typing.md) for more information on using `
 ### Package testing
 
 All code in the `virtual_ecosystem` package should have accompanying unit tests, using
-`pytest`.
-Look at the existing test suite in the `tests/unit` directory to see the structure and
-get a feel for what they should do, but essentially unit tests should provide a set of
-known inputs to a function and check that the expected answer (which could be an
-Exception) is generated.
+`pytest`. Look at the existing test suite in the `tests/unit` directory to see the
+structure and get a feel for what they should do, but essentially unit tests should
+provide a set of known inputs to a function and check that the expected answer (which
+could be an Exception) is generated.
 
 Again, the `pytest` package and plugins are installed by `poetry`. See the [code testing
 page](./code_testing.md) for more details but you should be able to check the tests run
@@ -254,7 +267,10 @@ poetry run pytest
 
 ### The `example_data` module
 
-The `virtual_ecosystem` package includes the `example_data` submodule TODO: LINK
+The `virtual_ecosystem` package includes the [`example_data`
+submodule](../../using_the_ve/example_data.md) that provides a simple configuration and
+initial data inputs for running a simulation. This is widely used in the `pytest` suite
+and may be useful in developing your own tests.
 
 ### Documentation
 
@@ -276,8 +292,8 @@ the built documentation.
 ### GitHub Actions
 
 We use GitHub Action workflows to update `pre-commit`, run code quality checks on pull
-requests, and to automate profiling and release publication. See the [GitHub Actions
-page](./github_actions.md) for details.
+requests, and to automate the publication of package releases on PyPI. See the [GitHub
+Actions page](./github_actions.md) for details.
 
 ### Package version releases
 
