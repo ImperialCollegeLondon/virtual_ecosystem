@@ -134,26 +134,5 @@ We publish to _two_ package servers:
 * The package builds are then published to the main
   [PyPI](https://pypi.org/project/virtual_ecosystem/) server for public use.
 
-The `virtual_ecosystem` repository is set up to use trusted publishing through a Github
-Actions workflow. The workflow details are shown below, along with comments, but the
-basic flow is:
-
-1. When a GitHub release is published, the PyPI publication workflow is triggered.
-1. The standard continuous integration tests are run again, just to be sure!
-1. If the tests pass, the package is built and the wheel and source code are stored as
-   job artefacts.
-1. The built files are automatically added to the release assets.
-1. The job artefacts are published to the Test PyPI server, which is configured to
-   automatically trust publications from this GitHub repository.
-1. As long as all the steps above succeed, the job artefacts are now published to the
-   main PyPI site, which is also configured to trust publications from the repository.
-
-   The last step of publication to the main PyPI site can be skipped by including the
-   text `test-pypi-only` in the title text for the release. This allows pre-release
-   tests and experimentation to be tested without automatically adding them to the
-   official released versions.
-
-```{eval-rst}
-.. include::  ../../../../.github/workflows/publish.yml
-    :code: yaml
-```
+The `virtual_ecosystem` repository is set up to use trusted publishing through [a Github
+Actions workflow](./github_actions.md#publishyaml).

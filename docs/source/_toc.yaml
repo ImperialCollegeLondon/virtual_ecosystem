@@ -45,8 +45,6 @@ subtrees:
       title: code_development_strategy OUTDATED
     - file: development/contributing/developer_setup
       title: developer_setup OUTDATED
-    - file: development/contributing/package_releases
-      title: package_releases OUTDATED
   - file: development/design
     entries:
     - file: development/design/core
