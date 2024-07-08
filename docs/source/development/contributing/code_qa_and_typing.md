@@ -38,15 +38,20 @@ make sure all is well.
 
 ### The `pre-commit` configuration
 
-The file
-[.pre-commit-config.yaml](https://github.com/ImperialCollegeLondon/virtual_ecosystem/blob/develop/.pre-commit-config.yaml)
-contains the pre-commit hooks used by `virtual_ecosystem`. You can see the full details
-of the file below but the tools used are:
+The project root includes a configuration file for `pre-commit` that sets the hooks that
+will be run on each commit. The contents of the file can be revealed below along with a
+short description of the roles of each hook.
+
+::::{dropdown} The `pre-commit-config.yaml` file
+:::{literalinclude} ../../../../.pre-commit-config.yaml
+:language: yaml
+:::
+::::
 
 `pre-commit-hooks`
 : We use these basic hooks to check for remaning `git` merge conflict markers in code
-files (`check-merge-conflicts`) and for debugger imports and `breakpoint()` calls
-(`dubug-statements`), which should not end up in code in the repository.
+files (`check-merge-conflicts` hook) and for debugger imports and `breakpoint()` calls
+(`dubug-statements` hook), which should not end up in code in the repository.
 
 `ruff-pre-commit`
 : This tool wraps the [`ruff`](https://docs.astral.sh/ruff/) code linter and formatter
@@ -58,12 +63,6 @@ and we use both the linting (`ruff`) and formatting (`ruff-format`) hooks.
 
 `markdownlint`
 : Checks all markdown files for common formatting issues.
-
-::::{dropdown} The `pre-commit-config.yaml` configuraiton
-:::{literalinclude} ../../../../.pre-commit-config.yaml
-:language: yaml
-:::
-::::
 
 ### Output and configuration
 
