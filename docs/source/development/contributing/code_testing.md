@@ -14,22 +14,29 @@ kernelspec:
 
 # Package testing and profiling
 
-The `pyrealm` package uses `pytest` to provide benchmark tests, unit tests and
+The `virtual_ecosystem` package uses `pytest` to provide benchmark tests, unit tests and
 integration testing. In addition, `doctest` is used to maintain examples of code usage
 in the package docstrings and ensure that the documented return values are correct.
 
 ## Using `pytest`
 
 The `tests` directory contains modules providing test suites for each of the different
-package modules. This includes:
+package modules. This includes at the moment:
 
-* regression testing the output of `pyrealm` code against previously existing
-  implementations of some functionality, such as the `rpmodel` and `SPLASH` packages.
-* unit testing of individual functions and methods and,
-* profiling and integration testing using combinations of modules.
+* unit testing of individual functions and methods
+* integration testing using combinations of modules.
 
 These are the main tests that ensure that the package is behaving as expected and that
-it produces stable outputs. The test suite can be run from repository using:
+it produces stable outputs.
+
+Further future tests may include:
+
+* regression testing the output of the `virtual_ecosystem` code against previously
+existing implementations of some functionality, such as the `SPLASH` or `microclimc`
+packages
+* profiling
+  
+The test suite can be run from repository using:
 
 ```bash
 poetry run pytest
@@ -68,6 +75,6 @@ poetry run pytest --cov=<test_path>
 
 to perform coverage analysis. The report is stored with the name `index.html`. It can be
 used to determine if your contribution is adequately tested. The GitHub Actions
-[continuous integration workflow](./github_actions.md#pyrealm_ciyaml) automatically
-uploads coverage data to the
-[CodeCov](https://app.codecov.io/gh/ImperialCollegeLondon/pyrealm) website.
+[continuous integration workflow](./github_actions.md#ciyaml)
+automatically uploads coverage data to the
+[CodeCov](https://app.codecov.io/gh/ImperialCollegeLondon/virtual_ecosystem) website.

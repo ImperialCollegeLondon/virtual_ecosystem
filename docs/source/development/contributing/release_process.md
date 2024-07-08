@@ -22,12 +22,12 @@ The package release process has four stages. The last two steps are automated:
   `main` that has some associated release notes.
 * Publish the code on Zenodo.
 * Publish the built code packages to PyPI - this is the packaged version of the code
-  that users will install and use. The `pyrealm` package uses the trusted publishing
-  mechanism to make it easy to add new release to PyPI.
+  that users will install and use. The `virtual_ecosystem` package uses the trusted
+  publishing mechanism to make it easy to add new release to PyPI.
 
 ## Generate the code commit to be released
 
-The release process for new versions of the `pyrealm` package is managed using
+The release process for new versions of the `virtual_ecosystem` package is managed using
 pull requests to the `main` branch to create a specific commit that will be released.
 The steps of the process are:
 
@@ -38,7 +38,7 @@ The steps of the process are:
    commit that change. You can use `poetry version` command to increment the major,
    minor and patch version but it is almost as easy to edit the file by hand.
 
-1. That commit should set the standard `pyrealm_ci.yaml` actions going, which includes
+1. That commit should set the standard `ci.yaml` actions going, which includes
    code QA, testing and docs building. However, you should also check the documentation
    builds on Read The Docs.
 
@@ -75,7 +75,7 @@ The steps of the process are:
 
 The head of the `main` branch is now at the commit that will be released as version
 `X.Y.Z`. The starting point is to **go to the [draft new release
-page](https://github.com/ImperialCollegeLondon/pyrealm/releases/new)**. The
+page](https://github.com/ImperialCollegeLondon/virtual_ecosystem/releases/new)**. The
 creation of a new release is basically attaching notes and files to a specific commit on
 a target branch. The steps are:
 
@@ -109,9 +109,9 @@ a target branch. The steps are:
 
 ## Publish the package on Zenodo
 
-The `pyrealm` package is set up to publish on Zenodo automatically when a release is
-published. This saves a zip file of the repository as a new Zenodo record, under the
-[`pyrealm` concept ID](https://zenodo.org/doi/10.5281/zenodo.8366847).
+The `virtual_ecosystem` package is set up to publish on Zenodo automatically when a
+release is published. This saves a zip file of the repository as a new Zenodo record,
+under the [`virtual_ecosystem` concept ID](https://zenodo.org/doi/10.5281/zenodo.8366847).
 
 This process can be turned off for test releases but only through the owning Zenodo
 account, which belongs to David Orme.
@@ -121,10 +121,10 @@ account, which belongs to David Orme.
 We publish to _two_ package servers:
 
 * The
-  [TestPyPI](https://test.pypi.org/project/pyrealm/) server is a final check
+  [TestPyPI](https://test.pypi.org/project/virtual_ecosystem/) server is a final check
   to make sure that the package build and publication process is working as expected.
 * The package builds are then published to the main
-  [PyPI](https://pypi.org/project/pyrealm/) server for public use.
+  [PyPI](https://pypi.org/project/virtual_ecosystem/) server for public use.
 
 The GitHub action automates the publication process but the process can also be carried
 out manually.
@@ -137,11 +137,11 @@ looks like this:
 ```sh
 # Use poetry to create package builds in the dist directory
 poetry build
-# Building pyrealm (x.y.z)
+# Building virtual_ecosystem (x.y.z)
 #  - Building sdist
-#  - Built pyrealm_x.y.z.tar.gz
+#  - Built virtual_ecosystem.y.z.tar.gz
 #  - Building wheel
-#  - Built pyrealm_x.y.z-py3-none-any.whl
+#  - Built virtual_ecosystem.y.z-py3-none-any.whl
 
 # Use twine to validate publication to TestPyPI
 twine upload --repository testpypi --config-file .pypirc dist/*
@@ -178,7 +178,7 @@ assets section of the GitHub release.
 
 ### Trusted publishing
 
-The `pyrealm` repository is set up to use trusted publishing through a Github
+The `virtual_ecosystem` repository is set up to use trusted publishing through a Github
 Actions workflow. The workflow details are shown below, along with comments, but the
 basic flow is:
 

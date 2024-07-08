@@ -12,17 +12,17 @@ kernelspec:
   name: python3
 ---
 
-# Developing `pyrealm`
+# Developing `virtual_ecosystem`
 
-This page gives an overview of the process of contributing code to the `pyrealm`
+This page gives an overview of the process of contributing code to the `virtual_ecosystem`
 package, along with the development environment and tools you will need to setup to work
 with the codebase.
 
 ## What is a package contributor?
 
-Being a contributor is all about helping improve the `pyrealm` package. That could be
-something very small, like fixing typos in the package website, or something large, like
-adding a draft of an entirely new science module to the package.
+Being a contributor is all about helping improve the `virtual_ecosystem` package. That
+could be something very small, like fixing typos in the package website, or something
+large, like adding a draft of an entirely new science module to the package.
 
 We welcome _all_ contributions, but we need to manage contributions of code and
 documentation to make sure everything works properly together and to keep the code and
@@ -39,8 +39,8 @@ to be a perfect or complete explanation!
 
 ## Contributing code
 
-The workflow for contributing to `pyrealm` currently follows the Gitflow strategy. The
-basic workflow is described below but [this AWS
+The workflow for contributing to `virtual_ecosystem` currently follows the Gitflow
+strategy. The basic workflow is described below but [this AWS
 link](https://docs.aws.amazon.com/prescriptive-guidance/latest/choosing-git-branch-approach/gitflow-branching-strategy.html)
 provides an overview of the strategy.
 
@@ -51,7 +51,7 @@ provides an overview of the strategy.
    feature you would like to provide. If you want to work on an existing issue, then
    just add a comment and say you would like to work on it.
 
-   [https://github.com/ImperialCollegeLondon/pyrealm/issues](https://github.com/ImperialCollegeLondon/pyrealm/issues)
+   [https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues](https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues)
 
    Whatever issue you do want to work on, do give other developers a chance to comment
    on suggestions before putting a lot of effort in!
@@ -106,17 +106,17 @@ provides an overview of the strategy.
 
 The short descriptions below provide the key commands needed to set up your development
 environment and provide links to more detailed descriptions of code development for
-`pyrealm`. The [example setup script](#setup-script-example) below gathers
+`virtual_ecosystem`. The [example setup script](#setup-script-example) below gathers
 the commands together into a single script, currently only for Linux.
 
 ### Python environment
 
-You will need to install Python to develop `pyrealm`. The package is currently tested
-against the following Python versions: 3.10 and 3.11. You should install one of these
-versions for developing `pyrealm`.
+You will need to install Python to develop `virtual_ecosystem`. The package is currently
+tested against the following Python versions: 3.10 and 3.11. You should install one of
+these versions before you start developing `virtual_ecosystem`.
 
 We highly recommend using [`pyenv`](https://github.com/pyenv/pyenv) or
-[`pyenv-win`](https://github.com/pyenv-win/pyenv-win)  to manage your Python
+[`pyenv-win`](https://github.com/pyenv-win/pyenv-win) to manage your Python
 installations. These tools allow you to manage multiple different python versions in
 parallel and to switch between them. However, these extra steps are not necessary to get
 started.
@@ -125,8 +125,8 @@ started.
 
 We use [`poetry`](https://python-poetry.org/docs/#installation) for dependency
 management and for managing development environments and you will need to install it.
-The `pyrealm` package currently uses `poetry` version 1.8.2 and you should specify this
-when installing to avoid conflicts with the package management process.
+The `virtual_ecosystem` package currently uses `poetry` version 1.8.2 and you should
+specify this when installing to avoid conflicts with the package management process.
 
 For the typical installation process, this would be as simple as:
 
@@ -134,19 +134,19 @@ For the typical installation process, this would be as simple as:
 curl -SSL https://install.python-poetry.org | python3 - --version 1.8.2
 ```
 
-### Installing `pyrealm`
+### Installing `virtual_ecosystem`
 
-To develop `pyrealm`, you will also need to install [`git`](https://git-scm.com/) and
-then clone the `pyrealm` GitHub repository.
+To develop `virtual_ecosystem`, you will also need to install [`git`](https://git-scm.com/)
+and then clone the `virtual_ecosystem` GitHub repository.
 
 ```sh
-git clone https://github.com/ImperialCollegeLondon/pyrealm.git
+git clone https://github.com/ImperialCollegeLondon/virtual_ecosystem.git
 ```
 
 You can now use `poetry` to install the package dependencies. This is not just the
 package requirements for end users of the package, but also a wider set of tools used in
 package development. `poetry` uses the
-[pyproject.toml](https://github.com/ImperialCollegeLondon/pyrealm/blob/develop/pyproject.toml)
+[pyproject.toml](https://github.com/ImperialCollegeLondon/virtual_ecosystem/blob/develop/pyproject.toml)
 file to configure the dependencies that will be installed.
 
 ```bash
@@ -154,12 +154,13 @@ poetry install
 ```
 
 Poetry uses a virtual environment for package development: all packages are installed to
-a stand-alone python environment that is only used for `pyrealm` development. This makes
+a stand-alone python environment that is only used for `virtual_ecosystem` development.
+This makes
 sure that the development environment is consistent across python versions and different
 developers. However, when you are working on the command line, you need to **explicitly
-use the `pyrealm` environment** to run any command that needs to use the `pyrealm`
-environment - and that is pretty much everything described in this document. There are
-two options to do this:
+use the `virtual_ecosystem` environment** to run any command that needs to use the
+`virtual_ecosystem` environment - and that is pretty much everything described in this
+document. There are two options to do this:
 
 1. You can add `poetry run` before a command to make sure that single command is run
    using the `poetry` environment. This approach is used in the example commands below.
@@ -167,11 +168,11 @@ two options to do this:
    then run commands without needing `poetry run` and they should use the correct
    enviroment. This is usually more convenient.
 
-You should now be able to run the following command to see that `pyrealm` is installed
-and is showing the current version.
+You should now be able to run the following command to see that `virtual_ecosystem` is
+installed and is showing the current version.
 
 ```sh
-poetry run python -c "import pyrealm; print(pyrealm.__version__)"
+poetry run python -c "import virtual_ecosystem; print(virtual_ecosystem.__version__)"
 ```
 
 ### Updating `poetry` and package versions
@@ -199,8 +200,8 @@ also run `poetry update` to bring your environment in line with other developers
 
 ### Installing and using `pre-commit`
 
-Development of the `pyrealm` package uses [`pre-commit`](https://pre-commit.com/). This
-is a python tool that runs a set of checks on `git` commits and stops the commit from
+Development of the `virtual_ecosystem` package uses [`pre-commit`](https://pre-commit.com/).
+This is a python tool that runs a set of checks on `git` commits and stops the commit from
 completing when any of those checks fail. We use `pre-commit` to help catch a wide range
 of common issues and make sure that all code pushed to the GitHub repository meets some
 simple quality assurance checks and uses some common formatting standards.
@@ -211,8 +212,8 @@ Briefly, we use `pre-commit` to catch inconsistent formatting and variable typin
 run the widely-used `flake8` code checking suite.
 
 The `pre-commit` tool is installed by the `poetry install` step above, so you now need
-to install the `pyrealm` configuration for `pre-commit` and run the tool to set up the
-environment and check it is all working.
+to install the `virtual_ecosystem` configuration for `pre-commit` and run the tool to
+set up the environment and check it is all working.
 
 ```sh
 poetry run pre-commit install
@@ -225,16 +226,17 @@ That might take a little while to run on the first use. Once you have done this,
 ### Static typing with `mypy`
 
 The `python` programming language does not _require_ code objects to be typed, but the
-`pyrealm` package uses [type hints](https://peps.python.org/pep-0484/) to annotate code.
-Those type hints are then checked using the `mypy` static type checker, which is
-installed by `poetry` and is run as one of the `pre-commit` checks.
+`virtual_ecosystem` package uses [type hints](https://peps.python.org/pep-0484/) to
+annotate code. Those type hints are then checked using the `mypy` static type checker,
+which is installed by `poetry` and is run as one of the `pre-commit` checks.
 
 The `mypy` package and the plugins we use are all installed by `poetry`. See the [code
 quality assurance page](./code_qa_and_typing.md) for more information on using `mypy`.
 
 ### Package testing
 
-All code in the `pyrealm` package should have accompanying unit tests, using `pytest`.
+All code in the `virtual_ecosystem` package should have accompanying unit tests, using
+`pytest`.
 Look at the existing test suite in the `tests/unit` directory to see the structure and
 get a feel for what they should do, but essentially unit tests should provide a set of
 known inputs to a function and check that the expected answer (which could be an
@@ -256,9 +258,9 @@ The `virtual_ecosystem` package includes the `example_data` submodule TODO: LINK
 
 ### Documentation
 
-We use `sphinx` to maintain the documentation for `pyrealm` and Google style docstrings
-using the `napoleon` formatting to provide API documentation for the code. We use MyST
-Markdown to provide dynamically built usage examples. See the [documentation
+We use `sphinx` to maintain the documentation for `virtual_ecosystem` and Google style
+docstrings using the `napoleon` formatting to provide API documentation for the code.
+We use MyST Markdown to provide dynamically built usage examples. See the [documentation
 pages](../documentation/documentation.md) for details but to get started, the following
 code can be used to build the documentation.
 
@@ -279,16 +281,17 @@ page](./github_actions.md) for details.
 
 ### Package version releases
 
-We use trusted publishing from GitHub releases to release new versions of `pyrealm` to
-[PyPI](https://pypi.org/project/pyrealm/). Releases are also picked up and archived on
-[Zenodo](https://doi.org/10.5281/zenodo.8366847). See the [release process
+We use trusted publishing from GitHub releases to release new versions of the
+`virtual_ecosystem` to
+[PyPI](https://pypi.org/project/virtual_ecosystem/). Releases are also picked up and
+archived on [Zenodo](https://doi.org/10.5281/zenodo.8366847). See the [release process
 page](./release_process.md) for details.
 
 ## Setup script example
 
 The scripts below bundle all the commands together to show the set up process, including
 using `pyenv` to mangage `python` versions, ending by running the unit tests. This sets
-up everything you need, ready to start developing on pyrealm.
+up everything you need, ready to start developing on the `virtual_ecosystem`.
 
 :::{admonition} Setup script
 
@@ -318,10 +321,10 @@ curl -sSL https://install.python-poetry.org | python3 -
 # export PATH="/home/validate/.local/bin:$PATH"
 
 # Clone the repository
-git clone https://github.com/ImperialCollegeLondon/pyrealm.git
+git clone https://github.com/ImperialCollegeLondon/virtual_ecosystem.git
 
-# Configure the pyrealm repo to use python 3.11
-cd pyrealm
+# Configure the virtual_ecosystem repo to use python 3.11
+cd virtual_ecosystem
 pyenv local 3.11
 poetry env use 3.11
 

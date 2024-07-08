@@ -15,12 +15,13 @@ kernelspec:
 # Code quality and static typing
 
 We use `pre-commit` to ensure common code standards and style, and use `mypy` to provide
-static typing of the `pyrealm` codebase.
+static typing of the `virtual_ecosystem` codebase.
 
 ## Using `pre-commit`
 
 As described in the [developer overview](./overview.md), `pre-commit` is installed as
-part of the `pyrealm` developer dependencies and so can be set up to run simply using:
+part of the `virtual_ecosystem` developer dependencies and so can be set up to run
+simply using:
 
 ```sh
 poetry run pre-commit install
@@ -36,9 +37,9 @@ make sure all is well.
 ### The `pre-commit` configuration
 
 The file
-[.pre-commit-config.yaml](https://github.com/ImperialCollegeLondon/pyrealm/blob/develop/.pre-commit-config.yaml)
-contains the pre-commit hooks used by `pyrealm`. The configuration file contains links
-to each individual hook but in overview:
+[.pre-commit-config.yaml](https://github.com/ImperialCollegeLondon/virtual_ecosystem/blob/develop/.pre-commit-config.yaml)
+contains the pre-commit hooks used by `virtual_ecosystem`. The configuration file
+contains links to each individual hook but in overview:
 
 `check for merge conflicts`
 : Checks for remaning `git` merge conflict markers in code files.
@@ -120,7 +121,8 @@ int fun(int num) {
 ```
 
 Python does not require explicit typing. That can be very useful but it can also make it
-very difficult to be clear what kinds of variables are being used. The `pyrealm` project
+very difficult to be clear what kinds of variables are being used. The
+`virtual_ecosystem` project
 requires static typing of the source code: the syntax for this started with [PEP
 484](https://peps.python.org/pep-0484/) and a set of quality assurance tools have
 developed to help support clear and consistent typing. We use
@@ -142,12 +144,12 @@ This should not be done lightly: we are using these QA tools for a reason.
   using, for example `# fmt: skip`.
 * `flake8` uses the `# noqa` comment to [suppress
   warnings](https://flake8.pycqa.org/en/3.0.1/user/ignoring-errors.html#in-line-ignoring-errors).
-  For `pyrealm` you should  explicitly list the errors to be ignored, so that other
-  errors are not missed: `# noqa D210, D415`.
+  For `virtual_ecosystem` you should  explicitly list the errors to be ignored, so that
+  other errors are not missed: `# noqa D210, D415`.
 * `mypy` uses the syntax `# type: ignore` comment to [suppress
   warnings](https://mypy.readthedocs.io/en/stable/error_codes.html#silencing-errors-based-on-error-codes).
-  Again, `pyrealm` requires that you provide the specific `mypy` error code to be
-  ignored to avoid missing other issues:  `# type: ignore[operator]`.
+  Again, `virtual_ecosystem` requires that you provide the specific `mypy` error code to
+  be ignored to avoid missing other issues:  `# type: ignore[operator]`.
 * `markdownlint` catches issues in Markdown files and uses a range of [HTML comment
   tags](https://github.com/DavidAnson/markdownlint?tab=readme-ov-file#configuration) to
   suppress format warnings. An example is `<!-- markdownlint-disable-line MD001 -->` and

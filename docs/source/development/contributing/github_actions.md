@@ -23,7 +23,7 @@ confirm that the package and website are building correctly. The actions are def
 This workflow runs every week at midnight on Monday and creates a new pull request to
 update the `pre-commit` actions.
 
-## `pyrealm_ci.yaml`
+## `ci.yaml`
 
 This workflow runs when a pull request is opened and when new commits are made to an
 existing pull request. It is the main quality assurance check on new code and runs three
@@ -36,13 +36,13 @@ jobs:
 If any of those checks fail, you will need to push new commits to the pull request to
 fix the outstanding issues. The status of code checking for pushed commits can be seen at:
 
-[https://github.com/ImperialCollegeLondon/pyrealm/actions](https://github.com/ImperialCollegeLondon/pyrealm/actions)
+[https://github.com/ImperialCollegeLondon/virtual_ecosystem/actions](https://github.com/ImperialCollegeLondon/virtual_ecosystem/actions)
 
 Although GitHub Actions automates these steps for any pushes, pull requests and releases
 on the repository, you should also perform the same steps locally before submitting code
 to ensure that your code passes testing.
 
-## `pyrealm_publish.yaml`
+## `publish.yaml`
 
 This workflow runs when a release is made on the GitHub site and uses trusted publishing
-to build the package and publish it on [PyPI](https://pypi.org/project/pyrealm/).
+to build the package and publish it on [PyPI](https://pypi.org/project/virtual_ecosystem/).
