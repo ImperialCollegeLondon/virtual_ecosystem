@@ -70,7 +70,7 @@ runoff, and reduce infiltration.
 ### Local water balance
 
 The local water balance is, similar to the microclimate, driven by large scale hydrological
-patterns and affects the living cnditions for organisms at the local scale.
+patterns and affects the living conditions for organisms at the local scale.
 The local water balance can be represented by the equation:
 
 $$\Delta S = P − ET − R$$
