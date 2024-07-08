@@ -12,15 +12,38 @@ kernelspec:
 
 # Welcome to the Virtual Ecosystem
 
-This repository is the home for the development of the Virtual Ecosystem. The Virtual
-Ecosystem is a project to develop a simulation of all of the major processes involved
-in a real ecosystem including the:
+The Virtual Ecosystem is a project to develop a simulation of all of the major processes
+involved in a real ecosystem including the:
 
 - growth and demographic processes of the primary producers within the forest,
 - microclimatic processes within and around the ecosystem,
 - hydrological processes within the canopy, soil and drainage networks,
 - biotic and abiotic processes within the soil, and the
 - growth and demography of heterotrophs.
+
+The project is open-source and is being developed using the Python programming language.
+
+## What to read next
+
+The project documentation and the underlying code are big, so here are some quick links
+to help guide you in finding out more about the Virtual Ecosystem. Are you interested
+in:
+
+- Reading more about the [scientific theories](./virtual_ecosystem/theory.md)
+  underlying the development of the Virtual Ecosystem.
+- Exploring the [big picture workflow](./virtual_ecosystem/implementation.md) of the
+  implementation of the Virtual Ecosystem.
+- Getting started by [installing the Virtual
+  Ecosystem](./using_the_ve/getting_started.md) and running a simple example.
+- Moving on to [configuring your own simulation](./using_the_ve/configuration/config.md)
+  and [providing new data](./using_the_ve/data/data.md).
+- Contributing to the [development](./development/contributing.md) of the Virtual
+  Ecosystem.
+- Simply taking a look at the code! The project is open source and is developed on the
+  [ImperialCollegeLondon/virtual_ecosystem](https://github.com/ImperialCollegeLondon/virtual_ecosystem)
+  repository on GitHub.
+
+## About the project
 
 ::::{grid} 1 1 2 2
 
