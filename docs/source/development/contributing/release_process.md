@@ -135,4 +135,4 @@ We publish to _two_ package servers:
   [PyPI](https://pypi.org/project/virtual_ecosystem/) server for public use.
 
 The `virtual_ecosystem` repository is set up to use trusted publishing through [a Github
-Actions workflow](./github_actions.md#publishyaml).
+Actions workflow](./github_actions.md#publication-workflow).

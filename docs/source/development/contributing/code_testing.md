@@ -75,6 +75,6 @@ poetry run pytest --cov=<test_path>
 
 to perform coverage analysis. The report is stored with the name `index.html`. It can be
 used to determine if your contribution is adequately tested. The GitHub Actions
-[continuous integration workflow](./github_actions.md#ciyaml)
+[continuous integration workflow](./github_actions.md#continuous-integration-workflow)
 automatically uploads coverage data to the
 [CodeCov](https://app.codecov.io/gh/ImperialCollegeLondon/virtual_ecosystem) website.
