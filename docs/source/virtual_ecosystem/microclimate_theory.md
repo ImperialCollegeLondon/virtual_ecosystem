@@ -17,7 +17,9 @@ temporally {cite}`bramer_chapter_2018`.
 
 ## Factors affecting microclimate
 
-Microclimates are mediated by macroclimate, topography, vegetation structure, and soil.
+Microclimates are mediated by macroclimate, topography, vegetation tye and structure, and
+soil. Many of these factors can be affected by human cativities, for example through
+deforestation and other land use changes.
 
 ### Macroclimate
 
