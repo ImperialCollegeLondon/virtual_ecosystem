@@ -73,3 +73,11 @@ official released versions.
 :language: yaml
 :::
 ::::
+
+## Updates to `pre-commit`
+
+The Virtual Ecosystem repository is registered with the
+[pre-commit.ci](https://pre-commit.ci/) service. This [runs and
+reports](https://results.pre-commit.ci/repo/github/471392759) the status of the
+`pre-commit` suite - which duplicates the `ci.yml` workflow above - but also adds weekly
+update checks on the `pre-commit` hooks used for the project.

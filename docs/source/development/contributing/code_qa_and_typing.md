@@ -14,14 +14,16 @@ kernelspec:
 
 # Code quality and static typing
 
-We use `pre-commit` to ensure common code standards and style, and use `mypy` to provide
-static typing of the `virtual_ecosystem` codebase.
+We use:
+
+* `pre-commit` to ensure common code standards and style, and
+* `mypy` to provide static typing of the `virtual_ecosystem` codebase.
 
 ## Using `pre-commit`
 
-As described in the [developer overview](./overview.md), `pre-commit` is installed as
-part of the `virtual_ecosystem` developer dependencies and so can be set up to run
-simply using:
+As described in the [developer overview](./overview.md), `pre-commit` is installed as by
+`poetry` as part of the `virtual_ecosystem` developer dependencies. At this point, it
+just need to be set up to run using:
 
 ```sh
 poetry run pre-commit install
@@ -38,45 +40,30 @@ make sure all is well.
 
 The file
 [.pre-commit-config.yaml](https://github.com/ImperialCollegeLondon/virtual_ecosystem/blob/develop/.pre-commit-config.yaml)
-contains the pre-commit hooks used by `virtual_ecosystem`. The configuration file
-contains links to each individual hook but in overview:
+contains the pre-commit hooks used by `virtual_ecosystem`. You can see the full details
+of the file below but the tools used are:
 
-`check for merge conflicts`
-: Checks for remaning `git` merge conflict markers in code files.
+`pre-commit-hooks`
+: We use these basic hooks to check for remaning `git` merge conflict markers in code
+files (`check-merge-conflicts`) and for debugger imports and `breakpoint()` calls
+(`dubug-statements`), which should not end up in code in the repository.
 
-`debug statements (python)`
-: Checks for debugger imports and `breakpoint()` calls, which should not end up in
-released code.
-
-`pyupgrade`
-: Updates Python syntax to the current Python 3.10 syntax.
-
-`isort`
-: Enforces a consistent sort order and formatting of package imports in modules.
-
-`black`
-: Enforces a common code formatting across the codebase. This can be irritating but it
-keeps code neatly formatted and avoids code changes that are simply alternate
-formatting.
-
-`flake8`
-: This runs the [`flake8](https://flake8.pycqa.org/en/latest/) tool to detect a very
-wide range of common programming issues. We use the default set of plugins to check: [PEP
-8 style
-recommendations](https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes), [code
-complexity](https://pypi.org/project/mccabe/) and [common programming
-errors](https://flake8.pycqa.org/en/latest/user/error-codes.html). It is also configured
-to check docstrings on code objects using
-[`pydocstyle`](https://www.pydocstyle.org/en/stable/error_codes.html) via the
-`flake8-docstrings` plugin.
+`ruff-pre-commit`
+: This tool wraps the [`ruff`](https://docs.astral.sh/ruff/) code linter and formatter
+and we use both the linting (`ruff`) and formatting (`ruff-format`) hooks.
 
 `mypy`
-: Runs static typing checks to ensure that the types of function arguments and return
-values are declared and are compatible. See [below](#typing-with-mypy) for more
-information.
+: We use a hook here to run the `mypy` static typing checks on newly committed code. See
+[below](#typing-with-mypy) for more information.
 
 `markdownlint`
 : Checks all markdown files for common formatting issues.
+
+::::{dropdown} The `pre-commit-config.yaml` configuraiton
+:::{literalinclude} ../../../../.pre-commit-config.yaml
+:language: yaml
+:::
+::::
 
 ### Output and configuration
 
@@ -85,14 +72,12 @@ but the key information is the output below, which shows the status of the check
 by each hook:
 
 ```text
-check for merge conflicts................................................Passed
-debug statements (python)................................................Passed
-pyupgrade................................................................Passed
-isort....................................................................Passed
-black....................................................................Passed
-flake8...................................................................Passed
-mypy.....................................................................Passed
-markdownlint.............................................................Passed
+check for merge conflicts............................................Passed
+debug statements (python)............................................Passed
+ruff.................................................................Passed
+ruff-format..........................................................Passed
+mypy.................................................................Passed
+markdownlint.........................................................Passed
 ```
 
 ### Updating `pre-commit`
@@ -100,7 +85,7 @@ markdownlint.............................................................Passed
 The hooks used by `pre-commit` are constantly being updated to provide new features or
 to update code to deal with changes in the implementation. You can update the hooks
 manually using `pre-commit autoupdate`, but the configuration is regularly updated
-through our GitHub Actions workflows
+through the [pre-commit.ci](https://pre-commit.ci/) service.
 
 ## Typing with `mypy`
 
@@ -138,14 +123,11 @@ format to tell the tool what to do.
 
 This should not be done lightly: we are using these QA tools for a reason.
 
-* `isort` allows various `# isort: skip` [action comments](https://pycqa.github.io/isort/docs/configuration/action_comments.html)
-* `black` allows lines or section to be [left
-  untouched](https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#ignoring-sections)
-  using, for example `# fmt: skip`.
-* `flake8` uses the `# noqa` comment to [suppress
-  warnings](https://flake8.pycqa.org/en/3.0.1/user/ignoring-errors.html#in-line-ignoring-errors).
-  For `virtual_ecosystem` you should  explicitly list the errors to be ignored, so that
-  other errors are not missed: `# noqa D210, D415`.
+* Code linting issued identified by `ruff` can be ignored by either using `# noqa: E501`
+  to ignore the issue for that line.
+* Code formatting changes suggested by `ruff-format` can be supressed by using the
+  `# fmt: off` tag at the end of a specific line or wrapping a section in `# fmt: off`
+  and then `# fmt: on`.
 * `mypy` uses the syntax `# type: ignore` comment to [suppress
   warnings](https://mypy.readthedocs.io/en/stable/error_codes.html#silencing-errors-based-on-error-codes).
   Again, `virtual_ecosystem` requires that you provide the specific `mypy` error code to
