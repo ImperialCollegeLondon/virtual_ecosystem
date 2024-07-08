@@ -43,8 +43,6 @@ subtrees:
     - file: development/contributing/release_process
     - file: development/contributing/code_development_strategy 
       title: code_development_strategy OUTDATED
-    - file: development/contributing/developer_setup
-      title: developer_setup OUTDATED
   - file: development/design
     entries:
     - file: development/design/core
