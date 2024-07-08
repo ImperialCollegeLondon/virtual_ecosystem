@@ -14,9 +14,10 @@ kernelspec:
 
 # Documentation
 
-This page describes the documentation of the `pyrealm` package, which is hosted at:
+This page describes the documentation of the `virtual_ecosystem` package, which is
+hosted at:
 
-[https://pyrealm.readthedocs.io](https://pyrealm.readthedocs.io)
+[https://virtual-ecosystem.readthedocs.io](https://virtual-ecosystem.readthedocs.io)
 
 Those pages include both written guides and overview pages and API documentation
 generated automatically from docstrings within the code.
@@ -26,10 +27,12 @@ generated automatically from docstrings within the code.
 The `docs/source` directory contains the content and `sphinx` configuration to build the
 package website. The content directories are:
 
-* The `users` directory contains user guides and code examples.
-* The `development` directory contains details on code development for `pyrealm`.
 * The `api` directory contains some simple stub files that are used to link to API
-  content generated from docstrings.
+content generated from docstrings.
+* The `development` directory contains details on code development, model design, and
+documentation for the `virtual_ecosystem`.
+* The `using_the_ve` directory contains user guides and code examples. It also contains
+information on climate data download and pre-processing.
 
 ### MyST Markdown
 
@@ -77,7 +80,7 @@ documentation, but with a toggle button to allow it to be expanded.
 ```{code-cell} python
 :tags: [hide-input]
 # This is just an example code cell to demonstrate how code is included in
-# the pyrealm documentation.
+# the virtual ecoystem documentation.
 ```
 ````
 
@@ -91,7 +94,7 @@ not included in the table of contents!
 
 ### Docstrings
 
-The `pyrealm` package uses docstrings written in the [Google
+The `virtual_ecosystem` package uses docstrings written in the [Google
 style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
 This allows the function documentation to be stored alongside the code and it is included
 in the documentation using the `sphinx` `autodoc` extension. See the code itself for
