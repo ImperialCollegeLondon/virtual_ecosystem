@@ -13,6 +13,7 @@ organisms that shape communities, and the geographical distribution of species.
 :width: 650px
 ```
 
-*Figure x: The key processes in a terrestrial abiotic environment at the example of a
+Figure 2: The key processes in a terrestrial abiotic environment at the example of a
 tropical rainforest. The system simultaneously balances carbon cycle (green), radiation
-(orange), energy (red), water (blue), and momentum through turbulent transfer (black).*
+(orange), energy (red), water (blue), and momentum through turbulent transfer (black).
+Copyright: Vivienne Groner.
