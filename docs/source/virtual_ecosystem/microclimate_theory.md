@@ -1,5 +1,19 @@
 # Microclimate
 
+This page provides an overview of the [key factors](#factors-affecting-microclimate)
+influencing the microclimate of an ecosystem, the
+[main processes](#balancing-energy-water-and-carbon) that drive the energy, carbon, and
+water cycle,
+required [input and state variables](#key-microclimatic-variables) used to
+estimate these processes and
+the [interactions with biotic process](#links-to-biotic-components).
+Further, this page offers a brief overview over
+microclimate [data collection](#microclimate-data-collection) and
+[modelling](#microclimate-modelling) approaches as well as open
+[challenges and limitations](#challenges-and-limitations) in microclimate research.
+
+## Definition
+
 Microclimates are defined as the local climate conditions that organisms and ecosystems
 are exposed to. In terrestrial ecosystems, microclimates often deviate strongly from the
 climate representative of a large geographic region, the macroclimate
@@ -14,18 +28,6 @@ Many ecosystems have a high spatial variability of microclimates providing
 suitable habitats for a diverse range of species. Scales of microclimates typically
 range between 0.1-100 m horizontally, 10-100 m vertically, and seconds to minutes
 temporally {cite}`bramer_chapter_2018`.
-
-This page provides an overview of the [key factors](#factors-affecting-microclimate)
-influencing the microclimate of an ecosystem, the
-[main processes](#balancing-energy-water-and-carbon) that drive the energy, carbon, and
-water cycle,
-required [input and state variables](#key-microclimatic-variables) used to
-estimate these processes and
-the [interactions with biotic process](#links-to-biotic-components).
-Further, this page offers a brief overview over
-microclimate [data collection](#microclimate-data-collection) and
-[modelling](#microclimate-modelling) approaches as well as open
-[challenges and limitations](#challenges-and-limitations) in microclimate research.
 
 ## Factors affecting microclimate
 
@@ -255,7 +257,13 @@ become unfavourable, e.g. under climate change or during extreme events.
 * **Resilience Mechanisms**: Biota may develop resilience mechanisms such as dormancy,
 migration, or phenotypic plasticity to cope with microclimatic variability.
 
-## Microclimate data collection
+## Methods for microclimate science
+
+This section gives a broad overview over common methods and models in microclimate
+research. Recent advances in data aquisition for microclimate research and microclimate
+modelling are provided in a comprehensive review by {cite:t}`kemppinen_microclimate_2024`.
+
+### Microclimate data collection
 
 Effective microclimate modelling relies on accurate data collection, ideally from a
 combination of sources:
@@ -270,7 +278,7 @@ on specific local conditions.
 * **Reanalysis**: Reanalysis data sets such as ERA5 represent a combination of observations
 and modelling which can complement measurements by filling gaps in spatial cover and timeseries.
 
-## Microclimate modelling
+### Microclimate modelling
 
 Microclimate models use various computational approaches to simulate the interactions
 between atmospheric, terrestrial, and hydrological processes:

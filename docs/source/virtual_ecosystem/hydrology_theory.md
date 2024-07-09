@@ -1,17 +1,5 @@
 # Hydrology
 
-In the context of the Virtual Ecosystem, hydrology is defined as the distribution and
-movement of water both on and below the Earth's surface as well as through organisms.
-Water is crucial in an ecosystem for several reasons. It is essential for the survival
-of all living organisms, providing the medium for biochemical reactions and cellular
-processes. Further, water plays a key role in many ecosystem processes such as
-photosynthesis, nutrient cycling, and the decomposition of organic matter. Water facilitates
-the movement of nutrients and minerals within the soil which enables plant growth and
-maintains soil health. Aquatic environments, such as rivers, lakes, and wetlands, provide
-habitats for a wide range of species which supports biodiversity. Additionally, water
-bodies influence microclimates by regulating temperatures through heat
-absorption and release.
-
 This page provides an overview of the [key factors](#factors-affecting-hydrology)
 influencing the hydrology of an ecosystem, the main processes that drive the
 hydrological cycle at [local scale](#local-water-balance) and
@@ -23,6 +11,21 @@ Further, this page offers a brief overview over
 hydrological [data collection](#data-collection) and [modelling](#hydrology-modelling)
 approaches as well as open
 [challenges and limitations](#challenges-and-limitations) in hydrological research.
+
+## Definition
+
+In the context of the Virtual Ecosystem, hydrology is defined as the distribution and
+movement of water both on and below the Earth's surface as well as through organisms.
+
+Water is crucial in an ecosystem for several reasons. It is essential for the survival
+of all living organisms, providing the medium for biochemical reactions and cellular
+processes. Further, water plays a key role in many ecosystem processes such as
+photosynthesis, nutrient cycling, and the decomposition of organic matter. Water facilitates
+the movement of nutrients and minerals within the soil which enables plant growth and
+maintains soil health. Aquatic environments, such as rivers, lakes, and wetlands, provide
+habitats for a wide range of species which supports biodiversity. Additionally, water
+bodies influence microclimates by regulating temperatures through heat
+absorption and release.
 
 ## Factors affecting hydrology
 
@@ -177,7 +180,13 @@ changes, influencing community structure and biodiversity. In turn, changes in b
 composition can feedback to alter water flow patterns and nutrient dynamics within the
 ecosystem.
 
-## Data collection
+## Methods for hydrology science
+
+This section gives a broad overview over common methods and models in hydrology
+research. A review on the progress and future of hydrological modelling is given by
+{cite:t}`singh_hydrologic_2018`.
+
+### Data collection
 
 Effective hydrology modelling relies on accurate data collection, ideally from a
 combination of sources:
@@ -193,7 +202,7 @@ on specific local conditions.
 and modelling which can complement measurements by filling gaps in spatial cover and
 timeseries.
 
-## Hydrology modelling
+### Hydrology modelling
 
 Hydrology models employ diverse methodologies to simulate the movement and distribution
 of water within natural systems.
