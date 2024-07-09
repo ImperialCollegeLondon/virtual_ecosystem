@@ -162,7 +162,7 @@ In summary:
 
 All Myst Markdown content in a notebook will be checked using `markdownlint` when the
 file is committed to GitHub (see
-[here](overview.md#quality-assurance-on-documentation)). In addition, the following
+[here](documentation.md#quality-assurance-on-documentation)). In addition, the following
 tools may be useful:
 
 ### Using `black` with `jupytext`

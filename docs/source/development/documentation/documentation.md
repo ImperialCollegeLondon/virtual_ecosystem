@@ -96,6 +96,9 @@ docstrings to get examples of how the formatting differs.
   above is rendered as HTML by that process.
 ```
 
+Also see the [section on using `doctests`](../contributing/code_testing.md) to include
+and validate simple usage examples in docstrings.
+
 ### Referencing
 
 Both the `docs/source` and docstrings uses the `sphinxcontrib-bibtex` package to support

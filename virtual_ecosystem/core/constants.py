@@ -16,7 +16,20 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 @dataclass(frozen=True)
 class CoreConsts(ConstantsDataclass):
-    """Core constants for use across the Virtual Ecosystem modules."""
+    """Core constants for use across the Virtual Ecosystem modules.
+
+    An instance of the CoreConsts dataclass provides definitions of the core constants
+    used across an entire simulation. The core constants can be changed, as shown below,
+    although for many this would likely generate nonsensical results.
+
+    Example:
+        >>> consts = CoreConsts()
+        >>> consts.max_depth_of_microbial_activity
+        0.25
+        >>> consts = CoreConsts(max_depth_of_microbial_activity=0.75)
+        >>> consts.max_depth_of_microbial_activity
+        0.75
+    """
 
     placeholder: float = 123.4
     """A placeholder configurable constant."""

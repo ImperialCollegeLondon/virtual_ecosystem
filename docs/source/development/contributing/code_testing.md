@@ -12,7 +12,7 @@ kernelspec:
   name: python3
 ---
 
-# Package testing and profiling
+# Package testing
 
 The `virtual_ecosystem` package uses `pytest` to provide benchmark tests, unit tests and
 integration testing. In addition, `doctest` is used to maintain examples of code usage
@@ -46,23 +46,23 @@ The `pyproject.toml` file contains `pytest` configuration details.
 
 ## Using `doctest`
 
-Some of the package docstrings contain `doctest` examples of code use. These examples
-are intended to provide simple examples of method or function use and generate an
-output: the `doctest` module is used to make sure that the code runs and gives the
-expected result.
+The project is set up to allow package docstrings to validate examples of code use in
+docstrings. Including code examples in docstrings provides a way to provide simple
+examples of method or function use and generate an output: the `doctest` module is used
+to make sure that the code runs and gives the expected result. This isn't widely used at
+present but there is an example in the documentation for the
+[`CoreConsts`dataclass](../../api/core.md).
 
 We have configured `pytest` to automatically also run `doctest`, but you can manually
 check the tests in files using, for example:
 
 ```bash
-poetry run python -m doctest pyrealm/pmodel/pmodel.py
+poetry run python -m doctest virtual_ecosystem/core/constants.py 
 ```
 
 Normally, `doctest` is just used to test a return value: the value tested is the value
 printed to the console, so it is common to use some form of `round` to make sure values
-match. It can also be used to check that an error or warning is raised. See the
-docstring for **TODO: DO WE USE THIS** to see how checking for
-warning text can be included in a doctest.
+match.
 
 ## Using `pytest-coverage` and `codecov`
 
