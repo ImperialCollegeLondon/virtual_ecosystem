@@ -141,8 +141,17 @@ In order to build the package documentation, the following command can then be u
 ```bash
 # Build docs using sphinx
 cd docs
-poetry run sphinx-build -W --keep-going source build
+poetry run sphinx-build -M html source build -W --keep-going
 ```
+
+Once that has completed, you can open the file `docs/build/html/index.html` to view the
+locally built documentation in a browser.
+
+The `sphinx` build process typically only runs on updated or changed files, to save time
+when generating the documentation. If you want to completely rebuild the documentation
+from scratch - if you are changing the table of contents or the links for example - then
+the command `sphinx-build -M clean source build` can be used to remove the existing
+built documentation before rebuilding as above.
 
 ## Quality assurance on documentation
 
