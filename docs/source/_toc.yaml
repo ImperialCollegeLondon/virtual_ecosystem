@@ -4,18 +4,18 @@ subtrees:
     maxdepth: 0
     caption: The Virtual Ecosystem
     entries:
-      - file: virtual_ecosystem/theory.md
+      - file: virtual_ecosystem/theory/theory
         title: Theory
         entries:
-          - file: virtual_ecosystem/abiotic_theory.md
+          - file: virtual_ecosystem/theory/abiotic_theory
             entries:
-              - file: virtual_ecosystem/microclimate_theory.md
-              - file: virtual_ecosystem/hydrology_theory.md
-      - file: virtual_ecosystem/implementation.md
+              - file: virtual_ecosystem/theory/microclimate_theory
+              - file: virtual_ecosystem/theory/hydrology_theory
+      - file: virtual_ecosystem/implementation/implementation
         title: Implementation
         entries:
-          - file: virtual_ecosystem/module_overview
-          - file: virtual_ecosystem/main_simulation
+          - file: virtual_ecosystem/implementation/module_overview
+          - file: virtual_ecosystem/implementation/main_simulation
           - file: virtual_ecosystem/soil/soil_details
 
   - caption: Using the Virtual Ecosystem

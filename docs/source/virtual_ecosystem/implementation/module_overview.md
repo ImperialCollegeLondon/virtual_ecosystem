@@ -44,11 +44,11 @@ drive the dynamics of plants, animals, and microbes at different vertical levels
 - subsoil (minimum of one layer at 1 m depth)
 
 At the moment, the default option is the
-[abiotic_simple](../api/models/abiotic_simple.md) model, a simple regression
+[abiotic_simple](../../api/models/abiotic_simple.md) model, a simple regression
 model that estimates microclimatic variables based on empirical data for a monthly
 model timestep.
 In parallel, we are working on a process-based
-[abiotic](../api/models/abiotic.md) model, which will provide microclimate on
+[abiotic](../../api/models/abiotic.md) model, which will provide microclimate on
 a (sub-)daily resolution. Both versions of the abiotic model provide the following key
 variables at relevant vertical levels:
 
@@ -59,7 +59,7 @@ variables at relevant vertical levels:
 
 ### Simple Abiotic Model
 
-The [abiotic_simple](../api/models/abiotic_simple.md) model is a one-column model
+The [abiotic_simple](../../api/models/abiotic_simple.md) model is a one-column model
 that operates on a grid cell basis and does not consider horizontal exchange of energy,
 atmospheric water, and momentum. The model uses linear regressions from
 {cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
@@ -74,7 +74,7 @@ atmospheric $\ce{CO_{2}}$ based on external inputs.
 
 ### Process-based Abiotic Model
 
-The process-based [abiotic](../api/models/abiotic.md) model will contain a sub-daily
+The process-based [abiotic](../../api/models/abiotic.md) model will contain a sub-daily
 mechanistic representation of the radiation balance, the energy
 balance, and wind profiles. Submodules will be closely coupled to the hydrology and
 plants models through the exchange of energy and water. The model will also provides a
@@ -97,26 +97,26 @@ included in the energy balance submodule.
 
 #### Energy balance
 
-The [energy balance](../api/models/abiotic/energy_balance.md) and
-[soil energy balance](../api/models/abiotic/soil_energy_balance.md) submodules will
+The [energy balance](../../api/models/abiotic/energy_balance.md) and
+[soil energy balance](../../api/models/abiotic/soil_energy_balance.md) submodules will
 derive sensible and latent heat fluxes from canopy layers and surface to the atmosphere.
 Part of the net radiation will be converted into soil heat flux. Based on these
 turbulent fluxes, air temperature, canopy temperature, relative humidity, and soil
 temperature will be updated simultaneously at each level. The vertical mixing between
 layers is assumed to be driven by
-[heat conductance](../api/models/abiotic/conductivities.md) because turbulence is
+[heat conductance](../../api/models/abiotic/conductivities.md) because turbulence is
 typically low below the canopy {cite}`maclean_microclimc_2021`.
 
 #### Wind
 
-The [wind](../api/models/abiotic/wind.md) submodule will calculate the above- and
+The [wind](../../api/models/abiotic/wind.md) submodule will calculate the above- and
 within-canopy wind profiles for the Virtual Ecosystem. These profiles determine the
 exchange of heat and water between soil and atmosphere below the canopy
 as well as the exchange with the atmosphere above the canopy.
 
 ## Hydrology Model
 
-The [hydrology](../api/models/hydrology.md) model simulates the hydrological
+The [hydrology](../../api/models/hydrology.md) model simulates the hydrological
 processes in the Virtual Ecosystem. We placed hydrology in a separate model to allow
 easy replacement with a different hydrology model. Also, this separation provides more
 flexibility in defining the order of models an/or processes in the overall Virtual
@@ -129,9 +129,9 @@ Some of the features described here are not yet implemented.
 ### Vertical hydrology components
 
 The vertical component of the hydrology model determines the water balance within each
-grid cell. This includes [above ground](../api/models/hydrology/above_ground.md)
+grid cell. This includes [above ground](../../api/models/hydrology/above_ground.md)
 processes such as rainfall, intercept, and surface runoff out of the grid cell.
-The [below ground](../api/models/hydrology/below_ground.md) component considers
+The [below ground](../../api/models/hydrology/below_ground.md) component considers
 infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
 potential, horizontal sub-surface flow out of the grid cell, and changes in
 groundwater storage.
@@ -141,7 +141,7 @@ The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_
 
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including accumulated surface runoff and sub-surface flow, and river
-discharge rate, [see](../api/models/hydrology/above_ground.md). The flow direction is
+discharge rate, [see](../../api/models/hydrology/above_ground.md). The flow direction is
 based on a digital elevation model.
 
 ## Plant Model
@@ -208,7 +208,7 @@ occluded phosphorus which is irrecoverably bound within a mineral structure.
 ### Further details
 
 Further theoretical background for the Soil Model can be found
-[here](./soil/soil_details.md).
+[here](../soil/soil_details.md).
 
 ## Animal Model
 

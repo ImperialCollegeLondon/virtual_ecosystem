@@ -6,7 +6,7 @@ non-linear and happen across a wide range of spatial and temporal scales which m
 ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
 challenging to understand and predict.
 
-:::{figure} ../_static/images/ve_diagram.svg
+:::{figure} ../../_static/images/ve_diagram.svg
 :alt: A diagram of the four domains in the Virtual Ecosystem
 :scale: 70 %
 :align: left
