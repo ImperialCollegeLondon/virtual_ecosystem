@@ -19,13 +19,24 @@ hosted at:
 
 [https://virtual-ecosystem.readthedocs.io](https://virtual-ecosystem.readthedocs.io)
 
-Those pages include both written guides and overview pages and API documentation
-generated automatically from docstrings within the code.
+The Virtual Ecosystem project is documented using the
+[`sphinx`](https://www.sphinx-doc.org/en/master/) document generation system. This
+includes documentation to:
+
+* present the scientific background underpinning the `virtual_ecosystem` package,
+* provide tutorials in using the package,
+* demonstrate how to use the package components in more detail, and
+* technical details of the application program interface (API) of the underlying code.
+
+This broadly follows the [Diátaxis framework](https://diataxis.fr/), which
+provides a useful breakdown of four distinct documentation modes (tutorial, how-to,
+explanation and reference) and how to approach these with users in mind.
 
 ## Documentation guide
 
 The `docs/source` directory contains the content and `sphinx` configuration to build the
-package website. The content directories are:
+package website. In addition to the top level index pages, we have three main content
+directories:
 
 * The `api` directory contains some simple stub files that are used to link to API
 content generated from docstrings.
@@ -34,7 +45,7 @@ documentation for the `virtual_ecosystem`.
 * The `using_the_ve` directory contains user guides and code examples. It also contains
 information on climate data download and pre-processing.
 
-### MyST Markdown
+### MyST Markdown and notebooks
 
 All of the documentation in `docs/source` uses [MyST
 Markdown](https://myst-parser.readthedocs.io/en/latest/) rather than the
@@ -42,53 +53,19 @@ reStructuredText (`.rst`) format. Markdown is easier to write and read and the M
 Markdown extension is a literate programming format that allows Markdown pages to be run
 using Jupyter to generate dynamic content to show package use.
 
-We only include markdown format files (`.md`) in the repository and not the standard
-Python Notebook (`.ipynb`) format. Although this means that the output of code cells
-does not display on GitHub, the JSON format `.ipynb` files are much bulkier and also
-change whenever the notebook is run, not just when there are meaningful changes to the
-content.
+In addition to displaying static text, MyST Markdown can also be used to write notebook
+files that contain code. We use the `myst-nb` extension to `sphinx` to allow those
+notebooks to be run when the documentation is built, allowing code examples and
+demonstrations to be included in the documentation.
 
-MyST Markdown notebooks need to contain a `YAML` format header that provides details on
-how to run the notebook. The content below should appear right at the top of the file.
-
-```yaml
----
-jupytext:
-  formats: md:myst
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.13.8
-kernelspec:
-  display_name: Python 3
-  language: python
-  name: python3
----
-```
-
-When the package documentation is built in `sphinx` the `myst_nb` extension
-automatically runs any code in MyST markdown documents and renders the resulting code
-and outputs into HTML. The documentation can therefore contain dynamically generated
-examples of running code and output plots to demonstrate how to use the
-package. This build process also ensures that code in documentation is kept up to date
-with the package. The syntax for including code blocks in documents is shown below -
-this example includes a tag that causes the code to be concealed in the built
-documentation, but with a toggle button to allow it to be expanded.
-
-````{code-block}
-```{code-cell} python
-:tags: [hide-input]
-# This is just an example code cell to demonstrate how code is included in
-# the virtual ecoystem documentation.
-```
-````
+For more information, see the [Jupyter notebooks](./jupyter_notebooks.md) page.
 
 ### Table of contents
 
 We use the `sphinx_external_toc` package to maintain a table of contents for the
-package. The file `docs/source/_toc.yml` contains the structure of the table and you
-will need to add new documentation files to this file for them to appear in the table.
+package. This table of contents is used to populate the site menu that appears on the
+left of the webpage. The file `docs/source/_toc.yml` sets the structure of the table and
+you will need to add new documentation files to this file for them to appear in the table.
 The documentation build process will fail if it finds files in `docs/source` that are
 not included in the table of contents!
 
@@ -106,6 +83,18 @@ hard-coded to expect docstrings to use reStructuredText, which means that at the
 **all docstrings have to be written in `rst` format**. At some point, we'd like to
 switch away to using Markdown throughout, but for the moment look at the existing
 docstrings to get examples of how the formatting differs.
+
+```{admonition} More information
+
+* The [docstring style](docstring_style.md) page includes some simple dummy code
+  demonstrating the docstring style adopted  by the project. It is based on the [Google
+  Python code
+  style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
+
+* The [API generation](api_generation.md) page explains how to include the API
+  for a new module in the project documentation. It also shows how the dummy code
+  above is rendered as HTML by that process.
+```
 
 ### Referencing
 
@@ -144,7 +133,7 @@ that the `python3` kernel name points to the `poetry` environment. For example:
 $ poetry run jupyter kernelspec list
 Available kernels:
   ...
-  python3            /Users/dorme/Library/Caches/pypoetry/virtualenvs/pyrealm-QywIOHcp-py3.10/share/jupyter/kernels/python3
+  python3        .../pyrealm-QywIOHcp-py3.10/share/jupyter/kernels/python3
 ```
 
 In order to build the package documentation, the following command can then be used:
@@ -154,3 +143,24 @@ In order to build the package documentation, the following command can then be u
 cd docs
 poetry run sphinx-build -W --keep-going source build
 ```
+
+## Quality assurance on documentation
+
+The `pre-commit` configuration for the project includes two components that run quality
+checking on documentation before it can be committed to GitHub. Neither of these attempt
+to automatically fix documentation content: there is quite a lot of variation in
+particular markup flavours and it is for too easy for autoformatters to break content
+rather than fix it.
+
+1. We have configured `ruff` to use the [`pydocstyle`
+   ruleset](https://docs.astral.sh/ruff/rules/#pydocstyle-d), which checks for
+   consistent documentation style and matches docstring contents to the function and
+   method signatures.
+
+1. We use the [`markdownlint-cli`](https://github.com/igorshubovych/markdownlint-cli)
+   package to maintain quality on Markdown documents, including Jupyter notebooks. This
+   applies a set of [quality checking
+   rules](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) to ensure
+   common standards for Markdown content. Again, [comments in a Markdown
+   document](https://github.com/DavidAnson/markdownlint#configuration)  can be used to
+   suppress particular rules where appropriate.

@@ -49,13 +49,10 @@ subtrees:
     - file: development/design/defining_new_models
   - file: development/documentation
     entries:
+    - file: development/documentation/documentation
     - file: development/documentation/api_generation
     - file: development/documentation/docstring_style
     - file: development/documentation/jupyter_notebooks
-    - file: development/documentation/overview
-    - file: development/documentation/documentation
-      title: Documentation New Overview
-
 - caption: API
   entries:
   - file: api/core.md
