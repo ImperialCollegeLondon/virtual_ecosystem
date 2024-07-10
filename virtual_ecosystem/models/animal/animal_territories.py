@@ -22,20 +22,20 @@ class AnimalTerritory:
 
 
     Args:
-        grid_cells: A list of grid cell ids that make up the territory.
-        get_animal_community: A function to return an AnimalCommunity for a given grid
-          cell id.
+        grid_cell_keys: A list of grid cell ids that make up the territory.
+        get_community_by_key: A function to return an AnimalCommunity for a given
+        integer key.
     """
 
     def __init__(
         self,
-        grid_cells: list[int],
-        get_animal_community: Callable[[int], AnimalCommunity],
+        grid_cell_keys: list[int],
+        get_community_by_key: Callable[[int], AnimalCommunity],
     ) -> None:
         # The constructor of the AnimalTerritory class.
-        self.grid_cells = grid_cells
+        self.grid_cell_keys = grid_cell_keys
         """A list of grid cells present in the territory."""
-        self.get_animal_community = get_animal_community
+        self.get_community_by_key = get_community_by_key
         """A list of animal communities present in the territory."""
         self.territory_prey: list[AnimalCohort] = []
         """A list of animal prey present in the territory."""
@@ -73,8 +73,8 @@ class AnimalTerritory:
             A list of AnimalCohorts that can be preyed upon.
         """
         prey = []
-        for cell_id in self.grid_cells:
-            community = self.get_animal_community(cell_id)
+        for cell_id in self.grid_cell_keys:
+            community = self.get_community_by_key(cell_id)
             prey.extend(community.collect_prey(consumer_cohort))
         return prey
 
@@ -88,8 +88,8 @@ class AnimalTerritory:
             A list of PlantResources available in the territory.
         """
         plant_resources = []
-        for cell_id in self.grid_cells:
-            community = self.get_animal_community(cell_id)
+        for cell_id in self.grid_cell_keys:
+            community = self.get_community_by_key(cell_id)
             plant_resources.append(
                 PlantResources(
                     data=community.data, cell_id=cell_id, constants=community.constants
@@ -104,8 +104,8 @@ class AnimalTerritory:
             A list of ExcrementPools combined from all grid cells.
         """
         total_excrement = []
-        for cell_id in self.grid_cells:
-            community = self.get_animal_community(cell_id)
+        for cell_id in self.grid_cell_keys:
+            community = self.get_community_by_key(cell_id)
             total_excrement.append(community.excrement_pool)
         return total_excrement
 
@@ -116,7 +116,7 @@ class AnimalTerritory:
             A list of CarcassPools combined from all grid cells.
         """
         total_carcass = []
-        for cell_id in self.grid_cells:
-            community = self.get_animal_community(cell_id)
+        for cell_id in self.grid_cell_keys:
+            community = self.get_community_by_key(cell_id)
             total_carcass.append(community.carcass_pool)
         return total_carcass

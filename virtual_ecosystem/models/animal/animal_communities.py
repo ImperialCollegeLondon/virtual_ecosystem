@@ -11,13 +11,14 @@ from __future__ import annotations
 import random
 from collections.abc import Callable, Iterable
 from itertools import chain
-from math import ceil
+from math import ceil, pi, sqrt
 
 from numpy import timedelta64
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
 from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
@@ -41,8 +42,8 @@ class AnimalCommunity:
         data: The core data object
         community_key: The integer key of the cell id for this community
         neighbouring_keys: A list of cell id keys for neighbouring communities
-        get_destination: A function to return a destination AnimalCommunity for
-            migration.
+        get_community_by_key: A function to return a designated AnimalCommunity by
+        integer key.
     """
 
     def __init__(
@@ -51,7 +52,7 @@ class AnimalCommunity:
         data: Data,
         community_key: int,
         neighbouring_keys: list[int],
-        get_destination: Callable[[int], AnimalCommunity],
+        get_community_by_key: Callable[[int], AnimalCommunity],
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         # The constructor of the AnimalCommunity class.
@@ -63,8 +64,8 @@ class AnimalCommunity:
         """Integer designation of the community in the model grid."""
         self.neighbouring_keys = neighbouring_keys
         """List of integer keys of neighbouring communities."""
-        self.get_destination = get_destination
-        """Callable get_destination from AnimalModel."""
+        self.get_community_by_key = get_community_by_key
+        """Callable get_community_by_key from AnimalModel."""
         self.constants = constants
         """Animal constants."""
 
@@ -88,6 +89,41 @@ class AnimalCommunity:
             Iterable[AnimalCohort]: An iterable of AnimalCohort objects.
         """
         return chain.from_iterable(self.animal_cohorts.values())
+
+    def initialize_territory(
+        self,
+        cohort: AnimalCohort,
+        centroid_key: int,
+        territory_size: float,
+        get_community_by_key: Callable[[int], AnimalCommunity],
+    ) -> AnimalTerritory:
+        """This initializes the territory occupied by the cohort.
+
+        Args:
+            cohort: The animal cohort occupying the territory.
+            centroid_key: The community key anchoring the territory.
+            territory_size: The size of the territory in hectares.
+            get_community_by_key: The method for accessing animal communities by key.
+
+        Returns: An AnimalTerritory object of appropriate size.
+        """
+        # Convert territory size to radius in terms of grid cells
+        radius = sqrt(territory_size / pi)
+
+        # Convert centroid key to row and column indices
+        row, col = divmod(centroid_key, self.data.grid.cell_nx)
+
+        territory_cells = []
+
+        # Generate grid cells within the radius
+        for r in range(ceil(row - radius), ceil(row + radius) + 1):
+            for c in range(ceil(col - radius), ceil(col + radius) + 1):
+                if 0 <= r < self.data.grid.cell_ny and 0 <= c < self.data.grid.cell_nx:
+                    distance = sqrt((r - row) ** 2 + (c - col) ** 2)
+                    if distance <= radius:
+                        territory_cells.append(r * self.data.grid.cell_nx + c)
+
+        return AnimalTerritory(territory_cells, get_community_by_key)
 
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
@@ -116,6 +152,12 @@ class AnimalCommunity:
                 self.constants,
             )
             self.animal_cohorts[functional_group.name].append(cohort)
+            self.initialize_territory(
+                cohort,
+                self.community_key,
+                cohort.territory_size,
+                self.get_community_by_key,
+            )
 
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
@@ -155,7 +197,7 @@ class AnimalCommunity:
                 return
 
             destination_key = random.choice(self.neighbouring_keys)
-            destination = self.get_destination(destination_key)
+            destination = self.get_community_by_key(destination_key)
             self.migrate(cohort, destination)
 
     def remove_dead_cohort(self, cohort: AnimalCohort) -> None:

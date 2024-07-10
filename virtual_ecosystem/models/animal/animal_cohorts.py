@@ -74,6 +74,8 @@ class AnimalCohort:
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
+        self.territory_size = sf.territory_size(self.functional_group.adult_mass)
+        """The size in hectares of the animal cohorts territory."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
