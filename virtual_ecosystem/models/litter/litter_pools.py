@@ -23,6 +23,7 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import calculate_environmental_factors
 from virtual_ecosystem.models.litter.input_partition import (
+    calculate_litter_input_lignin_concentrations,
     partion_plant_inputs_between_pools,
 )
 
@@ -43,6 +44,7 @@ def calculate_change_in_litter_variables(
     leaf_turnover: NDArray[np.float32],
     reproduct_turnover: NDArray[np.float32],
     root_turnover: NDArray[np.float32],
+    deadwood_lignin_proportion: NDArray[np.float32],
     leaf_turnover_lignin_proportion: NDArray[np.float32],
     reproduct_turnover_lignin_proportion: NDArray[np.float32],
     root_turnover_lignin_proportion: NDArray[np.float32],
@@ -78,6 +80,8 @@ def calculate_change_in_litter_variables(
         reproduct_turnover: Turnover of plant reproductive tissues (i.e. fruits and
             flowers) [kg C m^-2]
         root_turnover: Turnover of roots (coarse and fine) turnover [kg C m^-2]
+        deadwood_lignin_proportion: Proportion of carbon in dead wood that is lignin [kg
+            lignin kg C^-1]
         leaf_turnover_lignin_proportion: Proportion of carbon in turned over leaves that
             is lignin [kg lignin kg C^-1]
         reproduct_turnover_lignin_proportion: Proportion of carbon in turned over
@@ -157,14 +161,27 @@ def calculate_change_in_litter_variables(
         update_interval=update_interval,
     )
 
+    # Find lignin concentration of the litter input flows
+    input_lignin = calculate_litter_input_lignin_concentrations(
+        deadwood_lignin_proportion=deadwood_lignin_proportion,
+        root_turnover_lignin_proportion=root_turnover_lignin_proportion,
+        leaf_turnover_lignin_proportion=leaf_turnover_lignin_proportion,
+        reproduct_turnover_lignin_proportion=reproduct_turnover_lignin_proportion,
+        root_turnover=root_turnover,
+        leaf_turnover=leaf_turnover,
+        reproduct_turnover=reproduct_turnover,
+        plant_input_above_struct=plant_inputs["above_ground_structural"],
+        plant_input_below_struct=plant_inputs["below_ground_structural"],
+    )
+
     # Find the changes in the lignin concentrations of the 3 relevant pools
     change_in_lignin = calculate_lignin_updates(
         lignin_above_structural=lignin_above_structural,
         lignin_woody=lignin_woody,
         lignin_below_structural=lignin_below_structural,
+        plant_inputs=plant_inputs,
+        input_lignin=input_lignin,
         updated_pools=updated_pools,
-        update_interval=update_interval,
-        constants=model_constants,
     )
 
     # Construct dictionary of data arrays to return
@@ -387,9 +404,9 @@ def calculate_lignin_updates(
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
+    plant_inputs: dict[str, NDArray[np.float32]],
+    input_lignin: dict[str, NDArray[np.float32]],
     updated_pools: dict[str, NDArray[np.float32]],
-    update_interval: float,
-    constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the changes in lignin proportion for the relevant litter pools.
 
@@ -403,10 +420,12 @@ def calculate_lignin_updates(
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
         lignin_below_structural: Proportion of below ground structural pool which is
             lignin [unitless]
+        plant_inputs: Dictionary containing the amount of each litter type that is added
+            from the plant model in this time step [kg C m^-2]
+        input_lignin: Dictionary containing the lignin concentration of the input to
+            each of the three lignin containing litter pools [kg lignin kg C^-1]
         updated_pools: Dictionary containing the updated pool densities for all 5 litter
             pools [kg C m^-2]
-        update_interval: Interval that the litter pools are being updated for [days]
-        constants: Set of constants for the litter model
 
     Returns:
         Dictionary containing the updated lignin proportions for the 3 relevant litter
@@ -415,21 +434,21 @@ def calculate_lignin_updates(
     """
 
     change_in_lignin_above_structural = calculate_change_in_lignin(
-        input_carbon=constants.litter_input_to_structural_above * update_interval,
+        input_carbon=plant_inputs["above_ground_structural"],
         updated_pool_carbon=updated_pools["above_structural"],
-        input_lignin=constants.lignin_proportion_above_structural_input,
+        input_lignin=input_lignin["above_structural"],
         old_pool_lignin=lignin_above_structural,
     )
     change_in_lignin_woody = calculate_change_in_lignin(
-        input_carbon=constants.litter_input_to_woody * update_interval,
+        input_carbon=plant_inputs["woody"],
         updated_pool_carbon=updated_pools["woody"],
-        input_lignin=constants.lignin_proportion_wood_input,
+        input_lignin=input_lignin["woody"],
         old_pool_lignin=lignin_woody,
     )
     change_in_lignin_below_structural = calculate_change_in_lignin(
-        input_carbon=constants.litter_input_to_structural_below * update_interval,
+        input_carbon=plant_inputs["below_ground_structural"],
         updated_pool_carbon=updated_pools["below_structural"],
-        input_lignin=constants.lignin_proportion_below_structural_input,
+        input_lignin=input_lignin["below_structural"],
         old_pool_lignin=lignin_below_structural,
     )
 

@@ -50,6 +50,28 @@ def test_litter_model_initialization(
             (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
             (DEBUG, "litter model: required var 'lignin_woody' checked"),
             (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+            (DEBUG, "litter model: required var 'deadwood_production' checked"),
+            (DEBUG, "litter model: required var 'leaf_turnover' checked"),
+            (
+                DEBUG,
+                "litter model: required var 'plant_reproductive_tissue_turnover' "
+                "checked",
+            ),
+            (DEBUG, "litter model: required var 'root_turnover' checked"),
+            (DEBUG, "litter model: required var 'leaf_turnover_lignin' checked"),
+            (
+                DEBUG,
+                "litter model: required var 'plant_reproductive_tissue_turnover_lignin'"
+                " checked",
+            ),
+            (DEBUG, "litter model: required var 'root_turnover_lignin' checked"),
+            (DEBUG, "litter model: required var 'leaf_turnover_c_n_ratio' checked"),
+            (
+                DEBUG,
+                "litter model: required var "
+                "'plant_reproductive_tissue_turnover_c_n_ratio' checked",
+            ),
+            (DEBUG, "litter model: required var 'root_turnover_c_n_ratio' checked"),
         ),
     )
 
@@ -115,6 +137,45 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
                 ERROR,
                 "litter model: init data missing required var "
                 "'lignin_below_structural'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var 'deadwood_production'",
+            ),
+            (ERROR, "litter model: init data missing required var 'leaf_turnover'"),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'plant_reproductive_tissue_turnover'",
+            ),
+            (ERROR, "litter model: init data missing required var 'root_turnover'"),
+            (
+                ERROR,
+                "litter model: init data missing required var 'leaf_turnover_lignin'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'plant_reproductive_tissue_turnover_lignin'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var 'root_turnover_lignin'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'leaf_turnover_c_n_ratio'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'plant_reproductive_tissue_turnover_c_n_ratio'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'root_turnover_c_n_ratio'",
             ),
             (
                 ERROR,
@@ -224,6 +285,28 @@ def test_litter_model_initialization_bad_lignin_bounds(
                     DEBUG,
                     "litter model: required var 'lignin_below_structural' checked",
                 ),
+                (DEBUG, "litter model: required var 'deadwood_production' checked"),
+                (DEBUG, "litter model: required var 'leaf_turnover' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'plant_reproductive_tissue_turnover' "
+                    "checked",
+                ),
+                (DEBUG, "litter model: required var 'root_turnover' checked"),
+                (DEBUG, "litter model: required var 'leaf_turnover_lignin' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var "
+                    "'plant_reproductive_tissue_turnover_lignin' checked",
+                ),
+                (DEBUG, "litter model: required var 'root_turnover_lignin' checked"),
+                (DEBUG, "litter model: required var 'leaf_turnover_c_n_ratio' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var "
+                    "'plant_reproductive_tissue_turnover_c_n_ratio' checked",
+                ),
+                (DEBUG, "litter model: required var 'root_turnover_c_n_ratio' checked"),
             ),
             id="default_config",
         ),
@@ -259,6 +342,28 @@ def test_litter_model_initialization_bad_lignin_bounds(
                 (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
                 (DEBUG, "litter model: required var 'lignin_woody' checked"),
                 (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+                (DEBUG, "litter model: required var 'deadwood_production' checked"),
+                (DEBUG, "litter model: required var 'leaf_turnover' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'plant_reproductive_tissue_turnover' "
+                    "checked",
+                ),
+                (DEBUG, "litter model: required var 'root_turnover' checked"),
+                (DEBUG, "litter model: required var 'leaf_turnover_lignin' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var "
+                    "'plant_reproductive_tissue_turnover_lignin' checked",
+                ),
+                (DEBUG, "litter model: required var 'root_turnover_lignin' checked"),
+                (DEBUG, "litter model: required var 'leaf_turnover_c_n_ratio' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var "
+                    "'plant_reproductive_tissue_turnover_c_n_ratio' checked",
+                ),
+                (DEBUG, "litter model: required var 'root_turnover_c_n_ratio' checked"),
             ),
             id="modified_config_correct",
         ),
@@ -311,14 +416,14 @@ def test_generate_litter_model(
 def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.29587973, 0.14851276, 0.07041856, 0.07041856]
-    end_above_struct = [0.50055126, 0.25010012, 0.0907076, 0.0907076]
-    end_woody = [4.702103, 11.802315, 7.300997, 7.300997]
-    end_below_meta = [0.38949196, 0.36147436, 0.06906041, 0.06906041]
-    end_below_struct = [0.60011634, 0.30989963, 0.02047753, 0.02047753]
-    end_lignin_above_struct = [0.4996410, 0.1004310, 0.6964345, 0.6964345]
-    end_lignin_woody = [0.49989001, 0.79989045, 0.34998229, 0.34998229]
-    end_lignin_below_struct = [0.499760108, 0.249922519, 0.737107757, 0.737107757]
+    end_above_meta = [0.32072786, 0.15473132, 0.08523907, 0.08074153]
+    end_above_struct = [0.50470382, 0.25068224, 0.09843778, 0.11163532]
+    end_woody = [4.7745168, 11.89872931, 7.3614112, 7.3314112]
+    end_below_meta = [0.4090768, 0.37287148, 0.06883228, 0.08315412]
+    end_below_struct = [0.6066315, 0.31860251, 0.02010566, 0.03038382]
+    end_lignin_above_struct = [0.49790843, 0.10067782, 0.70495536, 0.71045831]
+    end_lignin_woody = [0.49580586, 0.79787834, 0.35224223, 0.35012603]
+    end_lignin_below_struct = [0.50313604, 0.2658639, 0.7499951, 0.82142894]
     c_mineral = [0.02987233, 0.02316114, 0.00786517, 0.00786517]
 
     fixture_litter_model.update(time_index=0)

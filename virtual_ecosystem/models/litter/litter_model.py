@@ -66,13 +66,13 @@ class LitterModel(
         ("lignin_below_structural", ("spatial",)),
         ("deadwood_production", ("spatial",)),
         ("leaf_turnover", ("spatial",)),
-        ("reproduct_turnover", ("spatial",)),
+        ("plant_reproductive_tissue_turnover", ("spatial",)),
         ("root_turnover", ("spatial",)),
-        ("leaf_turnover_lignin_proportion", ("spatial",)),
-        ("reproduct_turnover_lignin_proportion", ("spatial",)),
-        ("root_turnover_lignin_proportion", ("spatial",)),
+        ("leaf_turnover_lignin", ("spatial",)),
+        ("plant_reproductive_tissue_turnover_lignin", ("spatial",)),
+        ("root_turnover_lignin", ("spatial",)),
         ("leaf_turnover_c_n_ratio", ("spatial",)),
-        ("reproduct_turnover_c_n_ratio", ("spatial",)),
+        ("plant_reproductive_tissue_turnover_c_n_ratio", ("spatial",)),
         ("root_turnover_c_n_ratio", ("spatial",)),
     ),
     vars_updated=(
@@ -223,6 +223,7 @@ class LitterModel(
                 "plant_reproductive_tissue_turnover"
             ].to_numpy(),
             root_turnover=self.data["root_turnover"].to_numpy(),
+            deadwood_lignin_proportion=self.data["deadwood_lignin"].to_numpy(),
             leaf_turnover_lignin_proportion=self.data[
                 "leaf_turnover_lignin"
             ].to_numpy(),

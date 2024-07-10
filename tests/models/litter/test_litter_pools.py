@@ -78,14 +78,14 @@ def test_calculate_change_in_litter_variables(
     )
 
     expected_pools = {
-        "litter_pool_above_metabolic": [0.32072785, 0.15473132, 0.08675863, 0.09240869],
-        "litter_pool_above_structural": [0.5047038, 0.2506822, 0.0969182, 0.0999681],
+        "litter_pool_above_metabolic": [0.32072786, 0.15473132, 0.08523907, 0.08074153],
+        "litter_pool_above_structural": [0.5047038, 0.25068224, 0.09843778, 0.11163532],
         "litter_pool_woody": [4.774517, 11.898729, 7.361411, 7.331411],
-        "litter_pool_below_metabolic": [0.4100488, 0.37287148, 0.06884686, 0.08494692],
-        "litter_pool_below_structural": [0.6056595, 0.3186025, 0.0200911, 0.0285910],
-        "lignin_above_structural": [0.4996410, 0.1004310, 0.6964345, 0.6964345],
-        "lignin_woody": [0.49989001, 0.79989045, 0.34998229, 0.34998229],
-        "lignin_below_structural": [0.499760108, 0.249922519, 0.737107757, 0.737107757],
+        "litter_pool_below_metabolic": [0.4090768, 0.37287148, 0.06883228, 0.08315412],
+        "litter_pool_below_structural": [0.6066315, 0.31860251, 0.02010566, 0.03038382],
+        "lignin_above_structural": [0.49790843, 0.10067782, 0.70495536, 0.71045831],
+        "lignin_woody": [0.49580586, 0.79787834, 0.35224223, 0.35012603],
+        "lignin_below_structural": [0.503136, 0.2658639, 0.7499951, 0.82142894],
         "litter_C_mineralisation_rate": [0.0298723, 0.0231611, 0.0078651, 0.0078651],
     }
 
@@ -113,6 +113,7 @@ def test_calculate_change_in_litter_variables(
             "plant_reproductive_tissue_turnover"
         ].to_numpy(),
         root_turnover=dummy_litter_data["root_turnover"].to_numpy(),
+        deadwood_lignin_proportion=dummy_litter_data["deadwood_lignin"].to_numpy(),
         leaf_turnover_lignin_proportion=dummy_litter_data[
             "leaf_turnover_lignin"
         ].to_numpy(),
@@ -225,26 +226,38 @@ def test_calculate_lignin_updates(dummy_litter_data):
     from virtual_ecosystem.models.litter.litter_pools import calculate_lignin_updates
 
     updated_pools = {
-        "above_structural": np.array(
-            [0.501102522, 0.251269950, 0.091377105, 0.091377105]
+        "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
+        "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
+        "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
+    }
+    input_lignin = {
+        "woody": np.array([0.233, 0.545, 0.612, 0.378]),
+        "above_structural": np.array([0.28329484, 0.23062465, 0.75773447, 0.75393599]),
+        "below_structural": np.array([0.7719623, 0.8004025, 0.7490983, 0.9589565]),
+    }
+    plant_inputs = {
+        "woody": np.array([0.075, 0.099, 0.063, 0.033]),
+        "above_ground_structural": np.array(
+            [0.00487125, 0.001300815, 0.0069293052, 0.009979245]
         ),
-        "woody": np.array([4.7042056, 11.802745, 7.3036710, 7.3036710]),
-        "below_structural": np.array([0.60054236, 0.31054401, 0.02094207, 0.02094207]),
+        "below_ground_structural": np.array(
+            [0.00602316, 0.00918288, 9.35514e-5, 0.008593488]
+        ),
     }
 
     expected_lignin = {
-        "above_structural": [-0.000717108, 0.0008580691, -0.007078589, -0.007078589],
-        "woody": [-0.0002198883, -0.0002191015, -3.5406852e-5, -3.5406852e-5],
-        "below_structural": [-0.000479566, -0.000154567, -0.025212407, -0.025212407],
+        "above_structural": [-0.00209157, 0.00067782, 0.00406409, 0.00482142],
+        "woody": [-0.00419414, -0.00212166, 0.00224223, 0.00012603],
+        "below_structural": [2.70027594e-3, 1.58639055e-2, -4.1955995e-6, 5.9099388e-2],
     }
 
     actual_lignin = calculate_lignin_updates(
         lignin_above_structural=dummy_litter_data["lignin_above_structural"],
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
+        input_lignin=input_lignin,
+        plant_inputs=plant_inputs,
         updated_pools=updated_pools,
-        update_interval=2.0,
-        constants=LitterConsts,
     )
 
     for name in actual_lignin.keys():
