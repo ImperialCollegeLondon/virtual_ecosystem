@@ -72,8 +72,8 @@ machines but `poetry` will ensure that the link is set correctly.
 ```zsh
 % poetry run jupyter kernelspec list
 Available kernels:
-  ir                 /Users/dorme/Library/Jupyter/kernels/ir
-  python3            /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-In6MogPy-py3.11/share/jupyter/kernels/python3
+  ir                 ../Jupyter/kernels/ir
+  python3            ../pypoetry/virtualenvs/virtual-ecosystem-In6MogPy-py3.11/share/jupyter/kernels/python3
 ```
 
 ## Notebook formats
@@ -162,7 +162,7 @@ In summary:
 
 All Myst Markdown content in a notebook will be checked using `markdownlint` when the
 file is committed to GitHub (see
-[here](overview.md#quality-assurance-on-documentation)). In addition, the following
+[here](documentation.md#quality-assurance-on-documentation)). In addition, the following
 tools may be useful:
 
 ### Using `black` with `jupytext`
@@ -177,21 +177,3 @@ jupytext --pipe black my_markdown.md
 Note that this **does not format** Python code that is simply included in a Markdown
 cell - essentially text that is formatted as if it were Python code. It **only** formats
 code within a Jupyter notebook `{code-cell}` or `{code-block}` section.
-
-### The `mdformat` tool
-
-```{warning}
-The following tool is essentially `black` for Markdown files, which is great.
-At the moment, although it handles MyST Markdown, it has not been extended to include
-some extensions to MyST which we use. As a result, it can introduce errors. In the
-future, we may be able to configure it to automatically tidy Markdown content.
-```
-
-This is an autoformatter for Markdown, with specific extensions to handle the Myst
-Markdown variety and the YAML frontmatter (`mdformat-myst` and `mdformat-frontmatter`).
-It is configured using `.mdformat.toml`, to set up line wrapping length and default list
-formatting.
-
-```zsh
-mdformat my_markdown.md
-```
