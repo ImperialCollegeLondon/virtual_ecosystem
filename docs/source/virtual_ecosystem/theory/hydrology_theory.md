@@ -151,7 +151,7 @@ activities.
 through aquifers, contributing to groundwater storage. Horizontal groundwater flow
 interacts with surface water bodies, influencing base flow in rivers and streams.
 
-## Links between hydrology and biotic-processes
+## Links between hydrology and biotic processes
 
 Understanding the interactions between hydrology and biota is essential for ecosystem
 management, conservation efforts, and predicting the impacts of environmental changes
