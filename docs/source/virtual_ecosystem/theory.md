@@ -22,8 +22,12 @@ dynamically connected through the transfer of matter and energy.
 
 Despite rapid advancements in the development of detailed ecological models for
 terrestrial ecosystems
-*(Clark et al. 2011, Harfoot et al. 2014, Fatichi et al. 2019, Geary et al. 2020)*,
-most models are limited in the breadth of processes being incorporated, and in the
+{cite}`best_joint_2011,
+clark_joint_2011,
+harfoot_madingley_2014,
+fatichi_mechanistic_2019,
+geary_guide_2020`
+, most models are limited in the breadth of processes being incorporated, and in the
 diversity of users that might benefit from such models.
 
 The Virtual Ecosystem aims
