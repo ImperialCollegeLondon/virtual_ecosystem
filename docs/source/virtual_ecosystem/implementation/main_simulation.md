@@ -55,18 +55,18 @@ loaded. These files are then validated to ensure:
 
 Some settings will be filled automatically from defaults settings and so can be omitted,
 but validation will fail if mandatory settings are omitted. Further details can be found
-in the [configuration documentation](../using_the_ve/configuration/config.md).
+in the [configuration documentation](../../using_the_ve/configuration/config.md).
 
 ### Grid creation
 
 Next, the spatial structure of the simulation is configured as a [`Grid`
-object](../using_the_ve/configuration/grid.md) that defines the area, coordinate system
+object](../../using_the_ve/configuration/grid.md) that defines the area, coordinate system
 and geometry of the individual cells that will be used in the simulation.
 
 ### Loading and validation of input data
 
 All of the data required to initialise and run the simulation is then loaded into an
-internal [`Data` object](../using_the_ve/data/data.md). The model configuration sets the
+internal [`Data` object](../../using_the_ve/data/data.md). The model configuration sets the
 locations of files containing required variables and this configuration is passed into
 the {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method, which ensures
 that:
@@ -74,7 +74,7 @@ that:
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
   checking the dimensionality and shape of [core
-  axes](../using_the_ve/configuration/axes.md) like the spatial grid.
+  axes](../../using_the_ve/configuration/axes.md) like the spatial grid.
 
 ### Simulation timescale
 
@@ -94,14 +94,14 @@ simulating a particular aspect of the ecosystem ecosystem. The models used for t
 specific simulation run can be set in the configuration and will typically include the
 four standard models:
 
-* the [`AbioticSimpleModel`](../api/models/abiotic_simple.md),
-* the [`AnimalModel`](../api/models/animal.md),
-* the [`PlantModel`](../api/models/plants.md) and the
-* [`SoilModel`](../api/models/soil.md)
+* the [`AbioticSimpleModel`](../../api/models/abiotic_simple.md),
+* the [`AnimalModel`](../../api/models/animal.md),
+* the [`PlantModel`](../../api/models/plants.md) and the
+* [`SoilModel`](../../api/models/soil.md)
 
 but this can be [extended to include new
-models](../development/design/defining_new_models.md) or adopt different combinations of
-models.
+models](../../development/design/defining_new_models.md) or adopt different combinations
+of models.
 
 Once a list of models to configure has been extracted from the configuration, all
 science models run through a set of steps to prepare for the simulation to start. Each

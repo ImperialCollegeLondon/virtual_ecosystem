@@ -12,8 +12,8 @@ microclimate [data collection](#microclimate-data-collection) and
 [challenges and limitations](#challenges-and-limitations) in microclimate research.
 
 The implementation of these concepts in the Virtual Ecosystem is described in detail
-here for the [simple abiotic model](./implementation/abiotic_simple_implementation.md)
-and the [process-based abiotic model](./implementation/abiotic_implementation.md).
+here for the [simple abiotic model](../implementation/abiotic_simple_implementation.md)
+and the [process-based abiotic model](../implementation/abiotic_implementation.md).
 
 ## Definition
 

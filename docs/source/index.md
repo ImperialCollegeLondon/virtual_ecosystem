@@ -29,9 +29,10 @@ The project documentation and the underlying code are big, so here are some quic
 to help guide you in finding out more about the Virtual Ecosystem. Are you interested
 in:
 
-- Reading more about the [scientific theories](./virtual_ecosystem/theory.md)
+- Reading more about the [scientific theories](./virtual_ecosystem/theory/theory.md)
   underlying the development of the Virtual Ecosystem.
-- Exploring the [big picture workflow](./virtual_ecosystem/implementation.md) of the
+- Exploring the
+  [big picture workflow](./virtual_ecosystem/implementation/implementation.md) of the
   implementation of the Virtual Ecosystem.
 - Getting started by [installing the Virtual
   Ecosystem](./using_the_ve/getting_started.md) and running a simple example.

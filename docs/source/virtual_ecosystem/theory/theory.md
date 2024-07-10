@@ -16,7 +16,7 @@ geary_guide_2020`
 , most models are limited in the breadth of processes being incorporated, and in the
 diversity of users that might benefit from such models.
 
-The general approach of the `Virtual Ecosystem` is to build on these model frameworks,
+The general approach of the **Virtual Ecosystem** is to build on these model frameworks,
 and to connect this prior work into a single modelling framework
 that provides a fully mechanistic, fully integrated representation of key abiotic and
 biotic processes that govern three key emergent properties of terrestrical ecosystems:
@@ -28,13 +28,13 @@ that’s influenced by the abiotic environment simulated based on first-principl
 (Figure 1). The development serves the perspectives of a wide variety of users and
 disciplines (Box 1; Virtual Ecosystem Project Team 2024).
 
-:::{figure} ../_static/images/ve_diagram.svg
+:::{figure} ../../_static/images/ve_diagram.svg
 :alt: A diagram of the four domains in the Virtual Ecosystem
 :scale: 70 %
 :align: left
 
 **Figure 1. The key processes in the Virtual Ecosystem** (from
-{cite:alp}`ewers_new_2024`). The model aim to replicate ecosystem dynamics across four
+{cite:alp}`ewers_new_2024`). The model aims to replicate ecosystem dynamics across four
 ecological domains: plants, animals, soil, and the abiotic environment. These domains are
 dynamically connected through the transfer of matter and energy.
 :::

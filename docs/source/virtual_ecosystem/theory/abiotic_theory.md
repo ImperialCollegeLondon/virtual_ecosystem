@@ -15,7 +15,7 @@ as well as [local](./hydrology_theory.md#local-water-balance) and
 to predict how microclimatic conditions and hydrological processes interact and evolve
 over time.
 
-```{image} ../_static/images/abiotic_sketch.jpg
+```{image} ../../_static/images/abiotic_sketch.jpg
 :alt: Abiotic sketch
 :class: bg-primary
 :width: 650px
