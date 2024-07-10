@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-import xarray
+import xarray as xr
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -196,6 +196,9 @@ class PlantsModel(
         self.estimate_gpp(time_index=time_index)
         self.allocate_gpp()
 
+        # Calculate the turnover of each plant biomass pool
+        self.calculate_turnover()
+
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
 
@@ -317,7 +320,7 @@ class PlantsModel(
         # This will give an array of the light use efficiency per layer per cell,
 
         # Get an array where populated canopy layers are one otherwise nan
-        filled_canopy = xarray.where(
+        filled_canopy = xr.where(
             (self.data["layer_heights"] * self._canopy_layer_indices[:, None]) > 0,
             1,
             np.nan,
@@ -386,3 +389,38 @@ class PlantsModel(
                 # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
                 # dbh to provide an annual increment that relates to GPP.
                 cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2
+
+    def calculate_turnover(self) -> None:
+        """Calculate turnover of each plant biomass pool.
+
+        This function calculates the turnover rate for each plant biomass pool (wood,
+        leaves, roots, and reproductive tissues). As well as this the lignin
+        concentration and carbon nitrogen ratio of each turnover flow is calculated.
+
+        Warning:
+            At present, this function literally just returns constant values for each of
+            the variables it returns.
+        """
+
+        # All outputs are just constants at the moment
+        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
+        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0.027)
+        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
+            self.data["elevation"], 0.003
+        )
+        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0.027)
+        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
+        self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
+        self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
+            self.data["elevation"], 0.01
+        )
+        self.data["root_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.2)
+        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 25.5
+        )
+        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 12.5
+        )
+        self.data["root_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 45.6
+        )

@@ -207,3 +207,29 @@ def test_PlantsModel_update(
         for cohort in community:
             # Original 0.1 + 0.03 cm from current arbitrary increment
             assert np.allclose(cohort.dbh, 0.13)
+
+
+def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_components):
+    """Test the calculate_turnover method of the plants model."""
+
+    # Check reset
+    fxt_plants_model.calculate_turnover()
+
+    # Check that all expected variables are generated and have the correct value
+    assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover"], 0.027)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover"], 0.027)
+    assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_lignin"], 0.01
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover_lignin"], 0.2)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_n_ratio"], 25.5)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"], 12.5
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover_c_n_ratio"], 45.6)
