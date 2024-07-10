@@ -124,8 +124,10 @@ nitpick_ignore = [
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
     ("py:class", "numpy._typing._array_like._ScalarType_co"),
-    # TODO - Delete this once Vivienne has merged this feature into develop
-    ("py:class", "virtual_ecosystem.models.abiotic.energy_balance.EnergyBalance"),
+    # God only knows why this is needed. We don't refer to pint.util.Quantity and it
+    # isn't in the pint objects.inv, so why the hell is intersphinx trying to build
+    # references to it.
+    ("py:class", "pint.util.Quantity"),
     # Something off about JSONSchema intersphinx mapping?
     ("py:obj", "virtual_ecosystem.core.schema.ValidatorWithDefaults.ID_OF"),
     # HACK - sphinx seems to thing GRID_STRUCTURE_SIG is a tuple not a type alias
@@ -139,10 +141,7 @@ intersphinx_mapping = {
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
-    # TODO - This is pinned to a particular pint version as the package is making
-    # changes to how it handles typing, at some point it should be unpinned, i.e. set to
-    # stable
-    "pint": ("https://pint.readthedocs.io/en/0.21/", None),
+    "pint": ("https://pint.readthedocs.io/en/stable/", None),
 }
 
 
