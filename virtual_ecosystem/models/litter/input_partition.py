@@ -15,8 +15,6 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 # not being explicitly modelled I think this is fine. This will have to change once
 # bones are included.
 
-# TODO - Generally need to think about lignin units through the litter model
-
 
 def partion_plant_inputs_between_pools(
     deadwood_production: NDArray[np.float32],
@@ -30,7 +28,7 @@ def partion_plant_inputs_between_pools(
     reproduct_turnover_c_n_ratio: NDArray[np.float32],
     root_turnover_c_n_ratio: NDArray[np.float32],
     constants: LitterConsts,
-):
+) -> dict[str, NDArray[np.float32]]:
     """Function to partition input biomass between the various litter pools.
 
     All deadwood is added to the woody litter pool. Reproductive biomass (fruits and
@@ -110,7 +108,7 @@ def split_pool_into_metabolic_and_structural_litter(
     carbon_nitrogen_ratio: NDArray[np.float32],
     max_metabolic_fraction: float,
     split_sensitivity: float,
-):
+) -> NDArray[np.float32]:
     """Calculate the split of input biomass between metabolic and structural pools.
 
     This division depends on the lignin and nitrogen content of the input biomass, the
@@ -129,7 +127,9 @@ def split_pool_into_metabolic_and_structural_litter(
             lignin and nitrogen contents [unitless]
 
     Raises:
-        ValueError: If any of the metabolic fractions drop below zero.
+        ValueError: If any of the metabolic fractions drop below zero, or if any
+            structural fraction is less than the lignin proportion (which would push the
+            lignin proportion of the structural litter input above 100%).
 
     Returns:
         The fraction of the biomass that goes to the metabolic pool [unitless]
@@ -145,5 +145,81 @@ def split_pool_into_metabolic_and_structural_litter(
         )
         LOGGER.error(to_raise)
         raise to_raise
+    elif np.any(1 - metabolic_fraction < lignin_proportion):
+        to_raise = ValueError(
+            "Fraction of input biomass going to structural biomass is less than the "
+            "lignin fraction!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
     else:
         return metabolic_fraction
+
+
+def calculate_litter_input_lignin_concentrations(
+    deadwood_lignin_proportion: NDArray[np.float32],
+    root_turnover_lignin_proportion: NDArray[np.float32],
+    leaf_turnover_lignin_proportion: NDArray[np.float32],
+    reproduct_turnover_lignin_proportion: NDArray[np.float32],
+    root_turnover: NDArray[np.float32],
+    leaf_turnover: NDArray[np.float32],
+    reproduct_turnover: NDArray[np.float32],
+    plant_input_below_struct: NDArray[np.float32],
+    plant_input_above_struct: NDArray[np.float32],
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate the concentration of lignin for each plant biomass to litter pool flow.
+
+    By definition the metabolic litter pools do not contain lignin, so all input lignin
+    flows to the structural and woody pools. As the input biomass gets split between
+    pools, the lignin concentration of the input to the structural pools will be higher
+    than it was in the input biomass.
+
+    For the woody litter there's no structural-metabolic split so the lignin
+    concentration of the litter input is the same as that of the dead wood production.
+    For the below ground structural litter, the total lignin content of root input must
+    be found, this is then converted back into a concentration relative to the input
+    into the below structural litter pool. For the above ground structural litter pool,
+    the same approach is taken with the combined total lignin content of the leaf and
+    reproductive matter inputs being found, and then converted to a back into a
+    concentration.
+
+    Args:
+        deadwood_lignin_proportion: Proportion of carbon in dead wood that is lignin [kg
+            lignin kg C^-1]
+        root_turnover_lignin_proportion: Proportion of carbon in turned over roots that
+            is lignin [kg lignin kg C^-1]
+        leaf_turnover_lignin_proportion: Proportion of carbon in turned over leaves that
+            is lignin [kg lignin kg C^-1]
+        reproduct_turnover_lignin_proportion: Proportion of carbon in turned over
+            reproductive tissues that is lignin [kg lignin kg C^-1]
+        root_turnover: Turnover of roots (coarse and fine) turnover [kg C m^-2]
+        leaf_turnover: Amount of leaf turnover [kg C m^-2]
+        reproduct_turnover: Turnover of plant reproductive tissues (i.e. fruits and
+            flowers) [kg C m^-2]
+        plant_input_below_struct: Plant input to below ground structural litter pool [kg
+            C m^-2]
+        plant_input_above_struct: Plant input to above ground structural litter pool [kg
+            C m^-2]
+
+    Returns:
+        Dictionary containing the lignin concentration of the input to each of the three
+        lignin containing litter pools (woody, above and below ground structural) [kg
+        lignin kg C^-1]
+    """
+
+    lignin_proportion_woody = deadwood_lignin_proportion
+
+    lignin_proportion_below_structural = (
+        root_turnover_lignin_proportion * root_turnover / plant_input_below_struct
+    )
+
+    lignin_proportion_above_structural = (
+        (leaf_turnover_lignin_proportion * leaf_turnover)
+        + (reproduct_turnover_lignin_proportion * reproduct_turnover)
+    ) / plant_input_above_struct
+
+    return {
+        "woody": lignin_proportion_woody,
+        "below_structural": lignin_proportion_below_structural,
+        "above_structural": lignin_proportion_above_structural,
+    }
