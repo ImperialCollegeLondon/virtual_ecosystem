@@ -32,6 +32,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
+from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
@@ -338,3 +339,23 @@ class AnimalModel(
         population_density = cohort.individuals / community_area
 
         return population_density
+
+    def generate_territory(self, size: int, grid_cell: int) -> AnimalTerritory:
+        """Generate a new territory based on the size and grid cell.
+
+        Args:
+            size: The side length of the square territory.
+            grid_cell: The starting grid cell id for the territory.
+
+        Returns:
+            An AnimalTerritory object.
+        """
+        row, col = divmod(grid_cell, self.grid.cell_nx)
+        territory_cells = [
+            (row + r) * self.grid.cell_nx + (col + c)
+            for r in range(size)
+            for c in range(size)
+            if 0 <= (row + r) < self.grid.cell_ny and 0 <= (col + c) < self.grid.cell_nx
+        ]
+
+        return AnimalTerritory(territory_cells, self.get_community_by_key)

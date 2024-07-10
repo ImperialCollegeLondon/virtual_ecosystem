@@ -250,7 +250,7 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
         alpha_i_k: Effective rate at which an individual herbivore searches its
           environment.
         phi_herb_t: Fraction of the total plant stock that is available to any one
-          herbivore cohort
+          herbivore cohort (default 0.1)
         B_k_t: Plant resource bool biomass.
         A_cell: The area of one cell [standard = 1 ha]
 
@@ -370,7 +370,6 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> float:
     """Potential number of prey items eaten off j by i.
 
-    TODO: Finish docstring
     TODO: double check output needs to be float, might be int
     TODO: update name
 
