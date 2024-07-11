@@ -18,13 +18,13 @@ subtrees:
         title: Implementation
         entries:
           - file: virtual_ecosystem/implementation/module_overview
-          - file: virtual_ecosystem/implementation/animal_implementation
-          - file: virtual_ecosystem/implementation/litter_implementation
-          - file: virtual_ecosystem/implementation/soil_implementation
-          - file: virtual_ecosystem/implementation/plants_implementation
           - file: virtual_ecosystem/implementation/abiotic_simple_implementation
           - file: virtual_ecosystem/implementation/abiotic_implementation
+          - file: virtual_ecosystem/implementation/animal_implementation
+          - file: virtual_ecosystem/implementation/litter_implementation
           - file: virtual_ecosystem/implementation/hydrology_implementation
+          - file: virtual_ecosystem/implementation/soil_implementation
+          - file: virtual_ecosystem/implementation/plants_implementation
           - file: virtual_ecosystem/implementation/main_simulation
 
   - caption: Using the Virtual Ecosystem

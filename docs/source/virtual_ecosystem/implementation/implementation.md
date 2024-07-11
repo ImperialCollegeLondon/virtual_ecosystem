@@ -49,7 +49,23 @@ ecosystem to find out more.
 
 ## Core Components
 
-TBD
+The Virtual Ecosystem uses several core components to validate and coordinate shared
+configuration settings and to initialise model structures. The components are listed
+below but also see the [core components overview](./core_components_overview.md) for
+more detail:
+
+* The Config object, containing the validated configuration.
+* The Grid object, containing the shared spatial structure of the simulation.
+* The LayerStructure object, which is used to coordinate the vertical structure of the
+  simulation from the top of the canopy down to the lowest soil layer.
+* The CoreConstants object, which is used to provide fixed constant values that are
+  shared across science models. Each model will have a separate model constants object
+  that is used to set model-specific constants.
+* The ModelTiming object, which is used to validate the runtime and update frequency of
+  the simulation.
+* The Data object, which is used to store all of the initial input data along with the
+  variables representing the rest of the model state. This is also used to pass data
+  between the different models.
 
 ## Data
 
@@ -59,19 +75,24 @@ to work with but the datasets in the Virtual Ecosystem are commonly multi-dimens
 arrays (e.g. space and time), and the NetCDF format supports this kind of data, as well
 as providing critical metadata for data validation.
 
-## Variables
+<!-- TODO: fix this link to the variables.rst file
+ when the variables system gets merged -->
 
-The Virtual Ecosystem has an [long list of variables](#variables) (TBD - update
-link when variables system goes live) that are used to set up the simulation and then
-update the model state through time. The configuration files need to provide the
-locations of the variables required to initialise each science model.
+The Virtual Ecosystem has a long list of the
+[variables](../../../../virtual_ecosystem/data_variables.toml) that are used to set up
+the simulation and then update the model state through time. The configuration files
+need to provide the locations of the variables required to initialise each science
+model.
 
 ## Science models
 
 The science models in the Virtual Ecosystem all share a common framework, which is used
-to coordinate the initialisation and update processes within each model. The models used
-for a specific simulation can vary and the following models are currently being
-developed:
+to coordinate the initialisation and update processes within each model. Each model has
+an implementation page describing the initialisation and update stages and required
+data, but the [science model overview](./science_model_overview.md) page provides a
+quick summary of the models and how they work.
+
+The current suite of science models are:
 
 * the [simple abiotic model](./abiotic_simple_implementation.md),
 * the [process-based abiotic model](./abiotic_implementation.md),

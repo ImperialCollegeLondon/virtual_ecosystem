@@ -1,38 +1,13 @@
-# The Virtual Ecosystem models
+# The Virtual Ecosystem science models
 
-This document provides a brief overview of the models that make up the Virtual
-Ecosystem.
+This page provides an overview of the implementations of each science model. These
+descriptions are intentionally brief to allow you to see all of the different science
+model components in a single location. Follow the provided links for more detail on the
+implementation or to view the underlying code.
 
-## Core Model
+## Abiotic models
 
-The `core` model is responsible for:
-
-- **Model configuration**: running a model requires a configuration file to set the
-  various options to be used. The `core` model provides loading and validation routines
-  for this configuration.
-
-- **Logger configuration**: the various models in the Virtual Ecosystem can emit a lot
-  of logging information and the `core` model is used to set up the logging depth and
-  log files.
-
-- **Spatial grid setup**: a model typically contains individual cells to capture spatial
-  heterogeneity and establish landscape scale processes. The `core` model supports the
-  configuration of those cells and potentially mapping of habitats to cells.
-
-- **Input validation**: once a model is configured, the `core` model is able to
-  validate the various inputs to the model to make sure that they are consistent with
-  the spatial grid configuration and each other.
-
-- **Cell initiation and timekeeping**: each cell contains instances of the various
-  models used to simulate behaviour within that cell. The `core` model sets up those
-  instances.
-
-- **Timekeeping**: the `core` model is also responsible for the timekeeping of the
-  simulation - ensuring that the models execute the right commands at the right time.
-
-## Abiotic Model
-
-The Abiotic Model provides the three-dimensional microclimate for the Virtual Ecosystem.
+Abiotic models provide the three-dimensional microclimate for the Virtual Ecosystem.
 Using a small set of input variables from external sources such as reanalysis or
 regional climate models, the model calculates atmospheric and soil parameters that
 drive the dynamics of plants, animals, and microbes at different vertical levels:
@@ -254,6 +229,10 @@ occur based on that cohort's internal state. Predator-prey interactions, likewis
 between animal cohorts as part of foraging system.
 
 ## Disturbance Model
+
+```{warning}
+This model is not yet in development.
+```
 
 Introducing disturbances (e.g. logging) into the model will usually require making
 alterations to the state of multiple models. As such, different disturbance models are
