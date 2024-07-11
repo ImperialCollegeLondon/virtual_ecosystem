@@ -118,8 +118,8 @@ class AnimalCommunity:
         """
 
         AnimalTerritory = importlib.import_module(
-            "animal_territories"
-        ).AnimalTerritories
+            "virtual_ecosystem.models.animal.animal_territories"
+        ).AnimalTerritory
 
         # Each grid cell is 1 hectare, territory size in grids is the same as hectares
         target_cells = cohort.territory_size

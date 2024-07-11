@@ -185,7 +185,7 @@ def animal_community_instance(
         data=animal_data_for_community_instance,
         community_key=4,
         neighbouring_keys=[1, 3, 5, 7],
-        get_destination=animal_model_instance.get_community_by_key,
+        get_community_by_key=animal_model_instance.get_community_by_key,
         constants=constants_instance,
     )
 
