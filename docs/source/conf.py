@@ -145,7 +145,7 @@ intersphinx_mapping = {
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
 }
-
+numfig = True
 
 # Set auto labelling to section level
 autosectionlabel_prefix_document = True
