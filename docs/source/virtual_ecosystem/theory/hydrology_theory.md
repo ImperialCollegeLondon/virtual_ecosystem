@@ -4,13 +4,15 @@ This page provides an overview of the [key factors](#factors-affecting-hydrology
 influencing the hydrology of an ecosystem, the main processes that drive the
 hydrological cycle at [local scale](#local-water-balance) and
 [catchment scale](#catchment-scale-water-balance),
-required [input and state variables](#key-hydrological-variables-and-processes) used to
-estimate these processes and
-the [interactions with biotic process](#links-to-the-biotic-components).
+[state variables](#key-hydrological-variables-and-processes) involved in these processes
+and the [links between hydrology and biotic processes](#links-between-hydrology-and-biotic-processes)
 Further, this page offers a brief overview over
 hydrological [data collection](#data-collection) and [modelling](#hydrology-modelling)
 approaches as well as open
 [challenges and limitations](#challenges-and-limitations) in hydrological research.
+
+The implementation of these concepts in the Virtual Ecosystem is described in detail
+[here](../implementation/hydrology_implementation.md).
 
 ## Definition
 
@@ -149,7 +151,7 @@ activities.
 through aquifers, contributing to groundwater storage. Horizontal groundwater flow
 interacts with surface water bodies, influencing base flow in rivers and streams.
 
-## Links to the biotic components
+## Links between hydrology and biotic processes
 
 Understanding the interactions between hydrology and biota is essential for ecosystem
 management, conservation efforts, and predicting the impacts of environmental changes
