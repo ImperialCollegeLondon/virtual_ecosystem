@@ -24,7 +24,7 @@ variables based on empirical relationships between leaf area index (LAI) and atm
 temperature (T), relative humidity (RH), and vapour pressure deficit (VPD) to derive
 logarithmic profiles of these variables from external climate data such as regional
 climate models or satellite observations. The model also provides information on
-atmospheric pressure and $\ce{CO_{2}}$.
+atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
 
 ## Required input data
 
