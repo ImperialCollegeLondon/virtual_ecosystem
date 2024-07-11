@@ -546,3 +546,52 @@ class Spat_XY_Dim_Square(AxisValidator):
             x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
             y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
         )
+
+
+class Time(AxisValidator):
+    """Validate temporal coordinates on the *time* core axis.
+
+    Applies to:
+        An input DataArray that provides coordinate values along a ``time`` dimension.
+
+    TODO: this is just a placeholder at present to establish the ``time`` axis name.
+
+    """
+
+    core_axis = "time"
+    dim_names = frozenset(["time"])
+
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            **kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
+        return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
+            value.coords
+        )
+
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
+
+        Does nothing at present.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            **kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when the time coordinates are not congruent with the model
+                timing steps.
+
+        Returns:
+            A DataArray, possibly truncated to the steps defined in the model timing.
+        """
+
+        return value
