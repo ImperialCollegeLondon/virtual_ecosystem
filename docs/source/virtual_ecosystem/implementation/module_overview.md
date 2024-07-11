@@ -208,7 +208,7 @@ occluded phosphorus which is irrecoverably bound within a mineral structure.
 ### Further details
 
 Further theoretical background for the Soil Model can be found
-[here](../soil/soil_details.md).
+[here](../theory/soil_theory.md).
 
 ## Animal Model
 

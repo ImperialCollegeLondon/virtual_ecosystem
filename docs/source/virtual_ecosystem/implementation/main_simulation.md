@@ -1,5 +1,10 @@
 # Virtual Ecosystem simulation flow
 
+:::{warning}
+This section is outdated and is being retained while the information is moved into new
+homes.
+:::
+
 This document describes the main simulation flow of the Virtual Ecosystem model. The
 main stages are:
 
