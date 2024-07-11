@@ -11,7 +11,6 @@ from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 class Consumer(Protocol):
     """This is the protocol for defining consumers (currently just AnimalCohort)."""
 
-    intake_rate: float
     functional_group: FunctionalGroup
     individuals: int
 

@@ -94,94 +94,6 @@ def metabolic_rate(
         raise ValueError("Invalid metabolic type: {metabolic_type}")
 
 
-def muscle_mass_scaling(mass: float, terms: tuple) -> float:
-    """The function to set the amount of muscle mass on individual in an AnimalCohort.
-
-    Currently, this scaling relationship is only accurate for terrestrial mammals.
-    This will later be updated for additional functional types.
-
-    TODO: Remove if unused.
-
-    Args:
-        mass: The body-mass [kg] of an AnimalCohort.
-        terms: The tuple of muscle scaling terms used.
-
-    Returns:
-        The mass [g] of muscle on an individual of the animal cohort.
-
-    """
-
-    return terms[1] * (mass * 1000) ** terms[0]
-
-
-def fat_mass_scaling(mass: float, terms: tuple) -> float:
-    """The function to set the amount of fat mass on individual in an AnimalCohort.
-
-    Currently, this scaling relationship is only accurate for terrestrial mammals.
-    This will later be updated for additional functional types.
-
-    TODO: Remove if unused.
-
-    Args:
-        mass: The body-mass [kg] of an AnimalCohort.
-        terms: The tuple of fat scaling terms used.
-
-    Returns:
-        The mass [g] of fat on an individual of the animal cohort.
-
-    """
-
-    return terms[1] * (mass * 1000) ** terms[0]
-
-
-def energetic_reserve_scaling(
-    mass: float, muscle_terms: tuple, fat_terms: tuple
-) -> float:
-    """The function to set the energetic reserve of an individual in an AnimalCohort.
-
-    Currently, this scaling relationship is only accurate for terrestrial mammals.
-    This will later be updated for additional functional types.
-
-    TODO: Remove if unused.
-
-    Args:
-        mass: The body-mass [kg] of an AnimalCohort.
-        muscle_terms: The tuple of muscle scaling terms used.
-        fat_terms: The tuple of fat scaling terms used.
-
-    Returns:
-        The energetic reserve [J] of  an individual of the animal cohort.
-
-    """
-    return (
-        muscle_mass_scaling(mass, muscle_terms) + fat_mass_scaling(mass, fat_terms)
-    ) * 7000.0  # j/g
-
-
-def intake_rate_scaling(mass: float, terms: tuple) -> float:
-    """The function to set the intake rate of an individual in an AnimalCohort.
-
-    Currently, this scaling relationship is only accurate for terrestrial
-    herbivorous mammals interacting with plant foods. This will later be updated
-    for additional functional types and interactions.
-
-    The function form converts the original g/min rate into a kg/day rate, where a
-    day is an 8hr foraging window.
-
-    TODO: Remove if unused.
-
-    Args:
-        mass: The body-mass [kg] of an AnimalCohort.
-        terms: The tuple of intake rate terms used.
-
-    Returns:
-        The intake rate [kg/day] of an individual of the animal cohort.
-
-    """
-
-    return terms[1] * mass ** terms[0] * 480 * (1 / 1000)
-
-
 def prey_group_selection(
     diet_type: DietType, mass: float, terms: tuple
 ) -> dict[str, tuple[float, float]]:
@@ -219,37 +131,6 @@ def prey_group_selection(
         }
     else:
         raise ValueError("Invalid diet type: {diet_type}")
-
-
-def natural_mortality_scaling(mass: float, terms: tuple) -> float:
-    """Determine the natural mortality rate of animal cohorts.
-
-    Relationship from: Dureuil & Froese 2021
-
-    M = - ln(P) / tmax   (annual, year^-1, instantaneous rate)
-    tmax = mean maximum age
-    P = 0.015 # proportion surviving to tmax
-
-    Transform yearly rate to daily rate
-    transform daily rate to daily probability
-    prob = 1 - e^-M
-
-    TODO: Remove if unused.
-
-    Args:
-        mass: The body-mass [kg] of an AnimalCohort.
-        terms: The terms of the mean maximum age equation.
-
-    Returns:
-        The allometric natural mortality rate as a daily probability of death.
-
-    """
-    tmax = terms[1] * mass ** terms[0]
-    annual_mortality_rate = -log(0.015) / tmax
-    daily_mortality_rate = annual_mortality_rate / 365.0
-    daily_mortality_prob = 1 - exp(-daily_mortality_rate)
-
-    return daily_mortality_prob
 
 
 def background_mortality(u_bg: float) -> float:

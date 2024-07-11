@@ -84,12 +84,6 @@ class FunctionalGroup:
         """The coefficient and exponent of metabolic rate."""
         self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][self.diet]
         """The coefficient and exponent of damuth's law for population density."""
-        self.muscle_mass_terms = self.constants.muscle_mass_terms[self.taxa]
-        """The coefficient and exponent of muscle mass allometry."""
-        self.fat_mass_terms = self.constants.fat_mass_terms[self.taxa]
-        """The coefficient and exponent of fat mass allometry."""
-        self.intake_rate_terms = self.constants.intake_rate_terms[self.taxa]
-        """The coefficient and exponent of intake allometry."""
         self.conversion_efficiency = self.constants.conversion_efficiency[self.diet]
         """The conversion efficiency of the functional group based on diet."""
         self.mechanical_efficiency = self.constants.mechanical_efficiency[self.diet]
@@ -98,8 +92,6 @@ class FunctionalGroup:
             self.taxa
         ]
         """The predator-prey mass ratio scaling relationship."""
-        self.longevity_scaling = self.constants.longevity_scaling_terms[self.taxa]
-        """The coefficient and exponent for lifespan allometry."""
 
 
 def import_functional_groups(

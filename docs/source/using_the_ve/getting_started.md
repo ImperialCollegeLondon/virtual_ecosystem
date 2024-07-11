@@ -15,9 +15,9 @@ that the package is still being developed so these are currently early developme
 'alpha') releases, so the package details may change rapidly.
 
 If you are more interested in playing around with the development of the model, then you
-will need to follow the [development installation
-process](../development/contributing/developer_setup.md), which also installs the tools
-required for code development, testing and building documentation.
+will need to follow the [overview of the code contribution
+process]../development/contributing/overivew.md), which covers the installation of the
+tools required for code development, testing and building documentation.
 
 ## Running an example Virtual Ecosystem simulation
 
