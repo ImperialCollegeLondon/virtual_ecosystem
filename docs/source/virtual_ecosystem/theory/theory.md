@@ -1,24 +1,13 @@
 # The theory of the Virtual Ecosystem
 
-Ecosystems are complex systems that arise from the interplay between animals, plants,
-and microbes with their abiotic environment (Figure 1). Many of these interactions are
+Ecosystems are complex systems that arise from the interplay between
+[animals](./animal_theory.md),
+[plants](./plant_theory.md),
+and [soil microbes](./soil_theory.md) with their
+[abiotic environment](./abiotic_theory.md). Many of these interactions are
 non-linear and happen across a wide range of spatial and temporal scales which makes
 ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
 challenging to understand and predict.
-
-:::{figure} ../../_static/images/ve_diagram.svg
-:alt: A diagram of the four domains in the Virtual Ecosystem
-:scale: 70 %
-:align: left
-
-**Figure 1. The key processes in the Virtual Ecosystem** (from
-{cite:alp}`ewers_new_2024`). The model replicates ecosystem dynamics across four
-ecological domains, each represented by a separate module that generates the dynamics of
-plants, animals, soil, and the abiotic environment. The essential metabolic processes
-operating at the scale of individual organisms—plants, animals, and microbes—are
-incorporated into the plant, faunal, and soil modules, respectively. These modules are
-dynamically connected through the transfer of matter and energy.
-:::
 
 Despite rapid advancements in the development of detailed ecological models for
 terrestrial ecosystems
@@ -30,16 +19,33 @@ geary_guide_2020`
 , most models are limited in the breadth of processes being incorporated, and in the
 diversity of users that might benefit from such models.
 
-The Virtual Ecosystem aims
-to provide a fully mechanistic, fully integrated representation of key abiotic and
+The general approach of the **Virtual Ecosystem** is to build on these model frameworks,
+and to connect this prior work into a single modelling framework
+that provides a fully mechanistic, fully integrated representation of key abiotic and
 biotic processes that govern three key emergent properties of terrestrical ecosystems:
 their stability, resilience, and sustainability.
-The development serves the perspectives of a wide variety of users and disciplines
-(Box 1; Virtual Ecosystem Project Team 2024).
 
-:::{card} User Stories
+We think we can replicate complex
+ecosystem dynamics by focussing on the physiology of individual organisms and how
+that’s influenced by the abiotic environment simulated based on first-principles physics
+{numref}`ve_diagram`. The development serves the perspectives of a wide variety of users
+and disciplines (see Box; Virtual Ecosystem Project Team 2024).
+
+:::{figure} ../../_static/images/ve_diagram.svg
+:name: ve_diagram
+:alt: A diagram of the four domains in the Virtual Ecosystem
+:scale: 70 %
+:align: left
+
+The key processes in the Virtual Ecosystem (from {cite:alp}`ewers_new_2024`).
+The model aims to replicate ecosystem dynamics across four
+ecological domains: plants, animals, soil, and the abiotic environment. These domains are
+dynamically connected through the transfer of matter and energy.
+:::
+
+:::{card}User Stories
 User stories serve as a project management tool that outlines the criteria for project
-success. Below, we present eight example user stories as outlined in {cite}`ewers_new_2024`,
+success. Below, we present example user stories as outlined in {cite}`ewers_new_2024`,
 each equally vital in defining the success of a holistic ecosystem model. Fulfilling
 the requirements of all user stories is necessary for the model to achieve complete
 success.
