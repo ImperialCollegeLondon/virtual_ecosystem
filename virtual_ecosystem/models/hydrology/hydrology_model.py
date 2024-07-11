@@ -95,10 +95,10 @@ class HydrologyModel(
     populated_by_init_vars=(
         "soil_moisture",
         "groundwater_storage",
-        "air_temperature",  # NOTE also initiated in abiotic models, order?
-        "relative_humidity",  # NOTE also initiated in abiotic models, order?
+        # "air_temperature",  # NOTE also initiated in abiotic models, order?
+        # "relative_humidity",  # NOTE also initiated in abiotic models, order?
         "wind_speed",
-        "atmospheric_pressure",  # NOTE also initiated in abiotic models, order?
+        # "atmospheric_pressure",  # NOTE also initiated in abiotic models, order?
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
     ),
@@ -115,6 +115,7 @@ class HydrologyModel(
         "river_discharge_rate",
         "latent_heat_vapourisation",
         "molar_density_air",
+        "aerodynamic_resistance_surface",
     ),
 ):
     """A class describing the hydrology model.

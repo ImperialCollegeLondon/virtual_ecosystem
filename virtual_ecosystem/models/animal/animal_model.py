@@ -43,7 +43,7 @@ class AnimalModel(
     required_init_vars=(),
     populated_by_init_vars=("total_animal_respiration", "population_densities"),
     required_update_vars=(),
-    populated_by_update_vars=(),
+    populated_by_update_vars=("decomposed_excrement", "decomposed_carcasses"),
     vars_updated=(
         "decomposed_excrement",
         "decomposed_carcasses",
