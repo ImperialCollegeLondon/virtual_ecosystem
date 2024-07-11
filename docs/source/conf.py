@@ -13,16 +13,22 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
 import sys
+import warnings
 from dataclasses import dataclass, field
 
 # Import Matplotlib to avoid this message in notebooks:
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
 import sphinxcontrib.bibtex.plugin
+from sphinx.deprecation import RemovedInSphinx80Warning
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
+
+# Silence sphinx 8 warnings.
+warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
+
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
