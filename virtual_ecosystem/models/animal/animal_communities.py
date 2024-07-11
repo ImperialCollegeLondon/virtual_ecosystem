@@ -11,7 +11,7 @@ from __future__ import annotations
 import random
 from collections.abc import Callable, Iterable
 from itertools import chain
-from math import ceil, pi, sqrt
+from math import ceil
 
 from numpy import timedelta64
 
@@ -94,10 +94,16 @@ class AnimalCommunity:
         self,
         cohort: AnimalCohort,
         centroid_key: int,
-        territory_size: float,
         get_community_by_key: Callable[[int], AnimalCommunity],
     ) -> AnimalTerritory:
         """This initializes the territory occupied by the cohort.
+
+        Breadth-first search (BFS) does some slightly weird stuff on a grid of squares
+        but behaves properly on a graph. As we are talking about moving to a graph
+        anyway, I can leave it like this and make adjustments for diagonals if we decide
+        to stay with squares/cells.
+
+        TODO: Revise for diagonals if we stay on grid squares/cells.
 
         Args:
             cohort: The animal cohort occupying the territory.
@@ -106,22 +112,41 @@ class AnimalCommunity:
             get_community_by_key: The method for accessing animal communities by key.
 
         Returns: An AnimalTerritory object of appropriate size.
+
         """
-        # Convert territory size to radius in terms of grid cells
-        radius = sqrt(territory_size / pi)
+        # Each grid cell is 1 hectare, territory size in grids is the same as hectares
+        target_cells = cohort.territory_size
 
         # Convert centroid key to row and column indices
         row, col = divmod(centroid_key, self.data.grid.cell_nx)
 
         territory_cells = []
 
-        # Generate grid cells within the radius
-        for r in range(ceil(row - radius), ceil(row + radius) + 1):
-            for c in range(ceil(col - radius), ceil(col + radius) + 1):
-                if 0 <= r < self.data.grid.cell_ny and 0 <= c < self.data.grid.cell_nx:
-                    distance = sqrt((r - row) ** 2 + (c - col) ** 2)
-                    if distance <= radius:
-                        territory_cells.append(r * self.data.grid.cell_nx + c)
+        # Start with the center cell
+        territory_cells.append(centroid_key)
+
+        # Use a BFS-like approach to add cells around the center
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+        visited = set(territory_cells)
+
+        queue = [(row, col)]
+
+        while queue and len(territory_cells) < target_cells:
+            r, c = queue.pop(0)
+
+            for dr, dc in directions:
+                nr, nc = r + dr, c + dc
+                if (
+                    0 <= nr < self.data.grid.cell_ny
+                    and 0 <= nc < self.data.grid.cell_nx
+                ):
+                    new_cell = nr * self.data.grid.cell_nx + nc
+                    if new_cell not in visited:
+                        visited.add(new_cell)
+                        territory_cells.append(new_cell)
+                        queue.append((nr, nc))
+                        if len(territory_cells) >= target_cells:
+                            break
 
         return AnimalTerritory(territory_cells, get_community_by_key)
 
@@ -155,7 +180,6 @@ class AnimalCommunity:
             self.initialize_territory(
                 cohort,
                 self.community_key,
-                cohort.territory_size,
                 self.get_community_by_key,
             )
 
