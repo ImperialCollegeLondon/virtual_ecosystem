@@ -17,7 +17,8 @@ subtrees:
       - file: virtual_ecosystem/implementation/implementation
         title: Implementation
         entries:
-          - file: virtual_ecosystem/implementation/module_overview
+          - file: virtual_ecosystem/implementation/science_model_overview
+          - file: virtual_ecosystem/implementation/core_components_overview
           - file: virtual_ecosystem/implementation/abiotic_simple_implementation
           - file: virtual_ecosystem/implementation/abiotic_implementation
           - file: virtual_ecosystem/implementation/animal_implementation
