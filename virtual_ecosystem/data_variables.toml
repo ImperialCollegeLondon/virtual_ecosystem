@@ -282,7 +282,7 @@ variable_type = ""
 axis = ["space", "time"]
 description = "Top of canopy photosynthetic photon flux density (PPFD)"
 name = "photosynthetic_photon_flux_density"
-unit = "µmol m-2 s-1"
+unit = "umol m-2 s-1"
 variable_type = "float"
 
 [[variable]]
