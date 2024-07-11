@@ -518,6 +518,9 @@ class HydrologyModel(
                 ),
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
+            daily_lists["aerodynamic_resistance_surface"].append(
+                soil_evaporation["aerodynamic_resistance_surface"]
+            )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
             soil_moisture_evap_mm: NDArray[np.float32] = np.concatenate(
