@@ -95,7 +95,7 @@ class AnimalCommunity:
         cohort: AnimalCohort,
         centroid_key: int,
         get_community_by_key: Callable[[int], AnimalCommunity],
-    ) -> AnimalTerritory:
+    ) -> None:
         """This initializes the territory occupied by the cohort.
 
         Breadth-first search (BFS) does some slightly weird stuff on a grid of squares
@@ -104,6 +104,8 @@ class AnimalCommunity:
         to stay with squares/cells.
 
         TODO: Revise for diagonals if we stay on grid squares/cells.
+        TODO: might be able to save time with an ifelse for small territories
+        TODO: maybe BFS should be an independent function?
 
         Args:
             cohort: The animal cohort occupying the territory.
@@ -148,7 +150,10 @@ class AnimalCommunity:
                         if len(territory_cells) >= target_cells:
                             break
 
-        return AnimalTerritory(territory_cells, get_community_by_key)
+        # generate the territory
+        territory = AnimalTerritory(territory_cells, get_community_by_key)
+        # add the territory to the cohort's attributes
+        cohort.territory = territory
 
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
@@ -181,13 +186,11 @@ class AnimalCommunity:
             self.animal_cohorts[functional_group.name].append(cohort)
 
             # generate a territory for the cohort
-            territory = self.initialize_territory(
+            self.initialize_territory(
                 cohort,
                 self.community_key,
                 self.get_community_by_key,
             )
-            # add the territory to the cohort's attributes
-            cohort.territory = territory
 
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
@@ -206,6 +209,13 @@ class AnimalCommunity:
 
         self.animal_cohorts[migrant.name].remove(migrant)
         destination.animal_cohorts[migrant.name].append(migrant)
+
+        # regenerate a territory for the cohort at the destination community
+        self.initialize_territory(
+            migrant,
+            destination.community_key,
+            destination.get_community_by_key,
+        )
 
     def migrate_community(self) -> None:
         """This handles migrating all cohorts in a community.
@@ -297,6 +307,13 @@ class AnimalCommunity:
             0.0,
             number_offspring,
             self.constants,
+        )
+
+        # generate a territory for the offspring cohort
+        self.initialize_territory(
+            offspring_cohort,
+            self.community_key,
+            self.get_community_by_key,
         )
 
         # add a new cohort of the parental type to the community
@@ -481,6 +498,13 @@ class AnimalCommunity:
             0.0,
             larval_cohort.individuals,
             self.constants,
+        )
+
+        # generate a territory for the adult cohort
+        self.initialize_territory(
+            adult_cohort,
+            self.community_key,
+            self.get_community_by_key,
         )
 
         # add a new cohort of the parental type to the community
