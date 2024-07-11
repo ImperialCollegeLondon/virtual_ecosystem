@@ -329,6 +329,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["space"]
+description = "Aerodynamic resistance surface"
+name = "aerodynamic_resistance_surface"
+unit = "m2"
+variable_type = "float"
+
+[[variable]]
+axis = ["space"]
 description = "Roughness length for momentum"
 name = "roughness_length_momentum"
 unit = "m"
@@ -555,6 +562,13 @@ variable_type = "float"
 axis = ["space"]
 description = "Particulate organic matter pool"
 name = "soil_c_pool_pom"
+unit = "kg C m-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["space"]
+description = "Necrotic organic matter pool"
+name = "soil_c_pool_necromass"
 unit = "kg C m-3"
 variable_type = "float"
 

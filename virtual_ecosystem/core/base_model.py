@@ -341,7 +341,7 @@ class BaseModel(ABC):
     @classmethod
     def _check_model_update_bounds(
         cls, model_update_bounds: tuple[str, str]
-    ) -> tuple[pint.util.Quantity, pint.util.Quantity]:
+    ) -> tuple[pint.Quantity, pint.Quantity]:
         """Check that the model_update_bounds attribute is valid.
 
         This is used to validate the class attribute
@@ -366,7 +366,7 @@ class BaseModel(ABC):
 
         # Check the conversion
         try:
-            model_update_bounds_pint: tuple[pint.util.Quantity, pint.util.Quantity] = (
+            model_update_bounds_pint: tuple[pint.Quantity, pint.Quantity] = (
                 pint.Quantity(model_update_bounds[0]),
                 pint.Quantity(model_update_bounds[1]),
             )

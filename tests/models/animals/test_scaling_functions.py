@@ -89,78 +89,6 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
 
-@pytest.mark.parametrize(
-    "mass, muscle, terms",
-    [
-        pytest.param(0.0, 0.0, (1.0, 0.38), id="zero_mass"),
-        pytest.param(1.0, 380.0, (1.0, 0.38), id="small_mass"),
-        pytest.param(1000.0, 380000.0, (1.0, 0.38), id="large_mass"),
-    ],
-)
-def test_muscle_mass_scaling(mass, muscle, terms):
-    """Testing muscle mass scaling for various body-masses."""
-
-    from virtual_ecosystem.models.animal.scaling_functions import muscle_mass_scaling
-
-    gains = muscle_mass_scaling(mass, terms)
-    assert gains == pytest.approx(muscle, rel=1e-6)
-
-
-@pytest.mark.parametrize(
-    "mass, fat, terms",
-    [
-        pytest.param(0.0, 0.0, (1.19, 0.02), id="zero_mass"),
-        pytest.param(1.0, 74.307045, (1.19, 0.02), id="low_mass"),
-        pytest.param(1000.0, 276076.852920, (1.19, 0.02), id="large_mass"),
-    ],
-)
-def test_fat_mass_scaling(mass, fat, terms):
-    """Testing fat mass scaling for various body-masses."""
-
-    from virtual_ecosystem.models.animal.scaling_functions import fat_mass_scaling
-
-    gains = fat_mass_scaling(mass, terms)
-    assert gains == pytest.approx(fat, rel=1e-6)
-
-
-@pytest.mark.parametrize(
-    "mass, energy, muscle_terms, fat_terms",
-    [
-        pytest.param(0.0, 0.0, (1.0, 0.38), (1.19, 0.02), id="zerp_mass"),
-        pytest.param(1.0, 3180149.320736, (1.0, 0.38), (1.19, 0.02), id="low_mass"),
-        pytest.param(
-            1000.0, 4592537970.444037, (1.0, 0.38), (1.19, 0.02), id="high_mass"
-        ),
-    ],
-)
-def test_energetic_reserve_scaling(mass, energy, muscle_terms, fat_terms):
-    """Testing energetic reserve scaling for various body-masses."""
-
-    from virtual_ecosystem.models.animal.scaling_functions import (
-        energetic_reserve_scaling,
-    )
-
-    gains = energetic_reserve_scaling(mass, muscle_terms, fat_terms)
-    assert gains == pytest.approx(energy, rel=1e-6)
-
-
-@pytest.mark.parametrize(
-    "mass, intake_rate, terms",
-    [
-        pytest.param(0.0, 0.0, (0.71, 0.63), id="zero_mass"),
-        pytest.param(1.0, 0.3024, (0.71, 0.63), id="low_mass"),
-        pytest.param(1000.0, 40.792637, (0.71, 0.63), id="high_mass"),
-    ],
-)
-def test_intake_rate_scaling(mass, intake_rate, terms):
-    """Testing intake rate scaling for various body-masses."""
-
-    from virtual_ecosystem.models.animal.scaling_functions import intake_rate_scaling
-
-    test_rate = intake_rate_scaling(mass, terms)
-    assert test_rate == pytest.approx(intake_rate, rel=1e-6)
-
-
 def test_herbivore_prey_group_selection():
     """Test for herbivore diet type selection."""
     from virtual_ecosystem.models.animal.scaling_functions import (
@@ -212,48 +140,6 @@ def test_prey_group_selection_mass_and_terms_impact():
     result_diff_terms = prey_group_selection(DietType.CARNIVORE, 10.0, (0.5, 500.0))
 
     assert result_default == result_diff_mass == result_diff_terms
-
-
-@pytest.mark.parametrize(
-    "mass, terms, expected, error_type",
-    [
-        pytest.param(1.0, (0.25, 0.05), 0.2055623, None, id="low_mass_valid"),
-        pytest.param(1000.0, (0.01, 0.1), 0.1018162, None, id="high_mass_valid"),
-        pytest.param(
-            0.0,
-            (0.71, 0.63),
-            None,
-            ZeroDivisionError,
-            id="zero_mass_error",
-        ),
-        pytest.param(
-            -1.0,
-            (0.71, 0.63),
-            None,
-            TypeError,
-            id="negative_mass_error",
-        ),
-        pytest.param(
-            1.0,
-            (0.71,),
-            None,
-            IndexError,
-            id="invalid_terms_error",
-        ),
-    ],
-)
-def test_natural_mortality_scaling(mass, terms, expected, error_type):
-    """Testing natural mortality scaling for various body-masses."""
-    from virtual_ecosystem.models.animal.scaling_functions import (
-        natural_mortality_scaling,
-    )
-
-    if error_type:
-        with pytest.raises(error_type):
-            natural_mortality_scaling(mass, terms)
-    else:
-        result = natural_mortality_scaling(mass, terms)
-        assert result == pytest.approx(expected, rel=1e-6)
 
 
 @pytest.mark.parametrize(

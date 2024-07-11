@@ -77,6 +77,7 @@ class HydrologyModel(
         "subsurface_flow",
         "baseflow",
         "bypass_flow",
+        "aerodynamic_resistance_surface",
     ),
     required_update_vars=(
         "air_temperature",
@@ -91,7 +92,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
     ),
-    populated_by_init_vars=(  # TODO move functionalities from setup() to __init__
+    populated_by_init_vars=(
         "soil_moisture",
         "groundwater_storage",
         "air_temperature",  # NOTE also initiated in abiotic models, order?
@@ -192,6 +193,8 @@ class HydrologyModel(
         self.surface_layer_index: int = self.layer_structure.index_surface_scalar
         """Surface layer index."""
 
+        self._setup()
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -230,6 +233,12 @@ class HydrologyModel(
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(self) -> None:
         """Function to set up the hydrology model.
 
         At the moment, this function initializes variables that are required to run the

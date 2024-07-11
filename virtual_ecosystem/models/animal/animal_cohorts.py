@@ -68,12 +68,6 @@ class AnimalCohort:
         """The amount of time [days] since reaching adult body-mass."""
         self.reproductive_mass: float = 0.0
         """The pool of biomass from which the material of reproduction is drawn."""
-
-        self.intake_rate: float = sf.intake_rate_scaling(
-            self.functional_group.adult_mass, self.functional_group.intake_rate_terms
-        )
-        """The individual rate of plant mass consumption over an 8hr foraging day
-        [kg/day]."""
         self.prey_groups = sf.prey_group_selection(
             self.functional_group.diet,
             self.functional_group.adult_mass,
