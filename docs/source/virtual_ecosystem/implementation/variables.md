@@ -8,8 +8,8 @@ and documented.
 
 The following list shows the variables currently available in Virtual Ecosystem and used
 by one or another of the existing models. For instructions on how to add new variables
-visit the [API documentaton](../api/core/variables.md) section.
+visit the [API documentaton](../../api/core/variables.md) section.
 
 ```{eval-rst}
-.. include:: ../variables.rst
+.. include:: ../../variables.rst
 ```
