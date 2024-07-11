@@ -76,10 +76,13 @@ autodoc_default_flags = ["members"]
 autosummary_generate = True
 
 
+# Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
 external_toc_exclude_missing = False
 
 
+# Set up a bracketed citation style, register it with sphinxcontrib.bibtex, and then set
+# that style as the default.
 def bracket_style() -> BracketStyle:
     """Function that defines round brackets citation style."""
     return BracketStyle(
@@ -103,10 +106,10 @@ sphinxcontrib.bibtex.plugin.register_plugin(
     "sphinxcontrib.bibtex.style.referencing", "author_year_round", MyReferenceStyle
 )
 
-# Configure referencing style
 bibtex_reference_style = "author_year_round"
 
-# Reference checking
+# Turn on nitpicky reference checking to ensure that all internal links and intersphinx
+# links are resolvable. Then ignore a whole bunch of annoying broken links.
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.int64"),
@@ -144,6 +147,8 @@ intersphinx_mapping = {
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
 }
 
+# Turn on figure numbering - this slows down build time a surprising amount!
+numfig = True
 
 # Set auto labelling to section level
 autosectionlabel_prefix_document = True
