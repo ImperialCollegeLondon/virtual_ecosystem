@@ -36,36 +36,39 @@ $$y = m * LAI + c$$
 
 where $y$ is the variable of interest, $m$ is the gradient
 (see {py:class}`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleBounds`)
-and $c$ is the intersect which we set to the external data values (Figure 1).
+and $c$ is the intersect which we set to the external data values,
+see {numref}`abiotic_simple_step1`.
 We assume that the gradient remains constant throughout the simulation.
 
-```{image} ../../_static/images/step1.png
+:::{figure} ../../_static/images/step1.png
+:name: abiotic_simple_step1
 :alt: Abiotic simple step1
 :class: bg-primary
 :width: 450px
-```
 
-***Figure 1: Linear regression between leaf area index (LAI) and temperature (T) or
-vapour pressure deficit (VPD) at 1.5 m above the ground**. The y-axis is intersected
-at the temperature at referece height. Orange crosses indicate 1.5m and reference height.*
+Linear regression between leaf area index (LAI) and temperature (T) or
+vapour pressure deficit (VPD) at 1.5 m above the ground. The y-axis is intersected
+at the temperature at reference height. Orange crosses indicate 1.5m and reference height.
+:::
 
 ### Step 2: Logarithmic interpolation above ground
 
 The values for any other aboveground heights, including but not limited to
 canopy layers and surface layer, are calculated by logarithmic regression and
-interpolation between the input 2 m above the canopy and the 1.5 m values (Step 2 in
-Figure 1).
+interpolation between the input 2 m above the canopy and the 1.5 m values, see
+{numref}`abiotic_simple_step2`.
 
-```{image} ../../_static/images/step2.png
+:::{figure} ../../_static/images/step2.png
+:name: abiotic_simple_step2
 :alt: Abiotic simple step2
 :class: bg-primary
 :width: 450px
-```
 
-***Figure 2: Logarithmic interpolation between temperature (T) or vapour pressure deficit
-(VPD) at 1.5 m and the reference height 2m above the canopy**. This approach returns
+Logarithmic interpolation between temperature (T) or vapour pressure deficit
+(VPD) at 1.5 m and the reference height 2m above the canopy. This approach returns
 values at any height of interest. Orange crosses indicate 1.5 m and reference height as
-in Figure 1.*
+in {numref}`abiotic_simple_step1`.
+:::
 
 ### Step 3: Broadcasting constant atmospheric properties
 
@@ -92,7 +95,7 @@ To initialise the `abiotic_simple` model as part of a Virtual Ecosystem simulati
 timeseries of the following variables at reference height (2m above the canopy) need
 to be provided for each grid cell at the start of the simulation:
 
-* monthly mean air tempeature, (°C)
+* monthly mean air temperature, (°C)
 * mean annual temperature, (°C)
 * monthly mean relative humidity, (-)
 * monthly mean atmospheric pressure, (kPa)
