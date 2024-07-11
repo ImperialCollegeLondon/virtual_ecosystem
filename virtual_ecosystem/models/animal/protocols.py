@@ -39,3 +39,14 @@ class Resource(Protocol):
     ) -> float:
         """The get_eaten method defines a resource."""
         ...
+
+
+class Territory(Protocol):
+    """This is the protocol for defining territories.
+
+    Currently, this is an intermediary to prevent circular reference between territories
+    and cohorts.
+
+    """
+
+    grid_cell_keys: list[int]

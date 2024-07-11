@@ -169,6 +169,7 @@ class AnimalCommunity:
                 functional_group.adult_mass, functional_group.damuths_law_terms
             )
 
+            # create a cohort of the functional group
             cohort = AnimalCohort(
                 functional_group,
                 functional_group.adult_mass,
@@ -176,12 +177,17 @@ class AnimalCommunity:
                 individuals,
                 self.constants,
             )
+            # add the cohort to the community
             self.animal_cohorts[functional_group.name].append(cohort)
-            self.initialize_territory(
+
+            # generate a territory for the cohort
+            territory = self.initialize_territory(
                 cohort,
                 self.community_key,
                 self.get_community_by_key,
             )
+            # add the territory to the cohort's attributes
+            cohort.territory = territory
 
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.

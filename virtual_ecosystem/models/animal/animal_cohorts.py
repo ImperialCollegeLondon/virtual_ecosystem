@@ -19,7 +19,12 @@ from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool, Resource
+from virtual_ecosystem.models.animal.protocols import (
+    Consumer,
+    DecayPool,
+    Resource,
+    Territory,
+)
 
 
 class AnimalCohort:
@@ -76,6 +81,8 @@ class AnimalCohort:
         """The identification of useable food resources."""
         self.territory_size = sf.territory_size(self.functional_group.adult_mass)
         """The size in hectares of the animal cohorts territory."""
+        self.territory: Territory | None = None
+        """The AnimalTerritory object associated with the cohort."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
