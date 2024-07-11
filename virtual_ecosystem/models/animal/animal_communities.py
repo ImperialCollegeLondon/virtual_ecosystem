@@ -8,6 +8,7 @@ Notes:
 
 from __future__ import annotations
 
+import importlib
 import random
 from collections.abc import Callable, Iterable
 from itertools import chain
@@ -18,7 +19,6 @@ from numpy import timedelta64
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
 from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
@@ -116,6 +116,11 @@ class AnimalCommunity:
         Returns: An AnimalTerritory object of appropriate size.
 
         """
+
+        AnimalTerritory = importlib.import_module(
+            "animal_territories"
+        ).AnimalTerritories
+
         # Each grid cell is 1 hectare, territory size in grids is the same as hectares
         target_cells = cohort.territory_size
 
@@ -224,6 +229,8 @@ class AnimalCommunity:
         1) The cohort is starving and needs to move for a chance at resource access
         2) An initial migration event immediately after birth.
 
+        TODO: MGO - migrate distance mod for larger territories?
+
         """
         for cohort in self.all_animal_cohorts:
             migrate = cohort.is_below_mass_threshold(
@@ -271,6 +278,7 @@ class AnimalCommunity:
 
         TODO: Check whether Madingley discards excess reproductive mass.
         TODO: Rework birth mass for indirect developers.
+        TODO: MGO - cohorts are born at centroid
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new cohort.
@@ -343,6 +351,9 @@ class AnimalCommunity:
         include functions for handling scavenging and soil consumption behaviors.
 
         Cohorts with no remaining individuals post-foraging are marked for death.
+
+        TODO: MGO - forage over territory instead of community
+
         """
         # Generate the plant resources for foraging.
         plant_community: PlantResources = PlantResources(
@@ -381,6 +392,8 @@ class AnimalCommunity:
         Returns:
             A list of AnimalCohorts that can be preyed upon.
 
+        TODO: MGO - collect prey over territory
+
         """
         prey: list = []
         for (
@@ -418,6 +431,7 @@ class AnimalCommunity:
         spatially explicit with multi-grid occupancy.
 
         TODO: Rework with stoichiometry
+        TODO: MGO - rework excretion for territories
 
         Args:
             temperature: Current air temperature (K).
@@ -476,6 +490,7 @@ class AnimalCommunity:
         TODO: Build in a relationship between larval_cohort mass and adult cohort mass.
         TODO: Is adult_mass the correct mass threshold?
         TODO: If the time step drops below a month, this needs an intermediary stage.
+        TODO: MGO - metamorphose at centroid?
 
         Args:
             larval_cohort: The cohort in its larval stage to be transformed.
