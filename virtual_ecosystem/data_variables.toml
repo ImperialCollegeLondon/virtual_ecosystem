@@ -331,7 +331,7 @@ variable_type = "float"
 axis = ["space"]
 description = "Aerodynamic resistance surface"
 name = "aerodynamic_resistance_surface"
-unit = "m2"
+unit = "kg m2 s–3"
 variable_type = "float"
 
 [[variable]]
