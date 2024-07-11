@@ -92,7 +92,7 @@ maximum temperatures.
 
 The dynamics of microclimate in a terrestrial ecosystem in primarily driven by five key
 components: radiation balance, energy balance, water balance, carbon balance, and
-turbulent transfer (see [Figure x](./abiotic_theory.md)). These components are connected
+turbulent transfer (see {numref}`abiotic_sketch`). These components are connected
 through the exchange of
 energy, water, and carbon and can be described with the general energy balance equation:
 

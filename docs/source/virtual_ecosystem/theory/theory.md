@@ -28,21 +28,22 @@ their stability, resilience, and sustainability.
 We think we can replicate complex
 ecosystem dynamics by focussing on the physiology of individual organisms and how
 that’s influenced by the abiotic environment simulated based on first-principles physics
-(Figure 1). The development serves the perspectives of a wide variety of users and
-disciplines (Box 1; Virtual Ecosystem Project Team 2024).
+{numref}`ve_diagram`. The development serves the perspectives of a wide variety of users
+and disciplines (see Box; Virtual Ecosystem Project Team 2024).
 
 :::{figure} ../../_static/images/ve_diagram.svg
+:name: ve_diagram
 :alt: A diagram of the four domains in the Virtual Ecosystem
 :scale: 70 %
 :align: left
 
-**Figure 1. The key processes in the Virtual Ecosystem** (from
-{cite:alp}`ewers_new_2024`). The model aims to replicate ecosystem dynamics across four
+The key processes in the Virtual Ecosystem (from {cite:alp}`ewers_new_2024`).
+The model aims to replicate ecosystem dynamics across four
 ecological domains: plants, animals, soil, and the abiotic environment. These domains are
 dynamically connected through the transfer of matter and energy.
 :::
 
-:::{card} Box 1. User Stories
+:::{card}User Stories
 User stories serve as a project management tool that outlines the criteria for project
 success. Below, we present example user stories as outlined in {cite}`ewers_new_2024`,
 each equally vital in defining the success of a holistic ecosystem model. Fulfilling
