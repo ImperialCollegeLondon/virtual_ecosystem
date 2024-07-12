@@ -27,7 +27,7 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
 )
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
-from virtual_ecosystem.models.animal.scaling_functions import damuths_law
+from virtual_ecosystem.models.animal.scaling_functions import bfs_territory, damuths_law
 
 
 class AnimalCommunity:
@@ -98,66 +98,31 @@ class AnimalCommunity:
     ) -> None:
         """This initializes the territory occupied by the cohort.
 
-        Breadth-first search (BFS) does some slightly weird stuff on a grid of squares
-        but behaves properly on a graph. As we are talking about moving to a graph
-        anyway, I can leave it like this and make adjustments for diagonals if we decide
-        to stay with squares/cells.
-
-        TODO: Revise for diagonals if we stay on grid squares/cells.
-        TODO: might be able to save time with an ifelse for small territories
-        TODO: maybe BFS should be an independent function?
+        TODO: update the territory size to cell number conversion using grid size
 
         Args:
             cohort: The animal cohort occupying the territory.
             centroid_key: The community key anchoring the territory.
-            territory_size: The size of the territory in hectares.
             get_community_by_key: The method for accessing animal communities by key.
-
-        Returns: An AnimalTerritory object of appropriate size.
-
         """
-
         AnimalTerritory = importlib.import_module(
             "virtual_ecosystem.models.animal.animal_territories"
         ).AnimalTerritory
 
         # Each grid cell is 1 hectare, territory size in grids is the same as hectares
-        target_cells = cohort.territory_size
+        target_cell_number = int(cohort.territory_size)
 
-        # Convert centroid key to row and column indices
-        row, col = divmod(centroid_key, self.data.grid.cell_nx)
+        # Perform BFS to determine the territory cells
+        territory_cells = bfs_territory(
+            centroid_key,
+            target_cell_number,
+            self.data.grid.cell_nx,
+            self.data.grid.cell_ny,
+        )
 
-        territory_cells = []
-
-        # Start with the center cell
-        territory_cells.append(centroid_key)
-
-        # Use a BFS-like approach to add cells around the center
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
-        visited = set(territory_cells)
-
-        queue = [(row, col)]
-
-        while queue and len(territory_cells) < target_cells:
-            r, c = queue.pop(0)
-
-            for dr, dc in directions:
-                nr, nc = r + dr, c + dc
-                if (
-                    0 <= nr < self.data.grid.cell_ny
-                    and 0 <= nc < self.data.grid.cell_nx
-                ):
-                    new_cell = nr * self.data.grid.cell_nx + nc
-                    if new_cell not in visited:
-                        visited.add(new_cell)
-                        territory_cells.append(new_cell)
-                        queue.append((nr, nc))
-                        if len(territory_cells) >= target_cells:
-                            break
-
-        # generate the territory
+        # Generate the territory
         territory = AnimalTerritory(territory_cells, get_community_by_key)
-        # add the territory to the cohort's attributes
+        # Add the territory to the cohort's attributes
         cohort.territory = territory
 
     def populate_community(self) -> None:

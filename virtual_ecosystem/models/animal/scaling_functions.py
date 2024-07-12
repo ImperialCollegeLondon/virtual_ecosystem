@@ -444,6 +444,7 @@ def territory_size(mass: float) -> float:
     """This function provides allometric scaling for territory size.
 
     TODO: Replace this toy scaling with a real allometry
+    TODO: decide if this allometry will be based on current mass or adult mass
 
     Args:
         mass: The mass of the animal cohort
@@ -468,3 +469,58 @@ def territory_size(mass: float) -> float:
         territory = 30.0
 
     return territory
+
+
+def bfs_territory(
+    centroid_key: int, target_cell_number: int, cell_nx: int, cell_ny: int
+) -> list[int]:
+    """Performs breadth-first search (BFS) to generate a list of territory cells.
+
+    BFS does some slightly weird stuff on a grid of squares but behaves properly on a
+    graph. As we are talking about moving to a graph anyway, I can leave it like this
+    and make adjustments for diagonals if we decide to stay with squares/cells.
+
+    TODO: Revise for diagonals if we stay on grid squares/cells.
+    TODO: might be able to save time with an ifelse for small territories
+
+    Args:
+        centroid_key: The community key anchoring the territory.
+        target_cell_number: The number of grid cells in the territory.
+        cell_nx: Number of cells along the x-axis.
+        cell_ny: Number of cells along the y-axis.
+
+    Returns:
+        A list of grid cell keys representing the territory.
+    """
+
+    # Convert centroid key to row and column indices
+    row, col = divmod(centroid_key, cell_nx)
+    # Initialize the territory cells list with the centroid key
+    territory_cells = [centroid_key]
+    # Define the possible directions for BFS traversal: Up, Down, Left, Right
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    # Set to keep track of visited cells to avoid revisiting
+    visited = set(territory_cells)
+    # Queue for BFS, initialized with the starting position (row, col)
+    queue = [(row, col)]
+    # Perform BFS until the queue is empty or we reach the target number of cells
+    while queue and len(territory_cells) < target_cell_number:
+        # Dequeue the next cell to process
+        r, c = queue.pop(0)
+        # Explore all neighboring cells in the defined directions
+        for dr, dc in directions:
+            nr, nc = r + dr, c + dc
+            # Check if the new cell is within grid bounds
+            if 0 <= nr < cell_ny and 0 <= nc < cell_nx:
+                new_cell = nr * cell_nx + nc
+                # If the cell hasn't been visited, mark it as visited and add to the
+                # territory
+                if new_cell not in visited:
+                    visited.add(new_cell)
+                    territory_cells.append(new_cell)
+                    queue.append((nr, nc))
+                    # If we have reached the target number of cells, exit the loop
+                    if len(territory_cells) >= target_cell_number:
+                        break
+
+    return territory_cells
