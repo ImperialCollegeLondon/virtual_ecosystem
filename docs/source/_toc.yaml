@@ -24,6 +24,7 @@ subtrees:
           - file: virtual_ecosystem/implementation/abiotic_implementation
           - file: virtual_ecosystem/implementation/hydrology_implementation
           - file: virtual_ecosystem/implementation/main_simulation
+          - file: virtual_ecosystem/implementation/variables
 
   - caption: Using the Virtual Ecosystem
     entries:
@@ -101,6 +102,8 @@ subtrees:
                 title: The schema submodule
               - file: api/core/utils.md
                 title: The utils submodule
+              - file: api/core/variables.md
+                title: The variables submodule
       - file: api/main.md
         title: The main submodule
       - file: api/models.md

@@ -122,6 +122,8 @@ venv.bak/
 
 # mkdocs documentation
 /site
+docs/source/variables.rst
+docs/jupyter_execute/*.png
 
 # mypy
 .mypy_cache/
