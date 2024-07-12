@@ -169,7 +169,7 @@ The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
 configuration files. This **must** match the chosen submodule name for the model, so the
 module `virtual_ecosystem.models.freshwater` must use `freshwater` as the model name.
 
-The {attr}`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars` attribute
+The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init` attribute
 : This is a tuple that sets which variables must be present in the data used to create a
 new instance of the model. Each entry should provide a variable name and then another
 tuple that sets any required axes for the variable. For example:
@@ -204,7 +204,7 @@ class FreshWaterModel(
     BaseModel, 
     model_name = "freshwater",
     model_update_bounds = ("1 day", "1 month"),
-    required_init_vars = (('temperature', ('spatial', )), ),
+    vars_required_for_init = (('temperature', ('spatial', )), ),
     vars_updated = ("average_P_concentration",),
 ):
     """Docstring describing model.

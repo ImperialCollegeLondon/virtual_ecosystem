@@ -205,7 +205,7 @@ def calculate_soil_heat_balance(
 
     * soil_temperature: Soil temperature, [C]
     * air_temperature: Air temperature, [C]
-    * shortwave_radiation_surface: Shortwave radiation that reaches surface, [W m-2]
+    * topofcanopy_radiation: Shortwave radiation that reaches canopy, [W m-2]
     * soil_evaporation: Soil evaporation, [mm]
     * soil_emissivity: Soil emissivity, dimensionless
     * surface_albedo: Surface albedo, dimensionless
