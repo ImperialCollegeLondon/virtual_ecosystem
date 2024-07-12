@@ -4,13 +4,16 @@ This page provides an overview of the [key factors](#factors-affecting-microclim
 influencing the microclimate of an ecosystem, the
 [main processes](#balancing-energy-water-and-carbon) that drive the energy, carbon, and
 water cycle,
-required [input and state variables](#key-microclimatic-variables) used to
-estimate these processes and
-the [interactions with biotic process](#links-to-biotic-components).
+[state variables](#key-microclimatic-state-variables) involved in these processes and
+the [links between microclimate and biotic processes](#links-between-microclimate-and-biotic-processes).
 Further, this page offers a brief overview over
 microclimate [data collection](#microclimate-data-collection) and
 [modelling](#microclimate-modelling) approaches as well as open
 [challenges and limitations](#challenges-and-limitations) in microclimate research.
+
+The implementation of these concepts in the Virtual Ecosystem is described in detail
+here for the [simple abiotic model](../implementation/abiotic_simple_implementation.md)
+and the [process-based abiotic model](../implementation/abiotic_implementation.md).
 
 ## Definition
 
@@ -89,7 +92,7 @@ maximum temperatures.
 
 The dynamics of microclimate in a terrestrial ecosystem in primarily driven by five key
 components: radiation balance, energy balance, water balance, carbon balance, and
-turbulent transfer (see [Figure x](./abiotic_theory.md)). These components are connected
+turbulent transfer (see {numref}`abiotic_sketch`). These components are connected
 through the exchange of
 energy, water, and carbon and can be described with the general energy balance equation:
 
@@ -128,7 +131,7 @@ recycled to the atmosphere.
 properties vertically and horizontally, leading to ecosystem characteristic patterns and
 profiles of microclimatic variables.
 
-## Key microclimatic variables
+## Key microclimatic state variables
 
 ### Solar Radiation
 
@@ -199,7 +202,7 @@ Although atmospheric $\ce{CO_{2}}$ is not a microclimatic variable, it is closel
 in the balance of energy through its critical role in photosynthesis. It should therefore
 be considered when studying the dynamics on ecosystems.
 
-## Links to biotic components
+## Links between microclimate and biotic processes
 
 Microclimates affect biota in a number of ways. Physically, microclimate shapes the
 3-dimensional vegetation structure that organisms live in. Physiologically, temperatures

@@ -29,21 +29,36 @@ class PlantsModel(
     BaseModel,
     model_name="plants",
     model_update_bounds=("1 day", "1 year"),
-    required_init_vars=(
-        ("plant_cohorts_cell_id", tuple()),
-        ("plant_cohorts_pft", tuple()),
-        ("plant_cohorts_n", tuple()),
-        ("plant_cohorts_dbh", tuple()),
-        ("photosynthetic_photon_flux_density", ("spatial",)),
+    vars_required_for_init=(
+        "plant_cohorts_cell_id",
+        "plant_cohorts_pft",
+        "plant_cohorts_n",
+        "plant_cohorts_dbh",
+        "photosynthetic_photon_flux_density",
+    ),
+    vars_populated_by_init=(
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_fapar",
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "canopy_absorption",
+    ),
+    vars_required_for_update=(
+        "plant_cohorts_cell_id",
+        "plant_cohorts_pft",
+        "plant_cohorts_n",
+        "plant_cohorts_dbh",
+        "photosynthetic_photon_flux_density",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
         "evapotranspiration",
     ),
+    vars_populated_by_first_update=("evapotranspiration",),
 ):
     """A class defining the plants model.
 
@@ -127,7 +142,7 @@ class PlantsModel(
         # cohort data and then initialise the irradiance using the first observation for
         # PPFD.
         self.update_canopy_layers()
-        self.set_absorbed_irradiance(time_index=0)
+        self.set_canopy_absorption(time_index=0)
 
     @classmethod
     def from_config(
@@ -190,7 +205,7 @@ class PlantsModel(
 
         # Update the canopy layers
         self.update_canopy_layers()
-        self.set_absorbed_irradiance(time_index=time_index)
+        self.set_canopy_absorption(time_index=time_index)
 
         # Estimate the GPP and growth with the updated this update
         self.estimate_gpp(time_index=time_index)
@@ -216,7 +231,7 @@ class PlantsModel(
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
 
         * the absorbed irradiance in each layer, including the remaining incident
-          radation at ground level (``layer_absorbed_irradiation``).
+          radation at ground level (``canopy_absorption``).
         """
         # Retrive the canopy model arrays and insert into the data object.
         canopy_data = build_canopy_arrays(
@@ -236,7 +251,7 @@ class PlantsModel(
             + self.layer_structure.above_canopy_height_offset
         )
 
-    def set_absorbed_irradiance(self, time_index: int) -> None:
+    def set_canopy_absorption(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
 
         This method takes the photosynthetic photon flux density at the top of the
@@ -262,9 +277,9 @@ class PlantsModel(
         # Store the absorbed irradiance in the data object and add the remaining
         # irradiance at the surface layer level
         # NOTE - this is only the _PPFD_ at ground level not the SWDown.
-        self.data["layer_absorbed_irradiation"][:] = absorbed_irradiance
+        self.data["canopy_absorption"][:] = absorbed_irradiance
         ground = np.where(self.data["layer_roles"].data == "surface")[0]
-        self.data["layer_absorbed_irradiation"][ground] = ground_irradiance
+        self.data["canopy_absorption"][ground] = ground_irradiance
 
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.
@@ -334,13 +349,12 @@ class PlantsModel(
         # this will use something like:
         #
         # pmodel.estimate_productivity(
-        #     fapar=1, ppfd=self.data["layer_absorbed_irradiation"]
+        #     fapar=1, ppfd=self.data["canopy_absorption"]
         # )
         # but for now:
 
         self.data["layer_gpp_per_m2"] = (
-            self.data["layer_light_use_efficiency"]
-            * self.data["layer_absorbed_irradiation"]
+            self.data["layer_light_use_efficiency"] * self.data["canopy_absorption"]
         )
 
         # We then have the gross primary productivity in µg C m-2 s-1 within each

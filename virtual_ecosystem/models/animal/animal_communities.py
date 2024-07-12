@@ -4,7 +4,7 @@ Notes:
 - assume each grid = 1 km2
 - assume each tick = 1 day (28800s)
 - damuth ~ 4.23*mass**(-3/4) indiv / km2
-"""  # noqa: #D205, D415
+"""
 
 from __future__ import annotations
 

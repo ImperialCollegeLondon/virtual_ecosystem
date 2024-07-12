@@ -123,8 +123,8 @@ def fixture_canopy_layer_data(fixture_core_components):
             np.array([0.4, 0.2, 0.1]),
             lyr_strct.index_filled_canopy,
         ),
-        "layer_absorbed_irradiation": (
-            "layer_absorbed_irradiation",
+        "canopy_absorption": (
+            "canopy_absorption",
             np.array([400, 200, 100, 300]),
             np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface),
         ),

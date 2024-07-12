@@ -56,9 +56,9 @@ class HydrologyModel(
     BaseModel,
     model_name="hydrology",
     model_update_bounds=("1 day", "1 month"),
-    required_init_vars=(
-        ("layer_heights", ("spatial",)),
-        ("elevation", ("spatial",)),
+    vars_required_for_init=(
+        "layer_heights",
+        "elevation",
     ),
     vars_updated=(
         "precipitation_surface",  # precipitation-interception loss
@@ -68,7 +68,6 @@ class HydrologyModel(
         "latent_heat_vapourisation",
         "molar_density_air",
         "soil_evaporation",
-        "aerodynamic_resistance_surface",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "matric_potential",
@@ -78,6 +77,45 @@ class HydrologyModel(
         "subsurface_flow",
         "baseflow",
         "bypass_flow",
+        "aerodynamic_resistance_surface",
+    ),
+    vars_required_for_update=(
+        "air_temperature",
+        "relative_humidity",
+        "atmospheric_pressure",
+        "precipitation",
+        "wind_speed",
+        "leaf_area_index",
+        "layer_heights",
+        "soil_moisture",
+        "evapotranspiration",
+        "surface_runoff_accumulated",
+        "subsurface_flow_accumulated",
+    ),
+    vars_populated_by_init=(
+        "soil_moisture",
+        "groundwater_storage",
+        # "air_temperature",  # NOTE also initiated in abiotic models, order?
+        # "relative_humidity",  # NOTE also initiated in abiotic models, order?
+        "wind_speed",
+        # "atmospheric_pressure",  # NOTE also initiated in abiotic models, order?
+        "surface_runoff_accumulated",
+        "subsurface_flow_accumulated",
+    ),
+    vars_populated_by_first_update=(
+        "precipitation_surface",  # precipitation-interception loss
+        "surface_runoff",
+        "bypass_flow",
+        "soil_evaporation",
+        "vertical_flow",
+        "matric_potential",
+        "subsurface_flow",
+        "baseflow",
+        "total_river_discharge",
+        "river_discharge_rate",
+        "latent_heat_vapourisation",
+        "molar_density_air",
+        "aerodynamic_resistance_surface",
     ),
 ):
     """A class describing the hydrology model.
@@ -156,6 +194,8 @@ class HydrologyModel(
         self.surface_layer_index: int = self.layer_structure.index_surface_scalar
         """Surface layer index."""
 
+        self._setup()
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -194,6 +234,12 @@ class HydrologyModel(
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(self) -> None:
         """Function to set up the hydrology model.
 
         At the moment, this function initializes variables that are required to run the
@@ -277,7 +323,6 @@ class HydrologyModel(
         * surface_runoff_accumulated, [mm]
         * subsurface_flow_accumulated, [mm]
         * soil_evaporation, [mm]
-        * aerodynamic_resistance_surface
         * vertical_flow, [mm d-1]
         * latent_heat_vapourisation, [J kg-1]
         * molar_density_air, [mol m-3]

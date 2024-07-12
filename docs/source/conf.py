@@ -11,9 +11,9 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
-import os
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # Import Matplotlib to avoid this message in notebooks:
 # "Matplotlib is building the font cache; this may take a moment."
@@ -23,22 +23,24 @@ from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
+from virtual_ecosystem.core import variables
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
 # the virtual_ecosystem package itself do not needed to be included here, providing
 # sphinx is run within the poetry shell. RTD runs sphinx-build in the same directory
-# as this conf.py file, where we currently run it from the parent `docs` folder.
-
-on_rtd = os.environ.get("READTHEDOCS") == "True"
-if on_rtd:
-    sys.path.append("development/documentation")
-else:
-    sys.path.append("source/development/documentation")
+# as this conf.py file, where we currently run it from the parent `docs` folder, so
+# adding an absolute path is more reliable.
+sys.path.append(str(Path(__file__).parent / "development/documentation"))
 
 
 version = ve.__version__
 release = version
+
+# Update the variables file
+varfile = Path(__file__).parent / "variables.rst"
+variables.output_known_variables(varfile)
+
 
 # -- Project information -----------------------------------------------------
 
@@ -143,7 +145,7 @@ intersphinx_mapping = {
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
 }
-
+numfig = True
 
 # Set auto labelling to section level
 autosectionlabel_prefix_document = True

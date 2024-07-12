@@ -116,7 +116,7 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
                 "litter model: init data missing required var "
                 "'lignin_below_structural'",
             ),
-            (ERROR, "litter model: error checking required_init_vars, see log."),
+            (ERROR, "litter model: error checking vars_required_for_init, see log."),
         ),
     )
 
