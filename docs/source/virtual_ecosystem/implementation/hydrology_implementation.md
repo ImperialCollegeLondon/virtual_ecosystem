@@ -2,17 +2,23 @@
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)
-model which is part of the default Virtual Ecosystem configuration.
-The model is loosely based on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`.
-The key processes are illustrated in {numref}`hydrology`.
+model which is part of the default Virtual Ecosystem configuration. The key processes
+are illustrated in {numref}`hydrology`.
+
+The processes [within a grid cell](#within-grid-cell-hydrology) are loosely based
+on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. The processes
+[across the model grid](#across-grid-hydrology) are loosely based on
+the [pysheds](https://github.com/mdbartos/pysheds) package.
 
 :::{figure} ../../_static/images/hydrology.jpg
 :name: hydrology
 :alt: Hydrology
 :class: bg-primary
-:width: 500px
+:width: 600px
 
-Hydrology processes implemented in Virtual Ecosystem (click to zoom).
+Hydrology processes in Virtual Ecosystem (click to zoom). Yellow boxes
+represent atmospheric input variables, green box and arrows indicate where water
+enters and leaves the plant model.
 :::
 
 ```{note}
@@ -52,11 +58,11 @@ The model also requires several parameters that as described in detail in
 {py:class}`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
 The default values are set for forest ecosystems.
 
-## Vertical hydrology components
+## Within grid cell hydrology
 
 The vertical component of the hydrology model determines the water balance within each
 grid cell. This includes [above ground](../../api/models/hydrology/above_ground.md)
-processes such as rainfall, intercept, and surface runoff out of the grid cell.
+processes such as rainfall, canopy interception, and surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
 infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
 potential, horizontal sub-surface flow out of the grid cell, and changes in
@@ -77,17 +83,12 @@ accounts for the density of the vegetation.
 $S_{max}$ is calculated using an empirical equation
 {cite}`von_hoyningen-huene_interzeption_1981`:
 
-.. math::
-:nowrap:
-
-\[
-       S_{max} =
-        \begin{cases}
-            0.935 + 0.498 \cdot \text{LAI} - 0.00575 \cdot \text{LAI}^{2},
-                & \text{LAI} > 0.1 \\
-            0, &  \text{LAI} \le 0.1,
-        \end{cases}
-\]
+```{math}
+\begin{cases}
+    0.935 + 0.498 \cdot \text{LAI} - 0.00575 \cdot \text{LAI}^{2}, & \text{LAI} > 0.1 \\
+    0, &  \text{LAI} \le 0.1,
+\end{cases}
+```
 
 where LAI is the average Leaf Area Index (m2 m-2). $k$ is estimated as:
 
@@ -96,9 +97,11 @@ $$k=0.046 * LAI$$
 ### Water at the surface
 
 Precipitation that reaches the surface is defined as incoming precipitation minus canopy
-interception. This water can follow five different trajectories: runoff at the surface,
-remain at the surface as searchable resource for animals, infiltrate into the soil,
-or return to the atmosphere via evaporation.
+interception (throughfall and stemflow are currently not implemented). The water at the
+surface can follow different trajectories: runoff at the surface,
+remain at the surface as searchable resource for animals, return to the atmosphere via
+evaporation, or infiltrate into the soil where it can be taken up by plants or percolate
+to the groundwater.
 
 ### Surface Runoff
 
@@ -109,6 +112,10 @@ moisture capacity value; if the top soil is not saturated, precipitation is
 added to the current soil moisture level and runoff is set to zero.
 
 ### Searchable resource
+
+Some of the water that land at the surface is stored in depressions as puddles or
+larger standing water that is a searchable resources for animals. This is currently not
+implemented.
 
 ### Evaporation
 
@@ -148,7 +155,7 @@ directly to the groundwater. During each time step, a fraction of the water that
 available for infiltration is added to the groundwater directly (i.e. without first
 entering the soil matrix). It is assumed that this fraction is a power function of
 the relative saturation of the superficial and upper soil layers. This results in
-the following equation (after :cite:t:`van_der_knijff_lisflood_2010`):
+the following equation (after {cite:t}`van_der_knijff_lisflood_2010`):
 
 $$D_{pref, gw} = W_{av} * (\frac{w_{1}}{w_{s1}})^{c_{pref}}$$
 
@@ -197,7 +204,7 @@ of the current layer and adding it to the layer below. The implementation is bas
 on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
 removed from the second soil layer.
 
-For some model functionalities, such as plant water uptake and soil microbila activity,
+For some model functionalities, such as plant water uptake and soil microbial activity,
 soil moisture needs to be converted to matric potential. The model provides a coarse
 estimate of soil water potential :$\Psi_{m}$ taken from
 {cite:t}`campbell_simple_1974`:
@@ -212,56 +219,58 @@ parameter.
 
 Groundwater storage and transport are modelled using two parallel linear reservoirs,
 similar to the approach used in the HBV-96 model
-:cite:p:`lindstrom_development_1997` and the LISFLOOD
-:cite:p:`van_der_knijff_lisflood_2010` (see for full documentation).
+{cite}`lindstrom_development_1997` and the LISFLOOD
+{cite}`van_der_knijff_lisflood_2010` (see for full documentation).
 
 The upper zone represents a quick runoff component, which includes fast groundwater
 and subsurface flow through macro-pores in the soil. The lower zone represents the
 slow groundwater component that generates the base flow.
 
-The outflow from the upper zone to the channel, :math:`Q_{uz}`, [mm], equals:
+The outflow from the upper zone to the channel, $Q_{uz}$, (mm), equals:
 
-:math:`Q_{uz} = \frac{1}{T_{uz}} * UZ * \Delta t`
+$$Q_{uz} = \frac{1}{T_{uz}} * UZ * \Delta t$$
 
-where :math:`T_{uz}` is the reservoir constant for the upper groundwater layer
-[days], and :math:`UZ` is the amount of water that is stored in the upper zone [mm].
+where $T_{uz}$ is the reservoir constant for the upper groundwater layer
+(days), and $UZ$ is the amount of water that is stored in the upper zone (mm).
 The amount of water stored in the upper zone is computed as follows:
 
-:math:`UZ = D_{ls,gw} + D_{pref,gw} - D{uz,lz}`
+$$UZ = D_{ls,gw} + D_{pref,gw} - D{uz,lz}$$
 
-where :math:`D_{ls,gw}` is the flow from the lower soil layer to groundwater,
-:math:`D_{pref,gw}` is the amount of preferential flow or bypass flow per time step,
-:math:`D_{uz,lz}` is the amount of water that percolates from the upper to the lower
-zone, all in [mm].
+where $D_{ls,gw}$ is the flow from the lower soil layer to groundwater,
+$D_{pref,gw}$ is the amount of preferential flow or bypass flow per time step,
+$D_{uz,lz}$ is the amount of water that percolates from the upper to the lower
+zone, all in (mm).
 
 The water percolates from the upper to the lower zone is the inflow to the lower
 groundwater zone. This amount of water is provided by the upper groundwater zone.
-:math:`D_{uz,lz}` is a fixed amount per computational time step and it is defined as
+$D_{uz,lz}$ is a fixed amount per computational time step and it is defined as
 follows:
 
-:math:`D_{uz,lz} = min(GW_{perc} * \Delta t, UZ)`
+$$D_{uz,lz} = min(GW_{perc} * \Delta t, UZ)$$
 
-where :math:`GW_{perc}`, [mm day], is the maximum percolation rate from the upper to
+where $GW_{perc}$, [mm day], is the maximum percolation rate from the upper to
 the lower groundwater zone. The outflow from the lower zone to the channel is then
 computed by:
 
-:math:`Q_{lz} = \frac{1}{T_{lz}} * LZ * \Delta t`
+$$Q_{lz} = \frac{1}{T_{lz}} * LZ * \Delta t$$
 
-:math:`T_{lz}` is the reservoir constant for the lower groundwater layer, [days],
-and :math:`LZ` is the amount of water that is stored in the lower zone, [mm].
-:math:`LZ` is computed as follows:
+$T_{lz}$ is the reservoir constant for the lower groundwater layer, (days),
+and $LZ$ is the amount of water that is stored in the lower zone, (mm).
+$LZ$ is computed as follows:
 
-:math:`LZ = D_{uz,lz} - (GW_{loss} * \Delta t)`
+$$LZ = D_{uz,lz} - (GW_{loss} * \Delta t)$$
 
-where :math:`D_{uz,lz}` is the percolation from the upper groundwater zone,[mm],
-and :math:`GW_{loss}` is the maximum percolation rate from the lower groundwater
-zone, [mm day].
+where $D_{uz,lz}$ is the percolation from the upper groundwater zone, (mm),
+and $GW_{loss}$ is the maximum percolation rate from the lower groundwater
+zone, (mm day-1).
 
-The amount of water defined by :math:`GW_{loss}` never rejoins the river channel and
+The amount of water defined by $GW_{loss}$ never rejoins the river channel and
 is lost beyond the catchment boundaries or to deep groundwater systems. The larger
-the value of ath:`GW_{loss}`, the larger the amount of water that leaves the system.
+the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 
-### Horizontal hydrology components
+## Across grid hydrology
+
+TBC
 <!-- 
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including accumulated surface runoff and sub-surface flow, and river
@@ -278,3 +287,28 @@ Total river discharge is calculated as the sum of above- and below ground horizo
 flow and converted to river discharge rate in m3/s. -->
 
 ## Returned variables
+
+At the end of each time step, monthly statistics of the following variables are returned
+to the `data` object:
+
+``` python
+vars_updated=(
+        "precipitation_surface", # sum, in mm
+        "soil_moisture", # status last day, in mm
+        "surface_runoff", # sum, in mm
+        "vertical_flow", # mean, in mm
+        "latent_heat_vapourisation", # status last day, J kg-1
+        "molar_density_air", # status last day, mol m-3
+        "soil_evaporation", # sum, in mm
+        "surface_runoff_accumulated", # sum, in mm
+        "subsurface_flow_accumulated", # sum, in mm
+        "matric_potential", # status last day, kPa
+        "groundwater_storage", # status last day, mm
+        "river_discharge_rate", # mean, m3 s-1
+        "total_river_discharge", # sum, mm
+        "subsurface_flow", # sum, in mm
+        "baseflow", # sum, in mm
+        "bypass_flow", # sum, in mm
+        "aerodynamic_resistance_surface", # status last day, kg m-2 s-3
+    )
+```
