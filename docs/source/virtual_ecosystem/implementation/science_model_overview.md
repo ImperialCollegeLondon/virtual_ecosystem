@@ -2,8 +2,9 @@
 
 This page provides an overview of the implementations of each science model. These
 descriptions are intentionally brief to allow you to see all of the different science
-model components in a single location. Follow the provided links for more detail on the
-implementation or to view the underlying code.
+model components in a single location. Each section provides links to additional detail
+on the implementation or to the documentation of the actual Python classes and function
+that provide the implementation.
 
 ## Abiotic models
 
