@@ -57,8 +57,32 @@ class PlantsModel(
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "canopy_absorption",
         "evapotranspiration",
+        "deadwood_production",
+        "leaf_turnover",
+        "plant_reproductive_tissue_turnover",
+        "root_turnover",
+        "deadwood_lignin",
+        "leaf_turnover_lignin",
+        "plant_reproductive_tissue_turnover_lignin",
+        "root_turnover_lignin",
+        "leaf_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "root_turnover_c_n_ratio",
     ),
-    vars_populated_by_first_update=("evapotranspiration",),
+    vars_populated_by_first_update=(
+        "evapotranspiration",
+        "deadwood_production",
+        "leaf_turnover",
+        "plant_reproductive_tissue_turnover",
+        "root_turnover",
+        "deadwood_lignin",
+        "leaf_turnover_lignin",
+        "plant_reproductive_tissue_turnover_lignin",
+        "root_turnover_lignin",
+        "leaf_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "root_turnover_c_n_ratio",
+    ),
 ):
     """A class defining the plants model.
 

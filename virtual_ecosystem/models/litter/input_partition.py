@@ -38,7 +38,7 @@ def partion_plant_inputs_between_pools(
     lignin concentration and carbon nitrogen ratios.
 
     Args:
-        deadwood_production: Amount of dead wood is produced [kg C m^-2]
+        deadwood_production: Amount of dead wood produced [kg C m^-2]
         leaf_turnover: Amount of leaf turnover [kg C m^-2]
         reproduct_turnover: Turnover of plant reproductive tissues (i.e. fruits and
             flowers) [kg C m^-2]
