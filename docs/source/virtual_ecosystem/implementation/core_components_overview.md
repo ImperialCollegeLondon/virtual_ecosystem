@@ -8,14 +8,23 @@ components.
 
 The model core and each science model has a set of configuration options that set how
 the simulation is set up and how the science models run. These configuration options are
-defined by model schema files that: document the required elements for configuring the
-core system or model; provide any default values and implement basic validation.
+defined by **model schema files** that:
 
-When a simulation starts, the Virtual Ecosystem takes the user-provided configuration
-files, which are written in the `TOML` format, and loads them to create a single
-configuration description. This is then validated against the core schema and the schema
-of any model included in the configuration. This will fill in any missing default values
-and will fail if options are duplicated or fail the validation.
+* document the required elements for configuring the core system or model,
+* provide any default values, and
+* implement basic validation.
+
+When a simulation starts, the Virtual Ecosystem:
+
+* Loads the user-provided configuration files and checks the file formats are valid.
+* Collates the configuration settings into a single unified configuration.
+* Loads the model schemas for the core and requested science models and uses this to
+  validate the congfiguration.
+* The validation process populates any missing options from the default values.
+* The configuration validation will fail if:
+  * Any options are duplicated within the configuration.
+  * Any configuration settings are not valid, given the rules in the model schema.
+  * Any required fields without defaults are not completed.
 
 Further details can be found in the [configuration
 documentation](../../using_the_ve/configuration/config.md).
@@ -24,32 +33,36 @@ documentation](../../using_the_ve/configuration/config.md).
 
 Next, the spatial structure of the simulation is configured as a [`Grid`
 object](../../using_the_ve/configuration/grid.md) that defines the area, coordinate system
-and geometry of the individual cells that will be used in the simulation.
+and geometry of the individual cells that will be used in the simulation. The grid is
+also used to establish grid cell neighbours and connectivity across the spatial domain.
 
 ## The vertical layer structure
 
 The vertical layer structure of the Virtual Ecosystem can be configured to change a
-number of elements, including: the maximum number of canopy layers, the number and depths
-of soil layers, and the maximum soil depth for microbial activity. The LayerStructure
-core component resolves these settings into a vertical layer structure and provides the
-model code with indexing to extract particular layers from within vertically structured
-data.
+number of elements, including: the maximum number of canopy layers, the number and
+depths of soil layers, and the maximum soil depth for microbial activity. The
+[LayerStructure core component](virtual_ecosystem.core.core_components.LayerStructure)
+resolves these settings into a vertical layer structure and provides the  model code
+with indexing to extract particular layers from within vertically structured  data (see
+{numref}`fig_layer_structure`).
 
 :::{figure} ../../_static/images/layer_structure.svg
 :name: fig_layer_structure
 :alt: Vertical Layer Structure
 :width: 650px
 
-The vertical layer structure of a Virtual Ecosystem simulation (click to zoom).
+The vertical layer structure of a Virtual Ecosystem simulation. The main layer structure
+is shown on the left, including variable numbers of filled canopy layers across grid
+cells. The right hand side shows the most commonly used sets of layers within the
+vertical layer structure. (click to zoom).
 :::
 
 ## Loading and validation of input data
 
-All of the data required to initialise and run the simulation is then loaded into an
-internal [`Data` object](../../using_the_ve/data/data.md). The model configuration sets the
-locations of files containing required variables and this configuration is passed into
-the {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method, which ensures
-that:
+All of the variables required to initialise and run the simulation are then loaded into
+an internal [`Data` object](../../using_the_ve/data/data.md). The model configuration
+provides the location of the file containing each required variables and the Data object
+is then used to load the data, checking that:
 
 * the input files are valid and can be read, and
 * that the data in files is congruent with the rest of the configuration, such as
@@ -62,11 +75,18 @@ The simulation runs between two dates with an update interval at which each scie
 model is recalculated. These values are defined in the `core` configuration and are
 now validated to ensure that the start date, end date and update interval are sensible.
 
-```{note}
-The simulation uses 12 equal length months (30.4375 days) and equal length years (365.25
-days), ignoring leap years.
-```
+:::{note}
+The calculation of simulation run time is currently not calendar aware and so timing
+uses 12 equal length months and equal length years, ignoring leap years.
+:::
 
 ## Core constants
 
-TBD
+The [core constants](../../api/core/constants.md) contains values that are shared across
+the whole simulation. This includes:
+
+* Global scientific constants, such as the gravitational constant $G$.
+* Simulation constants that are either:
+  * required to configure the core components, such as the maximum depth of biologically
+    active soil, or
+  * used by multiple science models and so are defined in a single location.
