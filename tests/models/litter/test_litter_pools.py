@@ -12,33 +12,48 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 @pytest.fixture
 def temp_and_water_factors(dummy_litter_data, fixture_core_components):
     """Temperature and water factors for the various litter layers."""
-    from virtual_ecosystem.models.litter.litter_pools import (
-        calculate_environmental_factors,
+    from virtual_ecosystem.models.litter.env_factors import (
+        calculate_soil_water_effect_on_litter_decomp,
+        calculate_temperature_effect_on_litter_decomp,
     )
 
-    environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][
+    # Calculate temperature factor for the above ground litter layers
+    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
+        temperature=dummy_litter_data["air_temperature"][
             fixture_core_components.layer_structure.index_surface_scalar
         ],
-        topsoil_temp=dummy_litter_data["soil_temperature"][
+        reference_temp=LitterConsts.litter_decomp_reference_temp,
+        offset_temp=LitterConsts.litter_decomp_offset_temp,
+        temp_response=LitterConsts.litter_decomp_temp_response,
+    )
+    # Calculate temperature factor for the below ground litter layers
+    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
+        temperature=dummy_litter_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
+        reference_temp=LitterConsts.litter_decomp_reference_temp,
+        offset_temp=LitterConsts.litter_decomp_offset_temp,
+        temp_response=LitterConsts.litter_decomp_temp_response,
+    )
+    # Calculate the water factor (relevant for below ground layers)
+    water_factor = calculate_soil_water_effect_on_litter_decomp(
         water_potential=dummy_litter_data["matric_potential"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        constants=LitterConsts,
+        water_potential_halt=LitterConsts.litter_decay_water_potential_halt,
+        water_potential_opt=LitterConsts.litter_decay_water_potential_optimum,
+        moisture_response_curvature=LitterConsts.moisture_response_curvature,
     )
 
-    return environmental_factors
-
-
-# TODO - Compare the below
-# [-297.1410435034187, -4.264765510307134, -79.66618999943468]
-# [-10.0, -25.0, -100.0]
+    return {
+        "temp_above": temperature_factor_above,
+        "temp_below": temperature_factor_below,
+        "water": water_factor,
+    }
 
 
 @pytest.fixture
-def decay_rates(dummy_litter_data, temp_and_water_factors):
+def decay_rates():
     """Decay rates for the various litter pools."""
 
     return {
@@ -54,76 +69,6 @@ def decay_rates(dummy_litter_data, temp_and_water_factors):
             [2.08818455e-04, 2.07992589e-04, 8.96385948e-06, 8.96385948e-06]
         ),
     }
-
-
-def test_calculate_environmental_factors(dummy_litter_data, fixture_core_components):
-    """Test that the calculation of the environmental factors works as expected."""
-    from virtual_ecosystem.models.litter.litter_pools import (
-        calculate_environmental_factors,
-    )
-
-    expected_water_factors = [1.0, 0.88496823, 0.71093190, 0.71093190]
-    expected_temp_above_factors = [0.1878681, 0.1878681, 0.1878681, 0.1878681]
-    expected_temp_below_factors = [0.2732009, 0.2732009, 0.2732009, 0.2732009]
-
-    environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ],
-        topsoil_temp=dummy_litter_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        water_potential=dummy_litter_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        constants=LitterConsts,
-    )
-
-    assert np.allclose(environmental_factors["water"], expected_water_factors)
-    assert np.allclose(environmental_factors["temp_above"], expected_temp_above_factors)
-    assert np.allclose(environmental_factors["temp_below"], expected_temp_below_factors)
-
-
-def test_calculate_temperature_effect_on_litter_decomp(
-    dummy_litter_data, fixture_core_components
-):
-    """Test that temperature effects on decomposition are calculated correctly."""
-    from virtual_ecosystem.models.litter.litter_pools import (
-        calculate_temperature_effect_on_litter_decomp,
-    )
-
-    expected_factor = [0.2732009, 0.2732009, 0.2732009, 0.2732009]
-
-    actual_factor = calculate_temperature_effect_on_litter_decomp(
-        dummy_litter_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        reference_temp=LitterConsts.litter_decomp_reference_temp,
-        offset_temp=LitterConsts.litter_decomp_offset_temp,
-        temp_response=LitterConsts.litter_decomp_temp_response,
-    )
-
-    assert np.allclose(actual_factor, expected_factor)
-
-
-def test_calculate_moisture_effect_on_litter_decomp():
-    """Test that soil moisture effects on decomposition are calculated correctly."""
-    from virtual_ecosystem.models.litter.litter_pools import (
-        calculate_moisture_effect_on_litter_decomp,
-    )
-
-    water_potentials = np.array([-10.0, -25.0, -100.0, -400.0])
-
-    expected_factor = [1.0, 0.88496823, 0.71093190, 0.53689556]
-
-    actual_factor = calculate_moisture_effect_on_litter_decomp(
-        water_potentials,
-        water_potential_halt=LitterConsts.litter_decay_water_potential_halt,
-        water_potential_opt=LitterConsts.litter_decay_water_potential_optimum,
-        moisture_response_curvature=LitterConsts.moisture_response_curvature,
-    )
-
-    assert np.allclose(actual_factor, expected_factor)
 
 
 def test_calculate_litter_chemistry_factor():
@@ -143,57 +88,7 @@ def test_calculate_litter_chemistry_factor():
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_change_in_litter_variables(
-    dummy_litter_data, fixture_core_components
-):
-    """Test that litter pool update calculation is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.litter.litter_pools import (
-        calculate_change_in_litter_variables,
-    )
-
-    expected_pools = {
-        "litter_pool_above_metabolic": [0.29587973, 0.14851276, 0.07041856, 0.07041856],
-        "litter_pool_above_structural": [0.50055126, 0.25010012, 0.0907076, 0.0907076],
-        "litter_pool_woody": [4.702103, 11.802315, 7.300997, 7.300997],
-        "litter_pool_below_metabolic": [0.38949196, 0.36147436, 0.06906041, 0.06906041],
-        "litter_pool_below_structural": [0.6001163, 0.3098996, 0.0204775, 0.0204775],
-        "lignin_above_structural": [0.4996410, 0.1004310, 0.6964345, 0.6964345],
-        "lignin_woody": [0.49989001, 0.79989045, 0.34998229, 0.34998229],
-        "lignin_below_structural": [0.499760108, 0.249922519, 0.737107757, 0.737107757],
-        "litter_C_mineralisation_rate": [0.0298723, 0.0231611, 0.0078651, 0.0078651],
-    }
-
-    result = calculate_change_in_litter_variables(
-        surface_temp=dummy_litter_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ].to_numpy(),
-        topsoil_temp=dummy_litter_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        water_potential=dummy_litter_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
-        lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
-        lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
-        lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
-        decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
-        decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
-        update_interval=1.0,
-        model_constants=LitterConsts,
-        core_constants=CoreConsts,
-    )
-
-    for name in expected_pools.keys():
-        assert np.allclose(result[name], expected_pools[name])
-
-
-def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
+def test_calculate_decay_rates(dummy_litter_data, fixture_core_components):
     """Test that calculation of the decay rates works as expected."""
     from virtual_ecosystem.models.litter.litter_pools import calculate_decay_rates
 
@@ -214,7 +109,15 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
-        environmental_factors=temp_and_water_factors,
+        surface_temp=dummy_litter_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ].to_numpy(),
+        topsoil_temp=dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        water_potential=dummy_litter_data["matric_potential"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
         constants=LitterConsts,
     )
 
@@ -243,11 +146,19 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
     from virtual_ecosystem.models.litter.litter_pools import calculate_updated_pools
 
     expected_pools = {
-        "above_metabolic": [0.291759466, 0.147025527, 0.070837127, 0.070837127],
-        "above_structural": [0.501102522, 0.251269950, 0.091377105, 0.091377105],
-        "woody": [4.7042056, 11.802745, 7.3036710, 7.3036710],
-        "below_metabolic": [0.38828994, 0.34846022, 0.06801166, 0.06801166],
-        "below_structural": [0.60054236, 0.31054401, 0.02094207, 0.02094207],
+        "above_metabolic": [0.31632696, 0.152963456, 0.0868965658, 0.092546626],
+        "above_structural": [0.504536392, 0.251133385, 0.0968690302, 0.09991897],
+        "woody": [4.7740336, 11.896573, 7.361499, 7.331499],
+        "below_metabolic": [0.40842678, 0.35943734, 0.0673781086, 0.083478172],
+        "below_structural": [0.60560552, 0.31876689, 0.0200756214, 0.028575558],
+    }
+
+    plant_inputs = {
+        "woody": [0.075, 0.099, 0.063, 0.033],
+        "above_ground_metabolic": [0.02512875, 0.006499185, 0.0166206948, 0.022270755],
+        "above_ground_structural": [0.00487125, 0.001300815, 0.0069293052, 0.009979245],
+        "below_ground_metabolic": [0.02097684, 0.01181712, 0.0002064486, 0.016306512],
+        "below_ground_structural": [0.00602316, 0.00918288, 9.35514e-5, 0.008593488],
     }
 
     actual_pools = calculate_updated_pools(
@@ -259,8 +170,8 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
         decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
         decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
         decay_rates=decay_rates,
+        plant_inputs=plant_inputs,
         update_interval=2.0,
-        constants=LitterConsts,
     )
 
     for name in expected_pools.keys():
@@ -272,26 +183,38 @@ def test_calculate_lignin_updates(dummy_litter_data):
     from virtual_ecosystem.models.litter.litter_pools import calculate_lignin_updates
 
     updated_pools = {
-        "above_structural": np.array(
-            [0.501102522, 0.251269950, 0.091377105, 0.091377105]
+        "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
+        "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
+        "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
+    }
+    input_lignin = {
+        "woody": np.array([0.233, 0.545, 0.612, 0.378]),
+        "above_structural": np.array([0.28329484, 0.23062465, 0.75773447, 0.75393599]),
+        "below_structural": np.array([0.7719623, 0.8004025, 0.7490983, 0.9589565]),
+    }
+    plant_inputs = {
+        "woody": np.array([0.075, 0.099, 0.063, 0.033]),
+        "above_ground_structural": np.array(
+            [0.00487125, 0.001300815, 0.0069293052, 0.009979245]
         ),
-        "woody": np.array([4.7042056, 11.802745, 7.3036710, 7.3036710]),
-        "below_structural": np.array([0.60054236, 0.31054401, 0.02094207, 0.02094207]),
+        "below_ground_structural": np.array(
+            [0.00602316, 0.00918288, 9.35514e-5, 0.008593488]
+        ),
     }
 
     expected_lignin = {
-        "above_structural": [-0.000717108, 0.0008580691, -0.007078589, -0.007078589],
-        "woody": [-0.0002198883, -0.0002191015, -3.5406852e-5, -3.5406852e-5],
-        "below_structural": [-0.000479566, -0.000154567, -0.025212407, -0.025212407],
+        "above_structural": [-0.00209157, 0.00067782, 0.00406409, 0.00482142],
+        "woody": [-0.00419414, -0.00212166, 0.00224223, 0.00012603],
+        "below_structural": [2.70027594e-3, 1.58639055e-2, -4.1955995e-6, 5.9099388e-2],
     }
 
     actual_lignin = calculate_lignin_updates(
         lignin_above_structural=dummy_litter_data["lignin_above_structural"],
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
+        input_lignin=input_lignin,
+        plant_inputs=plant_inputs,
         updated_pools=updated_pools,
-        update_interval=2.0,
-        constants=LitterConsts,
     )
 
     for name in actual_lignin.keys():
