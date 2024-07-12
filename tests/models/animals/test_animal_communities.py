@@ -21,7 +21,7 @@ def animal_community_destination_instance(
         data=animal_data_for_community_instance,
         community_key=4,
         neighbouring_keys=[1, 3, 5, 7],
-        get_destination=animal_model_instance.get_community_by_key,
+        get_community_by_key=animal_model_instance.get_community_by_key,
         constants=constants_instance,
     )
 
@@ -50,6 +50,22 @@ def animal_cohort_instance(functional_group_instance, constants_instance):
         1.0,
         10,
         constants_instance,
+    )
+
+
+@pytest.fixture
+def mock_animal_territory(mocker):
+    """Mock fixture for animal territory."""
+    return mocker.patch(
+        "virtual_ecosystem.models.animal.animal_territories.AnimalTerritory"
+    )
+
+
+@pytest.fixture
+def mock_bfs_territory(mocker):
+    """Mock fixture for the bfs_territory function."""
+    return mocker.patch(
+        "virtual_ecosystem.models.animal.animal_territories.bfs_territory"
     )
 
 
@@ -178,10 +194,10 @@ class TestAnimalCommunity:
         cohort.age = age
         cohort.mass_current = cohort.functional_group.adult_mass * mass_ratio
 
-        # Mock the get_destination callable to return a specific community.
+        # Mock the get_community_by_key callable to return a specific community.
         mocker.patch.object(
             animal_community_instance,
-            "get_destination",
+            "get_community_by_key",
             return_value=animal_community_destination_instance,
         )
 
@@ -674,3 +690,50 @@ class TestAnimalCommunity:
         assert new_caterpillar_count == expected_caterpillar_count
         assert new_butterfly_count == expected_butterfly_count
         assert caterpillar_cohort.is_alive == expected_is_alive
+
+    def test_initialize_territory(
+        self,
+        mocker,
+        animal_community_instance,
+        mock_animal_territory,
+        mock_bfs_territory,
+    ):
+        """Test for initialize territory."""
+
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+        # Create mock instances for dependencies
+        mock_cohort = mocker.create_autospec(AnimalCohort, instance=True)
+        mock_cohort.territory_size = 4  # Example size
+        centroid_key = 0
+
+        mock_get_community_by_key = mocker.Mock()
+
+        # Set up the mock for bfs_territory to return a predefined set of cells
+        mock_bfs_territory.return_value = [0, 1, 3, 4]
+
+        # Initialize the AnimalCommunity instance and set up grid dimensions
+
+        animal_community_instance.data = mocker.Mock()
+        animal_community_instance.data.grid.cell_nx = 3
+        animal_community_instance.data.grid.cell_ny = 3
+
+        # Call the method under test
+        animal_community_instance.initialize_territory(
+            mock_cohort, centroid_key, mock_get_community_by_key
+        )
+
+        # Check that bfs_territory was called with the correct parameters
+        mock_bfs_territory.assert_called_once_with(centroid_key, 4, 3, 3)
+
+        # Check that AnimalTerritory was instantiated with the correct parameters
+        mock_animal_territory.assert_called_once_with(
+            [0, 1, 3, 4], mock_get_community_by_key
+        )
+
+        # Check that the territory was assigned to the cohort
+        assert mock_cohort.territory == mock_animal_territory.return_value
+
+        # Ensure no additional unexpected calls were made
+        assert mock_bfs_territory.call_count == 1
+        assert mock_animal_territory.call_count == 1
