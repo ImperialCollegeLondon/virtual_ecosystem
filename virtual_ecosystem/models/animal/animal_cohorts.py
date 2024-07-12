@@ -184,6 +184,7 @@ class AnimalCohort:
         TODO: Rework after update litter pools for mass
         TODO: update for current conversion efficiency
         TODO: Update with stoichiometry
+        TODO: MGO - rework for territories (if need be)
 
         Args:
             excrement_pool: The local ExcrementSoil pool in which waste is deposited.
@@ -235,6 +236,7 @@ class AnimalCohort:
         fixed once the litter pools are updated for mass.
 
         TODO: Rework after update litter pools for mass
+        TODO: MGO - rework for territories
 
         Args:
             number_dead: The number of individuals by which to decrease the population
@@ -278,6 +280,9 @@ class AnimalCohort:
 
         It finds the smallest whole number of prey required to satisfy the predators
         mass demands and caps at then caps it at the available population.
+
+        TODO: MGO - rework for territories
+
 
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
@@ -362,6 +367,7 @@ class AnimalCohort:
         the total handling time required by the cohort.
 
         TODO: give A_cell a grid size reference.
+        TODO: MGO - rework for territories
 
         Args:
             plant_list: A sequence of plant resources available for consumption by the
@@ -468,6 +474,7 @@ class AnimalCohort:
         """Calculate the potential number of prey consumed.
 
         TODO: give A_cell a grid size reference
+        TODO: MGO - rework for territories
 
         Args:
             alpha: the predation search rate

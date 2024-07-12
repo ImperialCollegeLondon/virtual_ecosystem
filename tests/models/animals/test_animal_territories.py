@@ -91,3 +91,28 @@ class TestAnimalTerritories:
         assert len(carcass_pools) == len(animal_territory_instance.grid_cell_keys)
         for carcass in carcass_pools:
             assert isinstance(carcass, CarcassPool)
+
+
+@pytest.mark.parametrize(
+    "centroid_key, target_cell_number, cell_nx, cell_ny, expected",
+    [
+        (0, 1, 3, 3, {0}),  # Single cell territory
+        (4, 5, 3, 3, {4, 3, 5, 1, 7}),  # Small territory in the center
+        (0, 4, 3, 3, {0, 1, 3, 6}),  # Territory starting at the corner
+        (8, 4, 3, 3, {8, 2, 5, 7}),  # Territory starting at another corner
+        (4, 9, 3, 3, {4, 3, 5, 1, 7, 0, 2, 6, 8}),  # Full grid territory
+    ],
+    ids=[
+        "single_cell",
+        "small_center",
+        "corner_start",
+        "another_corner",
+        "full_grid",
+    ],
+)
+def test_bfs_territory(centroid_key, target_cell_number, cell_nx, cell_ny, expected):
+    """Test bfs_territory with various parameters."""
+    from virtual_ecosystem.models.animal.animal_territories import bfs_territory
+
+    result = set(bfs_territory(centroid_key, target_cell_number, cell_nx, cell_ny))
+    assert result == expected, f"Expected {expected}, but got {result}"

@@ -27,7 +27,7 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
 )
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
-from virtual_ecosystem.models.animal.scaling_functions import bfs_territory, damuths_law
+from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
 
 class AnimalCommunity:
@@ -108,6 +108,10 @@ class AnimalCommunity:
         AnimalTerritory = importlib.import_module(
             "virtual_ecosystem.models.animal.animal_territories"
         ).AnimalTerritory
+
+        bfs_territory = importlib.import_module(
+            "virtual_ecosystem.models.animal.animal_territories"
+        ).bfs_territory
 
         # Each grid cell is 1 hectare, territory size in grids is the same as hectares
         target_cell_number = int(cohort.territory_size)
