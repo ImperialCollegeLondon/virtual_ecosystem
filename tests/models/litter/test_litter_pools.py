@@ -13,23 +13,43 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 def temp_and_water_factors(dummy_litter_data, fixture_core_components):
     """Temperature and water factors for the various litter layers."""
     from virtual_ecosystem.models.litter.env_factors import (
-        calculate_environmental_factors,
+        calculate_soil_water_effect_on_litter_decomp,
+        calculate_temperature_effect_on_litter_decomp,
     )
 
-    environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][
+    # Calculate temperature factor for the above ground litter layers
+    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
+        temperature=dummy_litter_data["air_temperature"][
             fixture_core_components.layer_structure.index_surface_scalar
         ],
-        topsoil_temp=dummy_litter_data["soil_temperature"][
+        reference_temp=LitterConsts.litter_decomp_reference_temp,
+        offset_temp=LitterConsts.litter_decomp_offset_temp,
+        temp_response=LitterConsts.litter_decomp_temp_response,
+    )
+    # Calculate temperature factor for the below ground litter layers
+    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
+        temperature=dummy_litter_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
+        reference_temp=LitterConsts.litter_decomp_reference_temp,
+        offset_temp=LitterConsts.litter_decomp_offset_temp,
+        temp_response=LitterConsts.litter_decomp_temp_response,
+    )
+    # Calculate the water factor (relevant for below ground layers)
+    water_factor = calculate_soil_water_effect_on_litter_decomp(
         water_potential=dummy_litter_data["matric_potential"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        constants=LitterConsts,
+        water_potential_halt=LitterConsts.litter_decay_water_potential_halt,
+        water_potential_opt=LitterConsts.litter_decay_water_potential_optimum,
+        moisture_response_curvature=LitterConsts.moisture_response_curvature,
     )
 
-    return environmental_factors
+    return {
+        "temp_above": temperature_factor_above,
+        "temp_below": temperature_factor_below,
+        "water": water_factor,
+    }
 
 
 @pytest.fixture
@@ -68,7 +88,7 @@ def test_calculate_litter_chemistry_factor():
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
+def test_calculate_decay_rates(dummy_litter_data, fixture_core_components):
     """Test that calculation of the decay rates works as expected."""
     from virtual_ecosystem.models.litter.litter_pools import calculate_decay_rates
 
@@ -89,7 +109,15 @@ def test_calculate_decay_rates(dummy_litter_data, temp_and_water_factors):
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
-        environmental_factors=temp_and_water_factors,
+        surface_temp=dummy_litter_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ].to_numpy(),
+        topsoil_temp=dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        water_potential=dummy_litter_data["matric_potential"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
         constants=LitterConsts,
     )
 

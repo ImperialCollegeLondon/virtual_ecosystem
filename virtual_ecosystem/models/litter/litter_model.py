@@ -46,7 +46,6 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.env_factors import calculate_environmental_factors
 from virtual_ecosystem.models.litter.input_partition import (
     calculate_litter_input_lignin_concentrations,
     partion_plant_inputs_between_pools,
@@ -186,32 +185,15 @@ class LitterModel(
     def update(self, time_index: int, **kwargs: Any) -> None:
         """Calculate changes in the litter pools and use them to update the pools.
 
-        This function calculates the various environmental factors that effect litter
-        decay rate, and then uses them as well as the litter pool lignin concentrations
-        to calculate decay rates for each litter pool, as well as the total carbon
-        mineralisation rate. Once this is done, plant inputs to each pool are
-        calculated, and used to find the new mass and lignin concentration of each
-        litter pool.
+        This function first calculates the decay rates for each litter pool, as well as
+        the total carbon mineralisation rate. Once this is done, plant inputs to each
+        pool are calculated, and used to find the new mass and lignin concentration of
+        each litter pool.
 
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
-
-        # Calculate the factors which capture the impact that temperature and soil water
-        # content have on litter decay rates
-        environmental_factors = calculate_environmental_factors(
-            surface_temp=self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy(),
-            topsoil_temp=self.data["soil_temperature"][
-                self.layer_structure.index_topsoil_scalar
-            ].to_numpy(),
-            water_potential=self.data["matric_potential"][
-                self.layer_structure.index_topsoil_scalar
-            ].to_numpy(),
-            constants=self.model_constants,
-        )
 
         # Calculate the litter pool decay rates
         decay_rates = calculate_decay_rates(
@@ -223,7 +205,15 @@ class LitterModel(
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
-            environmental_factors=environmental_factors,
+            surface_temp=self.data["air_temperature"][
+                self.layer_structure.index_surface_scalar
+            ].to_numpy(),
+            topsoil_temp=self.data["soil_temperature"][
+                self.layer_structure.index_topsoil_scalar
+            ].to_numpy(),
+            water_potential=self.data["matric_potential"][
+                self.layer_structure.index_topsoil_scalar
+            ].to_numpy(),
             constants=self.model_constants,
         )
 

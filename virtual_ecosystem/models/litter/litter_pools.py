@@ -21,6 +21,10 @@ from numpy.typing import NDArray
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
+from virtual_ecosystem.models.litter.env_factors import (
+    calculate_soil_water_effect_on_litter_decomp,
+    calculate_temperature_effect_on_litter_decomp,
+)
 
 
 def calculate_decay_rates(
@@ -32,7 +36,9 @@ def calculate_decay_rates(
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
-    environmental_factors: dict[str, NDArray[np.float32]],
+    surface_temp: NDArray[np.float32],
+    topsoil_temp: NDArray[np.float32],
+    water_potential: NDArray[np.float32],
     constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the decay rate for all five of the litter pools.
@@ -48,43 +54,68 @@ def calculate_decay_rates(
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
         lignin_below_structural: Proportion of below ground structural pool which is
             lignin [unitless]
-        environmental_factors: Factors capturing the effect that the physical
-           environment (soil water + temperature) has on litter decay rates [unitless].
+        surface_temp: Temperature of soil surface, which is assumed to be the same
+            temperature as the above ground litter [C]
+        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
+            temperature as the below ground litter [C]
+        water_potential: Water potential of the topsoil layer [kPa]
         constants: Set of constants for the litter model
 
     Returns:
         A dictionary containing the decay rate for each of the five litter pools.
     """
 
+    # Calculate temperature factor for the above ground litter layers
+    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
+        temperature=surface_temp,
+        reference_temp=constants.litter_decomp_reference_temp,
+        offset_temp=constants.litter_decomp_offset_temp,
+        temp_response=constants.litter_decomp_temp_response,
+    )
+    # Calculate temperature factor for the below ground litter layers
+    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
+        temperature=topsoil_temp,
+        reference_temp=constants.litter_decomp_reference_temp,
+        offset_temp=constants.litter_decomp_offset_temp,
+        temp_response=constants.litter_decomp_temp_response,
+    )
+    # Calculate the water factor (relevant for below ground layers)
+    water_factor = calculate_soil_water_effect_on_litter_decomp(
+        water_potential=water_potential,
+        water_potential_halt=constants.litter_decay_water_potential_halt,
+        water_potential_opt=constants.litter_decay_water_potential_optimum,
+        moisture_response_curvature=constants.moisture_response_curvature,
+    )
+
     # Calculate decay rate for each pool
     metabolic_above_decay = calculate_litter_decay_metabolic_above(
-        environmental_factors["temp_above"],
+        temperature_factor_above,
         above_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
     structural_above_decay = calculate_litter_decay_structural_above(
-        environmental_factors["temp_above"],
+        temperature_factor_above,
         above_structural,
         lignin_above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     woody_decay = calculate_litter_decay_woody(
-        environmental_factors["temp_above"],
+        temperature_factor_above,
         woody,
         lignin_woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     metabolic_below_decay = calculate_litter_decay_metabolic_below(
-        environmental_factors["temp_below"],
-        environmental_factors["water"],
+        temperature_factor_below,
+        water_factor,
         below_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_below,
     )
     structural_below_decay = calculate_litter_decay_structural_below(
-        environmental_factors["temp_below"],
-        environmental_factors["water"],
+        temperature_factor_below,
+        water_factor,
         below_structural,
         lignin_below_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,

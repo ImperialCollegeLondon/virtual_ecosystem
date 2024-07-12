@@ -5,34 +5,6 @@ import numpy as np
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
-def test_calculate_environmental_factors(dummy_litter_data, fixture_core_components):
-    """Test that the calculation of the environmental factors works as expected."""
-    from virtual_ecosystem.models.litter.env_factors import (
-        calculate_environmental_factors,
-    )
-
-    expected_water_factors = [1.0, 0.88496823, 0.71093190, 0.71093190]
-    expected_temp_above_factors = [0.1878681, 0.1878681, 0.1878681, 0.1878681]
-    expected_temp_below_factors = [0.2732009, 0.2732009, 0.2732009, 0.2732009]
-
-    environmental_factors = calculate_environmental_factors(
-        surface_temp=dummy_litter_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ],
-        topsoil_temp=dummy_litter_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar,
-        ],
-        water_potential=dummy_litter_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar,
-        ],
-        constants=LitterConsts,
-    )
-
-    assert np.allclose(environmental_factors["water"], expected_water_factors)
-    assert np.allclose(environmental_factors["temp_above"], expected_temp_above_factors)
-    assert np.allclose(environmental_factors["temp_below"], expected_temp_below_factors)
-
-
 def test_calculate_temperature_effect_on_litter_decomp(
     dummy_litter_data, fixture_core_components
 ):
