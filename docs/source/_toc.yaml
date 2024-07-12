@@ -51,21 +51,21 @@ subtrees:
     entries:
       - file: development/contributing
         entries:
-        - file: development/contributing/overview
-        - file: development/contributing/code_qa_and_typing
-        - file: development/contributing/code_testing
-        - file: development/contributing/github_actions
-        - file: development/contributing/release_process
+          - file: development/contributing/overview
+          - file: development/contributing/code_qa_and_typing
+          - file: development/contributing/code_testing
+          - file: development/contributing/github_actions
+          - file: development/contributing/release_process
       - file: development/design
         entries:
           - file: development/design/core
           - file: development/design/defining_new_models
       - file: development/documentation
         entries:
-        - file: development/documentation/documentation
-        - file: development/documentation/api_generation
-        - file: development/documentation/docstring_style
-        - file: development/documentation/jupyter_notebooks
+          - file: development/documentation/documentation
+          - file: development/documentation/api_generation
+          - file: development/documentation/docstring_style
+          - file: development/documentation/jupyter_notebooks
 
   - caption: API
     entries:

@@ -15,13 +15,14 @@ as well as [local](./hydrology_theory.md#local-water-balance) and
 to predict how microclimatic conditions and hydrological processes interact and evolve
 over time.
 
-```{image} ../../_static/images/abiotic_sketch.jpg
+:::{figure} ../../_static/images/abiotic_sketch.jpg
+:name: abiotic_sketch
 :alt: Abiotic sketch
 :class: bg-primary
 :width: 650px
-```
 
-Figure 2: The key processes in a terrestrial abiotic environment at the example of a
+The key processes in a terrestrial abiotic environment at the example of a
 tropical rainforest. The system simultaneously balances carbon cycle (green), radiation
 (orange), energy (red), water (blue), and momentum through turbulent transfer (black).
 Copyright: Vivienne Groner.
+:::
