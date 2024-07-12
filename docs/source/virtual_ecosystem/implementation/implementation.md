@@ -38,8 +38,8 @@ The configuration files use the [`TOML`](https://toml.io/en/) format to provide 
 the details for running a simulation: the spatial layout, the locations of the initial
 input data, everything. You can see what an example complete configuration file looks
 like below - but don't panic and read the [configuration
-documentation](../../using_the_ve/configuration/config.md) on using the virtual
-ecosystem to find out more.
+documentation](../../using_the_ve/configuration/config.md) on using the Virtual
+Ecosystem to find out more.
 
 ::::{dropdown} An example configuration file
 :::{literalinclude} ../../_static/vr_full_model_configuration.toml
