@@ -118,7 +118,7 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
             ),
             (
                 ERROR,
-                "litter model: error checking required_init_vars, see log.",
+                "litter model: error checking vars_required_for_init, see log.",
             ),
         ),
     )

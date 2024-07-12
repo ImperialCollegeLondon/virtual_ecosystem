@@ -92,7 +92,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
                 ERROR,
                 "abiotic model: init data missing required var 'layer_heights'",
             ),
-            (ERROR, "abiotic model: error checking required_init_vars, see log."),
+            (ERROR, "abiotic model: error checking vars_required_for_init, see log."),
         ),
     )
 

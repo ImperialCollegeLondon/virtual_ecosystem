@@ -49,7 +49,7 @@ class AbioticModel(
     BaseModel,
     model_name="abiotic",
     model_update_bounds=("1 hour", "1 month"),
-    required_init_vars=(
+    vars_required_for_init=(
         "air_temperature_ref",
         "relative_humidity_ref",
         "topofcanopy_radiation",
@@ -86,7 +86,7 @@ class AbioticModel(
         "molar_density_air",
         "specific_heat_air",
     ),
-    required_update_vars=(
+    vars_required_for_update=(
         "air_temperature_ref",
         "relative_humidity_ref",
         "vapour_pressure_deficit_ref",
@@ -99,7 +99,7 @@ class AbioticModel(
         "stomatal_conductance",
         "canopy_absorption",
     ),
-    populated_by_init_vars=(  # TODO move functions from setup() to __init__
+    vars_populated_by_init=(  # TODO move functions from setup() to __init__
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
@@ -117,7 +117,7 @@ class AbioticModel(
         "leaf_vapour_conductivity",
         "leaf_air_heat_conductivity",
     ),
-    populated_by_update_vars=(
+    vars_populated_by_first_update=(
         "conductivity_from_ref_height",
         "vapour_pressure",
         "wind_speed",

@@ -45,7 +45,7 @@ class SoilModel(
     BaseModel,
     model_name="soil",
     model_update_bounds=("30 minutes", "3 months"),
-    required_init_vars=(
+    vars_required_for_init=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
         "soil_c_pool_microbe",
@@ -57,8 +57,8 @@ class SoilModel(
         "bulk_density",
         "clay_fraction",
     ),
-    populated_by_init_vars=(),
-    required_update_vars=(
+    vars_populated_by_init=(),
+    vars_required_for_update=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
         "soil_c_pool_microbe",
@@ -76,7 +76,7 @@ class SoilModel(
         "soil_enzyme_pom",
         "soil_enzyme_maom",
     ),
-    populated_by_update_vars=(),
+    vars_populated_by_first_update=(),
 ):
     """A class defining the soil model.
 

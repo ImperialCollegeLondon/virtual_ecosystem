@@ -56,7 +56,7 @@ class HydrologyModel(
     BaseModel,
     model_name="hydrology",
     model_update_bounds=("1 day", "1 month"),
-    required_init_vars=(
+    vars_required_for_init=(
         "layer_heights",
         "elevation",
     ),
@@ -79,7 +79,7 @@ class HydrologyModel(
         "bypass_flow",
         "aerodynamic_resistance_surface",
     ),
-    required_update_vars=(
+    vars_required_for_update=(
         "air_temperature",
         "relative_humidity",
         "atmospheric_pressure",
@@ -92,7 +92,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
     ),
-    populated_by_init_vars=(
+    vars_populated_by_init=(
         "soil_moisture",
         "groundwater_storage",
         # "air_temperature",  # NOTE also initiated in abiotic models, order?
@@ -102,7 +102,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
     ),
-    populated_by_update_vars=(
+    vars_populated_by_first_update=(
         "precipitation_surface",  # precipitation-interception loss
         "surface_runoff",
         "bypass_flow",

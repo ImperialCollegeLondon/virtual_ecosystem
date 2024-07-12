@@ -33,12 +33,12 @@ initialise and update the model (`_ref` refers to the referenece height 2 m abov
 canopy):
 
 ``` python
-required_init_vars=(
+vars_required_for_init=(
         "air_temperature_ref", # [C]
         "relative_humidity_ref", # [-]
     ),
 
-required_update_vars=(
+vars_required_for_update=(
         "air_temperature_ref", # [C]
         "relative_humidity_ref", # [-]
         "vapour_pressure_deficit_ref", # [kPa], calculated in __init__

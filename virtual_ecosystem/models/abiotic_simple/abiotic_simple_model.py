@@ -38,7 +38,7 @@ class AbioticSimpleModel(
     BaseModel,
     model_name="abiotic_simple",
     model_update_bounds=("1 day", "1 month"),
-    required_init_vars=(
+    vars_required_for_init=(
         "air_temperature_ref",
         "relative_humidity_ref",
     ),
@@ -50,7 +50,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
-    required_update_vars=(
+    vars_required_for_update=(
         "air_temperature_ref",
         "relative_humidity_ref",
         "vapour_pressure_deficit_ref",
@@ -59,12 +59,12 @@ class AbioticSimpleModel(
         "leaf_area_index",
         "layer_heights",
     ),
-    populated_by_init_vars=(  # TODO move functionality from setup() to __init__
+    vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
     ),
-    populated_by_update_vars=(
+    vars_populated_by_first_update=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",

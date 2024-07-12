@@ -89,7 +89,7 @@ def test_soil_model_initialization_no_data(
         ),
     )
     missing_log.append(
-        (ERROR, "soil model: error checking required_init_vars, see log."),
+        (ERROR, "soil model: error checking vars_required_for_init, see log."),
     )
 
     log_check(

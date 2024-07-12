@@ -55,7 +55,7 @@ class LitterModel(
     BaseModel,
     model_name="litter",
     model_update_bounds=("30 minutes", "3 months"),
-    required_init_vars=(
+    vars_required_for_init=(
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
         "litter_pool_woody",
@@ -65,8 +65,8 @@ class LitterModel(
         "lignin_woody",
         "lignin_below_structural",
     ),
-    populated_by_init_vars=(),
-    required_update_vars=(
+    vars_populated_by_init=(),
+    vars_required_for_update=(
         "litter_pool_above_metabolic",
         "litter_pool_above_structural",
         "litter_pool_woody",
@@ -87,7 +87,7 @@ class LitterModel(
         "lignin_below_structural",
         "litter_C_mineralisation_rate",
     ),
-    populated_by_update_vars=("litter_C_mineralisation_rate",),
+    vars_populated_by_first_update=("litter_C_mineralisation_rate",),
 ):
     """A class defining the litter model.
 

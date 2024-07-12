@@ -41,9 +41,9 @@ def fixture_data_instance_for_model_validation():
             {},
             pytest.raises(TypeError),
             "BaseModel.__init_subclass__() missing 7 required positional arguments: "
-            "'model_name', 'model_update_bounds', 'required_init_vars', "
-            "'vars_updated', 'required_update_vars', 'populated_by_init_vars', and "
-            "'populated_by_update_vars'",
+            "'model_name', 'model_update_bounds', 'vars_required_for_init', "
+            "'vars_updated', 'vars_required_for_update', 'vars_populated_by_init', and "
+            "'vars_populated_by_first_update'",
             [],
             id="missing_all_args",
         ),
@@ -51,21 +51,21 @@ def fixture_data_instance_for_model_validation():
             {"model_name": 9},
             pytest.raises(TypeError),
             "BaseModel.__init_subclass__() missing 6 required positional arguments: "
-            "'model_update_bounds', 'required_init_vars', 'vars_updated', "
-            "'required_update_vars', 'populated_by_init_vars', and "
-            "'populated_by_update_vars'",
+            "'model_update_bounds', 'vars_required_for_init', 'vars_updated', "
+            "'vars_required_for_update', 'vars_populated_by_init', and "
+            "'vars_populated_by_first_update'",
             [],
             id="missing_6_args",
         ),
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": ("temperature", "wind_speed"),
+                "vars_required_for_init": ("temperature", "wind_speed"),
                 "model_update_bounds": ("1 day", "1 month"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             does_not_raise(),
             None,
@@ -75,12 +75,12 @@ def fixture_data_instance_for_model_validation():
         pytest.param(
             {
                 "model_name": 9,
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 month"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(TypeError),
             "Class attribute model_name in UnnamedModel is not a string",
@@ -93,12 +93,12 @@ def fixture_data_instance_for_model_validation():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 time"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -116,12 +116,12 @@ def fixture_data_instance_for_model_validation():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 day"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -138,12 +138,12 @@ def fixture_data_instance_for_model_validation():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 second"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -160,12 +160,12 @@ def fixture_data_instance_for_model_validation():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 meter", "1 day"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -183,12 +183,12 @@ def fixture_data_instance_for_model_validation():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 spongebob", "1 day"),
                 "vars_updated": (),
-                "required_update_vars": (),
-                "populated_by_init_vars": (),
-                "populated_by_update_vars": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -234,19 +234,19 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
         pytest.param(
             1,
             pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
+            "Class attribute vars_required_for_init has the wrong structure in UM",
             id="value is integer",
         ),
         pytest.param(
             ["temperature", "wind_speed"],
             pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
+            "Class attribute vars_required_for_init has the wrong structure in UM",
             id="value is list",
         ),
         pytest.param(
             ("temperature", 1),
             pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
+            "Class attribute vars_required_for_init has the wrong structure in UM",
             id="value not all strings",
         ),
         pytest.param(
@@ -258,7 +258,7 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
     ],
 )
 def test_check_variable_attribute_structure(value, exp_raise, exp_msg):
-    """Test that  __init_subclass__ traps bad values for required_init_vars.
+    """Test that  __init_subclass__ traps bad values for vars_required_for_init.
 
     This could also test the other BaseModel variable attributes, but this checks
     the mechanism.
@@ -272,12 +272,12 @@ def test_check_variable_attribute_structure(value, exp_raise, exp_msg):
         class UM(
             BaseModel,
             model_name="should_also_pass",
-            required_init_vars=value,
+            vars_required_for_init=value,
             model_update_bounds=("1 day", "1 month"),
             vars_updated=(),
-            required_update_vars=tuple(),
-            populated_by_init_vars=tuple(),
-            populated_by_update_vars=tuple(),
+            vars_required_for_update=tuple(),
+            vars_populated_by_init=tuple(),
+            vars_populated_by_first_update=tuple(),
         ):
             pass
 
@@ -298,11 +298,11 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
         BaseModel,
         model_name="init_var",
         model_update_bounds=("1 second", "1 year"),
-        required_init_vars=(),
+        vars_required_for_init=(),
         vars_updated=(),
-        required_update_vars=tuple(),
-        populated_by_init_vars=tuple(),
-        populated_by_update_vars=tuple(),
+        vars_required_for_update=tuple(),
+        vars_populated_by_init=tuple(),
+        vars_populated_by_first_update=tuple(),
     ):
         pass
 
@@ -354,7 +354,7 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
         pytest.param(
             [("precipitation", ("spatial",))],
             pytest.raises(ValueError),
-            "init_var model: error checking required_init_vars, see log.",
+            "init_var model: error checking vars_required_for_init, see log.",
             (
                 (
                     ERROR,
@@ -363,14 +363,14 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
                 ),
                 (
                     ERROR,
-                    "init_var model: error checking required_init_vars, see log.",
+                    "init_var model: error checking vars_required_for_init, see log.",
                 ),
             ),
             id="missing axis",
         ),
     ],
 )
-def test_check_required_init_vars(
+def test_check_vars_required_for_init(
     caplog,
     fixture_data_instance_for_model_validation,
     fixture_core_components,
@@ -379,7 +379,7 @@ def test_check_required_init_vars(
     exp_err_msg,
     exp_log,
 ):
-    """Tests the validation of the required_init_vars property on init."""
+    """Tests the validation of the vars_required_for_init property on init."""
 
     # This gets registered for each parameterisation but I can't figure out how to
     # create the instance via a module-scope fixture and the alternative is just
@@ -394,7 +394,7 @@ def test_check_required_init_vars(
         BaseModel,
         model_name="init_var",
         model_update_bounds=("1 second", "1 year"),
-        required_init_vars=(),
+        vars_required_for_init=(),
         vars_updated=[],
     ):
         def setup(self) -> None:
@@ -423,8 +423,9 @@ def test_check_required_init_vars(
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
 
-    # Override the required_init_vars for different test cases against the data_instance
-    TestCaseModel.required_init_vars = req_init_vars
+    # Override the vars_required_for_init for different test cases against the
+    # data_instance
+    TestCaseModel.vars_required_for_init = req_init_vars
 
     # Create an instance to check the handling
     with raises as err:
@@ -515,11 +516,11 @@ def test_check_update_speed(
         BaseModel,
         model_name="timing_test",
         model_update_bounds=("1 day", "1 month"),
-        required_init_vars=(),
+        vars_required_for_init=(),
         vars_updated=(),
-        required_update_vars=tuple(),
-        populated_by_init_vars=tuple(),
-        populated_by_update_vars=tuple(),
+        vars_required_for_update=tuple(),
+        vars_populated_by_init=tuple(),
+        vars_populated_by_first_update=tuple(),
     ):
         def setup(self) -> None:
             pass

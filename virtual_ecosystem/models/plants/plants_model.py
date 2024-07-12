@@ -29,21 +29,21 @@ class PlantsModel(
     BaseModel,
     model_name="plants",
     model_update_bounds=("1 day", "1 year"),
-    required_init_vars=(
+    vars_required_for_init=(
         "plant_cohorts_cell_id",
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
         "photosynthetic_photon_flux_density",
     ),
-    populated_by_init_vars=(
+    vars_populated_by_init=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "canopy_absorption",
     ),
-    required_update_vars=(
+    vars_required_for_update=(
         "plant_cohorts_cell_id",
         "plant_cohorts_pft",
         "plant_cohorts_n",
@@ -58,7 +58,7 @@ class PlantsModel(
         "canopy_absorption",
         "evapotranspiration",
     ),
-    populated_by_update_vars=("evapotranspiration",),
+    vars_populated_by_first_update=("evapotranspiration",),
 ):
     """A class defining the plants model.
 

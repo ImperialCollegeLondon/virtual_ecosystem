@@ -27,9 +27,9 @@ The :class:`~virtual_ecosystem.core.base_model.BaseModel` has the following clas
 attributes that must be specified as arguments to the subclass declaration:
 
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`,
-* :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`,
-* :attr:`~virtual_ecosystem.core.base_model.BaseModel.populated_by_init_vars`,
-* :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_update_vars`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_update`,
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`,
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds` and
 * :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`.
@@ -152,7 +152,7 @@ class BaseModel(ABC):
     patterns.
     """
 
-    required_init_vars: tuple[str, ...]
+    vars_required_for_init: tuple[str, ...]
     """Required variables for model initialisation.
 
     This class property defines a set of variable names that must be present in the
@@ -174,14 +174,14 @@ class BaseModel(ABC):
     indeed initialised by another model, and therefore will be available.
     """
 
-    required_update_vars: tuple[str, ...]
+    vars_required_for_update: tuple[str, ...]
     """Variables that are required by the update method of the model.
 
     These variables should have been initialised by another model or loaded from
     external sources, but in either case they will be available in the data object.
     """
 
-    populated_by_init_vars: tuple[str, ...]
+    vars_populated_by_init: tuple[str, ...]
     """Variables that are initialised by the model during the setup.
 
     These are the variables that are initialised by the model and stored in the data
@@ -189,7 +189,7 @@ class BaseModel(ABC):
     use in their own setup or update methods.
     """
 
-    populated_by_update_vars: tuple[str, ...]
+    vars_populated_by_first_update: tuple[str, ...]
     """Variables that are initialised by the model during the first update.
 
     These are the variables that are initialised by the model and stored in the data
@@ -428,11 +428,11 @@ class BaseModel(ABC):
         cls,
         model_name: str,
         model_update_bounds: tuple[str, str],
-        required_init_vars: tuple[str, ...],
+        vars_required_for_init: tuple[str, ...],
         vars_updated: tuple[str, ...],
-        required_update_vars: tuple[str, ...],
-        populated_by_init_vars: tuple[str, ...],
-        populated_by_update_vars: tuple[str, ...],
+        vars_required_for_update: tuple[str, ...],
+        vars_populated_by_init: tuple[str, ...],
+        vars_populated_by_first_update: tuple[str, ...],
     ) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -452,7 +452,7 @@ class BaseModel(ABC):
                 BaseModel,
                 model_name='example',
                 model_update_bounds= ("30 minutes", "3 months"),
-                required_init_vars=(("required_variable", ("spatial",)),),
+                vars_required_for_init=(("required_variable", ("spatial",)),),
                 vars_updated=("updated_variable"),
             ):
                 ...
@@ -460,18 +460,18 @@ class BaseModel(ABC):
         Args:
             model_name: The model name to be used
             model_update_bounds: Bounds on update intervals handled by the model
-            required_init_vars: A tuple of the variables required to create a model
+            vars_required_for_init: A tuple of the variables required to create a model
                 instance.
-            populated_by_init_vars: A tuple of the variables initialised when a model
+            vars_populated_by_init: A tuple of the variables initialised when a model
                 instance is created.
-            populated_by_update_vars: A tuple of the variables initialised when a model
-                update method first run.
-            required_update_vars: A tuple of the variables required to update a model
-                instance.
+            vars_populated_by_first_update: A tuple of the variables initialised when a
+                model update method first run.
+            vars_required_for_update: A tuple of the variables required to update a
+                model instance.
             vars_updated: A tuple of the variable names updated by the model.
 
         Raises:
-            ValueError: If the model_name or required_init_vars properties are not
+            ValueError: If the model_name or vars_required_for_init properties are not
                 defined
             TypeError: If model_name is not a string
         """
@@ -481,11 +481,11 @@ class BaseModel(ABC):
 
             # Validate the structure of the variables attributes
             for name, attr in (
-                ("required_init_vars", required_init_vars),
-                ("populated_by_init_vars", populated_by_init_vars),
-                ("required_update_vars", required_update_vars),
+                ("vars_required_for_init", vars_required_for_init),
+                ("vars_populated_by_init", vars_populated_by_init),
+                ("vars_required_for_update", vars_required_for_update),
                 ("vars_updated", vars_updated),
-                ("populated_by_update_vars", populated_by_update_vars),
+                ("vars_populated_by_first_update", vars_populated_by_first_update),
             ):
                 setattr(cls, name, cls._check_variables_attribute(name, attr))
 
@@ -527,9 +527,9 @@ class BaseModel(ABC):
         """Check the init data contains the required variables.
 
         This method is used to check that the set of variables defined in the
-        :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars` class
-        attribute are present in the :attr:`~virtual_ecosystem.core.data.Data` instance
-        used to create a new instance of the class.
+        :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
+        class attribute are present in the :attr:`~virtual_ecosystem.core.data.Data`
+        instance used to create a new instance of the class.
 
         Raises:
             ValueError: If the Data instance does not contain all the required variables
@@ -541,7 +541,7 @@ class BaseModel(ABC):
         all_vars_found: bool = True
 
         # Loop over the required  and axes
-        for var in self.required_init_vars:
+        for var in self.vars_required_for_init:
             # Record when a variable is missing
             if var not in self.data:
                 LOGGER.error(
@@ -572,7 +572,8 @@ class BaseModel(ABC):
         # Raise if any problems found
         if not (all_vars_found):
             error = ValueError(
-                f"{self.model_name} model: error checking required_init_vars, see log."
+                f"{self.model_name} model: error checking vars_required_for_init, "
+                "see log."
             )
             LOGGER.error(error)
             raise error
