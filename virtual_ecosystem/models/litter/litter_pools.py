@@ -21,124 +21,10 @@ from numpy.typing import NDArray
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
-
-
-def calculate_change_in_litter_variables(
-    surface_temp: NDArray[np.float32],
-    topsoil_temp: NDArray[np.float32],
-    water_potential: NDArray[np.float32],
-    above_metabolic: NDArray[np.float32],
-    above_structural: NDArray[np.float32],
-    woody: NDArray[np.float32],
-    below_metabolic: NDArray[np.float32],
-    below_structural: NDArray[np.float32],
-    lignin_above_structural: NDArray[np.float32],
-    lignin_woody: NDArray[np.float32],
-    lignin_below_structural: NDArray[np.float32],
-    decomposed_excrement: NDArray[np.float32],
-    decomposed_carcasses: NDArray[np.float32],
-    update_interval: float,
-    model_constants: LitterConsts,
-    core_constants: CoreConsts,
-) -> dict[str, NDArray[np.float32]]:
-    """Calculate changes for all the litter variables (pool sizes and chemistries).
-
-    Args:
-        surface_temp: Temperature of soil surface, which is assumed to be the same
-            temperature as the above ground litter [C]
-        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
-            temperature as the below ground litter [C]
-        water_potential: Water potential of the topsoil layer [kPa]
-        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
-        above_structural: Above ground structural litter pool [kg C m^-2]
-        woody: The woody litter pool [kg C m^-2]
-        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
-        below_structural: Below ground structural litter pool [kg C m^-2]
-        lignin_above_structural: Proportion of above ground structural pool which is
-            lignin [unitless]
-        lignin_woody: Proportion of dead wood pool which is lignin [unitless]
-        lignin_below_structural: Proportion of below ground structural pool which is
-            lignin [unitless]
-        decomposed_excrement: Input rate of excrement from the animal model [kg C m^-2
-            day^-1]
-        decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
-            the animal model [kg C m^-2 day^-1]
-        update_interval: Interval that the litter pools are being updated for [days]
-        model_constants: Set of constants for the litter model
-        core_constants: Set of core constants shared between all models
-
-    Returns:
-        The new value for each of the litter pools, and the total mineralisation rate.
-    """
-
-    # Calculate the factors which capture the impact that temperature and soil water
-    # content have on litter decay rates
-    environmental_factors = calculate_environmental_factors(
-        surface_temp=surface_temp,
-        topsoil_temp=topsoil_temp,
-        water_potential=water_potential,
-        constants=model_constants,
-    )
-
-    # Calculate the litter pool decay rates
-    decay_rates = calculate_decay_rates(
-        above_metabolic=above_metabolic,
-        above_structural=above_structural,
-        woody=woody,
-        below_metabolic=below_metabolic,
-        below_structural=below_structural,
-        lignin_above_structural=lignin_above_structural,
-        lignin_woody=lignin_woody,
-        lignin_below_structural=lignin_below_structural,
-        environmental_factors=environmental_factors,
-        constants=model_constants,
-    )
-
-    # Calculate the total mineralisation of carbon from the litter
-    total_C_mineralisation_rate = calculate_total_C_mineralised(
-        decay_rates, model_constants=model_constants, core_constants=core_constants
-    )
-
-    # Calculate the updated pool masses
-    updated_pools = calculate_updated_pools(
-        above_metabolic=above_metabolic,
-        above_structural=above_structural,
-        woody=woody,
-        below_metabolic=below_metabolic,
-        below_structural=below_structural,
-        decomposed_excrement=decomposed_excrement,
-        decomposed_carcasses=decomposed_carcasses,
-        decay_rates=decay_rates,
-        update_interval=update_interval,
-        constants=model_constants,
-    )
-
-    # Find the changes in the lignin concentrations of the 3 relevant pools
-    change_in_lignin = calculate_lignin_updates(
-        lignin_above_structural=lignin_above_structural,
-        lignin_woody=lignin_woody,
-        lignin_below_structural=lignin_below_structural,
-        updated_pools=updated_pools,
-        update_interval=update_interval,
-        constants=model_constants,
-    )
-
-    # Construct dictionary of data arrays to return
-    new_litter_pools = {
-        "litter_pool_above_metabolic": updated_pools["above_metabolic"],
-        "litter_pool_above_structural": updated_pools["above_structural"],
-        "litter_pool_woody": updated_pools["woody"],
-        "litter_pool_below_metabolic": updated_pools["below_metabolic"],
-        "litter_pool_below_structural": updated_pools["below_structural"],
-        "lignin_above_structural": lignin_above_structural
-        + change_in_lignin["above_structural"],
-        "lignin_woody": lignin_woody + change_in_lignin["woody"],
-        "lignin_below_structural": lignin_below_structural
-        + change_in_lignin["below_structural"],
-        "litter_C_mineralisation_rate": total_C_mineralisation_rate,
-    }
-
-    return new_litter_pools
+from virtual_ecosystem.models.litter.env_factors import (
+    calculate_soil_water_effect_on_litter_decomp,
+    calculate_temperature_effect_on_litter_decomp,
+)
 
 
 def calculate_decay_rates(
@@ -150,7 +36,9 @@ def calculate_decay_rates(
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
-    environmental_factors: dict[str, NDArray[np.float32]],
+    surface_temp: NDArray[np.float32],
+    topsoil_temp: NDArray[np.float32],
+    water_potential: NDArray[np.float32],
     constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the decay rate for all five of the litter pools.
@@ -166,43 +54,68 @@ def calculate_decay_rates(
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
         lignin_below_structural: Proportion of below ground structural pool which is
             lignin [unitless]
-        environmental_factors: Factors capturing the effect that the physical
-           environment (soil water + temperature) has on litter decay rates [unitless].
+        surface_temp: Temperature of soil surface, which is assumed to be the same
+            temperature as the above ground litter [C]
+        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
+            temperature as the below ground litter [C]
+        water_potential: Water potential of the topsoil layer [kPa]
         constants: Set of constants for the litter model
 
     Returns:
         A dictionary containing the decay rate for each of the five litter pools.
     """
 
+    # Calculate temperature factor for the above ground litter layers
+    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
+        temperature=surface_temp,
+        reference_temp=constants.litter_decomp_reference_temp,
+        offset_temp=constants.litter_decomp_offset_temp,
+        temp_response=constants.litter_decomp_temp_response,
+    )
+    # Calculate temperature factor for the below ground litter layers
+    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
+        temperature=topsoil_temp,
+        reference_temp=constants.litter_decomp_reference_temp,
+        offset_temp=constants.litter_decomp_offset_temp,
+        temp_response=constants.litter_decomp_temp_response,
+    )
+    # Calculate the water factor (relevant for below ground layers)
+    water_factor = calculate_soil_water_effect_on_litter_decomp(
+        water_potential=water_potential,
+        water_potential_halt=constants.litter_decay_water_potential_halt,
+        water_potential_opt=constants.litter_decay_water_potential_optimum,
+        moisture_response_curvature=constants.moisture_response_curvature,
+    )
+
     # Calculate decay rate for each pool
     metabolic_above_decay = calculate_litter_decay_metabolic_above(
-        environmental_factors["temp_above"],
+        temperature_factor_above,
         above_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
     structural_above_decay = calculate_litter_decay_structural_above(
-        environmental_factors["temp_above"],
+        temperature_factor_above,
         above_structural,
         lignin_above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     woody_decay = calculate_litter_decay_woody(
-        environmental_factors["temp_above"],
+        temperature_factor_above,
         woody,
         lignin_woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     metabolic_below_decay = calculate_litter_decay_metabolic_below(
-        environmental_factors["temp_below"],
-        environmental_factors["water"],
+        temperature_factor_below,
+        water_factor,
         below_metabolic,
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_below,
     )
     structural_below_decay = calculate_litter_decay_structural_below(
-        environmental_factors["temp_below"],
-        environmental_factors["water"],
+        temperature_factor_below,
+        water_factor,
         below_structural,
         lignin_below_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,
@@ -280,8 +193,8 @@ def calculate_updated_pools(
     decomposed_excrement: NDArray[np.float32],
     decomposed_carcasses: NDArray[np.float32],
     decay_rates: dict[str, NDArray[np.float32]],
+    plant_inputs: dict[str, NDArray[np.float32]],
     update_interval: float,
-    constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the updated mass of each litter pool.
 
@@ -300,6 +213,8 @@ def calculate_updated_pools(
             the animal model [kg C m^-2 day^-1]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
+        plant_inputs: Dictionary containing the amount of each litter type that is added
+            from the plant model in this time step [kg C m^-2]
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -312,23 +227,20 @@ def calculate_updated_pools(
     # Net pool changes are found by combining input and decay rates, and then
     # multiplying by the update time step.
     change_in_metabolic_above = (
-        constants.litter_input_to_metabolic_above
-        + decomposed_excrement
-        + decomposed_carcasses
-        - decay_rates["metabolic_above"]
-    ) * update_interval
-    change_in_structural_above = (
-        constants.litter_input_to_structural_above - decay_rates["structural_above"]
-    ) * update_interval
-    change_in_woody = (
-        constants.litter_input_to_woody - decay_rates["woody"]
-    ) * update_interval
-    change_in_metabolic_below = (
-        constants.litter_input_to_metabolic_below - decay_rates["metabolic_below"]
-    ) * update_interval
-    change_in_structural_below = (
-        constants.litter_input_to_structural_below - decay_rates["structural_below"]
-    ) * update_interval
+        plant_inputs["above_ground_metabolic"]
+        + (decomposed_excrement + decomposed_carcasses - decay_rates["metabolic_above"])
+        * update_interval
+    )
+    change_in_structural_above = plant_inputs["above_ground_structural"] - (
+        decay_rates["structural_above"] * update_interval
+    )
+    change_in_woody = plant_inputs["woody"] - (decay_rates["woody"] * update_interval)
+    change_in_metabolic_below = plant_inputs["below_ground_metabolic"] - (
+        decay_rates["metabolic_below"] * update_interval
+    )
+    change_in_structural_below = plant_inputs["below_ground_structural"] - (
+        decay_rates["structural_below"] * update_interval
+    )
 
     # New value for each pool is found and returned in a dictionary
     return {
@@ -344,9 +256,9 @@ def calculate_lignin_updates(
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
+    plant_inputs: dict[str, NDArray[np.float32]],
+    input_lignin: dict[str, NDArray[np.float32]],
     updated_pools: dict[str, NDArray[np.float32]],
-    update_interval: float,
-    constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the changes in lignin proportion for the relevant litter pools.
 
@@ -360,10 +272,12 @@ def calculate_lignin_updates(
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
         lignin_below_structural: Proportion of below ground structural pool which is
             lignin [unitless]
+        plant_inputs: Dictionary containing the amount of each litter type that is added
+            from the plant model in this time step [kg C m^-2]
+        input_lignin: Dictionary containing the lignin concentration of the input to
+            each of the three lignin containing litter pools [kg lignin kg C^-1]
         updated_pools: Dictionary containing the updated pool densities for all 5 litter
             pools [kg C m^-2]
-        update_interval: Interval that the litter pools are being updated for [days]
-        constants: Set of constants for the litter model
 
     Returns:
         Dictionary containing the updated lignin proportions for the 3 relevant litter
@@ -372,21 +286,21 @@ def calculate_lignin_updates(
     """
 
     change_in_lignin_above_structural = calculate_change_in_lignin(
-        input_carbon=constants.litter_input_to_structural_above * update_interval,
+        input_carbon=plant_inputs["above_ground_structural"],
         updated_pool_carbon=updated_pools["above_structural"],
-        input_lignin=constants.lignin_proportion_above_structural_input,
+        input_lignin=input_lignin["above_structural"],
         old_pool_lignin=lignin_above_structural,
     )
     change_in_lignin_woody = calculate_change_in_lignin(
-        input_carbon=constants.litter_input_to_woody * update_interval,
+        input_carbon=plant_inputs["woody"],
         updated_pool_carbon=updated_pools["woody"],
-        input_lignin=constants.lignin_proportion_wood_input,
+        input_lignin=input_lignin["woody"],
         old_pool_lignin=lignin_woody,
     )
     change_in_lignin_below_structural = calculate_change_in_lignin(
-        input_carbon=constants.litter_input_to_structural_below * update_interval,
+        input_carbon=plant_inputs["below_ground_structural"],
         updated_pool_carbon=updated_pools["below_structural"],
-        input_lignin=constants.lignin_proportion_below_structural_input,
+        input_lignin=input_lignin["below_structural"],
         old_pool_lignin=lignin_below_structural,
     )
 
@@ -395,126 +309,6 @@ def calculate_lignin_updates(
         "woody": change_in_lignin_woody,
         "below_structural": change_in_lignin_below_structural,
     }
-
-
-def calculate_environmental_factors(
-    surface_temp: NDArray[np.float32],
-    topsoil_temp: NDArray[np.float32],
-    water_potential: NDArray[np.float32],
-    constants: LitterConsts,
-) -> dict[str, NDArray[np.float32]]:
-    """Calculate the impact of the environment has on litter decay across litter layers.
-
-    For the above ground layer the impact of temperature is calculated, and for the
-    below ground layer the effect of temperature and soil water potential are
-    considered.
-
-    Args:
-        surface_temp: Temperature of soil surface, which is assumed to be the same
-            temperature as the above ground litter [C]
-        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
-            temperature as the below ground litter [C]
-        water_potential: Water potential of the topsoil layer [kPa]
-        constants: Set of constants for the litter model
-
-    Returns:
-        A dictionary containing three environmental factors, one for the effect of
-        temperature on above ground litter decay, one for the effect of temperature on
-        below ground litter decay, and one for the effect of soil water potential on
-        below ground litter decay.
-    """
-    # Calculate temperature factor for the above ground litter layers
-    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
-        temperature=surface_temp,
-        reference_temp=constants.litter_decomp_reference_temp,
-        offset_temp=constants.litter_decomp_offset_temp,
-        temp_response=constants.litter_decomp_temp_response,
-    )
-    # Calculate temperature factor for the below ground litter layers
-    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
-        temperature=topsoil_temp,
-        reference_temp=constants.litter_decomp_reference_temp,
-        offset_temp=constants.litter_decomp_offset_temp,
-        temp_response=constants.litter_decomp_temp_response,
-    )
-    # Calculate the water factor (relevant for below ground layers)
-    water_factor = calculate_moisture_effect_on_litter_decomp(
-        water_potential=water_potential,
-        water_potential_halt=constants.litter_decay_water_potential_halt,
-        water_potential_opt=constants.litter_decay_water_potential_optimum,
-        moisture_response_curvature=constants.moisture_response_curvature,
-    )
-
-    # Return all three factors in a single dictionary
-    return {
-        "temp_above": temperature_factor_above,
-        "temp_below": temperature_factor_below,
-        "water": water_factor,
-    }
-
-
-def calculate_temperature_effect_on_litter_decomp(
-    temperature: NDArray[np.float32],
-    reference_temp: float,
-    offset_temp: float,
-    temp_response: float,
-) -> NDArray[np.float32]:
-    """Calculate the effect that temperature has on litter decomposition rates.
-
-    This function is taken from :cite:t:`kirschbaum_modelling_2002`.
-
-    Args:
-        temperature: The temperature of the litter layer [C]
-        reference_temp: The reference temperature for changes in litter decomposition
-            rates with temperature [C]
-        offset_temp: Temperature offset [C]
-        temp_response: Factor controlling response strength to changing temperature
-            [unitless]
-
-    Returns:
-        A multiplicative factor capturing the impact of temperature on litter
-        decomposition [unitless]
-    """
-
-    return np.exp(
-        temp_response * (temperature - reference_temp) / (temperature + offset_temp)
-    )
-
-
-def calculate_moisture_effect_on_litter_decomp(
-    water_potential: NDArray[np.float32],
-    water_potential_halt: float,
-    water_potential_opt: float,
-    moisture_response_curvature: float,
-) -> NDArray[np.float32]:
-    """Calculate the effect that soil moisture has on litter decomposition rates.
-
-    This function is only relevant for the below ground litter pools. Its functional
-    form is taken from :cite:t:`moyano_responses_2013`.
-
-    Args:
-        water_potential: Soil water potential [kPa]
-        water_potential_halt: Water potential at which all microbial activity stops
-            [kPa]
-        water_potential_opt: Optimal water potential for microbial activity [kPa]
-        moisture_response_curvature: Parameter controlling the curvature of the moisture
-            response function [unitless]
-
-    Returns:
-        A multiplicative factor capturing the impact of moisture on below ground litter
-        decomposition [unitless]
-    """
-
-    # TODO - Need to make sure that this function is properly defined for a plausible
-    # range of matric potentials.
-
-    # Calculate how much moisture suppresses microbial activity
-    supression = (
-        (np.log10(-water_potential) - np.log10(-water_potential_opt))
-        / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
-    ) ** moisture_response_curvature
-
-    return 1 - supression
 
 
 def calculate_litter_chemistry_factor(

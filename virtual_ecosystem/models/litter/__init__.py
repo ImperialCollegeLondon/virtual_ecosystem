@@ -7,9 +7,13 @@ Each of the litter sub-modules has its own API reference page:
   LitterModel class which consolidates the functionality of the litter model into a
   single class, which the high level functions of the Virtual Ecosystem can then make
   use of.
-* The :mod:`~virtual_ecosystem.models.litter.litter_pools` provides the set of litter
+* :mod:`~virtual_ecosystem.models.litter.litter_pools` provides the set of litter
   pools that the litter model is comprised of.
-* The :mod:`~virtual_ecosystem.models.litter.constants` provides a set of dataclasses
+* :mod:`~virtual_ecosystem.models.litter.input_partition` handles the partitioning
+  of biomass input between the different litter pools.
+* :mod:`~virtual_ecosystem.models.litter.env_factors` provides the functions
+  capturing the impact of environmental factors on litter decay.
+* :mod:`~virtual_ecosystem.models.litter.constants` provides a set of dataclasses
   containing the constants required by the broader litter model.
 """  # noqa: D205
 
