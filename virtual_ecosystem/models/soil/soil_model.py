@@ -45,14 +45,27 @@ class SoilModel(
     BaseModel,
     model_name="soil",
     model_update_bounds=("30 minutes", "3 months"),
-    required_init_vars=(
-        ("soil_c_pool_maom", ("spatial",)),
-        ("soil_c_pool_lmwc", ("spatial",)),
-        ("soil_c_pool_microbe", ("spatial",)),
-        ("soil_c_pool_pom", ("spatial",)),
-        ("pH", ("spatial",)),
-        ("bulk_density", ("spatial",)),
-        ("clay_fraction", ("spatial",)),
+    vars_required_for_init=(
+        "soil_c_pool_maom",
+        "soil_c_pool_lmwc",
+        "soil_c_pool_microbe",
+        "soil_c_pool_pom",
+        "soil_enzyme_pom",
+        "soil_enzyme_maom",
+        "soil_c_pool_necromass",
+        "pH",
+        "bulk_density",
+        "clay_fraction",
+    ),
+    vars_populated_by_init=(),
+    vars_required_for_update=(
+        "soil_c_pool_maom",
+        "soil_c_pool_lmwc",
+        "soil_c_pool_microbe",
+        "soil_c_pool_pom",
+        "soil_c_pool_necromass",
+        "soil_enzyme_pom",
+        "soil_enzyme_maom",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -63,6 +76,7 @@ class SoilModel(
         "soil_enzyme_pom",
         "soil_enzyme_maom",
     ),
+    vars_populated_by_first_update=(),
 ):
     """A class defining the soil model.
 
@@ -94,6 +108,8 @@ class SoilModel(
             or np.any(data["soil_c_pool_lmwc"] < 0.0)
             or np.any(data["soil_c_pool_microbe"] < 0.0)
             or np.any(data["soil_c_pool_pom"] < 0.0)
+            or np.any(data["soil_enzyme_pom"] < 0.0)
+            or np.any(data["soil_enzyme_maom"] < 0.0)
             or np.any(data["soil_c_pool_necromass"] < 0.0)
         ):
             to_raise = InitialisationError(

@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
+from unittest.mock import patch
 
 import numpy as np
 import pint
@@ -83,24 +84,29 @@ def test_hydrology_model_initialization(
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
-    with raises:
-        # Initialize model
-        model = HydrologyModel(
-            data=dummy_climate_data,
-            core_components=fixture_core_components,
-            initial_soil_moisture=ini_soil_moisture,
-            initial_groundwater_saturation=ini_groundwater_sat,
-            model_constants=HydroConsts(),
-        )
+    # We patch the _setup step as it is tested separately
+    with patch(
+        "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
+    ) as mock_setup:
+        with raises:
+            # Initialize model
+            model = HydrologyModel(
+                data=dummy_climate_data,
+                core_components=fixture_core_components,
+                initial_soil_moisture=ini_soil_moisture,
+                initial_groundwater_saturation=ini_groundwater_sat,
+                model_constants=HydroConsts(),
+            )
 
-        # In cases where it passes then checks that the object has the right properties
-        assert isinstance(model, BaseModel)
-        assert model.model_name == "hydrology"
-        assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
-        assert model.initial_soil_moisture == ini_soil_moisture
-        assert model.initial_groundwater_saturation == ini_groundwater_sat
-        # TODO - not sure about the value below, test with more expansive drainage maps
-        assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
+            # In cases where it passes we check that the object has the right properties
+            assert isinstance(model, BaseModel)
+            assert model.model_name == "hydrology"
+            assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
+            assert model.initial_soil_moisture == ini_soil_moisture
+            assert model.initial_groundwater_saturation == ini_groundwater_sat
+            # TODO: not sure on the value below, test with more expansive drainage maps
+            assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
+            mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -184,13 +190,18 @@ def test_generate_hydrology_model(
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
-    with raises:
-        model = HydrologyModel.from_config(
-            data=dummy_climate_data,
-            core_components=core_components,
-            config=config,
-        )
-        assert model.model_constants.soil_moisture_capacity == sm_capacity
+    # We patch the _setup step as it is tested separately
+    with patch(
+        "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
+    ) as mock_setup:
+        with raises:
+            model = HydrologyModel.from_config(
+                data=dummy_climate_data,
+                core_components=core_components,
+                config=config,
+            )
+            assert model.model_constants.soil_moisture_capacity == sm_capacity
+            mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -228,14 +239,12 @@ def test_setup(
     lyr_strct = core_components.layer_structure
 
     with raises:
-        # initialise model
+        # initialise model. The setup is run as part of the initialisation
         model = HydrologyModel.from_config(
             data=dummy_climate_data,
             core_components=core_components,
             config=fixture_config,
         )
-
-        model.setup()
 
         # Test soil moisture
 

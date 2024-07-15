@@ -88,20 +88,20 @@ def test_PlantsModel_update_canopy_layers(
     fxt_plants_model.update_canopy_layers()
 
     # Check the resulting repopulated canopy data, but omitting the
-    # layer_absorbed_irradiation, which should not have been regenerated yet
-    del fixture_canopy_layer_data["layer_absorbed_irradiation"]
+    # canopy_absorption, which should not have been regenerated yet
+    del fixture_canopy_layer_data["canopy_absorption"]
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
         expected[layer_indices] = layer_vals[:, None]
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
-    # Check layer_absorbed_irradiation is indeed still empty
+    # Check canopy_absorption is indeed still empty
     xarray.testing.assert_allclose(
-        fxt_plants_model.data["layer_absorbed_irradiation"], from_template()
+        fxt_plants_model.data["canopy_absorption"], from_template()
     )
 
 
-def test_PlantsModel_set_absorbed_irradiance(
+def test_PlantsModel_set_canopy_absorption(
     fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
 ):
     """Simple test that update canopy layers restores overwritten data."""
@@ -121,7 +121,7 @@ def test_PlantsModel_set_absorbed_irradiance(
 
     # Check that calling the method after update resets to the expected values
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_absorbed_irradiance(time_index=0)
+    fxt_plants_model.set_canopy_absorption(time_index=0)
 
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
@@ -136,7 +136,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
 
     # Set the canopy and absorbed irradiance
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_absorbed_irradiance(time_index=0)
+    fxt_plants_model.set_canopy_absorption(time_index=0)
 
     # Calculate GPP
     fxt_plants_model.estimate_gpp(time_index=0)
@@ -183,7 +183,7 @@ def test_PlantsModel_update(
 ):
     """Test the update method."""
 
-    # The update method runs both update_canopy_layers and set_absorbed_irradiance so
+    # The update method runs both update_canopy_layers and set_canopy_absorption so
     # should restore all of the layers below.
     # TODO - amend this as and when layer heights gets centralised
     del fixture_canopy_layer_data["layer_heights_full"]
@@ -207,3 +207,29 @@ def test_PlantsModel_update(
         for cohort in community:
             # Original 0.1 + 0.03 cm from current arbitrary increment
             assert np.allclose(cohort.dbh, 0.13)
+
+
+def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_components):
+    """Test the calculate_turnover method of the plants model."""
+
+    # Check reset
+    fxt_plants_model.calculate_turnover()
+
+    # Check that all expected variables are generated and have the correct value
+    assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover"], 0.027)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover"], 0.027)
+    assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_lignin"], 0.01
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover_lignin"], 0.2)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_n_ratio"], 25.5)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"], 12.5
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover_c_n_ratio"], 45.6)

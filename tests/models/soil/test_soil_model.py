@@ -12,6 +12,20 @@ from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.models.soil.soil_model import IntegrationError
 
+# Shared log entries from model initialisation
+REQUIRED_INIT_VAR_LOG = (
+    (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
+    (DEBUG, "soil model: required var 'pH' checked"),
+    (DEBUG, "soil model: required var 'bulk_density' checked"),
+    (DEBUG, "soil model: required var 'clay_fraction' checked"),
+)
+
 
 def test_soil_model_initialization(
     caplog, dummy_carbon_data, fixture_soil_core_components
@@ -37,15 +51,7 @@ def test_soil_model_initialization(
     # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=(
-            (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-            (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-            (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-            (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-            (DEBUG, "soil model: required var 'pH' checked"),
-            (DEBUG, "soil model: required var 'bulk_density' checked"),
-            (DEBUG, "soil model: required var 'clay_fraction' checked"),
-        ),
+        expected_log=REQUIRED_INIT_VAR_LOG,
     )
 
 
@@ -71,19 +77,24 @@ def test_soil_model_initialization_no_data(
             model_constants=SoilConsts(),
         )
 
-    # Final check that expected logging entries are produced
+    # Final check that expected logging entries are produced: modify shared
+    # REQUIRED_INIT_VAR_LOG to use shared list of variables
+    missing_log = list(
+        (
+            (
+                ERROR,
+                log_str.replace(":", ": init data missing").removesuffix(" checked"),
+            )
+            for _, log_str in REQUIRED_INIT_VAR_LOG
+        ),
+    )
+    missing_log.append(
+        (ERROR, "soil model: error checking vars_required_for_init, see log."),
+    )
+
     log_check(
         caplog,
-        expected_log=(
-            (ERROR, "soil model: init data missing required var 'soil_c_pool_maom'"),
-            (ERROR, "soil model: init data missing required var 'soil_c_pool_lmwc'"),
-            (ERROR, "soil model: init data missing required var 'soil_c_pool_microbe'"),
-            (ERROR, "soil model: init data missing required var 'soil_c_pool_pom'"),
-            (ERROR, "soil model: init data missing required var 'pH'"),
-            (ERROR, "soil model: init data missing required var 'bulk_density'"),
-            (ERROR, "soil model: init data missing required var 'clay_fraction'"),
-            (ERROR, "soil model: error checking required_init_vars, see log."),
-        ),
+        expected_log=missing_log,
     )
 
 
@@ -113,13 +124,7 @@ def test_soil_model_initialization_bounds_error(
         caplog,
         expected_log=(
             (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
-            (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-            (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-            (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-            (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-            (DEBUG, "soil model: required var 'pH' checked"),
-            (DEBUG, "soil model: required var 'bulk_density' checked"),
-            (DEBUG, "soil model: required var 'clay_fraction' checked"),
+            *REQUIRED_INIT_VAR_LOG,
             (ERROR, "Initial carbon pools contain at least one negative value!"),
         ),
     )
@@ -139,13 +144,7 @@ def test_soil_model_initialization_bounds_error(
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-                (DEBUG, "soil model: required var 'pH' checked"),
-                (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'clay_fraction' checked"),
+                *REQUIRED_INIT_VAR_LOG,
             ),
             id="default_config",
         ),
@@ -161,13 +160,7 @@ def test_soil_model_initialization_bounds_error(
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
-                (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-                (DEBUG, "soil model: required var 'pH' checked"),
-                (DEBUG, "soil model: required var 'bulk_density' checked"),
-                (DEBUG, "soil model: required var 'clay_fraction' checked"),
+                *REQUIRED_INIT_VAR_LOG,
             ),
             id="modified_config_correct",
         ),

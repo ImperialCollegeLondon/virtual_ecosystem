@@ -1,0 +1,42 @@
+{
+    "type": "array",
+    "description": "Variables available in Virtual Ecosystem",
+    "items": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "description": "Name of the variable. Must be unique.",
+                "type": "string"
+            },
+            "description": {
+                "description": "Description of what the variable represents.",
+                "type": "string"
+            },
+            "unit": {
+                "description": "Units the variable should be represented in.",
+                "type": "string"
+            },
+            "variable_type": {
+                "description": "Type of the variable.",
+                "type": "string"
+            },
+            "axis": {
+                "description": "Axes the variable is defined on.",
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "uniqueItems": true
+            }
+        },
+        "required": [
+            "name",
+            "description",
+            "unit",
+            "variable_type",
+            "axis"
+        ]
+    },
+    "minItems": 1,
+    "uniqueItems": true
+}
