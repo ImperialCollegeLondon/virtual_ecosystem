@@ -2,6 +2,9 @@
 
 from virtual_ecosystem.core import variables
 
+# TODO - merge these into a single generate_model_variable_markdown and probably move it
+#        inside the variables submodule.
+
 
 def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str:
     """Generate variable listings for a model."""
