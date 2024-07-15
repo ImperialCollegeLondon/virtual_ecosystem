@@ -1,5 +1,7 @@
 """Utility functions to generate model variable listings."""
 
+from dataclasses import fields
+
 from virtual_ecosystem.core import variables
 
 # TODO - merge these into a single generate_model_variable_markdown and probably move it
@@ -48,6 +50,51 @@ def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str
         return_value += f"\n**{vattr_headings[vattr]}**\n{listing}"
 
     return return_value
+
+
+def generate_all_variable_markdown(
+    fields_to_display: list[str] | None, widths=list[int] | None
+) -> str:
+    """Generate markdown table for all variables model."""
+
+    # populate the known variables registry if empty
+    if not variables.KNOWN_VARIABLES:
+        variables.register_all_variables()
+
+    # Get the fields to add as columns
+    if fields_to_display is None:
+        fields_to_display = [f.name for f in fields(variables.Variable)]
+
+    # Set the widths of the fields
+    if widths is not None:
+        widths_tag = ":widths: " + " ".join([str(w) for w in widths]) + "\n"
+    else:
+        widths_tag = ""
+
+    # Get those properties as table row headers
+    table_rows = ["* - " + "  - ".join([f"{fld}\n" for fld in fields_to_display])]
+
+    # Add the variables formatted as list table rows
+    for v in variables.KNOWN_VARIABLES.values():
+        table_rows.append(
+            "* - " + "  - ".join([f"{getattr(v,fld)}\n" for fld in fields_to_display])
+        )
+
+    # Wrap the variable rows in the rest of the list table syntax
+    table = (
+        """
+:::{list-table}
+:header-rows: 1
+:width: 100%
+:align: "left"
+:class: "datatable"
+"""
+        + widths_tag
+        + "".join(table_rows)
+        + "\n:::\n"
+    )
+
+    return table
 
 
 def generate_variable_table(model_name: str, var_attributes: list[str]) -> str:
