@@ -71,6 +71,11 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
     ),
     vars_populated_by_init=(),
     vars_required_for_update=(
@@ -82,6 +87,11 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
         "deadwood_production",
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
@@ -104,6 +114,11 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
         "litter_C_mineralisation_rate",
     ),
     vars_populated_by_first_update=("litter_C_mineralisation_rate",),
@@ -164,6 +179,26 @@ class LitterModel(
             to_raise = InitialisationError(
                 "Lignin proportions not between 0 and 1 found in: "
                 f"{', '.join(bad_proportions)}",
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check that nutrient ratios are not negative
+        nutrient_ratios = [
+            "c_n_ratio_above_metabolic",
+            "c_n_ratio_above_structural",
+            "c_n_ratio_woody",
+            "c_n_ratio_below_metabolic",
+            "c_n_ratio_below_structural",
+        ]
+        negative_ratios = []
+        for ratio in nutrient_ratios:
+            if np.any(data[ratio] < 0):
+                negative_ratios.append(ratio)
+
+        if negative_ratios:
+            to_raise = InitialisationError(
+                f"Negative nutrient ratios found in: {', '.join(negative_ratios)}"
             )
             LOGGER.error(to_raise)
             raise to_raise
@@ -310,6 +345,7 @@ class LitterModel(
             plant_input_below_struct=plant_inputs["below_ground_structural"],
         )
 
+        # TODO - tempted to define an all updates in one function here
         # Find the changes in the lignin concentrations of the 3 relevant pools
         change_in_lignin = calculate_lignin_updates(
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
@@ -349,6 +385,21 @@ class LitterModel(
                 self.data["lignin_below_structural"]
                 + change_in_lignin["below_structural"],
                 dims="cell_id",
+            ),
+            # TODO - These need to not just return the initial values once an update is
+            # actually calculated
+            "c_n_ratio_above_metabolic": DataArray(
+                self.data["c_n_ratio_above_metabolic"], dims="cell_id"
+            ),
+            "c_n_ratio_above_structural": DataArray(
+                self.data["c_n_ratio_above_structural"], dims="cell_id"
+            ),
+            "c_n_ratio_woody": DataArray(self.data["c_n_ratio_woody"], dims="cell_id"),
+            "c_n_ratio_below_metabolic": DataArray(
+                self.data["c_n_ratio_below_metabolic"], dims="cell_id"
+            ),
+            "c_n_ratio_below_structural": DataArray(
+                self.data["c_n_ratio_below_structural"], dims="cell_id"
             ),
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"

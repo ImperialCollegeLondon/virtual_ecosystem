@@ -630,6 +630,62 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Proportion of above ground structural pool which is lignin"
+name = "lignin_above_structural"
+unit = "kg lignin kg C^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Proportion of below ground structural pool which is lignin"
+name = "lignin_below_structural"
+unit = "kg lignin kg C^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Proportion of dead wood pool which is lignin"
+name = "lignin_woody"
+unit = "kg lignin kg C^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon nitrogen ratio of above ground metabolic pool"
+name = "c_n_ratio_above_metabolic"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon nitrogen ratio of above ground structural pool"
+name = "c_n_ratio_above_structural"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon nitrogen ratio of below ground metabolic pool"
+name = "c_n_ratio_below_metabolic"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon nitrogen ratio of below ground structural pool"
+name = "c_n_ratio_below_structural"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon nitrogen ratio of woody litter pool"
+name = "c_n_ratio_woody"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate of excrement flow from animals into litter"
 name = "decomposed_excrement"
 unit = "kg C m^-3 day^-1"
@@ -640,27 +696,6 @@ axis = ["spatial"]
 description = "Rate of decomposed carcass biomass flow from animals into litter"
 name = "decomposed_carcasses"
 unit = "kg C m^-3 day^-1"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Proportion of above ground structural pool which is lignin"
-name = "lignin_above_structural"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Proportion of below ground structural pool which is lignin"
-name = "lignin_below_structural"
-unit = "-"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Proportion of dead wood pool which is lignin"
-name = "lignin_woody"
-unit = "-"
 variable_type = "float"
 
 [[variable]]
