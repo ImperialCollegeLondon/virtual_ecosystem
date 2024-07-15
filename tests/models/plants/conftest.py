@@ -38,6 +38,16 @@ def plants_data(fixture_core_components):
         },
     )
 
+    # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
+    # function works in testing. Once that function has been replaced with something
+    # more realistic this should be deleted
+    data["elevation"] = DataArray(
+        data=np.full((n_cells), fill_value=437.5),
+        coords={
+            "cell_id": fixture_core_components.grid.cell_id,
+        },
+    )
+
     # Canopy layer specific forcing variables from abiotic model
     layer_roles = fixture_core_components.layer_structure.layer_roles
     layer_shape = (
@@ -113,8 +123,8 @@ def fixture_canopy_layer_data(fixture_core_components):
             np.array([0.4, 0.2, 0.1]),
             lyr_strct.index_filled_canopy,
         ),
-        "layer_absorbed_irradiation": (
-            "layer_absorbed_irradiation",
+        "canopy_absorption": (
+            "canopy_absorption",
             np.array([400, 200, 100, 300]),
             np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface),
         ),

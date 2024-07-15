@@ -330,7 +330,7 @@ def dummy_climate_data(fixture_core_components):
         "sensible_heat_flux_topofcanopy": [100, 50, 10, 10],
         "friction_velocity": [12, 5, 2, 2],
         "soil_evaporation": [0.001, 0.01, 0.1, 0.1],
-        "surface_runoff": [10, 50, 100, 100],
+        # "surface_runoff": [10, 50, 100, 100],
         "surface_runoff_accumulated": [0, 10, 300, 300],
         "subsurface_flow_accumulated": [10, 10, 30, 30],
         "elevation": [200, 100, 10, 10],

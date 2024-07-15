@@ -13,17 +13,21 @@ subtrees:
               - file: virtual_ecosystem/theory/hydrology_theory
           - file: virtual_ecosystem/theory/plant_theory
           - file: virtual_ecosystem/theory/soil_theory
-            entries:
-              - file: virtual_ecosystem/soil/soil_details
           - file: virtual_ecosystem/theory/animal_theory
       - file: virtual_ecosystem/implementation/implementation
         title: Implementation
         entries:
-          - file: virtual_ecosystem/implementation/module_overview
+          - file: virtual_ecosystem/implementation/science_model_overview
+          - file: virtual_ecosystem/implementation/core_components_overview
           - file: virtual_ecosystem/implementation/abiotic_simple_implementation
           - file: virtual_ecosystem/implementation/abiotic_implementation
+          - file: virtual_ecosystem/implementation/animal_implementation
+          - file: virtual_ecosystem/implementation/litter_implementation
           - file: virtual_ecosystem/implementation/hydrology_implementation
+          - file: virtual_ecosystem/implementation/soil_implementation
+          - file: virtual_ecosystem/implementation/plants_implementation
           - file: virtual_ecosystem/implementation/main_simulation
+          - file: virtual_ecosystem/implementation/variables
 
   - caption: Using the Virtual Ecosystem
     entries:
@@ -48,21 +52,21 @@ subtrees:
     entries:
       - file: development/contributing
         entries:
-        - file: development/contributing/overview
-        - file: development/contributing/code_qa_and_typing
-        - file: development/contributing/code_testing
-        - file: development/contributing/github_actions
-        - file: development/contributing/release_process
+          - file: development/contributing/overview
+          - file: development/contributing/code_qa_and_typing
+          - file: development/contributing/code_testing
+          - file: development/contributing/github_actions
+          - file: development/contributing/release_process
       - file: development/design
         entries:
           - file: development/design/core
           - file: development/design/defining_new_models
       - file: development/documentation
         entries:
-        - file: development/documentation/documentation
-        - file: development/documentation/api_generation
-        - file: development/documentation/docstring_style
-        - file: development/documentation/jupyter_notebooks
+          - file: development/documentation/documentation
+          - file: development/documentation/api_generation
+          - file: development/documentation/docstring_style
+          - file: development/documentation/jupyter_notebooks
 
   - caption: API
     entries:
@@ -101,6 +105,8 @@ subtrees:
                 title: The schema submodule
               - file: api/core/utils.md
                 title: The utils submodule
+              - file: api/core/variables.md
+                title: The variables submodule
       - file: api/main.md
         title: The main submodule
       - file: api/models.md
@@ -170,6 +176,10 @@ subtrees:
             entries:
               - file: api/models/litter/constants
                 title: The constants submodule
+              - file: api/models/litter/env_factors
+                title: The env_factors submodule
+              - file: api/models/litter/input_partition
+                title: The input_partition submodule
               - file: api/models/litter/litter_model
                 title: The litter_model submodule
               - file: api/models/litter/litter_pools

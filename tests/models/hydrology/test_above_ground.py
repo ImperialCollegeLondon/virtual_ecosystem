@@ -53,11 +53,7 @@ def test_calculate_soil_evaporation(dens_air, latvap):
     )
 
     exp_evap = np.array([0.745206, 0.092515, 0.135078])
-    exp_ra = np.array([12.5, 50.0, 1250.0])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
-    np.testing.assert_allclose(
-        result["aerodynamic_resistance_surface"], exp_ra, rtol=0.01
-    )
 
 
 def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):

@@ -133,7 +133,7 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
     argvalues=[
         pytest.param(
             DataArray(data=np.arange(4), dims=("cell_id")),
-            {"spatial": "Spat_CellId_Dim_Any", "testing": None},
+            {"spatial": "Spat_CellId_Dim_Any", "testing": None, "time": None},
             does_not_raise(),
             None,
             id="Match found",
@@ -155,7 +155,7 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
         ),
         pytest.param(
             DataArray(data=np.arange(4), dims=("cell_identities")),
-            {"spatial": None, "testing": None},
+            {"spatial": None, "testing": None, "time": None},
             does_not_raise(),
             None,
             id="No match found",

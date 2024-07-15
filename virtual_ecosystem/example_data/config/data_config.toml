@@ -29,10 +29,10 @@ var_name = "wind_speed_ref"
 file = "../data/example_elevation_data.nc"
 var_name = "elevation"
 
-# Hydrology
-[[core.data.variable]]
-file = "../data/example_surface_runoff_data.nc"
-var_name = "surface_runoff"
+# # Hydrology
+# [[core.data.variable]]
+# file = "../data/example_surface_runoff_data.nc"
+# var_name = "surface_runoff"
 
 # Soil
 [[core.data.variable]]

@@ -247,7 +247,7 @@ The `example_soil_data.nc` file provides:
 This code creates a set of plausible values for which the
 {mod}`~virtual_ecosystem.models.soil.soil_model` absolutely has to function sensibly
 for. Descriptions of the soil pools can be found
-[here](../virtual_ecosystem/soil/soil_details.md).
+[here](../virtual_ecosystem/theory/soil_theory.md).
 
 ````{admonition} soil_example_data.py
 :class: dropdown
@@ -300,7 +300,7 @@ The `example_litter_data.nc` file provides:
 
 The generation script creates a set of plausible values for which the {mod}`~virtual_ecosystem.models.litter.litter_model`
 absolutely has to function sensibly for.
-Descriptions of the litter pools can be found [here](../virtual_ecosystem/soil/soil_details.md).
+Descriptions of the litter pools can be found [here](../virtual_ecosystem/theory/soil_theory.md).
 
 ````{admonition} litter_example_data.py
 :class: dropdown

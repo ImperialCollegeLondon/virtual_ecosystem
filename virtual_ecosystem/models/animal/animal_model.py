@@ -40,7 +40,10 @@ class AnimalModel(
     BaseModel,
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
-    required_init_vars=(),
+    vars_required_for_init=(),
+    vars_populated_by_init=("total_animal_respiration", "population_densities"),
+    vars_required_for_update=(),
+    vars_populated_by_first_update=("decomposed_excrement", "decomposed_carcasses"),
     vars_updated=(
         "decomposed_excrement",
         "decomposed_carcasses",
