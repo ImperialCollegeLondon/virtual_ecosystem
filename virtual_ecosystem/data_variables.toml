@@ -721,6 +721,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Carbon:nitrogen ratio of deadwood"
+name = "deadwood_c_n_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Carbon:nitrogen ratio of leaf turnover"
 name = "leaf_turnover_c_n_ratio"
 unit = "-"

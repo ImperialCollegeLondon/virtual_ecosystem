@@ -90,6 +90,7 @@ class LitterModel(
         "leaf_turnover_lignin",
         "plant_reproductive_tissue_turnover_lignin",
         "root_turnover_lignin",
+        "deadwood_c_n_ratio",
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
