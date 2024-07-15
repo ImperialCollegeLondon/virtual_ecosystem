@@ -47,7 +47,7 @@ divided by 30, and the return variables are monthly means or monthly accumulated
 The tables below show the variables that are required to initialise the hydrology model
 and then update it at each time step.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
 tags: [remove-input]
 mystnb:
@@ -75,7 +75,7 @@ The default values are set for forest ecosystems.
 When the hydrology model initialises, it uses the input data to populate the following
 variables. When the model first updates, it then sets further variables.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
 tags: [remove-input]
 mystnb:
@@ -96,7 +96,7 @@ display_markdown(
 The table below shows the complete set of model variables that are updated at each model
 step.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
 tags: [remove-input]
 mystnb:
