@@ -12,6 +12,7 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
 import sys
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -19,11 +20,16 @@ from pathlib import Path
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
 import sphinxcontrib.bibtex.plugin
+from sphinx.deprecation import RemovedInSphinx80Warning
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
 from virtual_ecosystem.core import variables
+
+# Silence sphinx 8 warnings.
+warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
+
 
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
@@ -67,6 +73,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.mermaid",
     "myst_nb",
@@ -78,10 +85,13 @@ autodoc_default_flags = ["members"]
 autosummary_generate = True
 
 
+# Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
 external_toc_exclude_missing = False
 
 
+# Set up a bracketed citation style, register it with sphinxcontrib.bibtex, and then set
+# that style as the default.
 def bracket_style() -> BracketStyle:
     """Function that defines round brackets citation style."""
     return BracketStyle(
@@ -105,10 +115,10 @@ sphinxcontrib.bibtex.plugin.register_plugin(
     "sphinxcontrib.bibtex.style.referencing", "author_year_round", MyReferenceStyle
 )
 
-# Configure referencing style
 bibtex_reference_style = "author_year_round"
 
-# Reference checking
+# Turn on nitpicky reference checking to ensure that all internal links and intersphinx
+# links are resolvable. Then ignore a whole bunch of annoying broken links.
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.int64"),
@@ -145,6 +155,8 @@ intersphinx_mapping = {
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
 }
+
+# Turn on figure numbering - this slows down build time a surprising amount!
 numfig = True
 
 # Set auto labelling to section level
