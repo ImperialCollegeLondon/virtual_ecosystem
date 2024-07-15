@@ -45,16 +45,16 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.litter.carbon import (
+    calculate_decay_rates,
+    calculate_total_C_mineralised,
+    calculate_updated_pools,
+)
+from virtual_ecosystem.models.litter.chemistry import calculate_lignin_updates
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.input_partition import (
     calculate_litter_input_lignin_concentrations,
     partion_plant_inputs_between_pools,
-)
-from virtual_ecosystem.models.litter.litter_pools import (
-    calculate_decay_rates,
-    calculate_lignin_updates,
-    calculate_total_C_mineralised,
-    calculate_updated_pools,
 )
 
 
@@ -320,6 +320,8 @@ class LitterModel(
             updated_pools=updated_pools,
         )
 
+        # TODO - It's a bit messy here to have some calculations and some that just
+        # update the object with previously calculated changes, should change this
         # Construct dictionary of data arrays to return
         updated_litter_variables = {
             "litter_pool_above_metabolic": DataArray(
