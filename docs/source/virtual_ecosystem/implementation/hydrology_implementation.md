@@ -328,14 +328,68 @@ The second part of the hydrology model calculates the horizontal water movement 
 the full model grid including accumulated surface runoff and sub-surface flow, and river
 discharge rate.
 
-The flow direction of water above and below ground is based on a digital elevation model.
-First, we find all the neighbours for each grid cell and determine which neigbour has
-the lowest elevation. Based on that relationship, we determine all upstream neighbours
-for each grid cell. The accumulated surface runoff is calculated as the sum of current
-runoff and the runoff from upstream cells at the previous time step.
+The flow direction of water above and below ground is based on a digital elevation model
+which needs to be provided at the start of the simulation. Here an example:
 
-elevation
-flowmap
+```{code-cell} ipython3
+import matplotlib.pyplot as plt
+from matplotlib import colors
+import numpy as np
+import xarray as xr
+
+input_file = "../../../../virtual_ecosystem/example_data/data/example_elevation_data.nc"
+digital_elevation_model = xr.open_dataset(input_file)
+elevation = digital_elevation_model['elevation']
+print(elevation)
+```
+
+```{code-cell} ipython3
+# Plot the elevation data
+plt.figure(figsize=(10, 6))
+elevation.plot(cmap='terrain')
+plt.title('Elevation Map')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.show()
+```
+
+The initialisation step of the hydrology model finds all the neighbours for each grid
+cell and determine which neigbour has the lowest elevation.
+
+```{code-cell} ipython3
+from virtual_ecosystem.core.grid import Grid
+from virtual_ecosystem.core.data import Data
+from xarray import DataArray
+
+grid = Grid(grid_type="square", cell_area=8100, cell_nx=9, cell_ny=9)
+grid
+```
+
+```{code-cell} ipython3
+data = Data(grid=grid)
+data['elevation'] = elevation
+```
+
+```{code-cell} ipython3
+grid.set_neighbours(distance=10)
+grid.neighbours[45]
+```
+
+Based on that relationship, the model determines all upstream neighbours
+for each grid cell and creates a drainage map.
+
+```{code-cell} ipython3
+from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
+
+
+drainage_map = calculate_drainage_map(
+  grid=grid,
+  elevation=np.array(data["elevation"]),
+)
+```
+
+The accumulated surface runoff is calculated in each grid cell as the sum of current
+runoff and the runoff from upstream cells at the previous time step.
 
 Total river discharge is calculated as the sum of above- and below ground horizontal
 flow and converted to river discharge rate in m3/s.
