@@ -53,22 +53,33 @@ def temp_and_water_factors(dummy_litter_data, fixture_core_components):
 
 
 @pytest.fixture
-def decay_rates():
+def decay_rates(dummy_litter_data, fixture_core_components):
     """Decay rates for the various litter pools."""
 
-    return {
-        "metabolic_above": np.array(
-            [0.00450883464, 0.00225441732, 0.00105206141, 0.00105206141]
-        ),
-        "structural_above": np.array(
-            [0.000167429, 8.371483356e-5, 3.013734008e-5, 3.013734008e-5]
-        ),
-        "woody": np.array([0.0004831961, 0.0012131307, 0.0007504961, 0.0007504961]),
-        "metabolic_below": np.array([0.00627503, 0.01118989, 0.00141417, 0.00141417]),
-        "structural_below": np.array(
-            [2.08818455e-04, 2.07992589e-04, 8.96385948e-06, 8.96385948e-06]
-        ),
-    }
+    from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
+
+    decay_rates = calculate_decay_rates(
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
+        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
+        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
+        lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
+        lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
+        surface_temp=dummy_litter_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ].to_numpy(),
+        topsoil_temp=dummy_litter_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        water_potential=dummy_litter_data["matric_potential"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        constants=LitterConsts,
+    )
+
+    return decay_rates
 
 
 def test_calculate_decay_rates(dummy_litter_data, fixture_core_components):
@@ -115,7 +126,7 @@ def test_calculate_total_C_mineralised(decay_rates):
         calculate_total_C_mineralised,
     )
 
-    expected_mineralisation = [0.0212182, 0.0274272, 0.00617274, 0.00617274]
+    expected_mineralisation = [0.02987233, 0.02316114, 0.00786517, 0.00786517]
 
     actual_mineralisation = calculate_total_C_mineralised(
         decay_rates=decay_rates, model_constants=LitterConsts, core_constants=CoreConsts
@@ -130,10 +141,10 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates):
 
     expected_pools = {
         "above_metabolic": [0.31632696, 0.152963456, 0.0868965658, 0.092546626],
-        "above_structural": [0.504536392, 0.251133385, 0.0968690302, 0.09991897],
-        "woody": [4.7740336, 11.896573, 7.361499, 7.331499],
-        "below_metabolic": [0.40842678, 0.35943734, 0.0673781086, 0.083478172],
-        "below_structural": [0.60560552, 0.31876689, 0.0200756214, 0.028575558],
+        "above_structural": [0.50453639, 0.25006367, 0.09690713, 0.09995707],
+        "woody": [4.77403361, 11.89845863, 7.3598224, 7.3298224],
+        "below_metabolic": [0.39912077, 0.36392583, 0.06748727, 0.08358733],
+        "below_structural": [0.60529584, 0.31802215, 0.02008861, 0.02858855],
     }
 
     plant_inputs = {
