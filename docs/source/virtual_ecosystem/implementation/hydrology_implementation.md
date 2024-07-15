@@ -387,7 +387,7 @@ cell and determine which neigbour has the lowest elevation. The code below retur
 neighbours of the grid cell with `cell_id = 45` as an example.
 
 ```{code-cell} ipython3
-grid.set_neighbours(distance=10)
+grid.set_neighbours(distance=100)
 grid.neighbours[45]
 ```
 
