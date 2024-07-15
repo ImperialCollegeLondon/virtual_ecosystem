@@ -1,4 +1,18 @@
-# Implementatioon of the hydrology model
+---
+jupytext:
+  formats: md:myst
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.2
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+---
+
+# Implementation of the hydrology model
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)
@@ -28,35 +42,75 @@ precipitation is randomly distributed over 30 days and input evapotranspiration 
 divided by 30, and the return variables are monthly means or monthly accumulated values.
 ```
 
-## Required input data
+## Required variables
 
-The `hydrology` model requires the following variables to initialise and update the
-model:
+The tables below show the variables that are required to initialise the hydrology model
+and then update it at each time step.
 
-``` python
-required_init_vars=(
-    "layer_heights",
-    "elevation",
-)
+```{code-cell}
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
 
-required_update_vars=(
-    "air_temperature",
-    "relative_humidity",
-    "atmospheric_pressure",
-    "precipitation",
-    "wind_speed",
-    "leaf_area_index",
-    "layer_heights",
-    "soil_moisture",
-    "evapotranspiration",
-    "surface_runoff_accumulated",
-    "subsurface_flow_accumulated",
+from IPython.display import display_markdown
+from var_generator import generate_variable_table
+
+display_markdown(
+    generate_variable_table(
+        'HydrologyModel', 
+        ['vars_required_for_init', 'vars_required_for_update']
+    ), 
+    raw=True
 )
 ```
 
 The model also requires several parameters that as described in detail in
 {py:class}`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
 The default values are set for forest ecosystems.
+
+## Generated variables
+
+When the hydrology model initialises, it uses the input data to populate the following
+variables. When the model first updates, it then sets further variables.
+
+```{code-cell}
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+
+display_markdown(
+    generate_variable_table(
+        'HydrologyModel', 
+        ['vars_populated_by_init', 'vars_populated_by_first_update']
+    ), 
+    raw=True
+)
+```
+
+## Updated variables
+
+The table below shows the complete set of model variables that are updated at each model
+step.
+
+```{code-cell}
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+
+display_markdown(
+    generate_variable_table(
+        'HydrologyModel', 
+        ['vars_updated']
+    ), 
+    raw=True
+)
+```
 
 ## Within grid cell hydrology
 
@@ -270,45 +324,27 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 
 ## Across grid hydrology
 
-TBC
-<!-- 
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including accumulated surface runoff and sub-surface flow, and river
-discharge rate, [see](../../api/models/hydrology/above_ground.md). The flow direction is
-based on a digital elevation model.
+discharge rate.
 
-The accumulated surface runoff is calculated as the sum of current runoff and the runoff
-from upstream cells at the previous time step, see accumulate_horizontal_flow() .
+The flow direction of water above and below ground is based on a digital elevation model.
+First, we find all the neighbours for each grid cell and determine which neigbour has
+the lowest elevation. Based on that relationship, we determine all upstream neighbours
+for each grid cell. The accumulated surface runoff is calculated as the sum of current
+runoff and the runoff from upstream cells at the previous time step.
 
-The horizontal flow between grid cells currently uses the same function as the above
-ground runoff.
+elevation
+flowmap
 
 Total river discharge is calculated as the sum of above- and below ground horizontal
-flow and converted to river discharge rate in m3/s. -->
+flow and converted to river discharge rate in m3/s.
 
-## Returned variables
+```{note}
+The hydrology model requires a spinup period to establish a steady state flow of
+accumulated above and below ground flow - each simulation time step then represents the
+total flow through a grid cell. This is currently not implemented.
 
-At the end of each time step, monthly statistics of the following variables are returned
-to the `data` object:
-
-``` python
-vars_updated=(
-        "precipitation_surface", # sum, in mm
-        "soil_moisture", # status last day, in mm
-        "surface_runoff", # sum, in mm
-        "vertical_flow", # mean, in mm
-        "latent_heat_vapourisation", # status last day, J kg-1
-        "molar_density_air", # status last day, mol m-3
-        "soil_evaporation", # sum, in mm
-        "surface_runoff_accumulated", # sum, in mm
-        "subsurface_flow_accumulated", # sum, in mm
-        "matric_potential", # status last day, kPa
-        "groundwater_storage", # status last day, mm
-        "river_discharge_rate", # mean, m3 s-1
-        "total_river_discharge", # sum, mm
-        "subsurface_flow", # sum, in mm
-        "baseflow", # sum, in mm
-        "bypass_flow", # sum, in mm
-        "aerodynamic_resistance_surface", # status last day, kg m-2 s-3
-    )
+To close the water balance, water needs to enter and leave the grid at some point. These
+boundaries are currently not implemented.
 ```
