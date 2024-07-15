@@ -12,7 +12,7 @@ kernelspec:
   name: python3
 ---
 
-# Implementation of the hydrology model
+# The hydrology model implementation
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)
@@ -69,48 +69,6 @@ display_markdown(
 The model also requires several parameters that as described in detail in
 {py:class}`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
 The default values are set for forest ecosystems.
-
-## Generated variables
-
-When the hydrology model initialises, it uses the input data to populate the following
-variables. When the model first updates, it then sets further variables.
-
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
-
-display_markdown(
-    generate_variable_table(
-        'HydrologyModel', 
-        ['vars_populated_by_init', 'vars_populated_by_first_update']
-    ), 
-    raw=True
-)
-```
-
-## Updated variables
-
-The table below shows the complete set of model variables that are updated at each model
-step.
-
-```{code-cell} ipython3
----
-tags: [remove-input]
-mystnb:
-  markdown_format: myst
----
-
-display_markdown(
-    generate_variable_table(
-        'HydrologyModel', 
-        ['vars_updated']
-    ), 
-    raw=True
-)
-```
 
 ## Within grid cell hydrology
 
@@ -440,4 +398,46 @@ total flow through a grid cell. This is currently not implemented.
 
 To close the water balance, water needs to enter and leave the grid at some point. These
 boundaries are currently not implemented.
+```
+
+## Generated variables
+
+When the hydrology model initialises, it uses the input data to populate the following
+variables. When the model first updates, it then sets further variables.
+
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+
+display_markdown(
+    generate_variable_table(
+        'HydrologyModel', 
+        ['vars_populated_by_init', 'vars_populated_by_first_update']
+    ), 
+    raw=True
+)
+```
+
+## Updated variables
+
+The table below shows the complete set of model variables that are updated at each model
+step.
+
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+
+display_markdown(
+    generate_variable_table(
+        'HydrologyModel', 
+        ['vars_updated']
+    ), 
+    raw=True
+)
 ```
