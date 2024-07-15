@@ -600,7 +600,8 @@ class TestAnimalCohort:
         from virtual_ecosystem.models.animal.protocols import Resource
 
         # Mock the target plant
-        target_plant = mocker.MagicMock(spec=Resource, mass_current=mass_current)
+        target_plant = mocker.MagicMock(spec=Resource)
+        target_plant.mass_current = mass_current
 
         # Mock k_i_k to return the expected_biomass
         k_i_k_mock = mocker.patch(
@@ -611,7 +612,12 @@ class TestAnimalCohort:
         # Setup functional group mock to provide phi_herb_t
         functional_group_mock = mocker.MagicMock()
         functional_group_mock.diet = DietType("herbivore")
-        functional_group_mock.constants.phi_herb_t = phi_herb_t
+        constants_mock = mocker.MagicMock()
+        constants_mock.phi_herb_t = phi_herb_t
+        functional_group_mock.constants = constants_mock
+
+        # Mock the adult_mass attribute
+        functional_group_mock.adult_mass = 50.0  # Example mass, adjust as needed
 
         # Initialize the AnimalCohort instance with mocked functional group
         cohort_instance = AnimalCohort(
@@ -633,11 +639,11 @@ class TestAnimalCohort:
             f"phi_herb_t={phi_herb_t}"
         )
 
-        # verify that k_i_k was called with the correct parameters
+        # Verify that k_i_k was called with the correct parameters
         A_cell = 1.0
         k_i_k_mock.assert_called_once_with(alpha, phi_herb_t, mass_current, A_cell)
 
-    def calculate_total_handling_time_for_herbivory(
+    def test_calculate_total_handling_time_for_herbivory(
         self, mocker, herbivore_cohort_instance, plant_list_instance
     ):
         """Test aggregation of handling times across all available plant resources."""
