@@ -1,5 +1,5 @@
 """The :mod:`~virtual_ecosystem.models.hydrology.constants` module contains a set of
-dataclasses containing and parameters required by the
+dataclasses containing parameters required by the
 :mod:`~virtual_ecosystem.models.hydrology.hydrology_model`. These parameters are
 constants in that they should not be changed during a particular simulation.
 

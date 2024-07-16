@@ -171,6 +171,8 @@ subtrees:
                 title: The constants submodule
               - file: api/models/hydrology/hydrology_model
                 title: The hydrology_model submodule
+              - file: api/models/hydrology/hydrology_tools
+                title: The hydrology_tools submodule
           - file: api/models/litter
             title: The litter model
             entries:
