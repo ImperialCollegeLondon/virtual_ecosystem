@@ -274,14 +274,38 @@ class HydrologyModel(
             name="groundwater_storage",
         )
 
+        # Create subcanopy microclimate from reference height
+        # TODO this needs to be removed when variable system is up and running,; only
+        # wind speed needs to be initialised here when abiotic simple is used
+        # TODO currently surface layer, needs to be replaced with 2m above ground
+        for var in [
+            "air_temperature",
+            "relative_humidity",
+            "wind_speed",
+            "atmospheric_pressure",
+        ]:
+            self.data[var] = (
+                DataArray(self.data[var + "_ref"].isel(time_index=0))
+                .expand_dims("layers")
+                .rename(var)
+                .assign_coords(
+                    coords={
+                        "layers": np.array([self.surface_layer_index]),
+                        "layer_roles": ("layers", ["surface"]),
+                        "cell_id": self.grid.cell_id,
+                    },
+                )
+            )
+
+        # THIS IS THE ALTERNATIVE:
         # If wind speed is not in data, which is the case if the abiotic_simple model is
         # used, create subcanopy microclimate from reference height
         # TODO currently surface layer, needs to be replaced with 2m above ground
-        if "wind_speed" not in self.data:
-            self.data["wind_speed"] = self.layer_structure.from_template()
-            self.data["wind_speed"][self.surface_layer_index] = self.data[
-                "wind_speed_ref"
-            ].isel(time_index=0)
+        # if "wind_speed" not in self.data:
+        #     self.data["wind_speed"] = self.layer_structure.from_template()
+        #     self.data["wind_speed"][self.surface_layer_index] = self.data[
+        #         "wind_speed_ref"
+        #     ].isel(time_index=0)
 
         # Set initial above-ground accumulated runoff and sub-surface flow to zero
         for var in ["surface_runoff_accumulated", "subsurface_flow_accumulated"]:
