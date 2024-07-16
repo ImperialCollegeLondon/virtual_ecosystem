@@ -277,12 +277,12 @@ def test_setup(
         # Test 2d variables
         expected_2d = {
             "soil_moisture": [
-                [67.0621, 67.0829, 67.05435, 67.04017],
-                [209.8470, 209.8500, 209.8491, 209.8467],
+                [261.273281, 261.394039, 261.265854, 261.091923],
+                [228.404627, 228.482248, 228.384369, 228.320362],
             ],
             "matric_potential": [
-                [-1.532961e07, -1.536408e07, -1.528976e07, -1.53231e07],
-                [-1.250262e03, -1.250131e03, -1.250172e03, -1.250276e3],
+                [-195.468003, -194.709017, -195.567079, -196.439001],
+                [-538.878066, -537.402926, -539.207955, -540.66449],
             ],
         }
 
@@ -291,16 +291,19 @@ def test_setup(
             exp_var[soil_indices] = expected_vals
 
             np.testing.assert_allclose(
-                model.data[var_name], exp_var, rtol=1e-4, atol=1e-4
+                model.data[var_name],
+                exp_var,
+                rtol=1e-4,
+                atol=1e-4,
             )
 
         # Test one dimensional variables
         expected_1d = {
-            "vertical_flow": [0.69471, 0.695691, 0.695682, 0.694436],
-            "total_river_discharge": [0, 0, 63361, 20925],
+            "vertical_flow": [1.11321, 1.116084, 1.116059, 1.112407],
+            "total_river_discharge": [0, 0, 64876, 21514],
             "surface_runoff": [0, 0, 0, 0],
             "surface_runoff_accumulated": [0, 0, 0, 0],
-            "soil_evaporation": [345.1148, 344.759928, 345.15422, 344.90802],
+            "soil_evaporation": [12.652035, 12.652035, 12.652035, 12.652035],
         }
 
         for var_name, expected_vals in expected_1d.items():

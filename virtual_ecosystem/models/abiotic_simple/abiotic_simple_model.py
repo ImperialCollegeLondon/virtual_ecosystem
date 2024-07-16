@@ -3,7 +3,9 @@ creates a
 :class:`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
 class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 
-TODO update temperatures to Kelvin
+Todo:
+* update temperatures to Kelvin
+* pressure and CO2 profiles should only be filled for filled/true above ground layers
 """  # noqa: D205
 
 from __future__ import annotations
