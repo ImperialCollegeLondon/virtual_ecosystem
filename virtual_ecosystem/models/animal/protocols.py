@@ -3,6 +3,7 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
@@ -13,6 +14,16 @@ class Consumer(Protocol):
 
     functional_group: FunctionalGroup
     individuals: int
+    mass_current: float
+
+    def get_eaten(
+        self,
+        potential_consumed_mass: float,
+        predator: "Consumer",
+        carcass_pool: "DecayPool",
+    ) -> float:
+        """The get_eaten method partially defines a consumer."""
+        ...
 
 
 class Pool(Protocol):
@@ -49,4 +60,20 @@ class Territory(Protocol):
 
     """
 
-    grid_cell_keys: list[int]
+    grid_cell_keys: Sequence[int]
+
+    def get_prey(self, consumer_cohort: Consumer) -> Sequence[Consumer]:
+        """The get_prey method partially defines a territory."""
+        ...
+
+    def get_plant_resources(self) -> Sequence[Resource]:
+        """The get_prey method partially defines a territory."""
+        ...
+
+    def get_excrement_pools(self) -> Sequence[DecayPool]:
+        """The get_prey method partially defines a territory."""
+        ...
+
+    def get_carcass_pools(self) -> Sequence[DecayPool]:
+        """The get_prey method partially defines a territory."""
+        ...

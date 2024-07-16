@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import importlib
 import random
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, MutableSequence, Sequence
 from itertools import chain
 from math import ceil
 
@@ -77,6 +77,11 @@ class AnimalCommunity:
         """A pool for animal carcasses within the community."""
         self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
         """A pool for excrement within the community."""
+        self.plant_community: PlantResources = PlantResources(
+            data=self.data,
+            cell_id=self.community_key,
+            constants=self.constants,
+        )
 
     @property
     def all_animal_cohorts(self) -> Iterable[AnimalCohort]:
@@ -325,17 +330,17 @@ class AnimalCommunity:
 
         """
         # Generate the plant resources for foraging.
-        plant_community: PlantResources = PlantResources(
-            data=self.data,
-            cell_id=self.community_key,
-            constants=self.constants,
-        )
 
-        plant_list = [plant_community]
+        plant_list: Sequence = [self.plant_community]
 
         for consumer_cohort in self.all_animal_cohorts:
             # Prepare the prey list for the consumer cohort
-            prey_list = self.collect_prey(consumer_cohort)
+            if consumer_cohort.territory is None:
+                raise ValueError("The cohort's territory hasn't been defined.")
+            prey_list = consumer_cohort.territory.get_prey(consumer_cohort)
+            plant_list = consumer_cohort.territory.get_plant_resources()
+            # excrement_list = consumer_cohort.territory.get_excrement_pools()
+            # carcass_list = consumer_cohort.territory.get_carcass_pools()
 
             # Initiate foraging for the consumer cohort with the prepared resources
             consumer_cohort.forage_cohort(
@@ -349,7 +354,9 @@ class AnimalCommunity:
             if consumer_cohort.individuals == 0:
                 self.remove_dead_cohort(consumer_cohort)
 
-    def collect_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
+    def collect_prey(
+        self, consumer_cohort: AnimalCohort
+    ) -> MutableSequence[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.
 
         This is a helper function for forage_community to isolate the prey selection
@@ -364,7 +371,7 @@ class AnimalCommunity:
         TODO: MGO - collect prey over territory
 
         """
-        prey: list = []
+        prey: MutableSequence = []
         for (
             prey_functional_group,
             potential_prey_cohorts,

@@ -223,7 +223,7 @@ class AnimalCohort:
             self.is_mature = True
             self.time_to_maturity = self.age
 
-    def die_individual(self, number_dead: int, carcass_pool: CarcassPool) -> None:
+    def die_individual(self, number_dead: int, carcass_pool: DecayPool) -> None:
         """The function to reduce the number of individuals in the cohort through death.
 
         Currently, all cohorts are crafted as single km2 grid cohorts. This means that
@@ -503,7 +503,7 @@ class AnimalCohort:
         )
 
     def F_i_j_individual(
-        self, animal_list: Sequence[AnimalCohort], target_cohort: AnimalCohort
+        self, animal_list: Sequence[Consumer], target_cohort: Consumer
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
@@ -528,7 +528,7 @@ class AnimalCohort:
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
-        self, animal_list: Sequence[AnimalCohort], target_cohort: AnimalCohort
+        self, animal_list: Sequence[Consumer], target_cohort: Consumer
     ) -> float:
         """Calculates the mass to be consumed from a prey cohort by the predator.
 
@@ -563,13 +563,15 @@ class AnimalCohort:
 
     def delta_mass_predation(
         self,
-        animal_list: Sequence[AnimalCohort],
+        animal_list: Sequence[Consumer],
         excrement_pool: DecayPool,
         carcass_pool: CarcassPool,
     ) -> float:
         """This method handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation
+
+        TODO: move defecate
 
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
@@ -583,11 +585,15 @@ class AnimalCohort:
 
         total_consumed_mass = 0.0  # Initialize the total consumed mass
 
-        for cohort in animal_list:
+        for prey_cohort in animal_list:
             # Calculate the mass to be consumed from this cohort
-            consumed_mass = self.calculate_consumed_mass_predation(animal_list, cohort)
+            consumed_mass = self.calculate_consumed_mass_predation(
+                animal_list, prey_cohort
+            )
             # Call get_eaten on the prey cohort to update its mass and individuals
-            actual_consumed_mass = cohort.get_eaten(consumed_mass, self, carcass_pool)
+            actual_consumed_mass = prey_cohort.get_eaten(
+                consumed_mass, self, carcass_pool
+            )
             # Update total mass gained by the predator
             total_consumed_mass += actual_consumed_mass
 
@@ -652,7 +658,7 @@ class AnimalCohort:
     def forage_cohort(
         self,
         plant_list: Sequence[Resource],
-        animal_list: Sequence[AnimalCohort],
+        animal_list: Sequence[Consumer],
         excrement_pool: DecayPool,
         carcass_pool: CarcassPool,
     ) -> None:
@@ -687,7 +693,7 @@ class AnimalCohort:
             # Update the predator's mass with the total gained mass
             self.eat(consumed_mass)
 
-    def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
+    def theta_i_j(self, animal_list: Sequence[Consumer]) -> float:
         """Cumulative density method for delta_mass_predation.
 
         The cumulative density of organisms with a mass lying within the same predator
@@ -696,7 +702,7 @@ class AnimalCohort:
         Madingley
 
         TODO: current format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference to grid zie
+        TODO: update A_cell with real reference to grid size
         TODO: update name
 
         Args:

@@ -1,11 +1,13 @@
 """The ''animal'' module provides animal module functionality."""  # noqa: #D205, D415
 
-from collections.abc import Callable
+from collections.abc import Callable, MutableSequence, Sequence
 
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
+# from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool, Resource
 
 
 class AnimalTerritory:
@@ -37,13 +39,13 @@ class AnimalTerritory:
         """A list of grid cells present in the territory."""
         self.get_community_by_key = get_community_by_key
         """A list of animal communities present in the territory."""
-        self.territory_prey: list[AnimalCohort] = []
+        self.territory_prey: Sequence[AnimalCohort] = []
         """A list of animal prey present in the territory."""
-        self.territory_plants: list[PlantResources] = []
+        self.territory_plants: Sequence[PlantResources] = []
         """A list of plant resources present in the territory."""
-        self.territory_excrement: list[ExcrementPool] = []
+        self.territory_excrement: Sequence[ExcrementPool] = []
         """A list of excrement pools present in the territory."""
-        self.territory_carcasses: list[CarcassPool] = []
+        self.territory_carcasses: Sequence[CarcassPool] = []
         """A list of carcass pools present in the territory."""
 
     def update_territory(self, consumer_cohort: AnimalCohort) -> None:
@@ -57,9 +59,9 @@ class AnimalTerritory:
         self.territory_prey = self.get_prey(consumer_cohort)
         self.territory_plants = self.get_plant_resources()
         self.territory_excrement = self.get_excrement_pools()
-        self.territory_carcasses = self.get_carcass_pool()
+        self.territory_carcasses = self.get_carcass_pools()
 
-    def get_prey(self, consumer_cohort: AnimalCohort) -> list[AnimalCohort]:
+    def get_prey(self, consumer_cohort: AnimalCohort) -> Sequence[AnimalCohort]:
         """Collect suitable prey from all grid cells in the territory.
 
         TODO: This is probably not the best way to go about this. Maybe alter collect
@@ -72,13 +74,13 @@ class AnimalTerritory:
         Returns:
             A list of AnimalCohorts that can be preyed upon.
         """
-        prey = []
+        prey: MutableSequence = []
         for cell_id in self.grid_cell_keys:
             community = self.get_community_by_key(cell_id)
             prey.extend(community.collect_prey(consumer_cohort))
         return prey
 
-    def get_plant_resources(self) -> list[PlantResources]:
+    def get_plant_resources(self) -> MutableSequence[PlantResources]:
         """Collect plant resources from all grid cells in the territory.
 
         TODO: Update internal plant resource generation with a real link to the plant
@@ -87,35 +89,31 @@ class AnimalTerritory:
         Returns:
             A list of PlantResources available in the territory.
         """
-        plant_resources = []
+        plant_resources: MutableSequence = []
         for cell_id in self.grid_cell_keys:
             community = self.get_community_by_key(cell_id)
-            plant_resources.append(
-                PlantResources(
-                    data=community.data, cell_id=cell_id, constants=community.constants
-                )
-            )
+            plant_resources.append(community.plant_community)
         return plant_resources
 
-    def get_excrement_pools(self) -> list[ExcrementPool]:
+    def get_excrement_pools(self) -> MutableSequence[ExcrementPool]:
         """Combine excrement pools from all grid cells in the territory.
 
         Returns:
             A list of ExcrementPools combined from all grid cells.
         """
-        total_excrement = []
+        total_excrement: MutableSequence = []
         for cell_id in self.grid_cell_keys:
             community = self.get_community_by_key(cell_id)
             total_excrement.append(community.excrement_pool)
         return total_excrement
 
-    def get_carcass_pool(self) -> list[CarcassPool]:
+    def get_carcass_pools(self) -> MutableSequence[CarcassPool]:
         """Combine carcass pools from all grid cells in the territory.
 
         Returns:
             A list of CarcassPools combined from all grid cells.
         """
-        total_carcass = []
+        total_carcass: MutableSequence = []
         for cell_id in self.grid_cell_keys:
             community = self.get_community_by_key(cell_id)
             total_carcass.append(community.carcass_pool)
