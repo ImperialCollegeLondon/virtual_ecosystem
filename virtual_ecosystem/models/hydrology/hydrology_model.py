@@ -275,8 +275,8 @@ class HydrologyModel(
         )
 
         # Create subcanopy microclimate from reference height
-        # TODO this needs to be removed when variable system is up and running,; only
-        # wind speed needs to be initialised here when abiotic simple is used
+        # TODO this needs to be removed when variable system is up and running; only
+        # wind speed needs to be initialised when abiotic simple is used, see below
         # TODO currently surface layer, needs to be replaced with 2m above ground
         for var in [
             "air_temperature",
