@@ -339,14 +339,14 @@ class AnimalCommunity:
                 raise ValueError("The cohort's territory hasn't been defined.")
             prey_list = consumer_cohort.territory.get_prey(consumer_cohort)
             plant_list = consumer_cohort.territory.get_plant_resources()
-            # excrement_list = consumer_cohort.territory.get_excrement_pools()
+            excrement_list = consumer_cohort.territory.get_excrement_pools()
             # carcass_list = consumer_cohort.territory.get_carcass_pools()
 
             # Initiate foraging for the consumer cohort with the prepared resources
             consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
-                excrement_pool=self.excrement_pool,
+                excrement_pools=excrement_list,
                 carcass_pool=self.carcass_pool,
             )
 
@@ -366,7 +366,7 @@ class AnimalCommunity:
             consumer_cohort: The AnimalCohort for which a prey list is being collected
 
         Returns:
-            A list of AnimalCohorts that can be preyed upon.
+            A sequence of AnimalCohorts that can be preyed upon.
 
         TODO: MGO - collect prey over territory
 

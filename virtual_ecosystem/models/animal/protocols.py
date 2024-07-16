@@ -46,7 +46,7 @@ class Resource(Protocol):
     mass_current: float
 
     def get_eaten(
-        self, consumed_mass: float, consumer: Consumer, pool: DecayPool
+        self, consumed_mass: float, consumer: Consumer, pools: Sequence[DecayPool]
     ) -> float:
         """The get_eaten method defines a resource."""
         ...
