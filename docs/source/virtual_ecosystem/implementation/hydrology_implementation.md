@@ -86,7 +86,7 @@ Canopy interception is estimated using the following storage-based equation afte
 {cite:t}`aston_rainfall_1979` and {cite:t}`merriam_note_1960` as implemented in
 {cite:t}`van_der_knijff_lisflood_2010`:
 
-$$Int = S_{max} * [1 - e \frac{(-k*R*\delta t}{S_{max}})]$$
+$$Int = S_{max} * [1 - \exp(\frac{-k*R*\delta t}{S_{max}})]$$
 
 where $Int$ (mm) is the interception per time step, $S_{max}$ (mm) is the maximum
 interception, $R$ (mm) is the rainfall intensity per time step and the factor $k$
@@ -149,7 +149,7 @@ $q_{g}$ is the surface specific humidity (unitless).
 In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
 {cite:t}`supit_system_1994`:
 
-$$E_{act} = E_{g} * exp(-\kappa_{gb}*LAI)$$
+$$E_{act} = E_{g} * \exp(-\kappa_{gb}*LAI)$$
 
 where $\kappa_{gb}$ is the extinction coefficient for global radiation, and
 $LAI$ is the total leaf area index.
