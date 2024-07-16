@@ -242,15 +242,12 @@ class HydrologyModel(
     def _setup(self) -> None:
         """Function to set up the hydrology model.
 
-        At the moment, this function initializes variables that are required to run the
-        first update(). Air temperature, relative humidity, atmospheric pressure, and
-        wind speed below the canopy are set to the reference values 2m above canopy.
+        This function initializes variables that are required to run the
+        first update().
 
         For the within grid cell hydrology, soil moisture is initialised homogenously
         for all soil layers and groundwater storage is set to the percentage of it's
-        capacity that was defined in the model configuration. This design might change
-        with the implementation of the SPLASH model :cite:p:`davis_simple_2017` which
-        will take care of part of the above-ground hydrology.
+        capacity that was defined in the model configuration.
 
         For the hydrology across the grid, this function initialises the accumulated
         surface runoff variable and the subsurface accumulated flow variable. Both
@@ -278,6 +275,8 @@ class HydrologyModel(
         )
 
         # Create subcanopy microclimate from reference height
+        # TODO this needs to be removed when variable system is up and running; only
+        # wind speed needs to be initialised when abiotic simple is used, see below
         # TODO currently surface layer, needs to be replaced with 2m above ground
         for var in [
             "air_temperature",
@@ -297,6 +296,16 @@ class HydrologyModel(
                     },
                 )
             )
+
+        # THIS IS THE ALTERNATIVE:
+        # If wind speed is not in data, which is the case if the abiotic_simple model is
+        # used, create subcanopy microclimate from reference height
+        # TODO currently surface layer, needs to be replaced with 2m above ground
+        # if "wind_speed" not in self.data:
+        #     self.data["wind_speed"] = self.layer_structure.from_template()
+        #     self.data["wind_speed"][self.surface_layer_index] = self.data[
+        #         "wind_speed_ref"
+        #     ].isel(time_index=0)
 
         # Set initial above-ground accumulated runoff and sub-surface flow to zero
         for var in ["surface_runoff_accumulated", "subsurface_flow_accumulated"]:
@@ -319,8 +328,9 @@ class HydrologyModel(
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
         * matric_potential, [kPa]
-        * surface_runoff, [mm], equivalent to SPLASH runoff
+        * surface_runoff, [mm]
         * surface_runoff_accumulated, [mm]
+        * subsurface_flow, [mm]
         * subsurface_flow_accumulated, [mm]
         * soil_evaporation, [mm]
         * vertical_flow, [mm d-1]
@@ -332,6 +342,7 @@ class HydrologyModel(
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
+        * aerodynamic_resistance_surface, [kg m-2 s-3]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
@@ -351,12 +362,9 @@ class HydrologyModel(
         : if precipitation exceeds top soil moisture capacity
         , the excess water is added to runoff and top soil moisture is set to soil
         moisture capacity value; if the top soil is not saturated, precipitation is
-        added to the current soil moisture level and runoff is set to zero. Note that
-        this function will likely change with the implementation of the SPLASH model
-        :cite:p:`davis_simple_2017` in the plant module which will take care of the grid
-        cell based above-ground hydrology. The accumulated surface runoff is calculated
-        as the sum of current runoff and the runoff from upstream cells at the previous
-        time step, see
+        added to the current soil moisture level and runoff is set to zero.
+        The accumulated surface runoff is calculated as the sum of current runoff and
+        the runoff from upstream cells at the previous time step, see
         :func:`~virtual_ecosystem.models.hydrology.above_ground.accumulate_horizontal_flow`
         .
 
