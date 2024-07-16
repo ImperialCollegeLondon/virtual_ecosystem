@@ -1,7 +1,7 @@
 """The ``models.abiotic_simple.constants`` module contains a set of dataclasses
-containing parameters  required by the broader
-:mod:`~virtual_ecosystem.models.abiotic_simple` model. These parameters are constants
-in that they should not be changed during a particular simulation.
+containing parameters required by the :mod:`~virtual_ecosystem.models.abiotic_simple`
+model. These parameters are constants in that they should not be changed during a
+particular simulation.
 """  # noqa: D205
 
 from dataclasses import dataclass, field
@@ -23,9 +23,9 @@ class AbioticSimpleConsts(ConstantsDataclass):
 class AbioticSimpleBounds(ConstantsDataclass):
     """Upper and lower bounds for abiotic variables.
 
-    When a values falls outside these bounds, it is set to the bound value. Note that
-    this approach does not conserve energy and matter in the system. This will be
-    implemented at a later stage.
+    When a values falls outside these bounds, it is set to the bound value.
+    NOTE that this approach does not conserve energy and matter in the system.
+    This will be implemented at a later stage.
     """
 
     air_temperature: tuple[float, float, float] = (-20.0, 80.0, -1.27)
@@ -43,11 +43,11 @@ class AbioticSimpleBounds(ConstantsDataclass):
     """
 
     vapour_pressure_deficit: tuple[float, float, float] = (0.0, 10.0, -252.24)
-    """Bounds and gradient for vapour pressure deficit, [kPa]."""
+    """Bounds and gradient for vapour pressure deficit, [kPa].
+    
+    Gradient for linear regression to calculate vapour pressure deficit as a function of
+    leaf area index from :cite:t:`hardwick_relationship_2015`.
+    """
 
     soil_temperature: tuple[float, float] = (-10.0, 50.0)
-    """Bounds for soil temperature, [C].
-
-    Gradient for linear regression to calculate vapour pressure deficit as a function
-    of leaf area index from :cite:t:`hardwick_relationship_2015`
-    """
+    """Bounds for soil temperature, [C]."""
