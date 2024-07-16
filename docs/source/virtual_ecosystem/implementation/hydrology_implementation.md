@@ -24,7 +24,7 @@ on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. The processes
 [across the model grid](#across-grid-hydrology) are loosely based on
 the [pysheds](https://github.com/mdbartos/pysheds) package.
 
-:::{figure} ../../_static/images/hydrology.jpg
+:::{figure} ../../_static/images/hydrology.svg
 :name: hydrology
 :alt: Hydrology
 :class: bg-primary
@@ -86,7 +86,7 @@ Canopy interception is estimated using the following storage-based equation afte
 {cite:t}`aston_rainfall_1979` and {cite:t}`merriam_note_1960` as implemented in
 {cite:t}`van_der_knijff_lisflood_2010`:
 
-$$Int = S_{max} * [1 - \exp(\frac{-k*R*\delta t}{S_{max}})]$$
+$$\textrm{Int} = S_{max} \left[1 - \exp\left(\frac{-k \cdot R \cdot \delta t}{S_{max}}\right)\right]$$
 
 where $Int$ (mm) is the interception per time step, $S_{max}$ (mm) is the maximum
 interception, $R$ (mm) is the rainfall intensity per time step and the factor $k$
@@ -104,7 +104,7 @@ $S_{max}$ is calculated using an empirical equation
 
 where LAI is the average Leaf Area Index (m2 m-2). $k$ is estimated as:
 
-$$k=0.046 * LAI$$
+$$k=0.046 \cdot LAI$$
 
 ### Water at the surface
 
@@ -136,9 +136,9 @@ We use the so-called 'alpha' method to estimate the evaporative flux
 {cite}`mahfouf_comparative_1991` and the implementation by
 {cite:t}`barton_parameterization_1979`:
 
-$$\alpha = \frac{1.8 * \Theta}{\Theta + 0.3}$$
+$$\alpha = \frac{1.8 \cdot \Theta}{\Theta + 0.3}$$
 
-$$E_{g} = \frac{\rho_{air}}{R_{a}} * (\alpha * q_{sat}(T_{s}) - q_{g})$$
+$$E_{g} = \frac{\rho_{air}}{R_{a}} \cdot (\alpha \cdot q_{sat}(T_{s}) - q_{g})$$
 
 where $\Theta$ is the available top soil moisture (relative volumetric water
 content), $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
@@ -149,7 +149,7 @@ $q_{g}$ is the surface specific humidity (unitless).
 In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
 {cite:t}`supit_system_1994`:
 
-$$E_{act} = E_{g} * \exp(-\kappa_{gb}*LAI)$$
+$$E_{act} = E_{g} \cdot \exp(-\kappa_{gb} \cdot LAI)$$
 
 where $\kappa_{gb}$ is the extinction coefficient for global radiation, and
 $LAI$ is the total leaf area index.
@@ -169,7 +169,7 @@ entering the soil matrix). It is assumed that this fraction is a power function 
 the relative saturation of the superficial and upper soil layers. This results in
 the following equation (after {cite:t}`van_der_knijff_lisflood_2010`):
 
-$$D_{pref, gw} = W_{av} * (\frac{w_{1}}{w_{s1}})^{c_{pref}}$$
+$$D_{pref, gw} = W_{av} \cdot (\frac{w_{1}}{w_{s1}})^{c_{pref}}$$
 
 $D_{pref, gw}$ is the amount of preferential flow per time step (mm),
 $W_{av}$ is the amount of water that is available for infiltration, and
@@ -191,7 +191,7 @@ $$S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
 
 and
 
-$$K(S) = K_{s}* \sqrt{S} *(1-(1-S^{1/m})^{m})^{2}$$
+$$K(S) = K_{s} \cdot \sqrt{S} \cdot (1-(1-S^{1/m})^{m})^{2}$$
 
 where $\Theta_{r}$ is the residual moisture content,$\Theta_{s}$ is the saturated
 moisture content, $K_{s}$ is the saturated hydraulic conductivity, and $m=1-1/n$ is a
@@ -199,7 +199,7 @@ shape parameter derived from the non-linearity parameter $n$. Then, the function
 Darcy's law to calculate the water flow rate $q$ in $\frac{m^3}{s^1}$ considering the
 effective hydraulic conductivity:
 
-$$q = - K(S)*(\frac{dh}{dl}-1)$$
+$$q = - K(S) \cdot (\frac{dh}{dl}-1)$$
 
 where $\frac{dh}{dl}$ is the hydraulic gradient with $l$ the length of the flow path in
 meters (here equal to the soil depth).
@@ -221,7 +221,7 @@ soil moisture needs to be converted to matric potential. The model provides a co
 estimate of soil water potential :$\Psi_{m}$ taken from
 {cite:t}`campbell_simple_1974`:
 
-$$\Psi_{m} = \Psi_{e} * (\frac{\Theta}{\Theta_{s}})^{b}$$
+$$\Psi_{m} = \Psi_{e} \cdot (\frac{\Theta}{\Theta_{s}})^{b}$$
 
 where $\Psi_{e}$ is the air-entry, $\Theta$ is the volumetric water content,
 $\Theta_{s}$ is the saturated water content, and $b$ is the water retention curvature
@@ -240,7 +240,7 @@ slow groundwater component that generates the base flow.
 
 The outflow from the upper zone to the channel, $Q_{uz}$, (mm), equals:
 
-$$Q_{uz} = \frac{1}{T_{uz}} * UZ * \Delta t$$
+$$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
 
 where $T_{uz}$ is the reservoir constant for the upper groundwater layer
 (days), and $UZ$ is the amount of water that is stored in the upper zone (mm).
@@ -258,19 +258,19 @@ groundwater zone. This amount of water is provided by the upper groundwater zone
 $D_{uz,lz}$ is a fixed amount per computational time step and it is defined as
 follows:
 
-$$D_{uz,lz} = min(GW_{perc} * \Delta t, UZ)$$
+$$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
 where $GW_{perc}$, [mm day], is the maximum percolation rate from the upper to
 the lower groundwater zone. The outflow from the lower zone to the channel is then
 computed by:
 
-$$Q_{lz} = \frac{1}{T_{lz}} * LZ * \Delta t$$
+$$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
 
 $T_{lz}$ is the reservoir constant for the lower groundwater layer, (days),
 and $LZ$ is the amount of water that is stored in the lower zone, (mm).
 $LZ$ is computed as follows:
 
-$$LZ = D_{uz,lz} - (GW_{loss} * \Delta t)$$
+$$LZ = D_{uz,lz} - (GW_{loss} \cdot \Delta t)$$
 
 where $D_{uz,lz}$ is the percolation from the upper groundwater zone, (mm),
 and $GW_{loss}$ is the maximum percolation rate from the lower groundwater
@@ -351,7 +351,8 @@ grid.neighbours[45]
 
 Based on that relationship, the model determines all upstream neighbours
 for each grid cell and creates a drainage map, i.e. a dictionary that contains for each
-grid cell all upstream grid cells:
+grid cell all upstream grid cells. For example, the upstream cells of cell ID `64` have
+the indices `[55, 63, 64, 65, 73]`.
 
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
@@ -360,7 +361,7 @@ drainage_map = calculate_drainage_map(
   grid=grid,
   elevation=np.array(data["elevation"]),
 )
-drainage_map
+drainage_map[64]
 ```
 
 The accumulated surface runoff is the calculated in each grid cell as the sum of current
