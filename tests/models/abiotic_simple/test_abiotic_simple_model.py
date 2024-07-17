@@ -183,8 +183,6 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         core_components=fixture_core_components,
     )
 
-    model.setup()
-
     exp_soil_temp = lyr_strct.from_template()
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 

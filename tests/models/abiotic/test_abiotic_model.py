@@ -269,8 +269,6 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         core_components=fixture_core_components,
     )
 
-    model.setup()
-
     # check all variables are in data object
     for var in [
         "air_temperature",
@@ -344,7 +342,6 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
         core_components=fixture_core_components,
     )
 
-    model.setup()
     model.update(time_index=0)
 
     # Check that updated vars are in data object
