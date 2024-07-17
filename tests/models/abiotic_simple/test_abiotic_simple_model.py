@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -15,6 +16,9 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
+    (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
+    (INFO, "Replacing data array for 'vapour_pressure_ref'"),
 ]
 
 
@@ -77,7 +81,7 @@ def test_abiotic_simple_model_initialization(
                         "Information required to initialise the abiotic simple model "
                         "successfully extracted.",
                     ),
-                    *MODEL_VAR_CHECK_LOG,
+                    *MODEL_VAR_CHECK_LOG[:2],
                 ],
             ),
             id="default_config",
@@ -99,7 +103,7 @@ def test_abiotic_simple_model_initialization(
                         "Information required to initialise the abiotic simple model "
                         "successfully extracted.",
                     ),
-                    *MODEL_VAR_CHECK_LOG,
+                    *MODEL_VAR_CHECK_LOG[:2],
                 ],
             ),
             id="modified_config_correct",
@@ -147,14 +151,18 @@ def test_generate_abiotic_simple_model(
     core_components = CoreComponents(config)
     caplog.clear()
 
-    # Check whether model is initialised (or not) as expected
-    with raises:
-        model = AbioticSimpleModel.from_config(
-            data=dummy_climate_data_varying_canopy,
-            core_components=core_components,
-            config=config,
-        )
-        assert model.model_constants.saturation_vapour_pressure_factors == satvap1
+    # We patch the _setup step as it is tested separately
+    module_name = "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
+    with patch(f"{module_name}.AbioticSimpleModel._setup") as mock_setup:
+        # Check whether model is initialised (or not) as expected
+        with raises:
+            model = AbioticSimpleModel.from_config(
+                data=dummy_climate_data_varying_canopy,
+                core_components=core_components,
+                config=config,
+            )
+            assert model.model_constants.saturation_vapour_pressure_factors == satvap1
+            mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
