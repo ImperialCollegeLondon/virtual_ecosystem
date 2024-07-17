@@ -2,7 +2,7 @@ r"""The :mod:`~virtual_ecosystem.models.abiotic_simple` module is one of the com
 models of the Virtual Ecosystem. It is comprised of several submodules that calculate
 the microclimate for the Virtual Ecosystem.
 
-Each of the abiotic sub-modules has its own API reference page:
+Each of the abiotic simple sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model` submodule
   instantiates the AbioticSimpleModel class which consolidates the functionality of the
@@ -11,11 +11,12 @@ Each of the abiotic sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.microclimate` submodule
   contains a set functions and parameters that are used to calculate atmospheric
-  temperature, humidity, :math:`\ce{CO2}`, and atmospheric pressure profiles as well as
-  soil temperature profiles.
+  temperature, relative humidity, vapour pressure deficit, :math:`\ce{CO2}`, and
+  atmospheric pressure profiles as well as soil temperature profiles.
 
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.constants` submodule provides a
-  set of dataclasses containing the constants required by the broader abiotic model.
+  set of dataclasses containing the constants required by the broader abiotic model
+  including the regression parameters for deriving vertical profiles.
 
 """  # noqa: D205
 

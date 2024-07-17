@@ -5,48 +5,42 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.1
+    jupytext_version: 1.16.2
 kernelspec:
-  display_name: pyrealm_python3
+  display_name: Python 3 (ipykernel)
   language: python
-  name: pyrealm_python3
+  name: python3
 ---
 
-# Implementation of the abiotic simple model
+# The abiotic simple model implementation
 
 This section walks through the steps in generating and updating the
 [abiotic_simple](virtual_ecosystem.models.abiotic_simple.abiotic_simple_model)
 model which is currently the default abiotic model version in the Virtual Ecosystem
 configuration.
 
-The `abiotic_simple` model is a simple regression model that estimates microclimatic
-variables based on empirical relationships between leaf area index (LAI) and atmospheric
-temperature (T), relative humidity (RH), and vapour pressure deficit (VPD) to derive
-logarithmic profiles of these variables from external climate data such as regional
-climate models or satellite observations. The model also provides information on
-atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
+## Required variables
 
-## Required input data
+The abiotic_simple model requires a timeseries of the following variables to
+initialise and update the model:
 
-The `abiotic_simple` model requires a timeseries of the following variables to
-initialise and update the model (`_ref` refers to the referenece height 2 m above the
-canopy):
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
 
-``` python
-vars_required_for_init=(
-        "air_temperature_ref", # [C]
-        "relative_humidity_ref", # [-]
-    ),
+from IPython.display import display_markdown
+from var_generator import generate_variable_table
 
-vars_required_for_update=(
-        "air_temperature_ref", # [C]
-        "relative_humidity_ref", # [-]
-        "vapour_pressure_deficit_ref", # [kPa], calculated in __init__
-        "atmospheric_pressure_ref", # [kPa]
-        "atmospheric_co2_ref", # [ppm]
-        "leaf_area_index", # [m m-1], provided by plants model
-        "layer_heights", # [m], provided by model core structure
-    )
+display_markdown(
+    generate_variable_table(
+        'AbioticSimpleModel', 
+        ['vars_required_for_init', 'vars_required_for_update']
+    ), 
+    raw=True
+)
 ```
 
 An example for climate data downloading and simple pre-processing is given in the
@@ -61,7 +55,14 @@ the [theory section](../theory/microclimate_theory.md#factors-affecting-microcli
 This spatial downscaling step is not included in the Virtual Ecosystem.
 ```
 
-## Model workflow
+## Model overview
+
+The `abiotic_simple` model is a simple regression model that estimates microclimatic
+variables based on empirical relationships between leaf area index (LAI) and atmospheric
+temperature (T), relative humidity (RH), and vapour pressure deficit (VPD) to derive
+logarithmic profiles of these variables from external climate data such as regional
+climate models or satellite observations. The model also provides information on
+atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
 
 This sections describes the workflow of the `abiotic_simple` model update step.
 At each time step when the model updates, the
@@ -123,18 +124,44 @@ Soil temperatures are interpolated between the surface layer and the
 temperature at 1 m depth which approximately equals the mean annual temperature, i.e.
 can assumed to be constant over the year.
 
-## Returned variables
+## Generated variables
 
-At the end of each time step, vertical profiles of the following variables are returned
-to the `data` object:
+When the abiotic simple model initialises, it uses the input data to populate the following
+variables. When the model first updates, it then sets further variables.
 
-``` python
-vars_updated=(
-        "air_temperature",
-        "relative_humidity",
-        "vapour_pressure_deficit",
-        "soil_temperature",
-        "atmospheric_pressure",
-        "atmospheric_co2",
-    )
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+
+display_markdown(
+    generate_variable_table(
+        'AbioticSimpleModel', 
+        ['vars_populated_by_init', 'vars_populated_by_first_update']
+    ), 
+    raw=True
+)
+```
+
+## Updated variables
+
+The table below shows the complete set of model variables that are updated at each model
+step.
+
+```{code-cell} ipython3
+---
+tags: [remove-input]
+mystnb:
+  markdown_format: myst
+---
+
+display_markdown(
+    generate_variable_table(
+        'AbioticSimpleModel', 
+        ['vars_updated']
+    ), 
+    raw=True
+)
 ```
