@@ -95,7 +95,7 @@ Given that the time increments of the model are an hour or longer,
 we can assume that below-canopy heat and vapour exchange attain steady state and heat
 storage in the canopy does not need to be simulated explicitly
 {cite:p}`maclean_microclimc_2021`.
-(For application where very fine-temporal resolution data might be needed, heat and
+(For applications where very fine-temporal resolution data might be needed, heat and
 vapour exchange must be modelled as transient processes, and heat storage by the canopy,
 and the exchange of heat between different layers of the canopy, must be considered
 explicitly, see {cite:t}`maclean_microclimc_2021`. This is currently not implemented.)
