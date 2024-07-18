@@ -2,12 +2,13 @@
 
 from collections.abc import Callable, MutableSequence, Sequence
 
-from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
-from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
-from virtual_ecosystem.models.animal.plant_resources import PlantResources
-
-# from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool, Resource
+from virtual_ecosystem.models.animal.protocols import (
+    Community,
+    Consumer,
+    DecayPool,
+    Resource,
+    Territory,
+)
 
 
 class AnimalTerritory:
@@ -32,23 +33,23 @@ class AnimalTerritory:
     def __init__(
         self,
         grid_cell_keys: list[int],
-        get_community_by_key: Callable[[int], AnimalCommunity],
+        get_community_by_key: Callable[[int], Community],
     ) -> None:
         # The constructor of the AnimalTerritory class.
         self.grid_cell_keys = grid_cell_keys
         """A list of grid cells present in the territory."""
         self.get_community_by_key = get_community_by_key
         """A list of animal communities present in the territory."""
-        self.territory_prey: Sequence[AnimalCohort] = []
+        self.territory_prey: Sequence[Consumer] = []
         """A list of animal prey present in the territory."""
-        self.territory_plants: Sequence[PlantResources] = []
+        self.territory_plants: Sequence[Resource] = []
         """A list of plant resources present in the territory."""
-        self.territory_excrement: Sequence[ExcrementPool] = []
+        self.territory_excrement: Sequence[DecayPool] = []
         """A list of excrement pools present in the territory."""
-        self.territory_carcasses: Sequence[CarcassPool] = []
+        self.territory_carcasses: Sequence[DecayPool] = []
         """A list of carcass pools present in the territory."""
 
-    def update_territory(self, consumer_cohort: AnimalCohort) -> None:
+    def update_territory(self, consumer_cohort: Consumer) -> None:
         """Update territory details at initialization and after migration.
 
         Args:
@@ -61,7 +62,7 @@ class AnimalTerritory:
         self.territory_excrement = self.get_excrement_pools()
         self.territory_carcasses = self.get_carcass_pools()
 
-    def get_prey(self, consumer_cohort: AnimalCohort) -> Sequence[AnimalCohort]:
+    def get_prey(self, consumer_cohort: Consumer) -> MutableSequence[Consumer]:
         """Collect suitable prey from all grid cells in the territory.
 
         TODO: This is probably not the best way to go about this. Maybe alter collect
@@ -80,7 +81,7 @@ class AnimalTerritory:
             prey.extend(community.collect_prey(consumer_cohort))
         return prey
 
-    def get_plant_resources(self) -> MutableSequence[PlantResources]:
+    def get_plant_resources(self) -> MutableSequence[Resource]:
         """Collect plant resources from all grid cells in the territory.
 
         TODO: Update internal plant resource generation with a real link to the plant
@@ -95,7 +96,7 @@ class AnimalTerritory:
             plant_resources.append(community.plant_community)
         return plant_resources
 
-    def get_excrement_pools(self) -> MutableSequence[ExcrementPool]:
+    def get_excrement_pools(self) -> MutableSequence[DecayPool]:
         """Combine excrement pools from all grid cells in the territory.
 
         Returns:
@@ -107,7 +108,7 @@ class AnimalTerritory:
             total_excrement.append(community.excrement_pool)
         return total_excrement
 
-    def get_carcass_pools(self) -> MutableSequence[CarcassPool]:
+    def get_carcass_pools(self) -> MutableSequence[DecayPool]:
         """Combine carcass pools from all grid cells in the territory.
 
         Returns:
@@ -118,6 +119,26 @@ class AnimalTerritory:
             community = self.get_community_by_key(cell_id)
             total_carcass.append(community.carcass_pool)
         return total_carcass
+
+    def find_intersecting_carcass_pools(
+        self, animal_territory: "Territory"
+    ) -> MutableSequence[DecayPool]:
+        """Find the carcass pools of the intersection of two territories.
+
+        Args:
+            animal_territory: Another AnimalTerritory to find the intersection with.
+
+        Returns:
+            A list of CarcassPools in the intersecting grid cells.
+        """
+        intersecting_keys = set(self.grid_cell_keys) & set(
+            animal_territory.grid_cell_keys
+        )
+        intersecting_carcass_pools = []
+        for cell_id in intersecting_keys:
+            community = self.get_community_by_key(cell_id)
+            intersecting_carcass_pools.append(community.carcass_pool)
+        return intersecting_carcass_pools
 
 
 def bfs_territory(

@@ -1,10 +1,4 @@
-"""The ''animal'' module provides animal module functionality.
-
-Notes:
-- assume each grid = 1 km2
-- assume each tick = 1 day (28800s)
-- damuth ~ 4.23*mass**(-3/4) indiv / km2
-"""
+"""The ''animal'' module provides animal module functionality."""
 
 from __future__ import annotations
 
@@ -27,6 +21,12 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
 )
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.protocols import (
+    Consumer,
+    DecayPool,
+    Resource,
+    Territory,
+)
 from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
 
@@ -159,6 +159,7 @@ class AnimalCommunity:
                 functional_group.adult_mass,
                 0.0,
                 individuals,
+                DefaultTerritory(),
                 self.constants,
             )
             # add the cohort to the community
@@ -288,6 +289,7 @@ class AnimalCommunity:
             parent_cohort.functional_group.birth_mass,
             0.0,
             number_offspring,
+            DefaultTerritory(),
             self.constants,
         )
 
@@ -340,14 +342,12 @@ class AnimalCommunity:
             prey_list = consumer_cohort.territory.get_prey(consumer_cohort)
             plant_list = consumer_cohort.territory.get_plant_resources()
             excrement_list = consumer_cohort.territory.get_excrement_pools()
-            # carcass_list = consumer_cohort.territory.get_carcass_pools()
 
             # Initiate foraging for the consumer cohort with the prepared resources
             consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
                 excrement_pools=excrement_list,
-                carcass_pool=self.carcass_pool,
             )
 
             # Check if the cohort has been depleted to zero individuals post-foraging
@@ -488,6 +488,7 @@ class AnimalCommunity:
             adult_functional_group.birth_mass,
             0.0,
             larval_cohort.individuals,
+            DefaultTerritory(),
             self.constants,
         )
 
@@ -514,3 +515,68 @@ class AnimalCommunity:
                 and (cohort.mass_current >= cohort.functional_group.adult_mass)
             ):
                 self.metamorphose(cohort)
+
+
+class DefaultCommunity(AnimalCommunity):
+    """A default community that represents an empty or non-functional state."""
+
+    def __init__(self) -> None:
+        self.functional_groups: tuple[FunctionalGroup, ...] = ()
+        self.data: Data = self.data
+        self.community_key: int = -1
+        self.neighbouring_keys: list[int] = []
+        self.constants: AnimalConsts = AnimalConsts()
+        self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
+        """A pool for animal carcasses within the community."""
+        self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
+        """A pool for excrement within the community."""
+        self.plant_community: PlantResources = PlantResources(
+            data=self.data,
+            cell_id=self.community_key,
+            constants=self.constants,
+        )
+
+    def collect_prey(
+        self, consumer_cohort: AnimalCohort
+    ) -> MutableSequence[AnimalCohort]:
+        """Default method."""
+        return []
+
+    def get_community_by_key(self, key: int) -> AnimalCommunity:
+        """Default method."""
+        return self
+
+
+class DefaultTerritory(Territory):
+    """A default territory that represents an empty or non-functional state."""
+
+    def __init__(self) -> None:
+        """Default method."""
+        self.grid_cell_keys: list[int] = []
+        self._get_community_by_key = lambda key: DefaultCommunity()
+
+    def update_territory(self, consumer_cohort: Consumer) -> None:
+        """Default method."""
+        pass
+
+    def get_prey(self, consumer_cohort: Consumer) -> MutableSequence[Consumer]:
+        """Default method."""
+        return []
+
+    def get_plant_resources(self) -> MutableSequence[Resource]:
+        """Default method."""
+        return []
+
+    def get_excrement_pools(self) -> MutableSequence[DecayPool]:
+        """Default method."""
+        return []
+
+    def get_carcass_pools(self) -> MutableSequence[DecayPool]:
+        """Default method."""
+        return []
+
+    def find_intersecting_carcass_pools(
+        self, animal_territory: Territory
+    ) -> MutableSequence[DecayPool]:
+        """Default method."""
+        return []

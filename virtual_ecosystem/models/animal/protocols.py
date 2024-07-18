@@ -3,10 +3,31 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
-from collections.abc import Sequence
+from collections.abc import MutableSequence, Sequence
 from typing import Protocol
 
+from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+
+class Community(Protocol):
+    """This is the protocol for defining communities."""
+
+    functional_groups: list[FunctionalGroup]
+    data: Data
+    community_key: int
+    neighbouring_keys: list[int]
+    carcass_pool: "DecayPool"
+    excrement_pool: "DecayPool"
+    plant_community: "Resource"
+
+    def get_community_by_key(self, key: int) -> "Community":
+        """Method to return a designated Community by integer key."""
+        ...
+
+    def collect_prey(self, consumer_cohort: "Consumer") -> MutableSequence["Consumer"]:
+        """Method to return a list of prey cohorts."""
+        ...
 
 
 class Consumer(Protocol):
@@ -15,12 +36,12 @@ class Consumer(Protocol):
     functional_group: FunctionalGroup
     individuals: int
     mass_current: float
+    territory: "Territory"
 
     def get_eaten(
         self,
         potential_consumed_mass: float,
         predator: "Consumer",
-        carcass_pool: "DecayPool",
     ) -> float:
         """The get_eaten method partially defines a consumer."""
         ...
@@ -62,18 +83,24 @@ class Territory(Protocol):
 
     grid_cell_keys: Sequence[int]
 
-    def get_prey(self, consumer_cohort: Consumer) -> Sequence[Consumer]:
+    def get_prey(self, consumer_cohort: Consumer) -> MutableSequence[Consumer]:
         """The get_prey method partially defines a territory."""
         ...
 
-    def get_plant_resources(self) -> Sequence[Resource]:
+    def get_plant_resources(self) -> MutableSequence[Resource]:
         """The get_prey method partially defines a territory."""
         ...
 
-    def get_excrement_pools(self) -> Sequence[DecayPool]:
+    def get_excrement_pools(self) -> MutableSequence[DecayPool]:
         """The get_prey method partially defines a territory."""
         ...
 
-    def get_carcass_pools(self) -> Sequence[DecayPool]:
+    def get_carcass_pools(self) -> MutableSequence[DecayPool]:
         """The get_prey method partially defines a territory."""
+        ...
+
+    def find_intersecting_carcass_pools(
+        self, animal_territory: "Territory"
+    ) -> MutableSequence[DecayPool]:
+        """The find_intersecting_carcass_pools method partially defines a territory."""
         ...
