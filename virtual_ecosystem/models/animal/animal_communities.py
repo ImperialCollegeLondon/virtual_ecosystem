@@ -452,7 +452,9 @@ class AnimalCommunity:
         """
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in self.all_animal_cohorts:
-            cohort.inflict_non_predation_mortality(number_of_days, self.carcass_pool)
+            cohort.inflict_non_predation_mortality(
+                number_of_days, cohort.territory.territory_carcasses
+            )
             if cohort.individuals <= 0:
                 cohort.is_alive = False
                 self.remove_dead_cohort(cohort)
@@ -476,7 +478,9 @@ class AnimalCommunity:
         number_dead = ceil(
             larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
         )
-        larval_cohort.die_individual(number_dead, self.carcass_pool)
+        larval_cohort.die_individual(
+            number_dead, larval_cohort.territory.territory_carcasses
+        )
         # collect the adult functional group
         adult_functional_group = get_functional_group_by_name(
             self.functional_groups,
@@ -488,7 +492,7 @@ class AnimalCommunity:
             adult_functional_group.birth_mass,
             0.0,
             larval_cohort.individuals,
-            DefaultTerritory(),
+            larval_cohort.territory,
             self.constants,
         )
 
@@ -554,6 +558,7 @@ class DefaultTerritory(Territory):
         """Default method."""
         self.grid_cell_keys: list[int] = []
         self._get_community_by_key = lambda key: DefaultCommunity()
+        self.territory_carcasses: Sequence[DecayPool] = []
 
     def update_territory(self, consumer_cohort: Consumer) -> None:
         """Default method."""

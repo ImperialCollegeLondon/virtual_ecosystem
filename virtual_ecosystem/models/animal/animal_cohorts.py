@@ -11,7 +11,6 @@ import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.decay import CarcassPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.protocols import (
     Consumer,
@@ -229,7 +228,9 @@ class AnimalCohort:
             self.is_mature = True
             self.time_to_maturity = self.age
 
-    def die_individual(self, number_dead: int, carcass_pool: DecayPool) -> None:
+    def die_individual(
+        self, number_dead: int, carcass_pools: Sequence[DecayPool]
+    ) -> None:
         """The function to reduce the number of individuals in the cohort through death.
 
         Currently, all cohorts are crafted as single km2 grid cohorts. This means that
@@ -242,12 +243,11 @@ class AnimalCohort:
         fixed once the litter pools are updated for mass.
 
         TODO: Rework after update litter pools for mass
-        TODO: MGO - rework for territories
 
         Args:
             number_dead: The number of individuals by which to decrease the population
                 count.
-            carcass_pool: The resident pool of animal carcasses to which the dead
+            carcass_pools: The resident pool of animal carcasses to which the dead
                 individuals are delivered.
 
         """
@@ -256,11 +256,7 @@ class AnimalCohort:
         # Find total mass contained in the carcasses
         carcass_mass = number_dead * self.mass_current
 
-        # Split this mass between carcass decay, and scavengeable carcasses
-        carcass_pool.scavengeable_energy += (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass
-        carcass_pool.decomposed_energy += self.decay_fraction_carcasses * carcass_mass
+        self.update_carcass_pool(carcass_mass, carcass_pools)
 
     def update_carcass_pool(
         self, carcass_mass: float, carcass_pools: Sequence[DecayPool]
@@ -820,7 +816,7 @@ class AnimalCohort:
         return min(1.0, probability_of_dispersal)
 
     def inflict_non_predation_mortality(
-        self, dt: float, carcass_pool: CarcassPool
+        self, dt: float, carcass_pools: Sequence[DecayPool]
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
@@ -829,7 +825,7 @@ class AnimalCohort:
 
         Args:
             dt: The time passed in the timestep (days).
-            carcass_pool: The local carcass pool to which dead individuals go.
+            carcass_pools: The local carcass pool to which dead individuals go.
 
         """
 
@@ -866,4 +862,4 @@ class AnimalCohort:
         number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
 
         # Remove the dead individuals from the cohort
-        self.die_individual(number_dead, carcass_pool)
+        self.die_individual(number_dead, carcass_pools)
