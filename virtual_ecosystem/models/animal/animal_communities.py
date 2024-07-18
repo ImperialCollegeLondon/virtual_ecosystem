@@ -247,13 +247,13 @@ class AnimalCommunity:
 
         A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
-        with age 0 and mass=birth_mass.
+        with age 0 and mass=birth_mass. A new territory, likely smaller b/c allometry,
+        is generated for the newborn cohort.
 
         The science here follows Madingley.
 
         TODO: Check whether Madingley discards excess reproductive mass.
         TODO: Rework birth mass for indirect developers.
-        TODO: MGO - cohorts are born at centroid
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new cohort.
@@ -421,7 +421,7 @@ class AnimalCommunity:
             total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
             cohort.excrete(
                 metabolic_waste_mass,
-                self.excrement_pool,
+                cohort.territory.territory_excrement,
             )
 
         # Update the total_animal_respiration for this community using community_key.
@@ -468,7 +468,6 @@ class AnimalCommunity:
         TODO: Build in a relationship between larval_cohort mass and adult cohort mass.
         TODO: Is adult_mass the correct mass threshold?
         TODO: If the time step drops below a month, this needs an intermediary stage.
-        TODO: MGO - metamorphose at centroid?
 
         Args:
             larval_cohort: The cohort in its larval stage to be transformed.
@@ -559,6 +558,7 @@ class DefaultTerritory(Territory):
         self.grid_cell_keys: list[int] = []
         self._get_community_by_key = lambda key: DefaultCommunity()
         self.territory_carcasses: Sequence[DecayPool] = []
+        self.territory_excrement: Sequence[DecayPool] = []
 
     def update_territory(self, consumer_cohort: Consumer) -> None:
         """Default method."""

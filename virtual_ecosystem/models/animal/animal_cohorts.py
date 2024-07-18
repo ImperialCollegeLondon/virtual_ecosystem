@@ -126,7 +126,9 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(self, excreta_mass: float, excrement_pool: DecayPool) -> None:
+    def excrete(
+        self, excreta_mass: float, excrement_pools: Sequence[DecayPool]
+    ) -> None:
         """Transfers nitrogenous metabolic wastes to the excrement pool.
 
         This method will not be fully implemented until the stoichiometric rework. All
@@ -137,13 +139,25 @@ class AnimalCohort:
 
         Args:
             excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
-            excrement_pool: The pool of wastes to which the excreted nitrogenous wastes
+            excrement_pools: The pools of waste to which the excreted nitrogenous wastes
                 flow.
 
         """
-        excrement_pool.decomposed_energy += (
-            excreta_mass * self.constants.nitrogen_excreta_proportion
-        )
+        # the number of communities over which the feces are to be distributed
+        number_communities = len(excrement_pools)
+
+        excreta_mass_per_community = (
+            excreta_mass / number_communities
+        ) * self.constants.nitrogen_excreta_proportion
+
+        for excrement_pool in excrement_pools:
+            # This total waste is then split between decay and scavengeable excrement
+            excrement_pool.scavengeable_energy += (
+                1 - self.decay_fraction_excrement
+            ) * excreta_mass_per_community
+            excrement_pool.decomposed_energy += (
+                self.decay_fraction_excrement * excreta_mass_per_community
+            )
 
     def respire(self, excreta_mass: float) -> float:
         """Transfers carbonaceous metabolic wastes to the atmosphere.
@@ -178,7 +192,6 @@ class AnimalCohort:
         TODO: Rework after update litter pools for mass
         TODO: update for current conversion efficiency
         TODO: Update with stoichiometry
-        TODO: MGO - rework for territories (if need be)
 
         Args:
             excrement_pools: The ExcrementPool objects in the cohort's territory in
@@ -289,8 +302,6 @@ class AnimalCohort:
 
         It finds the smallest whole number of prey required to satisfy the predators
         mass demands and caps at then caps it at the available population.
-
-        TODO: MGO - rework for territories
 
 
         Args:

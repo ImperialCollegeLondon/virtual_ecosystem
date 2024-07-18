@@ -83,6 +83,7 @@ class Territory(Protocol):
 
     grid_cell_keys: Sequence[int]
     territory_carcasses: Sequence[DecayPool]
+    territory_excrement: Sequence[DecayPool]
 
     def get_prey(self, consumer_cohort: Consumer) -> MutableSequence[Consumer]:
         """The get_prey method partially defines a territory."""
