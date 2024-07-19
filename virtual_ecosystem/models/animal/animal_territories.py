@@ -32,10 +32,13 @@ class AnimalTerritory:
 
     def __init__(
         self,
+        centroid: int,
         grid_cell_keys: list[int],
         get_community_by_key: Callable[[int], Community],
     ) -> None:
         # The constructor of the AnimalTerritory class.
+        self.centroid = centroid
+        """The centroid community of the territory (not technically a centroid)."""
         self.grid_cell_keys = grid_cell_keys
         """A list of grid cells present in the territory."""
         self.get_community_by_key = get_community_by_key

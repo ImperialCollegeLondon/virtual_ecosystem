@@ -68,11 +68,16 @@ class AnimalCommunity:
         """Callable get_community_by_key from AnimalModel."""
         self.constants = constants
         """Animal constants."""
-
         self.animal_cohorts: dict[str, list[AnimalCohort]] = {
             k.name: [] for k in self.functional_groups
         }
-        """A dictionary of lists of animal cohort keyed by functional group."""
+        """A dictionary of lists of animal cohorts keyed by functional group, containing
+        only those cohorts having their territory centroid in this community."""
+        self.occupancy: dict[str, dict[AnimalCohort, float]] = {
+            k.name: {} for k in self.functional_groups
+        }
+        """A dictionary of dictionaries of animal cohorts keyed by functional group and 
+        cohort, with the value being the occupancy percentage."""
         self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
         """A pool for animal carcasses within the community."""
         self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
@@ -85,7 +90,7 @@ class AnimalCommunity:
 
     @property
     def all_animal_cohorts(self) -> Iterable[AnimalCohort]:
-        """Get an iterable of all animal cohorts in the community.
+        """Get an iterable of all animal cohorts w/ proportion in the community.
 
         This property provides access to all the animal cohorts contained
         within this community class.
@@ -93,7 +98,9 @@ class AnimalCommunity:
         Returns:
             Iterable[AnimalCohort]: An iterable of AnimalCohort objects.
         """
-        return chain.from_iterable(self.animal_cohorts.values())
+        return chain.from_iterable(
+            cohort_dict.keys() for cohort_dict in self.occupancy.values()
+        )
 
     def initialize_territory(
         self,
@@ -130,9 +137,17 @@ class AnimalCommunity:
         )
 
         # Generate the territory
-        territory = AnimalTerritory(territory_cells, get_community_by_key)
+        territory = AnimalTerritory(centroid_key, territory_cells, get_community_by_key)
         # Add the territory to the cohort's attributes
         cohort.territory = territory
+
+        # Update the occupancy of the cohort in each community within the territory
+        occupancy_percentage = 1.0 / len(territory_cells)
+        for cell_key in territory_cells:
+            community = get_community_by_key(cell_key)
+            community.occupancy[cohort.functional_group.name][cohort] = (
+                occupancy_percentage
+            )
 
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
@@ -162,8 +177,11 @@ class AnimalCommunity:
                 DefaultTerritory(),
                 self.constants,
             )
-            # add the cohort to the community
+            # add the cohort to the community's list of animal cohorts @ centroid
             self.animal_cohorts[functional_group.name].append(cohort)
+
+            # add the cohort to the community with 100% occupancy initially
+            self.occupancy[functional_group.name][cohort] = 1.0
 
             # generate a territory for the cohort
             self.initialize_territory(
@@ -216,7 +234,7 @@ class AnimalCommunity:
             )
 
             if not migrate:
-                return
+                continue
 
             destination_key = random.choice(self.neighbouring_keys)
             destination = self.get_community_by_key(destination_key)
@@ -328,7 +346,6 @@ class AnimalCommunity:
 
         Cohorts with no remaining individuals post-foraging are marked for death.
 
-        TODO: MGO - forage over territory instead of community
 
         """
         # Generate the plant resources for foraging.
@@ -359,16 +376,14 @@ class AnimalCommunity:
     ) -> MutableSequence[AnimalCohort]:
         """Collect suitable prey for a given consumer cohort.
 
-        This is a helper function for forage_community to isolate the prey selection
-        functionality.
+        This is a helper function for territory.get_prey, it filters suitable prey from
+        the total list of animal cohorts across the territory.
 
         Args:
             consumer_cohort: The AnimalCohort for which a prey list is being collected
 
         Returns:
             A sequence of AnimalCohorts that can be preyed upon.
-
-        TODO: MGO - collect prey over territory
 
         """
         prey: MutableSequence = []
@@ -407,7 +422,6 @@ class AnimalCommunity:
         spatially explicit with multi-grid occupancy.
 
         TODO: Rework with stoichiometry
-        TODO: MGO - rework excretion for territories
 
         Args:
             temperature: Current air temperature (K).
