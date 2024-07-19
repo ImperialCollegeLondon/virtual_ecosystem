@@ -20,6 +20,7 @@ class Community(Protocol):
     carcass_pool: "DecayPool"
     excrement_pool: "DecayPool"
     plant_community: "Resource"
+    occupancy: dict[str, dict["Consumer", float]]
 
     def get_community_by_key(self, key: int) -> "Community":
         """Method to return a designated Community by integer key."""

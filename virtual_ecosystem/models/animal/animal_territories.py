@@ -65,6 +65,19 @@ class AnimalTerritory:
         self.territory_excrement = self.get_excrement_pools()
         self.territory_carcasses = self.get_carcass_pools()
 
+    def abandon_communities(self, cohort: Consumer) -> None:
+        """Removes the cohort from the occupancy of every community.
+
+        This method is for use in death or re-initializing territories.
+
+        Args:
+            cohort: The cohort to be removed from the occupancy lists.
+        """
+        for cell_id in self.grid_cell_keys:
+            community = self.get_community_by_key(cell_id)
+            if cohort in community.occupancy[cohort.functional_group.name]:
+                del community.occupancy[cohort.functional_group.name][cohort]
+
     def get_prey(self, consumer_cohort: Consumer) -> MutableSequence[Consumer]:
         """Collect suitable prey from all grid cells in the territory.
 
