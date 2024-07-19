@@ -44,6 +44,8 @@ subtrees:
           - file: using_the_ve/configuration/constants
       - file: using_the_ve/data/data
         title: Adding data to the model
+        entries:
+          - file: using_the_ve/data/notes_preprocessing
 
   - caption: Development
     entries:
