@@ -149,6 +149,26 @@ class AnimalCommunity:
                 occupancy_percentage
             )
 
+    def reinitialize_territory(
+        self,
+        cohort: AnimalCohort,
+        centroid_key: int,
+        get_community_by_key: Callable[[int], AnimalCommunity],
+    ) -> None:
+        """This initializes the territory occupied by the cohort.
+
+        TODO: update the territory size to cell number conversion using grid size
+
+        Args:
+            cohort: The animal cohort occupying the territory.
+            centroid_key: The community key anchoring the territory.
+            get_community_by_key: The method for accessing animal communities by key.
+        """
+        # remove existing occupancies
+        cohort.territory.abandon_communities(cohort)
+        # reinitialize the territory
+        self.initialize_territory(cohort, centroid_key, get_community_by_key)
+
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
 
@@ -208,8 +228,8 @@ class AnimalCommunity:
         self.animal_cohorts[migrant.name].remove(migrant)
         destination.animal_cohorts[migrant.name].append(migrant)
 
-        # regenerate a territory for the cohort at the destination community
-        self.initialize_territory(
+        # Regenerate a territory for the cohort at the destination community
+        destination.reinitialize_territory(
             migrant,
             destination.community_key,
             destination.get_community_by_key,
@@ -599,3 +619,7 @@ class DefaultTerritory(Territory):
     ) -> MutableSequence[DecayPool]:
         """Default method."""
         return []
+
+    def abandon_communities(self, consumer_cohort: Consumer) -> None:
+        """Default method."""
+        pass

@@ -107,3 +107,7 @@ class Territory(Protocol):
     ) -> MutableSequence[DecayPool]:
         """The find_intersecting_carcass_pools method partially defines a territory."""
         ...
+
+    def abandon_communities(self, consumer_cohort: Consumer) -> None:
+        """The abandon_communities method partially defines a territory."""
+        ...
