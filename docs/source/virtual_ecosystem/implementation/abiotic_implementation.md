@@ -14,7 +14,7 @@ kernelspec:
 
 # The abiotic model implementation
 
-```{note}
+```{warning}
 The process-based abiotic model is still under development and currently not available
 for Virtual Ecosystem simulations with `ve_run`. This page provides a brief summary of
 the current status and the directions in which we aim to take the model development
@@ -24,7 +24,8 @@ forward.
 ## Required variables
 
 The tables below show the variables that are required to initialise the abiotic model
-and then update it at each time step.
+and then update it at each time step. Please check also the
+[notes on climate data pre-processing](../../using_the_ve/data/notes_preprocessing.md).
 
 ```{code-cell} ipython3
 ---
@@ -129,8 +130,8 @@ The air temperature surrounding the leaf $T_{A}$ is assumed to be influenced
 by leaf temperature $T_{L}$, soil temperature $T_{0}$, and reference air
 temperature $T_{R}$ as follows:
 
-$$g_{tR} c_{p} (T_{R} - T_{A}) + g_{t0} c_{p} (T_{0} - T_{A})
-+ g_{L} c_{p} (T_{L} - T_{A}) = 0$$
+$$g_{tR} c_{p} (T_{R} - T_{A}) + g_{t0} c_{p} (T_{0} - T_{A}) + g_{L} c_{p} (T_{L} - T_{A})
+= 0$$
 
 where $c_{p}$ is the specific heat of air at constant pressure and
 $g_{tR}$, $g_{t0}$ and $g_{L}$ are conductance from reference
