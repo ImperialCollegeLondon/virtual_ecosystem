@@ -43,7 +43,7 @@ class AnimalTerritory:
         """A list of grid cells present in the territory."""
         self.get_community_by_key = get_community_by_key
         """A list of animal communities present in the territory."""
-        self.territory_prey: Sequence[Consumer] = []
+        # self.territory_prey: Sequence[Consumer] = []
         """A list of animal prey present in the territory."""
         self.territory_plants: Sequence[Resource] = []
         """A list of plant resources present in the territory."""
@@ -60,7 +60,7 @@ class AnimalTerritory:
 
         """
 
-        self.territory_prey = self.get_prey(consumer_cohort)
+        # self.territory_prey = self.get_prey(consumer_cohort)
         self.territory_plants = self.get_plant_resources()
         self.territory_excrement = self.get_excrement_pools()
         self.territory_carcasses = self.get_carcass_pools()

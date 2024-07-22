@@ -21,32 +21,46 @@ class TestAnimalTerritories:
         from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
 
         return AnimalTerritory(
-            grid_cell_keys=[1, 2, 3], get_community_by_key=get_community_by_key
+            centroid=0,
+            grid_cell_keys=[1, 2, 3],
+            get_community_by_key=get_community_by_key,
+        )
+
+    @pytest.fixture
+    def mock_get_plant_resources(self, mocker, animal_territory_instance):
+        """Mock get_plant_resources method."""
+        return mocker.patch.object(
+            animal_territory_instance, "get_plant_resources", return_value=[]
+        )
+
+    @pytest.fixture
+    def mock_get_excrement_pools(self, mocker, animal_territory_instance):
+        """Mock get_excrement_pools method."""
+        return mocker.patch.object(
+            animal_territory_instance, "get_excrement_pools", return_value=[]
+        )
+
+    @pytest.fixture
+    def mock_get_carcass_pools(self, mocker, animal_territory_instance):
+        """Mock get_carcass_pools method."""
+        return mocker.patch.object(
+            animal_territory_instance, "get_carcass_pools", return_value=[]
         )
 
     def test_update_territory(
-        self, mocker, animal_territory_instance, herbivore_cohort_instance
+        self,
+        animal_territory_instance,
+        herbivore_cohort_instance,
+        mock_get_plant_resources,
+        mock_get_excrement_pools,
+        mock_get_carcass_pools,
     ):
         """Test for update_territory method."""
-        mock_get_prey = mocker.patch.object(
-            animal_territory_instance, "get_prey", return_value=[]
-        )
-        mock_get_plant_resources = mocker.patch.object(
-            animal_territory_instance, "get_plant_resources", return_value=[]
-        )
-        mock_get_excrement_pools = mocker.patch.object(
-            animal_territory_instance, "get_excrement_pools", return_value=[]
-        )
-        mock_get_carcass_pool = mocker.patch.object(
-            animal_territory_instance, "get_carcass_pool", return_value=[]
-        )
-
         animal_territory_instance.update_territory(herbivore_cohort_instance)
 
-        mock_get_prey.assert_called_once_with(herbivore_cohort_instance)
         mock_get_plant_resources.assert_called_once()
         mock_get_excrement_pools.assert_called_once()
-        mock_get_carcass_pool.assert_called_once()
+        mock_get_carcass_pools.assert_called_once()
 
     def test_get_prey(
         self,
@@ -83,14 +97,74 @@ class TestAnimalTerritories:
         for excrement in excrement_pools:
             assert isinstance(excrement, ExcrementPool)
 
-    def test_get_carcass_pool(self, animal_territory_instance):
+    def test_get_carcass_pools(self, animal_territory_instance):
         """Test for get carcass pool method."""
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
-        carcass_pools = animal_territory_instance.get_carcass_pool()
+        carcass_pools = animal_territory_instance.get_carcass_pools()
         assert len(carcass_pools) == len(animal_territory_instance.grid_cell_keys)
         for carcass in carcass_pools:
             assert isinstance(carcass, CarcassPool)
+
+    @pytest.fixture
+    def mock_carcass_pool(self, mocker):
+        """Fixture for a mock CarcassPool."""
+        mock_pool = mocker.Mock()
+        mock_pool.scavengeable_energy = 10000.0
+        mock_pool.decomposed_energy = 0.0
+        return mock_pool
+
+    @pytest.fixture
+    def mock_community(self, mocker, mock_carcass_pool):
+        """Fixture for a mock AnimalCommunity with a carcass pool."""
+        community_mock = mocker.Mock()
+        community_mock.carcass_pool = mock_carcass_pool
+        return community_mock
+
+    @pytest.fixture
+    def mock_get_community_by_key(self, mocker, mock_community):
+        """Fixture for get_community_by_key, returning a mock community."""
+        return mocker.Mock(side_effect=lambda key: mock_community)
+
+    @pytest.fixture
+    def animal_territory_instance_1(self, mock_get_community_by_key):
+        """Fixture for the first animal territory with mock get_community_by_key."""
+        from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
+
+        return AnimalTerritory(
+            centroid=0,
+            grid_cell_keys=[1, 2, 3],
+            get_community_by_key=mock_get_community_by_key,
+        )
+
+    @pytest.fixture
+    def animal_territory_instance_2(self, mock_get_community_by_key):
+        """Fixture for the second animal territory with mock get_community_by_key."""
+        from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
+
+        return AnimalTerritory(
+            centroid=1,
+            grid_cell_keys=[2, 3, 4],
+            get_community_by_key=mock_get_community_by_key,
+        )
+
+    def test_find_intersecting_carcass_pools(
+        self,
+        animal_territory_instance_1,
+        animal_territory_instance_2,
+        mock_carcass_pool,
+    ):
+        """Test for find_intersecting_carcass_pools method."""
+        intersecting_pools = (
+            animal_territory_instance_1.find_intersecting_carcass_pools(
+                animal_territory_instance_2
+            )
+        )
+
+        # Since the same mock object is returned, we need to repeat it for the
+        # expected value.
+        expected_pools = [mock_carcass_pool, mock_carcass_pool]
+        assert intersecting_pools == expected_pools
 
 
 @pytest.mark.parametrize(

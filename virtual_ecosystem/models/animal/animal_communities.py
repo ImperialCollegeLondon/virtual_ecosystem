@@ -213,8 +213,9 @@ class AnimalCommunity:
     def migrate(self, migrant: AnimalCohort, destination: AnimalCommunity) -> None:
         """Function to move an AnimalCohort between AnimalCommunity objects.
 
-        This function should take a cohort and a destination community and then pop the
-        cohort from this community to the destination.
+        This function takes a cohort and a destination community, changes the
+        centroid of the cohort's territory to be the new community, and then
+        reinitializes the territory around the new centroid.
 
         TODO: travel distance should be a function of body-size or locomotion once
               multi-grid occupancy is integrated.
@@ -236,7 +237,7 @@ class AnimalCommunity:
         )
 
     def migrate_community(self) -> None:
-        """This handles migrating all cohorts in a community.
+        """This handles migrating all cohorts with a centroid in the community.
 
         This migration method initiates migration for two reasons:
         1) The cohort is starving and needs to move for a chance at resource access
@@ -398,6 +399,8 @@ class AnimalCommunity:
 
         This is a helper function for territory.get_prey, it filters suitable prey from
         the total list of animal cohorts across the territory.
+
+        TODO: possibly moved to be a territory method
 
         Args:
             consumer_cohort: The AnimalCohort for which a prey list is being collected
