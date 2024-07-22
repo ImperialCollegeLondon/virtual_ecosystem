@@ -5,6 +5,7 @@ This module tests the functionality of the litter chemistry module
 
 import numpy as np
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
@@ -85,3 +86,23 @@ def test_calculate_change_in_lignin(dummy_litter_data):
     )
 
     assert np.allclose(actual_lignin, expected_lignin)
+
+
+def test_calculate_N_mineralisation(dummy_litter_data, decay_rates):
+    """Test that function to calculate nitrogen mineralisation rate works properly."""
+
+    from virtual_ecosystem.models.litter.chemistry import calculate_N_mineralisation
+
+    expected_n_mineral = [0.0066373295, 0.0043192466, 0.0009099071, 0.0009765675]
+
+    actual_n_mineral = calculate_N_mineralisation(
+        decay_rates=decay_rates,
+        c_n_ratio_above_metabolic=dummy_litter_data["c_n_ratio_above_metabolic"],
+        c_n_ratio_above_structural=dummy_litter_data["c_n_ratio_above_structural"],
+        c_n_ratio_woody=dummy_litter_data["c_n_ratio_woody"],
+        c_n_ratio_below_metabolic=dummy_litter_data["c_n_ratio_below_metabolic"],
+        c_n_ratio_below_structural=dummy_litter_data["c_n_ratio_below_structural"],
+        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+    )
+
+    assert np.allclose(actual_n_mineral, expected_n_mineral)

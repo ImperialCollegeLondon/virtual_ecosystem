@@ -52,36 +52,6 @@ def temp_and_water_factors(dummy_litter_data, fixture_core_components):
     }
 
 
-@pytest.fixture
-def decay_rates(dummy_litter_data, fixture_core_components):
-    """Decay rates for the various litter pools."""
-
-    from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
-
-    decay_rates = calculate_decay_rates(
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
-        lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
-        lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
-        lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
-        surface_temp=dummy_litter_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ].to_numpy(),
-        topsoil_temp=dummy_litter_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        water_potential=dummy_litter_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        constants=LitterConsts,
-    )
-
-    return decay_rates
-
-
 def test_calculate_decay_rates(dummy_litter_data, fixture_core_components):
     """Test that calculation of the decay rates works as expected."""
     from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
