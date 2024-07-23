@@ -204,12 +204,19 @@ def herbivore_functional_group_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def herbivore_cohort_instance(herbivore_functional_group_instance, constants_instance):
+def herbivore_cohort_instance(
+    herbivore_functional_group_instance, animal_territory_instance, constants_instance
+):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
-        herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
+        herbivore_functional_group_instance,
+        10000.0,
+        1,
+        10,
+        animal_territory_instance,
+        constants_instance,
     )
 
 
@@ -228,13 +235,18 @@ def caterpillar_functional_group_instance(shared_datadir, constants_instance):
 
 @pytest.fixture
 def caterpillar_cohort_instance(
-    caterpillar_functional_group_instance, constants_instance
+    caterpillar_functional_group_instance, animal_territory_instance, constants_instance
 ):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
-        caterpillar_functional_group_instance, 1.0, 1, 100, constants_instance
+        caterpillar_functional_group_instance,
+        1.0,
+        1,
+        100,
+        animal_territory_instance,
+        constants_instance,
     )
 
 
@@ -293,13 +305,42 @@ def plant_list_instance(plant_data_instance, constants_instance):
 
 
 @pytest.fixture
-def animal_list_instance(herbivore_functional_group_instance, constants_instance):
+def animal_list_instance(
+    herbivore_functional_group_instance, animal_territory_instance, constants_instance
+):
     """Fixture providing a list of animal cohorts."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return [
         AnimalCohort(
-            herbivore_functional_group_instance, 10000.0, 1, 10, constants_instance
+            herbivore_functional_group_instance,
+            10000.0,
+            1,
+            10,
+            animal_territory_instance,
+            constants_instance,
         )
         for idx in range(3)
     ]
+
+
+@pytest.fixture
+def get_community_by_key(animal_community_instance):
+    """Fixture for get_community_by_key."""
+
+    def _get_community_by_key(key):
+        return animal_community_instance
+
+    return _get_community_by_key
+
+
+@pytest.fixture
+def animal_territory_instance(get_community_by_key):
+    """Fixture for animal territories."""
+    from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
+
+    return AnimalTerritory(
+        centroid=0,
+        grid_cell_keys=[1, 2, 3],
+        get_community_by_key=get_community_by_key,
+    )

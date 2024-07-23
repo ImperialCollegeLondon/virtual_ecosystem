@@ -7,26 +7,6 @@ class TestAnimalTerritories:
     """For testing the AnimalTerritories class."""
 
     @pytest.fixture
-    def get_community_by_key(self, animal_community_instance):
-        """Fixture for get_community_by_key."""
-
-        def _get_community_by_key(key):
-            return animal_community_instance
-
-        return _get_community_by_key
-
-    @pytest.fixture
-    def animal_territory_instance(self, get_community_by_key):
-        """Fixture for animal territories."""
-        from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
-
-        return AnimalTerritory(
-            centroid=0,
-            grid_cell_keys=[1, 2, 3],
-            get_community_by_key=get_community_by_key,
-        )
-
-    @pytest.fixture
     def mock_get_plant_resources(self, mocker, animal_territory_instance):
         """Mock get_plant_resources method."""
         return mocker.patch.object(
