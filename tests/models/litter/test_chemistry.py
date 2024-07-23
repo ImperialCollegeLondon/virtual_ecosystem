@@ -102,7 +102,7 @@ def test_calculate_N_mineralisation(dummy_litter_data, decay_rates):
         c_n_ratio_woody=dummy_litter_data["c_n_ratio_woody"],
         c_n_ratio_below_metabolic=dummy_litter_data["c_n_ratio_below_metabolic"],
         c_n_ratio_below_structural=dummy_litter_data["c_n_ratio_below_structural"],
-        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
     )
 
     assert np.allclose(actual_n_mineral, expected_n_mineral)

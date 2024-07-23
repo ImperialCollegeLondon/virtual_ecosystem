@@ -411,6 +411,7 @@ def test_update(fixture_litter_model, dummy_litter_data):
     end_c_n_below_metabolic = [10.7, 11.3, 15.2, 12.4]
     end_c_n_below_structural = [50.5, 55.6, 73.1, 61.2]
     c_mineral = [0.02987233, 0.02316114, 0.00786517, 0.00786517]
+    n_mineral = [0.0066373295, 0.0043192466, 0.0009099071, 0.0009765675]
 
     fixture_litter_model.update(time_index=0)
 
@@ -445,3 +446,4 @@ def test_update(fixture_litter_model, dummy_litter_data):
         dummy_litter_data["c_n_ratio_below_structural"], end_c_n_below_structural
     )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
+    assert np.allclose(dummy_litter_data["litter_N_mineralisation_rate"], n_mineral)

@@ -50,7 +50,10 @@ from virtual_ecosystem.models.litter.carbon import (
     calculate_total_C_mineralised,
     calculate_updated_pools,
 )
-from virtual_ecosystem.models.litter.chemistry import calculate_lignin_updates
+from virtual_ecosystem.models.litter.chemistry import (
+    calculate_lignin_updates,
+    calculate_N_mineralisation,
+)
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.input_partition import (
     calculate_litter_input_lignin_concentrations,
@@ -120,8 +123,12 @@ class LitterModel(
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
         "litter_C_mineralisation_rate",
+        "litter_N_mineralisation_rate",
     ),
-    vars_populated_by_first_update=("litter_C_mineralisation_rate",),
+    vars_populated_by_first_update=(
+        "litter_C_mineralisation_rate",
+        "litter_N_mineralisation_rate",
+    ),
 ):
     """A class defining the litter model.
 
@@ -276,11 +283,24 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        # Calculate the total mineralisation of carbon from the litter
+        # Calculate the total mineralisation rates from the litter
         total_C_mineralisation_rate = calculate_total_C_mineralised(
             decay_rates,
             model_constants=self.model_constants,
             core_constants=self.core_constants,
+        )
+        total_N_mineralisation_rate = calculate_N_mineralisation(
+            decay_rates=decay_rates,
+            c_n_ratio_above_metabolic=self.data["c_n_ratio_above_metabolic"].to_numpy(),
+            c_n_ratio_above_structural=self.data[
+                "c_n_ratio_above_structural"
+            ].to_numpy(),
+            c_n_ratio_woody=self.data["c_n_ratio_woody"].to_numpy(),
+            c_n_ratio_below_metabolic=self.data["c_n_ratio_below_metabolic"].to_numpy(),
+            c_n_ratio_below_structural=self.data[
+                "c_n_ratio_below_structural"
+            ].to_numpy(),
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
         # Find the plant inputs to each of the litter pools
@@ -324,6 +344,7 @@ class LitterModel(
             ).magnitude,
         )
 
+        # TODO - Is this a sensible place for like a nutrient pools object?
         # Find lignin concentration of the litter input flows
         input_lignin = calculate_litter_input_lignin_concentrations(
             deadwood_lignin_proportion=self.data["deadwood_lignin"].to_numpy(),
@@ -403,6 +424,9 @@ class LitterModel(
             ),
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
+            ),
+            "litter_N_mineralisation_rate": DataArray(
+                total_N_mineralisation_rate, dims="cell_id"
             ),
         }
 

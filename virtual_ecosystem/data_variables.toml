@@ -630,6 +630,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Rate of nitrogen addition to soil from litter"
+name = "litter_N_mineralisation_rate"
+unit = "kg N m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Proportion of above ground structural pool which is lignin"
 name = "lignin_above_structural"
 unit = "kg lignin kg C^-1"

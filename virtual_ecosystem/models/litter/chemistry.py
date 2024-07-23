@@ -132,7 +132,7 @@ def calculate_N_mineralisation(
     c_n_ratio_woody: NDArray[np.float32],
     c_n_ratio_below_metabolic: NDArray[np.float32],
     c_n_ratio_below_structural: NDArray[np.float32],
-    max_depth_of_microbial_activity: float,
+    active_microbe_depth: float,
 ) -> dict[str, NDArray[np.float32]]:
     """Function to calculate the amount of nitrogen mineralised by litter decay.
 
@@ -155,8 +155,7 @@ def calculate_N_mineralisation(
             [unitless]
         c_n_ratio_below_structural: Carbon nitrogen ratio of below ground structural
             pool [unitless]
-        max_depth_of_microbial_activity: Maximum depth of microbial activity in the soil
-            layers [m]
+        active_microbe_depth: Maximum depth of microbial activity in the soil layers [m]
 
     Returns:
         The total rate of nitrogen mineralisation from litter [kg C m^-3 day^-1].
@@ -183,4 +182,4 @@ def calculate_N_mineralisation(
     )
 
     # Convert from per area to per volume units
-    return total_N_mineralisation_rate / max_depth_of_microbial_activity
+    return total_N_mineralisation_rate / active_microbe_depth
