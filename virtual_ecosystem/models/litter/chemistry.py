@@ -50,23 +50,23 @@ def calculate_lignin_updates(
         m^-2]
     """
 
-    change_in_lignin_above_structural = calculate_change_in_lignin(
+    change_in_lignin_above_structural = calculate_change_in_chemical_concentration(
         input_carbon=plant_inputs["above_ground_structural"],
         updated_pool_carbon=updated_pools["above_structural"],
-        input_lignin=input_lignin["above_structural"],
-        old_pool_lignin=lignin_above_structural,
+        input_conc=input_lignin["above_structural"],
+        old_pool_conc=lignin_above_structural,
     )
-    change_in_lignin_woody = calculate_change_in_lignin(
+    change_in_lignin_woody = calculate_change_in_chemical_concentration(
         input_carbon=plant_inputs["woody"],
         updated_pool_carbon=updated_pools["woody"],
-        input_lignin=input_lignin["woody"],
-        old_pool_lignin=lignin_woody,
+        input_conc=input_lignin["woody"],
+        old_pool_conc=lignin_woody,
     )
-    change_in_lignin_below_structural = calculate_change_in_lignin(
+    change_in_lignin_below_structural = calculate_change_in_chemical_concentration(
         input_carbon=plant_inputs["below_ground_structural"],
         updated_pool_carbon=updated_pools["below_structural"],
-        input_lignin=input_lignin["below_structural"],
-        old_pool_lignin=lignin_below_structural,
+        input_conc=input_lignin["below_structural"],
+        old_pool_conc=lignin_below_structural,
     )
 
     return {
@@ -96,33 +96,38 @@ def calculate_litter_chemistry_factor(
     return np.exp(lignin_inhibition_factor * lignin_proportion)
 
 
-def calculate_change_in_lignin(
+def calculate_change_in_chemical_concentration(
     input_carbon: NDArray[np.float32],
     updated_pool_carbon: NDArray[np.float32],
-    input_lignin: NDArray[np.float32],
-    old_pool_lignin: NDArray[np.float32],
+    input_conc: NDArray[np.float32],
+    old_pool_conc: NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    """Calculate the change in the lignin concentration of a particular litter pool.
+    """Calculate the change in the chemical concentration of a particular litter pool.
 
-    This change is found by calculating the difference between the previous lignin
-    concentration of the pool and the lignin concentration of the inputs. This
-    difference is then multiplied by the ratio of the mass of carbon added to pool and
-    the final (carbon) mass of the pool.
+    This change is found by calculating the difference between the previous
+    concentration of the pool and the concentration of the inputs. This difference is
+    then multiplied by the ratio of the mass of carbon added to pool and the final
+    (carbon) mass of the pool. This function can be used for all chemicals of interest,
+    i.e. lignin, nitrogen and phosphorus. This function is agnostic to concentration
+    type, so either proportions of total carbon or carbon:nutrient ratios can be
+    used. However, the concentration type used must be the same for the old pool and the
+    litter input.
 
     Args:
         input_carbon: The total carbon mass of inputs to the litter pool [kg C m^-2]
         updated_pool_carbon: The total carbon mass of the litter pool after inputs and
             decay [kg C m^-2]
-        input_lignin: The proportion of the input carbon that is lignin [unitless]
-        old_pool_lignin: The proportion of the carbon mass of the original litter pool
-            that was lignin [unitless]
+        input_conc: The concentration of the chemical of interest in the (carbon) input
+            [unitless]
+        old_pool_conc: The concentration of the chemical of interest in the original
+            litter pool [unitless]
 
     Returns:
-        The total change in the lignin concentration of the pool over the full time step
-        [unitless]
+        The total change in the chemical concentration of the pool over the full time
+        step [unitless]
     """
 
-    return (input_carbon / (updated_pool_carbon)) * (input_lignin - old_pool_lignin)
+    return (input_carbon / updated_pool_carbon) * (input_conc - old_pool_conc)
 
 
 def calculate_N_mineralisation(
