@@ -45,6 +45,7 @@ class AbioticSimpleModel(
         "leaf_area_index",
         "layer_heights",
         "wind_speed_ref",
+        "mean_annual_temperature",
     ),
     vars_updated=(
         "air_temperature",
@@ -67,6 +68,7 @@ class AbioticSimpleModel(
         "layer_heights",
         "sensible_heat_flux",
         "wind_speed_ref",
+        "mean_annual_temperature",
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",

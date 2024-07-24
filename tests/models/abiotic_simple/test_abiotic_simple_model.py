@@ -20,6 +20,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
     (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
 ]
 
 
