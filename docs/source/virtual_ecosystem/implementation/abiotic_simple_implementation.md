@@ -128,7 +128,7 @@ mystnb:
 display_markdown(
     generate_variable_table(
         'AbioticSimpleModel', 
-        ['vars_populated_by_init', 'vars_populated_by_first_update']
+        ['vars_populated_by_init']
     ), 
     raw=True
 )

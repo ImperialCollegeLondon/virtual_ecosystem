@@ -19,7 +19,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
-    (DEBUG, "abiotic_simple model: required var 'topofcanopy_radiation' checked"),
+    (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
 ]
 
 
@@ -209,11 +209,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "canopy_absorption",
-        "canopy_temperature",
         "sensible_heat_flux",
-        "latent_heat_flux",
-        "ground_heat_flux",
         "wind_speed",
         "molar_density_air",
         "specific_heat_air",
@@ -263,6 +259,7 @@ def test_update_wind(dummy_climate_data_varying_canopy, fixture_core_components)
     microclimate_data = {}
     microclimate_data["air_temperature"] = data["air_temperature"]
     microclimate_data["atmospheric_pressure"] = data["atmospheric_pressure"]
+    microclimate_data["sensible_heat_flux"] = data["sensible_heat_flux"]
 
     result = update_wind(
         data=data,

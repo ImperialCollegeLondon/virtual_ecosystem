@@ -24,7 +24,6 @@ from virtual_ecosystem.core.core_components import (
 )
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic import energy_balance
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 from virtual_ecosystem.models.abiotic_simple import microclimate
@@ -45,7 +44,7 @@ class AbioticSimpleModel(
         "atmospheric_co2_ref",
         "leaf_area_index",
         "layer_heights",
-        "topofcanopy_radiation",
+        "wind_speed_ref",
     ),
     vars_updated=(
         "air_temperature",
@@ -67,6 +66,7 @@ class AbioticSimpleModel(
         "leaf_area_index",
         "layer_heights",
         "sensible_heat_flux",
+        "wind_speed_ref",
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
@@ -74,14 +74,10 @@ class AbioticSimpleModel(
         "vapour_pressure_deficit_ref",
         "air_temperature",
         "relative_humidity",
-        "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "canopy_absorption",
-        "canopy_temperature",
+        "vapour_pressure_deficit",
         "sensible_heat_flux",
-        "latent_heat_flux",
-        "ground_heat_flux",
         "wind_speed",
         "molar_density_air",
         "specific_heat_air",
@@ -183,19 +179,10 @@ class AbioticSimpleModel(
             constants=self.model_constants,
             bounds=AbioticSimpleBounds(),
         )
-        initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
-            air_temperature=initial_microclimate["air_temperature"],
-            topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
-            leaf_area_index=self.data["leaf_area_index"],
-            layer_heights=self.data["layer_heights"],
-            layer_structure=self.layer_structure,
-            light_extinction_coefficient=(
-                self.abiotic_constants.light_extinction_coefficient
-            ),
-            canopy_temperature_ini_factor=(
-                self.abiotic_constants.canopy_temperature_ini_factor
-            ),
-        )
+
+        # Sensible heat flux is a required variable for the wind update
+        self.data["sensible_heat_flux"] = self.layer_structure.from_template()
+        self.data["sensible_heat_flux"][self.layer_structure.index_flux_layers] = 0
 
         initial_wind = update_wind(
             data=self.data,
@@ -209,7 +196,6 @@ class AbioticSimpleModel(
         # Update data object
         for output_dict in (
             initial_microclimate,
-            initial_canopy_and_soil,
             initial_wind,
         ):
             self.data.add_from_dict(output_dict=output_dict)
