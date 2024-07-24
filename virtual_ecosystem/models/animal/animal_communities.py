@@ -98,6 +98,18 @@ class AnimalCommunity:
         Returns:
             Iterable[AnimalCohort]: An iterable of AnimalCohort objects.
         """
+        return chain.from_iterable(self.animal_cohorts.values())
+
+    @property
+    def all_occupying_cohorts(self) -> Iterable[AnimalCohort]:
+        """Get an iterable of all occupying cohorts w/ proportion in the community.
+
+        This property provides access to all the animal cohorts contained
+        within this community class.
+
+        Returns:
+            Iterable[AnimalCohort]: An iterable of AnimalCohort objects.
+        """
         return chain.from_iterable(
             cohort_dict.keys() for cohort_dict in self.occupancy.values()
         )
@@ -111,6 +123,7 @@ class AnimalCommunity:
         """This initializes the territory occupied by the cohort.
 
         TODO: update the territory size to cell number conversion using grid size
+        TODO: needs test
 
         Args:
             cohort: The animal cohort occupying the territory.
@@ -158,6 +171,7 @@ class AnimalCommunity:
         """This initializes the territory occupied by the cohort.
 
         TODO: update the territory size to cell number conversion using grid size
+        TODO: needs test
 
         Args:
             cohort: The animal cohort occupying the territory.
@@ -245,14 +259,17 @@ class AnimalCommunity:
 
         TODO: MGO - migrate distance mod for larger territories?
 
+
         """
         for cohort in self.all_animal_cohorts:
-            migrate = cohort.is_below_mass_threshold(
+            is_starving = cohort.is_below_mass_threshold(
                 self.constants.dispersal_mass_threshold
-            ) or (
+            )
+            is_juvenile_and_migrate = (
                 cohort.age == 0.0
                 and random.random() <= cohort.migrate_juvenile_probability()
             )
+            migrate = is_starving or is_juvenile_and_migrate
 
             if not migrate:
                 continue

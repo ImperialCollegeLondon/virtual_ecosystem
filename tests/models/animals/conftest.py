@@ -264,12 +264,19 @@ def butterfly_functional_group_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def butterfly_cohort_instance(butterfly_functional_group_instance, constants_instance):
+def butterfly_cohort_instance(
+    butterfly_functional_group_instance, animal_territory_instance, constants_instance
+):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
-        butterfly_functional_group_instance, 1.0, 1, 100, constants_instance
+        butterfly_functional_group_instance,
+        1.0,
+        1,
+        100,
+        animal_territory_instance,
+        constants_instance,
     )
 
 
