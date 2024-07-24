@@ -12,12 +12,21 @@ from __future__ import annotations
 
 from typing import Any
 
+from xarray import DataArray
+
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
-from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.core_components import (
+    CoreComponents,
+    CoreConsts,
+    LayerStructure,
+)
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 from virtual_ecosystem.models.abiotic_simple import microclimate
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
@@ -32,6 +41,11 @@ class AbioticSimpleModel(
     vars_required_for_init=(
         "air_temperature_ref",
         "relative_humidity_ref",
+        "atmospheric_pressure_ref",
+        "atmospheric_co2_ref",
+        "leaf_area_index",
+        "layer_heights",
+        "topofcanopy_radiation",
     ),
     vars_updated=(
         "air_temperature",
@@ -40,6 +54,9 @@ class AbioticSimpleModel(
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
+        "molar_density_air",
+        "specific_heat_air",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -49,19 +66,27 @@ class AbioticSimpleModel(
         "atmospheric_co2_ref",
         "leaf_area_index",
         "layer_heights",
+        "sensible_heat_flux",
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
-    ),
-    vars_populated_by_first_update=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "canopy_absorption",
+        "canopy_temperature",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+        "ground_heat_flux",
+        "wind_speed",
+        "molar_density_air",
+        "specific_heat_air",
     ),
+    vars_populated_by_first_update=(),
 ):
     """A class describing the abiotic simple model.
 
@@ -84,6 +109,8 @@ class AbioticSimpleModel(
         """Set of constants for the abiotic simple model"""
         self.bounds = AbioticSimpleBounds()
         """Upper and lower bounds for abiotic variables."""
+        self.abiotic_constants = AbioticConsts()
+        """Set of constants shared with the process-based abiotic model."""
 
     @classmethod
     def from_config(
@@ -122,6 +149,10 @@ class AbioticSimpleModel(
         This function initializes soil temperature for all soil layers and calculates
         the reference vapour pressure deficit for all time steps. Both variables are
         added directly to the self.data object.
+
+        The function also creates initial profiles of microclimatic variables and
+        sets fluxes to zero (this is required for the hydrology model and held constant
+        over the simulation).
         """
 
         # create soil temperature array
@@ -142,6 +173,47 @@ class AbioticSimpleModel(
             "vapour_pressure"
         ]
 
+        # Generate initial profiles of air temperature [C], relative humidity [-],
+        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
+        initial_microclimate = microclimate.run_microclimate(
+            data=self.data,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            constants=self.model_constants,
+            bounds=AbioticSimpleBounds(),
+        )
+        initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
+            air_temperature=initial_microclimate["air_temperature"],
+            topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
+            leaf_area_index=self.data["leaf_area_index"],
+            layer_heights=self.data["layer_heights"],
+            layer_structure=self.layer_structure,
+            light_extinction_coefficient=(
+                self.abiotic_constants.light_extinction_coefficient
+            ),
+            canopy_temperature_ini_factor=(
+                self.abiotic_constants.canopy_temperature_ini_factor
+            ),
+        )
+
+        initial_wind = update_wind(
+            data=self.data,
+            microclimate_data=initial_microclimate,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            abiotic_constants=self.abiotic_constants,
+            core_constants=self.core_constants,
+        )
+
+        # Update data object
+        for output_dict in (
+            initial_microclimate,
+            initial_canopy_and_soil,
+            initial_wind,
+        ):
+            self.data.add_from_dict(output_dict=output_dict)
+
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
 
@@ -155,14 +227,83 @@ class AbioticSimpleModel(
 
         # This section performs a series of calculations to update the variables in the
         # abiotic model. The updated variables are then added to the data object.
-        output_variables = microclimate.run_microclimate(
+        microclimate_out = microclimate.run_microclimate(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=time_index,
             constants=self.model_constants,
             bounds=self.bounds,
         )
-        self.data.add_from_dict(output_dict=output_variables)
+
+        wind_out = update_wind(
+            data=self.data,
+            microclimate_data=microclimate_out,
+            layer_structure=self.layer_structure,
+            time_index=time_index,
+            abiotic_constants=self.abiotic_constants,
+            core_constants=self.core_constants,
+        )
+
+        for output_dict in [microclimate_out, wind_out]:
+            self.data.add_from_dict(output_dict=output_dict)
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
+
+
+def update_wind(
+    data: Data,
+    microclimate_data: dict[str, DataArray],
+    layer_structure: LayerStructure,
+    time_index: int,
+    abiotic_constants: AbioticConsts,
+    core_constants: CoreConsts,
+) -> dict[str, DataArray]:
+    """Update wind speed, molar density of air, and specific heat of air.
+
+    This function wraps the steps to update the wind profile and returns the subset of
+    variables that are relevant for the abiotic simple model.
+
+    Args:
+        data: Data instance
+        microclimate_data: Dictionary with microclimate varaibles for current time step
+        layer_structure: LayerStructure instance
+        time_index: Time index
+        abiotic_constants: Set of constants for the abiotic model
+        core_constants: Set of constants shared across all models
+
+    Returns:
+        dictionary with "wind_speed", "molar_density_air", "specific_heat_air"
+    """
+    # TODO: this type-ignore is because our Data interface doesn't currently accept
+    #       list[str] indices, which it should.
+    update_inputs = data[
+        ["layer_heights", "leaf_area_index"]  # type: ignore [index]
+    ].isel(layers=layer_structure.index_filled_atmosphere)
+    air_temperature = microclimate_data["air_temperature"].isel(
+        layers=layer_structure.index_filled_atmosphere
+    )
+
+    wind_update = calculate_wind_profile(
+        canopy_height=data["layer_heights"][1].to_numpy(),
+        wind_height_above=data["layer_heights"][0:2].to_numpy(),
+        wind_layer_heights=update_inputs["layer_heights"].to_numpy(),
+        leaf_area_index=update_inputs["leaf_area_index"].to_numpy(),
+        air_temperature=air_temperature.to_numpy(),
+        atmospheric_pressure=microclimate_data["atmospheric_pressure"][0].to_numpy(),
+        sensible_heat_flux_topofcanopy=data["sensible_heat_flux"][1].to_numpy(),
+        wind_speed_ref=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
+        wind_reference_height=(
+            data["layer_heights"][1] + abiotic_constants.wind_reference_height
+        ).to_numpy(),
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+    )  # TODO wind height above in constants, cross-check with LayerStructure setup
+
+    # Store 2D wind outputs using the full vertical structure
+    wind_out = {}
+    for var in ["wind_speed", "molar_density_air", "specific_heat_air"]:
+        wind_out[var] = layer_structure.from_template()
+        wind_out[var][layer_structure.index_filled_atmosphere] = wind_update[var]
+
+    return wind_out
