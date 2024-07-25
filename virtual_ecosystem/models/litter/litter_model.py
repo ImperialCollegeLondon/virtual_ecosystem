@@ -51,12 +51,14 @@ from virtual_ecosystem.models.litter.carbon import (
     calculate_updated_pools,
 )
 from virtual_ecosystem.models.litter.chemistry import (
+    calculate_c_n_ratio_updates,
     calculate_lignin_updates,
     calculate_N_mineralisation,
 )
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.input_partition import (
     calculate_litter_input_lignin_concentrations,
+    calculate_litter_input_nitrogen_ratios,
     calculate_metabolic_proportions_of_input,
     partion_plant_inputs_between_pools,
 )
@@ -371,6 +373,21 @@ class LitterModel(
             plant_input_below_struct=plant_inputs["below_ground_structural"],
         )
 
+        input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+            deadwood_c_n_ratio=self.data["deadwood_c_n_ratio"].to_numpy(),
+            leaf_turnover_c_n_ratio=self.data["leaf_turnover_c_n_ratio"].to_numpy(),
+            reproduct_turnover_c_n_ratio=self.data[
+                "plant_reproductive_tissue_turnover_c_n_ratio"
+            ].to_numpy(),
+            root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
+            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
+            reproduct_turnover=self.data[
+                "plant_reproductive_tissue_turnover"
+            ].to_numpy(),
+            metabolic_splits=metabolic_splits,
+            struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
+        )
+
         # TODO - tempted to define an all updates in one function here
         # Find the changes in the lignin concentrations of the 3 relevant pools
         change_in_lignin = calculate_lignin_updates(
@@ -379,6 +396,20 @@ class LitterModel(
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
             plant_inputs=plant_inputs,
             input_lignin=input_lignin,
+            updated_pools=updated_pools,
+        )
+        change_in_c_n_ratios = calculate_c_n_ratio_updates(
+            c_n_ratio_above_metabolic=self.data["c_n_ratio_above_metabolic"].to_numpy(),
+            c_n_ratio_above_structural=self.data[
+                "c_n_ratio_above_structural"
+            ].to_numpy(),
+            c_n_ratio_woody=self.data["c_n_ratio_woody"].to_numpy(),
+            c_n_ratio_below_metabolic=self.data["c_n_ratio_below_metabolic"].to_numpy(),
+            c_n_ratio_below_structural=self.data[
+                "c_n_ratio_below_structural"
+            ].to_numpy(),
+            plant_inputs=plant_inputs,
+            input_c_n_ratios=input_c_n_ratios,
             updated_pools=updated_pools,
         )
 
@@ -412,20 +443,29 @@ class LitterModel(
                 + change_in_lignin["below_structural"],
                 dims="cell_id",
             ),
-            # TODO - These need to not just return the initial values once an update is
-            # actually calculated
             "c_n_ratio_above_metabolic": DataArray(
-                self.data["c_n_ratio_above_metabolic"], dims="cell_id"
+                self.data["c_n_ratio_above_metabolic"]
+                + change_in_c_n_ratios["above_metabolic"],
+                dims="cell_id",
             ),
             "c_n_ratio_above_structural": DataArray(
-                self.data["c_n_ratio_above_structural"], dims="cell_id"
+                self.data["c_n_ratio_above_structural"]
+                + change_in_c_n_ratios["above_structural"],
+                dims="cell_id",
             ),
-            "c_n_ratio_woody": DataArray(self.data["c_n_ratio_woody"], dims="cell_id"),
+            "c_n_ratio_woody": DataArray(
+                self.data["c_n_ratio_woody"] + change_in_c_n_ratios["woody"],
+                dims="cell_id",
+            ),
             "c_n_ratio_below_metabolic": DataArray(
-                self.data["c_n_ratio_below_metabolic"], dims="cell_id"
+                self.data["c_n_ratio_below_metabolic"]
+                + change_in_c_n_ratios["below_metabolic"],
+                dims="cell_id",
             ),
             "c_n_ratio_below_structural": DataArray(
-                self.data["c_n_ratio_below_structural"], dims="cell_id"
+                self.data["c_n_ratio_below_structural"]
+                + change_in_c_n_ratios["below_structural"],
+                dims="cell_id",
             ),
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
