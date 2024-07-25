@@ -118,3 +118,32 @@ def decay_rates(dummy_litter_data, fixture_core_components):
     )
 
     return decay_rates
+
+
+@pytest.fixture
+def metabolic_splits(dummy_litter_data):
+    """Metabolic splits for the various plant inputs."""
+
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_metabolic_proportions_of_input,
+    )
+
+    metabolic_splits = calculate_metabolic_proportions_of_input(
+        leaf_turnover_lignin_proportion=dummy_litter_data[
+            "leaf_turnover_lignin"
+        ].to_numpy(),
+        reproduct_turnover_lignin_proportion=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_lignin"
+        ].to_numpy(),
+        root_turnover_lignin_proportion=dummy_litter_data[
+            "root_turnover_lignin"
+        ].to_numpy(),
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"].to_numpy(),
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ].to_numpy(),
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"].to_numpy(),
+        constants=LitterConsts,
+    )
+
+    return metabolic_splits

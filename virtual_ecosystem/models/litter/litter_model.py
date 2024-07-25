@@ -57,6 +57,7 @@ from virtual_ecosystem.models.litter.chemistry import (
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.input_partition import (
     calculate_litter_input_lignin_concentrations,
+    calculate_metabolic_proportions_of_input,
     partion_plant_inputs_between_pools,
 )
 
@@ -304,13 +305,7 @@ class LitterModel(
         )
 
         # Find the plant inputs to each of the litter pools
-        plant_inputs = partion_plant_inputs_between_pools(
-            deadwood_production=self.data["deadwood_production"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
-            root_turnover=self.data["root_turnover"].to_numpy(),
+        metabolic_splits = calculate_metabolic_proportions_of_input(
             leaf_turnover_lignin_proportion=self.data[
                 "leaf_turnover_lignin"
             ].to_numpy(),
@@ -326,6 +321,16 @@ class LitterModel(
             ].to_numpy(),
             root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
             constants=self.model_constants,
+        )
+
+        plant_inputs = partion_plant_inputs_between_pools(
+            deadwood_production=self.data["deadwood_production"].to_numpy(),
+            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
+            reproduct_turnover=self.data[
+                "plant_reproductive_tissue_turnover"
+            ].to_numpy(),
+            root_turnover=self.data["root_turnover"].to_numpy(),
+            metabolic_splits=metabolic_splits,
         )
 
         # Calculate the updated pool masses

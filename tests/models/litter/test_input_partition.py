@@ -9,7 +9,40 @@ from tests.conftest import log_check
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
-def test_partion_plant_inputs_between_pools(dummy_litter_data):
+def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
+    """Test that function to calculate metabolic input proportions works as expected."""
+
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_metabolic_proportions_of_input,
+    )
+
+    expected_proportions = {
+        "leaves": [0.8365, 0.73525, 0.61726, 0.261076],
+        "reproductive": [0.84775, 0.837148, 0.838696, 0.843448],
+        "roots": [0.74092, 0.56272, 0.639562, 0.58288],
+    }
+
+    actual_proportions = calculate_metabolic_proportions_of_input(
+        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
+        reproduct_turnover_lignin_proportion=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_lignin"
+        ],
+        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ],
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        constants=LitterConsts,
+    )
+
+    assert set(expected_proportions.keys()) == set(actual_proportions.keys())
+
+    for key in actual_proportions.keys():
+        assert np.allclose(actual_proportions[key], expected_proportions[key])
+
+
+def test_partion_plant_inputs_between_pools(dummy_litter_data, metabolic_splits):
     """Check function to partition inputs into litter pools works as expected."""
 
     from virtual_ecosystem.models.litter.input_partition import (
@@ -27,17 +60,7 @@ def test_partion_plant_inputs_between_pools(dummy_litter_data):
         leaf_turnover=dummy_litter_data["leaf_turnover"],
         reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
         root_turnover=dummy_litter_data["root_turnover"],
-        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
-        reproduct_turnover_lignin_proportion=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_lignin"
-        ],
-        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
-        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
-        reproduct_turnover_c_n_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_n_ratio"
-        ],
-        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
-        constants=LitterConsts,
+        metabolic_splits=metabolic_splits,
     )
 
     assert np.allclose(actual_splits["woody"], expected_woody)
@@ -148,3 +171,72 @@ def test_calculate_litter_input_lignin_concentrations(dummy_litter_data):
     assert np.allclose(actual_concs["woody"], expected_woody)
     assert np.allclose(actual_concs["above_structural"], expected_concs_above_struct)
     assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)
+
+
+def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, metabolic_splits):
+    """Check function to calculate the C:N ratios of input to each litter pool works."""
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_litter_input_nitrogen_ratios,
+    )
+
+    expected_c_n_ratios = {
+        "woody": [60.7, 57.9, 73.1, 55.1],
+        "below_metabolic": [14.879783, 16.587126, 17.733169, 13.903046],
+        "below_structural": [74.398916, 82.935630, 88.665843, 69.515230],
+        "above_metabolic": [8.9373399, 14.343140, 15.968877, 13.520689],
+        "above_structural": [44.735092, 71.440811, 83.323241, 72.103527],
+    }
+
+    actual_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+        deadwood_c_n_ratio=dummy_litter_data["deadwood_c_n_ratio"],
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ],
+        leaf_turnover=dummy_litter_data["leaf_turnover"],
+        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
+        metabolic_splits=metabolic_splits,
+        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    assert set(expected_c_n_ratios.keys()) == set(actual_c_n_ratios.keys())
+
+    for key in actual_c_n_ratios.keys():
+        assert np.allclose(actual_c_n_ratios[key], expected_c_n_ratios[key])
+
+
+def test_calculate_nutrient_split_between_litter_pools(
+    dummy_litter_data, metabolic_splits
+):
+    """Check the function to calculate the nutrient split between litter pools."""
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_nutrient_split_between_litter_pools,
+    )
+
+    expected_meta_c_n = np.array([14.879783, 16.587126, 17.733169, 13.903046])
+    expected_struct_c_n = np.array([74.398916, 82.935630, 88.665843, 69.515230])
+
+    actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
+        input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        metabolic_split=metabolic_splits["roots"],
+        struct_to_meta_nutrient_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_meta_c_n, expected_meta_c_n)
+    assert np.allclose(actual_struct_c_n, expected_struct_c_n)
+    # Check that expected ratio is actually preserved by the function
+    assert np.allclose(
+        expected_struct_c_n,
+        expected_meta_c_n * LitterConsts.structural_to_metabolic_n_ratio,
+    )
+    # Check that weighted sum of the two new C:N ratios is compatible with the original
+    # C:N ratio
+    assert np.allclose(
+        dummy_litter_data["root_turnover_c_n_ratio"],
+        (
+            actual_meta_c_n * metabolic_splits["roots"]
+            + actual_struct_c_n * (1 - metabolic_splits["roots"])
+        ),
+    )
