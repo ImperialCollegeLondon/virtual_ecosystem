@@ -140,19 +140,16 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
     log_check(caplog, expected_log)
 
 
-def test_calculate_litter_input_lignin_concentrations(dummy_litter_data):
+def test_calculate_litter_input_lignin_concentrations(dummy_litter_data, plant_inputs):
     """Check calculation of lignin concentrations of each plant flow to litter."""
 
     from virtual_ecosystem.models.litter.input_partition import (
         calculate_litter_input_lignin_concentrations,
     )
 
-    below_struct_input = [0.00699516, 0.00918288, 0.00010813, 0.01038629]
-    above_struct_input = [0.00487125, 0.001300815, 0.00844887, 0.0216464]
-
     expected_woody = [0.233, 0.545, 0.612, 0.378]
     expected_concs_above_struct = [0.28329484, 0.23062465, 0.75773447, 0.75393599]
-    expected_concs_below_struct = [0.7719623, 0.8004025, 0.7490983, 0.9589565]
+    expected_concs_below_struct = [0.77196233, 0.80040249, 0.74908861, 0.95895666]
 
     actual_concs = calculate_litter_input_lignin_concentrations(
         deadwood_lignin_proportion=dummy_litter_data["deadwood_lignin"],
@@ -164,8 +161,8 @@ def test_calculate_litter_input_lignin_concentrations(dummy_litter_data):
         root_turnover=dummy_litter_data["root_turnover"],
         leaf_turnover=dummy_litter_data["leaf_turnover"],
         reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
-        plant_input_below_struct=below_struct_input,
-        plant_input_above_struct=above_struct_input,
+        plant_input_below_struct=plant_inputs["below_ground_structural"],
+        plant_input_above_struct=plant_inputs["above_ground_structural"],
     )
 
     assert np.allclose(actual_concs["woody"], expected_woody)

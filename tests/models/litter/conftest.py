@@ -147,3 +147,22 @@ def metabolic_splits(dummy_litter_data):
     )
 
     return metabolic_splits
+
+
+@pytest.fixture
+def plant_inputs(dummy_litter_data, metabolic_splits):
+    """Plant inputs to each of the litter pools."""
+
+    from virtual_ecosystem.models.litter.input_partition import (
+        partion_plant_inputs_between_pools,
+    )
+
+    plant_inputs = partion_plant_inputs_between_pools(
+        deadwood_production=dummy_litter_data["deadwood_production"],
+        leaf_turnover=dummy_litter_data["leaf_turnover"],
+        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
+        root_turnover=dummy_litter_data["root_turnover"],
+        metabolic_splits=metabolic_splits,
+    )
+
+    return plant_inputs

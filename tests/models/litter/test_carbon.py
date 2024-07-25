@@ -105,24 +105,16 @@ def test_calculate_total_C_mineralised(decay_rates):
     assert np.allclose(actual_mineralisation, expected_mineralisation)
 
 
-def test_calculate_updated_pools(dummy_litter_data, decay_rates):
+def test_calculate_updated_pools(dummy_litter_data, decay_rates, plant_inputs):
     """Test that the function to calculate the pool values after the update works."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     expected_pools = {
-        "above_metabolic": [0.31632696, 0.152963456, 0.0868965658, 0.092546626],
-        "above_structural": [0.50453639, 0.25006367, 0.09690713, 0.09995707],
+        "above_metabolic": [0.31632696, 0.15296346, 0.08537701, 0.08087947],
+        "above_structural": [0.50453639, 0.25006367, 0.09842669, 0.11162423],
         "woody": [4.77403361, 11.89845863, 7.3598224, 7.3298224],
-        "below_metabolic": [0.39912077, 0.36392583, 0.06748727, 0.08358733],
-        "below_structural": [0.60529584, 0.31802215, 0.02008861, 0.02858855],
-    }
-
-    plant_inputs = {
-        "woody": [0.075, 0.099, 0.063, 0.033],
-        "above_ground_metabolic": [0.02512875, 0.006499185, 0.0166206948, 0.022270755],
-        "above_ground_structural": [0.00487125, 0.001300815, 0.0069293052, 0.009979245],
-        "below_ground_metabolic": [0.02097684, 0.01181712, 0.0002064486, 0.016306512],
-        "below_ground_structural": [0.00602316, 0.00918288, 9.35514e-5, 0.008593488],
+        "below_metabolic": [0.39814877, 0.36392583, 0.06747269, 0.08179453],
+        "below_structural": [0.60626784, 0.31802215, 0.02010319, 0.03038135],
     }
 
     actual_pools = calculate_updated_pools(
