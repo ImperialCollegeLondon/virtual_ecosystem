@@ -4,6 +4,8 @@ required for setting up and testing the early stages of the animal module.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
@@ -49,7 +51,10 @@ class PlantResources:
         """Whether the cohort is alive [True] or dead [False]."""
 
     def get_eaten(
-        self, consumed_mass: float, herbivore: Consumer, excrement_pool: DecayPool
+        self,
+        consumed_mass: float,
+        herbivore: Consumer,
+        excrement_pools: Sequence[DecayPool],
     ) -> float:
         """This function handles herbivory on PlantResources.
 
@@ -58,7 +63,8 @@ class PlantResources:
         Args:
             consumed_mass: The mass intended to be consumed by the herbivore.
             herbivore: The Consumer (AnimalCohort) consuming the PlantResources.
-            excrement_pool: The pool to which remains of uneaten plant material is added
+            excrement_pools: The pools to which remains of uneaten plant material
+                is added
 
         Returns:
             The actual mass consumed by the herbivore, adjusted for efficiencies.
@@ -79,9 +85,18 @@ class PlantResources:
         excess_mass = actual_consumed_mass * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
-        excrement_pool.decomposed_energy += (
-            excess_mass * self.constants.energy_density["plant"]
-        )
+
+        # the number of communities over which the feces are to be distributed
+        number_communities = len(excrement_pools)
+
+        excreta_mass_per_community = (
+            excess_mass / number_communities
+        ) * self.constants.nitrogen_excreta_proportion
+
+        for excrement_pool in excrement_pools:
+            excrement_pool.decomposed_energy += (
+                excreta_mass_per_community * self.constants.energy_density["plant"]
+            )
 
         # Return the net mass gain of herbivory, considering both mechanical and
         # digestive efficiencies

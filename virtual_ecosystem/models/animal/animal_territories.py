@@ -52,7 +52,7 @@ class AnimalTerritory:
         self.territory_carcasses: Sequence[DecayPool] = []
         """A list of carcass pools present in the territory."""
 
-    def update_territory(self, consumer_cohort: Consumer) -> None:
+    def update_territory(self) -> None:
         """Update territory details at initialization and after migration.
 
         Args:

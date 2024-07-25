@@ -333,6 +333,10 @@ class AnimalCohort:
         # Update the number of individuals in the prey cohort
         self.individuals -= actual_individuals_killed
 
+        # set cohort to not alive if all the individuals are dead
+        if self.individuals <= 0:
+            self.is_alive = False
+
         # Find the intersection of prey and predator territories
         intersection_carcass_pools = self.territory.find_intersecting_carcass_pools(
             predator.territory
@@ -595,7 +599,7 @@ class AnimalCohort:
 
         This is Madingley's delta_assimilation_mass_predation
 
-        TODO: move defecate
+        TODO: rethink defecate location
 
         Args:
             animal_list: A sequence of animal cohorts that can be consumed by the
@@ -654,6 +658,7 @@ class AnimalCohort:
     ) -> float:
         """This method handles mass assimilation from herbivory.
 
+        TODO: rethink defecate location
         TODO: update name
 
         Args:
@@ -673,6 +678,9 @@ class AnimalCohort:
             actual_consumed_mass = plant.get_eaten(consumed_mass, self, excrement_pools)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
+
+        # Process waste generated from predation, separate from predation b/c diff waste
+        self.defecate(excrement_pools, total_consumed_mass)
 
         return total_consumed_mass
 

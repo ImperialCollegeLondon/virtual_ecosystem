@@ -81,14 +81,6 @@ def prey_cohort_instance(
     )
 
 
-@pytest.fixture
-def carcass_pool_instance():
-    """Fixture for an carcass pool used in tests."""
-    from virtual_ecosystem.models.animal.decay import CarcassPool
-
-    return CarcassPool(0.0, 0.0)
-
-
 @pytest.mark.usefixtures("mocker")
 class TestAnimalCohort:
     """Test AnimalCohort class."""

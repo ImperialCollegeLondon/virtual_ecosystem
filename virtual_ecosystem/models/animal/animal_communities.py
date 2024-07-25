@@ -162,6 +162,8 @@ class AnimalCommunity:
                 occupancy_percentage
             )
 
+        territory.update_territory()
+
     def reinitialize_territory(
         self,
         cohort: AnimalCohort,
@@ -384,6 +386,7 @@ class AnimalCommunity:
 
         Cohorts with no remaining individuals post-foraging are marked for death.
 
+        TODO: find a more elegant way to remove dead cohorts between foraging bouts
 
         """
         # Generate the plant resources for foraging.
@@ -405,9 +408,8 @@ class AnimalCommunity:
                 excrement_pools=excrement_list,
             )
 
-            # Check if the cohort has been depleted to zero individuals post-foraging
-            if consumer_cohort.individuals == 0:
-                self.remove_dead_cohort(consumer_cohort)
+            # temporary solution
+            self.remove_dead_cohort_community()
 
     def collect_prey(
         self, consumer_cohort: AnimalCohort
