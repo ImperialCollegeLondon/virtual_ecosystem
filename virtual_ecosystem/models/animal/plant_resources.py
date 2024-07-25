@@ -56,19 +56,8 @@ class PlantResources:
         herbivore: Consumer,
         excrement_pools: Sequence[DecayPool],
     ) -> float:
-        """This function handles herbivory on PlantResources.
+        """This function handles herbivory on PlantResources."""
 
-        TODO: plant waste should flow to a litter pool of some kind
-
-        Args:
-            consumed_mass: The mass intended to be consumed by the herbivore.
-            herbivore: The Consumer (AnimalCohort) consuming the PlantResources.
-            excrement_pools: The pools to which remains of uneaten plant material
-                is added
-
-        Returns:
-            The actual mass consumed by the herbivore, adjusted for efficiencies.
-        """
         # Check if the requested consumed mass is more than the available mass
         actual_consumed_mass = min(self.mass_current, consumed_mass)
 
@@ -86,17 +75,14 @@ class PlantResources:
             1 - herbivore.functional_group.mechanical_efficiency
         )
 
-        # the number of communities over which the feces are to be distributed
-        number_communities = len(excrement_pools)
+        # Calculate the energy to be added to each excrement pool
+        excreta_energy_per_pool = (
+            excess_mass * self.constants.energy_density["plant"]
+        ) / len(excrement_pools)
 
-        excreta_mass_per_community = (
-            excess_mass / number_communities
-        ) * self.constants.nitrogen_excreta_proportion
-
+        # Distribute the excreta energy across the excrement pools
         for excrement_pool in excrement_pools:
-            excrement_pool.decomposed_energy += (
-                excreta_mass_per_community * self.constants.energy_density["plant"]
-            )
+            excrement_pool.decomposed_energy += excreta_energy_per_pool
 
         # Return the net mass gain of herbivory, considering both mechanical and
         # digestive efficiencies

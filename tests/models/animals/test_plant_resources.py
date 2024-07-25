@@ -15,7 +15,7 @@ class TestPlantResources:
         initial_excrement_energy = excrement_pool_instance.decomposed_energy
 
         actual_mass_gain = plant_instance.get_eaten(
-            consumed_mass, herbivore_cohort_instance, excrement_pool_instance
+            consumed_mass, herbivore_cohort_instance, [excrement_pool_instance]
         )
 
         # Check if the plant mass has been correctly reduced

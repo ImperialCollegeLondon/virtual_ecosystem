@@ -1257,7 +1257,7 @@ class TestAnimalCohort:
         )
 
         delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance, excrement_pool_instance
+            plant_list_instance, [excrement_pool_instance]
         )
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly

@@ -30,13 +30,12 @@ class TestAnimalTerritories:
     def test_update_territory(
         self,
         animal_territory_instance,
-        herbivore_cohort_instance,
         mock_get_plant_resources,
         mock_get_excrement_pools,
         mock_get_carcass_pools,
     ):
         """Test for update_territory method."""
-        animal_territory_instance.update_territory(herbivore_cohort_instance)
+        animal_territory_instance.update_territory()
 
         mock_get_plant_resources.assert_called_once()
         mock_get_excrement_pools.assert_called_once()
