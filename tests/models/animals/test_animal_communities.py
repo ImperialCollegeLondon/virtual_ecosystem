@@ -585,13 +585,15 @@ class TestAnimalCommunity:
         self,
         mocker,
         animal_community_instance,
-        caterpillar_cohort_instance,
+        animal_cohort_instance,
         butterfly_cohort_instance,
+        carcass_pool_instance,
     ):
         """Test the metamorphose method for different scenarios."""
 
-        larval_cohort = caterpillar_cohort_instance
+        larval_cohort = animal_cohort_instance
         larval_cohort.is_alive = True
+        larval_cohort.territory.territory_carcasses = [carcass_pool_instance]
 
         adult_functional_group = butterfly_cohort_instance.functional_group
         adult_functional_group.birth_mass = 5.0
@@ -649,6 +651,7 @@ class TestAnimalCommunity:
         self,
         animal_community_instance,
         caterpillar_cohort_instance,
+        carcass_pool_instance,
         mass_current,
         expected_caterpillar_count,
         expected_butterfly_count,
@@ -667,6 +670,11 @@ class TestAnimalCommunity:
             "caterpillar": [caterpillar_cohort],
             "butterfly": [],
         }
+
+        # Ensure the territory carcasses is correctly set to the carcass pool instance
+        for functional_group in animal_community_instance.animal_cohorts.values():
+            for cohort in functional_group:
+                cohort.territory.territory_carcasses = [carcass_pool_instance]
 
         # Initial counts
         initial_caterpillar_count = len(
@@ -695,6 +703,13 @@ class TestAnimalCommunity:
         assert new_butterfly_count == expected_butterfly_count
         assert caterpillar_cohort.is_alive == expected_is_alive
 
+    @pytest.fixture
+    def mock_bfs_territory(self, mocker):
+        """Fixture for mocking bfs_territory."""
+        return mocker.patch(
+            "virtual_ecosystem.models.animal.animal_territories.bfs_territory"
+        )
+
     def test_initialize_territory(
         self,
         mocker,
@@ -705,19 +720,26 @@ class TestAnimalCommunity:
         """Test for initialize territory."""
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
         # Create mock instances for dependencies
+        mock_functional_group = mocker.create_autospec(FunctionalGroup, instance=True)
+        mock_functional_group.name = "herbivorous_mammal"
+
         mock_cohort = mocker.create_autospec(AnimalCohort, instance=True)
         mock_cohort.territory_size = 4  # Example size
+        mock_cohort.functional_group = mock_functional_group
         centroid_key = 0
 
         mock_get_community_by_key = mocker.Mock()
+        mock_community = mocker.Mock()
+        mock_community.occupancy = {mock_functional_group.name: {}}
+        mock_get_community_by_key.return_value = mock_community
 
         # Set up the mock for bfs_territory to return a predefined set of cells
         mock_bfs_territory.return_value = [0, 1, 3, 4]
 
         # Initialize the AnimalCommunity instance and set up grid dimensions
-
         animal_community_instance.data = mocker.Mock()
         animal_community_instance.data.grid.cell_nx = 3
         animal_community_instance.data.grid.cell_ny = 3
@@ -732,7 +754,7 @@ class TestAnimalCommunity:
 
         # Check that AnimalTerritory was instantiated with the correct parameters
         mock_animal_territory.assert_called_once_with(
-            [0, 1, 3, 4], mock_get_community_by_key
+            centroid_key, [0, 1, 3, 4], mock_get_community_by_key
         )
 
         # Check that the territory was assigned to the cohort
@@ -741,3 +763,12 @@ class TestAnimalCommunity:
         # Ensure no additional unexpected calls were made
         assert mock_bfs_territory.call_count == 1
         assert mock_animal_territory.call_count == 1
+
+        # Check that the occupancy was updated correctly
+        occupancy_percentage = 1.0 / len(mock_bfs_territory.return_value)
+        for cell_key in mock_bfs_territory.return_value:
+            mock_get_community_by_key.assert_any_call(cell_key)
+            assert (
+                mock_community.occupancy[mock_functional_group.name][mock_cohort]
+                == occupancy_percentage
+            )
