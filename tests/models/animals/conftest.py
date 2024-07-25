@@ -351,3 +351,11 @@ def animal_territory_instance(get_community_by_key):
         grid_cell_keys=[1, 2, 3],
         get_community_by_key=get_community_by_key,
     )
+
+
+@pytest.fixture
+def carcass_pool_instance():
+    """Fixture for an carcass pool used in tests."""
+    from virtual_ecosystem.models.animal.decay import CarcassPool
+
+    return CarcassPool(0.0, 0.0)

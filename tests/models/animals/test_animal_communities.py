@@ -400,11 +400,20 @@ class TestAnimalCommunity:
         animal_cohort_instance,
         animal_community_instance,
         functional_group_instance,
+        animal_territory_instance,
+        constants_instance,
     ):
         """Testing collect_prey with eligible prey items."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
-        prey_cohort = AnimalCohort(functional_group_instance, 5000.0, 1, 10)
+        prey_cohort = AnimalCohort(
+            functional_group_instance,
+            5000.0,
+            1,
+            10,
+            animal_territory_instance,
+            constants_instance,
+        )
         animal_community_instance.animal_cohorts[functional_group_instance.name].append(
             prey_cohort
         )
@@ -422,11 +431,20 @@ class TestAnimalCommunity:
         animal_cohort_instance,
         animal_community_instance,
         functional_group_instance,
+        animal_territory_instance,
+        constants_instance,
     ):
         """Testing collect_prey with no eligible prey items."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
-        prey_cohort = AnimalCohort(functional_group_instance, 20000.0, 1, 10)
+        prey_cohort = AnimalCohort(
+            functional_group_instance,
+            20000.0,
+            1,
+            10,
+            animal_territory_instance,
+            constants_instance,
+        )
         animal_community_instance.animal_cohorts[functional_group_instance.name].append(
             prey_cohort
         )
@@ -515,7 +533,11 @@ class TestAnimalCommunity:
         ],
     )
     def test_inflict_non_predation_mortality_community(
-        self, mocker, animal_community_instance, days
+        self,
+        mocker,
+        animal_community_instance,
+        carcass_pool_instance,
+        days,
     ):
         """Testing natural mortality infliction for the entire community."""
         from numpy import timedelta64
@@ -530,6 +552,11 @@ class TestAnimalCommunity:
             "inflict_non_predation_mortality"
         )
 
+        # Ensure the territory carcasses is correctly set to the carcass pool instance
+        for functional_group in animal_community_instance.animal_cohorts.values():
+            for cohort in functional_group:
+                cohort.territory.territory_carcasses = carcass_pool_instance
+
         # Call the community method to inflict natural mortality
         animal_community_instance.inflict_non_predation_mortality_community(dt)
 
@@ -538,9 +565,7 @@ class TestAnimalCommunity:
         # Assert the inflict_non_predation_mortality method was called for each cohort
         for cohorts in animal_community_instance.animal_cohorts.values():
             for cohort in cohorts:
-                mock_mortality.assert_called_with(
-                    number_of_days, animal_community_instance.carcass_pool
-                )
+                mock_mortality.assert_called_with(number_of_days, carcass_pool_instance)
 
         # Check if cohorts with no individuals left are flagged as not alive
         for cohorts in animal_community_instance.animal_cohorts.values():
@@ -551,7 +576,9 @@ class TestAnimalCommunity:
                     ), "Cohort with no individuals should be marked as not alive"
                     assert (
                         cohort
-                        not in animal_community_instance.animal_cohorts[cohort.name]
+                        not in animal_community_instance.animal_cohorts[
+                            cohort.functional_group.name
+                        ]
                     ), "Dead cohort should be removed from the community"
 
     def test_metamorphose(
