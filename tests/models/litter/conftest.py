@@ -166,3 +166,51 @@ def plant_inputs(dummy_litter_data, metabolic_splits):
     )
 
     return plant_inputs
+
+
+@pytest.fixture
+def input_lignin(dummy_litter_data, plant_inputs):
+    """Lignin proportion of the relevant input flows."""
+
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_litter_input_lignin_concentrations,
+    )
+
+    input_lignin = calculate_litter_input_lignin_concentrations(
+        deadwood_lignin_proportion=dummy_litter_data["deadwood_lignin"],
+        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
+        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
+        reproduct_turnover_lignin_proportion=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_lignin"
+        ],
+        root_turnover=dummy_litter_data["root_turnover"],
+        leaf_turnover=dummy_litter_data["leaf_turnover"],
+        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
+        plant_input_below_struct=plant_inputs["below_ground_structural"],
+        plant_input_above_struct=plant_inputs["above_ground_structural"],
+    )
+
+    return input_lignin
+
+
+@pytest.fixture
+def input_c_n_ratios(dummy_litter_data, metabolic_splits):
+    """Carbon:nitrogen ratio of each input flow."""
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_litter_input_nitrogen_ratios,
+    )
+
+    input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+        deadwood_c_n_ratio=dummy_litter_data["deadwood_c_n_ratio"],
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ],
+        leaf_turnover=dummy_litter_data["leaf_turnover"],
+        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
+        metabolic_splits=metabolic_splits,
+        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    return input_c_n_ratios

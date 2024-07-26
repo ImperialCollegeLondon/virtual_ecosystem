@@ -15,6 +15,7 @@ of lignin on decay rates is directly calculated.
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 
@@ -24,6 +25,81 @@ class LitterChemistry:
 
     def __init__(self, data: Data):
         self.data = data
+
+    def calculate_new_pool_chemistries(
+        self,
+        plant_inputs: dict[str, NDArray[np.float32]],
+        input_lignin: dict[str, NDArray[np.float32]],
+        input_c_n_ratios: dict[str, NDArray[np.float32]],
+        updated_pools: dict[str, NDArray[np.float32]],
+    ) -> dict[str, DataArray]:
+        """Function to calculate the updated chemistry of each litter pool.
+
+        All pools contain nitrogen and phosphorus, so this is updated for every pool.
+        Only the structural (above and below ground) pools and the woody pools contain
+        lignin, so it is only updated for those pools.
+
+        Args:
+            plant_inputs: Dictionary containing the amount of each litter type that is
+                added from the plant model in this time step [kg C m^-2]
+            input_lignin: Dictionary containing the lignin concentration of the input to
+                each of the three lignin containing litter pools [kg lignin kg C^-1]
+            input_c_n_ratios: Dictionary containing the carbon nitrogen ratios of the
+                input to each of the litter pools [unitless]
+            updated_pools: Dictionary containing the updated pool densities for all 5
+                litter pools [kg C m^-2]
+        """
+
+        change_in_lignin = self.calculate_lignin_updates(
+            plant_inputs=plant_inputs,
+            input_lignin=input_lignin,
+            updated_pools=updated_pools,
+        )
+        change_in_c_n_ratios = self.calculate_c_n_ratio_updates(
+            plant_inputs=plant_inputs,
+            input_c_n_ratios=input_c_n_ratios,
+            updated_pools=updated_pools,
+        )
+
+        return {
+            "lignin_above_structural": DataArray(
+                self.data["lignin_above_structural"]
+                + change_in_lignin["above_structural"],
+                dims="cell_id",
+            ),
+            "lignin_woody": DataArray(
+                self.data["lignin_woody"] + change_in_lignin["woody"], dims="cell_id"
+            ),
+            "lignin_below_structural": DataArray(
+                self.data["lignin_below_structural"]
+                + change_in_lignin["below_structural"],
+                dims="cell_id",
+            ),
+            "c_n_ratio_above_metabolic": DataArray(
+                self.data["c_n_ratio_above_metabolic"]
+                + change_in_c_n_ratios["above_metabolic"],
+                dims="cell_id",
+            ),
+            "c_n_ratio_above_structural": DataArray(
+                self.data["c_n_ratio_above_structural"]
+                + change_in_c_n_ratios["above_structural"],
+                dims="cell_id",
+            ),
+            "c_n_ratio_woody": DataArray(
+                self.data["c_n_ratio_woody"] + change_in_c_n_ratios["woody"],
+                dims="cell_id",
+            ),
+            "c_n_ratio_below_metabolic": DataArray(
+                self.data["c_n_ratio_below_metabolic"]
+                + change_in_c_n_ratios["below_metabolic"],
+                dims="cell_id",
+            ),
+            "c_n_ratio_below_structural": DataArray(
+                self.data["c_n_ratio_below_structural"]
+                + change_in_c_n_ratios["below_structural"],
+                dims="cell_id",
+            ),
+        }
 
     def calculate_lignin_updates(
         self,
@@ -88,19 +164,10 @@ class LitterChemistry:
         be used in an integration process.
 
         Args:
-            c_n_ratio_above_metabolic: Carbon nitrogen ratio of above ground metabolic
-                pool [unitless]
-            c_n_ratio_above_structural: Carbon nitrogen ratio of above ground structural
-                pool [unitless]
-            c_n_ratio_woody: Carbon nitrogen ratio of woody litter pool [unitless]
-            c_n_ratio_below_metabolic: Carbon nitrogen ratio of below ground metabolic
-                pool [unitless]
-            c_n_ratio_below_structural: Carbon nitrogen ratio of below ground structural
-                pool [unitless]
             plant_inputs: Dictionary containing the amount of each litter type that is
                 added from the plant model in this time step [kg C m^-2]
             input_c_n_ratios: Dictionary containing the carbon nitrogen ratios of the
-                input to each of the litter pools [kg lignin kg C^-1]
+                input to each of the litter pools [unitless]
             updated_pools: Dictionary containing the updated pool densities for all 5
                 litter pools [kg C m^-2]
 

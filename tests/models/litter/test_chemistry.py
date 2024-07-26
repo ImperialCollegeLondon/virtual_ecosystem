@@ -26,7 +26,47 @@ def test_calculate_litter_chemistry_factor():
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_calculate_lignin_updates(dummy_litter_data, plant_inputs):
+def test_calculate_new_pool_chemistries(
+    dummy_litter_data, plant_inputs, input_lignin, input_c_n_ratios
+):
+    """Test that function to calculate updated pool chemistries works correctly."""
+    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+
+    litter_chemistry = LitterChemistry(dummy_litter_data)
+
+    updated_pools = {
+        "above_metabolic": np.array([0.32072786, 0.15473132, 0.08523907, 0.08074153]),
+        "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
+        "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
+        "below_metabolic": np.array([0.4090768, 0.37287148, 0.06883228, 0.08315412]),
+        "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
+    }
+
+    expected_chemistries = {
+        "lignin_above_structural": [0.49790843, 0.10067782, 0.70495536, 0.71045831],
+        "lignin_woody": [0.49580586, 0.79787834, 0.35224223, 0.35012603],
+        "lignin_below_structural": [0.50313604, 0.26586391, 0.7499951, 0.82142894],
+        "c_n_ratio_above_metabolic": [7.42828417, 8.93702902, 11.13974273, 10.28862942],
+        "c_n_ratio_above_structural": [37.5698310, 43.3465444, 49.0206010, 54.4471558],
+        "c_n_ratio_woody": [55.58168366, 63.25507083, 47.52080006, 59.08199528],
+        "c_n_ratio_below_metabolic": [10.9044015, 11.4675610, 15.2070612, 12.6623415],
+        "c_n_ratio_below_structural": [50.7755820, 56.387878, 73.1837156, 64.0424461],
+    }
+
+    actual_chemistries = litter_chemistry.calculate_new_pool_chemistries(
+        plant_inputs=plant_inputs,
+        input_lignin=input_lignin,
+        input_c_n_ratios=input_c_n_ratios,
+        updated_pools=updated_pools,
+    )
+
+    assert set(actual_chemistries.keys()) == set(expected_chemistries.keys())
+
+    for name in actual_chemistries.keys():
+        assert np.allclose(actual_chemistries[name], expected_chemistries[name])
+
+
+def test_calculate_lignin_updates(dummy_litter_data, plant_inputs, input_lignin):
     """Test that the function to calculate the lignin updates works as expected."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 
@@ -37,16 +77,11 @@ def test_calculate_lignin_updates(dummy_litter_data, plant_inputs):
         "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
         "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
     }
-    input_lignin = {
-        "woody": np.array([0.233, 0.545, 0.612, 0.378]),
-        "above_structural": np.array([0.28329484, 0.23062465, 0.75773447, 0.75393599]),
-        "below_structural": np.array([0.7719623, 0.8004025, 0.7490983, 0.9589565]),
-    }
 
     expected_lignin = {
         "above_structural": [-0.00209157, 0.00067782, 0.00495532, 0.01045834],
         "woody": [-0.00419414, -0.00212166, 0.00224223, 0.00012603],
-        "below_structural": [3.1360386e-3, 1.5863906e-2, -4.8494843e-6, 7.1428885e-2],
+        "below_structural": [3.1360386e-3, 1.5863906e-2, -4.90160482e-6, 7.1428885e-2],
     }
 
     actual_lignin = litter_chemistry.calculate_lignin_updates(
@@ -82,7 +117,7 @@ def test_calculate_change_in_chemical_concentration(dummy_litter_data):
     assert np.allclose(actual_lignin, expected_lignin)
 
 
-def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs):
+def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs, input_c_n_ratios):
     """Test that calculation of C:N ratio updates works properly."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 
@@ -94,13 +129,6 @@ def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs):
         "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
         "below_metabolic": np.array([0.4090768, 0.37287148, 0.06883228, 0.08315412]),
         "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
-    }
-    input_c_n_ratios = {
-        "woody": [60.7, 57.9, 73.1, 55.1],
-        "below_metabolic": [14.879783, 16.587126, 17.733169, 13.903046],
-        "below_structural": [74.398916, 82.935630, 88.665843, 69.515230],
-        "above_metabolic": [8.9373399, 14.343140, 15.968877, 13.520689],
-        "above_structural": [44.735092, 71.440811, 83.323241, 72.103527],
     }
 
     expected_change = {

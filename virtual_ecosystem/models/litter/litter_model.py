@@ -294,6 +294,7 @@ class LitterModel(
             model_constants=self.model_constants,
             core_constants=self.core_constants,
         )
+        # TODO - Make this part of LitterChemistry class
         total_N_mineralisation_rate = calculate_N_mineralisation(
             decay_rates=decay_rates,
             c_n_ratio_above_metabolic=self.data["c_n_ratio_above_metabolic"].to_numpy(),
@@ -353,7 +354,7 @@ class LitterModel(
             ).magnitude,
         )
 
-        # TODO - Is this a sensible place for like a nutrient pools object?
+        # TODO - Work out if this makes sense within the litter chemistry object
         # Find lignin concentration of the litter input flows
         input_lignin = calculate_litter_input_lignin_concentrations(
             deadwood_lignin_proportion=self.data["deadwood_lignin"].to_numpy(),
@@ -390,21 +391,14 @@ class LitterModel(
             struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
         )
 
-        # TODO - these could be bundled into a single function that calculates all of
-        # the changes
-        change_in_lignin = self.litter_chemistry.calculate_lignin_updates(
+        # Calculate all the litter chemistry changes
+        updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             plant_inputs=plant_inputs,
             input_lignin=input_lignin,
-            updated_pools=updated_pools,
-        )
-        change_in_c_n_ratios = self.litter_chemistry.calculate_c_n_ratio_updates(
-            plant_inputs=plant_inputs,
             input_c_n_ratios=input_c_n_ratios,
             updated_pools=updated_pools,
         )
 
-        # TODO - It's a bit messy here to have some calculations and some that just
-        # update the object with previously calculated changes, should change this
         # Construct dictionary of data arrays to return
         updated_litter_variables = {
             "litter_pool_above_metabolic": DataArray(
@@ -421,42 +415,23 @@ class LitterModel(
                 updated_pools["below_structural"], dims="cell_id"
             ),
             "lignin_above_structural": DataArray(
-                self.data["lignin_above_structural"]
-                + change_in_lignin["above_structural"],
-                dims="cell_id",
+                updated_chemistries["lignin_above_structural"], dims="cell_id"
             ),
-            "lignin_woody": DataArray(
-                self.data["lignin_woody"] + change_in_lignin["woody"], dims="cell_id"
-            ),
-            "lignin_below_structural": DataArray(
-                self.data["lignin_below_structural"]
-                + change_in_lignin["below_structural"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_above_metabolic": DataArray(
-                self.data["c_n_ratio_above_metabolic"]
-                + change_in_c_n_ratios["above_metabolic"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_above_structural": DataArray(
-                self.data["c_n_ratio_above_structural"]
-                + change_in_c_n_ratios["above_structural"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_woody": DataArray(
-                self.data["c_n_ratio_woody"] + change_in_c_n_ratios["woody"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_below_metabolic": DataArray(
-                self.data["c_n_ratio_below_metabolic"]
-                + change_in_c_n_ratios["below_metabolic"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_below_structural": DataArray(
-                self.data["c_n_ratio_below_structural"]
-                + change_in_c_n_ratios["below_structural"],
-                dims="cell_id",
-            ),
+            "lignin_woody": updated_chemistries["lignin_woody"],
+            "lignin_below_structural": updated_chemistries["lignin_below_structural"],
+            "c_n_ratio_above_metabolic": updated_chemistries[
+                "c_n_ratio_above_metabolic"
+            ],
+            "c_n_ratio_above_structural": updated_chemistries[
+                "c_n_ratio_above_structural"
+            ],
+            "c_n_ratio_woody": updated_chemistries["c_n_ratio_woody"],
+            "c_n_ratio_below_metabolic": updated_chemistries[
+                "c_n_ratio_below_metabolic"
+            ],
+            "c_n_ratio_below_structural": updated_chemistries[
+                "c_n_ratio_below_structural"
+            ],
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
             ),
