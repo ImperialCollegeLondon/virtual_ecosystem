@@ -51,8 +51,7 @@ from virtual_ecosystem.models.litter.carbon import (
     calculate_updated_pools,
 )
 from virtual_ecosystem.models.litter.chemistry import (
-    calculate_c_n_ratio_updates,
-    calculate_lignin_updates,
+    LitterChemistry,
     calculate_N_mineralisation,
 )
 from virtual_ecosystem.models.litter.constants import LitterConsts
@@ -212,6 +211,9 @@ class LitterModel(
             )
             LOGGER.error(to_raise)
             raise to_raise
+
+        self.litter_chemistry = LitterChemistry(data)
+        """Litter chemistry object for tracking of litter pool chemistries."""
 
         self.model_constants = model_constants
         """Set of constants for the litter model."""
@@ -388,26 +390,14 @@ class LitterModel(
             struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
         )
 
-        # TODO - tempted to define an all updates in one function here
-        # Find the changes in the lignin concentrations of the 3 relevant pools
-        change_in_lignin = calculate_lignin_updates(
-            lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
-            lignin_woody=self.data["lignin_woody"].to_numpy(),
-            lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
+        # TODO - these could be bundled into a single function that calculates all of
+        # the changes
+        change_in_lignin = self.litter_chemistry.calculate_lignin_updates(
             plant_inputs=plant_inputs,
             input_lignin=input_lignin,
             updated_pools=updated_pools,
         )
-        change_in_c_n_ratios = calculate_c_n_ratio_updates(
-            c_n_ratio_above_metabolic=self.data["c_n_ratio_above_metabolic"].to_numpy(),
-            c_n_ratio_above_structural=self.data[
-                "c_n_ratio_above_structural"
-            ].to_numpy(),
-            c_n_ratio_woody=self.data["c_n_ratio_woody"].to_numpy(),
-            c_n_ratio_below_metabolic=self.data["c_n_ratio_below_metabolic"].to_numpy(),
-            c_n_ratio_below_structural=self.data[
-                "c_n_ratio_below_structural"
-            ].to_numpy(),
+        change_in_c_n_ratios = self.litter_chemistry.calculate_c_n_ratio_updates(
             plant_inputs=plant_inputs,
             input_c_n_ratios=input_c_n_ratios,
             updated_pools=updated_pools,

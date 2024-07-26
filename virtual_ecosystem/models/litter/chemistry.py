@@ -16,64 +16,137 @@ of lignin on decay rates is directly calculated.
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_ecosystem.core.data import Data
 
-def calculate_lignin_updates(
-    lignin_above_structural: NDArray[np.float32],
-    lignin_woody: NDArray[np.float32],
-    lignin_below_structural: NDArray[np.float32],
-    plant_inputs: dict[str, NDArray[np.float32]],
-    input_lignin: dict[str, NDArray[np.float32]],
-    updated_pools: dict[str, NDArray[np.float32]],
-) -> dict[str, NDArray[np.float32]]:
-    """Calculate the changes in lignin proportion for the relevant litter pools.
 
-    The relevant pools are the two structural pools, and the dead wood pool. This
-    function calculates the total change over the entire time step, so cannot be used in
-    an integration process.
+class LitterChemistry:
+    """This is a class contains the details of the litter pool chemistry."""
 
-    Args:
-        lignin_above_structural: Proportion of above ground structural pool which is
-            lignin [unitless]
-        lignin_woody: Proportion of dead wood pool which is lignin [unitless]
-        lignin_below_structural: Proportion of below ground structural pool which is
-            lignin [unitless]
-        plant_inputs: Dictionary containing the amount of each litter type that is added
-            from the plant model in this time step [kg C m^-2]
-        input_lignin: Dictionary containing the lignin concentration of the input to
-            each of the three lignin containing litter pools [kg lignin kg C^-1]
-        updated_pools: Dictionary containing the updated pool densities for all 5 litter
-            pools [kg C m^-2]
+    def __init__(self, data: Data):
+        self.data = data
 
-    Returns:
-        Dictionary containing the updated lignin proportions for the 3 relevant litter
-        pools (above ground structural, dead wood, and below ground structural)
-        [unitless]
-    """
+    def calculate_lignin_updates(
+        self,
+        plant_inputs: dict[str, NDArray[np.float32]],
+        input_lignin: dict[str, NDArray[np.float32]],
+        updated_pools: dict[str, NDArray[np.float32]],
+    ) -> dict[str, NDArray[np.float32]]:
+        """Calculate the changes in lignin proportion for the relevant litter pools.
 
-    change_in_lignin_above_structural = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["above_ground_structural"],
-        updated_pool_carbon=updated_pools["above_structural"],
-        input_conc=input_lignin["above_structural"],
-        old_pool_conc=lignin_above_structural,
-    )
-    change_in_lignin_woody = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["woody"],
-        updated_pool_carbon=updated_pools["woody"],
-        input_conc=input_lignin["woody"],
-        old_pool_conc=lignin_woody,
-    )
-    change_in_lignin_below_structural = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["below_ground_structural"],
-        updated_pool_carbon=updated_pools["below_structural"],
-        input_conc=input_lignin["below_structural"],
-        old_pool_conc=lignin_below_structural,
-    )
+        The relevant pools are the two structural pools, and the dead wood pool. This
+        function calculates the total change over the entire time step, so cannot be
+        used in an integration process.
 
-    return {
-        "above_structural": change_in_lignin_above_structural,
-        "woody": change_in_lignin_woody,
-        "below_structural": change_in_lignin_below_structural,
-    }
+        Args:
+            plant_inputs: Dictionary containing the amount of each litter type that is
+                added from the plant model in this time step [kg C m^-2]
+            input_lignin: Dictionary containing the lignin concentration of the input to
+                each of the three lignin containing litter pools [kg lignin kg C^-1]
+            updated_pools: Dictionary containing the updated pool densities for all 5
+                litter pools [kg C m^-2]
+
+        Returns:
+            Dictionary containing the updated lignin proportions for the 3 relevant
+            litter pools (above ground structural, dead wood, and below ground
+            structural) [unitless]
+        """
+
+        change_in_lignin_above_structural = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["above_ground_structural"],
+            updated_pool_carbon=updated_pools["above_structural"],
+            input_conc=input_lignin["above_structural"],
+            old_pool_conc=self.data["lignin_above_structural"].to_numpy(),
+        )
+        change_in_lignin_woody = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["woody"],
+            updated_pool_carbon=updated_pools["woody"],
+            input_conc=input_lignin["woody"],
+            old_pool_conc=self.data["lignin_woody"].to_numpy(),
+        )
+        change_in_lignin_below_structural = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["below_ground_structural"],
+            updated_pool_carbon=updated_pools["below_structural"],
+            input_conc=input_lignin["below_structural"],
+            old_pool_conc=self.data["lignin_below_structural"].to_numpy(),
+        )
+
+        return {
+            "above_structural": change_in_lignin_above_structural,
+            "woody": change_in_lignin_woody,
+            "below_structural": change_in_lignin_below_structural,
+        }
+
+    def calculate_c_n_ratio_updates(
+        self,
+        plant_inputs: dict[str, NDArray[np.float32]],
+        input_c_n_ratios: dict[str, NDArray[np.float32]],
+        updated_pools: dict[str, NDArray[np.float32]],
+    ) -> dict[str, NDArray[np.float32]]:
+        """Calculate the changes in carbon nitrogen ratios for all litter pools.
+
+        This function calculates the total change over the entire time step, so cannot
+        be used in an integration process.
+
+        Args:
+            c_n_ratio_above_metabolic: Carbon nitrogen ratio of above ground metabolic
+                pool [unitless]
+            c_n_ratio_above_structural: Carbon nitrogen ratio of above ground structural
+                pool [unitless]
+            c_n_ratio_woody: Carbon nitrogen ratio of woody litter pool [unitless]
+            c_n_ratio_below_metabolic: Carbon nitrogen ratio of below ground metabolic
+                pool [unitless]
+            c_n_ratio_below_structural: Carbon nitrogen ratio of below ground structural
+                pool [unitless]
+            plant_inputs: Dictionary containing the amount of each litter type that is
+                added from the plant model in this time step [kg C m^-2]
+            input_c_n_ratios: Dictionary containing the carbon nitrogen ratios of the
+                input to each of the litter pools [kg lignin kg C^-1]
+            updated_pools: Dictionary containing the updated pool densities for all 5
+                litter pools [kg C m^-2]
+
+        Returns:
+            Dictionary containing the updated carbon nitrogen ratios for all of the
+            litter pools [unitless]
+        """
+
+        change_in_n_above_metabolic = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["above_ground_metabolic"],
+            updated_pool_carbon=updated_pools["above_metabolic"],
+            input_conc=input_c_n_ratios["above_metabolic"],
+            old_pool_conc=self.data["c_n_ratio_above_metabolic"].to_numpy(),
+        )
+        change_in_n_above_structural = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["above_ground_structural"],
+            updated_pool_carbon=updated_pools["above_structural"],
+            input_conc=input_c_n_ratios["above_structural"],
+            old_pool_conc=self.data["c_n_ratio_above_structural"].to_numpy(),
+        )
+        change_in_n_woody = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["woody"],
+            updated_pool_carbon=updated_pools["woody"],
+            input_conc=input_c_n_ratios["woody"],
+            old_pool_conc=self.data["c_n_ratio_woody"].to_numpy(),
+        )
+        change_in_n_below_metabolic = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["below_ground_metabolic"],
+            updated_pool_carbon=updated_pools["below_metabolic"],
+            input_conc=input_c_n_ratios["below_metabolic"],
+            old_pool_conc=self.data["c_n_ratio_below_metabolic"].to_numpy(),
+        )
+        change_in_n_below_structural = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["below_ground_structural"],
+            updated_pool_carbon=updated_pools["below_structural"],
+            input_conc=input_c_n_ratios["below_structural"],
+            old_pool_conc=self.data["c_n_ratio_below_structural"].to_numpy(),
+        )
+
+        return {
+            "above_metabolic": change_in_n_above_metabolic,
+            "above_structural": change_in_n_above_structural,
+            "woody": change_in_n_woody,
+            "below_metabolic": change_in_n_below_metabolic,
+            "below_structural": change_in_n_below_structural,
+        }
 
 
 def calculate_litter_chemistry_factor(
@@ -128,83 +201,6 @@ def calculate_change_in_chemical_concentration(
     """
 
     return (input_carbon / updated_pool_carbon) * (input_conc - old_pool_conc)
-
-
-def calculate_c_n_ratio_updates(
-    c_n_ratio_above_metabolic: NDArray[np.float32],
-    c_n_ratio_above_structural: NDArray[np.float32],
-    c_n_ratio_woody: NDArray[np.float32],
-    c_n_ratio_below_metabolic: NDArray[np.float32],
-    c_n_ratio_below_structural: NDArray[np.float32],
-    plant_inputs: dict[str, NDArray[np.float32]],
-    input_c_n_ratios: dict[str, NDArray[np.float32]],
-    updated_pools: dict[str, NDArray[np.float32]],
-) -> dict[str, NDArray[np.float32]]:
-    """Calculate the changes in carbon nitrogen ratios for all litter pools.
-
-    This function calculates the total change over the entire time step, so cannot be
-    used in an integration process.
-
-    Args:
-        c_n_ratio_above_metabolic: Carbon nitrogen ratio of above ground metabolic pool
-            [unitless]
-        c_n_ratio_above_structural: Carbon nitrogen ratio of above ground structural
-            pool [unitless]
-        c_n_ratio_woody: Carbon nitrogen ratio of woody litter pool [unitless]
-        c_n_ratio_below_metabolic: Carbon nitrogen ratio of below ground metabolic pool
-            [unitless]
-        c_n_ratio_below_structural: Carbon nitrogen ratio of below ground structural
-            pool [unitless]
-        plant_inputs: Dictionary containing the amount of each litter type that is added
-            from the plant model in this time step [kg C m^-2]
-        input_c_n_ratios: Dictionary containing the carbon nitrogen ratios of the input
-            to each of the litter pools [kg lignin kg C^-1]
-        updated_pools: Dictionary containing the updated pool densities for all 5 litter
-            pools [kg C m^-2]
-
-    Returns:
-        Dictionary containing the updated carbon nitrogen ratios for all of the litter
-        pools [unitless]
-    """
-
-    change_in_n_above_metabolic = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["above_ground_metabolic"],
-        updated_pool_carbon=updated_pools["above_metabolic"],
-        input_conc=input_c_n_ratios["above_metabolic"],
-        old_pool_conc=c_n_ratio_above_metabolic,
-    )
-    change_in_n_above_structural = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["above_ground_structural"],
-        updated_pool_carbon=updated_pools["above_structural"],
-        input_conc=input_c_n_ratios["above_structural"],
-        old_pool_conc=c_n_ratio_above_structural,
-    )
-    change_in_n_woody = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["woody"],
-        updated_pool_carbon=updated_pools["woody"],
-        input_conc=input_c_n_ratios["woody"],
-        old_pool_conc=c_n_ratio_woody,
-    )
-    change_in_n_below_metabolic = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["below_ground_metabolic"],
-        updated_pool_carbon=updated_pools["below_metabolic"],
-        input_conc=input_c_n_ratios["below_metabolic"],
-        old_pool_conc=c_n_ratio_below_metabolic,
-    )
-    change_in_n_below_structural = calculate_change_in_chemical_concentration(
-        input_carbon=plant_inputs["below_ground_structural"],
-        updated_pool_carbon=updated_pools["below_structural"],
-        input_conc=input_c_n_ratios["below_structural"],
-        old_pool_conc=c_n_ratio_below_structural,
-    )
-
-    return {
-        "above_metabolic": change_in_n_above_metabolic,
-        "above_structural": change_in_n_above_structural,
-        "woody": change_in_n_woody,
-        "below_metabolic": change_in_n_below_metabolic,
-        "below_structural": change_in_n_below_structural,
-    }
 
 
 def calculate_N_mineralisation(

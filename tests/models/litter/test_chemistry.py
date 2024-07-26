@@ -28,7 +28,9 @@ def test_calculate_litter_chemistry_factor():
 
 def test_calculate_lignin_updates(dummy_litter_data, plant_inputs):
     """Test that the function to calculate the lignin updates works as expected."""
-    from virtual_ecosystem.models.litter.chemistry import calculate_lignin_updates
+    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+
+    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     updated_pools = {
         "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
@@ -47,10 +49,7 @@ def test_calculate_lignin_updates(dummy_litter_data, plant_inputs):
         "below_structural": [3.1360386e-3, 1.5863906e-2, -4.8494843e-6, 7.1428885e-2],
     }
 
-    actual_lignin = calculate_lignin_updates(
-        lignin_above_structural=dummy_litter_data["lignin_above_structural"],
-        lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
-        lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
+    actual_lignin = litter_chemistry.calculate_lignin_updates(
         input_lignin=input_lignin,
         plant_inputs=plant_inputs,
         updated_pools=updated_pools,
@@ -85,7 +84,9 @@ def test_calculate_change_in_chemical_concentration(dummy_litter_data):
 
 def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs):
     """Test that calculation of C:N ratio updates works properly."""
-    from virtual_ecosystem.models.litter.chemistry import calculate_c_n_ratio_updates
+    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+
+    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     updated_pools = {
         "above_metabolic": np.array([0.32072786, 0.15473132, 0.08523907, 0.08074153]),
@@ -110,12 +111,7 @@ def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs):
         "below_structural": [0.27558203, 0.78787769, 0.08371555, 2.8424462],
     }
 
-    actual_change = calculate_c_n_ratio_updates(
-        c_n_ratio_above_metabolic=dummy_litter_data["c_n_ratio_above_metabolic"],
-        c_n_ratio_above_structural=dummy_litter_data["c_n_ratio_above_structural"],
-        c_n_ratio_woody=dummy_litter_data["c_n_ratio_woody"],
-        c_n_ratio_below_metabolic=dummy_litter_data["c_n_ratio_below_metabolic"],
-        c_n_ratio_below_structural=dummy_litter_data["c_n_ratio_below_structural"],
+    actual_change = litter_chemistry.calculate_c_n_ratio_updates(
         plant_inputs=plant_inputs,
         input_c_n_ratios=input_c_n_ratios,
         updated_pools=updated_pools,
