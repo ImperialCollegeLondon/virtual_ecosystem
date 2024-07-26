@@ -22,7 +22,8 @@ configuration.
 ## Required variables
 
 The abiotic_simple model requires a timeseries of the following variables to
-initialise and update the model:
+initialise and update the model. Please check also the
+[notes on climate data pre-processing](../../using_the_ve/data/notes_preprocessing.md).
 
 ```{code-cell} ipython3
 ---
@@ -41,18 +42,6 @@ display_markdown(
     ), 
     raw=True
 )
-```
-
-An example for climate data downloading and simple pre-processing is given in the
-[climate data recipe section](../../using_the_ve/data/climate_data_recipes.md).
-Consider that these sources provide data at different heights and with different
-underlying assumptions which lead to different biases in the model output.
-
-```{note}
-The input climate data needs to be in the same spatial resolution as the model grid and,
-thus, have the effects of topography and elevation incorporated that we described in
-the [theory section](../theory/microclimate_theory.md#factors-affecting-microclimate).
-This spatial downscaling step is not included in the Virtual Ecosystem.
 ```
 
 ## Model overview

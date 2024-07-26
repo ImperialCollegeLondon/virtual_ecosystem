@@ -45,8 +45,7 @@ subtrees:
       - file: using_the_ve/data/data
         title: Adding data to the model
         entries:
-          - file: using_the_ve/data/CDS_toolbox_template
-          - file: using_the_ve/data/climate_data_recipes
+          - file: using_the_ve/data/notes_preprocessing
 
   - caption: Development
     entries:
