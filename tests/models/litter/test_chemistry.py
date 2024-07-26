@@ -165,3 +165,84 @@ def test_calculate_N_mineralisation(dummy_litter_data, decay_rates):
     )
 
     assert np.allclose(actual_n_mineral, expected_n_mineral)
+
+
+def test_calculate_litter_input_lignin_concentrations(dummy_litter_data, plant_inputs):
+    """Check calculation of lignin concentrations of each plant flow to litter."""
+    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+
+    litter_chemistry = LitterChemistry(dummy_litter_data)
+
+    expected_woody = [0.233, 0.545, 0.612, 0.378]
+    expected_concs_above_struct = [0.28329484, 0.23062465, 0.75773447, 0.75393599]
+    expected_concs_below_struct = [0.77196233, 0.80040249, 0.74908861, 0.95895666]
+
+    actual_concs = litter_chemistry.calculate_litter_input_lignin_concentrations(
+        plant_input_below_struct=plant_inputs["below_ground_structural"],
+        plant_input_above_struct=plant_inputs["above_ground_structural"],
+    )
+
+    assert np.allclose(actual_concs["woody"], expected_woody)
+    assert np.allclose(actual_concs["above_structural"], expected_concs_above_struct)
+    assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)
+
+
+def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, metabolic_splits):
+    """Check function to calculate the C:N ratios of input to each litter pool works."""
+    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+
+    litter_chemistry = LitterChemistry(dummy_litter_data)
+
+    expected_c_n_ratios = {
+        "woody": [60.7, 57.9, 73.1, 55.1],
+        "below_metabolic": [14.879783, 16.587126, 17.733169, 13.903046],
+        "below_structural": [74.398916, 82.935630, 88.665843, 69.515230],
+        "above_metabolic": [8.9373399, 14.343140, 15.968877, 13.520689],
+        "above_structural": [44.735092, 71.440811, 83.323241, 72.103527],
+    }
+
+    actual_c_n_ratios = litter_chemistry.calculate_litter_input_nitrogen_ratios(
+        metabolic_splits=metabolic_splits,
+        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    assert set(expected_c_n_ratios.keys()) == set(actual_c_n_ratios.keys())
+
+    for key in actual_c_n_ratios.keys():
+        assert np.allclose(actual_c_n_ratios[key], expected_c_n_ratios[key])
+
+
+def test_calculate_nutrient_split_between_litter_pools(
+    dummy_litter_data, metabolic_splits
+):
+    """Check the function to calculate the nutrient split between litter pools."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_nutrient_split_between_litter_pools,
+    )
+
+    expected_meta_c_n = np.array([14.879783, 16.587126, 17.733169, 13.903046])
+    expected_struct_c_n = np.array([74.398916, 82.935630, 88.665843, 69.515230])
+
+    actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
+        input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        metabolic_split=metabolic_splits["roots"],
+        struct_to_meta_nutrient_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_meta_c_n, expected_meta_c_n)
+    assert np.allclose(actual_struct_c_n, expected_struct_c_n)
+    # Check that expected ratio is actually preserved by the function
+    assert np.allclose(
+        expected_struct_c_n,
+        expected_meta_c_n * LitterConsts.structural_to_metabolic_n_ratio,
+    )
+    # Check that weighted sum of the two new C:N ratios is compatible with the original
+    # C:N ratio
+    assert np.allclose(
+        dummy_litter_data["root_turnover_c_n_ratio"],
+        (
+            actual_meta_c_n * metabolic_splits["roots"]
+            + actual_struct_c_n * (1 - metabolic_splits["roots"])
+        ),
+    )

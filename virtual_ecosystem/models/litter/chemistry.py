@@ -21,7 +21,12 @@ from virtual_ecosystem.core.data import Data
 
 
 class LitterChemistry:
-    """This is a class contains the details of the litter pool chemistry."""
+    """This class handles the chemistry of litter pools.
+
+    This class contains methods to calculate the changes in the litter pool chemistry
+    based on the contents of the `data` object, as well as method to calculate total
+    mineralisation based on litter pool decay rates.
+    """
 
     def __init__(self, data: Data):
         self.data = data
@@ -99,6 +104,162 @@ class LitterChemistry:
                 + change_in_c_n_ratios["below_structural"],
                 dims="cell_id",
             ),
+        }
+
+    def calculate_litter_input_lignin_concentrations(
+        self,
+        plant_input_below_struct: NDArray[np.float32],
+        plant_input_above_struct: NDArray[np.float32],
+    ) -> dict[str, NDArray[np.float32]]:
+        """Calculate the concentration of lignin for each plant biomass to litter flow.
+
+        By definition the metabolic litter pools do not contain lignin, so all input
+        lignin flows to the structural and woody pools. As the input biomass gets split
+        between pools, the lignin concentration of the input to the structural pools
+        will be higher than it was in the input biomass.
+
+        For the woody litter there's no structural-metabolic split so the lignin
+        concentration of the litter input is the same as that of the dead wood
+        production. For the below ground structural litter, the total lignin content of
+        root input must be found, this is then converted back into a concentration
+        relative to the input into the below structural litter pool. For the above
+        ground structural litter pool, the same approach is taken with the combined
+        total lignin content of the leaf and reproductive matter inputs being found, and
+        then converted to a back into a concentration.
+
+        Args:
+            plant_input_below_struct: Plant input to below ground structural litter pool
+                [kg C m^-2]
+            plant_input_above_struct: Plant input to above ground structural litter pool
+                [kg C m^-2]
+
+        Returns:
+            Dictionary containing the lignin concentration of the input to each of the
+            three lignin containing litter pools (woody, above and below ground
+            structural) [kg lignin kg C^-1]
+        """
+
+        lignin_proportion_woody = self.data["deadwood_lignin"]
+
+        lignin_proportion_below_structural = (
+            self.data["root_turnover_lignin"]
+            * self.data["root_turnover"]
+            / plant_input_below_struct
+        )
+
+        lignin_proportion_above_structural = (
+            (self.data["leaf_turnover_lignin"] * self.data["leaf_turnover"])
+            + (
+                self.data["plant_reproductive_tissue_turnover_lignin"]
+                * self.data["plant_reproductive_tissue_turnover"]
+            )
+        ) / plant_input_above_struct
+
+        return {
+            "woody": lignin_proportion_woody.to_numpy(),
+            "below_structural": lignin_proportion_below_structural.to_numpy(),
+            "above_structural": lignin_proportion_above_structural.to_numpy(),
+        }
+
+    def calculate_litter_input_nitrogen_ratios(
+        self,
+        metabolic_splits: dict[str, NDArray[np.float32]],
+        struct_to_meta_nitrogen_ratio: float,
+    ) -> dict[str, NDArray[np.float32]]:
+        """Calculate the carbon:nitrogen ratio for each plant biomass to litter flow.
+
+        The ratio for the input to the woody litter pool just matches the ratio of the
+        deadwood input. For the below ground pools, the ratios of the flows from root
+        turnover into the metabolic and structural pools is calculated. A similar
+        approach is taken for the above ground metabolic and structural pools, but here
+        a weighted average of the two contributions to each pool (leaf and reproductive
+        tissue turnover) must be taken.
+
+        Args:
+            metabolic_splits: Dictionary containing the proportion of each input that
+                goes to the relevant metabolic pool. This is for three input types:
+                leaves, reproductive tissues and roots [unitless]
+            struct_to_meta_nitrogen_ratio: Ratio of the carbon:nitrogen ratios of
+                structural vs metabolic litter pools [unitless]
+
+        Returns:
+            Dictionary containing the C:N ratios of the input to each of the pools
+            [unitless]
+        """
+
+        # Calculate c_n_ratio split for each (non-wood) input biomass type
+        root_c_n_ratio_meta, root_c_n_ratio_struct = (
+            calculate_nutrient_split_between_litter_pools(
+                input_c_nut_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
+                metabolic_split=metabolic_splits["roots"],
+                struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+            )
+        )
+
+        leaf_c_n_ratio_meta, leaf_c_n_ratio_struct = (
+            calculate_nutrient_split_between_litter_pools(
+                input_c_nut_ratio=self.data["leaf_turnover_c_n_ratio"].to_numpy(),
+                metabolic_split=metabolic_splits["leaves"],
+                struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+            )
+        )
+
+        reprod_c_n_ratio_meta, reprod_c_n_ratio_struct = (
+            calculate_nutrient_split_between_litter_pools(
+                input_c_nut_ratio=self.data[
+                    "plant_reproductive_tissue_turnover_c_n_ratio"
+                ].to_numpy(),
+                metabolic_split=metabolic_splits["reproductive"],
+                struct_to_meta_nutrient_ratio=struct_to_meta_nitrogen_ratio,
+            )
+        )
+
+        c_n_ratio_below_metabolic = root_c_n_ratio_meta
+        c_n_ratio_below_structural = root_c_n_ratio_struct
+        c_n_ratio_woody = self.data["deadwood_c_n_ratio"].to_numpy()
+        # Inputs with multiple sources have to be weighted
+        c_n_ratio_above_metabolic = np.divide(
+            (
+                leaf_c_n_ratio_meta
+                * self.data["leaf_turnover"]
+                * metabolic_splits["leaves"]
+            )
+            + (
+                reprod_c_n_ratio_meta
+                * self.data["plant_reproductive_tissue_turnover"]
+                * metabolic_splits["reproductive"]
+            ),
+            (self.data["leaf_turnover"] * metabolic_splits["leaves"])
+            + (
+                self.data["plant_reproductive_tissue_turnover"]
+                * metabolic_splits["reproductive"]
+            ),
+        )
+
+        c_n_ratio_above_structural = np.divide(
+            (
+                leaf_c_n_ratio_struct
+                * self.data["leaf_turnover"]
+                * (1 - metabolic_splits["leaves"])
+            )
+            + (
+                reprod_c_n_ratio_struct
+                * self.data["plant_reproductive_tissue_turnover"]
+                * (1 - metabolic_splits["reproductive"])
+            ),
+            (self.data["leaf_turnover"] * (1 - metabolic_splits["leaves"]))
+            + (
+                self.data["plant_reproductive_tissue_turnover"]
+                * (1 - metabolic_splits["reproductive"])
+            ),
+        )
+
+        return {
+            "woody": c_n_ratio_woody,
+            "below_metabolic": c_n_ratio_below_metabolic,
+            "below_structural": c_n_ratio_below_structural,
+            "above_metabolic": c_n_ratio_above_metabolic,
+            "above_structural": c_n_ratio_above_structural,
         }
 
     def calculate_lignin_updates(
@@ -320,3 +481,39 @@ def calculate_change_in_chemical_concentration(
     """
 
     return (input_carbon / updated_pool_carbon) * (input_conc - old_pool_conc)
+
+
+def calculate_nutrient_split_between_litter_pools(
+    input_c_nut_ratio: NDArray[np.float32],
+    metabolic_split: NDArray[np.float32],
+    struct_to_meta_nutrient_ratio: float,
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Function to calculate the split of input nutrients between litter pools.
+
+    Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nutrient content
+    of the structural and metabolic litter pools are in a fixed proportion. This ratio
+    can vary between nutrients but doesn't vary between above and below ground pools.
+    This is a simplifying assumption to allow us to capture the faster turnover of
+    nutrients relative to carbon, without having to build (and parametrise) a model
+    where every nutrient effects decay rate of every pool.
+
+    Args:
+        input_c_nut_ratio: Carbon:nutrient ratio of input organic matter [unitless]
+        metabolic_split: Proportion of organic matter input that flows to the metabolic
+            litter pool [unitless]
+        struct_to_meta_nutrient_ratio: Ratio of the carbon:nutrient ratios of structural
+            vs metabolic litter pools [unitless]
+
+    Returns:
+        A tuple containing the C:N ratio of the organic matter input to the metabolic
+        and structural litter pools, in that order.
+    """
+
+    c_n_ratio_meta_input = np.divide(
+        input_c_nut_ratio,
+        metabolic_split + struct_to_meta_nutrient_ratio * (1 - metabolic_split),
+    )
+
+    c_n_ratio_struct_input = struct_to_meta_nutrient_ratio * c_n_ratio_meta_input
+
+    return (c_n_ratio_meta_input, c_n_ratio_struct_input)

@@ -53,8 +53,6 @@ from virtual_ecosystem.models.litter.carbon import (
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.input_partition import (
-    calculate_litter_input_lignin_concentrations,
-    calculate_litter_input_nitrogen_ratios,
     calculate_metabolic_proportions_of_input,
     partion_plant_inputs_between_pools,
 )
@@ -330,39 +328,16 @@ class LitterModel(
             ).magnitude,
         )
 
-        # TODO - Work out if this makes sense within the litter chemistry object
+        # TODO - Maybe move this to within the litter chemistry function
         # Find lignin concentration of the litter input flows
-        input_lignin = calculate_litter_input_lignin_concentrations(
-            deadwood_lignin_proportion=self.data["deadwood_lignin"].to_numpy(),
-            root_turnover_lignin_proportion=self.data[
-                "root_turnover_lignin"
-            ].to_numpy(),
-            leaf_turnover_lignin_proportion=self.data[
-                "leaf_turnover_lignin"
-            ].to_numpy(),
-            reproduct_turnover_lignin_proportion=self.data[
-                "plant_reproductive_tissue_turnover_lignin"
-            ].to_numpy(),
-            root_turnover=self.data["root_turnover"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
-            plant_input_above_struct=plant_inputs["above_ground_structural"],
-            plant_input_below_struct=plant_inputs["below_ground_structural"],
+        input_lignin = (
+            self.litter_chemistry.calculate_litter_input_lignin_concentrations(
+                plant_input_above_struct=plant_inputs["above_ground_structural"],
+                plant_input_below_struct=plant_inputs["below_ground_structural"],
+            )
         )
 
-        input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
-            deadwood_c_n_ratio=self.data["deadwood_c_n_ratio"].to_numpy(),
-            leaf_turnover_c_n_ratio=self.data["leaf_turnover_c_n_ratio"].to_numpy(),
-            reproduct_turnover_c_n_ratio=self.data[
-                "plant_reproductive_tissue_turnover_c_n_ratio"
-            ].to_numpy(),
-            root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
+        input_c_n_ratios = self.litter_chemistry.calculate_litter_input_nitrogen_ratios(
             metabolic_splits=metabolic_splits,
             struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
         )
