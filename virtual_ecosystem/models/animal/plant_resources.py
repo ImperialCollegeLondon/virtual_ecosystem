@@ -23,6 +23,8 @@ class PlantResources:
     of plant resources, diversification to fruit and other resources and probably plant
     cohort specific herbivory.
 
+    TODO: fix mass_current after resolving example data questions
+
     Args:
         data: A Data object containing information from the plants model.
         cell_id: The cell id for the plant community to expose.
@@ -32,9 +34,10 @@ class PlantResources:
         # Store the data and extract the appropriate plant data
         self.data = data
         """A reference to the core data object."""
-        self.mass_current: float = (
-            data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
-        )
+        # self.mass_current: float = (
+        #    data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
+        # )
+        self.mass_current = 100.0
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animals constants."""
