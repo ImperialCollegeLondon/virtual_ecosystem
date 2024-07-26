@@ -123,7 +123,6 @@ class AnimalCommunity:
         """This initializes the territory occupied by the cohort.
 
         TODO: update the territory size to cell number conversion using grid size
-        TODO: needs test
 
         Args:
             cohort: The animal cohort occupying the territory.
@@ -173,7 +172,6 @@ class AnimalCommunity:
         """This initializes the territory occupied by the cohort.
 
         TODO: update the territory size to cell number conversion using grid size
-        TODO: needs test
 
         Args:
             cohort: The animal cohort occupying the territory.

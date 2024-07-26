@@ -37,7 +37,7 @@ class PlantResources:
         # self.mass_current: float = (
         #    data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
         # )
-        self.mass_current = 100.0
+        self.mass_current = 100000.0
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animals constants."""

@@ -772,3 +772,49 @@ class TestAnimalCommunity:
                 mock_community.occupancy[mock_functional_group.name][mock_cohort]
                 == occupancy_percentage
             )
+
+    def test_reinitialize_territory(
+        self,
+        animal_community_instance,
+        animal_cohort_instance,
+        animal_territory_instance,
+        mocker,
+    ):
+        """Testing reinitialize_territory."""
+        # Spy on the initialize_territory method within the animal_community_instance
+        spy_initialize_territory = mocker.spy(
+            animal_community_instance, "initialize_territory"
+        )
+
+        # Spy on the abandon_communities method within the animal_territory_instance
+        spy_abandon_communities = mocker.spy(
+            animal_territory_instance, "abandon_communities"
+        )
+
+        animal_community_instance.community_key = 0
+
+        # Mock the get_community_by_key callable
+        get_community_by_key = mocker.MagicMock()
+
+        # Call the reinitialize_territory method
+        animal_community_instance.reinitialize_territory(
+            animal_cohort_instance,
+            animal_community_instance.community_key,
+            get_community_by_key,
+        )
+
+        # Check if abandon_communities was called once
+        spy_abandon_communities.assert_called_once_with(animal_cohort_instance)
+
+        # Check if initialize_territory was called with correct arguments
+        spy_initialize_territory.assert_called_once_with(
+            animal_cohort_instance,
+            animal_community_instance.community_key,
+            get_community_by_key,
+        )
+
+        # Check if the territory was updated correctly
+        assert (
+            animal_territory_instance.centroid
+            == animal_community_instance.community_key
+        )
