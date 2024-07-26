@@ -50,10 +50,7 @@ from virtual_ecosystem.models.litter.carbon import (
     calculate_total_C_mineralised,
     calculate_updated_pools,
 )
-from virtual_ecosystem.models.litter.chemistry import (
-    LitterChemistry,
-    calculate_N_mineralisation,
-)
+from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.input_partition import (
     calculate_litter_input_lignin_concentrations,
@@ -288,27 +285,6 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        # Calculate the total mineralisation rates from the litter
-        total_C_mineralisation_rate = calculate_total_C_mineralised(
-            decay_rates,
-            model_constants=self.model_constants,
-            core_constants=self.core_constants,
-        )
-        # TODO - Make this part of LitterChemistry class
-        total_N_mineralisation_rate = calculate_N_mineralisation(
-            decay_rates=decay_rates,
-            c_n_ratio_above_metabolic=self.data["c_n_ratio_above_metabolic"].to_numpy(),
-            c_n_ratio_above_structural=self.data[
-                "c_n_ratio_above_structural"
-            ].to_numpy(),
-            c_n_ratio_woody=self.data["c_n_ratio_woody"].to_numpy(),
-            c_n_ratio_below_metabolic=self.data["c_n_ratio_below_metabolic"].to_numpy(),
-            c_n_ratio_below_structural=self.data[
-                "c_n_ratio_below_structural"
-            ].to_numpy(),
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
-        )
-
         # Find the plant inputs to each of the litter pools
         metabolic_splits = calculate_metabolic_proportions_of_input(
             leaf_turnover_lignin_proportion=self.data[
@@ -397,6 +373,17 @@ class LitterModel(
             input_lignin=input_lignin,
             input_c_n_ratios=input_c_n_ratios,
             updated_pools=updated_pools,
+        )
+
+        # Calculate the total mineralisation rates from the litter
+        total_C_mineralisation_rate = calculate_total_C_mineralised(
+            decay_rates,
+            model_constants=self.model_constants,
+            core_constants=self.core_constants,
+        )
+        total_N_mineralisation_rate = self.litter_chemistry.calculate_N_mineralisation(
+            decay_rates=decay_rates,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
         # Construct dictionary of data arrays to return

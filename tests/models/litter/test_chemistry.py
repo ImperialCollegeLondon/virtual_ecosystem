@@ -153,17 +153,14 @@ def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs, input_c_n_
 
 def test_calculate_N_mineralisation(dummy_litter_data, decay_rates):
     """Test that function to calculate nitrogen mineralisation rate works properly."""
-    from virtual_ecosystem.models.litter.chemistry import calculate_N_mineralisation
+    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+
+    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     expected_n_mineral = [0.0066373295, 0.0043192466, 0.0009099071, 0.0009765675]
 
-    actual_n_mineral = calculate_N_mineralisation(
+    actual_n_mineral = litter_chemistry.calculate_N_mineralisation(
         decay_rates=decay_rates,
-        c_n_ratio_above_metabolic=dummy_litter_data["c_n_ratio_above_metabolic"],
-        c_n_ratio_above_structural=dummy_litter_data["c_n_ratio_above_structural"],
-        c_n_ratio_woody=dummy_litter_data["c_n_ratio_woody"],
-        c_n_ratio_below_metabolic=dummy_litter_data["c_n_ratio_below_metabolic"],
-        c_n_ratio_below_structural=dummy_litter_data["c_n_ratio_below_structural"],
         active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
     )
 

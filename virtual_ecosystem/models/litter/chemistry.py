@@ -33,7 +33,7 @@ class LitterChemistry:
         input_c_n_ratios: dict[str, NDArray[np.float32]],
         updated_pools: dict[str, NDArray[np.float32]],
     ) -> dict[str, DataArray]:
-        """Function to calculate the updated chemistry of each litter pool.
+        """Method to calculate the updated chemistry of each litter pool.
 
         All pools contain nitrogen and phosphorus, so this is updated for every pool.
         Only the structural (above and below ground) pools and the woody pools contain
@@ -215,6 +215,58 @@ class LitterChemistry:
             "below_structural": change_in_n_below_structural,
         }
 
+    def calculate_N_mineralisation(
+        self,
+        decay_rates: dict[str, NDArray[np.float32]],
+        active_microbe_depth: float,
+    ) -> dict[str, NDArray[np.float32]]:
+        """Method to calculate the amount of nitrogen mineralised by litter decay.
+
+        This function finds the nitrogen mineralisation rate of each litter pool, by
+        dividing the rate of decay (in carbon terms) by the carbon:nitrogen
+        stoichiometry of each pool. These are then summed to find the total rate of
+        nitrogen mineralisation from litter. Finally, this rate is converted from per
+        area units (which the litter model works in) to per volume units (which the soil
+        model works in) by dividing the rate by the depth of soil considered to be
+        microbially active.
+
+        Args:
+            decay_rates: Dictionary containing the rates of decay for all 5 litter pools
+                [kg C m^-2 day^-1]
+            active_microbe_depth: Maximum depth of microbial activity in the soil layers
+                [m]
+
+        Returns:
+            The total rate of nitrogen mineralisation from litter [kg C m^-3 day^-1].
+        """
+
+        # Find nitrogen mineralisation rate for each pool
+        above_meta_n_mineral = (
+            decay_rates["metabolic_above"] / self.data["c_n_ratio_above_metabolic"]
+        )
+        above_struct_n_mineral = (
+            decay_rates["structural_above"] / self.data["c_n_ratio_above_structural"]
+        )
+        woody_n_mineral = decay_rates["woody"] / self.data["c_n_ratio_woody"]
+        below_meta_n_mineral = (
+            decay_rates["metabolic_below"] / self.data["c_n_ratio_below_metabolic"]
+        )
+        below_struct_n_mineral = (
+            decay_rates["structural_below"] / self.data["c_n_ratio_below_structural"]
+        )
+
+        # Sum them to find total rate of nitrogen mineralisation
+        total_N_mineralisation_rate = (
+            above_meta_n_mineral
+            + above_struct_n_mineral
+            + woody_n_mineral
+            + below_meta_n_mineral
+            + below_struct_n_mineral
+        )
+
+        # Convert from per area to per volume units
+        return total_N_mineralisation_rate / active_microbe_depth
+
 
 def calculate_litter_chemistry_factor(
     lignin_proportion: NDArray[np.float32], lignin_inhibition_factor: float
@@ -268,63 +320,3 @@ def calculate_change_in_chemical_concentration(
     """
 
     return (input_carbon / updated_pool_carbon) * (input_conc - old_pool_conc)
-
-
-def calculate_N_mineralisation(
-    decay_rates: dict[str, NDArray[np.float32]],
-    c_n_ratio_above_metabolic: NDArray[np.float32],
-    c_n_ratio_above_structural: NDArray[np.float32],
-    c_n_ratio_woody: NDArray[np.float32],
-    c_n_ratio_below_metabolic: NDArray[np.float32],
-    c_n_ratio_below_structural: NDArray[np.float32],
-    active_microbe_depth: float,
-) -> dict[str, NDArray[np.float32]]:
-    """Function to calculate the amount of nitrogen mineralised by litter decay.
-
-    This function finds the nitrogen mineralisation rate of each litter pool, by
-    dividing the rate of decay (in carbon terms) by the carbon:nitrogen stoichiometry of
-    each pool. These are then summed to find the total rate of nitrogen mineralisation
-    from litter. Finally, this rate is converted from per area units (which the litter
-    model works in) to per volume units (which the soil model works in) by dividing the
-    rate by the depth of soil considered to be microbially active.
-
-    Args:
-        decay_rates: Dictionary containing the rates of decay for all 5 litter pools
-            [kg C m^-2 day^-1]
-        c_n_ratio_above_metabolic: Carbon nitrogen ratio of above ground metabolic pool
-            [unitless]
-        c_n_ratio_above_structural: Carbon nitrogen ratio of above ground structural
-            pool [unitless]
-        c_n_ratio_woody: Carbon nitrogen ratio of woody litter pool [unitless]
-        c_n_ratio_below_metabolic: Carbon nitrogen ratio of below ground metabolic pool
-            [unitless]
-        c_n_ratio_below_structural: Carbon nitrogen ratio of below ground structural
-            pool [unitless]
-        active_microbe_depth: Maximum depth of microbial activity in the soil layers [m]
-
-    Returns:
-        The total rate of nitrogen mineralisation from litter [kg C m^-3 day^-1].
-    """
-
-    # Find nitrogen mineralisation rate for each pool
-    above_meta_n_mineral = decay_rates["metabolic_above"] / c_n_ratio_above_metabolic
-    above_struct_n_mineral = (
-        decay_rates["structural_above"] / c_n_ratio_above_structural
-    )
-    woody_n_mineral = decay_rates["woody"] / c_n_ratio_woody
-    below_meta_n_mineral = decay_rates["metabolic_below"] / c_n_ratio_below_metabolic
-    below_struct_n_mineral = (
-        decay_rates["structural_below"] / c_n_ratio_below_structural
-    )
-
-    # Sum them to find total rate of nitrogen mineralisation
-    total_N_mineralisation_rate = (
-        above_meta_n_mineral
-        + above_struct_n_mineral
-        + woody_n_mineral
-        + below_meta_n_mineral
-        + below_struct_n_mineral
-    )
-
-    # Convert from per area to per volume units
-    return total_N_mineralisation_rate / active_microbe_depth
