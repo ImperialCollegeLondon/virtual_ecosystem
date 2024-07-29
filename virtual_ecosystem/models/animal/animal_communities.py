@@ -43,7 +43,7 @@ class AnimalCommunity:
         community_key: The integer key of the cell id for this community
         neighbouring_keys: A list of cell id keys for neighbouring communities
         get_community_by_key: A function to return a designated AnimalCommunity by
-        integer key.
+            integer key.
     """
 
     def __init__(
