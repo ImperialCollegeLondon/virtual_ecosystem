@@ -233,3 +233,57 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+
+
+def test_update_wind(dummy_climate_data_varying_canopy, fixture_core_components):
+    """Test wind update for abiotic simple model."""
+
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+    from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import update_wind
+
+    data = dummy_climate_data_varying_canopy
+    lyr_strct = fixture_core_components.layer_structure
+
+    microclimate_data = {}
+    microclimate_data["air_temperature"] = data["air_temperature"]
+    microclimate_data["atmospheric_pressure"] = data["atmospheric_pressure"]
+    microclimate_data["sensible_heat_flux"] = data["sensible_heat_flux"]
+
+    result = update_wind(
+        data=data,
+        microclimate_data=microclimate_data,
+        layer_structure=lyr_strct,
+        time_index=0,
+        abiotic_constants=AbioticConsts(),
+        core_constants=fixture_core_components.core_constants,
+    )
+
+    exp_wind_speed = lyr_strct.from_template()
+    exp_wind_speed[lyr_strct.index_filled_atmosphere] = [
+        [0.727122, 0.743643, 0.772241, 0.772241],
+        [0.615474, 0.64478, 0.691463, 0.691463],
+        [0.574914, 0.609452, np.nan, np.nan],
+        [0.47259, np.nan, np.nan, np.nan],
+        [0.414663, 0.544804, 0.635719, 0.635719],
+    ]
+    xr.testing.assert_allclose(result["wind_speed"], exp_wind_speed)
+
+    exp_molar_density = lyr_strct.from_template()
+    exp_molar_density[lyr_strct.index_filled_atmosphere] = [
+        [38.110259, 38.110259, 38.110259, 38.110259],
+        [38.129755, 38.129755, 38.129755, 38.129755],
+        [38.252699, 38.252699, np.nan, np.nan],
+        [38.46472, np.nan, np.nan, np.nan],
+        [39.935316, 39.935316, 39.935316, 39.935316],
+    ]
+    xr.testing.assert_allclose(result["molar_density_air"], exp_molar_density)
+
+    exp_spec_heat = lyr_strct.from_template()
+    exp_spec_heat[lyr_strct.index_filled_atmosphere] = [
+        [29.214, 29.214, 29.214, 29.214],
+        [29.213783, 29.213783, 29.213783, 29.213783],
+        [29.212445, 29.212445, np.nan, np.nan],
+        [29.210245, np.nan, np.nan, np.nan],
+        [29.198443, 29.198443, 29.198443, 29.198443],
+    ]
+    xr.testing.assert_allclose(result["specific_heat_air"], exp_spec_heat)
