@@ -91,12 +91,14 @@ class HydrologyModel(
         "evapotranspiration",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
+        "molar_density_air",
     ),
     vars_populated_by_init=(
         "soil_moisture",
         "groundwater_storage",
         # "air_temperature",  # NOTE also initiated in abiotic models, order?
         # "relative_humidity",  # NOTE also initiated in abiotic models, order?
+        # "wind_speed",
         # "wind_speed",
         # "atmospheric_pressure",  # NOTE also initiated in abiotic models, order?
         "surface_runoff_accumulated",
@@ -296,6 +298,24 @@ class HydrologyModel(
         #             },
         #         )
         #     )
+        # for var in [
+        #     "air_temperature",
+        #     "relative_humidity",
+        #     "wind_speed",
+        #     "atmospheric_pressure",
+        # ]:
+        #     self.data[var] = (
+        #         DataArray(self.data[var + "_ref"].isel(time_index=0))
+        #         .expand_dims("layers")
+        #         .rename(var)
+        #         .assign_coords(
+        #             coords={
+        #                 "layers": np.array([self.surface_layer_index]),
+        #                 "layer_roles": ("layers", ["surface"]),
+        #                 "cell_id": self.grid.cell_id,
+        #             },
+        #         )
+        #     )
 
         # THIS IS THE ALTERNATIVE:
         # If wind speed is not in data, which is the case if the abiotic_simple model is
@@ -335,7 +355,6 @@ class HydrologyModel(
         * soil_evaporation, [mm]
         * vertical_flow, [mm d-1]
         * latent_heat_vapourisation, [J kg-1]
-        * molar_density_air, [mol m-3]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
@@ -675,14 +694,13 @@ class HydrologyModel(
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
 
-        # Return monthly latent heat of vapourisation and molar density of air
+        # Return monthly latent heat of vapourisation
         # (currently only one value per month, will be average with daily input)
-        for var in ["latent_heat_vapourisation"]:
-            soil_hydrology[var] = DataArray(
-                hydro_input[var],
-                dims=self.data["layer_heights"].dims,
-                coords=self.data["layer_heights"].coords,
-            )
+        soil_hydrology["latent_heat_vapourisation"] = DataArray(
+            hydro_input["latent_heat_vapourisation"],
+            dims=self.data["layer_heights"].dims,
+            coords=self.data["layer_heights"].coords,
+        )
 
         # Calculate monthly accumulated/mean values for hydrology variables
         for var in [
