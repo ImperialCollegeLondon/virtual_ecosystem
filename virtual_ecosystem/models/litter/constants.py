@@ -135,11 +135,11 @@ class LitterConsts(ConstantsDataclass):
     """
 
     structural_to_metabolic_n_ratio: float = 5.0
-    """Ratio of the carbon:nitrogen ratios of structural vs metabolic litter pools.
+    """Ratio of the carbon to nitrogen ratios of structural vs metabolic litter pools.
     
     Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nitrogen content
     of the structural and metabolic litter pools are in a fixed proportion. This
-    parameter sets how many times higher the carbon:nitrogen ratio of each structural
+    parameter sets how many times higher the carbon to nitrogen ratio of each structural
     pool is relative to its corresponding metabolic pool. The default value is also
     taken from :cite:t:`kirschbaum_modelling_2002`.
     """
