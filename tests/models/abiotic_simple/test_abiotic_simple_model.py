@@ -19,7 +19,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
-    # (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
 ]
 
@@ -208,6 +208,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "sensible_heat_flux",
     ]:
         assert var in model.data
 

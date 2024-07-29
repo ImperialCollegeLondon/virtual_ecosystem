@@ -36,6 +36,7 @@ class AbioticSimpleModel(
         "atmospheric_co2_ref",
         "leaf_area_index",
         "layer_heights",
+        "wind_speed_ref",
         "mean_annual_temperature",
     ),
     vars_updated=(
@@ -45,6 +46,7 @@ class AbioticSimpleModel(
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -54,7 +56,9 @@ class AbioticSimpleModel(
         "atmospheric_co2_ref",
         "leaf_area_index",
         "layer_heights",
+        "wind_speed_ref",
         "mean_annual_temperature",
+        "sensible_heat_flux",
     ),
     vars_populated_by_init=(  # TODO move functionality from setup() to __init__
         "soil_temperature",
@@ -65,6 +69,8 @@ class AbioticSimpleModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
+        "sensible_heat_flux",
     ),
     vars_populated_by_first_update=(),
 ):
