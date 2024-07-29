@@ -55,6 +55,8 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "molar_density_air",
+        "specific_heat_air",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -79,6 +81,8 @@ class AbioticSimpleModel(
         "atmospheric_co2",
         "wind_speed",
         "sensible_heat_flux",
+        "molar_density_air",
+        "specific_heat_air",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -181,9 +185,22 @@ class AbioticSimpleModel(
         # Sensible heat flux is a required variable for the wind update
         self.data["sensible_heat_flux"] = self.layer_structure.from_template()
         self.data["sensible_heat_flux"][self.layer_structure.index_flux_layers] = 0
-        # Update data object
 
-        self.data.add_from_dict(output_dict=initial_microclimate)
+        initial_wind = update_wind(
+            data=self.data,
+            microclimate_data=initial_microclimate,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            abiotic_constants=self.abiotic_constants,
+            core_constants=self.core_constants,
+        )
+
+        # Update data object
+        for output_dict in [
+            initial_microclimate,
+            initial_wind,
+        ]:
+            self.data.add_from_dict(output_dict=output_dict)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -234,21 +251,19 @@ def update_wind(
     Returns:
         dictionary with "wind_speed", "molar_density_air", "specific_heat_air"
     """
-    # TODO: this type-ignore is because our Data interface doesn't currently accept
-    #       list[str] indices, which it should.
-    update_inputs = data[
-        ["layer_heights", "leaf_area_index"]  # type: ignore [index]
-    ].isel(layers=layer_structure.index_filled_atmosphere)
-    air_temperature = microclimate_data["air_temperature"].isel(
-        layers=layer_structure.index_filled_atmosphere
-    )
 
     wind_update = calculate_wind_profile(
         canopy_height=data["layer_heights"][1].to_numpy(),
         wind_height_above=data["layer_heights"][0:2].to_numpy(),
-        wind_layer_heights=update_inputs["layer_heights"].to_numpy(),
-        leaf_area_index=update_inputs["leaf_area_index"].to_numpy(),
-        air_temperature=air_temperature.to_numpy(),
+        wind_layer_heights=data["layer_heights"]
+        .isel(layers=layer_structure.index_filled_atmosphere)
+        .to_numpy(),
+        leaf_area_index=data["leaf_area_index"]
+        .isel(layers=layer_structure.index_filled_atmosphere)
+        .to_numpy(),
+        air_temperature=microclimate_data["air_temperature"]
+        .isel(layers=layer_structure.index_filled_atmosphere)
+        .to_numpy(),
         atmospheric_pressure=microclimate_data["atmospheric_pressure"][0].to_numpy(),
         sensible_heat_flux_topofcanopy=data["sensible_heat_flux"][1].to_numpy(),
         wind_speed_ref=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),

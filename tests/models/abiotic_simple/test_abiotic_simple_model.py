@@ -200,6 +200,15 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
             coords={"cell_id": [0, 1, 2, 3]},
         ),
     )
+    exp_wind_speed = lyr_strct.from_template()
+    exp_wind_speed[lyr_strct.index_filled_atmosphere] = [
+        [0.727122, 0.743643, 0.772241, 0.772241],
+        [0.615474, 0.64478, 0.691463, 0.691463],
+        [0.574914, 0.609452, np.nan, np.nan],
+        [0.47259, np.nan, np.nan, np.nan],
+        [0.414663, 0.544804, 0.635719, 0.635719],
+    ]
+    xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)
 
     for var in [
         "vapour_pressure_ref",
@@ -211,6 +220,9 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         "atmospheric_pressure",
         "atmospheric_co2",
         "sensible_heat_flux",
+        "wind_speed",
+        "molar_density_air",
+        "specific_heat_air",
     ]:
         assert var in model.data
 
@@ -233,6 +245,16 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+
+    exp_wind_speed = lyr_strct.from_template()
+    exp_wind_speed[lyr_strct.index_filled_atmosphere] = [
+        [0.727122, 0.743643, 0.772241, 0.772241],
+        [0.615474, 0.64478, 0.691463, 0.691463],
+        [0.574914, 0.609452, np.nan, np.nan],
+        [0.47259, np.nan, np.nan, np.nan],
+        [0.414663, 0.544804, 0.635719, 0.635719],
+    ]
+    xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)
 
 
 def test_update_wind(dummy_climate_data_varying_canopy, fixture_core_components):
