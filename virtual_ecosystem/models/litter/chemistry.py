@@ -190,12 +190,12 @@ class LitterChemistry:
             metabolic_splits: Dictionary containing the proportion of each input that
                 goes to the relevant metabolic pool. This is for three input types:
                 leaves, reproductive tissues and roots [unitless]
-            struct_to_meta_nitrogen_ratio: Ratio of the carbon:nitrogen ratios of
+            struct_to_meta_nitrogen_ratio: Ratio of the carbon to nitrogen ratios of
                 structural vs metabolic litter pools [unitless]
 
         Returns:
-            Dictionary containing the C:N ratios of the input to each of the pools
-            [unitless]
+            Dictionary containing the carbon to nitrogen ratios of the input to each of
+            the pools [unitless]
         """
 
         # Calculate c_n_ratio split for each (non-wood) input biomass type
@@ -338,7 +338,7 @@ class LitterChemistry:
         Args:
             plant_inputs: Dictionary containing the amount of each litter type that is
                 added from the plant model in this time step [kg C m^-2]
-            input_c_n_ratios: Dictionary containing the carbon nitrogen ratios of the
+            input_c_n_ratios: Dictionary containing the carbon to nitrogen ratios of the
                 input to each of the litter pools [unitless]
             updated_pools: Dictionary containing the updated pool densities for all 5
                 litter pools [kg C m^-2]
@@ -395,12 +395,12 @@ class LitterChemistry:
         """Method to calculate the amount of nitrogen mineralised by litter decay.
 
         This function finds the nitrogen mineralisation rate of each litter pool, by
-        dividing the rate of decay (in carbon terms) by the carbon:nitrogen
-        stoichiometry of each pool. These are then summed to find the total rate of
-        nitrogen mineralisation from litter. Finally, this rate is converted from per
-        area units (which the litter model works in) to per volume units (which the soil
-        model works in) by dividing the rate by the depth of soil considered to be
-        microbially active.
+        dividing the rate of decay (in carbon terms) by the carbon to nitrogen ratio of
+        each pool. These are then summed to find the total rate of nitrogen
+        mineralisation from litter. Finally, this rate is converted from per area units
+        (which the litter model works in) to per volume units (which the soil model
+        works in) by dividing the rate by the depth of soil considered to be microbially
+        active.
 
         Args:
             decay_rates: Dictionary containing the rates of decay for all 5 litter pools
@@ -516,8 +516,8 @@ def calculate_nutrient_split_between_litter_pools(
             vs metabolic litter pools [unitless]
 
     Returns:
-        A tuple containing the C:N ratio of the organic matter input to the metabolic
-        and structural litter pools, in that order.
+        A tuple containing the carbon to nitrogen ratio of the organic matter input to
+        the metabolic and structural litter pools, in that order.
     """
 
     c_n_ratio_meta_input = np.divide(
