@@ -13,16 +13,19 @@ subtrees:
               - file: virtual_ecosystem/theory/hydrology_theory
           - file: virtual_ecosystem/theory/plant_theory
           - file: virtual_ecosystem/theory/soil_theory
-            entries:
-              - file: virtual_ecosystem/soil/soil_details
           - file: virtual_ecosystem/theory/animal_theory
       - file: virtual_ecosystem/implementation/implementation
         title: Implementation
         entries:
-          - file: virtual_ecosystem/implementation/module_overview
+          - file: virtual_ecosystem/implementation/science_model_overview
+          - file: virtual_ecosystem/implementation/core_components_overview
           - file: virtual_ecosystem/implementation/abiotic_simple_implementation
           - file: virtual_ecosystem/implementation/abiotic_implementation
+          - file: virtual_ecosystem/implementation/animal_implementation
+          - file: virtual_ecosystem/implementation/litter_implementation
           - file: virtual_ecosystem/implementation/hydrology_implementation
+          - file: virtual_ecosystem/implementation/soil_implementation
+          - file: virtual_ecosystem/implementation/plants_implementation
           - file: virtual_ecosystem/implementation/main_simulation
           - file: virtual_ecosystem/implementation/variables
 
@@ -42,8 +45,7 @@ subtrees:
       - file: using_the_ve/data/data
         title: Adding data to the model
         entries:
-          - file: using_the_ve/data/CDS_toolbox_template
-          - file: using_the_ve/data/climate_data_recipes
+          - file: using_the_ve/data/notes_preprocessing
 
   - caption: Development
     entries:
@@ -168,6 +170,8 @@ subtrees:
                 title: The constants submodule
               - file: api/models/hydrology/hydrology_model
                 title: The hydrology_model submodule
+              - file: api/models/hydrology/hydrology_tools
+                title: The hydrology_tools submodule
           - file: api/models/litter
             title: The litter model
             entries:

@@ -291,7 +291,10 @@ def test_setup(
             exp_var[soil_indices] = expected_vals
 
             np.testing.assert_allclose(
-                model.data[var_name], exp_var, rtol=1e-4, atol=1e-4
+                model.data[var_name],
+                exp_var,
+                rtol=1e-4,
+                atol=1e-4,
             )
 
         # Test one dimensional variables

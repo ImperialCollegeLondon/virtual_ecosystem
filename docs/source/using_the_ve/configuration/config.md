@@ -9,6 +9,12 @@ set of [`JSON Schema`](https://json-schema.org). If this passes, a combined outp
 saved as a permanent record of the model configuration. This configuration is also saved
 as a dictionary accessible to other modules and scripts.
 
+::::{dropdown} An example configuration file
+:::{literalinclude} ../../_static/vr_full_model_configuration.toml
+:language: toml
+:::
+::::
+
 ## Configuration files
 
 We decided to use `toml` as our configuration file format because it is: easily human

@@ -130,3 +130,7 @@ convention = "google"
 [tool.mypy]
 ignore_missing_imports = true
 plugins = "numpy.typing.mypy_plugin"
+
+[tool.jupytext]
+# Stop jupytext from removing mystnb and other settings in MyST Notebook YAML headers
+notebook_metadata_filter = "-jupytext.text_representation.jupytext_version,settings,mystnb"
