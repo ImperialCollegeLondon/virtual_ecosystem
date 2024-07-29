@@ -15,6 +15,12 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'atmospheric_pressure_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
+    (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
+    # (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
 ]
 
 
@@ -178,6 +184,10 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     model.setup()
 
     exp_soil_temp = lyr_strct.from_template()
+    exp_soil_temp[lyr_strct.index_all_soil] = [
+        [20.712458, 21.317566, 21.922674, 21.922674],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(
@@ -189,10 +199,9 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         ),
     )
 
-    # Run the update step
-    model.update(time_index=0)
-
     for var in [
+        "vapour_pressure_ref",
+        "vapour_pressure_deficit_ref",
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
@@ -201,6 +210,9 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         "atmospheric_co2",
     ]:
         assert var in model.data
+
+    # Run the update step
+    model.update(time_index=0)
 
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [

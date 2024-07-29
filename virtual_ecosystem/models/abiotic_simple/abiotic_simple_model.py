@@ -32,6 +32,11 @@ class AbioticSimpleModel(
     vars_required_for_init=(
         "air_temperature_ref",
         "relative_humidity_ref",
+        "atmospheric_pressure_ref",
+        "atmospheric_co2_ref",
+        "leaf_area_index",
+        "layer_heights",
+        "mean_annual_temperature",
     ),
     vars_updated=(
         "air_temperature",
@@ -55,14 +60,13 @@ class AbioticSimpleModel(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
-    ),
-    vars_populated_by_first_update=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
+    vars_populated_by_first_update=(),
 ):
     """A class describing the abiotic simple model.
 
@@ -142,6 +146,21 @@ class AbioticSimpleModel(
         self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
             "vapour_pressure"
         ]
+
+        # Generate initial profiles of air temperature [C], relative humidity [-],
+        # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
+        # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
+        initial_microclimate = microclimate.run_microclimate(
+            data=self.data,
+            layer_structure=self.layer_structure,
+            time_index=0,
+            constants=self.model_constants,
+            bounds=AbioticSimpleBounds(),
+        )
+
+        # Update data object
+
+        self.data.add_from_dict(output_dict=initial_microclimate)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
