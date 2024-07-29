@@ -133,6 +133,10 @@ class AbioticSimpleModel(
         This function initializes soil temperature for all soil layers and calculates
         the reference vapour pressure deficit for all time steps. Both variables are
         added directly to the self.data object.
+
+        The function also creates initial profiles of microclimatic variables and
+        sets fluxes to zero (this is required for the hydrology model and held constant
+        over the simulation).
         """
 
         # create soil temperature array
@@ -164,6 +168,9 @@ class AbioticSimpleModel(
             bounds=AbioticSimpleBounds(),
         )
 
+        # Sensible heat flux is a required variable for the wind update
+        self.data["sensible_heat_flux"] = self.layer_structure.from_template()
+        self.data["sensible_heat_flux"][self.layer_structure.index_flux_layers] = 0
         # Update data object
 
         self.data.add_from_dict(output_dict=initial_microclimate)
