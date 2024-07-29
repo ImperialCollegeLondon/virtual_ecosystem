@@ -18,6 +18,7 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple import microclimate
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
@@ -95,6 +96,8 @@ class AbioticSimpleModel(
         """Set of constants for the abiotic simple model"""
         self.bounds = AbioticSimpleBounds()
         """Upper and lower bounds for abiotic variables."""
+        self.abiotic_constants = AbioticConsts()
+        """Set of constants shared with the process-based abiotic model."""
 
     @classmethod
     def from_config(
