@@ -177,7 +177,7 @@ class LitterChemistry:
         metabolic_splits: dict[str, NDArray[np.float32]],
         struct_to_meta_nitrogen_ratio: float,
     ) -> dict[str, NDArray[np.float32]]:
-        """Calculate the carbon:nitrogen ratio for each plant biomass to litter flow.
+        """Calculate the carbon to nitrogen ratio for each plant biomass to litter flow.
 
         The ratio for the input to the woody litter pool just matches the ratio of the
         deadwood input. For the below ground pools, the ratios of the flows from root
@@ -512,8 +512,8 @@ def calculate_nutrient_split_between_litter_pools(
         input_c_nut_ratio: Carbon:nutrient ratio of input organic matter [unitless]
         metabolic_split: Proportion of organic matter input that flows to the metabolic
             litter pool [unitless]
-        struct_to_meta_nutrient_ratio: Ratio of the carbon:nutrient ratios of structural
-            vs metabolic litter pools [unitless]
+        struct_to_meta_nutrient_ratio: Ratio of the carbon to nutrient ratios of
+            structural vs metabolic litter pools [unitless]
 
     Returns:
         A tuple containing the carbon to nitrogen ratio of the organic matter input to
