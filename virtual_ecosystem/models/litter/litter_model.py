@@ -207,7 +207,7 @@ class LitterModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.litter_chemistry = LitterChemistry(data)
+        self.litter_chemistry = LitterChemistry(data, constants=model_constants)
         """Litter chemistry object for tracking of litter pool chemistries."""
 
         self.model_constants = model_constants
@@ -328,25 +328,10 @@ class LitterModel(
             ).magnitude,
         )
 
-        # TODO - Maybe move this to within the litter chemistry function
-        # Find lignin concentration of the litter input flows
-        input_lignin = (
-            self.litter_chemistry.calculate_litter_input_lignin_concentrations(
-                plant_input_above_struct=plant_inputs["above_ground_structural"],
-                plant_input_below_struct=plant_inputs["below_ground_structural"],
-            )
-        )
-
-        input_c_n_ratios = self.litter_chemistry.calculate_litter_input_nitrogen_ratios(
-            metabolic_splits=metabolic_splits,
-            struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
-        )
-
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             plant_inputs=plant_inputs,
-            input_lignin=input_lignin,
-            input_c_n_ratios=input_c_n_ratios,
+            metabolic_splits=metabolic_splits,
             updated_pools=updated_pools,
         )
 

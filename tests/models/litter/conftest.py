@@ -169,11 +169,18 @@ def plant_inputs(dummy_litter_data, metabolic_splits):
 
 
 @pytest.fixture
-def input_lignin(dummy_litter_data, plant_inputs):
-    """Lignin proportion of the relevant input flows."""
+def litter_chemistry(dummy_litter_data):
+    """LitterChemistry object to be use throughout testing."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 
-    litter_chemistry = LitterChemistry(dummy_litter_data)
+    litter_chemistry = LitterChemistry(dummy_litter_data, constants=LitterConsts)
+
+    return litter_chemistry
+
+
+@pytest.fixture
+def input_lignin(dummy_litter_data, plant_inputs, litter_chemistry):
+    """Lignin proportion of the relevant input flows."""
 
     input_lignin = litter_chemistry.calculate_litter_input_lignin_concentrations(
         plant_input_below_struct=plant_inputs["below_ground_structural"],
@@ -184,11 +191,8 @@ def input_lignin(dummy_litter_data, plant_inputs):
 
 
 @pytest.fixture
-def input_c_n_ratios(dummy_litter_data, metabolic_splits):
+def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
     """Carbon:nitrogen ratio of each input flow."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     input_c_n_ratios = litter_chemistry.calculate_litter_input_nitrogen_ratios(
         metabolic_splits=metabolic_splits,

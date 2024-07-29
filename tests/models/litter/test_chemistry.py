@@ -27,12 +27,9 @@ def test_calculate_litter_chemistry_factor():
 
 
 def test_calculate_new_pool_chemistries(
-    dummy_litter_data, plant_inputs, input_lignin, input_c_n_ratios
+    dummy_litter_data, plant_inputs, metabolic_splits, litter_chemistry
 ):
     """Test that function to calculate updated pool chemistries works correctly."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     updated_pools = {
         "above_metabolic": np.array([0.32072786, 0.15473132, 0.08523907, 0.08074153]),
@@ -55,8 +52,7 @@ def test_calculate_new_pool_chemistries(
 
     actual_chemistries = litter_chemistry.calculate_new_pool_chemistries(
         plant_inputs=plant_inputs,
-        input_lignin=input_lignin,
-        input_c_n_ratios=input_c_n_ratios,
+        metabolic_splits=metabolic_splits,
         updated_pools=updated_pools,
     )
 
@@ -66,11 +62,10 @@ def test_calculate_new_pool_chemistries(
         assert np.allclose(actual_chemistries[name], expected_chemistries[name])
 
 
-def test_calculate_lignin_updates(dummy_litter_data, plant_inputs, input_lignin):
+def test_calculate_lignin_updates(
+    dummy_litter_data, plant_inputs, input_lignin, litter_chemistry
+):
     """Test that the function to calculate the lignin updates works as expected."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     updated_pools = {
         "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
@@ -117,11 +112,10 @@ def test_calculate_change_in_chemical_concentration(dummy_litter_data):
     assert np.allclose(actual_lignin, expected_lignin)
 
 
-def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs, input_c_n_ratios):
+def test_calculate_c_n_ratio_updates(
+    dummy_litter_data, plant_inputs, input_c_n_ratios, litter_chemistry
+):
     """Test that calculation of C:N ratio updates works properly."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     updated_pools = {
         "above_metabolic": np.array([0.32072786, 0.15473132, 0.08523907, 0.08074153]),
@@ -151,11 +145,8 @@ def test_calculate_c_n_ratio_updates(dummy_litter_data, plant_inputs, input_c_n_
         assert np.allclose(actual_change[key], expected_change[key])
 
 
-def test_calculate_N_mineralisation(dummy_litter_data, decay_rates):
+def test_calculate_N_mineralisation(dummy_litter_data, decay_rates, litter_chemistry):
     """Test that function to calculate nitrogen mineralisation rate works properly."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     expected_n_mineral = [0.0066373295, 0.0043192466, 0.0009099071, 0.0009765675]
 
@@ -167,11 +158,10 @@ def test_calculate_N_mineralisation(dummy_litter_data, decay_rates):
     assert np.allclose(actual_n_mineral, expected_n_mineral)
 
 
-def test_calculate_litter_input_lignin_concentrations(dummy_litter_data, plant_inputs):
+def test_calculate_litter_input_lignin_concentrations(
+    dummy_litter_data, plant_inputs, litter_chemistry
+):
     """Check calculation of lignin concentrations of each plant flow to litter."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     expected_woody = [0.233, 0.545, 0.612, 0.378]
     expected_concs_above_struct = [0.28329484, 0.23062465, 0.75773447, 0.75393599]
@@ -187,11 +177,10 @@ def test_calculate_litter_input_lignin_concentrations(dummy_litter_data, plant_i
     assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)
 
 
-def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, metabolic_splits):
+def test_calculate_litter_input_nitrogen_ratios(
+    dummy_litter_data, metabolic_splits, litter_chemistry
+):
     """Check function to calculate the C:N ratios of input to each litter pool works."""
-    from virtual_ecosystem.models.litter.chemistry import LitterChemistry
-
-    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     expected_c_n_ratios = {
         "woody": [60.7, 57.9, 73.1, 55.1],

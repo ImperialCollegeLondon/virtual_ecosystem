@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 class LitterChemistry:
@@ -28,14 +29,14 @@ class LitterChemistry:
     mineralisation based on litter pool decay rates.
     """
 
-    def __init__(self, data: Data):
+    def __init__(self, data: Data, constants: LitterConsts):
         self.data = data
+        self.structural_to_metabolic_n_ratio = constants.structural_to_metabolic_n_ratio
 
     def calculate_new_pool_chemistries(
         self,
         plant_inputs: dict[str, NDArray[np.float32]],
-        input_lignin: dict[str, NDArray[np.float32]],
-        input_c_n_ratios: dict[str, NDArray[np.float32]],
+        metabolic_splits: dict[str, NDArray[np.float32]],
         updated_pools: dict[str, NDArray[np.float32]],
     ) -> dict[str, DataArray]:
         """Method to calculate the updated chemistry of each litter pool.
@@ -47,14 +48,24 @@ class LitterChemistry:
         Args:
             plant_inputs: Dictionary containing the amount of each litter type that is
                 added from the plant model in this time step [kg C m^-2]
-            input_lignin: Dictionary containing the lignin concentration of the input to
-                each of the three lignin containing litter pools [kg lignin kg C^-1]
-            input_c_n_ratios: Dictionary containing the carbon nitrogen ratios of the
-                input to each of the litter pools [unitless]
+            metabolic_splits: Dictionary containing the proportion of each input that
+                goes to the relevant metabolic pool. This is for three input types:
+                leaves, reproductive tissues and roots [unitless]
             updated_pools: Dictionary containing the updated pool densities for all 5
                 litter pools [kg C m^-2]
         """
 
+        # Find lignin and nitrogen contents of the litter input flows
+        input_lignin = self.calculate_litter_input_lignin_concentrations(
+            plant_input_above_struct=plant_inputs["above_ground_structural"],
+            plant_input_below_struct=plant_inputs["below_ground_structural"],
+        )
+        input_c_n_ratios = self.calculate_litter_input_nitrogen_ratios(
+            metabolic_splits=metabolic_splits,
+            struct_to_meta_nitrogen_ratio=self.structural_to_metabolic_n_ratio,
+        )
+
+        # Then use to find
         change_in_lignin = self.calculate_lignin_updates(
             plant_inputs=plant_inputs,
             input_lignin=input_lignin,
