@@ -5,6 +5,9 @@ temperature and soil water potential.
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
+
+from virtual_ecosystem.core.core_components import LayerStructure
 
 
 def calculate_temperature_effect_on_litter_decomp(
@@ -69,3 +72,33 @@ def calculate_soil_water_effect_on_litter_decomp(
     ) ** moisture_response_curvature
 
     return 1 - supression
+
+
+def average_over_microbially_active_layers(
+    environmental_variable: DataArray, layer_structure: LayerStructure
+) -> NDArray[np.float32]:
+    """Average an environmental variable over the microbially active layers.
+
+    This average is weighted by how much of the microbially active depth lies within
+    each layer.
+
+    Args:
+        environmental_variable: The environmental variable to be averaged
+        layer_structure: The LayerStructure instance for the simulation.
+
+    Returns:
+        The average of the environmental variable across the soil depth considered to be
+        microbially active.
+    """
+
+    # Find weighting for each layer in the average by dividing the microbially active
+    # depth in each layer by the total depth of microbial activity
+    layer_weights = (
+        layer_structure.soil_layer_active_thickness
+        / layer_structure.max_depth_of_microbial_activity
+    )
+
+    return np.dot(
+        layer_weights,
+        environmental_variable[layer_structure.index_all_soil].to_numpy(),
+    )

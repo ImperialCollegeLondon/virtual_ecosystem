@@ -61,7 +61,7 @@ def calculate_decay_rates(
             lignin [unitless]
         air_temperatures: Air temperatures, for all above ground layers [C]
         soil_temperatures: Soil temperatures, for all soil layers [C]
-        water_potentials: Water potentials, for all soil layers []
+        water_potentials: Water potentials, for all soil layers [kPa]
         layer_structure: The LayerStructure instance for the simulation.
         constants: Set of constants for the litter model
 

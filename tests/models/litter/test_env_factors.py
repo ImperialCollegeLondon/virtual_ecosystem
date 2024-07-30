@@ -1,6 +1,7 @@
 """Test module for litter.env_factors.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
@@ -45,3 +46,40 @@ def test_calculate_soil_water_effect_on_litter_decomp():
     )
 
     assert np.allclose(actual_factor, expected_factor)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_av_temps",
+    [
+        pytest.param(
+            True,
+            [19.8333333, 19.5666667, 19.5666667, 19.2],
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            [20.0, 20.0, 20.0, 20.0],
+            id="normal depth",
+        ),
+    ],
+)
+def test_average_over_microbially_active_layers(
+    dummy_litter_data, fixture_core_components, increased_depth, expected_av_temps
+):
+    """Check averaging of environmental variables over soil layers works correctly."""
+    from virtual_ecosystem.models.litter.env_factors import (
+        average_over_microbially_active_layers,
+    )
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.25]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+
+    actual_av_temps = average_over_microbially_active_layers(
+        environmental_variable=dummy_litter_data["soil_temperature"],
+        layer_structure=fixture_core_components.layer_structure,
+    )
+
+    assert np.allclose(actual_av_temps, expected_av_temps)
