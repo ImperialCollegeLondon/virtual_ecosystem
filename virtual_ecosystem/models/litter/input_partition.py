@@ -89,8 +89,8 @@ def partion_plant_inputs_between_pools(
     All deadwood is added to the woody litter pool. Reproductive biomass (fruits and
     flowers) and leaves are split between the above ground metabolic and structural
     pools based on lignin concentration and carbon nitrogen ratios. Root biomass is
-    split between between the below ground metabolic and structural pools based on
-    lignin concentration and carbon nitrogen ratios.
+    split between the below ground metabolic and structural pools based on lignin
+    concentration and carbon nitrogen ratios.
 
     Args:
         deadwood_production: Amount of dead wood produced [kg C m^-2]
