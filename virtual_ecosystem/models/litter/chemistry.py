@@ -65,7 +65,7 @@ class LitterChemistry:
             struct_to_meta_nitrogen_ratio=self.structural_to_metabolic_n_ratio,
         )
 
-        # Then use to find
+        # Then use to find the changes
         change_in_lignin = self.calculate_lignin_updates(
             plant_inputs=plant_inputs,
             input_lignin=input_lignin,
@@ -77,45 +77,32 @@ class LitterChemistry:
             updated_pools=updated_pools,
         )
 
-        return {
-            "lignin_above_structural": DataArray(
-                self.data["lignin_above_structural"]
-                + change_in_lignin["above_structural"],
-                dims="cell_id",
-            ),
-            "lignin_woody": DataArray(
-                self.data["lignin_woody"] + change_in_lignin["woody"], dims="cell_id"
-            ),
-            "lignin_below_structural": DataArray(
-                self.data["lignin_below_structural"]
-                + change_in_lignin["below_structural"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_above_metabolic": DataArray(
-                self.data["c_n_ratio_above_metabolic"]
-                + change_in_c_n_ratios["above_metabolic"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_above_structural": DataArray(
-                self.data["c_n_ratio_above_structural"]
-                + change_in_c_n_ratios["above_structural"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_woody": DataArray(
-                self.data["c_n_ratio_woody"] + change_in_c_n_ratios["woody"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_below_metabolic": DataArray(
-                self.data["c_n_ratio_below_metabolic"]
-                + change_in_c_n_ratios["below_metabolic"],
-                dims="cell_id",
-            ),
-            "c_n_ratio_below_structural": DataArray(
-                self.data["c_n_ratio_below_structural"]
-                + change_in_c_n_ratios["below_structural"],
-                dims="cell_id",
-            ),
+        # List all the variables this function outputs, which are then used to generate
+        # the dictionaries to return
+        lignin_variable_names = ["above_structural", "woody", "below_structural"]
+        nutrient_variable_names = [
+            "above_metabolic",
+            "above_structural",
+            "woody",
+            "below_metabolic",
+            "below_structural",
+        ]
+
+        lignin_changes = {
+            f"lignin_{name}": DataArray(
+                self.data[f"lignin_{name}"] + change_in_lignin[name], dims="cell_id"
+            )
+            for name in lignin_variable_names
         }
+        nitrogen_changes = {
+            f"c_n_ratio_{name}": DataArray(
+                self.data[f"c_n_ratio_{name}"] + change_in_c_n_ratios[name],
+                dims="cell_id",
+            )
+            for name in nutrient_variable_names
+        }
+
+        return lignin_changes | nitrogen_changes
 
     def calculate_litter_input_lignin_concentrations(
         self,
