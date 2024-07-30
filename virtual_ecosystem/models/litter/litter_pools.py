@@ -18,8 +18,10 @@ This is tracked because litter chemistry is a major determinant of litter decay 
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import (
     calculate_soil_water_effect_on_litter_decomp,
@@ -27,6 +29,8 @@ from virtual_ecosystem.models.litter.env_factors import (
 )
 
 
+# TODO - Work out if it makes sense to make the env_factor calculation a separate
+# function
 def calculate_decay_rates(
     above_metabolic: NDArray[np.float32],
     above_structural: NDArray[np.float32],
@@ -36,9 +40,10 @@ def calculate_decay_rates(
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
-    surface_temp: NDArray[np.float32],
-    topsoil_temp: NDArray[np.float32],
-    water_potential: NDArray[np.float32],
+    air_temperatures: DataArray,
+    soil_temperatures: DataArray,
+    water_potentials: DataArray,
+    layer_structure: LayerStructure,
     constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the decay rate for all five of the litter pools.
@@ -54,17 +59,26 @@ def calculate_decay_rates(
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
         lignin_below_structural: Proportion of below ground structural pool which is
             lignin [unitless]
-        surface_temp: Temperature of soil surface, which is assumed to be the same
-            temperature as the above ground litter [C]
-        topsoil_temp: Temperature of topsoil layer, which is assumed to be the same
-            temperature as the below ground litter [C]
-        water_potential: Water potential of the topsoil layer [kPa]
+        air_temperatures: Air temperatures, for all above ground layers [C]
+        soil_temperatures: Soil temperatures, for all soil layers [C]
+        water_potentials: Water potentials, for all soil layers []
+        layer_structure: The LayerStructure instance for the simulation.
         constants: Set of constants for the litter model
+
+    TODO - Fill out this to explain the logic of the function, or alternatively that it
+    calls another function that chooses the appropriate layers for environmental
+    variables
 
     Returns:
         A dictionary containing the decay rate for each of the five litter pools.
     """
 
+    # Find the temperature for each of the relevant layers, and the water potential for
+    # the topsoil layer
+    surface_temp = air_temperatures[layer_structure.index_surface_scalar].to_numpy()
+    # TODO - Write a function to average and return these results
+    topsoil_temp = soil_temperatures[layer_structure.index_topsoil_scalar].to_numpy()
+    water_potential = water_potentials[layer_structure.index_topsoil_scalar].to_numpy()
     # Calculate temperature factor for the above ground litter layers
     temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
         temperature=surface_temp,
