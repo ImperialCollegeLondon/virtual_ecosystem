@@ -704,6 +704,10 @@ class AnimalCohort:
             LOGGER.warning("No individuals in cohort to forage.")
             return
 
+        if self.mass_current == 0:
+            LOGGER.warning("No mass left in cohort to forage.")
+            return
+
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
