@@ -194,8 +194,8 @@ class AnimalCohort:
         TODO: Update with stoichiometry
 
         Args:
-            excrement_pools: The excrement pool objects in the cohort's territory in
-            which waste is deposited.
+            excrement_pools: The ExcrementPool objects in the cohort's territory in
+                which waste is deposited.
             mass_consumed: The amount of mass flowing through cohort digestion.
         """
         # the number of communities over which the feces are to be distributed
