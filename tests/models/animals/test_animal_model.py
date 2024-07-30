@@ -204,8 +204,21 @@ def test_generate_animal_model(
         # Run the update step (once this does something should check output)
         model.update(time_index=0)
 
+    # Filter out stochastic log entries
+    filtered_records = [
+        record
+        for record in caplog.records
+        if "No individuals in cohort to forage." not in record.message
+    ]
+
+    # Create a new caplog object to pass to log_check
+    class FilteredCaplog:
+        records = filtered_records
+
+    filtered_caplog = FilteredCaplog()
+
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(filtered_caplog, expected_log_entries)
 
     for record in caplog.records:
         print(f"Level: {record.levelname}, Message: {record.message}")
