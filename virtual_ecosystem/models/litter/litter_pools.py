@@ -24,13 +24,12 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import (
+    average_over_microbially_active_layers,
     calculate_soil_water_effect_on_litter_decomp,
     calculate_temperature_effect_on_litter_decomp,
 )
 
 
-# TODO - Work out if it makes sense to make the env_factor calculation a separate
-# function
 def calculate_decay_rates(
     above_metabolic: NDArray[np.float32],
     above_structural: NDArray[np.float32],
@@ -76,9 +75,12 @@ def calculate_decay_rates(
     # Find the temperature for each of the relevant layers, and the water potential for
     # the topsoil layer
     surface_temp = air_temperatures[layer_structure.index_surface_scalar].to_numpy()
-    # TODO - Write a function to average and return these results
-    topsoil_temp = soil_temperatures[layer_structure.index_topsoil_scalar].to_numpy()
-    water_potential = water_potentials[layer_structure.index_topsoil_scalar].to_numpy()
+    topsoil_temp = average_over_microbially_active_layers(
+        environmental_variable=soil_temperatures, layer_structure=layer_structure
+    )
+    water_potential = average_over_microbially_active_layers(
+        environmental_variable=water_potentials, layer_structure=layer_structure
+    )
     # Calculate temperature factor for the above ground litter layers
     temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
         temperature=surface_temp,
