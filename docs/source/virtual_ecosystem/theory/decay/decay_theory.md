@@ -1,7 +1,5 @@
 # Theory of biomass decay
 
-TODO - Need to add this to the sidebar
-
 The decay of dead biomass is one of the key processes that the `virtual_ecosystem` aims
 to capture. Understanding this process is vital to understanding both the long term fate
 of carbon in the system and understanding the recycling of nutrients which sustains the

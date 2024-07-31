@@ -3,7 +3,7 @@
 Ecosystems are complex systems that arise from the interplay between
 [animals](./animal_theory.md),
 [plants](./plant_theory.md),
-and [soil microbes](./soil_theory.md) with their
+and [soil microbes](./decay/decay_theory.md) with their
 [abiotic environment](./abiotic_theory.md). Many of these interactions are
 non-linear and happen across a wide range of spatial and temporal scales which makes
 ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
