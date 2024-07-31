@@ -1,6 +1,6 @@
-# Theory of the soil and litter
+# Theory of the soil
 
-This page provides an overview of the theory underlying the soil module.
+This page provides general details of the theory underlying the soil module.
 
 ## Soil carbon pools
 
