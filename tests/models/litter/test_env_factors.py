@@ -83,3 +83,54 @@ def test_average_over_microbially_active_layers(
     )
 
     assert np.allclose(actual_av_temps, expected_av_temps)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_factors",
+    [
+        pytest.param(
+            True,
+            {
+                "temp_above": [0.1878681, 0.1878681, 0.1878681, 0.1878681],
+                "temp_below": [0.2691235, 0.2626726, 0.2626726, 0.2539490],
+                "water": [0.99588354, 0.87765312, 0.70165823, 0.69011765],
+            },
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            {
+                "temp_above": [0.1878681, 0.1878681, 0.1878681, 0.1878681],
+                "temp_below": [0.2732009, 0.2732009, 0.2732009, 0.2732009],
+                "water": [1.0, 0.88496823, 0.71093190, 0.71093190],
+            },
+            id="normal depth",
+        ),
+    ],
+)
+def test_calculate_environmental_factors(
+    dummy_litter_data, fixture_core_components, increased_depth, expected_factors
+):
+    """Check that the calculation of the relevant environmental factors is correct."""
+    from virtual_ecosystem.models.litter.env_factors import (
+        calculate_environmental_factors,
+    )
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.25]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+
+    actual_factors = calculate_environmental_factors(
+        air_temperatures=dummy_litter_data["air_temperature"],
+        soil_temperatures=dummy_litter_data["soil_temperature"],
+        water_potentials=dummy_litter_data["matric_potential"],
+        layer_structure=fixture_core_components.layer_structure,
+        constants=LitterConsts,
+    )
+
+    assert set(expected_factors.keys()) == set(actual_factors.keys())
+
+    for key in actual_factors.keys():
+        assert np.allclose(actual_factors[key], expected_factors[key])
