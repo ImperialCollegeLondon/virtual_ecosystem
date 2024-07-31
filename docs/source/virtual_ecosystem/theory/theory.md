@@ -22,7 +22,7 @@ diversity of users that might benefit from such models.
 The general approach of the **Virtual Ecosystem** is to build on these model frameworks,
 and to connect this prior work into a single modelling framework
 that provides a fully mechanistic, fully integrated representation of key abiotic and
-biotic processes that govern three key emergent properties of terrestrical ecosystems:
+biotic processes that govern three key emergent properties of terrestrial ecosystems:
 their stability, resilience, and sustainability.
 
 We think we can replicate complex
