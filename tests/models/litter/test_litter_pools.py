@@ -96,8 +96,8 @@ def test_calculate_decay_rates(dummy_litter_data, fixture_core_components):
         "metabolic_above": [0.00450883, 0.00225442, 0.00105206, 0.00105206],
         "structural_above": [1.6742967e-4, 6.1857359e-4, 1.1086908e-5, 1.1086908e-5],
         "woody": [0.0004832, 0.00027069, 0.0015888, 0.0015888],
-        "metabolic_below": [0.01092804, 0.00894564, 0.00135959, 0.00135959],
-        "structural_below": [3.6365995e-04, 5.803657e-04, 2.469074e-06, 2.469074e-06],
+        "metabolic_below": [0.00912788, 0.00747205, 0.00113563, 0.00113563],
+        "structural_below": [3.0375501e-4, 4.8476324e-4, 2.0623487e-6, 2.0623487e-6],
     }
 
     actual_decay = calculate_decay_rates(
