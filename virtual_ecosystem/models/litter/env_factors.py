@@ -50,30 +50,30 @@ def calculate_environmental_factors(
         below ground litter decay.
     """
 
-    surface_temp = air_temperatures[layer_structure.index_surface_scalar].to_numpy()
-    below_ground_temp = average_temperature_over_microbially_active_layers(
-        soil_temperatures=soil_temperatures,
-        surface_temperature=surface_temp,
-        layer_structure=layer_structure,
-    )
+    temperatures = {
+        "surface": air_temperatures[layer_structure.index_surface_scalar].to_numpy(),
+        "below_ground": average_temperature_over_microbially_active_layers(
+            soil_temperatures=soil_temperatures,
+            surface_temperature=air_temperatures[
+                layer_structure.index_surface_scalar
+            ].to_numpy(),
+            layer_structure=layer_structure,
+        ),
+    }
     water_potential = average_water_potential_over_microbially_active_layers(
         water_potentials=water_potentials, layer_structure=layer_structure
     )
 
-    # Calculate temperature factor for the above ground litter layers
-    temperature_factor_above = calculate_temperature_effect_on_litter_decomp(
-        temperature=surface_temp,
-        reference_temp=constants.litter_decomp_reference_temp,
-        offset_temp=constants.litter_decomp_offset_temp,
-        temp_response=constants.litter_decomp_temp_response,
-    )
-    # Calculate temperature factor for the below ground litter layers
-    temperature_factor_below = calculate_temperature_effect_on_litter_decomp(
-        temperature=below_ground_temp,
-        reference_temp=constants.litter_decomp_reference_temp,
-        offset_temp=constants.litter_decomp_offset_temp,
-        temp_response=constants.litter_decomp_temp_response,
-    )
+    temperature_factors = {
+        level: calculate_temperature_effect_on_litter_decomp(
+            temperature=temp,
+            reference_temp=constants.litter_decomp_reference_temp,
+            offset_temp=constants.litter_decomp_offset_temp,
+            temp_response=constants.litter_decomp_temp_response,
+        )
+        for (level, temp) in temperatures.items()
+    }
+
     # Calculate the water factor (relevant for below ground layers)
     water_factor = calculate_soil_water_effect_on_litter_decomp(
         water_potential=water_potential,
@@ -83,8 +83,8 @@ def calculate_environmental_factors(
     )
 
     return {
-        "temp_above": temperature_factor_above,
-        "temp_below": temperature_factor_below,
+        "temp_above": temperature_factors["surface"],
+        "temp_below": temperature_factors["below_ground"],
         "water": water_factor,
     }
 
