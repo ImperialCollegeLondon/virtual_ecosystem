@@ -228,15 +228,10 @@ class LitterModel(
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
-            surface_temp=self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy(),
-            topsoil_temp=self.data["soil_temperature"][
-                self.layer_structure.index_topsoil_scalar
-            ].to_numpy(),
-            water_potential=self.data["matric_potential"][
-                self.layer_structure.index_topsoil_scalar
-            ].to_numpy(),
+            air_temperatures=self.data["air_temperature"],
+            soil_temperatures=self.data["soil_temperature"],
+            water_potentials=self.data["matric_potential"],
+            layer_structure=self.layer_structure,
             constants=self.model_constants,
         )
 
