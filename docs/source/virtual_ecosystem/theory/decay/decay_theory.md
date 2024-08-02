@@ -5,8 +5,13 @@ to capture. Understanding this process is vital to understanding both the long t
 of carbon in the system and understanding the recycling of nutrients which sustains the
 system as a whole.
 
-Details of litter decay theory can be found [here](./litter_theory.md), and soil decay
-theory can be found [here](./soil_theory.md).
+In the virtual ecosystem, we split biomass decay between two separate models. The
+[litter model](./litter_theory.md) handles the breakdown of biomass that's still in an
+identifiable form, the [here](./soil_theory.md) then handles the subsequent stages of
+decay.
 
-TODO - at the moment I'm just using this page to link to places but it needs to become a
-proper overview that links to more detailed pages where relevant.
+TODO - Write the below out as something nicer.
+So basically the reason we split is that litter and soil theory is that there is
+significant and consequential uncertainties in terms of the fate of soil organic matter,
+with litter is more of a question of timing (though importantly we also allow animals to
+eat litter)

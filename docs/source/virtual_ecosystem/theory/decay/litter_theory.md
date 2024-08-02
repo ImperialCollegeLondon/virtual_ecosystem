@@ -1,5 +1,7 @@
 # Theory of litter decay
 
+TODO - NEED MORE EXPLANATION OF WHY WE USE POOLS AT ALL ETC
+
 ## Litter pools
 
 We also select our litter pools from a pre-existing framework
