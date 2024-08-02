@@ -148,7 +148,7 @@ def test_calculate_c_n_ratio_updates(
 def test_calculate_N_mineralisation(dummy_litter_data, decay_rates, litter_chemistry):
     """Test that function to calculate nitrogen mineralisation rate works properly."""
 
-    expected_n_mineral = [0.0066373295, 0.0043192466, 0.0009099071, 0.0009765675]
+    expected_n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
 
     actual_n_mineral = litter_chemistry.calculate_N_mineralisation(
         decay_rates=decay_rates,

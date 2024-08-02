@@ -107,15 +107,10 @@ def decay_rates(dummy_litter_data, fixture_core_components):
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
-        surface_temp=dummy_litter_data["air_temperature"][
-            fixture_core_components.layer_structure.index_surface_scalar
-        ].to_numpy(),
-        topsoil_temp=dummy_litter_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        water_potential=dummy_litter_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
+        air_temperatures=dummy_litter_data["air_temperature"],
+        soil_temperatures=dummy_litter_data["soil_temperature"],
+        water_potentials=dummy_litter_data["matric_potential"],
+        layer_structure=fixture_core_components.layer_structure,
         constants=LitterConsts,
     )
 

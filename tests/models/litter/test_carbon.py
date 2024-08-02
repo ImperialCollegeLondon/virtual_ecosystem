@@ -91,7 +91,7 @@ def test_calculate_total_C_mineralised(decay_rates):
         calculate_total_C_mineralised,
     )
 
-    expected_mineralisation = [0.02987233, 0.02316114, 0.00786517, 0.00786517]
+    expected_mineralisation = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
 
     actual_mineralisation = calculate_total_C_mineralised(
         decay_rates=decay_rates, model_constants=LitterConsts, core_constants=CoreConsts
@@ -108,8 +108,8 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates, plant_inputs):
         "above_metabolic": [0.31632696, 0.15296346, 0.08537701, 0.08087947],
         "above_structural": [0.50453639, 0.25006367, 0.09842669, 0.11162423],
         "woody": [4.77403361, 11.89845863, 7.3598224, 7.3298224],
-        "below_metabolic": [0.39814877, 0.36392583, 0.06747269, 0.08179453],
-        "below_structural": [0.60626784, 0.31802215, 0.02010319, 0.03038135],
+        "below_metabolic": [0.40174907, 0.36687303, 0.06792061, 0.08224246],
+        "below_structural": [0.60638765, 0.31821335, 0.02010401, 0.03038216],
     }
 
     actual_pools = calculate_updated_pools(
