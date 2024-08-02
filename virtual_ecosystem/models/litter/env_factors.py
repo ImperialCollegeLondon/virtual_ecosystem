@@ -52,6 +52,9 @@ def calculate_environmental_factors(
 
     temperatures = {
         "surface": air_temperatures[layer_structure.index_surface_scalar].to_numpy(),
+        # TODO - This currently takes uses the surface temperature for the first layer.
+        # Once we start change the default to use a thin topsoil layer that should be
+        # used here instead
         "below_ground": average_temperature_over_microbially_active_layers(
             soil_temperatures=soil_temperatures,
             surface_temperature=air_temperatures[
