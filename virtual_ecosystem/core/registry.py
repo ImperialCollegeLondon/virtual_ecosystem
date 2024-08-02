@@ -16,6 +16,7 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
+from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import load_schema
@@ -34,12 +35,12 @@ class ModuleInfo:
     BaseModel subclass and the ``model`` attribute for the ``core`` module will be None.
     """
 
-    model: Any  # FIXME Optional[type[BaseModel]]
+    model: None | type[BaseModel]
     """The BaseModel subclass associated with the module."""
     schema: dict[str, Any]
     """The module JSON schema as a dictionary, used to validate configuration data for
     running a simulation."""
-    constants_classes: dict[str, ConstantsDataclass]
+    constants_classes: dict[str, type[ConstantsDataclass]]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
     is_core: bool
