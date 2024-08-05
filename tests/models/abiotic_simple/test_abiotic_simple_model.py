@@ -46,7 +46,6 @@ def test_abiotic_simple_model_initialization(
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
