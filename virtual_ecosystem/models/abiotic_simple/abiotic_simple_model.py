@@ -6,7 +6,6 @@ class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` cl
 Todo:
 * update temperatures to Kelvin
 * pressure and CO2 profiles should only be filled for filled/true above ground layers
-test
 """  # noqa: D205
 
 from __future__ import annotations

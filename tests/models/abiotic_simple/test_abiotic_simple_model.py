@@ -232,9 +232,6 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     # Run the update step
     model.update(time_index=0)
 
-    # Run the update step
-    model.update(time_index=0)
-
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [
         [30.0, 30.0, 30.0, 30.0],
