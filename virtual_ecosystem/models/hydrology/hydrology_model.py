@@ -92,6 +92,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "molar_density_air",
+        "specific_heat_air",
     ),
     vars_populated_by_init=(
         "soil_moisture",

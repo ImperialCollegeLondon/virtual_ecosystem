@@ -14,8 +14,6 @@ from typing import Any
 
 from xarray import DataArray
 
-from xarray import DataArray
-
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
@@ -24,15 +22,8 @@ from virtual_ecosystem.core.core_components import (
     CoreConsts,
     LayerStructure,
 )
-from virtual_ecosystem.core.core_components import (
-    CoreComponents,
-    CoreConsts,
-    LayerStructure,
-)
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 from virtual_ecosystem.models.abiotic_simple import microclimate
@@ -55,12 +46,6 @@ class AbioticSimpleModel(
         "layer_heights",
         "wind_speed_ref",
         "mean_annual_temperature",
-        "atmospheric_pressure_ref",
-        "atmospheric_co2_ref",
-        "leaf_area_index",
-        "layer_heights",
-        "wind_speed_ref",
-        "mean_annual_temperature",
     ),
     vars_updated=(
         "air_temperature",
@@ -69,9 +54,6 @@ class AbioticSimpleModel(
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "wind_speed",
-        "molar_density_air",
-        "specific_heat_air",
         "wind_speed",
         "molar_density_air",
         "specific_heat_air",
@@ -92,6 +74,7 @@ class AbioticSimpleModel(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
+        "vapour_pressure_deficit",
         "air_temperature",
         "relative_humidity",
         "atmospheric_pressure",
@@ -101,7 +84,6 @@ class AbioticSimpleModel(
         "molar_density_air",
         "specific_heat_air",
     ),
-    vars_populated_by_first_update=(),
     vars_populated_by_first_update=(),
 ):
     """A class describing the abiotic simple model.
@@ -125,8 +107,6 @@ class AbioticSimpleModel(
         """Set of constants for the abiotic simple model"""
         self.bounds = AbioticSimpleBounds()
         """Upper and lower bounds for abiotic variables."""
-        self.abiotic_constants = AbioticConsts()
-        """Set of constants shared with the process-based abiotic model."""
         self.abiotic_constants = AbioticConsts()
         """Set of constants shared with the process-based abiotic model."""
 
