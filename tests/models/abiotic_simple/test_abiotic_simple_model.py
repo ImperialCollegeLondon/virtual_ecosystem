@@ -21,12 +21,6 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
     (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
-    (DEBUG, "abiotic_simple model: required var 'atmospheric_pressure_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
-    (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
-    (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
-    (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
 ]
 
 
@@ -67,7 +61,6 @@ def test_abiotic_simple_model_initialization(
         assert model.model_name == "abiotic_simple"
         assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
         assert model.bounds == AbioticSimpleBounds()
-        assert model.abiotic_constants == AbioticConsts()
         assert model.abiotic_constants == AbioticConsts()
 
     # Final check that expected logging entries are produced
@@ -229,10 +222,6 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "sensible_heat_flux",
-        "wind_speed",
-        "molar_density_air",
-        "specific_heat_air",
         "sensible_heat_flux",
         "wind_speed",
         "molar_density_air",
