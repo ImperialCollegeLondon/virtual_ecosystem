@@ -66,7 +66,6 @@ class HydrologyModel(
         "surface_runoff",  # equivalent to SPLASH runoff
         "vertical_flow",
         "latent_heat_vapourisation",
-        # "molar_density_air",
         "soil_evaporation",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
@@ -371,6 +370,7 @@ class HydrologyModel(
         * layer heights, [m]
         * Soil moisture (previous time step), [mm]
         * evapotranspiration (current time step), [mm]
+        * molar density air, [kg m-3]
         * accumulated surface runoff (previous time step), [mm]
         * accumulated subsurface flow (previous time step), [mm]
 
@@ -464,7 +464,7 @@ class HydrologyModel(
                 / 1000.0
             )
             density_air_kg = (
-                hydro_input["molar_density_air"][self.surface_layer_index]
+                self.data["molar_density_air"][self.surface_layer_index]
                 * self.core_constants.molecular_weight_air
                 / 1000.0
             )
@@ -479,7 +479,7 @@ class HydrologyModel(
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
-                density_air=density_air_kg,
+                density_air=density_air_kg.to_numpy(),
                 latent_heat_vapourisation=latent_heat_vapourisation,
                 gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour,
                 soil_surface_heat_transfer_coefficient=(

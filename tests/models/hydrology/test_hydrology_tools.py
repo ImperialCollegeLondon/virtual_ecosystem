@@ -33,7 +33,6 @@ def test_setup_hydrology_input_current_timestep(
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
         "latent_heat_vapourisation",
-        "molar_density_air",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",

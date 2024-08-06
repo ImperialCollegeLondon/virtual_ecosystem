@@ -34,8 +34,6 @@ def setup_hydrology_input_current_timestep(
     The function returns a dictionary with the following variables:
 
     * latent_heat_vapourisation
-    * molar_density_air
-
     * surface_temperature (TODO switch to subcanopy_temperature)
     * surface_humidity (TODO switch to subcanopy_humidity)
     * surface_pressure (TODO switch to subcanopy_pressure)
@@ -78,15 +76,6 @@ def setup_hydrology_input_current_timestep(
         latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
     )
     output["latent_heat_vapourisation"] = latent_heat_vapourisation
-
-    molar_density_air = abiotic_tools.calculate_molar_density_air(
-        temperature=data["air_temperature"].to_numpy(),
-        atmospheric_pressure=data["atmospheric_pressure"].to_numpy(),
-        standard_mole=core_constants.standard_mole,
-        standard_pressure=core_constants.standard_pressure,
-        celsius_to_kelvin=core_constants.zero_Celsius,
-    )
-    output["molar_density_air"] = molar_density_air
 
     # Get atmospheric variables
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
