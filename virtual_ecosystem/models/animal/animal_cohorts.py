@@ -730,7 +730,7 @@ class AnimalCohort:
 
         Madingley
 
-        TODO: current format makes no sense, dig up the details in the supp
+        TODO: current mass bin format makes no sense, dig up the details in the supp
         TODO: update A_cell with real reference to grid size
         TODO: update name
 
