@@ -186,9 +186,11 @@ class AbioticSimpleModel(
             bounds=AbioticSimpleBounds(),
         )
 
-        # Sensible heat flux is a required variable for the wind update
+        # Sensible heat flux from the top of the canopy to the atmosphere is a required
+        # variable for the wind update
+        # TODO this should work with index_flux_layers but returns Nan which breaks run
         self.data["sensible_heat_flux"] = self.layer_structure.from_template()
-        self.data["sensible_heat_flux"][self.layer_structure.index_flux_layers] = 0
+        self.data["sensible_heat_flux"][1] = 0
 
         initial_wind = update_wind(
             data=self.data,
@@ -279,7 +281,9 @@ def update_wind(
         air_temperature=microclimate_data["air_temperature"]
         .isel(layers=layer_structure.index_filled_atmosphere)
         .to_numpy(),
-        atmospheric_pressure=microclimate_data["atmospheric_pressure"][0].to_numpy(),
+        atmospheric_pressure=microclimate_data["atmospheric_pressure"][
+            layer_structure.index_above_scalar
+        ].to_numpy(),
         sensible_heat_flux_topofcanopy=data["sensible_heat_flux"][1].to_numpy(),
         wind_speed_ref=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
         wind_reference_height=(

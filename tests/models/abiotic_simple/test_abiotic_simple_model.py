@@ -214,6 +214,10 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     ]
     xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)
 
+    exp_sens_heat_flux = lyr_strct.from_template()
+    exp_sens_heat_flux[1] = [0, 0, 0, 0]
+    xr.testing.assert_allclose(model.data["sensible_heat_flux"], exp_sens_heat_flux)
+
     for var in [
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
