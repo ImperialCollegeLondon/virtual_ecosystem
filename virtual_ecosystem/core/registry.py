@@ -34,12 +34,17 @@ class ModuleInfo:
     BaseModel subclass and the ``model`` attribute for the ``core`` module will be None.
     """
 
-    model: Any  # FIXME Optional[type[BaseModel]]
+    # FIXME The typing below for model should be `None | type[BaseModel]`, but this is
+    # circular. When core.base_model is imported, that imports core.config.Config, which
+    # imports core.registry, which would then need to import core.base_model to use this
+    # type. Not sure how to break out of this one, so for the moment, leaving as Any.
+
+    model: Any
     """The BaseModel subclass associated with the module."""
     schema: dict[str, Any]
     """The module JSON schema as a dictionary, used to validate configuration data for
     running a simulation."""
-    constants_classes: dict[str, ConstantsDataclass]
+    constants_classes: dict[str, type[ConstantsDataclass]]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
     is_core: bool
