@@ -190,6 +190,7 @@ class AbioticSimpleModel(
         # variable for the wind update
         # TODO this should work with index_flux_layers but returns Nan which breaks run
         self.data["sensible_heat_flux"] = self.layer_structure.from_template()
+        # self.data["sensible_heat_flux"][self.layer_structure.index_flux_layers] = 0
         self.data["sensible_heat_flux"][1] = 0
 
         initial_wind = update_wind(

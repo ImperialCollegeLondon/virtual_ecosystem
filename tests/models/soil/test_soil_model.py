@@ -391,7 +391,33 @@ def test_order_independance(
         assert np.allclose(output[pool_name], output_reversed[pool_name])
 
 
-def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
+@pytest.mark.parametrize(
+    argnames=["soil_moisture", "raises", "expected_log"],
+    argvalues=[
+        pytest.param(
+            DataArray(
+                [232.61550125, 196.88733175, 126.065797, 75.63195175], dims="cell_id"
+            ),
+            does_not_raise(),
+            (),
+            id="soil moisture data ok",
+        ),
+        pytest.param(
+            DataArray(np.repeat(np.nan, 4), dims="cell_id"),
+            pytest.raises(ValueError),
+            ((ERROR, "The soil moisture is nan!"),),
+            id="soil moisture nan",
+        ),
+    ],
+)
+def test_construct_full_soil_model(
+    caplog,
+    dummy_carbon_data,
+    fixture_core_components,
+    soil_moisture,
+    raises,
+    expected_log,
+):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -445,18 +471,25 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
     }
 
-    rate_of_change = construct_full_soil_model(
-        0.0,
-        pools=pools,
-        data=dummy_carbon_data,
-        no_cells=4,
-        top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
-        delta_pools_ordered=delta_pools_ordered,
-        model_constants=SoilConsts,
-        core_constants=CoreConsts,
-    )
+    dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] = soil_moisture
 
-    assert np.allclose(delta_pools, rate_of_change)
+    with raises:
+        rate_of_change = construct_full_soil_model(
+            0.0,
+            pools=pools,
+            data=dummy_carbon_data,
+            no_cells=4,
+            top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
+            delta_pools_ordered=delta_pools_ordered,
+            model_constants=SoilConsts,
+            core_constants=CoreConsts,
+        )
+
+        assert np.allclose(delta_pools, rate_of_change)
+
+    log_check(caplog, expected_log)
 
 
 def test_make_slices():
