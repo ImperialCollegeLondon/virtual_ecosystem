@@ -810,3 +810,44 @@ def calculate_wind_profile(
     output["diabatic_correction_momentum_canopy"] = diabatic_correction_canopy["phi_m"]
 
     return output
+
+
+def calculate_aerodynamic_resistance_canopy(
+    canopy_height: NDArray[np.float32],
+    wind_speed_above: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+    roughness_length_momentum: NDArray[np.float32],
+    above_canopy_offset: float,
+    von_karmans_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate aerodynamic resistance between canopy and air, s/m.
+
+    Implementation after (Allen et al., 1998; Monteith and Unsworth., 2008; Vidrih and
+    Medved, 2013):
+    :math:`r_{c,a} = ln((z-d)/z_{m})ln((z-d)/(z_{m}*0.1))/(k**2*u(v_{z}))`
+    where d =2/3*h_c; z=h_c+2; zm=h_c*0.123; U(Vz) is the wind speed at height z; k is
+    the von Karman's constant, given value =0.41; h_c is the canopy height
+    (Allen et al., 1998).
+
+    Args:
+        canopy_height: Canopy height, [m]
+        wind_speed_above: Wind speed above the canopy, [m s-1]
+        zero_plane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+        roughness_length_momentum:Momentum roughness length, [m]
+        above_canopy_offset: Height above canopy for which wind speed is required, [m]
+        von_karmans_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        Aerodynamic resistance between canopy and air, [s/m]
+    """
+
+    scaling_factor = canopy_height + above_canopy_offset - zero_plane_displacement
+    aerodynamic_resistance = (
+        np.log((scaling_factor) / roughness_length_momentum)
+        * np.log((scaling_factor) / (roughness_length_momentum * 0.1))
+    ) / (von_karmans_constant**2 * wind_speed_above)
+
+    return aerodynamic_resistance

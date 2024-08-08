@@ -125,13 +125,15 @@ def test_canopy_correction_conditions(
 def test_calculate_mean_mixing_length(dummy_climate_data):
     """Test mixing length with and without vegetation."""
 
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
     from virtual_ecosystem.models.abiotic.wind import calculate_mean_mixing_length
 
+    abiotic_consts = AbioticConsts()
     result = calculate_mean_mixing_length(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
         zero_plane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
         roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
-        mixing_length_factor=AbioticConsts.mixing_length_factor,
+        mixing_length_factor=abiotic_consts.mixing_length_factor,
     )
 
     np.testing.assert_allclose(
@@ -426,3 +428,24 @@ def test_calculate_wind_profile(
     np.testing.assert_allclose(
         wind_update["wind_speed"], wind_speed_exp, rtol=1e-3, atol=1e-3
     )
+
+
+def test_calculate_aerodynamic_resistance_canopy(dummy_climate_data):
+    """Test calculation of aerodynamic resistance between air and canopy."""
+
+    from virtual_ecosystem.core.core_components import CoreConsts
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_aerodynamic_resistance_canopy,
+    )
+
+    result = calculate_aerodynamic_resistance_canopy(
+        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        wind_speed_above=dummy_climate_data["wind_speed"][0].to_numpy(),
+        zero_plane_displacement=dummy_climate_data["zero_plane_displacement"],
+        roughness_length_momentum=dummy_climate_data["roughness_length_momentum"],
+        above_canopy_offset=2.0,
+        von_karmans_constant=CoreConsts.von_karmans_constant,
+    )
+
+    exp_result = np.array([1088.610345, 1088.610345, 1088.610345, 1088.610345])
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

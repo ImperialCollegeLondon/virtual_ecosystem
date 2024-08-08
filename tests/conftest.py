@@ -342,7 +342,8 @@ def dummy_climate_data(fixture_core_components):
     spatially_constant = {
         "sensible_heat_flux_soil": 1,
         "latent_heat_flux_soil": 1,
-        "zero_displacement_height": 20.0,
+        "zero_plane_displacement": 20.0,
+        "roughness_length_momentum": 0.5,
         "diabatic_correction_heat_above": 0.1,
         "diabatic_correction_heat_canopy": 1.0,
         "diabatic_correction_momentum_above": 0.1,
