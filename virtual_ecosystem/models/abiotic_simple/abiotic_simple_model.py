@@ -12,20 +12,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from xarray import DataArray
-
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
-from virtual_ecosystem.core.core_components import (
-    CoreComponents,
-    CoreConsts,
-    LayerStructure,
-)
+from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import wind
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 from virtual_ecosystem.models.abiotic_simple import microclimate
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
@@ -57,6 +51,16 @@ class AbioticSimpleModel(
         "wind_speed",
         "molar_density_air",
         "specific_heat_air",
+        "relative_turbulence_intensity",
+        "attenuation_coefficient",
+        "zero_plane_displacement",
+        "roughness_length_momentum",
+        "mean_mixing_length",
+        "friction_velocity",
+        "diabatic_correction_heat_above",
+        "diabatic_correction_momentum_above",
+        "diabatic_correction_heat_canopy",
+        "diabatic_correction_momentum_canopy",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -83,6 +87,16 @@ class AbioticSimpleModel(
         "sensible_heat_flux",
         "molar_density_air",
         "specific_heat_air",
+        "relative_turbulence_intensity",
+        "attenuation_coefficient",
+        "zero_plane_displacement",
+        "roughness_length_momentum",
+        "mean_mixing_length",
+        "friction_velocity",
+        "diabatic_correction_heat_above",
+        "diabatic_correction_momentum_above",
+        "diabatic_correction_heat_canopy",
+        "diabatic_correction_momentum_canopy",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -193,7 +207,7 @@ class AbioticSimpleModel(
         # self.data["sensible_heat_flux"][self.layer_structure.index_flux_layers] = 0
         self.data["sensible_heat_flux"][1] = 0
 
-        initial_wind = update_wind(
+        initial_wind = wind.update_wind(
             data=self.data,
             microclimate_data=initial_microclimate,
             layer_structure=self.layer_structure,
@@ -230,7 +244,7 @@ class AbioticSimpleModel(
             bounds=self.bounds,
         )
 
-        wind_out = update_wind(
+        wind_out = wind.update_wind(
             data=self.data,
             microclimate_data=microclimate_out,
             layer_structure=self.layer_structure,
@@ -244,60 +258,3 @@ class AbioticSimpleModel(
 
     def cleanup(self) -> None:
         """Placeholder function for abiotic model cleanup."""
-
-
-def update_wind(
-    data: Data,
-    microclimate_data: dict[str, DataArray],
-    layer_structure: LayerStructure,
-    time_index: int,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
-) -> dict[str, DataArray]:
-    """Update wind speed, molar density of air, and specific heat of air.
-
-    This function wraps the steps to update the wind profile and returns the subset of
-    variables that are relevant for the abiotic simple model.
-
-    Args:
-        data: Data instance
-        microclimate_data: Dictionary with microclimate varaibles for current time step
-        layer_structure: LayerStructure instance
-        time_index: Time index
-        abiotic_constants: Set of constants for the abiotic model
-        core_constants: Set of constants shared across all models
-    Returns:
-        dictionary with "wind_speed", "molar_density_air", "specific_heat_air"
-    """
-
-    wind_update = calculate_wind_profile(
-        canopy_height=data["layer_heights"][1].to_numpy(),
-        wind_height_above=data["layer_heights"][0:2].to_numpy(),
-        wind_layer_heights=data["layer_heights"]
-        .isel(layers=layer_structure.index_filled_atmosphere)
-        .to_numpy(),
-        leaf_area_index=data["leaf_area_index"]
-        .isel(layers=layer_structure.index_filled_atmosphere)
-        .to_numpy(),
-        air_temperature=microclimate_data["air_temperature"]
-        .isel(layers=layer_structure.index_filled_atmosphere)
-        .to_numpy(),
-        atmospheric_pressure=microclimate_data["atmospheric_pressure"][
-            layer_structure.index_above_scalar
-        ].to_numpy(),
-        sensible_heat_flux_topofcanopy=data["sensible_heat_flux"][1].to_numpy(),
-        wind_speed_ref=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
-        wind_reference_height=(
-            data["layer_heights"][1] + abiotic_constants.wind_reference_height
-        ).to_numpy(),
-        abiotic_constants=abiotic_constants,
-        core_constants=core_constants,
-    )  # TODO wind height above in constants, cross-check with LayerStructure setup
-
-    # Store 2D wind outputs using the full vertical structure
-    wind_out = {}
-    for var in ["wind_speed", "molar_density_air", "specific_heat_air"]:
-        wind_out[var] = layer_structure.from_template()
-        wind_out[var][layer_structure.index_filled_atmosphere] = wind_update[var]
-
-    return wind_out

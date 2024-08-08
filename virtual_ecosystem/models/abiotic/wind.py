@@ -760,14 +760,14 @@ def calculate_wind_profile(
     # set of true aboveground rows and then appending a row above and below. I think it
     # should operate by taking only the canopy data (dropping two rows) and then
     # replacing them.
-    attennuation_coefficient = calculate_wind_attenuation_coefficient(
+    attenuation_coefficient = calculate_wind_attenuation_coefficient(
         canopy_height=canopy_height,
         leaf_area_index=leaf_area_index,
         mean_mixing_length=mean_mixing_length,
         drag_coefficient=abiotic_constants.drag_coefficient,
         relative_turbulence_intensity=relative_turbulence_intensity,
     )
-    output["attennuation_coefficient"] = attennuation_coefficient
+    output["attenuation_coefficient"] = attenuation_coefficient
 
     # Calculate wind speed above canopy (2m above and top of canopy), [m s-1]
     wind_speed_above_canopy = calculate_wind_above_canopy(
@@ -785,7 +785,7 @@ def calculate_wind_profile(
         top_of_canopy_wind_speed=wind_speed_above_canopy[1],
         wind_layer_heights=wind_layer_heights,
         canopy_height=canopy_height,
-        attenuation_coefficient=attennuation_coefficient,
+        attenuation_coefficient=attenuation_coefficient,
     )
 
     # Combine wind speed above and in canopy to full profile
@@ -910,7 +910,7 @@ def update_wind(
         "molar_density_air",
         "specific_heat_air",
         "relative_turbulence_intensity",
-        "attennuation_coefficient",
+        "attenuation_coefficient",
     ]:
         var_out = layer_structure.from_template()
         var_out[layer_structure.index_filled_atmosphere] = wind_update[var]
