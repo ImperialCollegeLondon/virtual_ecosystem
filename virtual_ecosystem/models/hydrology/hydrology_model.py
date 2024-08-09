@@ -61,6 +61,7 @@ class HydrologyModel(
         "elevation",
     ),
     vars_updated=(
+        # "canopy_evaporation",
         "precipitation_surface",  # precipitation-interception loss
         "soil_moisture",
         "surface_runoff",  # equivalent to SPLASH runoff
@@ -100,6 +101,7 @@ class HydrologyModel(
         "subsurface_flow_accumulated",
     ),
     vars_populated_by_first_update=(
+        # "canopy_evaporation",
         "precipitation_surface",  # precipitation-interception loss
         "surface_runoff",
         "bypass_flow",
@@ -288,6 +290,7 @@ class HydrologyModel(
         This function calculates the main hydrological components of the Virtual
         Ecosystem and updates the following variables in the `data` object:
 
+        * canopy_evaporation,[mm]
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
         * matric_potential, [kPa]
@@ -304,7 +307,7 @@ class HydrologyModel(
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
-        * aerodynamic_resistance_surface, [kg m-2 s-3]
+        * aerodynamic_resistance_surface, [-]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
@@ -416,6 +419,14 @@ class HydrologyModel(
             )
 
             # TODO add canopy evaporation
+            # canopy_evaporation = calculate_canopy_evaporation(
+            #   leaf_area_index=hydro_input["leaf_area_index_sum"],
+            #   interception=interception,
+            #   time_interval=??,
+            #   intercept_residence_time=constant,
+            #   extinction_coefficient_global_radiation=self.core_constants.
+            # )
+            # daily_lists['canopy_evaporation'].append(canopy_evaporation)
 
             # Precipitation that reaches the surface per day, [mm]
             precipitation_surface = (
@@ -648,6 +659,7 @@ class HydrologyModel(
 
         # Calculate monthly accumulated/mean values for hydrology variables
         for var in [
+            # "canopy_evaporation",
             "precipitation_surface",
             "surface_runoff",
             "soil_evaporation",
