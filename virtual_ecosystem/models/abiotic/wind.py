@@ -870,7 +870,7 @@ def update_wind(
 
     Args:
         data: Data instance
-        microclimate_data: Dictionary with microclimate varibles for current time step
+        microclimate_data: Dictionary with microclimate variables for current time step
         layer_structure: LayerStructure instance
         time_index: Time index
         abiotic_constants: Set of constants for the abiotic model
