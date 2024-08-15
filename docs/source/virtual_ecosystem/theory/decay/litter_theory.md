@@ -16,49 +16,50 @@ The rest of this page gives provides details on the specific litter pools, the
 partitioning of organic matter input between them, and the environmental factors that
 effect decay rates.
 
+TODO - Talk about animal inputs once that is settled
+
 ## Litter pools
 
-TODO - Change this based on new high level intro, also need to think how this fits with
-how I'm explaining partition.
-We also select our litter pools from a pre-existing framework
-{cite}`kirschbaum_modelling_2002`. Here, pools are principally defined by input type,
-e.g. coarse wood, fine wood, structural and metabolic. They are then further subdivided
-into above- and below-ground pools. Some of these pools cannot be fully characterised
-due to insufficient data and so following {cite}`fatichi_mechanistic_2019`, we neglect
-them. This means that we use a single above-ground woody litter pool, rather than coarse
-and fine woody, and we do not include any below-ground woody pool. This leaves us with
-the following pools
+In our model, pools are principally defined by input type, e.g. woody, structural and
+metabolic. They are then further subdivided into above- and below-ground pools. Some of
+these pools cannot be fully characterised due to insufficient data and so following
+{cite}`fatichi_mechanistic_2019`, we neglect them. This means that we use a single
+above-ground woody litter pool, rather than coarse and fine woody, and we do not include
+any below-ground woody pool. This leaves us with the following pools:
 
 ### Above-ground metabolic litter
 
 Above-ground metabolic litter can originate as any non-woody above-ground plant matter
 (e.g. bark, leaves, fruit, etc). By definition the pool contains plant matter that is
-easily broken down, i.e. that with low lignin concentration.
+easily broken down, and so this pool by definition contains no lignin.
 
 ### Above-ground structural litter
 
 High lignin concentration biomass from leaves etc is instead included in the
 above-ground structural litter pool. This pool shares a set of sources with the
-metabolic pool, and the split between them in determined based on the lignin:N ratio of
-the input.
+metabolic pool, but is defined as containing the more recalcitrant material.
 
 ### Above-ground woody litter
 
 Above-ground dead wood is treated separately due to its substantially different turnover
-dynamics. So all wood losses from tree falls, branch fall etc, is assumed to be added to
-an above-ground woody pool.
+dynamics. So, all wood losses from tree falls, branch fall etc, is assumed to be added
+to an above-ground woody pool. We assume that the vast majority of dead wood ends up
+decaying on top of the soil, and so there is no corresponding below-ground pool. We
+considered including a separate pool for standing dead trees, as wood decaying in this
+form would experience a very different environment and hence would be expected to decay
+at a different rate. This felt like too much effort for what is likely to be a small
+effect.
 
 ### Below-ground metabolic litter
 
 For the below-ground pools roots (both fine and coarse) are the major source of biomass.
-We make the assumption that coarse root debris fragments sufficiently to not need to be
-captured in a separate woody pool. The below-ground metabolic litter pool then includes
-the easily broken down root debris.
+The below-ground metabolic litter pool then includes the easily broken down root debris,
+which is likely to come predominantly from fine-root turnover.
 
 ### Below-ground structural litter
 
-As with the above-ground case the fraction of dead root biomass that ends up in the
-below-ground structural pool is set by the lignin:N ratio of the input.
+As with the above-ground case only the structural pool contains lignin, this pool
+represents hard to break down components of root turnover.
 
 TODO - add Chemistry + Partition section
 TODO - Add section about Environmental factors
