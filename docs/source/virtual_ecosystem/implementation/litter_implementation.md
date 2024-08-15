@@ -40,7 +40,8 @@ display_markdown(
 
 ## Model overview
 
-TODO - Add a high level overview of how this model works here
+TODO - Add a high level overview of how this model works here, this can only be done
+after the new flow is fixed
 
 ## Generated variables
 
