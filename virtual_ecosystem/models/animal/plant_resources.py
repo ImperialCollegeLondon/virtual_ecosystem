@@ -7,8 +7,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
+from virtual_ecosystem.models.animal.decay import ExcrementPool
 
 
 class PlantResources:
@@ -34,6 +35,8 @@ class PlantResources:
         # Store the data and extract the appropriate plant data
         self.data = data
         """A reference to the core data object."""
+        self.cell_id = cell_id
+        """The community cell containing the plant resources."""
         # self.mass_current: float = (
         #    data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
         # )
@@ -56,8 +59,8 @@ class PlantResources:
     def get_eaten(
         self,
         consumed_mass: float,
-        herbivore: Consumer,
-        excrement_pools: Sequence[DecayPool],
+        herbivore: AnimalCohort,
+        excrement_pools: Sequence[ExcrementPool],
     ) -> float:
         """This function handles herbivory on PlantResources."""
 

@@ -7,6 +7,7 @@ from collections.abc import MutableSequence, Sequence
 from typing import Protocol
 
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.animal.decay import CarcassPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -38,11 +39,13 @@ class Consumer(Protocol):
     individuals: int
     mass_current: float
     territory: "Territory"
+    prey_groups: dict[str, tuple[float, float]]
 
     def get_eaten(
         self,
         potential_consumed_mass: float,
         predator: "Consumer",
+        carcass_pools: dict[int, CarcassPool],
     ) -> float:
         """The get_eaten method partially defines a consumer."""
         ...

@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from math import ceil, exp, sqrt
+from uuid import uuid4
 
 from numpy import timedelta64
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animal.animal_territories import (
+    AnimalTerritory,
+    bfs_territory,
+)
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animal.protocols import (
-    Consumer,
-    DecayPool,
-    Resource,
-    Territory,
-)
+from virtual_ecosystem.models.animal.plant_resources import PlantResources
 
 
 class AnimalCohort:
@@ -29,7 +30,8 @@ class AnimalCohort:
         mass: float,
         age: float,
         individuals: int,
-        territory: Territory,
+        centroid_key: int,
+        grid: Grid,
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         if age < 0:
@@ -51,10 +53,14 @@ class AnimalCohort:
         """The age of the animal cohort [days]."""
         self.individuals = individuals
         """The number of individuals in this cohort."""
-        self.territory = territory
-        """The territory of animal communities occupied by the cohort."""
+        self.centroid_key = centroid_key
+        """The centroid key of the cohort's territory."""
+        self.grid = grid
+        """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.id = uuid4()
+        """A unique identifier for the cohort."""
         self.damuth_density: int = sf.damuths_law(
             self.functional_group.adult_mass, self.functional_group.damuths_law_terms
         )
@@ -69,7 +75,7 @@ class AnimalCohort:
         """The amount of time [days] since reaching adult body-mass."""
         self.reproductive_mass: float = 0.0
         """The pool of biomass from which the material of reproduction is drawn."""
-        self.prey_groups = sf.prey_group_selection(
+        self.prey_groups: dict[str, tuple[float, float]] = sf.prey_group_selection(
             self.functional_group.diet,
             self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
@@ -77,12 +83,52 @@ class AnimalCohort:
         """The identification of useable food resources."""
         self.territory_size = sf.territory_size(self.functional_group.adult_mass)
         """The size in hectares of the animal cohorts territory."""
+        self.occupancy_proportion: float = 1.0 / self.territory_size
+        """The proportion of the cohort that is within a territorial given grid cell."""
+        self._initialize_territory(centroid_key)
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
         """The fraction of excrement which decays before it gets consumed."""
         self.decay_fraction_carcasses: float = self.constants.decay_fraction_carcasses
         """The fraction of carcass biomass which decays before it gets consumed."""
+
+    def get_territory_cells(self, centroid_key: int) -> list[int]:
+        """This calls bfs_territory to determine the scope of the territory.
+
+        Args:
+            centroid_key: The central grid cell key of the territory.
+
+        """
+
+        # Each grid cell is 1 hectare, territory size in grids is the same as hectares
+        target_cell_number = int(self.territory_size)
+
+        # Perform BFS to determine the territory cells
+        territory_cells = bfs_territory(
+            centroid_key,
+            target_cell_number,
+            self.grid.cell_nx,
+            self.grid.cell_ny,
+        )
+
+        return territory_cells
+
+    def _initialize_territory(
+        self,
+        centroid_key: int,
+    ) -> None:
+        """This initializes the territory occupied by the cohort.
+
+        Args:
+            centroid_key: The grid cell key anchoring the territory.
+            get_community_by_key: The method for accessing animal communities by key.
+        """
+
+        territory_cells = self.get_territory_cells(centroid_key)
+
+        # Generate the territory
+        self.territory = AnimalTerritory(centroid_key, territory_cells)
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce body mass through metabolism.
@@ -126,9 +172,7 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(
-        self, excreta_mass: float, excrement_pools: Sequence[DecayPool]
-    ) -> None:
+    def excrete(self, excreta_mass: float, excrement_pools: set[ExcrementPool]) -> None:
         """Transfers nitrogenous metabolic wastes to the excrement pool.
 
         This method will not be fully implemented until the stoichiometric rework. All
@@ -180,7 +224,7 @@ class AnimalCohort:
 
     def defecate(
         self,
-        excrement_pools: Sequence[DecayPool],
+        excrement_pools: list[ExcrementPool],
         mass_consumed: float,
     ) -> None:
         """Transfer waste mass from an animal cohort to the excrement pools.
@@ -242,7 +286,7 @@ class AnimalCohort:
             self.time_to_maturity = self.age
 
     def die_individual(
-        self, number_dead: int, carcass_pools: Sequence[DecayPool]
+        self, number_dead: int, carcass_pools: list[CarcassPool]
     ) -> None:
         """The function to reduce the number of individuals in the cohort through death.
 
@@ -272,9 +316,11 @@ class AnimalCohort:
         self.update_carcass_pool(carcass_mass, carcass_pools)
 
     def update_carcass_pool(
-        self, carcass_mass: float, carcass_pools: Sequence[DecayPool]
+        self, carcass_mass: float, carcass_pools: list[CarcassPool]
     ) -> None:
         """Updates the carcass pools based on consumed mass and predator's efficiency.
+
+        TODO: move to animal model?
 
         Args:
             carcass_mass: The total mass consumed from the prey cohort.
@@ -296,7 +342,8 @@ class AnimalCohort:
     def get_eaten(
         self,
         potential_consumed_mass: float,
-        predator: Consumer,
+        predator: AnimalCohort,
+        carcass_pools: dict[int, set[CarcassPool]],
     ) -> float:
         """Removes individuals according to mass demands of a predation event.
 
@@ -307,7 +354,8 @@ class AnimalCohort:
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
             predator: The predator consuming the cohort.
-            carcass_pool: The pool to which remains of eaten individuals are delivered.
+            carcass_pools: The pools to which remains of eaten individuals are
+              delivered.
 
         Returns:
             The actual mass consumed by the predator, closely matching consumed_mass.
@@ -339,7 +387,7 @@ class AnimalCohort:
 
         # Find the intersection of prey and predator territories
         intersection_carcass_pools = self.territory.find_intersecting_carcass_pools(
-            predator.territory
+            predator.territory, carcass_pools
         )
 
         # Update the carcass pool with carcass mass
@@ -363,7 +411,7 @@ class AnimalCohort:
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
 
     def calculate_potential_consumed_biomass(
-        self, target_plant: Resource, alpha: float
+        self, target_plant: PlantResources, alpha: float
     ) -> float:
         """Calculate potential consumed biomass for the target plant.
 
@@ -387,7 +435,7 @@ class AnimalCohort:
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
-        self, plant_list: Sequence[Resource], alpha: float
+        self, plant_list: list[PlantResources], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
 
@@ -399,7 +447,7 @@ class AnimalCohort:
         TODO: MGO - rework for territories
 
         Args:
-            plant_list: A sequence of plant resources available for consumption by the
+            plant_list: A list of plant resources available for consumption by the
             cohort.
             alpha: The search efficiency rate of the herbivore cohort.
 
@@ -421,7 +469,9 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
+    def F_i_k(
+        self, plant_list: list[PlantResources], target_plant: PlantResources
+    ) -> float:
         """Method to determine instantaneous herbivory rate on plant k.
 
         This method integrates the calculated search efficiency, potential consumed
@@ -432,7 +482,7 @@ class AnimalCohort:
         TODO: update name
 
         Args:
-            plant_list: A sequence of plant resources available for consumption by the
+            plant_list: A list of plant resources available for consumption by the
                  cohort.
             target_plant: The specific plant resource being targeted by the herbivore
                  cohort for consumption.
@@ -532,12 +582,12 @@ class AnimalCohort:
         )
 
     def F_i_j_individual(
-        self, animal_list: Sequence[Consumer], target_cohort: Consumer
+        self, animal_list: list[AnimalCohort], target_cohort: AnimalCohort
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                 predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
@@ -557,7 +607,7 @@ class AnimalCohort:
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
-        self, animal_list: Sequence[Consumer], target_cohort: Consumer
+        self, animal_list: list[AnimalCohort], target_cohort: AnimalCohort
     ) -> float:
         """Calculates the mass to be consumed from a prey cohort by the predator.
 
@@ -568,7 +618,7 @@ class AnimalCohort:
         TODO: Replace delta_t with time step reference
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                 predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
@@ -592,8 +642,9 @@ class AnimalCohort:
 
     def delta_mass_predation(
         self,
-        animal_list: Sequence[Consumer],
-        excrement_pools: Sequence[DecayPool],
+        animal_list: list[AnimalCohort],
+        excrement_pools: list[ExcrementPool],
+        carcass_pools: dict[int, set[CarcassPool]],
     ) -> float:
         """This method handles mass assimilation from predation.
 
@@ -602,9 +653,10 @@ class AnimalCohort:
         TODO: rethink defecate location
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                          predator.
             excrement_pools: The pools representing the excrement in the territory.
+            carcass_pools: The pools to which animal carcasses are delivered.
 
         Returns:
             The change in mass experienced by the predator.
@@ -618,7 +670,9 @@ class AnimalCohort:
                 animal_list, prey_cohort
             )
             # Call get_eaten on the prey cohort to update its mass and individuals
-            actual_consumed_mass = prey_cohort.get_eaten(consumed_mass, self)
+            actual_consumed_mass = prey_cohort.get_eaten(
+                consumed_mass, self, carcass_pools
+            )
             # Update total mass gained by the predator
             total_consumed_mass += actual_consumed_mass
 
@@ -627,7 +681,7 @@ class AnimalCohort:
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
-        self, plant_list: Sequence[Resource], target_plant: Resource
+        self, plant_list: list[PlantResources], target_plant: PlantResources
     ) -> float:
         """Calculates the mass to be consumed from a plant resource by the herbivore.
 
@@ -638,7 +692,7 @@ class AnimalCohort:
         TODO: Replace delta_t with actual time step reference
 
         Args:
-            plant_list: A sequence of plant resources that can be consumed by the
+            plant_list: A list of plant resources that can be consumed by the
                 herbivore.
             target_plant: The plant resource from which mass will be consumed.
 
@@ -654,7 +708,9 @@ class AnimalCohort:
         return consumed_mass
 
     def delta_mass_herbivory(
-        self, plant_list: Sequence[Resource], excrement_pools: Sequence[DecayPool]
+        self,
+        plant_list: list[PlantResources],
+        excrement_pools: list[ExcrementPool],
     ) -> float:
         """This method handles mass assimilation from herbivory.
 
@@ -662,7 +718,7 @@ class AnimalCohort:
         TODO: update name
 
         Args:
-            plant_list: A sequence of plant resources available for herbivory.
+            plant_list: A list of plant resources available for herbivory.
             excrement_pools: The pools representing the excrement in the territory.
 
         Returns:
@@ -686,16 +742,18 @@ class AnimalCohort:
 
     def forage_cohort(
         self,
-        plant_list: Sequence[Resource],
-        animal_list: Sequence[Consumer],
-        excrement_pools: Sequence[DecayPool],
+        plant_list: list[PlantResources],
+        animal_list: list[AnimalCohort],
+        excrement_pools: list[ExcrementPool],
+        carcass_pools: dict[int, set[CarcassPool]],
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 
         Args:
-            plant_list: A sequence of plant resources available for herbivory.
-            animal_list: A sequence of animal cohorts available for predation.
-            excrement_pools: A pool representing the excrement in the grid cell.
+            plant_list: A list of plant resources available for herbivory.
+            animal_list: A list of animal cohorts available for predation.
+            excrement_pools: The pools representing the excrement in the grid cell.
+            carcass_pools: The pools to which animal carcasses are delivered.
 
         Return:
             A float value of the net change in consumer mass due to foraging.
@@ -718,11 +776,13 @@ class AnimalCohort:
         # Carnivore diet
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
             # Calculate the mass gained from predation
-            consumed_mass = self.delta_mass_predation(animal_list, excrement_pools)
+            consumed_mass = self.delta_mass_predation(
+                animal_list, excrement_pools, carcass_pools
+            )
             # Update the predator's mass with the total gained mass
             self.eat(consumed_mass)
 
-    def theta_i_j(self, animal_list: Sequence[Consumer]) -> float:
+    def theta_i_j(self, animal_list: list[AnimalCohort]) -> float:
         """Cumulative density method for delta_mass_predation.
 
         The cumulative density of organisms with a mass lying within the same predator
@@ -735,7 +795,7 @@ class AnimalCohort:
         TODO: update name
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                          predator.
 
         Returns:
@@ -839,7 +899,7 @@ class AnimalCohort:
         return min(1.0, probability_of_dispersal)
 
     def inflict_non_predation_mortality(
-        self, dt: float, carcass_pools: Sequence[DecayPool]
+        self, dt: float, carcass_pools: list[CarcassPool]
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
