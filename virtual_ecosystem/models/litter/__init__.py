@@ -7,8 +7,10 @@ Each of the litter sub-modules has its own API reference page:
   LitterModel class which consolidates the functionality of the litter model into a
   single class, which the high level functions of the Virtual Ecosystem can then make
   use of.
-* :mod:`~virtual_ecosystem.models.litter.litter_pools` provides the set of litter
+* :mod:`~virtual_ecosystem.models.litter.carbon` provides the set of litter carbon
   pools that the litter model is comprised of.
+* :mod:`~virtual_ecosystem.models.litter.chemistry` tracks the chemistry (lignin,
+  nitrogen and phosphorus) of the litter pools.
 * :mod:`~virtual_ecosystem.models.litter.input_partition` handles the partitioning
   of biomass input between the different litter pools.
 * :mod:`~virtual_ecosystem.models.litter.env_factors` provides the functions

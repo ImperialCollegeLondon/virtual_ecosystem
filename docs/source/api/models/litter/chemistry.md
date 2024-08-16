@@ -14,10 +14,10 @@ kernelspec:
   name: python3
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.models.litter.litter_pools` module
+# API documentation for the {mod}`~virtual_ecosystem.models.litter.chemistry` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.litter.litter_pools
+.. automodule:: virtual_ecosystem.models.litter.chemistry
     :autosummary:
     :members:
 ```

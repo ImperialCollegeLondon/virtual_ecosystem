@@ -50,6 +50,11 @@ def test_litter_model_initialization(
             (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
             (DEBUG, "litter model: required var 'lignin_woody' checked"),
             (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_above_metabolic' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_above_structural' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
         ),
     )
 
@@ -116,6 +121,27 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
                 "litter model: init data missing required var "
                 "'lignin_below_structural'",
             ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_above_metabolic'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_above_structural'",
+            ),
+            (ERROR, "litter model: init data missing required var 'c_n_ratio_woody'"),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_below_metabolic'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_below_structural'",
+            ),
             (ERROR, "litter model: error checking vars_required_for_init, see log."),
         ),
     )
@@ -175,6 +201,35 @@ def test_litter_model_initialization_bad_lignin_bounds(
     )
 
 
+def test_litter_model_initialization_bad_nutrient_ratio_bounds(
+    caplog, dummy_litter_data, fixture_core_components
+):
+    """Test `LitterModel` initialization fails for nutrient ratios not in bounds."""
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
+
+    with pytest.raises(InitialisationError):
+        # Make four cell grid
+        litter_data = deepcopy(dummy_litter_data)
+        # Put incorrect data in for woody lignin
+        litter_data["c_n_ratio_woody"] = DataArray(
+            [23.3, 45.6, -23.4, -11.1], dims=["cell_id"]
+        )
+
+        LitterModel(
+            data=litter_data,
+            core_components=fixture_core_components,
+            model_constants=LitterConsts,
+        )
+
+    # Final check that expected logging entries are produced
+    log_check(
+        caplog,
+        expected_log=((ERROR, "Negative nutrient ratios found in: "),),
+        subset=slice(-1, None, None),
+    )
+
+
 @pytest.mark.parametrize(
     "cfg_string,temp_response,raises,expected_log_entries",
     [
@@ -221,6 +276,23 @@ def test_litter_model_initialization_bad_lignin_bounds(
                     DEBUG,
                     "litter model: required var 'lignin_below_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_structural' checked",
+                ),
+                (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_structural' checked",
+                ),
             ),
             id="default_config",
         ),
@@ -256,6 +328,23 @@ def test_litter_model_initialization_bad_lignin_bounds(
                 (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
                 (DEBUG, "litter model: required var 'lignin_woody' checked"),
                 (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_structural' checked",
+                ),
+                (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_structural' checked",
+                ),
             ),
             id="modified_config_correct",
         ),
@@ -316,7 +405,13 @@ def test_update(fixture_litter_model, dummy_litter_data):
     end_lignin_above_struct = [0.49790843, 0.10067782, 0.70495536, 0.71045831]
     end_lignin_woody = [0.49580586, 0.79787834, 0.35224223, 0.35012603]
     end_lignin_below_struct = [0.50313573, 0.26585915, 0.7499951, 0.82142798]
+    end_c_n_above_metabolic = [7.42828416, 8.93702901, 11.13974239, 10.28862956]
+    end_c_n_above_structural = [37.56983094, 43.34654437, 49.02060275, 54.44715499]
+    end_c_n_woody = [55.581683655, 63.25507083, 47.520800061, 59.08199528]
+    end_c_n_below_metabolic = [10.90350592, 11.4669011, 15.20703826, 12.66163681]
+    end_c_n_below_structural = [50.77558203, 56.38787769, 73.18371555, 64.0424462]
     c_mineral = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
+    n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
 
     fixture_litter_model.update(time_index=0)
 
@@ -337,4 +432,18 @@ def test_update(fixture_litter_model, dummy_litter_data):
     assert np.allclose(
         dummy_litter_data["lignin_below_structural"], end_lignin_below_struct
     )
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_above_metabolic"], end_c_n_above_metabolic
+    )
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_above_structural"], end_c_n_above_structural
+    )
+    assert np.allclose(dummy_litter_data["c_n_ratio_woody"], end_c_n_woody)
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_below_metabolic"], end_c_n_below_metabolic
+    )
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_below_structural"], end_c_n_below_structural
+    )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
+    assert np.allclose(dummy_litter_data["litter_N_mineralisation_rate"], n_mineral)
