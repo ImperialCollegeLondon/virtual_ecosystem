@@ -8,7 +8,7 @@ import pytest
 from numpy import ndarray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_generate_canopy_model(plants_data, flora):
@@ -17,8 +17,8 @@ def test_generate_canopy_model(plants_data, flora):
     # TODO - the functionality in this function does nothing at the moment, so this
     #        method just tests data handling
 
-    from virtual_rainforest.models.plants.canopy import generate_canopy_model
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.canopy import generate_canopy_model
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     communities = PlantCommunities(plants_data, flora)
 
@@ -60,8 +60,8 @@ def test_generate_canopy_model(plants_data, flora):
 def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp_log):
     """Test the function to turn PlantsCommunities into canopy arrays."""
 
-    from virtual_rainforest.models.plants.canopy import build_canopy_arrays
-    from virtual_rainforest.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.canopy import build_canopy_arrays
+    from virtual_ecosystem.models.plants.community import PlantCommunities
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
@@ -88,14 +88,16 @@ def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp
             log_check(caplog, exp_log)
 
 
-def test_initialise_canopy_layers(plants_data, layer_structure):
+def test_initialise_canopy_layers(plants_data, fixture_core_components):
     """Test the function to initialise canopy layers in the data object."""
 
-    from virtual_rainforest.models.plants.canopy import initialise_canopy_layers
+    from virtual_ecosystem.models.plants.canopy import initialise_canopy_layers
 
     # Use fixture communities for now - this may need parameterised communities in the
     # future to try and trigger various warning - or might not.
-    data = initialise_canopy_layers(data=plants_data, layer_structure=layer_structure)
+    data = initialise_canopy_layers(
+        data=plants_data, layer_structure=fixture_core_components.layer_structure
+    )
 
     # Set up expectations
     expected_layers = (
@@ -103,16 +105,18 @@ def test_initialise_canopy_layers(plants_data, layer_structure):
         "leaf_area_index",
         "layer_fapar",
         "layer_leaf_mass",
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
     )
 
-    n_layer = 1 + 10 + 2 + 2
-    exp_shape = (n_layer, data.grid.n_cells)
+    exp_shape = (
+        fixture_core_components.layer_structure.n_layers,
+        fixture_core_components.grid.n_cells,
+    )
 
     exp_dims = {
-        "layers": (True, n_layer),
-        "layer_roles": (False, n_layer),
-        "cell_id": (True, data.grid.n_cells),
+        "layers": (True, fixture_core_components.layer_structure.n_layers),
+        "layer_roles": (False, fixture_core_components.layer_structure.n_layers),
+        "cell_id": (True, fixture_core_components.grid.n_cells),
     }
 
     # Check each layer is i) in the data object, ii) has the right shape, iii) has the
@@ -131,7 +135,7 @@ def test_initialise_canopy_layers(plants_data, layer_structure):
 
     # Specifically for layer heights, check that the fixed layer heights are as expected
     assert np.allclose(
-        data["layer_heights"].mean(dim="cell_id").to_numpy(),
-        np.array([np.nan] * 11 + [1.5, 0.1, -0.25, -1.0]),
+        data["layer_heights"].to_numpy(),
+        np.tile(np.array([[np.nan] * 11 + [0.1, -0.5, -1.0]]).T, 4),
         equal_nan=True,
     )

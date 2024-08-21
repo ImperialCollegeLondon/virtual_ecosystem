@@ -5,53 +5,32 @@ from copy import deepcopy
 from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import numpy as np
-import pint
 import pytest
 from xarray import DataArray
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 
-@pytest.fixture
-def litter_model_fixture(dummy_litter_data):
-    """Create a litter model fixture based on the dummy litter data."""
-
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.models.litter.litter_model import LitterModel
-
-    # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.abiotic_simple")
-    # Build the config object
-    config = Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n"
-    )
-
-    return LitterModel.from_config(dummy_litter_data, config, pint.Quantity("24 hours"))
-
-
-def test_litter_model_initialization(caplog, dummy_litter_data):
+def test_litter_model_initialization(
+    caplog, dummy_litter_data, fixture_core_components
+):
     """Test `LitterModel` initialization."""
-    from virtual_rainforest.core.base_model import BaseModel
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     model = LitterModel(
         data=dummy_litter_data,
-        update_interval=pint.Quantity("1 week"),
-        soil_layers=[-0.25, -1.0],
-        canopy_layers=10,
-        model_constants=LitterConsts,
-        core_constants=CoreConsts,
+        core_components=fixture_core_components,
+        model_constants=LitterConsts(),
     )
 
     # In cases where it passes then checks that the object has the right properties
     assert isinstance(model, BaseModel)
     assert model.model_name == "litter"
     assert str(model) == "A litter model instance"
-    assert repr(model) == "LitterModel(update_interval = 1 week)"
+    assert repr(model) == "LitterModel(update_interval=1209600 seconds)"
 
     # Final check that expected logging entries are produced
     log_check(
@@ -71,17 +50,21 @@ def test_litter_model_initialization(caplog, dummy_litter_data):
             (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
             (DEBUG, "litter model: required var 'lignin_woody' checked"),
             (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_above_metabolic' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_above_structural' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
+            (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
         ),
     )
 
 
-def test_litter_model_initialization_no_data(caplog):
+def test_litter_model_initialization_no_data(caplog, fixture_core_components):
     """Test `LitterModel` initialization fails when all data is missing."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     caplog.clear()
 
@@ -92,11 +75,8 @@ def test_litter_model_initialization_no_data(caplog):
 
         LitterModel(
             data=litter_data,
-            update_interval=pint.Quantity("1 week"),
-            soil_layers=2,  # FIXME - incorrect soil layer spec in model
-            canopy_layers=10,
-            model_constants=LitterConsts,
-            core_constants=CoreConsts,
+            core_components=fixture_core_components,
+            model_constants=LitterConsts(),
         )
 
     # Final check that expected logging entries are produced
@@ -143,31 +123,47 @@ def test_litter_model_initialization_no_data(caplog):
             ),
             (
                 ERROR,
-                "litter model: error checking required_init_vars, see log.",
+                "litter model: init data missing required var "
+                "'c_n_ratio_above_metabolic'",
             ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_above_structural'",
+            ),
+            (ERROR, "litter model: init data missing required var 'c_n_ratio_woody'"),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_below_metabolic'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_n_ratio_below_structural'",
+            ),
+            (ERROR, "litter model: error checking vars_required_for_init, see log."),
         ),
     )
 
 
-def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
+def test_litter_model_initialization_bad_pool_bounds(
+    caplog, dummy_litter_data, fixture_core_components
+):
     """Test `LitterModel` initialization fails when litter pools are out of bounds."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
         # Put incorrect data in for lmwc
         dummy_litter_data["litter_pool_above_metabolic"] = DataArray(
-            [0.05, 0.02, -0.1], dims=["cell_id"]
+            [0.05, 0.02, -0.1, -0.1], dims=["cell_id"]
         )
 
         LitterModel(
             data=dummy_litter_data,
-            update_interval=pint.Quantity("1 week"),
-            soil_layers=2,
-            canopy_layers=10,
+            core_components=fixture_core_components,
             model_constants=LitterConsts,
-            core_constants=CoreConsts,
         )
 
     # Final check that the last log entry is as expected
@@ -178,25 +174,23 @@ def test_litter_model_initialization_bad_pool_bounds(caplog, dummy_litter_data):
     )
 
 
-def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data):
+def test_litter_model_initialization_bad_lignin_bounds(
+    caplog, dummy_litter_data, fixture_core_components
+):
     """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
-    from virtual_rainforest.core.constants import CoreConsts
-    from virtual_rainforest.models.litter.constants import LitterConsts
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
         # Make four cell grid
         litter_data = deepcopy(dummy_litter_data)
         # Put incorrect data in for woody lignin
-        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1], dims=["cell_id"])
+        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1, 1.1], dims=["cell_id"])
 
         LitterModel(
-            litter_data,
-            pint.Quantity("1 week"),
-            2,
-            10,
+            data=litter_data,
+            core_components=fixture_core_components,
             model_constants=LitterConsts,
-            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -207,17 +201,44 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
     )
 
 
+def test_litter_model_initialization_bad_nutrient_ratio_bounds(
+    caplog, dummy_litter_data, fixture_core_components
+):
+    """Test `LitterModel` initialization fails for nutrient ratios not in bounds."""
+    from virtual_ecosystem.models.litter.constants import LitterConsts
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
+
+    with pytest.raises(InitialisationError):
+        # Make four cell grid
+        litter_data = deepcopy(dummy_litter_data)
+        # Put incorrect data in for woody lignin
+        litter_data["c_n_ratio_woody"] = DataArray(
+            [23.3, 45.6, -23.4, -11.1], dims=["cell_id"]
+        )
+
+        LitterModel(
+            data=litter_data,
+            core_components=fixture_core_components,
+            model_constants=LitterConsts,
+        )
+
+    # Final check that expected logging entries are produced
+    log_check(
+        caplog,
+        expected_log=((ERROR, "Negative nutrient ratios found in: "),),
+        subset=slice(-1, None, None),
+    )
+
+
 @pytest.mark.parametrize(
-    "cfg_string,time_interval,temp_response,raises,expected_log_entries",
+    "cfg_string,temp_response,raises,expected_log_entries",
     [
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n",
-            pint.Quantity("24 hours"),
             3.36,
             does_not_raise(),
             (
                 (INFO, "Initialised litter.LitterConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the litter model successfully "
@@ -255,18 +276,33 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                     DEBUG,
                     "litter model: required var 'lignin_below_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_structural' checked",
+                ),
+                (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_structural' checked",
+                ),
             ),
             id="default_config",
         ),
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '24 hours'\n"
             "[litter.constants.LitterConsts]\nlitter_decomp_temp_response = 4.44\n",
-            pint.Quantity("24 hours"),
             4.44,
             does_not_raise(),
             (
                 (INFO, "Initialised litter.LitterConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the litter model successfully "
@@ -292,13 +328,29 @@ def test_litter_model_initialization_bad_lignin_bounds(caplog, dummy_litter_data
                 (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
                 (DEBUG, "litter model: required var 'lignin_woody' checked"),
                 (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_above_structural' checked",
+                ),
+                (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_n_ratio_below_structural' checked",
+                ),
             ),
             id="modified_config_correct",
         ),
         pytest.param(
             "[core.timing]\nupdate_interval = '24 hours'\n"
             "[litter.constants.LitterConsts]\ndecomp_rate = 4.44\n",
-            None,
             None,
             pytest.raises(ConfigurationError),
             (
@@ -314,51 +366,54 @@ def test_generate_litter_model(
     caplog,
     dummy_litter_data,
     cfg_string,
-    time_interval,
     temp_response,
     raises,
     expected_log_entries,
 ):
     """Test that the function to initialise the litter model behaves as expected."""
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.registry import register_module
-    from virtual_rainforest.models.litter.litter_model import LitterModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    # Register the module components to access constants classes
-    register_module("virtual_rainforest.models.litter")
-    # Build the config object
+    # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
+    core_components = CoreComponents(config=config)
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = LitterModel.from_config(
-            dummy_litter_data,
-            config,
-            pint.Quantity(config["core"]["timing"]["update_interval"]),
+            data=dummy_litter_data,
+            core_components=core_components,
+            config=config,
         )
-        assert model.update_interval == time_interval
         assert model.model_constants.litter_decomp_temp_response == temp_response
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
 
 
-def test_update(litter_model_fixture, dummy_litter_data):
+def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.29587973, 0.14851276, 0.07041856]
-    end_above_struct = [0.50055126, 0.25010012, 0.0907076]
-    end_woody = [4.702103, 11.802315, 7.300997]
-    end_below_meta = [0.38949196, 0.36147436, 0.06906041]
-    end_below_struct = [0.60011634, 0.30989963, 0.02047753]
-    end_lignin_above_struct = [0.4996410, 0.1004310, 0.6964345]
-    end_lignin_woody = [0.49989001, 0.79989045, 0.34998229]
-    end_lignin_below_struct = [0.499760108, 0.249922519, 0.737107757]
-    c_mineral = [0.02987233, 0.02316114, 0.00786517]
+    end_above_meta = [0.32072786, 0.15473132, 0.08523907, 0.08074153]
+    end_above_struct = [0.50470382, 0.25068224, 0.09843778, 0.11163532]
+    end_woody = [4.7745168, 11.89872931, 7.3614112, 7.3314112]
+    end_below_meta = [0.41087696, 0.37434507, 0.06905624, 0.08337808]
+    end_below_struct = [0.6066914, 0.31869812, 0.02010607, 0.03038423]
+    end_lignin_above_struct = [0.49790843, 0.10067782, 0.70495536, 0.71045831]
+    end_lignin_woody = [0.49580586, 0.79787834, 0.35224223, 0.35012603]
+    end_lignin_below_struct = [0.50313573, 0.26585915, 0.7499951, 0.82142798]
+    end_c_n_above_metabolic = [7.42828416, 8.93702901, 11.13974239, 10.28862956]
+    end_c_n_above_structural = [37.56983094, 43.34654437, 49.02060275, 54.44715499]
+    end_c_n_woody = [55.581683655, 63.25507083, 47.520800061, 59.08199528]
+    end_c_n_below_metabolic = [10.90350592, 11.4669011, 15.20703826, 12.66163681]
+    end_c_n_below_structural = [50.77558203, 56.38787769, 73.18371555, 64.0424462]
+    c_mineral = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
+    n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
 
-    litter_model_fixture.update(time_index=0)
+    fixture_litter_model.update(time_index=0)
 
     # Check that data fixture has been updated correctly
     assert np.allclose(dummy_litter_data["litter_pool_above_metabolic"], end_above_meta)
@@ -377,4 +432,18 @@ def test_update(litter_model_fixture, dummy_litter_data):
     assert np.allclose(
         dummy_litter_data["lignin_below_structural"], end_lignin_below_struct
     )
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_above_metabolic"], end_c_n_above_metabolic
+    )
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_above_structural"], end_c_n_above_structural
+    )
+    assert np.allclose(dummy_litter_data["c_n_ratio_woody"], end_c_n_woody)
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_below_metabolic"], end_c_n_below_metabolic
+    )
+    assert np.allclose(
+        dummy_litter_data["c_n_ratio_below_structural"], end_c_n_below_structural
+    )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
+    assert np.allclose(dummy_litter_data["litter_N_mineralisation_rate"], n_mineral)

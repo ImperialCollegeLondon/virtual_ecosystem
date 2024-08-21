@@ -1,0 +1,93 @@
+{
+    "type": "object",
+    "properties": {
+        "animal": {
+            "description": "Configuration settings for the animal module.",
+            "type": "object",
+            "properties": {
+                "functional_groups": {
+                    "description": "Details of the animal functional types.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "taxa": {
+                                "type": "string"
+                            },
+                            "diet": {
+                                "type": "string"
+                            },
+                            "metabolic_type": {
+                                "type": "string"
+                            },
+                            "reproductive_type": {
+                                "type": "string"
+                            },
+                            "development_type": {
+                                "type": "string"
+                            },
+                            "development_status": {
+                                "type": "string"
+                            },
+                            "offspring_functional_group": {
+                                "type": "string"
+                            },
+                            "excretion_type": {
+                                "type": "string"
+                            },
+                            "birth_mass": {
+                                "type": "number"
+                            },
+                            "adult_mass": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "taxa",
+                            "diet",
+                            "metabolic_type",
+                            "reproductive_type",
+                            "development_type",
+                            "development_status",
+                            "offspring_functional_group",
+                            "excretion_type",
+                            "birth_mass",
+                            "adult_mass"
+                        ]
+                    }
+                },
+                "depends": {
+                    "type": "object",
+                    "default": {},
+                    "properties": {
+                        "init": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "update": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "default": {},
+            "required": [
+                "functional_groups"
+            ]
+        }
+    },
+    "required": [
+        "animal"
+    ]
+}

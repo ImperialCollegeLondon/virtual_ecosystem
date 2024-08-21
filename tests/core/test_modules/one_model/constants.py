@@ -1,8 +1,8 @@
-"""A test constants class for the test module."""  # noqa: D205, D415
+"""A test constants class for the test module."""
 
 from dataclasses import dataclass
 
-from virtual_rainforest.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 
 @dataclass(frozen=True)

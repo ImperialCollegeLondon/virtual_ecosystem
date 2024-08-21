@@ -11,7 +11,7 @@ class TestCarcassPool:
 
     def test_initialization(self):
         """Testing initialization of CarcassPool."""
-        from virtual_rainforest.models.animals.decay import CarcassPool
+        from virtual_ecosystem.models.animal.decay import CarcassPool
 
         carcasses = CarcassPool(1000.7, 25.0)
         assert pytest.approx(carcasses.scavengeable_energy) == 1000.7
@@ -27,7 +27,7 @@ class TestExcrementPool:
 
     def test_initialization(self):
         """Testing initialization of CarcassPool."""
-        from virtual_rainforest.models.animals.decay import ExcrementPool
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
 
         poo = ExcrementPool(77.7, 25.0)
         # Test that function to calculate stored carbon works as expected

@@ -9,13 +9,13 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: vr_python3
+  display_name: Python 3 (ipykernel)
   language: python
-  name: vr_python3
+  name: python3
 ---
 
 # API reference for `example_data` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.example_data
+.. automodule:: virtual_ecosystem.example_data
 ```

@@ -45,7 +45,7 @@ def test_file_format_loader(caplog, file_types, expected_log):
 
     # Import register_data_loader - this triggers the registration of existing data
     # loaders so need to clear those log messages before trying new ones
-    from virtual_rainforest.core.readers import register_file_format_loader
+    from virtual_ecosystem.core.readers import register_file_format_loader
 
     # Create an existing one to test replace modes
     @register_file_format_loader(file_types=".ghi")
@@ -95,7 +95,7 @@ def test_file_format_loader(caplog, file_types, expected_log):
 def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_log):
     """Test the netdcf variable loader."""
 
-    from virtual_rainforest.core.readers import load_netcdf
+    from virtual_ecosystem.core.readers import load_netcdf
 
     with exp_err:
         darray = load_netcdf(shared_datadir / file, file_var)
@@ -149,7 +149,7 @@ def test_load_to_dataarray(
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_rainforest.core.readers import load_to_dataarray
+    from virtual_ecosystem.core.readers import load_to_dataarray
 
     datafile = shared_datadir / filename
 

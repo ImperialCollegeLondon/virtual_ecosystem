@@ -6,14 +6,14 @@ from logging import ERROR, INFO
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 def test_cannot_create_unfrozen_constants_dataclass():
     """Test users can't define mutable constants dataclasses."""
     from dataclasses import dataclass
 
-    from virtual_rainforest.core.constants_class import ConstantsDataclass
+    from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
     with pytest.raises(TypeError):
         # mypy warns about the very thing we're testing can't happen. That might mean
@@ -34,7 +34,7 @@ def test_cannot_create_unfrozen_constants_dataclass():
             id="defaults_with_no_config",
         ),
         pytest.param(
-            {"depth_of_active_soil_layer": 1.55},
+            {"max_depth_of_microbial_activity": 1.55},
             does_not_raise(),
             1.55,
             (),
@@ -64,12 +64,12 @@ def test_cannot_create_unfrozen_constants_dataclass():
 )
 def test_ConstantsDataclass_from_config(caplog, config, raises, exp_val, exp_log):
     """Test failure and success modes of the ConstantsDataclass.from_config method."""
-    from virtual_rainforest.core.constants import CoreConsts
+    from virtual_ecosystem.core.constants import CoreConsts
 
     with raises:
         constants_instance = CoreConsts.from_config(config)
 
         if isinstance(raises, does_not_raise):
-            assert constants_instance.depth_of_active_soil_layer == exp_val
+            pytest.approx(constants_instance.max_depth_of_microbial_activity) == exp_val
 
         log_check(caplog=caplog, expected_log=exp_log)

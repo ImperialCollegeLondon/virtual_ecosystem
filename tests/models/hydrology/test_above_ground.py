@@ -7,76 +7,81 @@ import numpy as np
 import pytest
 
 from tests.conftest import log_check
-from virtual_rainforest.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 @pytest.mark.parametrize(
-    "wind, dens_air, latvap",
+    "dens_air, latvap",
     [
         (
-            0.1,
-            HydroConsts.density_air,
-            HydroConsts.latent_heat_vapourisation,
+            1.225,
+            2.45,
         ),
         (
-            np.array([0.1, 0.1, 0.1]),
             np.array([1.225, 1.225, 1.225]),
             np.array([2.45, 2.45, 2.45]),
         ),
     ],
 )
-def test_calculate_soil_evaporation(wind, dens_air, latvap):
+def test_calculate_soil_evaporation(dens_air, latvap):
     """Test soil evaporation with float and DataArray."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         calculate_soil_evaporation,
     )
 
     result = calculate_soil_evaporation(
         temperature=np.array([20.0, 20.0, 30.0]),
-        wind_speed=wind,
+        wind_speed_surface=np.array([1.0, 0.5, 0.1]),
         relative_humidity=np.array([80, 80, 90]),
         atmospheric_pressure=np.array([90, 90, 90]),
         soil_moisture=np.array([0.01, 0.1, 0.5]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
         leaf_area_index=np.array([3, 4, 5]),
-        celsius_to_kelvin=HydroConsts.celsius_to_kelvin,
+        celsius_to_kelvin=273.15,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=HydroConsts.gas_constant_water_vapour,
-        heat_transfer_coefficient=HydroConsts.heat_transfer_coefficient,
+        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour,
+        soil_surface_heat_transfer_coefficient=(
+            HydroConsts.soil_surface_heat_transfer_coefficient
+        ),
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
     )
 
-    exp_result = np.array([0.007452, 0.003701, 0.135078])
-    np.testing.assert_allclose(result, exp_result, rtol=0.01)
+    exp_evap = np.array([0.745206, 0.092515, 0.135078])
+    np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
 
 
-def test_find_lowest_neighbour(dummy_climate_data):
+def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):
     """Test finding lowest neighbours."""
 
-    from math import sqrt
+    # FIXME: At the moment this is being tested on a 2x2 grid with these elevations and
+    #        the implementation uses rook case neighbours. There is some odd behaviour
+    #        with the ties.
+    #
+    #     200, 100
+    #      10, 10
 
-    from virtual_rainforest.models.hydrology.above_ground import find_lowest_neighbour
+    from virtual_ecosystem.models.hydrology.above_ground import find_lowest_neighbour
 
     data = dummy_climate_data
-    data.grid.set_neighbours(distance=sqrt(data.grid.cell_area))
 
-    neighbours = data.grid.neighbours
-    elevation = np.array(data["elevation"])
-    result = find_lowest_neighbour(neighbours, elevation)
+    grid = fixture_core_components.grid
+    grid.set_neighbours(distance=np.sqrt(grid.cell_area))
+    result = find_lowest_neighbour(grid.neighbours, data["elevation"].to_numpy())
 
-    exp_result = [1, 2, 2]
+    exp_result = [2, 3, 2, 2]
     assert result == exp_result
 
 
 def test_find_upstream_cells():
     """Test that upstream cells are ientified correctly."""
 
-    from virtual_rainforest.models.hydrology.above_ground import find_upstream_cells
+    from virtual_ecosystem.models.hydrology.above_ground import find_upstream_cells
 
     lowest = [1, 2, 2, 5, 7, 7, 7, 7]
     exp_result = [[], [0], [1, 2], [], [], [3], [], [4, 5, 6, 7]]
@@ -107,7 +112,7 @@ def test_find_upstream_cells():
 def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries):
     """Test."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         accumulate_horizontal_flow,
     )
 
@@ -155,8 +160,8 @@ def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries)
 def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries):
     """Test that function gets correct neighbours."""
 
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.models.hydrology.above_ground import calculate_drainage_map
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
 
     elevation = np.array(
         [
@@ -199,10 +204,10 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
     log_check(caplog, expected_log_entries)
 
 
-def test_estimate_interception():
+def test_calculate_interception():
     """Test."""
-    from virtual_rainforest.models.hydrology.above_ground import calculate_interception
-    from virtual_rainforest.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
     precip = np.array([0, 20, 100])
     lai = np.array([0, 2, 10])
@@ -210,9 +215,7 @@ def test_estimate_interception():
     result = calculate_interception(
         leaf_area_index=lai,
         precipitation=precip,
-        intercept_param_1=HydroConsts.intercept_param_1,
-        intercept_param_2=HydroConsts.intercept_param_2,
-        intercept_param_3=HydroConsts.intercept_param_3,
+        intercept_parameters=HydroConsts.intercept_parameters,
         veg_density_param=HydroConsts.veg_density_param,
     )
 
@@ -223,7 +226,7 @@ def test_estimate_interception():
 
 def test_distribute_monthly_rainfall():
     """Test that randomly generated numbers are reproducible."""
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         distribute_monthly_rainfall,
     )
 
@@ -239,7 +242,7 @@ def test_distribute_monthly_rainfall():
 def test_calculate_bypass_flow():
     """Test."""
 
-    from virtual_rainforest.models.hydrology.above_ground import calculate_bypass_flow
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_bypass_flow
 
     top_sm = np.array([20, 50, 80])
     top_sm_sat = np.array([100, 100, 100])
@@ -254,7 +257,7 @@ def test_calculate_bypass_flow():
 def test_convert_mm_flow_to_m3_per_second():
     """Test channel flow conversion."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
+    from virtual_ecosystem.models.hydrology.above_ground import (
         convert_mm_flow_to_m3_per_second,
     )
 
@@ -264,7 +267,7 @@ def test_convert_mm_flow_to_m3_per_second():
         river_discharge_mm=channel_flow,
         area=np.array([10000, 10000, 10000]),
         days=30,
-        seconds_to_day=HydroConsts.seconds_to_day,
+        seconds_to_day=CoreConsts.seconds_to_day,
         meters_to_millimeters=1000,
     )
 
@@ -274,9 +277,7 @@ def test_convert_mm_flow_to_m3_per_second():
 def test_calculate_surface_runoff():
     """Test surface runoff function."""
 
-    from virtual_rainforest.models.hydrology.above_ground import (
-        calculate_surface_runoff,
-    )
+    from virtual_ecosystem.models.hydrology.above_ground import calculate_surface_runoff
 
     exp_result = np.array([50, 0, 50])
     result = calculate_surface_runoff(

@@ -9,15 +9,15 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: vr_python3
+  display_name: Python 3 (ipykernel)
   language: python
-  name: vr_python3
+  name: python3
 ---
 
-# API documentation for the {mod}`~virtual_rainforest.core.grid` module
+# API documentation for the {mod}`~virtual_ecosystem.core.grid` module
 
 ```{eval-rst}
-.. automodule:: virtual_rainforest.core.grid
+.. automodule:: virtual_ecosystem.core.grid
     :autosummary:
     :members:
     :special-members: __repr__

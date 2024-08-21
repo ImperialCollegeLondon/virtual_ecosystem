@@ -6,136 +6,54 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def plants_config():
-    """Simple configuration fixture for use in tests."""
-
-    from virtual_rainforest.core.config import Config
-
-    cfg_string = """
-        [core]
-        [core.grid]
-        cell_nx = 10
-        cell_ny = 10
-        [core.timing]
-        start_date = "2020-01-01"
-        update_interval = "2 weeks"
-        run_length = "50 years"
-        [core.data_output_options]
-        save_initial_state = true
-        save_final_state = true
-        out_initial_file_name = "model_at_start.nc"
-        out_final_file_name = "model_at_end.nc"
-
-        [core.layers]
-        canopy_layers = 10
-        soil_layers = [-0.25, -1.0]
-        above_canopy_height_offset = 2.0
-        surface_layer_height = 0.1
-        subcanopy_layer_height = 1.5
-
-        [plants]
-        a_plant_integer = 12
-        [[plants.ftypes]]
-        pft_name = "shrub"
-        max_height = 1.0
-        [[plants.ftypes]]
-        pft_name = "broadleaf"
-        max_height = 50.0
-
-        [[animals.functional_groups]]
-        name = "carnivorous_bird"
-        taxa = "bird"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        birth_mass = 0.1
-        adult_mass = 1.0
-        [[animals.functional_groups]]
-        name = "herbivorous_bird"
-        taxa = "bird"
-        diet = "herbivore"
-        metabolic_type = "endothermic"
-        birth_mass = 0.05
-        adult_mass = 0.5
-        [[animals.functional_groups]]
-        name = "carnivorous_mammal"
-        taxa = "mammal"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        birth_mass = 4.0
-        adult_mass = 40.0
-        [[animals.functional_groups]]
-        name = "herbivorous_mammal"
-        taxa = "mammal"
-        diet = "herbivore"
-        metabolic_type = "endothermic"
-        birth_mass = 1.0
-        adult_mass = 10.0
-        [[animals.functional_groups]]
-        name = "carnivorous_insect"
-        taxa = "insect"
-        diet = "carnivore"
-        metabolic_type = "ectothermic"
-        birth_mass = 0.001
-        adult_mass = 0.01
-        [[animals.functional_groups]]
-        name = "herbivorous_insect"
-        taxa = "insect"
-        diet = "herbivore"
-        metabolic_type = "ectothermic"
-        birth_mass = 0.0005
-        adult_mass = 0.005
-        """
-
-    return Config(cfg_strings=cfg_string)
-
-
-@pytest.fixture
-def flora(plants_config):
+def flora(fixture_config):
     """Construct a minimal Flora object."""
-    from virtual_rainforest.models.plants.functional_types import Flora
+    from virtual_ecosystem.models.plants.functional_types import Flora
 
-    flora = Flora.from_config(plants_config)
+    flora = Flora.from_config(fixture_config)
 
     return flora
 
 
 @pytest.fixture
-def layer_structure(plants_config):
-    """Construct a minimal LayerStructure object."""
-    from virtual_rainforest.models.plants.plants_model import LayerStructure
-
-    layer_structure = LayerStructure.from_config(plants_config)
-
-    return layer_structure
-
-
-@pytest.fixture
-def plants_data():
+def plants_data(fixture_core_components):
     """Construct a minimal data object with plant cohort data."""
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.core.utils import set_layer_roles
+    from virtual_ecosystem.core.data import Data
 
-    data = Data(grid=Grid(cell_ny=2, cell_nx=2))
+    data = Data(grid=fixture_core_components.grid)
+    n_cells = fixture_core_components.grid.n_cells
 
     # Add cohort configuration
-    data["plant_cohorts_n"] = DataArray(np.array([5] * 4))
-    data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * 4))
-    data["plant_cohorts_cell_id"] = DataArray(np.arange(4))
-    data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * 4))
+    data["plant_cohorts_n"] = DataArray(np.array([5] * n_cells))
+    data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * n_cells))
+    data["plant_cohorts_cell_id"] = DataArray(np.arange(n_cells))
+    data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * n_cells))
 
     # Spatio-temporal data
     data["photosynthetic_photon_flux_density"] = DataArray(
-        data=np.full((4, 12), fill_value=1000),
+        data=np.full((n_cells, 12), fill_value=1000),
         coords={
-            "cell_id": np.arange(4),
+            "cell_id": fixture_core_components.grid.cell_id,
             "time_index": np.arange(12),
         },
     )
 
+    # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
+    # function works in testing. Once that function has been replaced with something
+    # more realistic this should be deleted
+    data["elevation"] = DataArray(
+        data=np.full((n_cells), fill_value=437.5),
+        coords={
+            "cell_id": fixture_core_components.grid.cell_id,
+        },
+    )
+
     # Canopy layer specific forcing variables from abiotic model
-    layer_roles = set_layer_roles(10, [-0.25, -1.0])
-    layer_shape = (len(layer_roles), data.grid.n_cells)
+    layer_roles = fixture_core_components.layer_structure.layer_roles
+    layer_shape = (
+        fixture_core_components.layer_structure.n_layers,
+        fixture_core_components.grid.n_cells,
+    )
 
     # Setup the layers
     forcing_vars = (
@@ -152,7 +70,7 @@ def plants_data():
             coords={
                 "layers": np.arange(len(layer_roles)),
                 "layer_roles": ("layers", layer_roles),
-                "cell_id": data.grid.cell_id,
+                "cell_id": fixture_core_components.grid.cell_id,
             },
         )
 
@@ -160,15 +78,59 @@ def plants_data():
 
 
 @pytest.fixture
-def fxt_plants_model(plants_data, flora, layer_structure):
+def fxt_plants_model(plants_data, flora, fixture_core_components):
     """Return a simple PlantsModel instance."""
-    from pint import Quantity
 
-    from virtual_rainforest.models.plants.plants_model import PlantsModel
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     return PlantsModel(
         data=plants_data,
-        update_interval=Quantity("1 month"),
+        core_components=fixture_core_components,
         flora=flora,
-        layer_structure=layer_structure,
     )
+
+
+@pytest.fixture
+def fixture_canopy_layer_data(fixture_core_components):
+    """Shared canopy layer data.
+
+    The fixture supplies tuples of layer name, test values and the indices of the
+    vertical layer dimension to insert test values.
+
+    TODO: This is currently convoluted because of the way in which layer_heights is set
+    within the plants model.
+    """
+    lyr_strct = fixture_core_components.layer_structure
+
+    return {
+        "layer_heights_full": (
+            "layer_heights",
+            np.array([32, 30, 20, 10, 0.1, -0.5, -1]),
+            np.logical_or(lyr_strct.index_filled_atmosphere, lyr_strct.index_all_soil),
+        ),
+        "layer_heights_canopy": (
+            "layer_heights",
+            np.array([32, 30, 20, 10]),
+            np.logical_or(lyr_strct.index_above, lyr_strct.index_filled_canopy),
+        ),
+        "leaf_area_index": (
+            "leaf_area_index",
+            np.array([1, 1, 1]),
+            lyr_strct.index_filled_canopy,
+        ),
+        "layer_fapar": (
+            "layer_fapar",
+            np.array([0.4, 0.2, 0.1]),
+            lyr_strct.index_filled_canopy,
+        ),
+        "canopy_absorption": (
+            "canopy_absorption",
+            np.array([400, 200, 100, 300]),
+            np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface),
+        ),
+        "layer_leaf_mass": (
+            "layer_leaf_mass",
+            np.array([10000, 10000, 10000]),
+            lyr_strct.index_filled_canopy,
+        ),
+    }

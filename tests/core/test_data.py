@@ -10,7 +10,7 @@ import xarray as xr
 from xarray import DataArray, Dataset, open_dataset, testing
 
 from tests.conftest import log_check
-from virtual_rainforest.core.exceptions import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.mark.parametrize(
@@ -28,8 +28,8 @@ from virtual_rainforest.core.exceptions import ConfigurationError
 def test_Data_init(caplog, use_grid, exp_err, expected_log):
     """Test the Data __init__: pretty basic."""
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
 
     caplog.clear()
 
@@ -189,7 +189,8 @@ def test_Data_setitem(caplog, fixture_data, darray, name, exp_err, exp_log, exp_
         pytest.param(
             "not_existing_var",
             pytest.raises(KeyError),
-            "'not_existing_var'",
+            """"No variable named 'not_existing_var'. """
+            '''Variables on the dataset include ['existing_var']"''',
             None,
             id="should_not_get",
         ),
@@ -253,9 +254,9 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.grid import Grid
-    from virtual_rainforest.core.readers import load_to_dataarray
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.core.readers import load_to_dataarray
 
     grid = Grid(
         grid_type="square",
@@ -288,7 +289,7 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
 def fixture_load_data_grids(request):
     """Provides different grid types on request load data onto from file."""
 
-    from virtual_rainforest.core.grid import Grid
+    from virtual_ecosystem.core.grid import Grid
 
     grid = Grid(
         grid_type=request.param,
@@ -495,8 +496,8 @@ def test_Data_load_to_dataarray_data_handling(
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_rainforest.core.data import Data
-    from virtual_rainforest.core.readers import load_to_dataarray
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.readers import load_to_dataarray
 
     # Skip combinations where validator does not supported this grid
     if not (
@@ -624,8 +625,8 @@ def test_Data_load_from_config(
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_rainforest.core.config import Config
-    from virtual_rainforest.core.data import Data
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.data import Data
 
     data = Data(fixture_load_data_grids)
     cfg = Config(cfg_strings=cfg_strings)
@@ -839,7 +840,7 @@ def test_save_timeslice_to_netcdf(
         dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
         )
-        dummy_carbon_data["soil_temperature"][13][0] = 15.0
+        dummy_carbon_data["soil_temperature"][12][0] = 15.0
         # Append data to netcdf file
         dummy_carbon_data.save_timeslice_to_netcdf(
             out_path,
@@ -858,7 +859,7 @@ def test_save_timeslice_to_netcdf(
             ),
         )
         xr.testing.assert_allclose(
-            saved_data["soil_temperature"].isel(layers=range(12, 15)),
+            saved_data["soil_temperature"].isel(layers=range(11, 14)),
             DataArray(
                 [
                     [
@@ -871,8 +872,8 @@ def test_save_timeslice_to_netcdf(
                 coords={
                     "cell_id": [0, 1, 2, 3],
                     "time_index": [1],
-                    "layers": [12, 13, 14],
-                    "layer_roles": ("layers", ["surface", "soil", "soil"]),
+                    "layers": [11, 12, 13],
+                    "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
                 },
             ),
         )
@@ -889,26 +890,20 @@ def test_save_timeslice_to_netcdf(
         log_check(caplog, expected_log)
 
 
-def test_Data_add_from_dict(dummy_climate_data):
+def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
     """Test reading from dictionary."""
 
-    from virtual_rainforest.core.data import Data
+    from virtual_ecosystem.core.data import Data
 
     var_dict = {
-        "air_temperature": DataArray(
-            np.full((3, 3), 20),
-            dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature_ref"].coords,
-            name="air_temperature_ref",
-        ),
         "mean_annual_temperature": DataArray(
-            np.full((3), 40),
+            np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
         ),
         "new_variable": DataArray(
-            np.full((3), 100),
+            np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
@@ -918,18 +913,9 @@ def test_Data_add_from_dict(dummy_climate_data):
     Data.add_from_dict(dummy_climate_data, var_dict)
 
     xr.testing.assert_allclose(
-        dummy_climate_data["air_temperature"],
-        DataArray(
-            np.full((3, 3), 20),
-            dims=["cell_id", "time"],
-            coords=dummy_climate_data["air_temperature"].coords,
-            name="air_temperature",
-        ),
-    )
-    xr.testing.assert_allclose(
         dummy_climate_data["mean_annual_temperature"],
         DataArray(
-            np.full((3), 40),
+            np.full((fixture_core_components.grid.n_cells), 40),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="mean_annual_temperature",
@@ -938,7 +924,7 @@ def test_Data_add_from_dict(dummy_climate_data):
     xr.testing.assert_allclose(
         dummy_climate_data["new_variable"],
         DataArray(
-            np.full((3), 100),
+            np.full((fixture_core_components.grid.n_cells), 100),
             dims=["cell_id"],
             coords=dummy_climate_data["mean_annual_temperature"].coords,
             name="new_variable",
@@ -951,14 +937,14 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     """Test that function to output the current data state works as intended."""
 
     # Set up the registry with the soil model
-    from virtual_rainforest.core.registry import MODULE_REGISTRY, register_module
+    from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
 
-    register_module("virtual_rainforest.models.soil")
+    register_module("virtual_ecosystem.models.soil")
 
     data_options = {"out_folder_continuous": "."}
 
     # Patch the relevant lower level function
-    mock_save = mocker.patch("virtual_rainforest.main.Data.save_timeslice_to_netcdf")
+    mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
     models_cfd = {"soil": MODULE_REGISTRY["soil"].model}
@@ -985,6 +971,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_c_pool_lmwc",
             "soil_c_pool_microbe",
             "soil_c_pool_pom",
+            "soil_c_pool_necromass",
             "soil_enzyme_pom",
             "soil_enzyme_maom",
         ],
@@ -995,7 +982,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
 
 def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     """Test that function to merge the continuous data files works as intended."""
-    from virtual_rainforest.core.data import merge_continuous_data_files
+    from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
@@ -1015,7 +1002,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
     dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
         [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
     )
-    dummy_carbon_data["soil_temperature"][13][0] = 15.0
+    dummy_carbon_data["soil_temperature"][12][0] = 15.0
 
     # Save second data file
     dummy_carbon_data.save_timeslice_to_netcdf(
@@ -1049,7 +1036,7 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
         ),
     )
     testing.assert_allclose(
-        full_data["soil_temperature"].isel(layers=range(12, 15)),
+        full_data["soil_temperature"].isel(layers=range(11, 14)),
         DataArray(
             [
                 [
@@ -1067,8 +1054,8 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
             coords={
                 "cell_id": [0, 1, 2, 3],
                 "time_index": [1, 2],
-                "layers": [12, 13, 14],
-                "layer_roles": ("layers", ["surface", "soil", "soil"]),
+                "layers": [11, 12, 13],
+                "layer_roles": ("layers", ["surface", "topsoil", "subsoil"]),
             },
         ),
     )
@@ -1082,7 +1069,7 @@ def test_merge_continuous_file_already_exists(
     shared_datadir, caplog, dummy_carbon_data
 ):
     """Test that the merge continuous function fails if file name already used."""
-    from virtual_rainforest.core.data import merge_continuous_data_files
+    from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]

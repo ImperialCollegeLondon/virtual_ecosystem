@@ -1,13 +1,20 @@
 name: Test and build
 
-on: [push, pull_request, release]
+# When does this run - new, reopened or updated PRs, pushes to main or develop and when
+# the workflow is called by another workflow, such as the publishing actions.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, develop]
+  workflow_call:
 
 jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - uses: pre-commit/action@v3.0.0
@@ -19,12 +26,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.10", "3.11" ]
+        python-version: [ "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -41,14 +48,17 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
-      uses: codecov/codecov-action@v3
-
+      uses: codecov/codecov-action@v4
+      with:
+        fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
   docs_build:
     needs: qa
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -60,9 +70,6 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Set ipython kernel
-        run: poetry run python -m ipykernel install --user --name=vr_python3
-      
       - name: Build docs using sphinx
         run: |
           cd docs
