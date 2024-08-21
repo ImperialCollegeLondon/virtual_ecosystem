@@ -99,10 +99,9 @@ modules must register these components when they are imported: see the
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 import pint
-import xarray as xr
 
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants import CoreConsts
@@ -244,14 +243,107 @@ class BaseModel(ABC):
         """A list of attributes to be included in the class __repr__ output"""
         self._static = static
         """Flag indicating if the model is static, i.e. does not change with time."""
-        self._static_data: xr.Dataset | None = None
-        """Pre-set data for the whole simulation provided as input."""
-      
+        self._run_update = self._run_update_due_to_static_configuration()
+        """Flag indicating if the update method should be run once.
+        
+        This is ignored if the model is not static."""
 
         # Check the required init variables
         self.check_init_data()
         # Check the configured update interval is within model bounds
         self._check_update_speed()
+
+        if not self._bypass_setup_due_to_static_configuration():
+            self._setup(**kwargs)
+
+    def _bypass_setup_due_to_static_configuration(self) -> bool:
+        """Decide if the setup should be bypassed based on the static flag.
+
+        In particular, it checks that the appropriate variables populated by init are
+        present or not in the data object. Based on this, an exception is raised is
+        there is a problem or a decission is made on whether or not bypass the setup.
+
+        Raises:
+            ConfigurationError: If the model is static and some but not all the
+            variables or None in vars_populated_by_init are present in the data object
+            or if the model is not static and some of the variables in
+            vars_populated_by_init are not present in the data object.
+
+        Returns:
+            True if the model is static and all variables are present, such that the
+            setup method can be bypassed. False otherwise.
+        """
+        present = [var for var in self.vars_populated_by_init if var in self.data]
+        found = len(present)
+        expected = len(self.vars_populated_by_init)
+
+        if not self._static and present:
+            raise ConfigurationError(
+                f"Non-static model {self.model_name} requires none of the variables in "
+                f"vars_populated_by_init to be present in the data object. "
+                f"Present variables: {present}"
+            )
+
+        elif self._static:
+            if 0 < found < expected:
+                raise ConfigurationError(
+                    f"Static model {self.model_name} requires to either all variables "
+                    "in vars_populated_by_init to be present in the data object or "
+                    f"all to be absent. {found} out of {expected} found: {present}."
+                )
+            else:
+                return True
+
+        return False
+
+    def _run_update_due_to_static_configuration(self) -> bool:
+        """Decides if the update should be bypassed based on the static flag.
+
+        In particular, it checks that the appropriate variables created or updated in
+        the update method are present or not in the data object. Based on this, an
+        exception is raised is there is a problem or a decission is made on whether or
+        not running the update method once.
+
+        Raises:
+            ConfigurationError: If the model is static and some but not all the
+            variables or None in vars_populated_by_first_update or vars_updated are
+            present in the data object or if the model is not static and some of the
+            variables in vars_populated_by_init are not present in the data object.
+
+        Returns:
+            True if the model is static and the update method needs to run once. False
+            otherwise.
+        """
+        required = set(self.vars_populated_by_first_update + self.vars_updated)
+        present = [var for var in required if var in self.data]
+        found = len(present)
+        expected = len(required)
+
+        if not self._static and present:
+            raise ConfigurationError(
+                f"Non-static model {self.model_name} requires none of the variables in "
+                f"vars_populated_by_first_update or vars_updated to be present in the "
+                f"data object. Present variables: {present}"
+            )
+
+        elif self._static:
+            if found == 0:
+                return True
+            elif found == expected:
+                return False
+            else:
+                raise ConfigurationError(
+                    f"Static model {self.model_name} requires to either all variables "
+                    "in vars_populated_by_first_update and vars_updated to be present "
+                    f"in the data object or all to be absent. {found} out of {expected}"
+                    f" found: {present}."
+                )
+
+        return True
+
+    @abstractmethod
+    def _setup(self, **kwargs: Any) -> None:
+        """Function to setup the model during initialisation."""
 
     @abstractmethod
     def setup(self) -> None:
@@ -264,15 +356,20 @@ class BaseModel(ABC):
     def update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the model.
 
+        If the model is static, the inner update method, self._update will only run
+        once, at most.
+
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
-        if not self._static:
-            self._update(time_index, **kwargs)
-            return
+        if self._static:
+            if not self._run_update:
+                return
+            else:
+                self._run_update = False
 
-        self._update_static(time_index, **kwargs)
+        self._update(time_index, **kwargs)
 
     @abstractmethod
     def _update(self, time_index: int, **kwargs: Any) -> None:
@@ -281,43 +378,6 @@ class BaseModel(ABC):
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
-        """
-
-    def _update_static(self, time_index: int, **kwargs: Any) -> None:
-        """Function to update the model in the static case.
-
-        Args:
-            time_index: The index representing the current time step in the data object.
-            **kwargs: Further arguments to the update method.
-        """
-        if self._static_data is None:
-            self._update(time_index, **kwargs)
-            self._build_static_data(time_index)
-            return
-
-        self._update_with_static_data(time_index)
-
-    def _build_static_data(self, time_index: int) -> None:
-        """Populates the static data attribute with the data for time index.
-
-        It extracts :attr:`~virtual_rainforest.core.base_model.BaseModel.vars_updated`
-        from :attr:`~virtual_rainforest.core.base_model.BaseModel.data` at `time_index`
-        to create :attr:`~virtual_rainforest.core.base_model.BaseModel._static_data`,
-        which then is used at any future times.
-
-        Args:
-            time_index: The index representing the current time step in the data object.
-        """
-
-    def _update_with_static_data(self, time_index: int) -> None:
-        """Updates data object with with static data at time_index.
-
-        It updates :attr:`~virtual_rainforest.core.base_model.BaseModel.data` with the
-        :attr:`~virtual_rainforest.core.base_model.BaseModel._static_data` at
-        `time_index`.
-
-        Args:
-            time_index: The index representing the current time step in the data object.
         """
 
     @abstractmethod
