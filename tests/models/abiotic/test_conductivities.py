@@ -127,8 +127,8 @@ def test_calculate_air_heat_conductivity_above(dummy_climate_data):
 
     result = calculate_air_heat_conductivity_above(
         height_above_canopy=dummy_climate_data["layer_heights"][0],
-        zero_displacement_height=(
-            dummy_climate_data["zero_displacement_height"].to_numpy()
+        zero_plane_displacement=(
+            dummy_climate_data["zero_plane_displacement"].to_numpy()
         ),
         canopy_height=dummy_climate_data["layer_heights"][1],
         friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),

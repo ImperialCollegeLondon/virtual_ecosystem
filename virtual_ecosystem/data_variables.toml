@@ -331,7 +331,14 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Aerodynamic resistance surface"
 name = "aerodynamic_resistance_surface"
-unit = "kg m2 s-3"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Canopy evaporation"
+name = "canopy_evaporation"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]
@@ -532,8 +539,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Zero displacement height"
-name = "zero_displacement_height"
+description = "Zero plane displacement height"
+name = "zero_plane_displacement"
 unit = "m"
 variable_type = "float"
 

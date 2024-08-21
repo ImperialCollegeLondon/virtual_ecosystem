@@ -147,7 +147,7 @@ def initialise_conductivities(
 
 def calculate_air_heat_conductivity_above(
     height_above_canopy: NDArray[np.float32],
-    zero_displacement_height: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
     canopy_height: NDArray[np.float32],
     friction_velocity: NDArray[np.float32],
     molar_density_air: NDArray[np.float32],
@@ -163,12 +163,12 @@ def calculate_air_heat_conductivity_above(
         g_{t} = \frac {0.4 \hat{\rho} u^{*}}{ln(\frac{z_{1} - d}{z_{0} - d}) + \Psi_{H}}
 
     where :math:`\hat{\rho}` is the molar density or air, :math:`u^{*}` is the friction
-    velocity, :math:`d` is the zero displacement height, and :math:`\Psi_{H}` is the
-    diabatic correction factor for heat.
+    velocity, :math:`d` is the zero plane displacement height, and :math:`\Psi_{H}` is
+    the diabatic correction factor for heat.
 
     Args:
         height_above_canopy: Height above canopy, [m]
-        zero_displacement_height: Zero displacement height, [m]
+        zero_plane_displacement: Zero plane displacement height, [m]
         canopy_height: Canopy height, [m]
         friction_velocity: Friction velocity, dimensionless
         molar_density_air: Molar density of air, [mole m-3]
@@ -180,8 +180,8 @@ def calculate_air_heat_conductivity_above(
     """
 
     return (von_karmans_constant * molar_density_air * friction_velocity) / (
-        np.log(height_above_canopy - zero_displacement_height)
-        / (canopy_height - zero_displacement_height)
+        np.log(height_above_canopy - zero_plane_displacement)
+        / (canopy_height - zero_plane_displacement)
         + diabatic_correction_heat
     )
 
@@ -394,7 +394,7 @@ def calculate_current_conductivities(
     * relative_turbulence_intensity: Relative turbulence intensity, dimensionless
     * wind_speed: wind speed, [m s-1]
     * stomatal_conductance: Stomatal conductance, [mmol m-2 s-1]
-    * zero_displacement_height: Zero displacement height, [m]
+    * zero_plane_displacement: Zero plane displacement height, [m]
     * friction_velocity: Friction velocity
     * diabatic_correction_heat: Diabatic correction for heat in canopy
 
@@ -415,7 +415,7 @@ def calculate_current_conductivities(
     # Air heat conductivity, gt
     air_heat_conductivity_above = calculate_air_heat_conductivity_above(
         height_above_canopy=data["layer_heights"].isel(layers=0).to_numpy(),
-        zero_displacement_height=data["zero_displacement_height"].to_numpy(),
+        zero_plane_displacement=data["zero_plane_displacement"].to_numpy(),
         canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
         friction_velocity=data["friction_velocity"].to_numpy(),
         molar_density_air=data["molar_density_air"][0].to_numpy(),

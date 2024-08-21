@@ -366,7 +366,6 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     # Wind speed
     exp_wind_speed = lyr_strct.from_template()
     exp_wind_speed[lyr_strct.index_filled_atmosphere] = np.array(
-        # [0.727122, 0.615474, 0.587838, 0.537028, 0.50198]
         [0.72712164, 0.61547404, 0.57491436, 0.47258967, 0.41466282]
     )[:, None]
     xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)
@@ -374,7 +373,7 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     # Soil temperature
     exp_new_soiltemp = lyr_strct.from_template()
     exp_new_soiltemp[lyr_strct.index_all_soil] = np.array(
-        [  # [20.713167, 20.708367, 20.707833, 20.707833],
+        [
             [20.712458, 20.712457, 20.712456, 20.712456],
             [20.0, 20.0, 20.0, 20.0],
         ]
@@ -384,7 +383,6 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     # Leaf vapour conductivity
     exp_gv = lyr_strct.from_template()
     exp_gv[lyr_strct.index_filled_canopy] = np.array(
-        # [0.496563, 0.485763, 0.465142]
         [0.4965627, 0.48056564, 0.43718369]
     )[:, None]
     xr.testing.assert_allclose(model.data["leaf_vapour_conductivity"], exp_gv)
@@ -392,16 +390,14 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     # Air temperature
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
-        # [30.0, 29.999943, 29.992298, 29.623399, 20.802228]
-        [30.0, 29.99994326, 29.99237944, 29.6604941, 20.80193877]
+        [30.0, 29.999943, 29.992379, 29.660494, 20.801939]
     )[:, None]
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     # Canopy temperature
     exp_leaf_temp = lyr_strct.from_template()
     exp_leaf_temp[lyr_strct.index_filled_canopy] = np.array(
-        # [28.787061, 28.290299, 28.15982]
-        [28.78850297, 28.29326228, 28.19789174]
+        [28.788503, 28.293262, 28.197892]
     )[:, None]
     xr.testing.assert_allclose(model.data["canopy_temperature"], exp_leaf_temp)
 
@@ -410,8 +406,7 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     # Latent heat flux
     exp_latent_heat = lyr_strct.from_template()
     exp_latent_heat[lyr_strct.index_filled_canopy] = np.array(
-        # [28.07077, 27.568715, 16.006325]
-        [28.07077012, 27.35735709, 14.97729136]
+        [28.07077, 27.357357, 14.977291]
     )[:, None]
     exp_latent_heat[lyr_strct.index_topsoil] = np.array([2.254, 22.54, 225.4, 225.4])
     xr.testing.assert_allclose(model.data["latent_heat_flux"], exp_latent_heat)
@@ -419,7 +414,6 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     # Sensible heat flux
     exp_sens_heat = lyr_strct.from_template()
     exp_sens_heat[lyr_strct.index_flux_layers] = np.array(
-        # [-16.970825, -16.47644, -5.637233, -192.074608]
-        [-16.9708248, -16.26697999, -4.65665595, -192.07460835]
+        [-16.970825, -16.26698, -4.656656, -192.074608]
     )[:, None]
     xr.testing.assert_allclose(model.data["sensible_heat_flux"], exp_sens_heat)

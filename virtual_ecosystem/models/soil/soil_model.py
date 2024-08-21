@@ -291,6 +291,11 @@ def construct_full_soil_model(
         str(pool): pools[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
 
+    if np.isnan(data["soil_moisture"][top_soil_layer_index]).any():
+        to_raise = ValueError("The soil moisture is nan!")
+        LOGGER.error(to_raise)
+        raise to_raise
+
     # Supply soil pools by unpacking dictionary
     return calculate_soil_carbon_updates(
         pH=data["pH"].to_numpy(),

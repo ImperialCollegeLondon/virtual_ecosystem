@@ -631,17 +631,17 @@ class LayerStructure:
 
     @property
     def index_above_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer index for above canopy layer."""
         return self._role_indices_scalar["above"]
 
     @property
     def index_topsoil_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indes for topsoil layer."""
         return self._role_indices_scalar["topsoil"]
 
     @property
     def index_surface_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indes for surface layer."""
         return self._role_indices_scalar["surface"]
 
 

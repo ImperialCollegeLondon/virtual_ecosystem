@@ -45,9 +45,9 @@ def calculate_soil_evaporation(
 
     where :math:`\Theta` is the available top soil moisture (relative volumetric water
     content), :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
-    density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
-    :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
-    :math:`q_{g}` is the surface specific humidity (unitless).
+    density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance between soil
+    and air(unitless), :math:`q_{sat}(T_{s})` (unitless) is the saturated specific
+    humidity, and :math:`q_{g}` is the surface specific humidity (unitless).
 
     In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
     :cite:t:`supit_system_1994`:
@@ -76,7 +76,7 @@ def calculate_soil_evaporation(
             radiation, [unitless]
 
     Returns:
-        soil evaporation, [mm] and aerodynamic resistance near the surface [kg m-2 s-3]
+        soil evaporation, [mm] and aerodynamic resistance near the surface [-]
     """
 
     output = {}
@@ -421,3 +421,101 @@ def calculate_surface_runoff(
         precipitation_surface - free_capacity_mm,
         0,
     )
+
+
+#     def calculate_potential_evaporation(
+
+# )->NDArray[np.float32]:
+#     r"""Estimate potenatial evaporation for wet surface, mm day-1.
+
+#     This function estimates the potential evaporation from a wet surface based on the
+#     Penman formula:
+
+#     .. math::
+#         :nowrap:
+
+#         \[
+#             E_{P} =
+#             \frac{
+#                 \frac{s(R_{n}-G)}{\rho \lambda}
+#                 + {c_{p}\rho_{a}}{\rho \lambda}
+#                 \frac{(e_{s} - e_{a})}{r_{a}}}
+#                 {s+\gamma}
+#         \]
+
+#     Args:
+#         𝐸ₚ: Penman potential evaporation (m/s)
+#         𝑅ₙ net radiation on the earth's surface (J s-1 m-2)
+#         G: ground heat flux (J s-1 m-2)
+#         𝜆: latent heat of vaporization (2.45 MJ/kg)
+#         s: slope of saturation vapor pressure-temperature curve kPa/C
+#         𝑐ₚ: specific heat of air (1004 J/kgK
+#         ρₐ: density of air (1.205 km / m3)
+#         rho: density of water (1000 kg / m3)
+#         eₐ: actual vapor pressure in the air at 2m height (kPa)
+#         eₛ: saturation vapor pressure in the air at 2m height (kPa)
+#         ps: psychrometric constant (0.066 kPa / C)
+#         𝑟ₐ: aerodynamic resistance (s/m)
+#     """
+
+# def calculate_canopy_evaporation(
+#     leaf_area_index: NDArray[np.float32],
+#     interception: NDArray[np.float32],
+#     time_interval: float,
+#     intercept_residence_time: float,
+#     extinction_coefficient_global_radiation: float,
+# ) -> dict[str, NDArray[np.float32]]:
+#     r"""Calculate evaporation of intercepted water from the canopy, mm.
+
+#     This function calculates evaporation of intercepted water from the canopy assuming
+#     the potential evaporation rate from an open water surface :math:`EW_{0}` [mm] (
+#     implementation after :cite:t:`van_der_knijff_lisflood_2010`).
+#     The maximum evaporation per time step :math:`EW_{max}` [mm] is proportional to the
+#     fraction of vegetated area (Supit et al.,1994):
+
+#     :math:`EW_{max} = EW_{0} \cdot [1 - \exp(-\kappa_{gb} LAI] \Delta t)`
+
+#     where the dimensionless constant :math:`\kappa_{gb}` is the extinction coefficient
+#   for global solar radiation. In LISFLOOD, :math:`\kappa_{gb}` is given by the product
+#    :math:`0.75 ⋅ \kappa_{df}`, where :math:`\kappa_{df}` is the extinction coefficient
+#   for diffuse visible light: its value is provided as input to the model and it varies
+#     TODO between 0.4 and 1.1.
+
+#     The actual amount of evaporation :math:`EW_{int}` [mm] is limited by the amount of
+#     water stored on the leaves :math:`Int_{cum}`:
+
+#     :math:`EW_{int} = min(EW_{max}\cdot \Delta t, Int_{cum})`
+
+#   Another amount of water falls to the soil because of leaf drainage which is modelled
+#     as a linear reservoir:
+
+#     :math:`D_{int} = \frac{1}{T_{int} \cdot Int_{cum} \cdot \Delta t`
+
+#     where :math:`D_{int}` is the amount of leaf drainage per time step [mm] and
+#     :math:`T_{int}` is a time constant (or residence time) of the interception store
+#   [days]. Setting :math:`T_{int} = 1` [day] is strongly recommended and means that all
+#     the water in the interception store Intcum evaporates or falls to the soil surface
+#     as leaf drainage within one day.
+#     """
+
+#     output = {}
+#     # Potential evaporation from open surface water
+#     potential_evaporation =
+
+#     # Maximum vaporation from canopy interception pool
+#     maximum_evaporation = (
+#         potential_evaporation
+#         * (1-np.exp(-extinction_coefficient_global_radiation * leaf_area_index))
+#         * time_interval
+#     )
+
+#     # TODO decide on water distribution between evap and drainage
+#     # Actual evaporation, mm
+#     actual_evaporation = np.min(maximum_evaporation, interception)
+#     output['canopy_evaporation'] = actual_evaporation
+
+#     # Leaf drainage, mm
+#     leaf_drainage = 1/intercept_residence_time * interception * time_interval
+#     output[leaf_drainage] = leaf_drainage
+
+#     return output

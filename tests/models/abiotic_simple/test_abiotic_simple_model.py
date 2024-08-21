@@ -15,6 +15,12 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'atmospheric_pressure_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'atmospheric_co2_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'leaf_area_index' checked"),
+    (DEBUG, "abiotic_simple model: required var 'layer_heights' checked"),
+    (DEBUG, "abiotic_simple model: required var 'wind_speed_ref' checked"),
+    (DEBUG, "abiotic_simple model: required var 'mean_annual_temperature' checked"),
 ]
 
 
@@ -33,6 +39,7 @@ def test_abiotic_simple_model_initialization(
 ):
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
@@ -54,6 +61,7 @@ def test_abiotic_simple_model_initialization(
         assert model.model_name == "abiotic_simple"
         assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
         assert model.bounds == AbioticSimpleBounds()
+        assert model.abiotic_constants == AbioticConsts()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -178,6 +186,14 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     model.setup()
 
     exp_soil_temp = lyr_strct.from_template()
+    exp_soil_temp[lyr_strct.index_all_soil] = [
+        [20.712458, 21.317566, 21.922674, 21.922674],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
+    exp_soil_temp[lyr_strct.index_all_soil] = [
+        [20.712458, 21.317566, 21.922674, 21.922674],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
 
     xr.testing.assert_allclose(
@@ -188,19 +204,48 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
             coords={"cell_id": [0, 1, 2, 3]},
         ),
     )
+    exp_wind_speed = lyr_strct.from_template()
+    exp_wind_speed[lyr_strct.index_filled_atmosphere] = [
+        [0.727122, 0.743643, 0.772241, 0.772241],
+        [0.615474, 0.64478, 0.691463, 0.691463],
+        [0.574914, 0.609452, np.nan, np.nan],
+        [0.47259, np.nan, np.nan, np.nan],
+        [0.414663, 0.544804, 0.635719, 0.635719],
+    ]
+    xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)
+
+    exp_sens_heat_flux = lyr_strct.from_template()
+    exp_sens_heat_flux[1] = [0, 0, 0, 0]
+    xr.testing.assert_allclose(model.data["sensible_heat_flux"], exp_sens_heat_flux)
+
+    for var in [
+        "soil_temperature",
+        "vapour_pressure_ref",
+        "vapour_pressure_deficit_ref",
+        "vapour_pressure_deficit",
+        "air_temperature",
+        "relative_humidity",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+        "wind_speed",
+        "sensible_heat_flux",
+        "molar_density_air",
+        "specific_heat_air",
+        "relative_turbulence_intensity",
+        "attenuation_coefficient",
+        "zero_plane_displacement",
+        "roughness_length_momentum",
+        "mean_mixing_length",
+        "friction_velocity",
+        "diabatic_correction_heat_above",
+        "diabatic_correction_momentum_above",
+        "diabatic_correction_heat_canopy",
+        "diabatic_correction_momentum_canopy",
+    ]:
+        assert var in model.data
 
     # Run the update step
     model.update(time_index=0)
-
-    for var in [
-        "air_temperature",
-        "relative_humidity",
-        "vapour_pressure_deficit",
-        "soil_temperature",
-        "atmospheric_pressure",
-        "atmospheric_co2",
-    ]:
-        assert var in model.data
 
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = [
@@ -218,3 +263,13 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+
+    exp_wind_speed = lyr_strct.from_template()
+    exp_wind_speed[lyr_strct.index_filled_atmosphere] = [
+        [0.727122, 0.743643, 0.772241, 0.772241],
+        [0.615474, 0.64478, 0.691463, 0.691463],
+        [0.574914, 0.609452, np.nan, np.nan],
+        [0.47259, np.nan, np.nan, np.nan],
+        [0.414663, 0.544804, 0.635719, 0.635719],
+    ]
+    xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)

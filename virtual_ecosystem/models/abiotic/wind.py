@@ -10,8 +10,10 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.core_components import CoreConsts, LayerStructure
+from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     calculate_molar_density_air,
     calculate_specific_heat_air,
@@ -758,14 +760,14 @@ def calculate_wind_profile(
     # set of true aboveground rows and then appending a row above and below. I think it
     # should operate by taking only the canopy data (dropping two rows) and then
     # replacing them.
-    attennuation_coefficient = calculate_wind_attenuation_coefficient(
+    attenuation_coefficient = calculate_wind_attenuation_coefficient(
         canopy_height=canopy_height,
         leaf_area_index=leaf_area_index,
         mean_mixing_length=mean_mixing_length,
         drag_coefficient=abiotic_constants.drag_coefficient,
         relative_turbulence_intensity=relative_turbulence_intensity,
     )
-    output["attennuation_coefficient"] = attennuation_coefficient
+    output["attenuation_coefficient"] = attenuation_coefficient
 
     # Calculate wind speed above canopy (2m above and top of canopy), [m s-1]
     wind_speed_above_canopy = calculate_wind_above_canopy(
@@ -783,7 +785,7 @@ def calculate_wind_profile(
         top_of_canopy_wind_speed=wind_speed_above_canopy[1],
         wind_layer_heights=wind_layer_heights,
         canopy_height=canopy_height,
-        attenuation_coefficient=attennuation_coefficient,
+        attenuation_coefficient=attenuation_coefficient,
     )
 
     # Combine wind speed above and in canopy to full profile
@@ -810,3 +812,121 @@ def calculate_wind_profile(
     output["diabatic_correction_momentum_canopy"] = diabatic_correction_canopy["phi_m"]
 
     return output
+
+
+def calculate_aerodynamic_resistance_canopy(
+    canopy_height: NDArray[np.float32],
+    wind_speed_above: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+    roughness_length_momentum: NDArray[np.float32],
+    above_canopy_offset: float,
+    von_karmans_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate aerodynamic resistance between canopy and air, s/m.
+
+    Implementation after (Allen et al., 1998; Monteith and Unsworth., 2008; Vidrih and
+    Medved, 2013):
+    :math:`r_{c,a} = ln((z-d)/z_{m})ln((z-d)/(z_{m}*0.1))/(k**2*u(v_{z}))`
+    where d =2/3*h_c; z=h_c+2; zm=h_c*0.123; U(Vz) is the wind speed at height z; k is
+    the von Karman's constant, given value =0.41; h_c is the canopy height
+    (Allen et al., 1998).
+
+    Args:
+        canopy_height: Canopy height, [m]
+        wind_speed_above: Wind speed above the canopy, [m s-1]
+        zero_plane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+        roughness_length_momentum:Momentum roughness length, [m]
+        above_canopy_offset: Height above canopy for which wind speed is required, [m]
+        von_karmans_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        Aerodynamic resistance between canopy and air, [s/m]
+    """
+
+    scaling_factor = canopy_height + above_canopy_offset - zero_plane_displacement
+    aerodynamic_resistance = (
+        np.log((scaling_factor) / roughness_length_momentum)
+        * np.log((scaling_factor) / (roughness_length_momentum * 0.1))
+    ) / (von_karmans_constant**2 * wind_speed_above)
+
+    return aerodynamic_resistance
+
+
+def update_wind(
+    data: Data,
+    microclimate_data: dict[str, DataArray],
+    layer_structure: LayerStructure,
+    time_index: int,
+    abiotic_constants: AbioticConsts,
+    core_constants: CoreConsts,
+) -> dict[str, DataArray]:
+    """Update wind speed, molar density of air, and specific heat of air.
+
+    This function wraps the steps to update the wind profile and returns the subset of
+    variables that are relevant for the abiotic simple model.
+
+    Args:
+        data: Data instance
+        microclimate_data: Dictionary with microclimate variables for current time step
+        layer_structure: LayerStructure instance
+        time_index: Time index
+        abiotic_constants: Set of constants for the abiotic model
+        core_constants: Set of constants shared across all models
+    Returns:
+        dictionary with "wind_speed", "molar_density_air", "specific_heat_air"
+    """
+
+    wind_update = calculate_wind_profile(
+        canopy_height=data["layer_heights"][1].to_numpy(),
+        wind_height_above=data["layer_heights"][0:2].to_numpy(),
+        wind_layer_heights=data["layer_heights"]
+        .isel(layers=layer_structure.index_filled_atmosphere)
+        .to_numpy(),
+        leaf_area_index=data["leaf_area_index"]
+        .isel(layers=layer_structure.index_filled_atmosphere)
+        .to_numpy(),
+        air_temperature=microclimate_data["air_temperature"]
+        .isel(layers=layer_structure.index_filled_atmosphere)
+        .to_numpy(),
+        atmospheric_pressure=microclimate_data["atmospheric_pressure"][
+            layer_structure.index_above_scalar
+        ].to_numpy(),
+        sensible_heat_flux_topofcanopy=data["sensible_heat_flux"][1].to_numpy(),
+        wind_speed_ref=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
+        wind_reference_height=(
+            data["layer_heights"][1] + abiotic_constants.wind_reference_height
+        ).to_numpy(),
+        abiotic_constants=abiotic_constants,
+        core_constants=core_constants,
+    )  # TODO wind height above in constants, cross-check with LayerStructure setup
+
+    wind_out = {}
+    # Store 2D wind outputs using the full vertical structure
+    for var in [
+        "wind_speed",
+        "molar_density_air",
+        "specific_heat_air",
+        "relative_turbulence_intensity",
+        "attenuation_coefficient",
+    ]:
+        var_out = layer_structure.from_template()
+        var_out[layer_structure.index_filled_atmosphere] = wind_update[var]
+        wind_out[var] = var_out
+
+    # Store 1D outputs by cell id
+    for var in [
+        "zero_plane_displacement",
+        "roughness_length_momentum",
+        "mean_mixing_length",
+        "friction_velocity",
+        "diabatic_correction_heat_above",
+        "diabatic_correction_momentum_above",
+        "diabatic_correction_heat_canopy",
+        "diabatic_correction_momentum_canopy",
+    ]:
+        wind_out[var] = DataArray(wind_update[var], coords={"cell_id": data["cell_id"]})
+
+    return wind_out
