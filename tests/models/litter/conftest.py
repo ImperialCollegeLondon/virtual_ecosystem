@@ -68,6 +68,10 @@ def dummy_litter_data(fixture_core_components):
         "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
+        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
+        "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
+        "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
+        "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
     }
 
     for var, vals in pool_values.items():
@@ -140,6 +144,11 @@ def metabolic_splits(dummy_litter_data):
             "plant_reproductive_tissue_turnover_c_n_ratio"
         ].to_numpy(),
         root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"].to_numpy(),
+        leaf_turnover_c_p_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"].to_numpy(),
+        reproduct_turnover_c_p_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_p_ratio"
+        ].to_numpy(),
+        root_turnover_c_p_ratio=dummy_litter_data["root_turnover_c_p_ratio"].to_numpy(),
         constants=LitterConsts,
     )
 

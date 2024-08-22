@@ -294,6 +294,11 @@ class LitterModel(
                 "plant_reproductive_tissue_turnover_c_n_ratio"
             ].to_numpy(),
             root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
+            leaf_turnover_c_p_ratio=self.data["leaf_turnover_c_p_ratio"].to_numpy(),
+            reproduct_turnover_c_p_ratio=self.data[
+                "plant_reproductive_tissue_turnover_c_p_ratio"
+            ].to_numpy(),
+            root_turnover_c_p_ratio=self.data["root_turnover_c_p_ratio"].to_numpy(),
             constants=self.model_constants,
         )
 

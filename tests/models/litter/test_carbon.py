@@ -105,11 +105,11 @@ def test_calculate_updated_pools(dummy_litter_data, decay_rates, plant_inputs):
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     expected_pools = {
-        "above_metabolic": [0.31632696, 0.15296346, 0.08537701, 0.08087947],
-        "above_structural": [0.50453639, 0.25006367, 0.09842669, 0.11162423],
+        "above_metabolic": [0.31567198, 0.1529074957, 0.0813030042, 0.0736771942],
+        "above_structural": [0.50519138, 0.25011962, 0.10250070, 0.11882651],
         "woody": [4.77403361, 11.89845863, 7.3598224, 7.3298224],
-        "below_metabolic": [0.40174907, 0.36687303, 0.06792061, 0.08224246],
-        "below_structural": [0.60638765, 0.31821335, 0.02010401, 0.03038216],
+        "below_metabolic": [0.3976309, 0.3630269, 0.06787947, 0.07794085],
+        "below_structural": [0.61050583, 0.32205947352, 0.02014514530, 0.03468376530],
     }
 
     actual_pools = calculate_updated_pools(

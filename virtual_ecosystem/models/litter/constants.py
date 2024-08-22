@@ -126,12 +126,29 @@ class LitterConsts(ConstantsDataclass):
     [unitless]. The value is taken from :cite:t:`krinner_dynamic_2005`.
     """
 
-    structural_metabolic_split_sensitivity: float = 0.018
-    """Sets the sensitive of the split between metabolic and structural litter.
+    metabolic_split_nitrogen_sensitivity: float = 0.018
+    """Sensitivity to nitrogen of the split between metabolic and structural litter.
     
     i.e. how much the split of input biomass between these two litter pools changes in
-    response to changes in nitrogen and lignin concentrations [unitless]. The value is
-    taken from :cite:t:`krinner_dynamic_2005`.
+    response to changes in the product of the nitrogen and lignin concentrations
+    [unitless]. These factors are combined as lignin is assumed to colimit litter
+    breakdown along with limiting nutrients. The value is taken from
+    :cite:t:`krinner_dynamic_2005`.
+    """
+
+    metabolic_split_phosphorus_sensitivity: float = 1.1613e-3
+    """Sensitivity to phosphorus of the split between metabolic and structural litter.
+    
+    i.e. how much the split of input biomass between these two litter pools changes in
+    response to changes in the product of the phosphorus and lignin concentrations
+    [unitless]. These factors are combined as lignin is assumed to colimit litter
+    breakdown along with limiting nutrients.
+    
+    The default value was calculated following :cite:t:`orwin_organic_2011`, by
+    rescaling the sensitivity constant for nitrogen by how limiting phosphorus is
+    relative to nitrogen. For this we used, an (atomic) C:N:P ratio of soil microbial
+    biomass of 60:7:1, we took this from :cite:t:`cleveland_cnp_2007`. This was then
+    converted to a mass terms ratio by using their atomic masses.
     """
 
     structural_to_metabolic_n_ratio: float = 5.0

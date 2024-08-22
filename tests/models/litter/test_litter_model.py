@@ -397,11 +397,11 @@ def test_generate_litter_model(
 def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.32072786, 0.15473132, 0.08523907, 0.08074153]
-    end_above_struct = [0.50470382, 0.25068224, 0.09843778, 0.11163532]
+    end_above_meta = [0.32007287, 0.154675362857, 0.0811650671, 0.0735392571]
+    end_above_struct = [0.50535881033, 0.25073819641, 0.102511783092, 0.118837593092]
     end_woody = [4.7745168, 11.89872931, 7.3614112, 7.3314112]
-    end_below_meta = [0.41087696, 0.37434507, 0.06905624, 0.08337808]
-    end_below_struct = [0.6066914, 0.31869812, 0.02010607, 0.03038423]
+    end_below_meta = [0.40675878, 0.37049895, 0.0690151, 0.07907648]
+    end_below_struct = [0.610809585, 0.32254423676, 0.0201472076513, 0.0346858276513]
     end_lignin_above_struct = [0.49790843, 0.10067782, 0.70495536, 0.71045831]
     end_lignin_woody = [0.49580586, 0.79787834, 0.35224223, 0.35012603]
     end_lignin_below_struct = [0.50313573, 0.26585915, 0.7499951, 0.82142798]
