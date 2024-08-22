@@ -790,6 +790,34 @@ unit = "-"
 variable_type = "float"
 
 [[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of deadwood"
+name = "deadwood_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of leaf turnover"
+name = "leaf_turnover_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
+name = "plant_reproductive_tissue_turnover_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of root turnover"
+name = "root_turnover_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
 axis = [] # as_yet_undefined_cohort_setup_axis
 description = "Cell ID of plant cohorts"
 name = "plant_cohorts_cell_id"
