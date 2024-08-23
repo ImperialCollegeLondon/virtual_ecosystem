@@ -164,8 +164,8 @@ def test_calculate_litter_input_lignin_concentrations(
     """Check calculation of lignin concentrations of each plant flow to litter."""
 
     expected_woody = [0.233, 0.545, 0.612, 0.378]
-    expected_concs_above_struct = [0.28329484, 0.23062465, 0.75773447, 0.75393599]
-    expected_concs_below_struct = [0.77196233, 0.80040249, 0.74908861, 0.95895666]
+    expected_concs_above_struct = [0.24971768, 0.22111396, 0.51122474, 0.56571041]
+    expected_concs_below_struct = [0.48590258, 0.56412613, 0.54265483, 0.67810978]
 
     actual_concs = litter_chemistry.calculate_litter_input_lignin_concentrations(
         plant_input_below_struct=plant_inputs["below_ground_structural"],
@@ -184,10 +184,10 @@ def test_calculate_litter_input_nitrogen_ratios(
 
     expected_c_n_ratios = {
         "woody": [60.7, 57.9, 73.1, 55.1],
-        "below_metabolic": [14.879783, 16.587126, 17.733169, 13.903046],
-        "below_structural": [74.398916, 82.935630, 88.665843, 69.515230],
-        "above_metabolic": [8.9373399, 14.343140, 15.968877, 13.520689],
-        "above_structural": [44.735092, 71.440811, 83.323241, 72.103527],
+        "below_metabolic": [11.449427, 13.09700, 14.48056, 11.04331],
+        "below_structural": [57.24714, 65.48498, 72.40281, 55.21655],
+        "above_metabolic": [8.48355299, 14.17116914, 12.3424635, 11.10877484],
+        "above_structural": [42.5018709, 69.9028550, 64.6044513, 57.7622747],
     }
 
     actual_c_n_ratios = litter_chemistry.calculate_litter_input_nitrogen_ratios(
@@ -201,6 +201,30 @@ def test_calculate_litter_input_nitrogen_ratios(
         assert np.allclose(actual_c_n_ratios[key], expected_c_n_ratios[key])
 
 
+def test_calculate_litter_input_phosphorus_ratios(
+    dummy_litter_data, metabolic_splits, litter_chemistry
+):
+    """Check function to calculate the C:P ratios of input to each litter pool works."""
+
+    expected_c_p_ratios = {
+        "woody": [856.5, 675.4, 933.2, 888.8],
+        "below_metabolic": [248.1465, 129.418998, 146.243645, 110.700999],
+        "below_structural": [1240.73249721, 647.09498874, 731.2182237, 553.50499377],
+        "above_metabolic": [220.55713162, 65.14600889, 152.23446238, 112.22496062],
+        "above_structural": [1118.95921, 343.440873, 825.333331, 387.658509],
+    }
+
+    actual_c_p_ratios = litter_chemistry.calculate_litter_input_phosphorus_ratios(
+        metabolic_splits=metabolic_splits,
+        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+    )
+
+    assert set(expected_c_p_ratios.keys()) == set(actual_c_p_ratios.keys())
+
+    for key in actual_c_p_ratios.keys():
+        assert np.allclose(actual_c_p_ratios[key], expected_c_p_ratios[key])
+
+
 def test_calculate_nutrient_split_between_litter_pools(
     dummy_litter_data, metabolic_splits
 ):
@@ -209,8 +233,8 @@ def test_calculate_nutrient_split_between_litter_pools(
         calculate_nutrient_split_between_litter_pools,
     )
 
-    expected_meta_c_n = np.array([14.879783, 16.587126, 17.733169, 13.903046])
-    expected_struct_c_n = np.array([74.398916, 82.935630, 88.665843, 69.515230])
+    expected_meta_c_n = np.array([11.449427, 13.09700, 14.48056, 11.04331])
+    expected_struct_c_n = np.array([57.24714, 65.48498, 72.40281, 55.21655])
 
     actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
         input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],

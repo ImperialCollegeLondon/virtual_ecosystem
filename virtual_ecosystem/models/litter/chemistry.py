@@ -260,6 +260,107 @@ class LitterChemistry:
             "above_structural": c_n_ratio_above_structural,
         }
 
+    def calculate_litter_input_phosphorus_ratios(
+        self,
+        metabolic_splits: dict[str, NDArray[np.float32]],
+        struct_to_meta_phosphorus_ratio: float,
+    ) -> dict[str, NDArray[np.float32]]:
+        """Calculate carbon to phosphorus ratio for each plant biomass to litter flow.
+
+        The ratio for the input to the woody litter pool just matches the ratio of the
+        deadwood input. For the below ground pools, the ratios of the flows from root
+        turnover into the metabolic and structural pools is calculated. A similar
+        approach is taken for the above ground metabolic and structural pools, but here
+        a weighted average of the two contributions to each pool (leaf and reproductive
+        tissue turnover) must be taken.
+
+        Args:
+            metabolic_splits: Dictionary containing the proportion of each input that
+                goes to the relevant metabolic pool. This is for three input types:
+                leaves, reproductive tissues and roots [unitless]
+            struct_to_meta_phosphorus_ratio: Ratio of the carbon to phosphorus ratios of
+                structural vs metabolic litter pools [unitless]
+
+        Returns:
+            Dictionary containing the carbon to phosphorus ratios of the input to each
+            of the pools [unitless]
+        """
+
+        # Calculate c_p_ratio split for each (non-wood) input biomass type
+        root_c_p_ratio_meta, root_c_p_ratio_struct = (
+            calculate_nutrient_split_between_litter_pools(
+                input_c_nut_ratio=self.data["root_turnover_c_p_ratio"].to_numpy(),
+                metabolic_split=metabolic_splits["roots"],
+                struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
+            )
+        )
+
+        leaf_c_p_ratio_meta, leaf_c_p_ratio_struct = (
+            calculate_nutrient_split_between_litter_pools(
+                input_c_nut_ratio=self.data["leaf_turnover_c_p_ratio"].to_numpy(),
+                metabolic_split=metabolic_splits["leaves"],
+                struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
+            )
+        )
+
+        reprod_c_p_ratio_meta, reprod_c_p_ratio_struct = (
+            calculate_nutrient_split_between_litter_pools(
+                input_c_nut_ratio=self.data[
+                    "plant_reproductive_tissue_turnover_c_p_ratio"
+                ].to_numpy(),
+                metabolic_split=metabolic_splits["reproductive"],
+                struct_to_meta_nutrient_ratio=struct_to_meta_phosphorus_ratio,
+            )
+        )
+
+        c_p_ratio_below_metabolic = root_c_p_ratio_meta
+        c_p_ratio_below_structural = root_c_p_ratio_struct
+        c_p_ratio_woody = self.data["deadwood_c_p_ratio"].to_numpy()
+        # Inputs with multiple sources have to be weighted
+        c_p_ratio_above_metabolic = np.divide(
+            (
+                leaf_c_p_ratio_meta
+                * self.data["leaf_turnover"]
+                * metabolic_splits["leaves"]
+            )
+            + (
+                reprod_c_p_ratio_meta
+                * self.data["plant_reproductive_tissue_turnover"]
+                * metabolic_splits["reproductive"]
+            ),
+            (self.data["leaf_turnover"] * metabolic_splits["leaves"])
+            + (
+                self.data["plant_reproductive_tissue_turnover"]
+                * metabolic_splits["reproductive"]
+            ),
+        )
+
+        c_p_ratio_above_structural = np.divide(
+            (
+                leaf_c_p_ratio_struct
+                * self.data["leaf_turnover"]
+                * (1 - metabolic_splits["leaves"])
+            )
+            + (
+                reprod_c_p_ratio_struct
+                * self.data["plant_reproductive_tissue_turnover"]
+                * (1 - metabolic_splits["reproductive"])
+            ),
+            (self.data["leaf_turnover"] * (1 - metabolic_splits["leaves"]))
+            + (
+                self.data["plant_reproductive_tissue_turnover"]
+                * (1 - metabolic_splits["reproductive"])
+            ),
+        )
+
+        return {
+            "woody": c_p_ratio_woody,
+            "below_metabolic": c_p_ratio_below_metabolic,
+            "below_structural": c_p_ratio_below_structural,
+            "above_metabolic": c_p_ratio_above_metabolic,
+            "above_structural": c_p_ratio_above_structural,
+        }
+
     def calculate_lignin_updates(
         self,
         plant_inputs: dict[str, NDArray[np.float32]],

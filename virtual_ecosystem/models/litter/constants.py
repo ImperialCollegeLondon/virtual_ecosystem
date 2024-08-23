@@ -154,9 +154,17 @@ class LitterConsts(ConstantsDataclass):
     structural_to_metabolic_n_ratio: float = 5.0
     """Ratio of the carbon to nitrogen ratios of structural vs metabolic litter pools.
     
-    Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nitrogen content
-    of the structural and metabolic litter pools are in a fixed proportion. This
-    parameter sets how many times higher the carbon to nitrogen ratio of each structural
-    pool is relative to its corresponding metabolic pool. The default value is also
-    taken from :cite:t:`kirschbaum_modelling_2002`.
+    Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nitrogen
+    concentrations of the structural and metabolic litter pools are in a fixed
+    proportion. This parameter sets how many times higher the carbon to nitrogen ratio
+    of each structural pool is relative to its corresponding metabolic pool. The default
+    value is also taken from :cite:t:`kirschbaum_modelling_2002`.
+    """
+
+    structural_to_metabolic_p_ratio: float = 5.0
+    """Ratio of the carbon to phosphorus ratios of structural vs metabolic litter pools.
+    
+    This follows the same logic as for nitrogen (see
+    :attr:`structural_to_metabolic_n_ratio`). The default value used is the same as for
+    the nitrogen case as we saw no sense treating them differently.
     """
