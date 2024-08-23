@@ -693,6 +693,41 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Carbon phosphorus ratio of above ground metabolic pool"
+name = "c_p_ratio_above_metabolic"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of above ground structural pool"
+name = "c_p_ratio_above_structural"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of below ground metabolic pool"
+name = "c_p_ratio_below_metabolic"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of below ground structural pool"
+name = "c_p_ratio_below_structural"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of woody litter pool"
+name = "c_p_ratio_woody"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate of excrement flow from animals into litter"
 name = "decomposed_excrement"
 unit = "kg C m^-3 day^-1"
