@@ -577,7 +577,7 @@ class LitterChemistry:
                 [m]
 
         Returns:
-            The total rate of nitrogen mineralisation from litter [kg C m^-3 day^-1].
+            The total rate of nitrogen mineralisation from litter [kg N m^-3 day^-1].
         """
 
         # Find nitrogen mineralisation rate for each pool
@@ -606,6 +606,58 @@ class LitterChemistry:
 
         # Convert from per area to per volume units
         return total_N_mineralisation_rate / active_microbe_depth
+
+    def calculate_P_mineralisation(
+        self,
+        decay_rates: dict[str, NDArray[np.float32]],
+        active_microbe_depth: float,
+    ) -> dict[str, NDArray[np.float32]]:
+        """Method to calculate the amount of phosphorus mineralised by litter decay.
+
+        This function finds the phosphorus mineralisation rate of each litter pool, by
+        dividing the rate of decay (in carbon terms) by the carbon to phosphorus ratio
+        of each pool. These are then summed to find the total rate of phosphorus
+        mineralisation from litter. Finally, this rate is converted from per area units
+        (which the litter model works in) to per volume units (which the soil model
+        works in) by dividing the rate by the depth of soil considered to be microbially
+        active.
+
+        Args:
+            decay_rates: Dictionary containing the rates of decay for all 5 litter pools
+                [kg C m^-2 day^-1]
+            active_microbe_depth: Maximum depth of microbial activity in the soil layers
+                [m]
+
+        Returns:
+            The total rate of phosphorus mineralisation from litter [kg P m^-3 day^-1].
+        """
+
+        # Find phosphorus mineralisation rate for each pool
+        above_meta_p_mineral = (
+            decay_rates["metabolic_above"] / self.data["c_p_ratio_above_metabolic"]
+        )
+        above_struct_p_mineral = (
+            decay_rates["structural_above"] / self.data["c_p_ratio_above_structural"]
+        )
+        woody_p_mineral = decay_rates["woody"] / self.data["c_p_ratio_woody"]
+        below_meta_p_mineral = (
+            decay_rates["metabolic_below"] / self.data["c_p_ratio_below_metabolic"]
+        )
+        below_struct_p_mineral = (
+            decay_rates["structural_below"] / self.data["c_p_ratio_below_structural"]
+        )
+
+        # Sum them to find total rate of phosphorus mineralisation
+        total_P_mineralisation_rate = (
+            above_meta_p_mineral
+            + above_struct_p_mineral
+            + woody_p_mineral
+            + below_meta_p_mineral
+            + below_struct_p_mineral
+        )
+
+        # Convert from per area to per volume units
+        return total_P_mineralisation_rate / active_microbe_depth
 
 
 def calculate_litter_chemistry_factor(
