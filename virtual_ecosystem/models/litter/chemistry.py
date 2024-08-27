@@ -32,6 +32,7 @@ class LitterChemistry:
     def __init__(self, data: Data, constants: LitterConsts):
         self.data = data
         self.structural_to_metabolic_n_ratio = constants.structural_to_metabolic_n_ratio
+        self.structural_to_metabolic_p_ratio = constants.structural_to_metabolic_p_ratio
 
     def calculate_new_pool_chemistries(
         self,
@@ -64,6 +65,10 @@ class LitterChemistry:
             metabolic_splits=metabolic_splits,
             struct_to_meta_nitrogen_ratio=self.structural_to_metabolic_n_ratio,
         )
+        input_c_p_ratios = self.calculate_litter_input_phosphorus_ratios(
+            metabolic_splits=metabolic_splits,
+            struct_to_meta_phosphorus_ratio=self.structural_to_metabolic_p_ratio,
+        )
 
         # Then use to find the changes
         change_in_lignin = self.calculate_lignin_updates(
@@ -74,6 +79,11 @@ class LitterChemistry:
         change_in_c_n_ratios = self.calculate_c_n_ratio_updates(
             plant_inputs=plant_inputs,
             input_c_n_ratios=input_c_n_ratios,
+            updated_pools=updated_pools,
+        )
+        change_in_c_p_ratios = self.calculate_c_p_ratio_updates(
+            plant_inputs=plant_inputs,
+            input_c_p_ratios=input_c_p_ratios,
             updated_pools=updated_pools,
         )
 
@@ -101,8 +111,15 @@ class LitterChemistry:
             )
             for name in nutrient_variable_names
         }
+        phosphorus_changes = {
+            f"c_p_ratio_{name}": DataArray(
+                self.data[f"c_p_ratio_{name}"] + change_in_c_p_ratios[name],
+                dims="cell_id",
+            )
+            for name in nutrient_variable_names
+        }
 
-        return lignin_changes | nitrogen_changes
+        return lignin_changes | nitrogen_changes | phosphorus_changes
 
     def calculate_litter_input_lignin_concentrations(
         self,

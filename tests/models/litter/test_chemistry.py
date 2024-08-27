@@ -32,14 +32,19 @@ def test_calculate_new_pool_chemistries(
     """Test that function to calculate updated pool chemistries works correctly."""
 
     expected_chemistries = {
-        "lignin_above_structural": [0.49790843, 0.10067782, 0.70495536, 0.71045831],
-        "lignin_woody": [0.49580586, 0.79787834, 0.35224223, 0.35012603],
-        "lignin_below_structural": [0.50313604, 0.26586391, 0.7499951, 0.82142894],
-        "c_n_ratio_above_metabolic": [7.42828417, 8.93702902, 11.13974273, 10.28862942],
-        "c_n_ratio_above_structural": [37.5698310, 43.3465444, 49.0206010, 54.4471558],
-        "c_n_ratio_woody": [55.58168366, 63.25507083, 47.52080006, 59.08199528],
-        "c_n_ratio_below_metabolic": [10.9044015, 11.4675610, 15.2070612, 12.6623415],
-        "c_n_ratio_below_structural": [50.7755820, 56.387878, 73.1837156, 64.0424461],
+        "lignin_above_structural": [0.49726219, 0.10065698, 0.67693666, 0.6673972],
+        "lignin_woody": [0.49580543, 0.7978783, 0.35224272, 0.35012606],
+        "lignin_below_structural": [0.49974338, 0.26270806, 0.74846367, 0.71955592],
+        "c_n_ratio_above_metabolic": [7.39175978, 8.93054462, 10.40414542, 9.86041981],
+        "c_n_ratio_above_structural": [37.5547150, 43.3448492, 48.0974058, 52.0359678],
+        "c_n_ratio_woody": [55.5816919, 63.2550698, 47.5208477, 59.0819914],
+        "c_n_ratio_below_metabolic": [10.7299421, 11.3394567, 15.1984024, 12.2222413],
+        "c_n_ratio_below_structural": [50.6228215, 55.9998994, 73.0948342, 58.6661277],
+        "c_p_ratio_above_metabolic": [69.957176, 68.5502416, 107.1709994, 96.55826106],
+        "c_p_ratio_above_structural": [346.048307, 472.496124, 465.834123, 525.882608],
+        "c_p_ratio_woody": [560.22870571, 762.56863636, 848.03530307, 600.40427444],
+        "c_p_ratio_below_metabolic": [308.200782, 405.110726, 314.824814, 372.870229],
+        "c_p_ratio_below_structural": [563.06464, 597.68324, 772.78968, 609.82810],
     }
 
     actual_chemistries = litter_chemistry.calculate_new_pool_chemistries(

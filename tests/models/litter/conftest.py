@@ -17,7 +17,7 @@ def fixture_litter_model(dummy_litter_data, fixture_core_components):
 
     # Build the config object
     config = Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n"
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
     )
     core_components = CoreComponents(config)
 
