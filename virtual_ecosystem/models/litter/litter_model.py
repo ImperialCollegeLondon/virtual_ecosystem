@@ -399,6 +399,19 @@ class LitterModel(
             "c_n_ratio_below_structural": updated_chemistries[
                 "c_n_ratio_below_structural"
             ],
+            "c_p_ratio_above_metabolic": updated_chemistries[
+                "c_p_ratio_above_metabolic"
+            ],
+            "c_p_ratio_above_structural": updated_chemistries[
+                "c_p_ratio_above_structural"
+            ],
+            "c_p_ratio_woody": updated_chemistries["c_p_ratio_woody"],
+            "c_p_ratio_below_metabolic": updated_chemistries[
+                "c_p_ratio_below_metabolic"
+            ],
+            "c_p_ratio_below_structural": updated_chemistries[
+                "c_p_ratio_below_structural"
+            ],
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
             ),
