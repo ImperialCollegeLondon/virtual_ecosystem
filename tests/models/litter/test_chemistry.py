@@ -27,17 +27,9 @@ def test_calculate_litter_chemistry_factor():
 
 
 def test_calculate_new_pool_chemistries(
-    dummy_litter_data, plant_inputs, metabolic_splits, litter_chemistry
+    dummy_litter_data, plant_inputs, metabolic_splits, updated_pools, litter_chemistry
 ):
     """Test that function to calculate updated pool chemistries works correctly."""
-
-    updated_pools = {
-        "above_metabolic": np.array([0.32072786, 0.15473132, 0.08523907, 0.08074153]),
-        "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
-        "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
-        "below_metabolic": np.array([0.4090768, 0.37287148, 0.06883228, 0.08315412]),
-        "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
-    }
 
     expected_chemistries = {
         "lignin_above_structural": [0.49790843, 0.10067782, 0.70495536, 0.71045831],
@@ -63,20 +55,14 @@ def test_calculate_new_pool_chemistries(
 
 
 def test_calculate_lignin_updates(
-    dummy_litter_data, plant_inputs, input_lignin, litter_chemistry
+    dummy_litter_data, plant_inputs, input_lignin, updated_pools, litter_chemistry
 ):
     """Test that the function to calculate the lignin updates works as expected."""
 
-    updated_pools = {
-        "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
-        "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
-        "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
-    }
-
     expected_lignin = {
-        "above_structural": [-0.00209157, 0.00067782, 0.00495532, 0.01045834],
-        "woody": [-0.00419414, -0.00212166, 0.00224223, 0.00012603],
-        "below_structural": [3.1360386e-3, 1.5863906e-2, -4.90160482e-6, 7.1428885e-2],
+        "above_structural": [-0.00273781, 0.00065698, -0.02306334, -0.03260280],
+        "woody": [-0.00419457, -0.0021217, 0.00224272, 0.00012606],
+        "below_structural": [-0.00025662, 0.01270806, -0.00153633, -0.03044408],
     }
 
     actual_lignin = litter_chemistry.calculate_lignin_updates(
@@ -113,29 +99,46 @@ def test_calculate_change_in_chemical_concentration(dummy_litter_data):
 
 
 def test_calculate_c_n_ratio_updates(
-    dummy_litter_data, plant_inputs, input_c_n_ratios, litter_chemistry
+    dummy_litter_data, plant_inputs, input_c_n_ratios, updated_pools, litter_chemistry
 ):
     """Test that calculation of C:N ratio updates works properly."""
 
-    updated_pools = {
-        "above_metabolic": np.array([0.32072786, 0.15473132, 0.08523907, 0.08074153]),
-        "above_structural": np.array([0.5047038, 0.25068224, 0.09843778, 0.11163532]),
-        "woody": np.array([4.774517, 11.898729, 7.361411, 7.331411]),
-        "below_metabolic": np.array([0.4090768, 0.37287148, 0.06883228, 0.08315412]),
-        "below_structural": np.array([0.6066315, 0.31860251, 0.02010566, 0.03038382]),
-    }
-
     expected_change = {
-        "above_metabolic": [0.12828416, 0.23702901, 1.03974239, 0.48862956],
-        "above_structural": [0.06983094, 0.14654437, 3.22060275, 4.24715499],
-        "woody": [0.081683655, -0.04492917, 0.220800061, -0.01800472],
-        "below_metabolic": [0.20440145, 0.16756069, 0.00706121, 0.26234147],
-        "below_structural": [0.27558203, 0.78787769, 0.08371555, 2.8424462],
+        "above_metabolic": [0.09175978, 0.23054462, 0.30414542, 0.06041981],
+        "above_structural": [0.05471499, 0.14484922, 2.29740576, 1.835967773],
+        "woody": [0.0816919, -0.0449302, 0.2208477, -0.0180086],
+        "below_metabolic": [0.02994209, 0.03945672, -0.00159759, -0.17775875],
+        "below_structural": [0.12282146, 0.39989943, -0.00516585, -2.53387232],
     }
 
     actual_change = litter_chemistry.calculate_c_n_ratio_updates(
         plant_inputs=plant_inputs,
         input_c_n_ratios=input_c_n_ratios,
+        updated_pools=updated_pools,
+    )
+
+    assert set(expected_change.keys()) == set(actual_change.keys())
+
+    for key in actual_change.keys():
+        assert np.allclose(actual_change[key], expected_change[key])
+
+
+def test_calculate_c_p_ratio_updates(
+    dummy_litter_data, plant_inputs, input_c_p_ratios, updated_pools, litter_chemistry
+):
+    """Test that calculation of C:P ratio updates works properly."""
+
+    expected_change = {
+        "above_metabolic": [12.657176, -0.14975840, 7.07099940, 0.75826106],
+        "above_structural": [8.5483073, -0.7038764, 50.034123, -44.317392],
+        "woody": [4.72870571, -0.73136364, 0.73530307, 1.30427444],
+        "below_metabolic": [-2.49921796, -6.18927446, -0.37518617, -39.52977135],
+        "below_structural": [12.56464272, 2.08324337, -0.31032454, -41.37190224],
+    }
+
+    actual_change = litter_chemistry.calculate_c_p_ratio_updates(
+        plant_inputs=plant_inputs,
+        input_c_p_ratios=input_c_p_ratios,
         updated_pools=updated_pools,
     )
 

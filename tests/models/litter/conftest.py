@@ -211,3 +211,36 @@ def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
     )
 
     return input_c_n_ratios
+
+
+@pytest.fixture
+def input_c_p_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
+    """Carbon:nitrogen ratio of each input flow."""
+
+    input_c_p_ratios = litter_chemistry.calculate_litter_input_phosphorus_ratios(
+        metabolic_splits=metabolic_splits,
+        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+    )
+
+    return input_c_p_ratios
+
+
+@pytest.fixture
+def updated_pools(dummy_litter_data, decay_rates, plant_inputs):
+    """Updated carbon mass of each pool."""
+    from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
+
+    updated_pools = calculate_updated_pools(
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
+        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
+        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
+        decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
+        decay_rates=decay_rates,
+        plant_inputs=plant_inputs,
+        update_interval=2.0,
+    )
+
+    return updated_pools

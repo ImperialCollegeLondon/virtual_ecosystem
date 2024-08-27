@@ -475,6 +475,69 @@ class LitterChemistry:
             "below_structural": change_in_n_below_structural,
         }
 
+    def calculate_c_p_ratio_updates(
+        self,
+        plant_inputs: dict[str, NDArray[np.float32]],
+        input_c_p_ratios: dict[str, NDArray[np.float32]],
+        updated_pools: dict[str, NDArray[np.float32]],
+    ) -> dict[str, NDArray[np.float32]]:
+        """Calculate the changes in carbon phosphorus ratios for all litter pools.
+
+        This function calculates the total change over the entire time step, so cannot
+        be used in an integration process.
+
+        Args:
+            plant_inputs: Dictionary containing the amount of each litter type that is
+                added from the plant model in this time step [kg C m^-2]
+            input_c_p_ratios: Dictionary containing the carbon to phosphorus ratios of
+                the input to each of the litter pools [unitless]
+            updated_pools: Dictionary containing the updated pool densities for all 5
+                litter pools [kg C m^-2]
+
+        Returns:
+            Dictionary containing the updated carbon phosphorus ratios for all of the
+            litter pools [unitless]
+        """
+
+        change_in_p_above_metabolic = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["above_ground_metabolic"],
+            updated_pool_carbon=updated_pools["above_metabolic"],
+            input_conc=input_c_p_ratios["above_metabolic"],
+            old_pool_conc=self.data["c_p_ratio_above_metabolic"].to_numpy(),
+        )
+        change_in_p_above_structural = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["above_ground_structural"],
+            updated_pool_carbon=updated_pools["above_structural"],
+            input_conc=input_c_p_ratios["above_structural"],
+            old_pool_conc=self.data["c_p_ratio_above_structural"].to_numpy(),
+        )
+        change_in_p_woody = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["woody"],
+            updated_pool_carbon=updated_pools["woody"],
+            input_conc=input_c_p_ratios["woody"],
+            old_pool_conc=self.data["c_p_ratio_woody"].to_numpy(),
+        )
+        change_in_p_below_metabolic = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["below_ground_metabolic"],
+            updated_pool_carbon=updated_pools["below_metabolic"],
+            input_conc=input_c_p_ratios["below_metabolic"],
+            old_pool_conc=self.data["c_p_ratio_below_metabolic"].to_numpy(),
+        )
+        change_in_p_below_structural = calculate_change_in_chemical_concentration(
+            input_carbon=plant_inputs["below_ground_structural"],
+            updated_pool_carbon=updated_pools["below_structural"],
+            input_conc=input_c_p_ratios["below_structural"],
+            old_pool_conc=self.data["c_p_ratio_below_structural"].to_numpy(),
+        )
+
+        return {
+            "above_metabolic": change_in_p_above_metabolic,
+            "above_structural": change_in_p_above_structural,
+            "woody": change_in_p_woody,
+            "below_metabolic": change_in_p_below_metabolic,
+            "below_structural": change_in_p_below_structural,
+        }
+
     def calculate_N_mineralisation(
         self,
         decay_rates: dict[str, NDArray[np.float32]],
