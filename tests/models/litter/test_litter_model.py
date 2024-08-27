@@ -477,6 +477,7 @@ def test_update(fixture_litter_model, dummy_litter_data):
     end_c_p_below_structural = [563.06464, 597.68324, 772.78968, 609.82810]
     c_mineral = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
     n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
+    p_mineral = [4.39937479e-4, 2.13832149e-4, 6.40698004e-5, 6.56405873e-5]
 
     fixture_litter_model.update(time_index=0)
 
@@ -525,3 +526,4 @@ def test_update(fixture_litter_model, dummy_litter_data):
     )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
     assert np.allclose(dummy_litter_data["litter_N_mineralisation_rate"], n_mineral)
+    assert np.allclose(dummy_litter_data["litter_P_mineralisation_rate"], p_mineral)

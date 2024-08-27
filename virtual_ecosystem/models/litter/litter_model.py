@@ -136,10 +136,12 @@ class LitterModel(
         "c_p_ratio_below_structural",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
     vars_populated_by_first_update=(
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
 ):
     """A class defining the litter model.
@@ -365,6 +367,10 @@ class LitterModel(
             decay_rates=decay_rates,
             active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
+        total_P_mineralisation_rate = self.litter_chemistry.calculate_P_mineralisation(
+            decay_rates=decay_rates,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
+        )
 
         # Construct dictionary of data arrays to return
         updated_litter_variables = {
@@ -417,6 +423,9 @@ class LitterModel(
             ),
             "litter_N_mineralisation_rate": DataArray(
                 total_N_mineralisation_rate, dims="cell_id"
+            ),
+            "litter_P_mineralisation_rate": DataArray(
+                total_P_mineralisation_rate, dims="cell_id"
             ),
         }
 
