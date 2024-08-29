@@ -172,7 +172,9 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(self, excreta_mass: float, excrement_pools: set[ExcrementPool]) -> None:
+    def excrete(
+        self, excreta_mass: float, excrement_pools: list[ExcrementPool]
+    ) -> None:
         """Transfers nitrogenous metabolic wastes to the excrement pool.
 
         This method will not be fully implemented until the stoichiometric rework. All
@@ -343,7 +345,7 @@ class AnimalCohort:
         self,
         potential_consumed_mass: float,
         predator: AnimalCohort,
-        carcass_pools: dict[int, set[CarcassPool]],
+        carcass_pools: dict[int, list[CarcassPool]],
     ) -> float:
         """Removes individuals according to mass demands of a predation event.
 
@@ -644,7 +646,7 @@ class AnimalCohort:
         self,
         animal_list: list[AnimalCohort],
         excrement_pools: list[ExcrementPool],
-        carcass_pools: dict[int, set[CarcassPool]],
+        carcass_pools: dict[int, list[CarcassPool]],
     ) -> float:
         """This method handles mass assimilation from predation.
 
@@ -745,7 +747,7 @@ class AnimalCohort:
         plant_list: list[PlantResources],
         animal_list: list[AnimalCohort],
         excrement_pools: list[ExcrementPool],
-        carcass_pools: dict[int, set[CarcassPool]],
+        carcass_pools: dict[int, list[CarcassPool]],
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 

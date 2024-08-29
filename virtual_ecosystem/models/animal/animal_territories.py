@@ -47,7 +47,7 @@ class AnimalTerritory:
 
     def get_prey(
         self,
-        communities: dict[int, set["AnimalCohort"]],
+        communities: dict[int, list["AnimalCohort"]],
         consumer_cohort: "AnimalCohort",
     ) -> list["AnimalCohort"]:
         """Collect suitable prey for a given consumer cohort.
@@ -91,7 +91,7 @@ class AnimalTerritory:
         return prey_list
 
     def get_plant_resources(
-        self, plant_resources: dict[int, set[PlantResources]]
+        self, plant_resources: dict[int, list[PlantResources]]
     ) -> list[PlantResources]:
         """Returns a list of plant resources in this territory.
 
@@ -115,7 +115,7 @@ class AnimalTerritory:
         return plant_resources_in_territory
 
     def get_excrement_pools(
-        self, excrement_pools: dict[int, set[ExcrementPool]]
+        self, excrement_pools: dict[int, list[ExcrementPool]]
     ) -> list[ExcrementPool]:
         """Returns a list of excrement pools in this territory.
 
@@ -140,7 +140,7 @@ class AnimalTerritory:
         return excrement_pools_in_territory
 
     def get_carcass_pools(
-        self, carcass_pools: dict[int, set[CarcassPool]]
+        self, carcass_pools: dict[int, list[CarcassPool]]
     ) -> list[CarcassPool]:
         """Returns a list of carcass pools in this territory.
 
@@ -167,7 +167,7 @@ class AnimalTerritory:
     def find_intersecting_carcass_pools(
         self,
         prey_territory: "AnimalTerritory",
-        carcass_pools: dict[int, set[CarcassPool]],
+        carcass_pools: dict[int, list[CarcassPool]],
     ) -> list[CarcassPool]:
         """Find the carcass pools of the intersection of two territories.
 

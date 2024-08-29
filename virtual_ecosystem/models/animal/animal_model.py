@@ -92,34 +92,34 @@ class AnimalModel(
         """List of functional groups in the model."""
         self.model_constants = model_constants
         """Animal constants."""
-        self.plant_resources: dict[int, set[PlantResources]] = {
-            cell_id: {
+        self.plant_resources: dict[int, list[PlantResources]] = {
+            cell_id: [
                 PlantResources(
                     data=self.data, cell_id=cell_id, constants=self.model_constants
                 )
-            }
+            ]
             for cell_id in self.data.grid.cell_id
         }
         """The plant resource pools in the model with associated grid cell ids."""
-        self.excrement_pools: dict[int, set[ExcrementPool]] = {
-            cell_id: {
+        self.excrement_pools: dict[int, list[ExcrementPool]] = {
+            cell_id: [
                 ExcrementPool(scavengeable_energy=10000.0, decomposed_energy=10000.0)
-            }
+            ]
             for cell_id in self.data.grid.cell_id
         }
         """The excrement pools in the model with associated grid cell ids."""
-        self.carcass_pools: dict[int, set[CarcassPool]] = {
-            cell_id: {
+        self.carcass_pools: dict[int, list[CarcassPool]] = {
+            cell_id: [
                 CarcassPool(scavengeable_energy=10000.0, decomposed_energy=10000.0)
-            }
+            ]
             for cell_id in self.data.grid.cell_id
         }
         """The carcass pools in the model with associated grid cell ids."""
 
         self.cohorts: dict[UUID, AnimalCohort] = {}
         """A dictionary of all animal cohorts and their unique ids."""
-        self.communities: dict[int, set[AnimalCohort]] = {
-            cell_id: set() for cell_id in self.data.grid.cell_id
+        self.communities: dict[int, list[AnimalCohort]] = {
+            cell_id: list() for cell_id in self.data.grid.cell_id
         }
         """The animal cohorts organized by cell_id."""
         self._initialize_communities(functional_groups)
@@ -145,9 +145,9 @@ class AnimalModel(
             functional_groups: The list of functional groups that will populate the
             model.
         """
-        # Initialize communities dictionary with cell IDs as keys and empty sets for
+        # Initialize communities dictionary with cell IDs as keys and empty lists for
         # cohorts
-        self.communities = {cell_id: set() for cell_id in self.data.grid.cell_id}
+        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
         # Iterate over each cell and functional group to create and populate cohorts
         for cell_id in self.data.grid.cell_id:
@@ -168,7 +168,7 @@ class AnimalModel(
                     constants=self.model_constants,
                 )
                 self.cohorts[cohort.id] = cohort
-                self.communities[cell_id].add(cohort)
+                self.communities[cell_id].append(cohort)
 
     @classmethod
     def from_config(
@@ -407,7 +407,7 @@ class AnimalModel(
         cohort.territory.update_territory(territory_cells)
 
         for cell_id in territory_cells:
-            self.communities[cell_id].add(cohort)
+            self.communities[cell_id].append(cohort)
 
     def populate_community(self) -> None:
         """This function creates an instance of each functional group.
@@ -440,7 +440,7 @@ class AnimalModel(
                     self.model_constants,
                 )
                 # add the cohort to the flat cohort list and the specific community
-                community.add(cohort)
+                community.append(cohort)
                 self.cohorts[cohort.id] = cohort
 
     def migrate(self, migrant: AnimalCohort, destination_centroid: int) -> None:
@@ -467,7 +467,7 @@ class AnimalModel(
         migrant.centroid_key = destination_centroid
 
         # Add the cohort to the destination community
-        self.communities[destination_centroid].add(migrant)
+        self.communities[destination_centroid].append(migrant)
 
         # Regenerate a territory for the cohort at the destination community
         self.abandon_communities(migrant)
@@ -640,7 +640,7 @@ class AnimalModel(
                 plant_list=plant_list,
                 animal_list=prey_list,
                 excrement_pools=excrement_list,
-                carcass_pools=self.carcass_pools,  # the full set of carcass pools
+                carcass_pools=self.carcass_pools,  # the full list of carcass pools
             )
 
             # temporary solution
