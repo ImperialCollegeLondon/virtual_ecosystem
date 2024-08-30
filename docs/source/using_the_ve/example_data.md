@@ -168,8 +168,21 @@ The `example_climate_data.nc` file provides:
 
 The dummy climate data for the example simulation is based on monthly ERA5-Land data
 which can be downloaded from the [Copernicus climate data store](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview).
-See the [climate data recipes page](./data/climate_data_recipes.md) for more
-details.
+
+Metadata:
+
+* Muñoz-Sabater,J. et al: ERA5-Land: A state-of-the-art global reanalysis dataset for
+  land applications, Earth Syst. Sci. Data,13, 4349-4383, 2021.
+  [https://doi.org/10.5194/essd-13-4349-2021](https://doi.org/10.5194/essd-13-4349-2021)
+* Product type: Monthly averaged reanalysis
+* Variable: 2m dewpoint temperature, 2m temperature, Surface pressure, Total
+  precipitation
+* Year: 2013, 2014
+* Month: January, February, March, April, May, June, July, August, September, October,
+  November, December
+* Time: 00:00
+* Sub-region extraction: North 6°, West 116°, South 4°, East 118°
+* Format: NetCDF3
 
 ### Hydrology data
 
