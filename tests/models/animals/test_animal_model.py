@@ -16,7 +16,7 @@ def prepared_animal_model_instance(
     functional_group_list_instance,
     constants_instance,
 ):
-    """Animal model instance in which setup has already been run."""
+    """Full initialised animal model instance."""
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
     model = AnimalModel(
@@ -25,7 +25,7 @@ def prepared_animal_model_instance(
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
     )
-    model.setup()  # Ensure setup is called
+
     return model
 
 
