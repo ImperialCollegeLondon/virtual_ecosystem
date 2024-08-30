@@ -208,9 +208,6 @@ class PlantsModel(
         LOGGER.info("Plants model instance generated from configuration.")
         return inst
 
-    def setup(self) -> None:
-        """Placeholder function to set up the plants model."""
-
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 

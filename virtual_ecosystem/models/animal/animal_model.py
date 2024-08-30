@@ -1,19 +1,19 @@
 """The :mod:`~virtual_ecosystem.models.animal.animal_model` module creates a
 :class:`~virtual_ecosystem.models.animal.animal_model.AnimalModel` class as a
 child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
-:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the
-Virtual Ecosystem model develops. The factory method
-:func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.from_config`
-exists in a more complete state, and unpacks a small number of parameters
-from our currently pretty minimal configuration dictionary. These parameters are
-then used to generate a class instance. If errors crop up here when converting the
-information from the config dictionary to the required types
-(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
-of the unpacking an error is thrown. This error should be caught and handled
-by downstream functions so that all model configuration failures can be reported as one.
+
+The factory method
+:func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.from_config` unpacks a
+small number of parameters from our currently pretty minimal configuration dictionary.
+These parameters are then used to generate a class instance. If errors crop up here when
+converting the information from the config dictionary to the required types (e.g.
+:class:`~numpy.timedelta64`) they are caught and then logged, and at the end of the
+unpacking an error is thrown. This error should be caught and handled by downstream
+functions so that all model configuration failures can be reported as one.
+
+The :func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.spinup` and
+:func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.cleanup` methods are
+not currently used by the model and exist only as placeholders.
 """  # noqa: D205
 
 from __future__ import annotations
@@ -89,7 +89,7 @@ class AnimalModel(
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
-        self.setup()
+        self._setup()
         """Initialize the data variables used by the animal model."""
 
     def _setup_grid_neighbors(self) -> None:
@@ -179,12 +179,8 @@ class AnimalModel(
             model_constants=model_constants,
         )
 
-    def setup(self) -> None:
-        """Method to setup the animal model specific data variables.
-
-        TODO: rename this as something else because you've used it crazy
-
-        """
+    def _setup(self) -> None:
+        """Method to setup the animal model specific data variables."""
 
         # animal respiration data variable
         # the array should have one value for each animal community

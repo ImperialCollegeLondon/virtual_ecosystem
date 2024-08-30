@@ -50,7 +50,7 @@ class AbioticSimpleModel(
         "leaf_area_index",
         "layer_heights",
     ),
-    vars_populated_by_init=(  # TODO move functionality from setup() to __init__
+    vars_populated_by_init=(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
@@ -117,12 +117,6 @@ class AbioticSimpleModel(
             core_components=core_components,
             model_constants=model_constants,
         )
-
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
 
     def _setup(self) -> None:
         """Function to set up the abiotic simple model.
