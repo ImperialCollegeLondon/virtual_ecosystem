@@ -16,7 +16,7 @@ The rest of this page gives provides details on the specific litter pools, the
 partitioning of organic matter input between them, and the environmental factors that
 effect decay rates.
 
-TODO - Talk about animal inputs once that is settled
+TODO - Talk about animal inputs + consumption once that is settled
 
 ## Litter pools
 
@@ -61,5 +61,26 @@ which is likely to come predominantly from fine-root turnover.
 As with the above-ground case only the structural pool contains lignin, this pool
 represents hard to break down components of root turnover.
 
-TODO - add Chemistry + Partition section
+## Litter chemistry
+
+Three aspects of litter chemistry are tracked. Lignin is tracked because its
+concentration is one of the biggest factors effecting litter decay rates. Nitrogen and
+phosphorus are also major factors in determining litter quality and the total rate of
+litter breakdown. However, our primary reason for tracking litter nitrogen and
+phosphorus concentrations is to track the rate of entry of phosphorus and nitrogen into
+the soil, where both can be major limiting factors for microbial activity. For this
+reason, we consider only lignin concentration to have a direct impact on decay rates
+(for the pools that contain lignin) and not nitrogen and phosphorus concentrations. In
+order to capture the impact of lignin on decay, decay rates are reduced by multiplying
+them with a factor that takes the following form
+
+$$I_L = \exp{(rL)},$$
+
+where $L$ is the proportion of the litter pool which is lignin and $r$ is a (negative)
+empirical constant setting the strength of the inhibition. This choice of function form
+follows {cite:t}`kirschbaum_modelling_2002`.
+
+TODO - explain partition, how it determines litter quality. Maybe give the actual
+function and explain the terms.
+
 TODO - Add section about Environmental factors
