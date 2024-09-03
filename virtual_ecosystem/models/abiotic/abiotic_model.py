@@ -160,6 +160,8 @@ class AbioticModel(
         self.simple_constants = AbioticSimpleConsts()
         """Set of constants for simple abiotic model."""  # TODO metaconstants
 
+        self._setup()
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -190,6 +192,12 @@ class AbioticModel(
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(self) -> None:
         """Function to set up the abiotic model.
 
         This function initializes soil temperature and canopy temperature for all
