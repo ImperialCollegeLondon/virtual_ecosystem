@@ -9,7 +9,40 @@ from tests.conftest import log_check
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
-def test_partion_plant_inputs_between_pools(dummy_litter_data):
+def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
+    """Test that function to calculate metabolic input proportions works as expected."""
+
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_metabolic_proportions_of_input,
+    )
+
+    expected_proportions = {
+        "leaves": [0.8365, 0.73525, 0.61726, 0.261076],
+        "reproductive": [0.84775, 0.837148, 0.838696, 0.843448],
+        "roots": [0.74092, 0.56272, 0.639562, 0.58288],
+    }
+
+    actual_proportions = calculate_metabolic_proportions_of_input(
+        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
+        reproduct_turnover_lignin_proportion=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_lignin"
+        ],
+        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
+        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        reproduct_turnover_c_n_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_n_ratio"
+        ],
+        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        constants=LitterConsts,
+    )
+
+    assert set(expected_proportions.keys()) == set(actual_proportions.keys())
+
+    for key in actual_proportions.keys():
+        assert np.allclose(actual_proportions[key], expected_proportions[key])
+
+
+def test_partion_plant_inputs_between_pools(dummy_litter_data, metabolic_splits):
     """Check function to partition inputs into litter pools works as expected."""
 
     from virtual_ecosystem.models.litter.input_partition import (
@@ -27,17 +60,7 @@ def test_partion_plant_inputs_between_pools(dummy_litter_data):
         leaf_turnover=dummy_litter_data["leaf_turnover"],
         reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
         root_turnover=dummy_litter_data["root_turnover"],
-        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
-        reproduct_turnover_lignin_proportion=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_lignin"
-        ],
-        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
-        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
-        reproduct_turnover_c_n_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_n_ratio"
-        ],
-        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
-        constants=LitterConsts,
+        metabolic_splits=metabolic_splits,
     )
 
     assert np.allclose(actual_splits["woody"], expected_woody)
@@ -115,36 +138,3 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
 
     # Check the error reports
     log_check(caplog, expected_log)
-
-
-def test_calculate_litter_input_lignin_concentrations(dummy_litter_data):
-    """Check calculation of lignin concentrations of each plant flow to litter."""
-
-    from virtual_ecosystem.models.litter.input_partition import (
-        calculate_litter_input_lignin_concentrations,
-    )
-
-    below_struct_input = [0.00699516, 0.00918288, 0.00010813, 0.01038629]
-    above_struct_input = [0.00487125, 0.001300815, 0.00844887, 0.0216464]
-
-    expected_woody = [0.233, 0.545, 0.612, 0.378]
-    expected_concs_above_struct = [0.28329484, 0.23062465, 0.75773447, 0.75393599]
-    expected_concs_below_struct = [0.7719623, 0.8004025, 0.7490983, 0.9589565]
-
-    actual_concs = calculate_litter_input_lignin_concentrations(
-        deadwood_lignin_proportion=dummy_litter_data["deadwood_lignin"],
-        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
-        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
-        reproduct_turnover_lignin_proportion=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_lignin"
-        ],
-        root_turnover=dummy_litter_data["root_turnover"],
-        leaf_turnover=dummy_litter_data["leaf_turnover"],
-        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
-        plant_input_below_struct=below_struct_input,
-        plant_input_above_struct=above_struct_input,
-    )
-
-    assert np.allclose(actual_concs["woody"], expected_woody)
-    assert np.allclose(actual_concs["above_structural"], expected_concs_above_struct)
-    assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)

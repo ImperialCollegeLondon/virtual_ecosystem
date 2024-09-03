@@ -178,6 +178,10 @@ subtrees:
           - file: api/models/litter
             title: The litter model
             entries:
+              - file: api/models/litter/carbon
+                title: The litter carbon submodule
+              - file: api/models/litter/chemistry
+                title: The litter chemistry submodule
               - file: api/models/litter/constants
                 title: The constants submodule
               - file: api/models/litter/env_factors
@@ -186,8 +190,6 @@ subtrees:
                 title: The input_partition submodule
               - file: api/models/litter/litter_model
                 title: The litter_model submodule
-              - file: api/models/litter/litter_pools
-                title: The litter_pools submodule
           - file: api/models/soil
             title: The soil model
             entries:

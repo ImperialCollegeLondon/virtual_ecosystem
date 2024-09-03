@@ -45,16 +45,16 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import (
-    calculate_litter_input_lignin_concentrations,
-    partion_plant_inputs_between_pools,
-)
-from virtual_ecosystem.models.litter.litter_pools import (
+from virtual_ecosystem.models.litter.carbon import (
     calculate_decay_rates,
-    calculate_lignin_updates,
     calculate_total_C_mineralised,
     calculate_updated_pools,
+)
+from virtual_ecosystem.models.litter.chemistry import LitterChemistry
+from virtual_ecosystem.models.litter.constants import LitterConsts
+from virtual_ecosystem.models.litter.input_partition import (
+    calculate_metabolic_proportions_of_input,
+    partion_plant_inputs_between_pools,
 )
 
 
@@ -71,6 +71,11 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
     ),
     vars_populated_by_init=(),
     vars_required_for_update=(
@@ -82,6 +87,11 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
         "deadwood_production",
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
@@ -90,6 +100,7 @@ class LitterModel(
         "leaf_turnover_lignin",
         "plant_reproductive_tissue_turnover_lignin",
         "root_turnover_lignin",
+        "deadwood_c_n_ratio",
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
@@ -103,9 +114,18 @@ class LitterModel(
         "lignin_above_structural",
         "lignin_woody",
         "lignin_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
         "litter_C_mineralisation_rate",
+        "litter_N_mineralisation_rate",
     ),
-    vars_populated_by_first_update=("litter_C_mineralisation_rate",),
+    vars_populated_by_first_update=(
+        "litter_C_mineralisation_rate",
+        "litter_N_mineralisation_rate",
+    ),
 ):
     """A class defining the litter model.
 
@@ -166,6 +186,29 @@ class LitterModel(
             )
             LOGGER.error(to_raise)
             raise to_raise
+
+        # Check that nutrient ratios are not negative
+        nutrient_ratios = [
+            "c_n_ratio_above_metabolic",
+            "c_n_ratio_above_structural",
+            "c_n_ratio_woody",
+            "c_n_ratio_below_metabolic",
+            "c_n_ratio_below_structural",
+        ]
+        negative_ratios = []
+        for ratio in nutrient_ratios:
+            if np.any(data[ratio] < 0):
+                negative_ratios.append(ratio)
+
+        if negative_ratios:
+            to_raise = InitialisationError(
+                f"Negative nutrient ratios found in: {', '.join(negative_ratios)}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        self.litter_chemistry = LitterChemistry(data, constants=model_constants)
+        """Litter chemistry object for tracking of litter pool chemistries."""
 
         self.model_constants = model_constants
         """Set of constants for the litter model."""
@@ -228,33 +271,15 @@ class LitterModel(
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
-            surface_temp=self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy(),
-            topsoil_temp=self.data["soil_temperature"][
-                self.layer_structure.index_topsoil_scalar
-            ].to_numpy(),
-            water_potential=self.data["matric_potential"][
-                self.layer_structure.index_topsoil_scalar
-            ].to_numpy(),
+            air_temperatures=self.data["air_temperature"],
+            soil_temperatures=self.data["soil_temperature"],
+            water_potentials=self.data["matric_potential"],
+            layer_structure=self.layer_structure,
             constants=self.model_constants,
         )
 
-        # Calculate the total mineralisation of carbon from the litter
-        total_C_mineralisation_rate = calculate_total_C_mineralised(
-            decay_rates,
-            model_constants=self.model_constants,
-            core_constants=self.core_constants,
-        )
-
         # Find the plant inputs to each of the litter pools
-        plant_inputs = partion_plant_inputs_between_pools(
-            deadwood_production=self.data["deadwood_production"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
-            root_turnover=self.data["root_turnover"].to_numpy(),
+        metabolic_splits = calculate_metabolic_proportions_of_input(
             leaf_turnover_lignin_proportion=self.data[
                 "leaf_turnover_lignin"
             ].to_numpy(),
@@ -270,6 +295,16 @@ class LitterModel(
             ].to_numpy(),
             root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
             constants=self.model_constants,
+        )
+
+        plant_inputs = partion_plant_inputs_between_pools(
+            deadwood_production=self.data["deadwood_production"].to_numpy(),
+            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
+            reproduct_turnover=self.data[
+                "plant_reproductive_tissue_turnover"
+            ].to_numpy(),
+            root_turnover=self.data["root_turnover"].to_numpy(),
+            metabolic_splits=metabolic_splits,
         )
 
         # Calculate the updated pool masses
@@ -288,35 +323,22 @@ class LitterModel(
             ).magnitude,
         )
 
-        # Find lignin concentration of the litter input flows
-        input_lignin = calculate_litter_input_lignin_concentrations(
-            deadwood_lignin_proportion=self.data["deadwood_lignin"].to_numpy(),
-            root_turnover_lignin_proportion=self.data[
-                "root_turnover_lignin"
-            ].to_numpy(),
-            leaf_turnover_lignin_proportion=self.data[
-                "leaf_turnover_lignin"
-            ].to_numpy(),
-            reproduct_turnover_lignin_proportion=self.data[
-                "plant_reproductive_tissue_turnover_lignin"
-            ].to_numpy(),
-            root_turnover=self.data["root_turnover"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
-            plant_input_above_struct=plant_inputs["above_ground_structural"],
-            plant_input_below_struct=plant_inputs["below_ground_structural"],
+        # Calculate all the litter chemistry changes
+        updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
+            plant_inputs=plant_inputs,
+            metabolic_splits=metabolic_splits,
+            updated_pools=updated_pools,
         )
 
-        # Find the changes in the lignin concentrations of the 3 relevant pools
-        change_in_lignin = calculate_lignin_updates(
-            lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
-            lignin_woody=self.data["lignin_woody"].to_numpy(),
-            lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
-            plant_inputs=plant_inputs,
-            input_lignin=input_lignin,
-            updated_pools=updated_pools,
+        # Calculate the total mineralisation rates from the litter
+        total_C_mineralisation_rate = calculate_total_C_mineralised(
+            decay_rates,
+            model_constants=self.model_constants,
+            core_constants=self.core_constants,
+        )
+        total_N_mineralisation_rate = self.litter_chemistry.calculate_N_mineralisation(
+            decay_rates=decay_rates,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
         # Construct dictionary of data arrays to return
@@ -335,20 +357,28 @@ class LitterModel(
                 updated_pools["below_structural"], dims="cell_id"
             ),
             "lignin_above_structural": DataArray(
-                self.data["lignin_above_structural"]
-                + change_in_lignin["above_structural"],
-                dims="cell_id",
+                updated_chemistries["lignin_above_structural"], dims="cell_id"
             ),
-            "lignin_woody": DataArray(
-                self.data["lignin_woody"] + change_in_lignin["woody"], dims="cell_id"
-            ),
-            "lignin_below_structural": DataArray(
-                self.data["lignin_below_structural"]
-                + change_in_lignin["below_structural"],
-                dims="cell_id",
-            ),
+            "lignin_woody": updated_chemistries["lignin_woody"],
+            "lignin_below_structural": updated_chemistries["lignin_below_structural"],
+            "c_n_ratio_above_metabolic": updated_chemistries[
+                "c_n_ratio_above_metabolic"
+            ],
+            "c_n_ratio_above_structural": updated_chemistries[
+                "c_n_ratio_above_structural"
+            ],
+            "c_n_ratio_woody": updated_chemistries["c_n_ratio_woody"],
+            "c_n_ratio_below_metabolic": updated_chemistries[
+                "c_n_ratio_below_metabolic"
+            ],
+            "c_n_ratio_below_structural": updated_chemistries[
+                "c_n_ratio_below_structural"
+            ],
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
+            ),
+            "litter_N_mineralisation_rate": DataArray(
+                total_N_mineralisation_rate, dims="cell_id"
             ),
         }
 
