@@ -503,6 +503,12 @@ def test_get_model_order(run_variables):
     from virtual_ecosystem.core import variables
     from virtual_ecosystem.core.exceptions import ConfigurationError
 
+    # Test wrong stage
+    with pytest.raises(
+        ConfigurationError, match="Stage must be either 'init' or 'update'."
+    ):
+        variables.get_model_order("wrong_stage")
+
     var1 = variables.Variable("var1", "", "", "", ())
     var2 = variables.Variable("var2", "", "", "", ())
     var3 = variables.Variable("var3", "", "", "", ())
