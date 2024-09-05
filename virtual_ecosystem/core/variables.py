@@ -30,8 +30,10 @@ on :mod:`~virtual_ecosystem.core.axes`.
 import json
 import pkgutil
 import sys
+from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import asdict, dataclass, field
+from graphlib import CycleError, TopologicalSorter
 from importlib import import_module, resources
 from pathlib import Path
 from typing import cast
@@ -41,6 +43,7 @@ from tabulate import tabulate
 
 import virtual_ecosystem.core.axes as axes
 import virtual_ecosystem.core.base_model as base_model
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import ValidatorWithDefaults
 
@@ -99,6 +102,23 @@ class Variable:
             )
 
         KNOWN_VARIABLES[self.name] = self
+
+    @property
+    def related_models(self) -> set[str]:
+        """Get all models that are related to the variable.
+
+        Returns:
+            The set of all models related to the variable.
+        """
+        all_models = (
+            set(self.populated_by_init)
+            | set(self.populated_by_update)
+            | set(self.required_by_init)
+            | set(self.updated_by)
+            | set(self.required_by_update)
+        )
+        all_models.discard("data")
+        return all_models
 
 
 RUN_VARIABLES_REGISTRY: dict[str, Variable] = {}
@@ -454,3 +474,54 @@ def get_variable(name: str) -> Variable:
         )
     else:
         raise KeyError(f"Variable '{name}' is not a known variable.")
+
+
+def get_model_order(stage: str) -> list[str]:
+    """Get the order of running the models during init or update.
+
+    This order is based on the dependencies of initialisation and update of the
+    variables.
+
+    Args:
+        stage: The stage of the simulation to get the order for. It must be either
+            "init" or "update".
+
+    Returns:
+        The order of initialisation of the variables.
+    """
+    if stage not in ("init", "update"):
+        raise ConfigurationError("Stage must be either 'init' or 'update'.")
+
+    depends: dict[str, set] = defaultdict(set)
+    for var in RUN_VARIABLES_REGISTRY.values():
+        initialiser = (
+            var.populated_by_init[0] if stage == "init" else var.populated_by_update[0]
+        )
+
+        required_by = (
+            var.required_by_init if stage == "init" else var.required_by_update
+        )
+
+        for dep in required_by:
+            # If the variable is initialised by the data object, it is not a dependency
+            if initialiser == "data":
+                depends[dep] = set()
+                continue
+            depends[dep].add(initialiser)
+
+        # Add the remaining models not already considered without dependencies
+        for model in var.related_models:
+            if model not in depends:
+                depends[model] = set()
+
+    sorter = TopologicalSorter(depends)
+
+    # Find a resolved execution order, checking for cyclic dependencies.
+    try:
+        resolved_order: list[str] = list(sorter.static_order())
+    except CycleError as excep:
+        to_raise = f"Model {stage} dependencies are cyclic: {', '.join(excep.args[1])}"
+        LOGGER.critical(to_raise)
+        raise ConfigurationError(to_raise)
+
+    return resolved_order
