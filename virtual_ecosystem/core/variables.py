@@ -524,4 +524,5 @@ def get_model_order(stage: str) -> list[str]:
         LOGGER.critical(to_raise)
         raise ConfigurationError(to_raise)
 
+    LOGGER.info(f"Model {stage} execution order set: {', '.join(resolved_order)}")
     return resolved_order
