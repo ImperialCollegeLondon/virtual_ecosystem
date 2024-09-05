@@ -494,6 +494,10 @@ def get_model_order(stage: str) -> list[str]:
 
     depends: dict[str, set] = defaultdict(set)
     for var in RUN_VARIABLES_REGISTRY.values():
+        if (stage == "init" and not var.populated_by_init) or (
+            stage == "update" and not var.populated_by_update
+        ):
+            continue
         initialiser = (
             var.populated_by_init[0] if stage == "init" else var.populated_by_update[0]
         )
