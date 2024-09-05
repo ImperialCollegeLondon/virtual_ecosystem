@@ -30,7 +30,6 @@ on :mod:`~virtual_ecosystem.core.axes`.
 import json
 import pkgutil
 import sys
-from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import asdict, dataclass, field
 from graphlib import CycleError, TopologicalSorter
@@ -492,31 +491,33 @@ def get_model_order(stage: str) -> list[str]:
     if stage not in ("init", "update"):
         raise ConfigurationError("Stage must be either 'init' or 'update'.")
 
-    depends: dict[str, set] = defaultdict(set)
+    depends: dict[str, set] = {}
     for var in RUN_VARIABLES_REGISTRY.values():
+        depends.update(
+            {model: set() for model in var.related_models if model not in depends}
+        )
+
+        # If the variable does not impose a dependency, skip it
         if (stage == "init" and not var.populated_by_init) or (
             stage == "update" and not var.populated_by_update
         ):
             continue
+
         initialiser = (
             var.populated_by_init[0] if stage == "init" else var.populated_by_update[0]
         )
+
+        # If the variable is initialised by the data object, it does not impose a
+        # dependency, so skip it as well
+        if initialiser == "data":
+            continue
 
         required_by = (
             var.required_by_init if stage == "init" else var.required_by_update
         )
 
         for dep in required_by:
-            # If the variable is initialised by the data object, it is not a dependency
-            if initialiser == "data":
-                depends[dep] = set()
-                continue
             depends[dep].add(initialiser)
-
-        # Add the remaining models not already considered without dependencies
-        for model in var.related_models:
-            if model not in depends:
-                depends[model] = set()
 
     sorter = TopologicalSorter(depends)
 

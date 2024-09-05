@@ -516,8 +516,6 @@ def test_get_model_order(run_variables):
     var1.populated_by_init = ["model1"]
     var2.required_by_init = ["model1"]
     var2.populated_by_init = ["model2"]
-    var3.required_by_init = []
-    var3.populated_by_init = ["data"]
     with pytest.raises(ConfigurationError, match="Model init dependencies are cyclic"):
         variables.get_model_order("init")
 
@@ -527,8 +525,9 @@ def test_get_model_order(run_variables):
     var3.required_by_update = ["model3"]
     assert variables.get_model_order("init") == ["model1", "model3", "model2"]
 
-    # Check that a model that depends on data is still included (model3)
+    # Check that a model that depends on data is still included, but data isn't
     var3.required_by_init = ["model3"]
+    var3.populated_by_init = ["data"]
     var3.required_by_update = []
     assert variables.get_model_order("init") == ["model1", "model3", "model2"]
 
