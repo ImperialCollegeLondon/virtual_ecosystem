@@ -9,9 +9,9 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.13.8
 kernelspec:
-  display_name: vr_python3
+  display_name: Python 3 (ipykernel)
   language: python
-  name: vr_python3
+  name: python3
 ---
 
 # API documentation for the {mod}`~virtual_ecosystem.core.base_model` module
@@ -21,6 +21,6 @@ kernelspec:
     :autosummary:
     :members:
     :special-members: __init_subclass__, __repr__, __str__, __init__
-    :private-members: _check_required_init_vars, _check_model_name,
-      _check_model_update_bounds, _check_vars_updated
+    :private-members: _check_vars_required_for_init, _check_model_name,
+      _check_model_update_bounds, _check_vars_updated, _check_variables_attribute
 ```

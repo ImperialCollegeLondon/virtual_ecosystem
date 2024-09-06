@@ -1,14 +1,14 @@
 """The :mod:`~virtual_ecosystem.models.plants.plants_model` module creates
 :class:`~virtual_ecosystem.models.plants.plants_model.PlantsModel` class as a child of
 the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
 from typing import Any
 
 import numpy as np
-import xarray
+import xarray as xr
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -29,20 +29,61 @@ class PlantsModel(
     BaseModel,
     model_name="plants",
     model_update_bounds=("1 day", "1 year"),
-    required_init_vars=(
-        ("plant_cohorts_cell_id", tuple()),
-        ("plant_cohorts_pft", tuple()),
-        ("plant_cohorts_n", tuple()),
-        ("plant_cohorts_dbh", tuple()),
-        ("photosynthetic_photon_flux_density", ("spatial",)),
+    vars_required_for_init=(
+        "plant_cohorts_cell_id",
+        "plant_cohorts_pft",
+        "plant_cohorts_n",
+        "plant_cohorts_dbh",
+        "photosynthetic_photon_flux_density",
+    ),
+    vars_populated_by_init=(
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_fapar",
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "canopy_absorption",
+    ),
+    vars_required_for_update=(
+        "plant_cohorts_cell_id",
+        "plant_cohorts_pft",
+        "plant_cohorts_n",
+        "plant_cohorts_dbh",
+        "photosynthetic_photon_flux_density",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
         "evapotranspiration",
+        "deadwood_production",
+        "leaf_turnover",
+        "plant_reproductive_tissue_turnover",
+        "root_turnover",
+        "deadwood_lignin",
+        "leaf_turnover_lignin",
+        "plant_reproductive_tissue_turnover_lignin",
+        "root_turnover_lignin",
+        "deadwood_c_n_ratio",
+        "leaf_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "root_turnover_c_n_ratio",
+    ),
+    vars_populated_by_first_update=(
+        "evapotranspiration",
+        "deadwood_production",
+        "leaf_turnover",
+        "plant_reproductive_tissue_turnover",
+        "root_turnover",
+        "deadwood_lignin",
+        "leaf_turnover_lignin",
+        "plant_reproductive_tissue_turnover_lignin",
+        "root_turnover_lignin",
+        "deadwood_c_n_ratio",
+        "leaf_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "root_turnover_c_n_ratio",
     ),
 ):
     """A class defining the plants model.
@@ -119,16 +160,15 @@ class PlantsModel(
         )
         """A reference to the global data object."""
 
-        self._canopy_layer_indices = np.arange(
-            1, self.layer_structure.canopy_layers + 1
-        )
+        # This is widely used internally so store it as an attribute.
+        self._canopy_layer_indices = self.layer_structure.index_canopy
         """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
         # cohort data and then initialise the irradiance using the first observation for
         # PPFD.
         self.update_canopy_layers()
-        self.set_absorbed_irradiance(time_index=0)
+        self.set_canopy_absorption(time_index=0)
 
     @classmethod
     def from_config(
@@ -161,7 +201,7 @@ class PlantsModel(
             )
         except Exception as excep:
             LOGGER.critical(
-                f"Error creating plants model from configuration: {str(excep)}"
+                f"Error creating plants model from configuration: {excep!s}"
             )
             raise excep
 
@@ -186,15 +226,19 @@ class PlantsModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         # Update the canopy layers
         self.update_canopy_layers()
-        self.set_absorbed_irradiance(time_index=time_index)
+        self.set_canopy_absorption(time_index=time_index)
 
         # Estimate the GPP and growth with the updated this update
         self.estimate_gpp(time_index=time_index)
         self.allocate_gpp()
+
+        # Calculate the turnover of each plant biomass pool
+        self.calculate_turnover()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -213,12 +257,12 @@ class PlantsModel(
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
 
         * the absorbed irradiance in each layer, including the remaining incident
-          radation at ground level (``layer_absorbed_irradiation``).
+          radation at ground level (``canopy_absorption``).
         """
         # Retrive the canopy model arrays and insert into the data object.
         canopy_data = build_canopy_arrays(
             self.communities,
-            n_canopy_layers=self.layer_structure.canopy_layers,
+            n_canopy_layers=self.layer_structure.n_canopy_layers,
         )
 
         # Insert the canopy layers into the data objects
@@ -233,7 +277,7 @@ class PlantsModel(
             + self.layer_structure.above_canopy_height_offset
         )
 
-    def set_absorbed_irradiance(self, time_index: int) -> None:
+    def set_canopy_absorption(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
 
         This method takes the photosynthetic photon flux density at the top of the
@@ -258,9 +302,10 @@ class PlantsModel(
 
         # Store the absorbed irradiance in the data object and add the remaining
         # irradiance at the surface layer level
-        self.data["layer_absorbed_irradiation"][:] = absorbed_irradiance
+        # NOTE - this is only the _PPFD_ at ground level not the SWDown.
+        self.data["canopy_absorption"][:] = absorbed_irradiance
         ground = np.where(self.data["layer_roles"].data == "surface")[0]
-        self.data["layer_absorbed_irradiation"][ground] = ground_irradiance
+        self.data["canopy_absorption"][ground] = ground_irradiance
 
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.
@@ -316,26 +361,26 @@ class PlantsModel(
         # This will give an array of the light use efficiency per layer per cell,
 
         # Get an array where populated canopy layers are one otherwise nan
-        canopy_heights = self.data["layer_heights"].where(
-            self.data["layers"].isin(self._canopy_layer_indices)
+        filled_canopy = xr.where(
+            (self.data["layer_heights"] * self._canopy_layer_indices[:, None]) > 0,
+            1,
+            np.nan,
         )
-        is_canopy = xarray.ones_like(canopy_heights).where(canopy_heights > 0)
 
         # Set a representative place holder LUE in gC mol-1 for now
-        self.data["layer_light_use_efficiency"] = is_canopy * 0.3
+        self.data["layer_light_use_efficiency"] = filled_canopy * 0.3
 
         # The LUE can then be scaled by the calculated absorbed irradiance, which is
         # the product of the layer specific fapar and the downwelling PPFD. In practice,
         # this will use something like:
         #
         # pmodel.estimate_productivity(
-        #     fapar=1, ppfd=self.data["layer_absorbed_irradiation"]
+        #     fapar=1, ppfd=self.data["canopy_absorption"]
         # )
         # but for now:
 
         self.data["layer_gpp_per_m2"] = (
-            self.data["layer_light_use_efficiency"]
-            * self.data["layer_absorbed_irradiation"]
+            self.data["layer_light_use_efficiency"] * self.data["canopy_absorption"]
         )
 
         # We then have the gross primary productivity in µg C m-2 s-1 within each
@@ -366,7 +411,7 @@ class PlantsModel(
 
         # Estimate evapotranspiration
         #  - currently just a placeholder for something more involved
-        self.data["evapotranspiration"] = is_canopy * 20
+        self.data["evapotranspiration"] = filled_canopy * 20
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
@@ -384,3 +429,39 @@ class PlantsModel(
                 # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
                 # dbh to provide an annual increment that relates to GPP.
                 cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2
+
+    def calculate_turnover(self) -> None:
+        """Calculate turnover of each plant biomass pool.
+
+        This function calculates the turnover rate for each plant biomass pool (wood,
+        leaves, roots, and reproductive tissues). As well as this the lignin
+        concentration and carbon nitrogen ratio of each turnover flow is calculated.
+
+        Warning:
+            At present, this function literally just returns constant values for each of
+            the variables it returns.
+        """
+
+        # All outputs are just constants at the moment
+        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
+        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0.027)
+        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
+            self.data["elevation"], 0.003
+        )
+        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0.027)
+        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
+        self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
+        self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
+            self.data["elevation"], 0.01
+        )
+        self.data["root_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.2)
+        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
+        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 25.5
+        )
+        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 12.5
+        )
+        self.data["root_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 45.6
+        )

@@ -29,7 +29,7 @@ using :func:`~virtual_ecosystem.core.axes.validate_dataarray`. For example:
     @register_file_format_loader(('.tif', '.tiff'))
     def new_function_to_load_tif_data(...):
         # code to turn tif file into a data array
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from collections.abc import Callable
 from pathlib import Path

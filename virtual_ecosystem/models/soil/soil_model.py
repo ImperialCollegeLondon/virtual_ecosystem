@@ -14,7 +14,7 @@ to the required types (e.g. :class:`~numpy.timedelta64`) they are caught and the
 logged, and at the end of the unpacking an error is thrown. This error should be caught
 and handled by downstream functions so that all model configuration failures can be
 reported as one.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -45,23 +45,38 @@ class SoilModel(
     BaseModel,
     model_name="soil",
     model_update_bounds=("30 minutes", "3 months"),
-    required_init_vars=(
-        ("soil_c_pool_maom", ("spatial",)),
-        ("soil_c_pool_lmwc", ("spatial",)),
-        ("soil_c_pool_microbe", ("spatial",)),
-        ("soil_c_pool_pom", ("spatial",)),
-        ("pH", ("spatial",)),
-        ("bulk_density", ("spatial",)),
-        ("clay_fraction", ("spatial",)),
-    ),
-    vars_updated=(
+    vars_required_for_init=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
         "soil_c_pool_microbe",
         "soil_c_pool_pom",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
+        "soil_c_pool_necromass",
+        "pH",
+        "bulk_density",
+        "clay_fraction",
     ),
+    vars_populated_by_init=(),
+    vars_required_for_update=(
+        "soil_c_pool_maom",
+        "soil_c_pool_lmwc",
+        "soil_c_pool_microbe",
+        "soil_c_pool_pom",
+        "soil_c_pool_necromass",
+        "soil_enzyme_pom",
+        "soil_enzyme_maom",
+    ),
+    vars_updated=(
+        "soil_c_pool_maom",
+        "soil_c_pool_lmwc",
+        "soil_c_pool_microbe",
+        "soil_c_pool_pom",
+        "soil_c_pool_necromass",
+        "soil_enzyme_pom",
+        "soil_enzyme_maom",
+    ),
+    vars_populated_by_first_update=(),
 ):
     """A class defining the soil model.
 
@@ -93,6 +108,9 @@ class SoilModel(
             or np.any(data["soil_c_pool_lmwc"] < 0.0)
             or np.any(data["soil_c_pool_microbe"] < 0.0)
             or np.any(data["soil_c_pool_pom"] < 0.0)
+            or np.any(data["soil_enzyme_pom"] < 0.0)
+            or np.any(data["soil_enzyme_maom"] < 0.0)
+            or np.any(data["soil_c_pool_necromass"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
@@ -100,13 +118,9 @@ class SoilModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        # Find first soil layer from the list of layer roles
-        self.top_soil_layer_index = self.layer_structure.layer_roles.index("soil")
-        """The layer in the data object representing the first soil layer."""
-
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
-        self.model_constants = model_constants
+        self.model_constants: SoilConsts = model_constants
         """Set of constants for the soil model."""
 
     @classmethod
@@ -150,6 +164,7 @@ class SoilModel(
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         # Find carbon pool updates by integration
@@ -211,7 +226,7 @@ class SoilModel(
             args=(
                 self.data,
                 no_cells,
-                self.top_soil_layer_index,
+                self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
                 self.core_constants,
@@ -221,8 +236,9 @@ class SoilModel(
         # Check if integration failed
         if not output.success:
             LOGGER.error(
-                "Integration of soil module failed with following message: %s"
-                % str(output.message)
+                "Integration of soil module failed with following message: {}".format(  # noqa: UP032
+                    str(output.message)
+                )
             )
             raise IntegrationError()
 

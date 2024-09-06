@@ -17,7 +17,7 @@ def test_AxisValidator_registration_coreaxis_not_set():
     with pytest.raises(ValueError) as excep:
         # Create a new failing subclass.
         class TestAxis(AxisValidator):
-            dim_names = {"valid"}
+            dim_names = frozenset(["valid"])
 
             def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
                 return True
@@ -68,12 +68,12 @@ def test_AxisValidator_registration_dimnames_not_set():
         (
             "ok",
             123,
-            "Class attribute dim_names is not a set of strings.",
+            "Class attribute dim_names is not a frozenset of strings.",
         ),
         (
             "ok",
             {123},
-            "Class attribute dim_names is not a set of strings.",
+            "Class attribute dim_names is not a frozenset of strings.",
         ),
     ],
 )
@@ -133,7 +133,7 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
     argvalues=[
         pytest.param(
             DataArray(data=np.arange(4), dims=("cell_id")),
-            {"spatial": "Spat_CellId_Dim_Any", "testing": None},
+            {"spatial": "Spat_CellId_Dim_Any", "testing": None, "time": None},
             does_not_raise(),
             None,
             id="Match found",
@@ -155,7 +155,7 @@ def test_AxisValidator_methods(new_axis_validators, fixture_data):
         ),
         pytest.param(
             DataArray(data=np.arange(4), dims=("cell_identities")),
-            {"spatial": None, "testing": None},
+            {"spatial": None, "testing": None, "time": None},
             does_not_raise(),
             None,
             id="No match found",

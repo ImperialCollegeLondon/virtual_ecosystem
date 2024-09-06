@@ -12,9 +12,8 @@ kernelspec:
 
 # Welcome to the Virtual Ecosystem
 
-This repository is the home for the development of the Virtual Ecosystem. The Virtual
-Ecosystem is a project to develop a simulation of all of the major processes involved
-in a real ecosystem including the:
+The Virtual Ecosystem is a project to develop a simulation of all of the major processes
+involved in a real ecosystem including the:
 
 - growth and demographic processes of the primary producers within the forest,
 - microclimatic processes within and around the ecosystem,
@@ -22,13 +21,37 @@ in a real ecosystem including the:
 - biotic and abiotic processes within the soil, and the
 - growth and demography of heterotrophs.
 
-## Project details
+The project is open-source and is being developed using the Python programming language.
 
-This project is funded by a 2021 Distinguished Scientist award from the
-[NOMIS Foundation](https://nomisfoundation.ch) to Professor Robert Ewers:
+## What to read next
 
-- [NOMIS Award details](https://nomisfoundation.ch/people/robert-ewers/)
-- [NOMIS project summary](https://nomisfoundation.ch/research-projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/)
+The project documentation and the underlying code are big, so here are some quick links
+to help guide you in finding out more about the Virtual Ecosystem. Are you interested
+in:
+
+- Reading more about the [scientific theories](./virtual_ecosystem/theory/theory.md)
+  underlying the development of the Virtual Ecosystem.
+- Exploring the
+  [big picture workflow](./virtual_ecosystem/implementation/implementation.md) of the
+  implementation of the Virtual Ecosystem.
+- Getting started by [installing the Virtual
+  Ecosystem](./using_the_ve/getting_started.md) and running a simple example.
+- Moving on to [configuring your own simulation](./using_the_ve/configuration/config.md)
+  and [providing new data](./using_the_ve/data/data.md).
+- Contributing to the [development](./development/contributing.md) of the Virtual
+  Ecosystem.
+- Simply taking a look at the code! The project is open source and is developed on the
+  [ImperialCollegeLondon/virtual_ecosystem](https://github.com/ImperialCollegeLondon/virtual_ecosystem)
+  repository on GitHub.
+
+## About the project
+
+::::{grid} 1 1 2 2
+
+:::{grid-item-card} Project details
+
+This project is funded by a 2021 [Distinguished Scientist award](<https://nomisfoundation.ch/projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/>)
+from the [NOMIS Foundation](https://nomisfoundation.ch) to Professor Ewers.
 
 ```{image} _static/images/logo-nomis-822-by-321.png
 :alt: NOMIS logo
@@ -38,13 +61,15 @@ This project is funded by a 2021 Distinguished Scientist award from the
 
 The research is based at [Imperial College London](https://imperial.ac.uk):
 
-```{image} _static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png
+```{image} _static/images/IMPERIAL_logo_RGB_Blue_safe_area_2024.png
 :alt: Imperial logo
 :class: bg-primary
 :width: 250px
 ```
 
-## Project Team
+:::
+
+:::{grid-item-card} Project Team
 
 - Professor Robert Ewers
 - Olivia Daniel
@@ -53,120 +78,12 @@ The research is based at [Imperial College London](https://imperial.ac.uk):
 - Dr. Vivienne Groner
 - Dr. Jacob Cook
 - Dr. Taran Rallings
+- Professor Priyanga Amarasekare
 
 The research team are supported by the Imperial College London
-[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/research-software-engineering/)
+[Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)
 team.
 
-```{eval-rst}
-.. toctree::
-  :maxdepth: 4
-  :caption: The Virtual Ecosystem
+:::
 
-  virtual_ecosystem/module_overview.md
-  virtual_ecosystem/usage.md
-  virtual_ecosystem/example_data.md
-  virtual_ecosystem/main_simulation.md
-  virtual_ecosystem/constants.md
-  virtual_ecosystem/soil/soil_details.md
-  virtual_ecosystem/core/grid.md
-  virtual_ecosystem/core/data.md
-  virtual_ecosystem/core/axes.md
-  virtual_ecosystem/core/config.md
-```
-
-```{eval-rst}
-.. toctree::
-  :maxdepth: 4
-  :caption: API reference
-
-  Main <api/main.md>
-  Example data <api/example_data.md>
-  Core Overview <api/core.md>
-  Configuration <api/core/config.md>
-  Logger <api/core/logger.md>
-  Grid <api/core/grid.md>
-  Data <api/core/data.md>
-  File readers <api/core/readers.md>
-  Core axes <api/core/axes.md>
-  Base Model <api/core/base_model.md>
-  Core Components <api/core/core_components.md>
-  Core Constants <api/core/constants.md>
-  Constants Classes <api/core/constants_class.md>
-  Constants Loader <api/core/constants_loader.md>
-  Schema <api/core/schema.md>
-  Module Registry <api/core/registry.md>
-  Utility functions <api/core/utils.md>
-  Custom exceptions <api/core/exceptions.md>
-  Soil Overview <api/soil.md>
-  Soil Model <api/soil/soil_model.md>
-  Soil Carbon <api/soil/carbon.md>
-  Soil Environmental Factors <api/soil/env_factors.md>
-  Soil Constants <api/soil/constants.md>
-  Abiotic Simple Overview <api/abiotic_simple.md>
-  Abiotic Simple Model <api/abiotic_simple/abiotic_simple_model.md>
-  Abiotic Simple Microclimate <api/abiotic_simple/microclimate.md>
-  Abiotic Simple Constants <api/abiotic_simple/abiotic_constants.md>
-  Hydrology Overview <api/hydrology.md>
-  Hydrology Model <api/hydrology/hydrology_model.md>
-  Hydrology Above-ground <api/hydrology/above_ground.md>
-  Hydrology Below-ground <api/hydrology/below_ground.md>
-  Hydrology Constants <api/hydrology/constants.md>
-  Animal Overview <api/animals>
-  Animal Model <api/animals/animal_model.md> 
-  Animal Communities <api/animals/animal_communities.md> 
-  Animal Protocols <api/animals/protocols.md>
-  Animal Cohorts <api/animals/animal_cohorts.md> 
-  Animal Functional Groups <api/animals/functional_group.md> 
-  Animal Traits <api/animals/animal_traits.md>
-  Animal Scaling Functions <api/animals/scaling_functions.md> 
-  Animal Constants <api/animals/constants.md> 
-  Animal Decay <api/animals/decay.md> 
-  Animal Plant Resources <api/animals/plant_resources.md> 
-  Litter Overview <api/litter.md>
-  Litter Model <api/litter/litter_model.md>
-  Litter Pools <api/litter/litter_pools.md>
-  Litter Constants <api/litter/constants.md>
-  Plants Model <api/plants/plants_model.md>
-  Plants Structures <api/plants/plant_structures.md>
-```
-
-```{eval-rst}
-.. toctree::
-  :maxdepth: 4
-  :caption: Command line tools
-
-  command_line_tools/ve_run.md
-```
-
-```{eval-rst}
-.. toctree::
-  :maxdepth: 4
-  :caption: Development
-
-  Strategy <development/code_development_strategy.md>
-  Developer Setup <development/developer_setup.md>
-  Documentation Overview <development/documentation/overview.md>
-  Jupyter Notebooks <development/documentation/jupyter_notebooks.md>
-  Docstring Style <development/documentation/docstring_style.md>
-  API Generation <development/documentation/api_generation.md>
-  Core Design <development/design/core.md>
-  Adding New Models <development/defining_new_models.md>
-```
-
-```{eval-rst}
-.. toctree::
-  :maxdepth: 4
-  :caption: Climate data resources
-
-  Overview climate data <data_recipes/climate_data_recipes.md>
-  Copernicus climate data store <data_recipes/CDS_toolbox_template.md>
-```
-
-```{eval-rst}
-.. toctree::
-  :maxdepth: 0
-  :caption: Bibliography
-
-  bibliography.md
-```
+::::

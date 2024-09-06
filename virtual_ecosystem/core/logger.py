@@ -73,7 +73,7 @@ handling should always include a LOGGER call, using one of the following pattern
     except ValueError as excep:
         LOGGER.critical(excep)
         raise ValueError("Bad input") from excep
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import logging
 from pathlib import Path

@@ -1,0 +1,50 @@
+{
+    "type": "object",
+    "properties": {
+        "abiotic": {
+            "description": "Configuration settings for the abiotic model",
+            "type": "object",
+            "properties": {
+                "constants": {
+                    "description": "Constants for the abiotic model",
+                    "type": "object",
+                    "properties": {
+                        "AbioticConsts": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "AbioticConsts"
+                    ]
+                },
+                "depends": {
+                    "type": "object",
+                    "default": {},
+                    "properties": {
+                        "init": {
+                            "type": "array",
+                            "default": [
+                                "plants"
+                            ],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "update": {
+                            "type": "array",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "default": {},
+            "required": []
+        }
+    },
+    "required": [
+        "abiotic"
+    ]
+}

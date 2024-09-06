@@ -122,6 +122,8 @@ venv.bak/
 
 # mkdocs documentation
 /site
+docs/source/variables.rst
+docs/jupyter_execute/*.png
 
 # mypy
 .mypy_cache/
@@ -134,6 +136,5 @@ dmypy.json
 # Mac DS Store files
 .DS_Store
 
-# PYPI credentials
+# Local PyPI authentication tokens
 .pypirc
-

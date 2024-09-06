@@ -23,23 +23,27 @@ and :meth:`~virtual_ecosystem.core.base_model.BaseModel.__str__` special methods
 Declaring new subclasses
 ------------------------
 
-The :class:`~virtual_ecosystem.core.base_model.BaseModel` has four class attributes
-that must be specified as arguments to the subclass declaration:
-:attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`,
-:attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`,
-:attr:`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds` and
-:attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`. This behaviour is
-defined in the :meth:`BaseModel.__init_subclass__()
+The :class:`~virtual_ecosystem.core.base_model.BaseModel` has the following class
+attributes that must be specified as arguments to the subclass declaration:
+
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_name`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_populated_by_init`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_update`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`,
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.model_update_bounds` and
+* :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_updated`.
+
+This behaviour is defined in the :meth:`BaseModel.__init_subclass__()
 <virtual_ecosystem.core.base_model.BaseModel.__init_subclass__>` method, which also
 gives example code for declaring a new subclass.
 
-The usage of these four attributes is described in their docstrings and each is
-validated when a new subclass is created using the following private methods of the
-class:
-:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_name`,
-:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_required_init_vars`,
-:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_update_bounds` and
-:meth:`~virtual_ecosystem.core.base_model.BaseModel._check_vars_updated`.
+The usage of these attributes is described in their docstrings and each is validated
+when a new subclass is created using the following private methods of the class:
+
+* :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_name`,
+* :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_variables_attribute` and
+* :meth:`~virtual_ecosystem.core.base_model.BaseModel._check_model_update_bounds`.
 
 Model checking
 --------------
@@ -99,7 +103,6 @@ from typing import Any
 
 import pint
 
-from virtual_ecosystem.core.axes import AXIS_VALIDATORS
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import (
@@ -107,7 +110,7 @@ from virtual_ecosystem.core.core_components import (
     LayerStructure,
     ModelTiming,
 )
-from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.data import Data, Grid
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -149,7 +152,7 @@ class BaseModel(ABC):
     patterns.
     """
 
-    required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
+    vars_required_for_init: tuple[str, ...]
     """Required variables for model initialisation.
 
     This class property defines a set of variable names that must be present in the
@@ -166,8 +169,32 @@ class BaseModel(ABC):
 
     At the moment, this tuple is used to decide which variables to output from the
     :class:`~virtual_ecosystem.core.data.Data` object, i.e. every variable updated
-    by a model used in the specific simulation. In future, this could also be used
-    to prevent multiple models from updating the same variable and similar problems.
+    by a model used in the specific simulation. It is also be used warn if multiple
+    models will be updating the same variable and to verify that these variables are
+    indeed initialised by another model, and therefore will be available.
+    """
+
+    vars_required_for_update: tuple[str, ...]
+    """Variables that are required by the update method of the model.
+
+    These variables should have been initialised by another model or loaded from
+    external sources, but in either case they will be available in the data object.
+    """
+
+    vars_populated_by_init: tuple[str, ...]
+    """Variables that are initialised by the model during the setup.
+
+    These are the variables that are initialised by the model and stored in the data
+    object when running the setup method and that will be available for other models to
+    use in their own setup or update methods.
+    """
+
+    vars_populated_by_first_update: tuple[str, ...]
+    """Variables that are initialised by the model during the first update.
+
+    These are the variables that are initialised by the model and stored in the data
+    object when running the update method for the first time. They will be available for
+    other models to use in their update methods but not in the setup methos.
     """
 
     def __init__(
@@ -186,14 +213,15 @@ class BaseModel(ABC):
 
         * ``data``: the provided :class:`~virtual_ecosystem.core.data.Data` instance,
         * ``model_timing``: the
-          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from
-          the ``core_components`` argument.
+          :class:`~virtual_ecosystem.core.core_components.ModelTiming` instance from the
+          ``core_components`` argument.
+        * ``grid``: the :class:`~virtual_ecosystem.core.grid.Grid` instance from the
+          ``core_components`` argument.
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
-        * ``core_constants``: the
-          :class:`~virtual_ecosystem.core.constants.CoreConsts` instance from
-          the ``core_components`` argument.
+        * ``core_constants``: the :class:`~virtual_ecosystem.core.constants.CoreConsts`
+          instance from the ``core_components`` argument.
 
         It then uses the
         :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
@@ -204,6 +232,8 @@ class BaseModel(ABC):
         """A Data instance providing access to the shared simulation data."""
         self.model_timing: ModelTiming = core_components.model_timing
         """The ModelTiming details used in the model."""
+        self.grid: Grid = core_components.grid
+        """The Grid details used in the model."""
         self.layer_structure: LayerStructure = core_components.layer_structure
         """The LayerStructure details used in the model."""
         self.core_constants: CoreConsts = core_components.core_constants
@@ -230,6 +260,7 @@ class BaseModel(ABC):
 
         Args:
             time_index: The index representing the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
     @abstractmethod
@@ -269,73 +300,48 @@ class BaseModel(ABC):
         return model_name
 
     @classmethod
-    def _check_required_init_vars(
-        cls, required_init_vars: tuple[tuple[str, tuple[str, ...]], ...]
-    ) -> tuple[tuple[str, tuple[str, ...]], ...]:
-        """Check the required_init_vars property is valid.
+    def _check_variables_attribute(
+        cls,
+        variables_attribute_name: str,
+        variables_attribute_value: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Check a model variables attribute property is valid.
+
+        Creating an instance of the BaseModel class requires that several variables
+        attributes are set. Each of these provides a list of variable names that are
+        required or updated by the model at various points. This method is used to
+        validate the structure of the new instance and ensure the resulting model
+        structure is consistent.
 
         Args:
-            required_init_vars: The
-                :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars`
-                attribute to be used for a subclass.
+            variables_attribute_name: The name of the variables attribute
+            variables_attribute_value: The provided value for the variables attribute
 
         Raises:
-            TypeError: the value of required_init_vars has the wrong type structure.
-            ValueError: required_init_vars uses unknown core axis names.
+            TypeError: the value of the model variables attribute has the wrong type
+                structure.
 
         Returns:
-            The provided ``required_init_vars`` if valid
+            The validated variables attribute value
         """
 
-        to_raise: Exception
-
         # Check the structure
-        required_init_vars_ok = True
-        unknown_axes: list[str] = []
+        if isinstance(variables_attribute_value, tuple) and all(
+            isinstance(vname, str) for vname in variables_attribute_value
+        ):
+            return variables_attribute_value
 
-        if not isinstance(required_init_vars, tuple):
-            required_init_vars_ok = False
-        else:
-            for entry in required_init_vars:
-                # entry is a 2 tuple
-                if not (isinstance(entry, tuple) and len(entry) == 2):
-                    required_init_vars_ok = False
-                    continue
-
-                # and entry contains (str, tuple(str,...))
-                vname, axes = entry
-                if not (
-                    isinstance(vname, str)
-                    and isinstance(axes, tuple)
-                    and all([isinstance(a, str) for a in axes])
-                ):
-                    required_init_vars_ok = False
-                else:
-                    # Add any unknown axes
-                    unknown_axes.extend(set(axes).difference(AXIS_VALIDATORS))
-
-        if not required_init_vars_ok:
-            to_raise = TypeError(
-                f"Class attribute required_init_vars has the wrong "
-                f"structure in {cls.__name__}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        if unknown_axes:
-            to_raise = ValueError(
-                f"Class attribute required_init_vars uses unknown core "
-                f"axes in {cls.__name__}: {','.join(unknown_axes)}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        return required_init_vars
+        to_raise = TypeError(
+            f"Class attribute {variables_attribute_name} has the wrong "
+            f"structure in {cls.__name__}"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
 
     @classmethod
     def _check_model_update_bounds(
         cls, model_update_bounds: tuple[str, str]
-    ) -> tuple[pint.util.Quantity, pint.util.Quantity]:
+    ) -> tuple[pint.Quantity, pint.Quantity]:
         """Check that the model_update_bounds attribute is valid.
 
         This is used to validate the class attribute
@@ -360,7 +366,7 @@ class BaseModel(ABC):
 
         # Check the conversion
         try:
-            model_update_bounds_pint: tuple[pint.util.Quantity, pint.util.Quantity] = (
+            model_update_bounds_pint: tuple[pint.Quantity, pint.Quantity] = (
                 pint.Quantity(model_update_bounds[0]),
                 pint.Quantity(model_update_bounds[1]),
             )
@@ -418,22 +424,15 @@ class BaseModel(ABC):
             raise to_raise
 
     @classmethod
-    def _check_vars_updated(cls, vars_updated: tuple[str, ...]) -> tuple[str, ...]:
-        """Check that vars_updated is valid.
-
-        Returns:
-            The provided value if valid.
-        """
-        # TODO - currently no validation.
-        return vars_updated
-
-    @classmethod
     def __init_subclass__(
         cls,
         model_name: str,
         model_update_bounds: tuple[str, str],
-        required_init_vars: tuple[tuple[str, tuple[str, ...]], ...],
+        vars_required_for_init: tuple[str, ...],
         vars_updated: tuple[str, ...],
+        vars_required_for_update: tuple[str, ...],
+        vars_populated_by_init: tuple[str, ...],
+        vars_populated_by_first_update: tuple[str, ...],
     ) -> None:
         """Initialise subclasses deriving from BaseModel.
 
@@ -453,7 +452,7 @@ class BaseModel(ABC):
                 BaseModel,
                 model_name='example',
                 model_update_bounds= ("30 minutes", "3 months"),
-                required_init_vars=(("required_variable", ("spatial",)),),
+                vars_required_for_init=(("required_variable", ("spatial",)),),
                 vars_updated=("updated_variable"),
             ):
                 ...
@@ -461,22 +460,35 @@ class BaseModel(ABC):
         Args:
             model_name: The model name to be used
             model_update_bounds: Bounds on update intervals handled by the model
-            required_init_vars: A tuple of the variables required to create a model
+            vars_required_for_init: A tuple of the variables required to create a model
                 instance.
+            vars_populated_by_init: A tuple of the variables initialised when a model
+                instance is created.
+            vars_populated_by_first_update: A tuple of the variables initialised when a
+                model update method first run.
+            vars_required_for_update: A tuple of the variables required to update a
+                model instance.
             vars_updated: A tuple of the variable names updated by the model.
 
         Raises:
-            ValueError: If the model_name or required_init_vars properties are not
+            ValueError: If the model_name or vars_required_for_init properties are not
                 defined
             TypeError: If model_name is not a string
         """
 
         try:
             cls.model_name = cls._check_model_name(model_name=model_name)
-            cls.required_init_vars = cls._check_required_init_vars(
-                required_init_vars=required_init_vars
-            )
-            cls.vars_updated = cls._check_vars_updated(vars_updated=vars_updated)
+
+            # Validate the structure of the variables attributes
+            for name, attr in (
+                ("vars_required_for_init", vars_required_for_init),
+                ("vars_populated_by_init", vars_populated_by_init),
+                ("vars_required_for_update", vars_required_for_update),
+                ("vars_updated", vars_updated),
+                ("vars_populated_by_first_update", vars_populated_by_first_update),
+            ):
+                setattr(cls, name, cls._check_variables_attribute(name, attr))
+
             cls.model_update_bounds = cls._check_model_update_bounds(
                 model_update_bounds=model_update_bounds
             )
@@ -515,9 +527,9 @@ class BaseModel(ABC):
         """Check the init data contains the required variables.
 
         This method is used to check that the set of variables defined in the
-        :attr:`~virtual_ecosystem.core.base_model.BaseModel.required_init_vars` class
-        attribute are present in the :attr:`~virtual_ecosystem.core.data.Data` instance
-        used to create a new instance of the class.
+        :attr:`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init`
+        class attribute are present in the :attr:`~virtual_ecosystem.core.data.Data`
+        instance used to create a new instance of the class.
 
         Raises:
             ValueError: If the Data instance does not contain all the required variables
@@ -525,11 +537,11 @@ class BaseModel(ABC):
         """
 
         # Sentinel variables
-        all_axes_ok: bool = True
+        # all_axes_ok: bool = True
         all_vars_found: bool = True
 
         # Loop over the required  and axes
-        for var, axes in self.required_init_vars:
+        for var in self.vars_required_for_init:
             # Record when a variable is missing
             if var not in self.data:
                 LOGGER.error(
@@ -538,28 +550,30 @@ class BaseModel(ABC):
                 all_vars_found = False
                 continue
 
-            # Get a list of missing axes
-            bad_axes = []
-            # Could use try: here and let on_core_axis report errors but easier to
-            # provide more clearly structured feedback this way
-            for axis in axes:
-                if not self.data.on_core_axis(var, axis):
-                    bad_axes.append(axis)
+            # # Get a list of missing axes
+            # bad_axes = []
+            # # Could use try: here and let on_core_axis report errors but easier to
+            # # provide more clearly structured feedback this way
+            # for axis in axes:
+            #     if not self.data.on_core_axis(var, axis):
+            #         bad_axes.append(axis)
 
             # Log the outcome
-            if bad_axes:
-                LOGGER.error(
-                    f"{self.model_name} model: required var '{var}' "
-                    f"not on required axes: {','.join(bad_axes)}"
-                )
-                all_axes_ok = False
-            else:
-                LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
+            # if bad_axes:
+            #     LOGGER.error(
+            #         f"{self.model_name} model: required var '{var}' "
+            #         f"not on required axes: {','.join(bad_axes)}"
+            #     )
+            #     all_axes_ok = False
+            # else:
+
+            LOGGER.debug(f"{self.model_name} model: required var '{var}' checked")
 
         # Raise if any problems found
-        if not (all_axes_ok and all_vars_found):
+        if not (all_vars_found):
             error = ValueError(
-                f"{self.model_name} model: error checking required_init_vars, see log."
+                f"{self.model_name} model: error checking vars_required_for_init, "
+                "see log."
             )
             LOGGER.error(error)
             raise error

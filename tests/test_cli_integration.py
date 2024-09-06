@@ -18,16 +18,21 @@ def test_ve_run_install_example(capsys):
         assert captured.out.startswith(expected)
 
 
-def test_ve_run(capsys):
+def test_ve_run(capsys, mocker):
     """Test that the CLI can successfully run with example data.
 
     Note that this does not currently test the various CLI options independently. We
     could do with a fast running minimal test or a mocker to do that.
     """
 
-    # import virtual_ecosystem.core  # noqa #F401
+    # import virtual_ecosystem.core  #F401
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.entry_points import ve_run_cli
+
+    # TODO: Once models are adapted, this should be removed, probably
+    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
+    mocker.patch("virtual_ecosystem.core.variables.setup_variables")
+    mocker.patch("virtual_ecosystem.core.variables.verify_variables_axis")
 
     with TemporaryDirectory() as tempdir:
         try:

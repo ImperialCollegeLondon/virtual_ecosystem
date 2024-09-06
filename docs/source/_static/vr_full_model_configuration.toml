@@ -1,0 +1,318 @@
+[core.data_output_options]
+save_initial_state = true
+out_path = "/tmp/ve_example/out"
+save_continuous_data = true
+save_final_state = true
+save_merged_config = true
+out_initial_file_name = "initial_state.nc"
+out_continuous_file_name = "all_continuous_data.nc"
+out_final_file_name = "final_state.nc"
+out_merge_file_name = "vr_full_model_configuration.toml"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "air_temperature_ref"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "relative_humidity_ref"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "atmospheric_pressure_ref"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "precipitation"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "atmospheric_co2_ref"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "mean_annual_temperature"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_climate_data.nc"
+var_name = "wind_speed_ref"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_elevation_data.nc"
+var_name = "elevation"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_surface_runoff_data.nc"
+var_name = "surface_runoff"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "pH"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "bulk_density"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "clay_fraction"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_c_pool_lmwc"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_c_pool_maom"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_c_pool_microbe"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_c_pool_pom"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_c_pool_necromass"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_enzyme_pom"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_soil_data.nc"
+var_name = "soil_enzyme_maom"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "litter_pool_above_metabolic"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "litter_pool_above_structural"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "litter_pool_woody"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "litter_pool_below_metabolic"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "litter_pool_below_structural"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "lignin_above_structural"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "lignin_woody"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_litter_data.nc"
+var_name = "lignin_below_structural"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_plant_data.nc"
+var_name = "plant_cohorts_n"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_plant_data.nc"
+var_name = "plant_cohorts_pft"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_plant_data.nc"
+var_name = "plant_cohorts_cell_id"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_plant_data.nc"
+var_name = "plant_cohorts_dbh"
+
+[[core.data.variable]]
+file = "/private/tmp/ve_example/data/example_plant_data.nc"
+var_name = "photosynthetic_photon_flux_density"
+
+[core.grid]
+grid_type = "square"
+cell_area = 8100
+cell_nx = 9
+cell_ny = 9
+xoff = -45.0
+yoff = -45.0
+
+[core.timing]
+start_date = "2013-01-01"
+update_interval = "1 month"
+run_length = "2 years"
+
+[core.layers]
+soil_layers = [
+    -0.25,
+    -1.0,
+]
+canopy_layers = 10
+above_canopy_height_offset = 2.0
+surface_layer_height = 0.1
+subcanopy_layer_height = 1.5
+
+[hydrology]
+initial_soil_moisture = 0.5
+initial_groundwater_saturation = 0.9
+
+[hydrology.depends]
+init = [
+    "plants",
+]
+update = [
+    "plants",
+    "abiotic_simple",
+]
+
+[abiotic_simple.depends]
+init = [
+    "plants",
+]
+update = []
+
+[[animal.functional_groups]]
+name = "carnivorous_bird"
+taxa = "bird"
+diet = "carnivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "carnivorous_bird"
+excretion_type = "uricotelic"
+birth_mass = 0.1
+adult_mass = 1.0
+
+[[animal.functional_groups]]
+name = "herbivorous_bird"
+taxa = "bird"
+diet = "herbivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "herbivorous_bird"
+excretion_type = "uricotelic"
+birth_mass = 0.05
+adult_mass = 0.5
+
+[[animal.functional_groups]]
+name = "carnivorous_mammal"
+taxa = "mammal"
+diet = "carnivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "carnivorous_mammal"
+excretion_type = "ureotelic"
+birth_mass = 4.0
+adult_mass = 40.0
+
+[[animal.functional_groups]]
+name = "herbivorous_mammal"
+taxa = "mammal"
+diet = "herbivore"
+metabolic_type = "endothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "herbivorous_mammal"
+excretion_type = "ureotelic"
+birth_mass = 1.0
+adult_mass = 10.0
+
+[[animal.functional_groups]]
+name = "carnivorous_insect"
+taxa = "insect"
+diet = "carnivore"
+metabolic_type = "ectothermic"
+reproductive_type = "iteroparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "carnivorous_insect"
+excretion_type = "uricotelic"
+birth_mass = 0.001
+adult_mass = 0.01
+
+[[animal.functional_groups]]
+name = "herbivorous_insect"
+taxa = "insect"
+diet = "herbivore"
+metabolic_type = "ectothermic"
+reproductive_type = "semelparous"
+development_type = "direct"
+development_status = "adult"
+offspring_functional_group = "herbivorous_insect"
+excretion_type = "uricotelic"
+birth_mass = 0.0005
+adult_mass = 0.005
+
+[[animal.functional_groups]]
+name = "butterfly"
+taxa = "insect"
+diet = "herbivore"
+metabolic_type = "ectothermic"
+reproductive_type = "semelparous"
+development_type = "indirect"
+development_status = "adult"
+offspring_functional_group = "caterpillar"
+excretion_type = "uricotelic"
+birth_mass = 0.0005
+adult_mass = 0.005
+
+[[animal.functional_groups]]
+name = "caterpillar"
+taxa = "insect"
+diet = "herbivore"
+metabolic_type = "ectothermic"
+reproductive_type = "nonreproductive"
+development_type = "indirect"
+development_status = "larval"
+offspring_functional_group = "butterfly"
+excretion_type = "uricotelic"
+birth_mass = 0.0005
+adult_mass = 0.005
+
+[animal.depends]
+init = []
+update = []
+
+[litter.depends]
+update = [
+    "hydrology",
+    "abiotic_simple",
+]
+init = []
+
+[soil.depends]
+init = [
+    "hydrology",
+    "abiotic_simple",
+]
+update = [
+    "hydrology",
+    "abiotic_simple",
+]
+
+[plants]
+a_plant_integer = 12
+ftypes = [
+    { pft_name = "shrub", max_height = 1.0 },
+    { pft_name = "broadleaf", max_height = 50.0 },
+]
+
+[plants.depends]
+init = []
+update = [
+    "abiotic_simple",
+]

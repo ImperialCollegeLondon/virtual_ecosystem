@@ -42,7 +42,7 @@ The :class:`~virtual_ecosystem.core.axes.AxisValidator` subclasses defined for t
 'spatial' axis  standardise the spatial structure of the input data to use a single
 ``cell_id`` spatial axis, which maps data onto the cell IDs used for indexing in the
 :class:`~virtual_ecosystem.core.grid.Grid` instance for the simulation. `x`
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -76,7 +76,7 @@ class AxisValidator(ABC):
     core_axis: str
     """Class attribute giving the name of the core axis for an AxisValidator."""
 
-    dim_names: set[str]
+    dim_names: frozenset[str]
     """Class attribute giving the dimension names for an AxisValidator."""
 
     def __init__(self) -> None:
@@ -108,10 +108,10 @@ class AxisValidator(ABC):
         if not hasattr(cls, "dim_names"):
             raise ValueError("Class attribute dim_names not set.")
 
-        if not isinstance(cls.dim_names, set) or any(
+        if not isinstance(cls.dim_names, frozenset) or any(
             [not isinstance(x, str) for x in cls.dim_names]
         ):
-            raise ValueError("Class attribute dim_names is not a set of strings.")
+            raise ValueError("Class attribute dim_names is not a frozenset of strings.")
 
         if cls.core_axis in AXIS_VALIDATORS:
             AXIS_VALIDATORS[cls.core_axis].append(cls)
@@ -135,7 +135,7 @@ class AxisValidator(ABC):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if the `run_validation` method of the subclass can be
@@ -155,7 +155,7 @@ class AxisValidator(ABC):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A DataArray that passes validation, possibly modified to align with internal
@@ -194,7 +194,7 @@ def validate_dataarray(
     Args:
         value: An input DataArray for validation
         grid: A Grid object giving the spatial configuration.
-        kwargs: Further configuration details to be passed to AxisValidators
+        **kwargs: Further configuration details to be passed to AxisValidators
 
     Returns:
         The function returns the validated data array and a dictionary recording which
@@ -214,7 +214,7 @@ def validate_dataarray(
         validators: list[type[AxisValidator]] = AXIS_VALIDATORS[axis]
 
         # Get the set of dim names across all of the validators for this axis
-        validator_dims = set.union(*[v.dim_names for v in validators])
+        validator_dims = frozenset.union(*[v.dim_names for v in validators])
 
         # If the dataarray includes any of those dimension names, one of the validators
         # for that axis must be able to validate the array, otherwise we can skip
@@ -270,7 +270,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"cell_id"}
+    dim_names = frozenset(["cell_id"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -278,7 +278,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -299,7 +299,7 @@ class Spat_CellId_Coord_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
@@ -341,7 +341,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"cell_id"}
+    dim_names = frozenset(["cell_id"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -349,7 +349,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -370,7 +370,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``cell_id`` values are not congruent with the ``Grid``.
@@ -406,7 +406,7 @@ class Spat_XY_Coord_Square(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"x", "y"}
+    dim_names = frozenset(["x", "y"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -414,7 +414,7 @@ class Spat_XY_Coord_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -437,7 +437,7 @@ class Spat_XY_Coord_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``x`` and ``y`` values are not congruent with the ``Grid``.
@@ -494,7 +494,7 @@ class Spat_XY_Dim_Square(AxisValidator):
     """
 
     core_axis = "spatial"
-    dim_names = {"x", "y"}
+    dim_names = frozenset(["x", "y"])
 
     def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
         """Check the validator applies to the inputs.
@@ -502,7 +502,7 @@ class Spat_XY_Dim_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Returns:
             A boolean showing if this subclass can be applied to the inputs.
@@ -522,7 +522,7 @@ class Spat_XY_Dim_Square(AxisValidator):
         Args:
             value: An input DataArray to check
             grid: A Grid object giving the spatial configuration of the simulation.
-            kwargs: Other configuration details to be used.
+            **kwargs: Other configuration details to be used.
 
         Raises:
             ValueError: when ``x`` and ``y`` values are not congruent with the ``Grid``.
@@ -546,3 +546,52 @@ class Spat_XY_Dim_Square(AxisValidator):
             x=DataArray(darray_stack.coords["x"].values, dims=["cell_id"]),
             y=DataArray(darray_stack.coords["y"].values, dims=["cell_id"]),
         )
+
+
+class Time(AxisValidator):
+    """Validate temporal coordinates on the *time* core axis.
+
+    Applies to:
+        An input DataArray that provides coordinate values along a ``time`` dimension.
+
+    TODO: this is just a placeholder at present to establish the ``time`` axis name.
+
+    """
+
+    core_axis = "time"
+    dim_names = frozenset(["time"])
+
+    def can_validate(self, value: DataArray, grid: Grid, **kwargs: Any) -> bool:
+        """Check the validator applies to the inputs.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            **kwargs: Other configuration details to be used.
+
+        Returns:
+            A boolean showing if this subclass can be applied to the inputs.
+        """
+        return self.dim_names.issubset(value.dims) and self.dim_names.issubset(
+            value.coords
+        )
+
+    def run_validation(self, value: DataArray, grid: Grid, **kwargs: Any) -> DataArray:
+        """Run validation on the inputs.
+
+        Does nothing at present.
+
+        Args:
+            value: An input DataArray to check
+            grid: A Grid object giving the spatial configuration of the simulation.
+            **kwargs: Other configuration details to be used.
+
+        Raises:
+            ValueError: when the time coordinates are not congruent with the model
+                timing steps.
+
+        Returns:
+            A DataArray, possibly truncated to the steps defined in the model timing.
+        """
+
+        return value

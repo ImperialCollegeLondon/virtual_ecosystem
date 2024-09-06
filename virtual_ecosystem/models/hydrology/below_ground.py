@@ -1,7 +1,7 @@
 """The ``models.hydrology.below_ground`` module simulates the below-ground hydrological
 processes for the Virtual Ecosystem. This includes vertical flow, soil moisture and
 matric potential, groundwater storage, and subsurface horizontal flow.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray
@@ -51,16 +51,16 @@ def calculate_vertical_flow(
     Args:
         soil_moisture: Volumetric relative water content in top soil, [unitless]
         soil_layer_thickness: Thickness of all soil_layers, [mm]
-        soil_moisture_capacity: soil moisture capacity, [unitless]
-        soil_moisture_residual: residual soil moisture, [unitless]
-        hydraulic_conductivity: hydraulic conductivity of soil, [m/s]
-        hydraulic_gradient: hydraulic gradient (change in hydraulic head) along the flow
+        soil_moisture_capacity: Soil moisture capacity, [unitless]
+        soil_moisture_residual: Residual soil moisture, [unitless]
+        hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
+        hydraulic_gradient: Hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
-        nonlinearily_parameter: dimensionless parameter in van Genuchten model that
+        nonlinearily_parameter: Dimensionless parameter in van Genuchten model that
             describes the degree of nonlinearity of the relationship between the
             volumetric water content and the soil matric potential.
-        groundwater_capacity: storage capacity of groundwater, [mm]
-        seconds_to_day: factor to convert between second and day
+        groundwater_capacity: Storage capacity of groundwater, [mm]
+        seconds_to_day: Factor to convert between second and day
 
     Returns:
         volumetric flow rate of water, [mm d-1]
@@ -120,28 +120,33 @@ def update_soil_moisture(
     removed from the second soil layer.
 
     Args:
-        soil_moisture: soil moisture after infiltration and surface evaporation, [mm]
-        vertical_flow: vertical flow between all layers, [mm]
-        evapotranspiration: canopy evaporation, [mm]
-        soil_moisture_capacity: soil moisture capacity for each layer, [mm]
-        soil_moisture_residual: residual soil moisture for each layer, [mm]
+        soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
+        vertical_flow: Vertical flow between all layers, [mm]
+        evapotranspiration: Canopy evaporation, [mm]
+        soil_moisture_capacity: Soil moisture capacity for each layer, [mm]
+        soil_moisture_residual: Residual soil moisture for each layer, [mm]
 
     Returns:
         updated soil moisture profile, relative volumetric water content, dimensionless
     """
     # TODO this is currently not conserving water
+    # Remove vertical flow from topsoil moisture and ensure it is within capacity
     top_soil_moisture = np.clip(
         soil_moisture[0] - vertical_flow[0],
         soil_moisture_residual[0],
         soil_moisture_capacity[0],
     )
 
+    # Add topsoil vertical flow to layer below and remove that layers flow as well as
+    # evapotranspiration = root water uptake, and ensure it is within capacity
     root_soil_moisture = np.clip(
         soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - evapotranspiration,
         soil_moisture_residual[1],
         soil_moisture_capacity[1],
     )
 
+    # For all further soil layers, add the vertical flow from the layer above, remove
+    # that layers flow, and ensure it is within capacity
     if len(vertical_flow) == 2:
         soil_moisture_updated = np.stack((top_soil_moisture, root_soil_moisture))
 
@@ -183,15 +188,15 @@ def convert_soil_moisture_to_water_potential(
     water retention curvature parameter.
 
     Args:
-        soil_moisture: Volumetric relative water content [unitless]
-        air_entry_water_potential: Water potential at which soil pores begin to aerate
+        soil_moisture: Volumetric relative water content, [unitless]
+        air_entry_water_potential: Water potential at which soil pores begin to aerate,
             [kPa]
-        water_retention_curvature: Curvature of water retention curve [unitless]
+        water_retention_curvature: Curvature of water retention curve, [unitless]
         soil_moisture_capacity: The relative water content at which the soil is fully
-            saturated [unitless].
+            saturated, [unitless].
 
     Returns:
-        An estimate of the water potential of the soil [kPa]
+        An estimate of the water potential of the soil, [kPa]
     """
 
     return air_entry_water_potential * (
@@ -199,7 +204,7 @@ def convert_soil_moisture_to_water_potential(
     )
 
 
-def update_groundwater_storge(
+def update_groundwater_storage(
     groundwater_storage: NDArray[np.float32],
     vertical_flow_to_groundwater: NDArray[np.float32],
     bypass_flow: NDArray[np.float32],
@@ -262,20 +267,20 @@ def update_groundwater_storge(
     the value of ath:`GW_{loss}`, the larger the amount of water that leaves the system.
 
     Args:
-        groundwater_storage: amount of water that is stored in the groundwater reservoir
+        groundwater_storage: Amount of water that is stored in the groundwater reservoir
             , [mm]
-        vertical_flow_to_groundwater: flux from the lower soil layer to groundwater for
+        vertical_flow_to_groundwater: Flow from the lower soil layer to groundwater for
             this timestep, [mm]
-        bypass_flow: flow that bypasses the soil matrix and drains directly to the
+        bypass_flow: Flow that bypasses the soil matrix and drains directly to the
             groundwater, [mm]
-        max_percolation_rate_uzlz: maximum percolation rate between upper and lower
+        max_percolation_rate_uzlz: Maximum percolation rate between upper and lower
             groundwater zone, [mm d-1]
-        groundwater_loss: constant amount of water that never rejoins the river channel
+        groundwater_loss: Constant amount of water that never rejoins the river channel
             and is lost beyond the catchment boundaries or to deep groundwater systems,
             [mm]
-        reservoir_const_upper_groundwater: reservoir constant for the upper groundwater
+        reservoir_const_upper_groundwater: Reservoir constant for the upper groundwater
             layer, [days]
-        reservoir_const_lower_groundwater: reservoir constant for the lower groundwater
+        reservoir_const_lower_groundwater: Reservoir constant for the lower groundwater
             layer, [days]
 
     Returns:

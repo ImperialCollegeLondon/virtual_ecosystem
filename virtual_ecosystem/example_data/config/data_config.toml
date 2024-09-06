@@ -1,5 +1,5 @@
 [core.data_output_options]
-save_initial_state = false
+save_initial_state = true
 
 # Climate data
 [[core.data.variable]]
@@ -20,16 +20,19 @@ var_name = "atmospheric_co2_ref"
 [[core.data.variable]]
 file = "../data/example_climate_data.nc"
 var_name = "mean_annual_temperature"
+[[core.data.variable]]
+file = "../data/example_climate_data.nc"
+var_name = "wind_speed_ref"
 
 # Elevation
 [[core.data.variable]]
 file = "../data/example_elevation_data.nc"
 var_name = "elevation"
 
-# Hydrology
-[[core.data.variable]]
-file = "../data/example_surface_runoff_data.nc"
-var_name = "surface_runoff"
+# # Hydrology
+# [[core.data.variable]]
+# file = "../data/example_surface_runoff_data.nc"
+# var_name = "surface_runoff"
 
 # Soil
 [[core.data.variable]]
@@ -53,6 +56,9 @@ var_name = "soil_c_pool_microbe"
 [[core.data.variable]]
 file = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"
+[[core.data.variable]]
+file = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_necromass"
 [[core.data.variable]]
 file = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_pom"
@@ -85,6 +91,21 @@ var_name = "lignin_woody"
 [[core.data.variable]]
 file = "../data/example_litter_data.nc"
 var_name = "lignin_below_structural"
+[[core.data.variable]]
+file = "../data/example_litter_data.nc"
+var_name = "c_n_ratio_above_metabolic"
+[[core.data.variable]]
+file = "../data/example_litter_data.nc"
+var_name = "c_n_ratio_above_structural"
+[[core.data.variable]]
+file = "../data/example_litter_data.nc"
+var_name = "c_n_ratio_woody"
+[[core.data.variable]]
+file = "../data/example_litter_data.nc"
+var_name = "c_n_ratio_below_metabolic"
+[[core.data.variable]]
+file = "../data/example_litter_data.nc"
+var_name = "c_n_ratio_below_structural"
 
 # Plants
 [[core.data.variable]]

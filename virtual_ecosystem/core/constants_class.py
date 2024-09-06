@@ -14,7 +14,7 @@ use in a model:
    dataclass with the required constant values. See
    :mod:`~virtual_ecosystem.core.constants_class.ConstantsDataclass` for syntax
    details.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ class ConstantsDataclass(ABC):
                 f'not configurable: {", ".join(unconfigurable_names)}'
             )
             LOGGER.error(msg)
-            LOGGER.info("Valid names are: %s" % (", ".join(valid_names)))
+            LOGGER.info("Valid names are: {}".format(", ".join(valid_names)))
             raise ConfigurationError(msg)
 
         if unexpected_names:
@@ -94,7 +94,7 @@ class ConstantsDataclass(ABC):
                 f'for {cls.__name__}: {", ".join(unexpected_names)}'
             )
             LOGGER.error(msg)
-            LOGGER.info("Valid names are: %s" % (", ".join(valid_names)))
+            LOGGER.info("Valid names are: {}".format(", ".join(valid_names)))
             raise ConfigurationError(msg)
 
         return cls(**config)

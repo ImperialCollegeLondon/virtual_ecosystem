@@ -2,7 +2,11 @@
 processes for the Virtual Ecosystem. At the moment, this includes rain water
 interception by the canopy, soil evaporation, and functions related to surface
 runoff, bypass flow, and river discharge.
-"""  # noqa: D205, D415
+
+TODO change temperatures to Kelvin
+
+TODO add canopy evaporation
+"""  # noqa: D205
 
 from math import sqrt
 
@@ -21,14 +25,14 @@ def calculate_soil_evaporation(
     soil_moisture_residual: float | NDArray[np.float32],
     soil_moisture_capacity: float | NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
-    wind_speed: float | NDArray[np.float32],
+    wind_speed_surface: NDArray[np.float32],
     celsius_to_kelvin: float,
     density_air: float | NDArray[np.float32],
     latent_heat_vapourisation: float | NDArray[np.float32],
     gas_constant_water_vapour: float,
-    heat_transfer_coefficient: float,
+    soil_surface_heat_transfer_coefficient: float,
     extinction_coefficient_global_radiation: float,
-) -> NDArray[np.float32]:
+) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux
@@ -54,25 +58,28 @@ def calculate_soil_evaporation(
     :math:`LAI` is the total leaf area index.
 
     Args:
-        temperature: air temperature at reference height, [C]
-        relative_humidity: relative humidity at reference height, []
-        atmospheric_pressure: atmospheric pressure at reference height, [kPa]
+        temperature: Air temperature at reference height, [C]
+        relative_humidity: Relative humidity at reference height, []
+        atmospheric_pressure: Atmospheric pressure at reference height, [kPa]
         soil_moisture: Volumetric relative water content, [unitless]
-        soil_moisture_residual: residual soil moisture, [unitless]
-        soil_moisture_capacity: soil moisture capacity, [unitless]
-        wind_speed: wind speed at reference height, [m s-1]
-        celsius_to_kelvin: factor to convert teperature from Celsius to Kelvin
-        density_air: density if air, [kg m-3]
-        latent_heat_vapourisation: latent heat of vapourisation, [J kg-1]
-        gas_constant_water_vapour: gas constant for water vapour, [J kg-1 K-1]
-        heat_transfer_coefficient: heat transfer coefficient of air
+        soil_moisture_residual: Residual soil moisture, [unitless]
+        soil_moisture_capacity: Soil moisture capacity, [unitless]
+        wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
+        celsius_to_kelvin: Factor to convert temperature from Celsius to Kelvin
+        density_air: Density if air, [kg m-3]
+        latent_heat_vapourisation: Latent heat of vapourisation, [MJ kg-1]
+        leaf_area_index: Leaf area index [m m-1]
+        gas_constant_water_vapour: Gas constant for water vapour, [J kg-1 K-1]
+        soil_surface_heat_transfer_coefficient: Heat transfer coefficient between soil
+            and air, [W m-2 K-1]
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
 
     Returns:
-        soil evaporation, [mm]
+        soil evaporation, [mm] and aerodynamic resistance near the surface [kg m-2 s-3]
     """
 
+    output = {}
     # Convert temperature to Kelvin
     temperature_k = temperature + celsius_to_kelvin
 
@@ -98,16 +105,20 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = heat_transfer_coefficient / wind_speed**2
+    aerodynamic_resistance = (
+        1 / wind_speed_surface**2
+    ) * soil_surface_heat_transfer_coefficient
+    output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    # Return surface evaporation, [mm]
-    return (evaporative_flux / latent_heat_vapourisation).squeeze() * np.exp(
-        -extinction_coefficient_global_radiation * leaf_area_index
-    )
+    output["soil_evaporation"] = (  # Return surface evaporation, [mm]
+        evaporative_flux / latent_heat_vapourisation
+    ).squeeze() * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+
+    return output
 
 
 def find_lowest_neighbour(
@@ -120,8 +131,8 @@ def find_lowest_neighbour(
     can be used to determine in which direction surface runoff flows.
 
     Args:
-        neighbours: list of neighbour IDs
-        elevation: elevation, [m]
+        neighbours: List of neighbour IDs
+        elevation: Elevation, [m]
 
     Returns:
         list of lowest neighbour IDs
@@ -141,7 +152,7 @@ def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     be used to calculate the water flow that goes though a grid cell.
 
     Args:
-        lowest_neighbour: list of lowest neighbour cell_ids
+        lowest_neighbour: List of lowest neighbour cell IDs
 
     Returns:
         lists of all upstream IDs for each grid cell
@@ -168,16 +179,17 @@ def accumulate_horizontal_flow(
     The function currently raises a `ValueError` if accumulated flow is negative.
 
     Args:
-        drainage_map: dict of all upstream IDs for each grid cell
-        current_flow: (sub-)surface flow of the current time step, [mm]
-        previous_accumulated_flow: accumulated flow from previous time step, [mm]
+        drainage_map: Dict of all upstream IDs for each grid cell
+        current_flow: (Sub-)surface flow of the current time step, [mm]
+        previous_accumulated_flow: Accumulated flow from previous time step, [mm]
 
     Returns:
         accumulated (sub-)surface flow, [mm]
     """
 
+    current_flow_true = np.nan_to_num(current_flow, nan=0.0)
     for cell_id, upstream_ids in enumerate(drainage_map.values()):
-        previous_accumulated_flow[cell_id] += np.sum(current_flow[upstream_ids])
+        previous_accumulated_flow[cell_id] += np.sum(current_flow_true[upstream_ids])
 
     if (previous_accumulated_flow < 0.0).any():
         to_raise = ValueError("The accumulated flow should not be negative!")
@@ -191,12 +203,12 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     """Calculate drainage map based on digital elevation model.
 
     This function finds the lowest neighbour for each grid cell, identifies all upstream
-    IDs and creates a dictionary that provides all upstream cell IDs for each grid
+    cell IDs and creates a dictionary that provides all upstream cell IDs for each grid
     cell. This function currently supports only square grids.
 
     Args:
-        grid: grid object
-        elevation: elevation, [m]
+        grid: Grid object
+        elevation: Elevation, [m]
 
     Returns:
         dictionary of cell IDs and their upstream neighbours
@@ -219,9 +231,7 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 def calculate_interception(
     leaf_area_index: NDArray[np.float32],
     precipitation: NDArray[np.float32],
-    intercept_param_1: float,
-    intercept_param_2: float,
-    intercept_param_3: float,
+    intercept_parameters: tuple[float, float, float],
     veg_density_param: float,
 ) -> NDArray[np.float32]:
     r"""Estimate canopy interception.
@@ -256,14 +266,10 @@ def calculate_interception(
     :math:`k=0.046 * LAI`
 
     Args:
-        leaf_area_index: leaf area index summed over all canopy layers, [m2 m-2]
-        precipitation: precipitation, [mm]
-        intercept_parameter_1: Parameter in equation that estimates maximum canopy
-            interception capacity
-        intercept_parameter_2: Parameter in equation that estimates maximum canopy
-            interception capacity
-        intercept_parameter_3: Parameter in equation that estimates maximum canopy
-            interception capacity
+        leaf_area_index: Leaf area index summed over all canopy layers, [m2 m-2]
+        precipitation: Precipitation, [mm]
+        intercept_parameters: Parameters for equation estimating maximum canopy
+            interception capacity.
         veg_density_param: Parameter used to estimate vegetation density for maximum
             canopy interception capacity estimate
 
@@ -272,9 +278,9 @@ def calculate_interception(
     """
 
     capacity = (
-        intercept_param_1
-        + intercept_param_2 * leaf_area_index
-        - intercept_param_3 * leaf_area_index**2
+        intercept_parameters[0]
+        + intercept_parameters[1] * leaf_area_index
+        - intercept_parameters[2] * leaf_area_index**2
     )
     max_capacity = np.where(leaf_area_index > 0.1, capacity, 0)
 
@@ -301,7 +307,7 @@ def distribute_monthly_rainfall(
     Args:
         total_monthly_rainfall: Total monthly rainfall, [mm]
         num_days: Number of days to distribute the rainfall over
-        seed: seed for random number generator, optional
+        seed: Seed for random number generator, optional
 
     Returns:
         An array containing the daily rainfall amounts, [mm]
@@ -349,10 +355,10 @@ def calculate_bypass_flow(
     important as the soil gets wetter.
 
     Args:
-        top_soil_moisture: soil moisture of top soil layer, [mm]
-        sat_top_soil_moisture: soil moisture of top soil layer at saturation, [mm]
-        available_water: amount of water available for infiltration, [mm]
-        infiltration_shape_parameter: shape parameter for infiltration
+        top_soil_moisture: Soil moisture of top soil layer, [mm]
+        sat_top_soil_moisture: Soil moisture of top soil layer at saturation, [mm]
+        available_water: Amount of water available for infiltration, [mm]
+        infiltration_shape_parameter: Shape parameter for infiltration
 
     Returns:
         preferential bypass flow, [mm]
@@ -371,17 +377,17 @@ def convert_mm_flow_to_m3_per_second(
     seconds_to_day: float,
     meters_to_millimeters: float,
 ) -> NDArray[np.float32]:
-    """Convert river discharge from millimeters to m3/s.
+    """Convert river discharge from millimeters to m3 s-1.
 
     Args:
-        river_discharge_mm: total river discharge, [mm]
-        area: area of each grid cell, [m2]
-        days: number of days
-        seconds_to_day: second to day conversion factor
-        meters_to_millimeters: factor to convert between millimeters and meters
+        river_discharge_mm: Total river discharge, [mm]
+        area: Area of each grid cell, [m2]
+        days: Number of days
+        seconds_to_day: Second to day conversion factor
+        meters_to_millimeters: Factor to convert between millimeters and meters
 
     Returns:
-        river discharge rate for each grid cell in m3/s
+        river discharge rate for each grid cell, [m3 s-1]
     """
 
     return river_discharge_mm / meters_to_millimeters / days / seconds_to_day * area
@@ -401,9 +407,9 @@ def calculate_surface_runoff(
     added to the current soil moisture level and runoff is set to zero.
 
     Args:
-        precipitation_surface: precipitation that reaches surface, [mm]
-        top_soil_moisture: water content of top soil layer, [mm]
-        top_soil_moisture_capacity: soil mositure capacity of top soil layer, [mm]
+        precipitation_surface: Precipitation that reaches surface, [mm]
+        top_soil_moisture: Water content of top soil layer, [mm]
+        top_soil_moisture_capacity: Soil mositure capacity of top soil layer, [mm]
     """
 
     # Calculate how much water can be added to soil before capacity is reached, [mm]

@@ -8,39 +8,27 @@ Soil temperature is interpolated between the surface layer and the soil temperat
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
 :math:`\ce{CO2}`.
-"""  # noqa: D205, D415
+
+TODO change temperatures to Kelvin
+"""  # noqa: D205
 
 import numpy as np
-import xarray as xr
 from xarray import DataArray
 
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
-
-Bounds: dict[str, float] = {
-    "air_temperature_min": -20,
-    "air_temperature_max": 80,
-    "relative_humidity_min": 0,
-    "relative_humidity_max": 100,
-    "vapour_pressure_deficit_min": 0,
-    "vapour_pressure_deficit_max": 10,
-    "soil_temperature_min": -10,
-    "soil_temperature_max": 50,
-}
-"""Upper and lower bounds for abiotic variables. When a values falls outside these
-bounds, it is set to the bound value. Note that this approach does not conserve energy
-and matter in the system. This will be implemented at a later stage.
-"""
-# TODO move bounds to core.bound_checking once that is implemented and introduce method
-# to conserve energy and matter
+from virtual_ecosystem.models.abiotic_simple.constants import (
+    AbioticSimpleBounds,
+    AbioticSimpleConsts,
+)
 
 
 def run_microclimate(
     data: Data,
-    layer_roles: list[str],
+    layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
     constants: AbioticSimpleConsts,
-    Bounds: dict[str, float] = Bounds,
+    bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
 
@@ -62,17 +50,19 @@ def run_microclimate(
     The other atmospheric layers are calculated by logarithmic regression and
     interpolation between the input at the top of the canopy and the 1.5 m values.
     Soil temperature is interpolated between the surface layer and the temperature at
-    1 m depth which equals the mean annual temperature.
-    The function also provides constant atmospheric pressure and :math:`\ce{CO2}` for
-    all atmospheric levels.
+    1 m depth which which approximately equals the mean annual temperature, i.e. can
+    assumed to be constant over the year.
+
+    The function also broadcasts the reference values for atmospheric pressure and
+    :math:`\ce{CO2}` to all atmospheric levels as they are currently assumed to remain
+    constant during one time step.
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
-    * above canopy (canopy height)
-    * canopy layers (maximum of ten layers, minimum one layers)
-    * subcanopy (1.5 m)
+    * above canopy (canopy height + 2 m)
+    * canopy layers
     * surface layer
-    * soil layers (currently one near surface layer and one layer at 1 m below ground)
+    * soil layers
 
     The function expects a data object with the following variables:
 
@@ -86,11 +76,10 @@ def run_microclimate(
 
     Args:
         data: Data object
-        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
-            surface, soil)
-        time_index: time index, integer
+        layer_structure: The LayerStructure instance for the simulation.
+        time_index: Time index, integer
         constants: Set of constants for the abiotic simple model
-        Bounds: upper and lower allowed values for vertical profiles, used to constrain
+        bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
     Returns:
@@ -99,63 +88,51 @@ def run_microclimate(
         atmospheric :math:`\ce{CO2}` [ppm]
     """
 
-    # TODO make sure variables are representing correct time interval, e.g. mm per day
     output = {}
 
-    # sum leaf area index over all canopy layers
+    # Sum leaf area index over all canopy layers
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
-    # interpolate atmospheric profiles
+    # Interpolate atmospheric profiles
     for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
+        lower, upper, gradient = getattr(bounds, var)
+
         output[var] = log_interpolation(
             data=data,
             reference_data=data[var + "_ref"].isel(time_index=time_index),
             leaf_area_index_sum=leaf_area_index_sum,
-            layer_roles=layer_roles,
+            layer_structure=layer_structure,
             layer_heights=data["layer_heights"],
-            upper_bound=Bounds[var + "_max"],
-            lower_bound=Bounds[var + "_min"],
-            gradient=getattr(constants, var + "_gradient"),
+            upper_bound=upper,
+            lower_bound=lower,
+            gradient=gradient,
         ).rename(var)
 
     # Mean atmospheric pressure profile, [kPa]
-    output["atmospheric_pressure"] = (
-        (data["atmospheric_pressure_ref"])
-        .isel(time_index=time_index)
-        .where(output["air_temperature"].coords["layer_roles"] != "soil")
-        .rename("atmospheric_pressure")
-        .T
-    )
+    # TODO: this should only be filled for filled/true above ground layers
+    output["atmospheric_pressure"] = layer_structure.from_template()
+    output["atmospheric_pressure"][layer_structure.index_atmosphere] = data[
+        "atmospheric_pressure_ref"
+    ].isel(time_index=time_index)
 
     # Mean atmospheric C02 profile, [ppm]
-    output["atmospheric_co2"] = (
-        data["atmospheric_co2_ref"]
-        .isel(time_index=0)
-        .where(output["air_temperature"].coords["layer_roles"] != "soil")
-        .rename("atmospheric_co2")
-        .T
-    )
+    # TODO: this should only be filled for filled/true above ground layers
+    output["atmospheric_co2"] = layer_structure.from_template()
+    output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
+        "atmospheric_co2_ref"
+    ].isel(time_index=time_index)
 
     # Calculate soil temperatures
-    soil_temperature_only = interpolate_soil_temperature(
+    lower, upper = getattr(bounds, "soil_temperature")
+    output["soil_temperature"] = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
         surface_temperature=output["air_temperature"].isel(
-            layers=len(layer_roles) - layer_roles.count("soil") - 1
+            layers=layer_structure.index_surface
         ),
         mean_annual_temperature=data["mean_annual_temperature"],
-        upper_bound=Bounds["soil_temperature_max"],
-        lower_bound=Bounds["soil_temperature_min"],
-    )
-
-    # add above-ground vertical layers back
-    output["soil_temperature"] = xr.concat(
-        [
-            data["soil_temperature"].isel(
-                layers=np.arange(0, len(layer_roles) - layer_roles.count("soil"))
-            ),
-            soil_temperature_only,
-        ],
-        dim="layers",
+        layer_structure=layer_structure,
+        upper_bound=upper,
+        lower_bound=lower,
     )
 
     return output
@@ -165,7 +142,7 @@ def log_interpolation(
     data: Data,
     reference_data: DataArray,
     leaf_area_index_sum: DataArray,
-    layer_roles: list[str],
+    layer_structure: LayerStructure,
     layer_heights: DataArray,
     upper_bound: float,
     lower_bound: float,
@@ -175,14 +152,14 @@ def log_interpolation(
 
     Args:
         data: Data object
-        reference_data: input variable at reference height
-        leaf_area_index_sum: leaf area index summed over all layers, [m m-1]
-        layer_roles: list of layer roles (soil, surface, subcanopy, canopy, above)
-        layer_heights: vertical layer heights, [m]
-        lower_bound: minimum allowed value, used to constrain log interpolation. Note
+        reference_data: Input variable at reference height
+        leaf_area_index_sum: Leaf area index summed over all layers, [m m-1]
+        layer_structure: The LayerStructure instance for the simulation.
+        layer_heights: Vertical layer heights, [m]
+        lower_bound: Minimum allowed value, used to constrain log interpolation. Note
             that currently no conservation of water and energy!
-        upper_bound: maximum allowed value, used to constrain log interpolation.
-        gradient: gradient of regression from :cite:t:`hardwick_relationship_2015`
+        upper_bound: Maximum allowed value, used to constrain log interpolation.
+        gradient: Gradient of regression from :cite:t:`hardwick_relationship_2015`
 
     Returns:
         vertical profile of provided variable
@@ -200,38 +177,23 @@ def log_interpolation(
     intercept = lai_regression - slope * np.log(1.5)
 
     # Calculate the values within cells by layer
-    positive_layer_heights = DataArray(
-        np.where(layer_heights > 0, layer_heights, np.nan),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-    )
-
-    layer_values = np.where(
-        np.logical_not(np.isnan(positive_layer_heights)),
-        (np.log(positive_layer_heights) * slope + intercept),
-        np.nan,
+    positive_layer_heights = np.where(layer_heights > 0, layer_heights, np.nan)
+    layer_values = (
+        np.log(positive_layer_heights) * slope.to_numpy() + intercept.to_numpy()
     )
 
     # set upper and lower bounds
-    return DataArray(
-        np.clip(layer_values, lower_bound, upper_bound),
-        dims=["layers", "cell_id"],
-        coords={
-            "layers": np.arange(0, len(layer_roles)),
-            "layer_roles": ("layers", layer_roles),
-            "cell_id": data.grid.cell_id,
-        },
-    )
+    return_array = layer_structure.from_template()
+    return_array[:] = np.clip(layer_values, lower_bound, upper_bound)
+
+    return return_array
 
 
 def calculate_saturation_vapour_pressure(
-    temperature: DataArray, factor1: float, factor2: float, factor3: float
+    temperature: DataArray,
+    saturation_vapour_pressure_factors: list[float],
 ) -> DataArray:
-    r"""Calculate saturation vapour pressure.
+    r"""Calculate saturation vapour pressure, kPa.
 
     Saturation vapour pressure :math:`e_{s} (T)` is here calculated as
 
@@ -240,15 +202,14 @@ def calculate_saturation_vapour_pressure(
     where :math:`T` is temperature in degree C .
 
     Args:
-        temperature: air temperature, [C]
-        factor1: factor 1 in saturation vapour pressure calculation
-        factor2: factor 2 in saturation vapour pressure calculation
-        factor3: factor 3 in saturation vapour pressure calculation
+        temperature: Air temperature, [C]
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
 
     Returns:
         saturation vapour pressure, [kPa]
     """
-
+    factor1, factor2, factor3 = saturation_vapour_pressure_factors
     return DataArray(
         factor1 * np.exp((factor2 * temperature) / (temperature + factor3))
     ).rename("saturation_vapour_pressure")
@@ -257,9 +218,9 @@ def calculate_saturation_vapour_pressure(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    constants: AbioticSimpleConsts,
-) -> DataArray:
-    """Calculate vapour pressure deficit.
+    saturation_vapour_pressure_factors: list[float],
+) -> dict[str, DataArray]:
+    """Calculate vapour pressure and vapour pressure deficit, kPa.
 
     Vapor pressure deficit is defined as the difference between saturated vapour
     pressure and actual vapour pressure.
@@ -267,74 +228,73 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
-        constants: Set of constants for the abiotic simple model
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
 
     Return:
-        vapour pressure deficit, [kPa]
+        vapour pressure, [kPa], vapour pressure deficit, [kPa]
     """
 
+    output = {}
     saturation_vapour_pressure = calculate_saturation_vapour_pressure(
         temperature,
-        factor1=constants.saturation_vapour_pressure_factor1,
-        factor2=constants.saturation_vapour_pressure_factor2,
-        factor3=constants.saturation_vapour_pressure_factor3,
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
     )
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
-
-    return saturation_vapour_pressure - actual_vapour_pressure
+    output["vapour_pressure"] = actual_vapour_pressure
+    output["vapour_pressure_deficit"] = (
+        saturation_vapour_pressure - actual_vapour_pressure
+    )
+    return output
 
 
 def interpolate_soil_temperature(
     layer_heights: DataArray,
     surface_temperature: DataArray,
     mean_annual_temperature: DataArray,
-    upper_bound: float = Bounds["soil_temperature_max"],
-    lower_bound: float = Bounds["soil_temperature_min"],
+    layer_structure: LayerStructure,
+    upper_bound: float,
+    lower_bound: float,
 ) -> DataArray:
     """Interpolate soil temperature using logarithmic function.
 
     Args:
-        layer_heights: vertical layer heights, [m]
-        layer_roles: list of layer roles (from top to bottom: above, canopy, subcanopy,
+        layer_heights: Vertical layer heights, [m]
+        layer_roles: List of layer roles (from top to bottom: above, canopy, subcanopy,
             surface, soil)
-        surface_temperature: surface temperature, [C]
-        mean_annual_temperature: mean annual temperature, [C]
-        upper_bound: maximum allowed value, used to constrain log interpolation. Note
+        surface_temperature: Surface temperature, [C]
+        mean_annual_temperature: Mean annual temperature, [C]
+        layer_structure: The LayerStructure instance for the simulation.
+        upper_bound: Maximum allowed value, used to constrain log interpolation. Note
             that currently no conservation of water and energy!
-        lower_bound: minimum allowed value, used to constrain log interpolation.
+        lower_bound: Minimum allowed value, used to constrain log interpolation.
 
     Returns:
         soil temperature profile, [C]
     """
 
-    # select surface layer (atmosphere)
-    surface_layer = layer_heights[layer_heights.coords["layer_roles"] == "surface"]
-
-    # create array of interpolation heights including surface layer and soil layers
-    interpolation_heights = xr.concat(
-        [
-            surface_layer,
-            layer_heights[layer_heights.coords["layer_roles"] == "soil"] * -1
-            + surface_layer.values,
-        ],
-        dim="layers",
+    # Select surface layer (atmosphere) and generate interpolation heights
+    surface_layer = layer_heights[layer_structure.index_surface].to_numpy()
+    soil_depths = layer_heights[layer_structure.index_all_soil].to_numpy()
+    interpolation_heights = np.concatenate(
+        [surface_layer, -1 * soil_depths + surface_layer]
     )
 
     # Calculate per cell slope and intercept for logarithmic soil temperature profile
-    slope = (surface_temperature - mean_annual_temperature) / (
-        np.log(interpolation_heights.isel(layers=0))
-        - np.log(interpolation_heights.isel(layers=-1))
+    slope = (surface_temperature.to_numpy() - mean_annual_temperature.to_numpy()) / (
+        np.log(interpolation_heights[0]) - np.log(interpolation_heights[-1])
     )
-    intercept = surface_temperature - slope * np.log(
-        interpolation_heights.isel(layers=0)
+    intercept = surface_temperature.to_numpy() - slope * np.log(
+        interpolation_heights[0]
     )
 
-    # Calculate the values within cells by layer
-    layer_values = np.log(interpolation_heights) * slope + intercept
+    # Calculate the values within cells by layer and clip by the bounds
+    layer_values = np.clip(
+        np.log(interpolation_heights) * slope + intercept, lower_bound, upper_bound
+    )
 
-    # set upper and lower bounds and return soil and surface layers, further layers are
-    # added in the 'run' function
-    return DataArray(
-        np.clip(layer_values, lower_bound, upper_bound),
-        coords=interpolation_heights.coords,
-    ).drop_isel(layers=0)
+    # return
+    return_xarray = layer_structure.from_template()
+    return_xarray[layer_structure.index_all_soil] = layer_values[1:]
+
+    return return_xarray

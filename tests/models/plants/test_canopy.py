@@ -105,16 +105,18 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
         "leaf_area_index",
         "layer_fapar",
         "layer_leaf_mass",
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
     )
 
-    n_layer = 1 + 10 + 2 + 2
-    exp_shape = (n_layer, data.grid.n_cells)
+    exp_shape = (
+        fixture_core_components.layer_structure.n_layers,
+        fixture_core_components.grid.n_cells,
+    )
 
     exp_dims = {
-        "layers": (True, n_layer),
-        "layer_roles": (False, n_layer),
-        "cell_id": (True, data.grid.n_cells),
+        "layers": (True, fixture_core_components.layer_structure.n_layers),
+        "layer_roles": (False, fixture_core_components.layer_structure.n_layers),
+        "cell_id": (True, fixture_core_components.grid.n_cells),
     }
 
     # Check each layer is i) in the data object, ii) has the right shape, iii) has the
@@ -133,7 +135,7 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
 
     # Specifically for layer heights, check that the fixed layer heights are as expected
     assert np.allclose(
-        data["layer_heights"].mean(dim="cell_id").to_numpy(),
-        np.array([np.nan] * 11 + [1.5, 0.1, -0.25, -1.0]),
+        data["layer_heights"].to_numpy(),
+        np.tile(np.array([[np.nan] * 11 + [0.1, -0.5, -1.0]]).T, 4),
         equal_nan=True,
     )

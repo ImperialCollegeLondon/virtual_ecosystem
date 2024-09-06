@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.main` module defines the function used to run a full
 simulation of the model, along with helper functions to validate and configure the
 model.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 import os
 from collections.abc import Sequence
@@ -12,6 +12,7 @@ from typing import Any
 
 from tqdm import tqdm
 
+from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
@@ -32,13 +33,13 @@ def initialise_models(
         config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
-        modules: A dictionary of models to be configured.
+        models: A dictionary of models to be configured.
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
     """
 
-    LOGGER.info("Initialising models: %s" % ",".join(models.keys()))
+    LOGGER.info("Initialising models: {}".format(",".join(models.keys())))
 
     # Use factory methods to configure the desired models
     failed_models = []
@@ -173,6 +174,7 @@ def ve_run(
     if progress:
         print("* Loading configuration")
 
+    variables.register_all_variables()
     config = Config(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
@@ -195,6 +197,14 @@ def ve_run(
     data.load_data_config(config)
     if progress:
         print("* Initial data loaded")
+
+    # Setup the variables for the requested modules and verify consistency
+    variables.setup_variables(
+        list(config.model_classes.values()), list(data.data.keys())
+    )
+
+    # Verify that all variables have the correct axis
+    variables.verify_variables_axis()
 
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 

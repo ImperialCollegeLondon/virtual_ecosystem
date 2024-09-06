@@ -24,25 +24,25 @@ license = "BSD-3-Clause"
 name = "virtual_ecosystem"
 readme = "README.md"
 repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
-version = "0.1.1a4"
+version = "0.1.1a5"
 
 [tool.poetry.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
 [tool.poetry.dependencies]
-Shapely = "^1.8.4"
+Shapely = "^2.0"
 dask = "^2023.6.0"
 dpath = "^2.0.6"
 jsonschema = "^4.14.0"
 netcdf4 = "^1.6.5"
-numpy = "^1.23.0"
-pint = "^0.20.1"
-python = ">=3.10,<3.12"
+numpy = "^2.0"
+pint = "^0.24.1"
+python = ">=3.10,<3.13"
 scipy = "^1.9.0"
 tomli = {version = "^2.0.1", python = "<3.11"}
 tomli-w = "^1.0.0"
 tqdm = "^4.66.2"
-xarray = "^2024.02.0"
+xarray = "^2024.06.0"
 
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
@@ -54,17 +54,15 @@ hypothesis = "^6.54.2"
 pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
 pytest-datadir = "^1.4.1"
-pytest-flake8 = "^1.1.1"
 pytest-mock = "^3.8.1"
-pytest-mypy = "^0.10.3"
 
 [tool.poetry.group.devenv.dependencies]
-black = "^22.6.0"
-flake8 = "^4.0.1"
-flake8-docstrings = "^1.6.0"
 ipykernel = "^6.15.0"
 ipython = "^8.4.0"
 isort = "^5.12.0"
+jupyterlab = "^4.2.3"
+jupyterlab-myst = "^2.4.2"
+jupytext = "^1.16.2"
 matplotlib = "^3.5.2"
 mdformat = "^0.7.14"
 mdformat_frontmatter = "^0.4.1"
@@ -77,10 +75,62 @@ autodocsumm = "^0.2.8"
 myst-nb = "^1.0.0"
 pydocstyle = "^6.1.1"
 sphinx = "^7.0.0"
-sphinx-rtd-theme = "^1.0.0"
-sphinxcontrib-bibtex = "^2.4.2"
+sphinx-design = "^0.6.0"
+sphinx-external-toc = "^1.0.0"
+sphinx-rtd-theme = "^2.0.0"
+sphinxcontrib-bibtex = "^2.6.1"
 sphinxcontrib-mermaid = "^0.9.2"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.2.0"]
+
+[tool.pytest.ini_options]
+addopts = """	
+  -v
+  -p no:warnings
+  --cov=virtual_ecosystem
+  --cov-report=html:htmlcov/coverage
+  --doctest-modules --ignore=virtual_ecosystem/__main__.py
+  --import-mode importlib
+  """
+python_files = 'test_*.py'
+testpaths = ['tests']
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable all `pydocstyle` rules, limiting to those that adhere to the
+# Google convention via `convention = "google"`, below.
+select = [
+  # "B", # flake8-bugbear
+  # "SIM", # flake8-simplify
+  "E", # pycodestyle
+  "F", # pyflakes
+  "D", # pydocstyle
+  "I", # isort
+  "UP", # pyupgrade
+  "RUF", # ruff-only checking
+  "NPY201", # Numpy 2.0.1
+]
+
+# On top of the Google convention, disable:
+ignore = [
+  "D202", # Blank line after docstring is ok
+  "D107", # Location of __init__ docstring in class not __init__"  # "F401", # module imported but unused
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"test/test_*.py" = ["D103"]
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = "numpy.typing.mypy_plugin"
+
+[tool.jupytext]
+# Stop jupytext from removing mystnb and other settings in MyST Notebook YAML headers
+notebook_metadata_filter = "-jupytext.text_representation.jupytext_version,settings,mystnb"

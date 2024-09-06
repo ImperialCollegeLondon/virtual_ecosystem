@@ -1,7 +1,7 @@
 """The ``models.soil.env_factors`` module contains functions that are used to
 capture the impact that environmental factors have on microbial rates. These include
 temperature, soil water potential, pH and soil texture.
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from dataclasses import dataclass
 
@@ -23,8 +23,6 @@ class EnvironmentalEffectFactors:
     """Impact of soil pH on enzymatic rates [unitless]."""
     clay_saturation: NDArray[np.float32]
     """Impact of soil clay fraction on enzyme saturation constants [unitless]."""
-    clay_decay: NDArray[np.float32]
-    """Impact of soil clay fraction on necromass decay destination [unitless]."""
 
 
 def calculate_environmental_effect_factors(
@@ -71,17 +69,12 @@ def calculate_environmental_effect_factors(
         base_protection=constants.base_soil_protection,
         protection_with_clay=constants.soil_protection_with_clay,
     )
-    clay_factor_decay = calculate_clay_impact_on_necromass_decay(
-        clay_fraction=clay_fraction,
-        decay_exponent=constants.clay_necromass_decay_exponent,
-    )
 
     # Combine all factors into a single EnvironmentalFactors object
     return EnvironmentalEffectFactors(
         water=water_factor,
         pH=pH_factor,
         clay_saturation=clay_factor_saturation,
-        clay_decay=clay_factor_decay,
     )
 
 
@@ -101,7 +94,7 @@ def calculate_temperature_effect_on_microbes(
     Args:
         soil_temperature: The temperature of the soil [C]
         activation_energy: Energy of activation [J mol^-1]
-        soil_temperature: The reference temperature of the Arrhenius equation [C]
+        reference_temperature: The reference temperature of the Arrhenius equation [C]
 
     Returns:
         A multiplicative factor capturing the effect of temperature on microbial rates
@@ -248,32 +241,11 @@ def calculate_clay_impact_on_enzyme_saturation(
     return base_protection + protection_with_clay * clay_fraction
 
 
-def calculate_clay_impact_on_necromass_decay(
-    clay_fraction: NDArray[np.float32], decay_exponent: float
-) -> NDArray[np.float32]:
-    """Calculate the impact that soil clay has on necromass decay to LMWC.
-
-    Necromass which doesn't breakdown fully gets added to the POM pool instead.
-
-    Args:
-        clay_fraction: The fraction of the soil which is clay [unitless]
-        sorption_exponent: Controls the impact that differences in soil clay content
-            have on the proportion of necromass that decays to LMWC [unitless]
-
-    Returns:
-        A multiplicative factor capturing the impact that soil clay has on the
-        proportion of necromass decay which sorbs to form POM [unitless]
-    """
-
-    return np.exp(decay_exponent * clay_fraction)
-
-
 def calculate_leaching_rate(
     solute_density: NDArray[np.float32],
     vertical_flow_rate: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
     solubility_coefficient: float,
-    soil_layer_thickness: float,
 ) -> NDArray[np.float32]:
     """Calculate leaching rate for a given solute based on flow rate.
 
@@ -281,26 +253,17 @@ def calculate_leaching_rate(
     of solute that is expected to be found in dissolved form is calculated by
     multiplying the solute density by its solubility coefficient. This is then
     multiplied by the frequency with which the water column is completely replaced, i.e.
-    the ratio of vertical flow rate to water column height.
+    the ratio of vertical flow rate to soil moisture in mm.
 
     Args:
         solute_density: The density of the solute in the soil [kg solute m^-3]
         vertical_flow_rate: Rate of flow downwards through the soil [mm day^-1]
-        soil_moisture: Volumetric relative water content of the soil [unitless]
+        soil_moisture: Volume of water contained in topsoil layer [mm]
         solubility_coefficient: The solubility coefficient of the solute in question
             [unitless]
-        soil_layer_thickness: Thickness of the biogeochemically active soil layer [m]
 
     Returns:
         The rate at which the solute in question is leached [kg solute m^-3 day^-1]
     """
 
-    # Vertical flow rate has to be converted into m day^-1
-    vert_flow_meters = vertical_flow_rate / 1e3
-
-    return (
-        solubility_coefficient
-        * solute_density
-        * vert_flow_meters
-        / (soil_moisture * soil_layer_thickness)
-    )
+    return solubility_coefficient * solute_density * vertical_flow_rate / soil_moisture

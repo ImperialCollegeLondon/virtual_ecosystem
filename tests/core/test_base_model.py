@@ -14,8 +14,12 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.fixture(scope="module")
-def data_instance():
-    """Creates a simple data instance for use in testing."""
+def fixture_data_instance_for_model_validation():
+    """Data instance with badly dimensioned data.
+
+    Creates a simple data instance for use in testing whether models correctly apply
+    validation of required variables.
+    """
     from xarray import DataArray
 
     from virtual_ecosystem.core.data import Data
@@ -36,31 +40,32 @@ def data_instance():
         pytest.param(
             {},
             pytest.raises(TypeError),
-            "BaseModel.__init_subclass__() missing 4 required positional arguments: "
-            "'model_name', 'model_update_bounds', 'required_init_vars', "
-            "and 'vars_updated'",
+            "BaseModel.__init_subclass__() missing 7 required positional arguments: "
+            "'model_name', 'model_update_bounds', 'vars_required_for_init', "
+            "'vars_updated', 'vars_required_for_update', 'vars_populated_by_init', and "
+            "'vars_populated_by_first_update'",
             [],
             id="missing_all_args",
         ),
         pytest.param(
             {"model_name": 9},
             pytest.raises(TypeError),
-            "BaseModel.__init_subclass__() missing 3 required positional arguments: "
-            "'model_update_bounds', 'required_init_vars', and 'vars_updated'",
+            "BaseModel.__init_subclass__() missing 6 required positional arguments: "
+            "'model_update_bounds', 'vars_required_for_init', 'vars_updated', "
+            "'vars_required_for_update', 'vars_populated_by_init', and "
+            "'vars_populated_by_first_update'",
             [],
-            id="missing_3_args",
+            id="missing_6_args",
         ),
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (
-                    (
-                        "temperature",
-                        ("spatial",),
-                    ),
-                ),
+                "vars_required_for_init": ("temperature", "wind_speed"),
                 "model_update_bounds": ("1 day", "1 month"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             does_not_raise(),
             None,
@@ -70,9 +75,12 @@ def data_instance():
         pytest.param(
             {
                 "model_name": 9,
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 month"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(TypeError),
             "Class attribute model_name in UnnamedModel is not a string",
@@ -85,9 +93,12 @@ def data_instance():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 time"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -105,9 +116,12 @@ def data_instance():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 day"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -124,9 +138,12 @@ def data_instance():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 day", "1 second"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Lower time bound for UnnamedModel is not less than the upper bound.",
@@ -143,9 +160,12 @@ def data_instance():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 meter", "1 day"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -163,9 +183,12 @@ def data_instance():
         pytest.param(
             {
                 "model_name": "should_pass",
-                "required_init_vars": (),
+                "vars_required_for_init": (),
                 "model_update_bounds": ("1 spongebob", "1 day"),
-                "vars_updated": [],
+                "vars_updated": (),
+                "vars_required_for_update": (),
+                "vars_populated_by_init": (),
+                "vars_populated_by_first_update": (),
             },
             pytest.raises(ValueError),
             "Class attribute model_update_bounds for UnnamedModel "
@@ -206,66 +229,55 @@ def test_init_subclass(caplog, init_args, exp_raise, exp_msg, exp_log):
 
 
 @pytest.mark.parametrize(
-    argnames="riv_value, exp_raise, exp_msg",
+    argnames="value, exp_raise, exp_msg",
     argvalues=[
         pytest.param(
             1,
             pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV is integer",
+            "Class attribute vars_required_for_init has the wrong structure in UM",
+            id="value is integer",
         ),
         pytest.param(
-            ["temperature", (1, 2)],
+            ["temperature", "wind_speed"],
             pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV is list",
+            "Class attribute vars_required_for_init has the wrong structure in UM",
+            id="value is list",
         ),
         pytest.param(
-            ("temperature", ("spatial",)),
+            ("temperature", 1),
             pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV is not nested enough",
+            "Class attribute vars_required_for_init has the wrong structure in UM",
+            id="value not all strings",
         ),
         pytest.param(
-            (("temperature", (1,)),),
-            pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV axis is not string",
-        ),
-        pytest.param(
-            (("temperature", (1,), (2,)),),
-            pytest.raises(TypeError),
-            "Class attribute required_init_vars has the wrong structure in UM",
-            id="RIV entry is too long",
-        ),
-        pytest.param(
-            (("temperature", ("special",)),),
-            pytest.raises(ValueError),
-            "Class attribute required_init_vars uses unknown core axes in UM: special",
-            id="RIV entry has bad axis name",
-        ),
-        pytest.param(
-            (("temperature", ("spatial",)),),
+            ("temperature", "wind_speed"),
             does_not_raise(),
             None,
-            id="RIV ok",
+            id="value ok",
         ),
     ],
 )
-def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
-    """Test that  __init_subclass__ traps bad values for required_init_vars."""
+def test_check_variable_attribute_structure(value, exp_raise, exp_msg):
+    """Test that  __init_subclass__ traps bad values for vars_required_for_init.
+
+    This could also test the other BaseModel variable attributes, but this checks
+    the mechanism.
+    """
 
     # BaseModel is required here in the code being exec'd from the params.
-    from virtual_ecosystem.core.base_model import BaseModel  # noqa: F401
+    from virtual_ecosystem.core.base_model import BaseModel
 
     with exp_raise as err:
         # Run the code to define the model
         class UM(
             BaseModel,
             model_name="should_also_pass",
-            required_init_vars=riv_value,
+            vars_required_for_init=value,
             model_update_bounds=("1 day", "1 month"),
-            vars_updated=[],
+            vars_updated=(),
+            vars_required_for_update=tuple(),
+            vars_populated_by_init=tuple(),
+            vars_populated_by_first_update=tuple(),
         ):
             pass
 
@@ -274,7 +286,7 @@ def test_check_required_init_var_structure(riv_value, exp_raise, exp_msg):
         assert str(err.value) == exp_msg
 
 
-def test_check_failure_on_missing_methods(data_instance, fixture_core_components):
+def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_components):
     """Test that a model without methods raises an error.
 
     The two properties get caught earlier, when __init_subclass__ runs, but missing
@@ -286,20 +298,32 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
         BaseModel,
         model_name="init_var",
         model_update_bounds=("1 second", "1 year"),
-        required_init_vars=(),
-        vars_updated=[],
+        vars_required_for_init=(),
+        vars_updated=(),
+        vars_required_for_update=tuple(),
+        vars_populated_by_init=tuple(),
+        vars_populated_by_first_update=tuple(),
     ):
         pass
 
     with pytest.raises(TypeError) as err:
-        _ = InitVarModel(data=data_instance, core_components=fixture_core_components)
+        _ = InitVarModel(
+            data=dummy_climate_data, core_components=fixture_core_components
+        )
 
-    assert (
-        str(err.value) == "Can't instantiate abstract class InitVarModel with "
-        "abstract methods cleanup, from_config, setup, spinup, update"
-    )
+    # Note python version specific exception messages:
+    # - Can't instantiate abstract class InitVarModel with abstract methods cleanup,
+    #   from_config, setup, spinup, update
+    # versus
+    # - Can't instantiate abstract class InitVarModel without an implementation for
+    #   abstract methods 'cleanup', 'from_config', 'setup', 'spinup', 'update'
+    assert str(err.value).startswith("Can't instantiate abstract class InitVarModel ")
 
 
+@pytest.mark.skip(
+    "This functionality is going to be handed off to the variables system "
+    "so skipping for now but this will probably be deleted"
+)
 @pytest.mark.parametrize(
     argnames="req_init_vars, raises, exp_err_msg, exp_log",
     argvalues=[
@@ -330,7 +354,7 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
         pytest.param(
             [("precipitation", ("spatial",))],
             pytest.raises(ValueError),
-            "init_var model: error checking required_init_vars, see log.",
+            "init_var model: error checking vars_required_for_init, see log.",
             (
                 (
                     ERROR,
@@ -339,23 +363,23 @@ def test_check_failure_on_missing_methods(data_instance, fixture_core_components
                 ),
                 (
                     ERROR,
-                    "init_var model: error checking required_init_vars, see log.",
+                    "init_var model: error checking vars_required_for_init, see log.",
                 ),
             ),
             id="missing axis",
         ),
     ],
 )
-def test_check_required_init_vars(
+def test_check_vars_required_for_init(
     caplog,
-    data_instance,
+    fixture_data_instance_for_model_validation,
     fixture_core_components,
     req_init_vars,
     raises,
     exp_err_msg,
     exp_log,
 ):
-    """Tests the validation of the required_init_vars property on init."""
+    """Tests the validation of the vars_required_for_init property on init."""
 
     # This gets registered for each parameterisation but I can't figure out how to
     # create the instance via a module-scope fixture and the alternative is just
@@ -370,20 +394,20 @@ def test_check_required_init_vars(
         BaseModel,
         model_name="init_var",
         model_update_bounds=("1 second", "1 year"),
-        required_init_vars=(),
+        vars_required_for_init=(),
         vars_updated=[],
     ):
         def setup(self) -> None:
-            return super().setup()
+            pass
 
         def spinup(self) -> None:
-            return super().spinup()
+            pass
 
         def update(self, time_index: int, **kwargs: Any) -> None:
-            return super().update(time_index)
+            pass
 
         def cleanup(self) -> None:
-            return super().cleanup()
+            pass
 
         @classmethod
         def from_config(
@@ -399,13 +423,14 @@ def test_check_required_init_vars(
     # Registration of TestClassModel emits logging messages - discard.
     caplog.clear()
 
-    # Override the required_init_vars for different test cases against the data_instance
-    TestCaseModel.required_init_vars = req_init_vars
+    # Override the vars_required_for_init for different test cases against the
+    # data_instance
+    TestCaseModel.vars_required_for_init = req_init_vars
 
     # Create an instance to check the handling
     with raises as err:
         inst = TestCaseModel(
-            data=data_instance,
+            data=fixture_data_instance_for_model_validation,
             core_components=fixture_core_components,
         )
 
@@ -473,7 +498,13 @@ def test_check_required_init_vars(
         ),
     ],
 )
-def test_check_update_speed(caplog, config_string, raises, expected_log):
+def test_check_update_speed(
+    caplog,
+    fixture_data_instance_for_model_validation,
+    config_string,
+    raises,
+    expected_log,
+):
     """Tests check on update speed."""
 
     from virtual_ecosystem.core.base_model import BaseModel
@@ -485,20 +516,23 @@ def test_check_update_speed(caplog, config_string, raises, expected_log):
         BaseModel,
         model_name="timing_test",
         model_update_bounds=("1 day", "1 month"),
-        required_init_vars=(),
-        vars_updated=[],
+        vars_required_for_init=(),
+        vars_updated=(),
+        vars_required_for_update=tuple(),
+        vars_populated_by_init=tuple(),
+        vars_populated_by_first_update=tuple(),
     ):
         def setup(self) -> None:
-            return super().setup()
+            pass
 
         def spinup(self) -> None:
-            return super().spinup()
+            pass
 
         def update(self, time_index: int, **kwargs: Any) -> None:
-            return super().update(time_index)
+            pass
 
         def cleanup(self) -> None:
-            return super().cleanup()
+            pass
 
         @classmethod
         def from_config(
@@ -517,6 +551,9 @@ def test_check_update_speed(caplog, config_string, raises, expected_log):
     caplog.clear()
 
     with raises:
-        _ = TimingTestModel(data=data_instance, core_components=core_components)
+        _ = TimingTestModel(
+            data=fixture_data_instance_for_model_validation,
+            core_components=core_components,
+        )
 
     log_check(caplog, expected_log)

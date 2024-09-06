@@ -1,26 +1,16 @@
 """The :mod:`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model` module
 creates a
 :class:`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
-class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class. At
-present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the Virtual Ecosystem
-model develops. The factory method
-:func:`~virtual_ecosystem.models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel.from_config`
-exists in a more complete state, and unpacks a small number of parameters from our
-currently pretty minimal configuration dictionary. These parameters are then used to
-generate a class instance. If errors crop here when converting the information from the
-config dictionary to the required types they are caught and then logged, and at the end
-of the unpacking an error is thrown. This error should be caught and handled by
-downstream functions so that all model configuration failures can be reported as one.
-"""  # noqa: D205, D415
+class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
+
+Todo:
+* update temperatures to Kelvin
+* pressure and CO2 profiles should only be filled for filled/true above ground layers
+"""  # noqa: D205
 
 from __future__ import annotations
 
 from typing import Any
-
-import numpy as np
-from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -29,27 +19,46 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic_simple import microclimate
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+from virtual_ecosystem.models.abiotic_simple.constants import (
+    AbioticSimpleBounds,
+    AbioticSimpleConsts,
+)
 
 
 class AbioticSimpleModel(
     BaseModel,
     model_name="abiotic_simple",
     model_update_bounds=("1 day", "1 month"),
-    required_init_vars=(  # TODO add temporal axis
-        ("air_temperature_ref", ("spatial",)),
-        ("relative_humidity_ref", ("spatial",)),
-        ("atmospheric_pressure_ref", ("spatial",)),
-        ("atmospheric_co2_ref", ("spatial",)),
-        ("mean_annual_temperature", ("spatial",)),
-        ("leaf_area_index", ("spatial",)),
-        ("layer_heights", ("spatial",)),
+    vars_required_for_init=(
+        "air_temperature_ref",
+        "relative_humidity_ref",
     ),
     vars_updated=(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
         "soil_temperature",
+        "atmospheric_pressure",
+        "atmospheric_co2",
+    ),
+    vars_required_for_update=(
+        "air_temperature_ref",
+        "relative_humidity_ref",
+        "vapour_pressure_deficit_ref",
+        "atmospheric_pressure_ref",
+        "atmospheric_co2_ref",
+        "leaf_area_index",
+        "layer_heights",
+    ),
+    vars_populated_by_init=(  # TODO move functionality from setup() to __init__
+        "soil_temperature",
+        "vapour_pressure_ref",
+        "vapour_pressure_deficit_ref",
+    ),
+    vars_populated_by_first_update=(
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
     ),
@@ -71,10 +80,12 @@ class AbioticSimpleModel(
     ):
         super().__init__(data=data, core_components=core_components, **kwargs)
 
-        self.data
-        """A Data instance providing access to the shared simulation data."""
         self.model_constants = model_constants
         """Set of constants for the abiotic simple model"""
+        self.bounds = AbioticSimpleBounds()
+        """Upper and lower bounds for abiotic variables."""
+
+        self._setup()
 
     @classmethod
     def from_config(
@@ -108,36 +119,36 @@ class AbioticSimpleModel(
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(self) -> None:
         """Function to set up the abiotic simple model.
 
-        At the moment, this function only initializes soil temperature for all
-        soil layers and calculates the reference vapour pressure deficit for all time
-        steps. Both variables are added directly to the self.data object.
+        This function initializes soil temperature for all soil layers and calculates
+        the reference vapour pressure deficit for all time steps. Both variables are
+        added directly to the self.data object.
         """
 
         # create soil temperature array
-        self.data["soil_temperature"] = DataArray(
-            np.full(
-                (self.layer_structure.n_layers, self.data.grid.n_cells),
-                np.nan,
-            ),
-            dims=["layers", "cell_id"],
-            coords={
-                "layers": np.arange(0, self.layer_structure.n_layers),
-                "layer_roles": ("layers", self.layer_structure.layer_roles),
-                "cell_id": self.data.grid.cell_id,
-            },
-            name="soil_temperature",
-        )
+        self.data["soil_temperature"] = self.layer_structure.from_template()
 
         # calculate vapour pressure deficit at reference height for all time steps
-        self.data["vapour_pressure_deficit_ref"] = (
-            microclimate.calculate_vapour_pressure_deficit(
-                temperature=self.data["air_temperature_ref"],
-                relative_humidity=self.data["relative_humidity_ref"],
-                constants=self.model_constants,
-            ).rename("vapour_pressure_deficit_ref")
+        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
+            temperature=self.data["air_temperature_ref"],
+            relative_humidity=self.data["relative_humidity_ref"],
+            saturation_vapour_pressure_factors=(
+                self.model_constants.saturation_vapour_pressure_factors
+            ),
         )
+        self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
+            "vapour_pressure_deficit"
+        ]
+        self.data["vapour_pressure_ref"] = vapour_pressure_and_deficit[
+            "vapour_pressure"
+        ]
 
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
@@ -147,16 +158,17 @@ class AbioticSimpleModel(
 
         Args:
             time_index: The index of the current time step in the data object.
+            **kwargs: Further arguments to the update method.
         """
 
         # This section performs a series of calculations to update the variables in the
-        # abiotic model. This could be moved to here and written directly to the data
-        # object. For now, we leave it as a separate routine.
+        # abiotic model. The updated variables are then added to the data object.
         output_variables = microclimate.run_microclimate(
             data=self.data,
-            layer_roles=self.layer_structure.layer_roles,
+            layer_structure=self.layer_structure,
             time_index=time_index,
             constants=self.model_constants,
+            bounds=self.bounds,
         )
         self.data.add_from_dict(output_dict=output_variables)
 

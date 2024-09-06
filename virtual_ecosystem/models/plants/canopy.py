@@ -3,13 +3,12 @@ functions used to estimate the canopy model.
 
 NOTE - much of this will be outsourced to pyrealm.
 
-"""  # noqa: D205, D415
+"""  # noqa: D205
 
 from __future__ import annotations
 
 import numpy as np
 from numpy.typing import NDArray
-from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -151,9 +150,9 @@ def build_canopy_arrays(
 def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Data:
     """Initialise the canopy layer height and leaf area index data.
 
-    This function initialises four data arrays describing the plant canopy structure and
-    soil layer structure within a Data object: ``layer_heights``, ``leaf_area_index``,
-    ``layer_fapar``, ``layer_leaf_mass`` and ``layer_absorbed_irradiation``.
+    This function initialises the following data arrays describing the plant canopy
+    structure and soil layer structure within a Data object: ``layer_heights``,
+    ``leaf_area_index``, ``layer_fapar``, ``layer_leaf_mass`` and ``canopy_absorption``.
 
     Args:
         data: A Data object to update.
@@ -175,7 +174,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         "leaf_area_index",
         "layer_fapar",
         "layer_leaf_mass",
-        "layer_absorbed_irradiation",
+        "canopy_absorption",
     )
 
     layers_found = set(layers_to_create).intersection(data.data.variables)
@@ -187,32 +186,18 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         LOGGER.critical(msg)
         raise InitialisationError(msg)
 
-    # Define the layers
-    layer_shape = (layer_structure.n_layers, data.grid.n_cells)
-
+    # Initialise a data array for each layer from the layer structure template
     for each_layer_name in layers_to_create:
-        # Set the layers
-        data[each_layer_name] = DataArray(
-            data=np.full(layer_shape, fill_value=np.nan),
-            dims=("layers", "cell_id"),
-            coords={
-                "layers": np.arange(layer_structure.n_layers),
-                "layer_roles": ("layers", layer_structure.layer_roles),
-                "cell_id": data.grid.cell_id,
-            },
-        )
+        data[each_layer_name] = layer_structure.from_template()
 
     # Initialise the fixed layer heights
-    data["layer_heights"].loc[dict(layers=data["layer_roles"] == "soil")] = (
-        np.row_stack(layer_structure.soil_layers)
+    # TODO: See issue #442 about centralising the layer_heights variable initialisation
+    data["layer_heights"].loc[dict(layers=layer_structure.index_all_soil)] = (
+        layer_structure.soil_layer_depths.reshape(-1, 1)
     )
 
-    data["layer_heights"].loc[dict(layers=data["layer_roles"] == "surface")] = (
+    data["layer_heights"].loc[dict(layers=layer_structure.index_surface)] = (
         layer_structure.surface_layer_height
-    )
-
-    data["layer_heights"].loc[dict(layers=data["layer_roles"] == "subcanopy")] = (
-        layer_structure.subcanopy_layer_height
     )
 
     return data
