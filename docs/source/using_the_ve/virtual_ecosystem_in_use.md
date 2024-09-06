@@ -33,8 +33,12 @@ import numpy as np
 import xarray
 ```
 
+If you have previously attempted to run this example it is probably a good idea to
+delete the existing virtual ecosystem example directory, as previously generated files
+can prevent the example simulation from running successfully. That can be done as
+follows.
+
 ```{code-cell} ipython3
-:tags: [remove-cell]
 
 %%bash
 # Remove any existing VE data directory in the /tmp/ directory
@@ -42,6 +46,8 @@ if [ -d /tmp/ve_example ]; then
   rm -r /tmp/ve_example
 fi
 ```
+
+A fresh example data directory can then be installed.
 
 ```{code-cell} ipython3
 %%bash
