@@ -22,12 +22,12 @@ Foundation to Professor Robert Ewers:
 * [NOMIS project summary](https://nomisfoundation.ch/research-projects/a-virtual-rainforest-for-understanding-the-stability-resilience-and-sustainability-of-complex-ecosystems/)
 
 <!-- markdownlint-disable-next-line  MD033 MD013-->
-[<img alt="NOMIS logo" src="docs/source/_static/images/logo-nomis-822-by-321.png" width=250>](https://nomisfoundation.ch)
+[<img alt="NOMIS logo" src="https://github.com/ImperialCollegeLondon/virtual_ecosystem/blob/c94cef61d997764442d7beb9ac2eaedae71cfad1/docs/source/_static/images/logo-nomis-822-by-321.png?raw=true" width=250>](https://nomisfoundation.ch)
 
 The research is based at Imperial College London:
 
 <!-- markdownlint-disable-next-line  MD033 MD013-->
-[<img alt="Imperial logo" src="docs/source/_static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png" width=250>](https://imperial.ac.uk)
+[<img alt="Imperial logo" src="https://github.com/ImperialCollegeLondon/virtual_ecosystem/blob/c94cef61d997764442d7beb9ac2eaedae71cfad1/docs/source/_static/images/IMP_ML_1CS_4CP_CLEAR-SPACE.png?raw=true" width=250>](https://imperial.ac.uk)
 
 ## Project Team
 
