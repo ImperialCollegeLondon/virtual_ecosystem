@@ -266,7 +266,12 @@ def excrement_pool_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
-    return ExcrementPool(100000.0, 0.0)
+    return ExcrementPool(
+        scavengeable_energy=100000.0,
+        decomposed_energy=0.0,
+        scavengeable_nitrogen=1e-2,
+        decomposed_nitrogen=0.0,
+    )
 
 
 @pytest.fixture
