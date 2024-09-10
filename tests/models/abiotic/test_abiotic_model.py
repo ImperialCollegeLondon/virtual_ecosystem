@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, ERROR, INFO
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -17,6 +18,26 @@ REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
     (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic model: required var 'layer_heights' checked"),
+)
+
+SETUP_MANIPULATIONS = (
+    (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
+    (INFO, "Replacing data array for 'vapour_pressure_ref'"),
+    (INFO, "Replacing data array for 'air_temperature'"),
+    (INFO, "Replacing data array for 'relative_humidity'"),
+    (INFO, "Adding data array for 'vapour_pressure_deficit'"),
+    (INFO, "Replacing data array for 'atmospheric_pressure'"),
+    (INFO, "Adding data array for 'atmospheric_co2'"),
+    (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'canopy_absorption'"),
+    (INFO, "Replacing data array for 'canopy_temperature'"),
+    (INFO, "Replacing data array for 'sensible_heat_flux'"),
+    (INFO, "Replacing data array for 'latent_heat_flux'"),
+    (INFO, "Adding data array for 'ground_heat_flux'"),
+    (INFO, "Adding data array for 'air_heat_conductivity'"),
+    (INFO, "Replacing data array for 'leaf_vapour_conductivity'"),
+    (INFO, "Replacing data array for 'leaf_air_heat_conductivity'"),
 )
 
 
@@ -44,7 +65,7 @@ def test_abiotic_model_initialization(
     # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=REQUIRED_INIT_VAR_CHECKS,
+        expected_log=REQUIRED_INIT_VAR_CHECKS + SETUP_MANIPULATIONS,
     )
 
 
@@ -164,14 +185,18 @@ def test_generate_abiotic_model(
     core_components = CoreComponents(config)
     caplog.clear()
 
-    # Check whether model is initialised (or not) as expected
-    with raises:
-        model = AbioticModel.from_config(
-            data=dummy_climate_data,
-            core_components=core_components,
-            config=config,
-        )
-        assert model.model_constants.drag_coefficient == drag_coeff
+    # We patch the _setup step as it is tested separately
+    module_name = "virtual_ecosystem.models.abiotic.abiotic_model"
+    with patch(f"{module_name}.AbioticModel._setup") as mock_setup:
+        # Check whether model is initialised (or not) as expected
+        with raises:
+            model = AbioticModel.from_config(
+                data=dummy_climate_data,
+                core_components=core_components,
+                config=config,
+            )
+            assert model.model_constants.drag_coefficient == drag_coeff
+            mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -243,8 +268,6 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         data=dummy_climate_data,
         core_components=fixture_core_components,
     )
-
-    model.setup()
 
     # check all variables are in data object
     for var in [
@@ -319,7 +342,6 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
         core_components=fixture_core_components,
     )
 
-    model.setup()
     model.update(time_index=0)
 
     # Check that updated vars are in data object

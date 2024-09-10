@@ -55,6 +55,11 @@ def test_litter_model_initialization(
             (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
             (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
             (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
+            (DEBUG, "litter model: required var 'c_p_ratio_above_metabolic' checked"),
+            (DEBUG, "litter model: required var 'c_p_ratio_above_structural' checked"),
+            (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
+            (DEBUG, "litter model: required var 'c_p_ratio_below_metabolic' checked"),
+            (DEBUG, "litter model: required var 'c_p_ratio_below_structural' checked"),
         ),
     )
 
@@ -141,6 +146,27 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
                 ERROR,
                 "litter model: init data missing required var "
                 "'c_n_ratio_below_structural'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_p_ratio_above_metabolic'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_p_ratio_above_structural'",
+            ),
+            (ERROR, "litter model: init data missing required var 'c_p_ratio_woody'"),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_p_ratio_below_metabolic'",
+            ),
+            (
+                ERROR,
+                "litter model: init data missing required var "
+                "'c_p_ratio_below_structural'",
             ),
             (ERROR, "litter model: error checking vars_required_for_init, see log."),
         ),
@@ -293,6 +319,23 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
                     DEBUG,
                     "litter model: required var 'c_n_ratio_below_structural' checked",
                 ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_above_structural' checked",
+                ),
+                (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_below_structural' checked",
+                ),
             ),
             id="default_config",
         ),
@@ -344,6 +387,23 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
                 (
                     DEBUG,
                     "litter model: required var 'c_n_ratio_below_structural' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_above_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_above_structural' checked",
+                ),
+                (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_below_metabolic' checked",
+                ),
+                (
+                    DEBUG,
+                    "litter model: required var 'c_p_ratio_below_structural' checked",
                 ),
             ),
             id="modified_config_correct",
@@ -397,21 +457,27 @@ def test_generate_litter_model(
 def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.32072786, 0.15473132, 0.08523907, 0.08074153]
-    end_above_struct = [0.50470382, 0.25068224, 0.09843778, 0.11163532]
-    end_woody = [4.7745168, 11.89872931, 7.3614112, 7.3314112]
-    end_below_meta = [0.41087696, 0.37434507, 0.06905624, 0.08337808]
-    end_below_struct = [0.6066914, 0.31869812, 0.02010607, 0.03038423]
-    end_lignin_above_struct = [0.49790843, 0.10067782, 0.70495536, 0.71045831]
-    end_lignin_woody = [0.49580586, 0.79787834, 0.35224223, 0.35012603]
-    end_lignin_below_struct = [0.50313573, 0.26585915, 0.7499951, 0.82142798]
-    end_c_n_above_metabolic = [7.42828416, 8.93702901, 11.13974239, 10.28862956]
-    end_c_n_above_structural = [37.56983094, 43.34654437, 49.02060275, 54.44715499]
-    end_c_n_woody = [55.581683655, 63.25507083, 47.520800061, 59.08199528]
-    end_c_n_below_metabolic = [10.90350592, 11.4669011, 15.20703826, 12.66163681]
-    end_c_n_below_structural = [50.77558203, 56.38787769, 73.18371555, 64.0424462]
+    end_above_meta = [0.31567198, 0.1529074957, 0.0813030042, 0.0736771942]
+    end_above_struct = [0.50519138, 0.25011962, 0.10250070, 0.11882651]
+    end_woody = [4.77403361, 11.89845863, 7.3598224, 7.3298224]
+    end_below_meta = [0.3976309, 0.3630269, 0.06787947, 0.07794085]
+    end_below_struct = [0.61050583, 0.32205947352, 0.02014514530, 0.03468376530]
+    end_lignin_above_struct = [0.49726219, 0.10065698, 0.67693666, 0.6673972]
+    end_lignin_woody = [0.49580543, 0.7978783, 0.35224272, 0.35012606]
+    end_lignin_below_struct = [0.49974338, 0.26270806, 0.74846367, 0.71955592]
+    end_c_n_above_metabolic = [7.39175978, 8.93054462, 10.40414542, 9.86041981]
+    end_c_n_above_structural = [37.5547150, 43.3448492, 48.0974058, 52.0359678]
+    end_c_n_woody = [55.5816919, 63.2550698, 47.5208477, 59.0819914]
+    end_c_n_below_metabolic = [10.7299421, 11.3394567, 15.1984024, 12.2222413]
+    end_c_n_below_structural = [50.6228215, 55.9998994, 73.0948342, 58.6661277]
+    end_c_p_above_metabolic = [69.957176, 68.5502416, 107.1709994, 96.55826106]
+    end_c_p_above_structural = [346.048307, 472.496124, 465.834123, 525.882608]
+    end_c_p_woody = [560.22870571, 762.56863636, 848.03530307, 600.40427444]
+    end_c_p_below_metabolic = [308.200782, 405.110726, 314.824814, 372.870229]
+    end_c_p_below_structural = [563.06464, 597.68324, 772.78968, 609.82810]
     c_mineral = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
     n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
+    p_mineral = [4.39937479e-4, 2.13832149e-4, 6.40698004e-5, 6.56405873e-5]
 
     fixture_litter_model.update(time_index=0)
 
@@ -445,5 +511,19 @@ def test_update(fixture_litter_model, dummy_litter_data):
     assert np.allclose(
         dummy_litter_data["c_n_ratio_below_structural"], end_c_n_below_structural
     )
+    assert np.allclose(
+        dummy_litter_data["c_p_ratio_above_metabolic"], end_c_p_above_metabolic
+    )
+    assert np.allclose(
+        dummy_litter_data["c_p_ratio_above_structural"], end_c_p_above_structural
+    )
+    assert np.allclose(dummy_litter_data["c_p_ratio_woody"], end_c_p_woody)
+    assert np.allclose(
+        dummy_litter_data["c_p_ratio_below_metabolic"], end_c_p_below_metabolic
+    )
+    assert np.allclose(
+        dummy_litter_data["c_p_ratio_below_structural"], end_c_p_below_structural
+    )
     assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
     assert np.allclose(dummy_litter_data["litter_N_mineralisation_rate"], n_mineral)
+    assert np.allclose(dummy_litter_data["litter_P_mineralisation_rate"], p_mineral)

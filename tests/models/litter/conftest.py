@@ -17,7 +17,7 @@ def fixture_litter_model(dummy_litter_data, fixture_core_components):
 
     # Build the config object
     config = Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '24 hours'\n[litter]\n"
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
     )
     core_components = CoreComponents(config)
 
@@ -54,6 +54,11 @@ def dummy_litter_data(fixture_core_components):
         "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
         "c_n_ratio_below_metabolic": [10.7, 11.3, 15.2, 12.4],
         "c_n_ratio_below_structural": [50.5, 55.6, 73.1, 61.2],
+        "c_p_ratio_above_metabolic": [57.3, 68.7, 100.1, 95.8],
+        "c_p_ratio_above_structural": [337.5, 473.2, 415.8, 570.2],
+        "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
+        "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
+        "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
         "decomposed_excrement": [8e-07, 8.42857e-07, 3.28571e-05, 3.28571e-05],
         "decomposed_carcasses": [1.0714e-4, 4.8571e-4, 1.15714e-3, 1.15714e-3],
         "deadwood_production": [0.075, 0.099, 0.063, 0.033],
@@ -68,6 +73,10 @@ def dummy_litter_data(fixture_core_components):
         "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
         "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
         "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
+        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
+        "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
+        "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
+        "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
     }
 
     for var, vals in pool_values.items():
@@ -140,6 +149,11 @@ def metabolic_splits(dummy_litter_data):
             "plant_reproductive_tissue_turnover_c_n_ratio"
         ].to_numpy(),
         root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"].to_numpy(),
+        leaf_turnover_c_p_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"].to_numpy(),
+        reproduct_turnover_c_p_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_p_ratio"
+        ].to_numpy(),
+        root_turnover_c_p_ratio=dummy_litter_data["root_turnover_c_p_ratio"].to_numpy(),
         constants=LitterConsts,
     )
 
@@ -197,3 +211,36 @@ def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
     )
 
     return input_c_n_ratios
+
+
+@pytest.fixture
+def input_c_p_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
+    """Carbon:nitrogen ratio of each input flow."""
+
+    input_c_p_ratios = litter_chemistry.calculate_litter_input_phosphorus_ratios(
+        metabolic_splits=metabolic_splits,
+        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+    )
+
+    return input_c_p_ratios
+
+
+@pytest.fixture
+def updated_pools(dummy_litter_data, decay_rates, plant_inputs):
+    """Updated carbon mass of each pool."""
+    from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
+
+    updated_pools = calculate_updated_pools(
+        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
+        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
+        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
+        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
+        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        decomposed_excrement=dummy_litter_data["decomposed_excrement"].to_numpy(),
+        decomposed_carcasses=dummy_litter_data["decomposed_carcasses"].to_numpy(),
+        decay_rates=decay_rates,
+        plant_inputs=plant_inputs,
+        update_interval=2.0,
+    )
+
+    return updated_pools

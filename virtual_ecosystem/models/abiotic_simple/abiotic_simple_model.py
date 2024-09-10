@@ -85,6 +85,8 @@ class AbioticSimpleModel(
         self.bounds = AbioticSimpleBounds()
         """Upper and lower bounds for abiotic variables."""
 
+        self._setup()
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -117,6 +119,12 @@ class AbioticSimpleModel(
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(self) -> None:
         """Function to set up the abiotic simple model.
 
         This function initializes soil temperature for all soil layers and calculates
