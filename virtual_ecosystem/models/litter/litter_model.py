@@ -16,12 +16,8 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205
 
-# TODO - At the moment this model only receives two things from the animal model,
-# excrement and decayed carcass biomass. Both of these are simply added to the above
-# ground metabolic litter. In future, bones and feathers should also be added, these
-# will be handled using the more recalcitrant litter pools. However, we are leaving off
-# adding these for now as they have minimal effects on the carbon cycle, though they
-# probably matter for other nutrient cycles.
+# TODO - At the moment this model only receives nothing from the animal model. In
+# future, litter flows due to waste from herbivory need to be added.
 
 # FUTURE - Potentially make a more numerically accurate version of this model by using
 # differential equations at some point. In reality, litter chemistry should change
@@ -341,8 +337,6 @@ class LitterModel(
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
-            decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
-            decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
             decay_rates=decay_rates,
             plant_inputs=plant_inputs,
             update_interval=self.model_timing.update_interval_quantity.to(

@@ -735,14 +735,14 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of excrement flow from animals into litter"
+description = "Rate of excrement flow from animals into soil"
 name = "decomposed_excrement"
 unit = "kg C m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of decomposed carcass biomass flow from animals into litter"
+description = "Rate of decomposed carcass biomass flow from animals into soil"
 name = "decomposed_carcasses"
 unit = "kg C m^-3 day^-1"
 variable_type = "float"
