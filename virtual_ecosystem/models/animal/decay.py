@@ -10,11 +10,13 @@ from dataclasses import dataclass
 class CarcassPool:
     """This class store information about the carcass biomass in each grid cell."""
 
-    scavengeable_energy: float
-    """The amount of animal accessible energy in the carcass pool [J]."""
+    # TODO - NEED TO THINK ABOUT AREA UNITS
 
-    decomposed_energy: float
-    """The amount of decomposed energy in the carcass pool [J]."""
+    scavengeable_carbon: float
+    """The amount of animal accessible carbon in the carcass pool [kg C]."""
+
+    decomposed_carbon: float
+    """The amount of decomposed carbon in the carcass pool [kg C]."""
 
     scavengeable_nitrogen: float
     """The amount of animal accessible nitrogen in the carcass pool [kg N]."""
@@ -28,33 +30,38 @@ class CarcassPool:
     decomposed_phosphorus: float
     """The amount of decomposed phosphorus in the carcass pool [kg P]."""
 
-    def decomposed_carbon(self, grid_cell_area: float) -> float:
-        """Calculate carbon stored in decomposed carcasses based on the energy.
-
-        TODO - At the moment this literally just assumes that a kilogram of carbon
-        contains 10^6 J, in future this needs to be properly parametrised.
+    def decomposed_nutrient_per_area(
+        self, nutrient: str, grid_cell_area: float
+    ) -> float:
+        """Convert decomposed carcass nutrient content to mass per area units.
 
         Args:
+            nutrient: The name of the nutrient to calculate for
             grid_cell_area: The size of the grid cell [m^2]
 
+        Raises:
+            AttributeError: If a nutrient other than carbon, nitrogen, or phosphorus is
+                chosen
+
         Returns:
-            The amount of decomposed carcass biomass in carbon terms [kg C m^-2]
+            The nutrient content of the decomposed carcasses on a per area basis [kg
+            m^-2]
         """
 
-        joules_per_kilo_carbon = 1e6
+        decomposed_nutrient = getattr(self, f"decomposed_{nutrient}")
 
-        return self.decomposed_energy / (joules_per_kilo_carbon * grid_cell_area)
+        return decomposed_nutrient / grid_cell_area
 
 
 @dataclass
 class ExcrementPool:
     """This class store information about the amount of excrement in each grid cell."""
 
-    scavengeable_energy: float
-    """The amount of animal accessible energy in the excrement pool [J]."""
+    scavengeable_carbon: float
+    """The amount of animal accessible carbon in the excrement pool [kg C]."""
 
-    decomposed_energy: float
-    """The amount of decomposed energy in the excrement pool [J]."""
+    decomposed_carbon: float
+    """The amount of decomposed carbon in the excrement pool [kg C]."""
 
     scavengeable_nitrogen: float
     """The amount of animal accessible nitrogen in the excrement pool [kg N]."""
@@ -68,19 +75,24 @@ class ExcrementPool:
     decomposed_phosphorus: float
     """The amount of decomposed phosphorus in the excrement pool [kg P]."""
 
-    def decomposed_carbon(self, grid_cell_area: float) -> float:
-        """Calculate carbon stored in decomposed excrement based on the energy.
-
-        TODO - At the moment this literally just assumes that a kilogram of carbon
-        contains 10^6 J, in future this needs to be properly parametrised.
+    def decomposed_nutrient_per_area(
+        self, nutrient: str, grid_cell_area: float
+    ) -> float:
+        """Convert decomposed excrement nutrient content to mass per area units.
 
         Args:
+            nutrient: The name of the nutrient to calculate for
             grid_cell_area: The size of the grid cell [m^2]
 
+        Raises:
+            AttributeError: If a nutrient other than carbon, nitrogen, or phosphorus is
+                chosen
+
         Returns:
-            The amount of decomposed excrement in carbon terms [kg C m^-2]
+            The nutrient content of the decomposed excrement on a per area basis [kg
+            m^-2]
         """
 
-        joules_per_kilo_carbon = 1e6
+        decomposed_nutrient = getattr(self, f"decomposed_{nutrient}")
 
-        return self.decomposed_energy / (joules_per_kilo_carbon * grid_cell_area)
+        return decomposed_nutrient / grid_cell_area

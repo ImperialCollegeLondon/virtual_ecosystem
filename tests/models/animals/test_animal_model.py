@@ -306,13 +306,13 @@ def test_calculate_litter_additions(functional_group_list_instance):
     )
 
     # Update the waste pools
-    decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
-    for energy, community in zip(decomposed_excrement, model.communities.values()):
-        community.excrement_pool.decomposed_energy = energy
+    decomposed_excrement = [3.5e-3, 5.6e-2, 5.9e-2, 2.3e0]
+    for carbon, community in zip(decomposed_excrement, model.communities.values()):
+        community.excrement_pool.decomposed_carbon = carbon
 
-    decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8]
-    for energy, community in zip(decomposed_carcasses, model.communities.values()):
-        community.carcass_pool.decomposed_energy = energy
+    decomposed_carcasses = [7.5e0, 3.4e1, 8.1e1, 1.7e2]
+    for carbon, community in zip(decomposed_carcasses, model.communities.values()):
+        community.carcass_pool.decomposed_carbon = carbon
 
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
@@ -330,14 +330,14 @@ def test_calculate_litter_additions(functional_group_list_instance):
     # Check that the function has reset the pools correctly
     assert np.allclose(
         [
-            community.excrement_pool.decomposed_energy
+            community.excrement_pool.decomposed_carbon
             for community in model.communities.values()
         ],
         0.0,
     )
     assert np.allclose(
         [
-            community.carcass_pool.decomposed_energy
+            community.carcass_pool.decomposed_carbon
             for community in model.communities.values()
         ],
         0.0,

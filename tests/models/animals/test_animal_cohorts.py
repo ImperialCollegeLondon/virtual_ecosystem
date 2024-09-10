@@ -237,7 +237,7 @@ class TestAnimalCohort:
             assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "cohort_type, excreta_mass, initial_pool_energy, expected_pool_energy",
+        "cohort_type, excreta_mass, initial_pool_carbon, expected_pool_carbon",
         [
             ("herbivore", 100.0, 500.0, 500.0),  # normal case for herbivore
             ("herbivore", 0.0, 500.0, 500.0),  # zero excreta mass for herbivore
@@ -258,8 +258,8 @@ class TestAnimalCohort:
         ectotherm_cohort_instance,
         cohort_type,
         excreta_mass,
-        initial_pool_energy,
-        expected_pool_energy,
+        initial_pool_carbon,
+        expected_pool_carbon,
     ):
         """Testing excrete method for various scenarios.
 
@@ -277,13 +277,13 @@ class TestAnimalCohort:
 
         # Mock the excrement pool
         excrement_pool = mocker.Mock()
-        excrement_pool.decomposed_energy = initial_pool_energy
+        excrement_pool.decomposed_carbon = initial_pool_carbon
 
         # Call the excrete method
         cohort_instance.excrete(excreta_mass, excrement_pool)
 
         # Check the expected results
-        assert excrement_pool.decomposed_energy == expected_pool_energy
+        assert excrement_pool.decomposed_carbon == expected_pool_carbon
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass, expected_carbon_waste",
@@ -329,7 +329,7 @@ class TestAnimalCohort:
         assert carbon_waste == expected_carbon_waste
 
     @pytest.mark.parametrize(
-        "scav_initial, scav_final, decomp_initial, decomp_final, consumed_energy",
+        "scav_initial, scav_final, decomp_initial, decomp_final, consumed_carbon",
         [
             (1000.0, 1500.0, 0.0, 500.0, 1000.0),
             (0.0, 500.0, 1000.0, 1500.0, 1000.0),
@@ -345,14 +345,14 @@ class TestAnimalCohort:
         scav_final,
         decomp_initial,
         decomp_final,
-        consumed_energy,
+        consumed_carbon,
     ):
         """Testing defecate() for varying soil energy levels."""
-        excrement_pool_instance.scavengeable_energy = scav_initial
-        excrement_pool_instance.decomposed_energy = decomp_initial
-        herbivore_cohort_instance.defecate(excrement_pool_instance, consumed_energy)
-        assert excrement_pool_instance.scavengeable_energy == scav_final
-        assert excrement_pool_instance.decomposed_energy == decomp_final
+        excrement_pool_instance.scavengeable_carbon = scav_initial
+        excrement_pool_instance.decomposed_carbon = decomp_initial
+        herbivore_cohort_instance.defecate(excrement_pool_instance, consumed_carbon)
+        assert excrement_pool_instance.scavengeable_carbon == scav_final
+        assert excrement_pool_instance.decomposed_carbon == decomp_final
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
@@ -398,11 +398,11 @@ class TestAnimalCohort:
     ):
         """Testing death."""
         herbivore_cohort_instance.individuals = initial_pop
-        carcass_pool_instance.scavengeable_energy = initial_carcass
+        carcass_pool_instance.scavengeable_carbon = initial_carcass
         herbivore_cohort_instance.die_individual(number_dead, carcass_pool_instance)
         assert herbivore_cohort_instance.individuals == final_pop
-        assert carcass_pool_instance.scavengeable_energy == final_carcass
-        assert carcass_pool_instance.decomposed_energy == decomp_carcass
+        assert carcass_pool_instance.scavengeable_carbon == final_carcass
+        assert carcass_pool_instance.decomposed_carbon == decomp_carcass
 
     def test_get_eaten(
         self, prey_cohort_instance, predator_cohort_instance, carcass_pool_instance
@@ -411,8 +411,8 @@ class TestAnimalCohort:
         potential_consumed_mass = 100  # Set a potential consumed mass for testing
         initial_individuals = prey_cohort_instance.individuals
         initial_mass_current = prey_cohort_instance.mass_current
-        initial_carcass_scavengeable_energy = carcass_pool_instance.scavengeable_energy
-        initial_carcass_decomposed_energy = carcass_pool_instance.decomposed_energy
+        initial_carcass_scavengeable_carbon = carcass_pool_instance.scavengeable_carbon
+        initial_carcass_decomposed_carbon = carcass_pool_instance.decomposed_carbon
 
         # Execute the get_eaten method with test parameters
         actual_consumed_mass = prey_cohort_instance.get_eaten(
@@ -431,12 +431,12 @@ class TestAnimalCohort:
             actual_consumed_mass <= potential_consumed_mass
         ), "Actual consumed mass should be less than/equal to potential consumed mass."
         assert (
-            carcass_pool_instance.scavengeable_energy
-            > initial_carcass_scavengeable_energy
-        ), "Carcass pool's scavengeable energy should increase."
+            carcass_pool_instance.scavengeable_carbon
+            > initial_carcass_scavengeable_carbon
+        ), "Carcass pool's scavengeable carbon should increase."
         assert (
-            carcass_pool_instance.decomposed_energy > initial_carcass_decomposed_energy
-        ), "Carcass pool's decomposed energy should increase."
+            carcass_pool_instance.decomposed_carbon > initial_carcass_decomposed_carbon
+        ), "Carcass pool's decomposed carbon should increase."
 
     @pytest.mark.parametrize(
         "below_threshold,expected_mass_current_increase,"

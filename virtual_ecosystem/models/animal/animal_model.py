@@ -277,19 +277,23 @@ class AnimalModel(
 
         # Find the size of all decomposed excrement and carcass pools
         decomposed_excrement = [
-            community.excrement_pool.decomposed_carbon(self.data.grid.cell_area)
+            community.excrement_pool.decomposed_nutrient_per_area(
+                nutrient="carbon", grid_cell_area=self.data.grid.cell_area
+            )
             for community in self.communities.values()
         ]
         decomposed_carcasses = [
-            community.carcass_pool.decomposed_carbon(self.data.grid.cell_area)
+            community.carcass_pool.decomposed_nutrient_per_area(
+                nutrient="carbon", grid_cell_area=self.data.grid.cell_area
+            )
             for community in self.communities.values()
         ]
 
         # All excrement and carcasses in their respective decomposed subpools are moved
-        # to the litter model, so stored energy of each subpool is reset to zero
+        # to the litter model, so stored carbon of each subpool is reset to zero
         for community in self.communities.values():
-            community.excrement_pool.decomposed_energy = 0.0
-            community.carcass_pool.decomposed_energy = 0.0
+            community.excrement_pool.decomposed_carbon = 0.0
+            community.carcass_pool.decomposed_carbon = 0.0
 
         return {
             "decomposed_excrement": DataArray(

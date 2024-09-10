@@ -267,8 +267,8 @@ def excrement_pool_instance():
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_energy=100000.0,
-        decomposed_energy=0.0,
+        scavengeable_carbon=1e-1,
+        decomposed_carbon=0.0,
         scavengeable_nitrogen=1e-2,
         decomposed_nitrogen=0.0,
         scavengeable_phosphorus=1e-4,
