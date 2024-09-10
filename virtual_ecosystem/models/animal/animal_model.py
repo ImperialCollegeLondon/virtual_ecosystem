@@ -18,8 +18,10 @@ by downstream functions so that all model configuration failures can be reported
 
 from __future__ import annotations
 
-from math import sqrt
+from math import ceil, sqrt
+from random import choice, random
 from typing import Any
+from uuid import UUID
 
 from numpy import array, timedelta64, zeros
 from xarray import DataArray
@@ -31,9 +33,15 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
+from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
+from virtual_ecosystem.models.animal.functional_group import (
+    FunctionalGroup,
+    get_functional_group_by_name,
+)
+from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
 
 class AnimalModel(
@@ -77,23 +85,51 @@ class AnimalModel(
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
         """Convert pint update_interval to timedelta64 once during initialization."""
 
-        self._setup_grid_neighbors()
+        self._setup_grid_neighbours()
         """Determine grid square adjacency."""
 
         self.functional_groups = functional_groups
         """List of functional groups in the model."""
-        self.communities: dict[int, AnimalCommunity] = {}
-        """Set empty dict for populating with communities."""
         self.model_constants = model_constants
         """Animal constants."""
+        self.plant_resources: dict[int, list[PlantResources]] = {
+            cell_id: [
+                PlantResources(
+                    data=self.data, cell_id=cell_id, constants=self.model_constants
+                )
+            ]
+            for cell_id in self.data.grid.cell_id
+        }
+        """The plant resource pools in the model with associated grid cell ids."""
+        self.excrement_pools: dict[int, list[ExcrementPool]] = {
+            cell_id: [
+                ExcrementPool(scavengeable_energy=10000.0, decomposed_energy=10000.0)
+            ]
+            for cell_id in self.data.grid.cell_id
+        }
+        """The excrement pools in the model with associated grid cell ids."""
+        self.carcass_pools: dict[int, list[CarcassPool]] = {
+            cell_id: [
+                CarcassPool(scavengeable_energy=10000.0, decomposed_energy=10000.0)
+            ]
+            for cell_id in self.data.grid.cell_id
+        }
+        """The carcass pools in the model with associated grid cell ids."""
+
+        self.cohorts: dict[UUID, AnimalCohort] = {}
+        """A dictionary of all animal cohorts and their unique ids."""
+        self.communities: dict[int, list[AnimalCohort]] = {
+            cell_id: list() for cell_id in self.data.grid.cell_id
+        }
+        """The animal cohorts organized by cell_id."""
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
         animal cohorts."""
         self.setup()
         """Initialize the data variables used by the animal model."""
 
-    def _setup_grid_neighbors(self) -> None:
-        """Set up grid neighbors for the model.
+    def _setup_grid_neighbours(self) -> None:
+        """Set up grid neighbours for the model.
 
         Currently, this is redundant with the set_neighbours method of grid.
         This will become a more complex animal specific implementation to manage
@@ -102,45 +138,37 @@ class AnimalModel(
         """
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
-    def get_community_by_key(self, key: int) -> AnimalCommunity:
-        """Function to return the AnimalCommunity present in a given grid square.
-
-        This function exists principally to provide a callable for AnimalCommunity.
-
-        Args:
-            key: The specific grid square integer key associated with the community.
-
-        Returns:
-            The AnimalCommunity object in that grid square.
-
-        """
-        return self.communities[key]
-
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
-        """Initialize the animal communities.
+        """Initialize the animal communities by creating and populating animal cohorts.
 
         Args:
             functional_groups: The list of functional groups that will populate the
             model.
         """
+        # Initialize communities dictionary with cell IDs as keys and empty lists for
+        # cohorts
+        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
-        # Generate a dictionary of AnimalCommunity objects, one per grid cell.
-        self.communities = {
-            k: AnimalCommunity(
-                functional_groups=functional_groups,
-                data=self.data,
-                community_key=k,
-                neighbouring_keys=list(self.data.grid.neighbours[k]),
-                get_destination=self.get_community_by_key,
-                constants=self.model_constants,
-            )
-            for k in self.data.grid.cell_id
-        }
+        # Iterate over each cell and functional group to create and populate cohorts
+        for cell_id in self.data.grid.cell_id:
+            for functional_group in functional_groups:
+                # Calculate the number of individuals using Damuth's Law
+                individuals = damuths_law(
+                    functional_group.adult_mass, functional_group.damuths_law_terms
+                )
 
-        # Create animal cohorts in each grid square's animal community according to the
-        # populate_community method.
-        for community in self.communities.values():
-            community.populate_community()
+                # Create a cohort of the functional group
+                cohort = AnimalCohort(
+                    functional_group=functional_group,
+                    mass=functional_group.adult_mass,
+                    age=0.0,
+                    individuals=individuals,
+                    centroid_key=cell_id,
+                    grid=self.data.grid,
+                    constants=self.model_constants,
+                )
+                self.cohorts[cohort.id] = cohort
+                self.communities[cell_id].append(cohort)
 
     @classmethod
     def from_config(
@@ -188,13 +216,13 @@ class AnimalModel(
 
         # animal respiration data variable
         # the array should have one value for each animal community
-        n_communities = len(self.data.grid.cell_id)
+        n_grid_cells = len(self.data.grid.cell_id)
 
         # Initialize total_animal_respiration as a DataArray with a single dimension:
         # cell_id
         total_animal_respiration = DataArray(
             zeros(
-                n_communities
+                n_grid_cells
             ),  # Filled with zeros to start with no carbon production.
             dims=["cell_id"],
             coords={"cell_id": self.data.grid.cell_id},
@@ -208,7 +236,7 @@ class AnimalModel(
         functional_group_names = [fg.name for fg in self.functional_groups]
 
         # Assuming self.communities is a dict with community_id as keys
-        community_ids = list(self.communities.keys())
+        community_ids = self.data.grid.cell_id
 
         # Create a multi-dimensional array for population densities
         population_densities = DataArray(
@@ -237,27 +265,25 @@ class AnimalModel(
         events would be simultaneous. The ordering within the method is less a question
         of the science and more a question of computational logic and stability.
 
-
+        TODO: update so that it just cycles through the community methods, each of those
+        will cycle through all cohorts in the model
 
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
 
-        for community in self.communities.values():
-            community.forage_community()
-            community.migrate_community()
-            community.birth_community()
-            community.metamorphose_community()
-            community.metabolize_community(
-                float(self.data["air_temperature"][0][community.community_key].values),
-                self.update_interval_timedelta,
-            )
-            community.inflict_non_predation_mortality_community(
-                self.update_interval_timedelta
-            )
-            community.remove_dead_cohort_community()
-            community.increase_age_community(self.update_interval_timedelta)
+        self.forage_community()
+        self.migrate_community()
+        self.birth_community()
+        self.metamorphose_community()
+        self.metabolize_community(
+            float(self.data["air_temperature"][0][self.communities.keys()].values),
+            self.update_interval_timedelta,
+        )
+        self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
+        self.remove_dead_cohort_community()
+        self.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the
         # litter model can be extracted
@@ -277,19 +303,27 @@ class AnimalModel(
 
         # Find the size of all decomposed excrement and carcass pools
         decomposed_excrement = [
-            community.excrement_pool.decomposed_carbon(self.data.grid.cell_area)
-            for community in self.communities.values()
+            sum(
+                excrement_pool.decomposed_carbon(self.data.grid.cell_area)
+                for excrement_pool in excrement_pools
+            )
+            for excrement_pools in self.excrement_pools.values()
         ]
         decomposed_carcasses = [
-            community.carcass_pool.decomposed_carbon(self.data.grid.cell_area)
-            for community in self.communities.values()
+            sum(
+                carcass_pool.decomposed_carbon(self.data.grid.cell_area)
+                for carcass_pool in carcass_pools
+            )
+            for carcass_pools in self.carcass_pools.values()
         ]
 
         # All excrement and carcasses in their respective decomposed subpools are moved
         # to the litter model, so stored energy of each subpool is reset to zero
-        for community in self.communities.values():
-            community.excrement_pool.decomposed_energy = 0.0
-            community.carcass_pool.decomposed_energy = 0.0
+        for cell_id in self.communities.keys():
+            for excrement_pool in self.excrement_pools[cell_id]:
+                excrement_pool.decomposed_energy = 0.0
+            for carcass_pool in self.carcass_pools[cell_id]:
+                carcass_pool.decomposed_energy = 0.0
 
         return {
             "decomposed_excrement": DataArray(
@@ -308,16 +342,21 @@ class AnimalModel(
         """Updates the densities for each functional group in each community."""
 
         for community_id, community in self.communities.items():
-            for fg_name, cohorts in community.animal_cohorts.items():
-                # Initialize the population density of the functional group
-                fg_density = 0.0
-                for cohort in cohorts:
-                    # Calculate the population density for the cohort
-                    fg_density += self.calculate_density_for_cohort(cohort)
+            # Create a dictionary to accumulate densities by functional group
+            fg_density_dict = {}
 
-                # Update the corresponding entry in the data variable
-                # This update should happen once per functional group after summing
-                # all cohort densities
+            for cohort in community:
+                fg_name = cohort.functional_group.name
+                fg_density = self.calculate_density_for_cohort(cohort)
+
+                # Sum the density for the functional group
+                if fg_name not in fg_density_dict:
+                    fg_density_dict[fg_name] = 0.0
+                fg_density_dict[fg_name] += fg_density
+
+            # Update the corresponding entries in the data variable for each
+            # functional group
+            for fg_name, fg_density in fg_density_dict.items():
                 self.data["population_densities"].loc[
                     {"community_id": community_id, "functional_group_id": fg_name}
                 ] = fg_density
@@ -341,3 +380,386 @@ class AnimalModel(
         population_density = cohort.individuals / community_area
 
         return population_density
+
+    def abandon_communities(self, cohort: AnimalCohort) -> None:
+        """Removes the cohort from the occupancy of every community.
+
+        This method is for use in death or re-initializing territories.
+
+        Args:
+            cohort: The cohort to be removed from the occupancy lists.
+        """
+        for cell_id in cohort.territory.grid_cell_keys:
+            if cohort.id in self.communities[cell_id]:
+                self.communities[cell_id].remove(cohort)
+
+    def update_community_occupancy(
+        self, cohort: AnimalCohort, centroid_key: int
+    ) -> None:
+        """This updates the community lists for animal cohort occupancy.
+
+        Args:
+            cohort: The animal cohort being updates.
+            centroid_key: The grid cell key of the anchoring grid cell.
+        """
+
+        territory_cells = cohort.get_territory_cells(centroid_key)
+        cohort.territory.update_territory(territory_cells)
+
+        for cell_id in territory_cells:
+            self.communities[cell_id].append(cohort)
+
+    def populate_community(self) -> None:
+        """This function creates an instance of each functional group.
+
+        Currently, this is the simplest implementation of populating the animal model.
+        In each AnimalCommunity one AnimalCohort of each FunctionalGroup type is
+        generated. So the more functional groups that are made, the denser the animal
+        community will be. This function will need to be reworked dramatically later on.
+
+        Currently, the number of individuals in a cohort is handled using Damuth's Law,
+        which only holds for mammals.
+
+        TODO: Move populate_community to following Madingley instead of damuth
+
+        """
+        for cell_id, community in self.communities.items():
+            for functional_group in self.functional_groups:
+                individuals = damuths_law(
+                    functional_group.adult_mass, functional_group.damuths_law_terms
+                )
+
+                # create a cohort of the functional group
+                cohort = AnimalCohort(
+                    functional_group,
+                    functional_group.adult_mass,
+                    0.0,
+                    individuals,
+                    cell_id,
+                    self.grid,
+                    self.model_constants,
+                )
+                # add the cohort to the flat cohort list and the specific community
+                community.append(cohort)
+                self.cohorts[cohort.id] = cohort
+
+    def migrate(self, migrant: AnimalCohort, destination_centroid: int) -> None:
+        """Function to move an AnimalCohort between grid cells.
+
+        This function takes a cohort and a destination grid cell, changes the
+        centroid of the cohort's territory to be the new cell, and then
+        reinitializes the territory around the new centroid.
+
+        TODO: travel distance should be a function of body-size or locomotion once
+            multi-grid occupancy is integrated.
+
+        Args:
+            migrant: The AnimalCohort moving between AnimalCommunities.
+            destination_centroid: The grid cell the cohort is moving to.
+
+        """
+
+        # Remove the cohort from its current community
+        current_centroid = migrant.centroid_key
+        self.communities[current_centroid].remove(migrant)
+
+        # Update the cohort's cell ID to the destination cell ID
+        migrant.centroid_key = destination_centroid
+
+        # Add the cohort to the destination community
+        self.communities[destination_centroid].append(migrant)
+
+        # Regenerate a territory for the cohort at the destination community
+        self.abandon_communities(migrant)
+        self.update_community_occupancy(migrant, destination_centroid)
+
+    def migrate_community(self) -> None:
+        """This handles migrating all cohorts with a centroid in the community.
+
+        This migration method initiates migration for two reasons:
+        1) The cohort is starving and needs to move for a chance at resource access
+        2) An initial migration event immediately after birth.
+
+        TODO: MGO - migrate distance mod for larger territories?
+
+
+        """
+        for cohort in self.cohorts.values():
+            is_starving = cohort.is_below_mass_threshold(
+                self.model_constants.dispersal_mass_threshold
+            )
+            is_juvenile_and_migrate = (
+                cohort.age == 0.0 and random() <= cohort.migrate_juvenile_probability()
+            )
+            migrate = is_starving or is_juvenile_and_migrate
+
+            if not migrate:
+                continue
+
+            # Get the list of neighbors for the current cohort's cell
+            neighbour_keys = self.data.grid.neighbours[cohort.centroid_key]
+
+            destination_key = choice(neighbour_keys)
+            self.migrate(cohort, destination_key)
+
+    def remove_dead_cohort(self, cohort: AnimalCohort) -> None:
+        """Removes an AnimalCohort from the model's cohorts and relevant communities.
+
+        This method removes the cohort from every community listed in its territory's
+        grid cell keys, and then removes it from the model's main cohort dictionary.
+
+        TODO: this might also need to remove territory objects
+
+        Args:
+            cohort: The AnimalCohort to be removed.
+
+        Raises:
+            KeyError: If the cohort ID does not exist in the model's cohorts.
+        """
+        # Check if the cohort exists in self.cohorts
+        if cohort.id in self.cohorts.values():
+            # Iterate over all grid cell keys in the cohort's territory
+            for cell_id in cohort.territory.grid_cell_keys:
+                if cell_id in self.communities:
+                    self.communities[cell_id].remove(cohort)
+
+            # Remove the cohort from the model's cohorts dictionary
+            del self.cohorts[cohort.id]
+        else:
+            raise KeyError(f"Cohort with ID {cohort.id} does not exist.")
+
+    def remove_dead_cohort_community(self) -> None:
+        """This handles remove_dead_cohort for all cohorts in a community."""
+        for cohort in self.cohorts.values():
+            if cohort.individuals <= 0:
+                cohort.is_alive = False
+                self.remove_dead_cohort(cohort)
+
+    def birth(self, parent_cohort: AnimalCohort) -> None:
+        """Produce a new AnimalCohort through reproduction.
+
+        A cohort can only reproduce if it has an excess of reproductive mass above a
+        certain threshold. The offspring will be an identical cohort of adults
+        with age 0 and mass=birth_mass. A new territory, likely smaller b/c allometry,
+        is generated for the newborn cohort.
+
+        The science here follows Madingley.
+
+        TODO: Check whether Madingley discards excess reproductive mass.
+        TODO: Rework birth mass for indirect developers.
+
+        Args:
+            parent_cohort: The AnimalCohort instance which is producing a new cohort.
+        """
+        # semelparous organisms use a portion of their non-reproductive mass to make
+        # offspring and then they die
+        non_reproductive_mass_loss = 0.0
+        if parent_cohort.functional_group.reproductive_type == "semelparous":
+            non_reproductive_mass_loss = (
+                parent_cohort.mass_current
+                * parent_cohort.constants.semelparity_mass_loss
+            )
+            parent_cohort.mass_current -= non_reproductive_mass_loss
+            # kill the semelparous parent cohort
+            parent_cohort.is_alive = False
+
+        number_offspring = (
+            int(
+                (parent_cohort.reproductive_mass + non_reproductive_mass_loss)
+                / parent_cohort.functional_group.birth_mass
+            )
+            * parent_cohort.individuals
+        )
+
+        # reduce reproductive mass by amount used to generate offspring
+        parent_cohort.reproductive_mass = 0.0
+
+        offspring_cohort = AnimalCohort(
+            parent_cohort.functional_group,
+            parent_cohort.functional_group.birth_mass,
+            0.0,
+            number_offspring,
+            parent_cohort.centroid_key,
+            parent_cohort.grid,
+            parent_cohort.constants,
+        )
+
+        # add a new cohort of the parental type to the community
+        self.cohorts[offspring_cohort.id] = offspring_cohort
+
+        # add the new cohort to the community lists it occupies
+        self.update_community_occupancy(offspring_cohort, offspring_cohort.centroid_key)
+
+        if parent_cohort.functional_group.reproductive_type == "semelparous":
+            self.remove_dead_cohort(parent_cohort)
+
+    def birth_community(self) -> None:
+        """This handles birth for all cohorts in a community."""
+
+        # reproduction occurs for cohorts with sufficient reproductive mass
+        for cohort in self.cohorts.values():
+            if (
+                not cohort.is_below_mass_threshold(
+                    self.model_constants.birth_mass_threshold
+                )
+                and cohort.functional_group.reproductive_type != "nonreproductive"
+            ):
+                self.birth(cohort)
+
+    def forage_community(self) -> None:
+        """This function organizes the foraging of animal cohorts.
+
+        It loops over every animal cohort in the community and calls the
+        forage_cohort function with a list of suitable trophic resources. This action
+        initiates foraging for those resources, with mass transfer details handled
+        internally by forage_cohort and its helper functions. Future expansions may
+        include functions for handling scavenging and soil consumption behaviors.
+
+        Cohorts with no remaining individuals post-foraging are marked for death.
+
+        TODO: find a more elegant way to remove dead cohorts between foraging bouts
+
+        """
+
+        for consumer_cohort in self.cohorts.values():
+            # Prepare the prey list for the consumer cohort
+            if consumer_cohort.territory is None:
+                raise ValueError("The cohort's territory hasn't been defined.")
+            prey_list = consumer_cohort.territory.get_prey(
+                self.communities, consumer_cohort
+            )
+            plant_list = consumer_cohort.territory.get_plant_resources(
+                self.plant_resources
+            )
+            excrement_list = consumer_cohort.territory.get_excrement_pools(
+                self.excrement_pools
+            )
+
+            # Initiate foraging for the consumer cohort with the prepared resources
+            consumer_cohort.forage_cohort(
+                plant_list=plant_list,
+                animal_list=prey_list,
+                excrement_pools=excrement_list,
+                carcass_pools=self.carcass_pools,  # the full list of carcass pools
+            )
+
+            # temporary solution
+            self.remove_dead_cohort_community()
+
+    def metabolize_community(self, temperature: float, dt: timedelta64) -> None:
+        """This handles metabolize for all cohorts in a community.
+
+        This method generates a total amount of metabolic waste per cohort and passes
+        that waste to handler methods for distinguishing between nitrogenous and
+        carbonaceous wastes as they need depositing in different pools. This will not
+        be fully implemented until the stoichiometric rework.
+
+        Respiration wastes are totaled because they are CO2 and not tracked spatially.
+        Excretion wastes are handled cohort by cohort because they will need to be
+        spatially explicit with multi-grid occupancy.
+
+        TODO: Rework with stoichiometry
+
+        Args:
+            temperature: Current air temperature (K).
+            dt: Number of days over which the metabolic costs should be calculated.
+
+        """
+        for cell_id, community in self.communities.items():
+            total_carbonaceous_waste = 0.0
+
+            for cohort in community:
+                metabolic_waste_mass = cohort.metabolize(temperature, dt)
+                total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
+                cohort.excrete(metabolic_waste_mass, self.excrement_pools[cell_id])
+
+            # Update the total_animal_respiration for this cell_id.
+            self.data["total_animal_respiration"].loc[{"cell_id": cell_id}] += (
+                total_carbonaceous_waste
+            )
+
+    def increase_age_community(self, dt: timedelta64) -> None:
+        """This handles age for all cohorts in a community.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
+
+        """
+        for cohort in self.cohorts.values():
+            cohort.increase_age(dt)
+
+    def inflict_non_predation_mortality_community(self, dt: timedelta64) -> None:
+        """This handles natural mortality for all cohorts in a community.
+
+        This includes background mortality, starvation, and, for mature cohorts,
+        senescence.
+
+        Args:
+            dt: Number of days over which the metabolic costs should be calculated.
+
+        """
+        number_of_days = float(dt / timedelta64(1, "D"))
+        for cohort in self.cohorts.values():
+            cohort.inflict_non_predation_mortality(
+                number_of_days, cohort.territory.get_carcass_pools(self.carcass_pools)
+            )
+            if cohort.individuals <= 0:
+                cohort.is_alive = False
+                self.remove_dead_cohort(cohort)
+
+    def metamorphose(self, larval_cohort: AnimalCohort) -> None:
+        """This transforms a larval status cohort into an adult status cohort.
+
+        This method takes an indirect developing cohort in its larval form,
+        inflicts a mortality rate, and creates an adult cohort of the correct type.
+
+        TODO: Build in a relationship between larval_cohort mass and adult cohort mass.
+        TODO: Is adult_mass the correct mass threshold?
+        TODO: If the time step drops below a month, this needs an intermediary stage.
+
+        Args:
+            larval_cohort: The cohort in its larval stage to be transformed.
+        """
+
+        # inflict a mortality
+        number_dead = ceil(
+            larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
+        )
+        larval_cohort.die_individual(
+            number_dead, larval_cohort.territory.get_carcass_pools(self.carcass_pools)
+        )
+        # collect the adult functional group
+        adult_functional_group = get_functional_group_by_name(
+            self.functional_groups,
+            larval_cohort.functional_group.offspring_functional_group,
+        )
+        # create the adult cohort
+        adult_cohort = AnimalCohort(
+            adult_functional_group,
+            adult_functional_group.birth_mass,
+            0.0,
+            larval_cohort.individuals,
+            larval_cohort.centroid_key,
+            self.grid,
+            self.model_constants,
+        )
+
+        # add a new cohort of the parental type to the community
+        self.cohorts[adult_cohort.id] = adult_cohort
+
+        # add the new cohort to the community lists it occupies
+        self.update_community_occupancy(adult_cohort, adult_cohort.centroid_key)
+
+        # remove the larval cohort
+        larval_cohort.is_alive = False
+        self.remove_dead_cohort(larval_cohort)
+
+    def metamorphose_community(self) -> None:
+        """Handle metamorphosis for all applicable cohorts in the community."""
+
+        for cohort in self.cohorts.values():
+            if (
+                cohort.functional_group.development_type == DevelopmentType.INDIRECT
+                and (cohort.mass_current >= cohort.functional_group.adult_mass)
+            ):
+                self.metamorphose(cohort)

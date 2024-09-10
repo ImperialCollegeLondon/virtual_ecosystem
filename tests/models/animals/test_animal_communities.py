@@ -19,9 +19,9 @@ def animal_community_destination_instance(
     return AnimalCommunity(
         functional_groups=functional_group_list_instance,
         data=animal_data_for_community_instance,
-        community_key=4,
-        neighbouring_keys=[1, 3, 5, 7],
-        get_destination=animal_model_instance.get_community_by_key,
+        community_key=5,
+        neighbouring_keys=[2, 8, 4, 6],
+        get_community_by_key=animal_model_instance.get_community_by_key,
         constants=constants_instance,
     )
 
@@ -40,7 +40,9 @@ def functional_group_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def animal_cohort_instance(functional_group_instance, constants_instance):
+def animal_cohort_instance(
+    functional_group_instance, animal_territory_instance, constants_instance
+):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
@@ -49,7 +51,24 @@ def animal_cohort_instance(functional_group_instance, constants_instance):
         functional_group_instance.adult_mass,
         1.0,
         10,
+        animal_territory_instance,
         constants_instance,
+    )
+
+
+@pytest.fixture
+def mock_animal_territory(mocker):
+    """Mock fixture for animal territory."""
+    return mocker.patch(
+        "virtual_ecosystem.models.animal.animal_territories.AnimalTerritory"
+    )
+
+
+@pytest.fixture
+def mock_bfs_territory(mocker):
+    """Mock fixture for the bfs_territory function."""
+    return mocker.patch(
+        "virtual_ecosystem.models.animal.animal_territories.bfs_territory"
     )
 
 
@@ -75,17 +94,17 @@ class TestAnimalCommunity:
         self, animal_community_instance, animal_cohort_instance
     ):
         """Test the all_animal_cohorts property."""
-        from collections.abc import Iterable
 
         # Add an animal cohort to the community
         animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
             animal_cohort_instance
         )
+        animal_community_instance.occupancy["herbivorous_mammal"][
+            animal_cohort_instance
+        ] = 1.0
 
         # Check if the added cohort is in the all_animal_cohorts property
         assert animal_cohort_instance in animal_community_instance.all_animal_cohorts
-        # Check the type of all_animal_cohorts
-        assert isinstance(animal_community_instance.all_animal_cohorts, Iterable)
 
     def test_populate_community(self, animal_community_instance):
         """Testing populate_community."""
@@ -178,15 +197,16 @@ class TestAnimalCommunity:
         cohort.age = age
         cohort.mass_current = cohort.functional_group.adult_mass * mass_ratio
 
-        # Mock the get_destination callable to return a specific community.
+        # Mock the get_community_by_key method to return the destination community.
         mocker.patch.object(
             animal_community_instance,
-            "get_destination",
+            "get_community_by_key",
             return_value=animal_community_destination_instance,
         )
 
-        # Append cohort to the source community
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(cohort)
+        # Append cohort to the source community based on the functional group name
+        functional_group_name = cohort.functional_group.name
+        animal_community_instance.animal_cohorts[functional_group_name].append(cohort)
 
         # Mock `migrate_juvenile_probability` to control juvenile migration logic
         mocker.patch.object(
@@ -199,44 +219,16 @@ class TestAnimalCommunity:
         # Check migration outcome based on expected results
         if should_migrate:
             assert (
-                cohort
-                not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
-            )
+                cohort not in animal_community_instance.animal_cohorts[cohort.name]
+            ), f"Cohort {cohort} should have migrated but didn't."
             assert (
                 cohort
-                in animal_community_destination_instance.animal_cohorts[
-                    "herbivorous_mammal"
-                ]
-            )
+                in animal_community_destination_instance.animal_cohorts[cohort.name]
+            ), f"Cohort {cohort} should be in the destination community but isn't."
         else:
             assert (
-                cohort in animal_community_instance.animal_cohorts["herbivorous_mammal"]
-            )
-
-    def test_remove_dead_cohort(
-        self, animal_cohort_instance, animal_community_instance
-    ):
-        """Testing remove_dead_cohort."""
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
-            animal_cohort_instance
-        )
-        assert (
-            animal_cohort_instance
-            in animal_community_instance.animal_cohorts["herbivorous_mammal"]
-        )
-        assert animal_cohort_instance.is_alive
-        animal_community_instance.remove_dead_cohort(animal_cohort_instance)
-        assert (
-            animal_cohort_instance
-            in animal_community_instance.animal_cohorts["herbivorous_mammal"]
-        )
-        animal_cohort_instance.is_alive = False
-        assert not animal_cohort_instance.is_alive
-        animal_community_instance.remove_dead_cohort(animal_cohort_instance)
-        assert (
-            animal_cohort_instance
-            not in animal_community_instance.animal_cohorts["herbivorous_mammal"]
-        )
+                cohort in animal_community_instance.animal_cohorts[cohort.name]
+            ), f"Cohort {cohort} should have stayed but migrated."
 
     @pytest.mark.parametrize(
         "reproductive_type, initial_mass, expected_offspring",
@@ -359,59 +351,69 @@ class TestAnimalCommunity:
         assert new_count_above_threshold == initial_count_above_threshold + 1
 
     def test_forage_community(
-        self, animal_cohort_instance, animal_community_instance, mocker
+        self,
+        mocker,
+        animal_community_instance,
+        animal_cohort_instance,
+        animal_territory_instance,
     ):
-        """Testing forage_community."""
-        import unittest
-        from copy import deepcopy
+        """Test foraging of animal cohorts in a community."""
 
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
+        cohort = animal_cohort_instance
+        cohort.territory = animal_territory_instance
 
-        # Prepare data
-        animal_cohort_instance_2 = deepcopy(animal_cohort_instance)
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
-            animal_cohort_instance
+        # Mock the necessary territory methods to return appropriate resources
+        get_prey_mock = mocker.patch.object(
+            animal_territory_instance, "get_prey", return_value=[]
         )
-        animal_community_instance.animal_cohorts["herbivorous_mammal"].append(
-            animal_cohort_instance_2
+        get_plant_resources_mock = mocker.patch.object(
+            animal_territory_instance, "get_plant_resources", return_value=[]
         )
-
-        # Mock methods
-        mock_forage_cohort = mocker.patch.object(AnimalCohort, "forage_cohort")
-
-        mock_collect_prey = mocker.patch.object(
-            AnimalCommunity, "collect_prey", return_value=mocker.MagicMock()
+        get_excrement_pools_mock = mocker.patch.object(
+            animal_territory_instance, "get_excrement_pools", return_value=[]
         )
 
-        # Execute method
+        # Mock the forage_cohort method to simulate foraging
+        forage_cohort_mock = mocker.patch.object(
+            cohort, "forage_cohort", return_value=None
+        )
+
+        # Append cohort to the source community based on the functional group name
+        functional_group_name = cohort.functional_group.name
+        if functional_group_name not in animal_community_instance.animal_cohorts:
+            animal_community_instance.animal_cohorts[functional_group_name] = []
+        animal_community_instance.animal_cohorts[functional_group_name].append(cohort)
+
+        # Perform the foraging
         animal_community_instance.forage_community()
 
-        # Check if the forage_cohort and collect_prey methods have been called for each
-        # cohort
-        assert mock_forage_cohort.call_count == 2
-        assert mock_collect_prey.call_count == 2
-
-        # Check if the forage_cohort and collect_prey methods were called correctly
-        for call in mock_forage_cohort.call_args_list:
-            _, kwargs = call
-            assert isinstance(kwargs.get("plant_list", None), list)
-            assert isinstance(kwargs.get("animal_list", None), unittest.mock.MagicMock)
-            assert isinstance(
-                kwargs.get("carcass_pool", None),
-                type(animal_community_instance.carcass_pool),
-            )
+        # Check if the helper methods were called correctly
+        get_prey_mock.assert_called_with(cohort)
+        get_plant_resources_mock.assert_called_once()
+        get_excrement_pools_mock.assert_called_once()
+        forage_cohort_mock.assert_called_with(
+            plant_list=[], animal_list=[], excrement_pools=[]
+        )
 
     def test_collect_prey_finds_eligible_prey(
         self,
         animal_cohort_instance,
         animal_community_instance,
         functional_group_instance,
+        animal_territory_instance,
+        constants_instance,
     ):
         """Testing collect_prey with eligible prey items."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
-        prey_cohort = AnimalCohort(functional_group_instance, 5000.0, 1, 10)
+        prey_cohort = AnimalCohort(
+            functional_group_instance,
+            5000.0,
+            1,
+            10,
+            animal_territory_instance,
+            constants_instance,
+        )
         animal_community_instance.animal_cohorts[functional_group_instance.name].append(
             prey_cohort
         )
@@ -429,11 +431,20 @@ class TestAnimalCommunity:
         animal_cohort_instance,
         animal_community_instance,
         functional_group_instance,
+        animal_territory_instance,
+        constants_instance,
     ):
         """Testing collect_prey with no eligible prey items."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
-        prey_cohort = AnimalCohort(functional_group_instance, 20000.0, 1, 10)
+        prey_cohort = AnimalCohort(
+            functional_group_instance,
+            20000.0,
+            1,
+            10,
+            animal_territory_instance,
+            constants_instance,
+        )
         animal_community_instance.animal_cohorts[functional_group_instance.name].append(
             prey_cohort
         )
@@ -522,7 +533,11 @@ class TestAnimalCommunity:
         ],
     )
     def test_inflict_non_predation_mortality_community(
-        self, mocker, animal_community_instance, days
+        self,
+        mocker,
+        animal_community_instance,
+        carcass_pool_instance,
+        days,
     ):
         """Testing natural mortality infliction for the entire community."""
         from numpy import timedelta64
@@ -537,6 +552,11 @@ class TestAnimalCommunity:
             "inflict_non_predation_mortality"
         )
 
+        # Ensure the territory carcasses is correctly set to the carcass pool instance
+        for functional_group in animal_community_instance.animal_cohorts.values():
+            for cohort in functional_group:
+                cohort.territory.territory_carcasses = carcass_pool_instance
+
         # Call the community method to inflict natural mortality
         animal_community_instance.inflict_non_predation_mortality_community(dt)
 
@@ -545,9 +565,7 @@ class TestAnimalCommunity:
         # Assert the inflict_non_predation_mortality method was called for each cohort
         for cohorts in animal_community_instance.animal_cohorts.values():
             for cohort in cohorts:
-                mock_mortality.assert_called_with(
-                    number_of_days, animal_community_instance.carcass_pool
-                )
+                mock_mortality.assert_called_with(number_of_days, carcass_pool_instance)
 
         # Check if cohorts with no individuals left are flagged as not alive
         for cohorts in animal_community_instance.animal_cohorts.values():
@@ -558,20 +576,24 @@ class TestAnimalCommunity:
                     ), "Cohort with no individuals should be marked as not alive"
                     assert (
                         cohort
-                        not in animal_community_instance.animal_cohorts[cohort.name]
+                        not in animal_community_instance.animal_cohorts[
+                            cohort.functional_group.name
+                        ]
                     ), "Dead cohort should be removed from the community"
 
     def test_metamorphose(
         self,
         mocker,
         animal_community_instance,
-        caterpillar_cohort_instance,
+        animal_cohort_instance,
         butterfly_cohort_instance,
+        carcass_pool_instance,
     ):
         """Test the metamorphose method for different scenarios."""
 
-        larval_cohort = caterpillar_cohort_instance
+        larval_cohort = animal_cohort_instance
         larval_cohort.is_alive = True
+        larval_cohort.territory.territory_carcasses = [carcass_pool_instance]
 
         adult_functional_group = butterfly_cohort_instance.functional_group
         adult_functional_group.birth_mass = 5.0
@@ -629,6 +651,7 @@ class TestAnimalCommunity:
         self,
         animal_community_instance,
         caterpillar_cohort_instance,
+        carcass_pool_instance,
         mass_current,
         expected_caterpillar_count,
         expected_butterfly_count,
@@ -647,6 +670,11 @@ class TestAnimalCommunity:
             "caterpillar": [caterpillar_cohort],
             "butterfly": [],
         }
+
+        # Ensure the territory carcasses is correctly set to the carcass pool instance
+        for functional_group in animal_community_instance.animal_cohorts.values():
+            for cohort in functional_group:
+                cohort.territory.territory_carcasses = [carcass_pool_instance]
 
         # Initial counts
         initial_caterpillar_count = len(
@@ -674,3 +702,119 @@ class TestAnimalCommunity:
         assert new_caterpillar_count == expected_caterpillar_count
         assert new_butterfly_count == expected_butterfly_count
         assert caterpillar_cohort.is_alive == expected_is_alive
+
+    @pytest.fixture
+    def mock_bfs_territory(self, mocker):
+        """Fixture for mocking bfs_territory."""
+        return mocker.patch(
+            "virtual_ecosystem.models.animal.animal_territories.bfs_territory"
+        )
+
+    def test_initialize_territory(
+        self,
+        mocker,
+        animal_community_instance,
+        mock_animal_territory,
+        mock_bfs_territory,
+    ):
+        """Test for initialize territory."""
+
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+        # Create mock instances for dependencies
+        mock_functional_group = mocker.create_autospec(FunctionalGroup, instance=True)
+        mock_functional_group.name = "herbivorous_mammal"
+
+        mock_cohort = mocker.create_autospec(AnimalCohort, instance=True)
+        mock_cohort.territory_size = 4  # Example size
+        mock_cohort.functional_group = mock_functional_group
+        centroid_key = 0
+
+        mock_get_community_by_key = mocker.Mock()
+        mock_community = mocker.Mock()
+        mock_community.occupancy = {mock_functional_group.name: {}}
+        mock_get_community_by_key.return_value = mock_community
+
+        # Set up the mock for bfs_territory to return a predefined set of cells
+        mock_bfs_territory.return_value = [0, 1, 3, 4]
+
+        # Initialize the AnimalCommunity instance and set up grid dimensions
+        animal_community_instance.data = mocker.Mock()
+        animal_community_instance.data.grid.cell_nx = 3
+        animal_community_instance.data.grid.cell_ny = 3
+
+        # Call the method under test
+        animal_community_instance.initialize_territory(
+            mock_cohort, centroid_key, mock_get_community_by_key
+        )
+
+        # Check that bfs_territory was called with the correct parameters
+        mock_bfs_territory.assert_called_once_with(centroid_key, 4, 3, 3)
+
+        # Check that AnimalTerritory was instantiated with the correct parameters
+        mock_animal_territory.assert_called_once_with(
+            centroid_key, [0, 1, 3, 4], mock_get_community_by_key
+        )
+
+        # Check that the territory was assigned to the cohort
+        assert mock_cohort.territory == mock_animal_territory.return_value
+
+        # Ensure no additional unexpected calls were made
+        assert mock_bfs_territory.call_count == 1
+        assert mock_animal_territory.call_count == 1
+
+        # Check that the occupancy was updated correctly
+        occupancy_percentage = 1.0 / len(mock_bfs_territory.return_value)
+        for cell_key in mock_bfs_territory.return_value:
+            mock_get_community_by_key.assert_any_call(cell_key)
+            assert (
+                mock_community.occupancy[mock_functional_group.name][mock_cohort]
+                == occupancy_percentage
+            )
+
+    def test_reinitialize_territory(
+        self,
+        animal_community_instance,
+        animal_cohort_instance,
+        animal_territory_instance,
+        mocker,
+    ):
+        """Testing reinitialize_territory."""
+        # Spy on the initialize_territory method within the animal_community_instance
+        spy_initialize_territory = mocker.spy(
+            animal_community_instance, "initialize_territory"
+        )
+
+        # Spy on the abandon_communities method within the animal_territory_instance
+        spy_abandon_communities = mocker.spy(
+            animal_territory_instance, "abandon_communities"
+        )
+
+        animal_community_instance.community_key = 0
+
+        # Mock the get_community_by_key callable
+        get_community_by_key = mocker.MagicMock()
+
+        # Call the reinitialize_territory method
+        animal_community_instance.reinitialize_territory(
+            animal_cohort_instance,
+            animal_community_instance.community_key,
+            get_community_by_key,
+        )
+
+        # Check if abandon_communities was called once
+        spy_abandon_communities.assert_called_once_with(animal_cohort_instance)
+
+        # Check if initialize_territory was called with correct arguments
+        spy_initialize_territory.assert_called_once_with(
+            animal_cohort_instance,
+            animal_community_instance.community_key,
+            get_community_by_key,
+        )
+
+        # Check if the territory was updated correctly
+        assert (
+            animal_territory_instance.centroid
+            == animal_community_instance.community_key
+        )
