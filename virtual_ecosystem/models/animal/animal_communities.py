@@ -78,15 +78,19 @@ class AnimalCommunity:
         self.carcass_pool: CarcassPool = CarcassPool(
             scavengeable_energy=10000.0,
             scavengeable_nitrogen=1e-4,
+            scavengeable_phosphorus=1e-6,
             decomposed_energy=0.0,
             decomposed_nitrogen=0.0,
+            decomposed_phosphorus=0.0,
         )
         """A pool for animal carcasses within the community."""
         self.excrement_pool: ExcrementPool = ExcrementPool(
             scavengeable_energy=10000.0,
             scavengeable_nitrogen=1e-4,
+            scavengeable_phosphorus=1e-6,
             decomposed_energy=0.0,
             decomposed_nitrogen=0.0,
+            decomposed_phosphorus=0.0,
         )
         """A pool for excrement within the community."""
 

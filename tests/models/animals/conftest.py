@@ -271,6 +271,8 @@ def excrement_pool_instance():
         decomposed_energy=0.0,
         scavengeable_nitrogen=1e-2,
         decomposed_nitrogen=0.0,
+        scavengeable_phosphorus=1e-4,
+        decomposed_phosphorus=0.0,
     )
 
 

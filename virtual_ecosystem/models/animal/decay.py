@@ -22,6 +22,12 @@ class CarcassPool:
     decomposed_nitrogen: float
     """The amount of decomposed nitrogen in the carcass pool [kg N]."""
 
+    scavengeable_phosphorus: float
+    """The amount of animal accessible phosphorus in the carcass pool [kg P]."""
+
+    decomposed_phosphorus: float
+    """The amount of decomposed phosphorus in the carcass pool [kg P]."""
+
     def decomposed_carbon(self, grid_cell_area: float) -> float:
         """Calculate carbon stored in decomposed carcasses based on the energy.
 
@@ -55,6 +61,12 @@ class ExcrementPool:
 
     decomposed_nitrogen: float
     """The amount of decomposed nitrogen in the excrement pool [kg N]."""
+
+    scavengeable_phosphorus: float
+    """The amount of animal accessible phosphorus in the excrement pool [kg P]."""
+
+    decomposed_phosphorus: float
+    """The amount of decomposed phosphorus in the excrement pool [kg P]."""
 
     def decomposed_carbon(self, grid_cell_area: float) -> float:
         """Calculate carbon stored in decomposed excrement based on the energy.
