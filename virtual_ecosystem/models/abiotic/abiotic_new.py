@@ -839,7 +839,7 @@ def calculate_roughness_length_momentum(
     # Calculate initial roughness length
     initial_roughness_length = (canopy_height - zero_plane_displacement) * np.exp(
         -von_karman_constant * (1 / set_maximum_ratio)
-        - roughness_sublayer_depth_parameter
+        - roughness_sublayer_depth_parameter  # exp(psi_h)?
     )
 
     # If roughness smaller than the substrate surface drag coefficient, set to value to
@@ -855,4 +855,589 @@ def calculate_roughness_length_momentum(
     return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
 
 
-# Continue with integrated diabatic correction factors
+def calculate_monin_obukov_length(
+    air_temperature: float,
+    friction_velocity: float,
+    sensible_heat_flux: float,
+    zero_degree: float,
+    specific_heat_air: float,
+    density_air: float,
+    von_karman_constant: float,
+    gravitation: float,
+) -> float:
+    r"""Calculate Monin-Obukov length.
+
+    The Monin-Obukhov length (L) is given by:
+
+    L = -(\rho \dot cp \dot ustar**3 \dot Tair)/(k \dot g \dot H)
+
+    Foken, T, 2008: Micrometeorology. Springer, Berlin, Germany.
+    Note that L gets very small for very low ustar values with implications
+    for subsequent functions using L as input. It is recommended to filter
+    data and exclude low ustar values (ustar < ~0.2) beforehand.
+
+    Args:
+        air_temperature: Air temperature, {c}
+        friction_velocity: Friction velocity, [m s-1]
+        sensible_heat_flux: Sensible heat flux, [W m-2]
+        zero_degree: Celsius to Kelvin conversion
+        specific_heat_air: Specific heat of air, [J K-1 kg-1]
+        density_air: Sensity of air, [kg m-3]
+        von_karman_constant: von karman constant, []
+        gravitation: gravitational acceleration, [m s-2]
+
+    Returns:
+        Monin-Obukov length, [m]
+    """
+
+    temperature_kelvin = air_temperature + zero_degree
+    return -(
+        density_air * specific_heat_air * friction_velocity**3 * temperature_kelvin
+    ) / (von_karman_constant * gravitation * sensible_heat_flux)
+
+
+def calculate_stability_parameter(
+    reference_height: float,
+    zero_plance_displacement: float,
+    monin_obukov_length: float,
+):
+    """Calculate stability parameter zeta.
+
+    Zeta is a parameter in Monin-Obukov Theory that characterizesstratification in
+    the lower atmosphere:
+
+    zeta = (reference_height - zero_plance_displacenemt)/ monin-obukov_length
+
+    Args:
+        reference_height: Reference height, [m]
+        zero_plance_displacement: Zero plance displacement height, [m]
+        monin_obukov_length: Monin-Obukov length, [m]
+
+    Returns:
+        stability parameter zeta
+    """
+    return (reference_height - zero_plance_displacement) / monin_obukov_length
+
+
+def calculate_diabatic_correction_factors(
+    stability_parameter: float,
+    stability_formulation: str,
+) -> dict[str, NDArray[np.float64]]:
+    r"""Integrated Stability Correction Functions for Heat and Momentum.
+
+    Dimensionless stability functions needed to correct deviations from the exponential
+    wind profile under non-neutral conditions. The functions give the integrated form of
+    the universal functions. They depend on the value of the stability parameter
+    :math:`\zeta`.
+    The integration of the universal functions is:
+
+    :math:`psi = -x * \zeta`
+
+    for stable atmospheric conditions (:math:`\zeta >= 0`), and
+
+    :math:`\psi = 2 * log( (1 + y) / 2)`
+
+    for unstable atmospheric conditions (:math:`\zeta < 0`).
+
+    The different formulations differ in their value of x and y.
+    Dyer, A.J., 1974: A review of flux-profile relationships.
+    Boundary-Layer Meteorology 7, 363-372.
+
+    Dyer, A. J., Hicks, B.B., 1970: Flux-Gradient relationships in the
+    constant flux layer. Quart. J. R. Meteorol. Soc. 96, 715-721.
+
+    Businger, J.A., Wyngaard, J. C., Izumi, I., Bradley, E. F., 1971:
+    Flux-Profile relationships in the atmospheric surface layer.
+    J. Atmospheric Sci. 28, 181-189.
+
+    Paulson, C.A., 1970: The mathematical representation of wind speed
+    and temperature profiles in the unstable atmospheric surface layer.
+    Journal of Applied Meteorology 9, 857-861.
+
+    Foken, T, 2008: Micrometeorology. Springer, Berlin, Germany.
+
+    Args:
+        stability_parameter: Stability parameter zeta (-)
+        stability_formulation: Formulation for the stability function.
+        Either \code{"Dyer_1970"} or \code{"Businger_1971"}
+
+    Returns:
+        psi_h, the value of the stability function for heat and water vapor (-), and
+        psi_m, the value of the stability function for momentum (-)
+    """
+
+    # Choose formulation
+    if stability_formulation == "Businger_1971":
+        x_h, x_m = -7.8, -6
+        y_h = 0.95 * np.sqrt(1 - 11.6 * stability_parameter)
+        y_m = np.power(1 - 19.3 * stability_parameter, 0.25)
+
+    elif stability_formulation == "Dyer_1970":
+        x_h, x_m = -5, -5
+        y_h = np.sqrt(1 - 16 * stability_parameter)
+        y_m = np.power(1 - 16 * stability_parameter, 0.25)
+
+    else:
+        raise ValueError(f"Unknown formulation: {stability_formulation}")
+
+    psi_h = np.where(
+        stability_parameter >= 0, x_h * stability_parameter, 2 * np.log((1 + y_h) / 2)
+    )
+    psi_m = np.where(
+        stability_parameter >= 0,
+        x_m * stability_parameter,
+        (
+            2 * np.log((1 + y_m) / 2)
+            + np.log((1 + y_m**2) / 2)
+            - 2 * np.arctan(y_m)
+            + np.pi / 2
+        ),
+    )
+
+    return {"psi_h": psi_h, "psi_m": psi_m}
+
+
+def calculate_diabatic_influence_heat(stability_parameter: float) -> float:
+    """Calculate the diabatic influencing factor for heat.
+
+    Args:
+        stability_parameter: Stability parameter zeta
+
+    Returns:
+        Diabatic influencing factor for heat (phih)
+    """
+    if stability_parameter < 0:
+        phim = 1 / np.power((1.0 - 16.0 * stability_parameter), 0.25)
+        phih = np.power(phim, 2.0)
+
+    else:
+        phih = 1 + (6.0 * stability_parameter) / (1.0 + stability_parameter)
+
+    phih = np.clip(phih, 0.5, 1.5)
+
+    return phih
+
+
+def calculate_free_convection(
+    leaf_dimension: float,
+    sensible_heat_flux: float,
+) -> float:
+    """Calculate free convection gha.
+
+    Args:
+        leaf_dimension: Leaf dimension (characteristic length), [m]
+        sensible_heat_flux: Sensible heat flux, [W m-2]
+
+    Returns:
+        free convection coefficient gha
+    """
+    d = 0.71 * leaf_dimension
+    dt = 0.7045388 * np.power((d * np.power(sensible_heat_flux, 4)), 0.2)
+    gha = 0.0375 * np.power(dt / d, 0.25)
+
+    # Ensure gha is not less than 0.1
+    gha = max(gha, 0.1)
+
+    return gha
+
+
+def calculate_molar_conductance_above_canopy(
+    friction_velocity: float,
+    zero_plane_displacement: float,
+    roughness_length_momentum: float,
+    reference_height: float,
+    ph: float,
+    diabatic_correction_heat: float,
+    minimum_conductance: float,
+) -> float:
+    """Calculate molar conductance above canopy.
+
+    Args:
+        friction_velocity: Friction velocity[m s-1]
+        zero_plane_displacement: Zero-plane displacement height, [m]
+        roughness_length_momentum: Roughness length momenturm, [m]
+        reference_height: Reference height, [m]
+        ph: ??
+        diabatic_correction_heat: Stability correction factor for heat, []
+        minimum_conductance: Minimum conductance, [m s-1]
+
+    Returns:
+        molar conductance above canopy, [m s-1]
+    """
+    z0 = (
+        0.2 * roughness_length_momentum + zero_plane_displacement
+    )  # Heat exchange surface height
+    ln = np.log(
+        (reference_height - zero_plane_displacement) / (z0 - zero_plane_displacement)
+    )
+    molar_conductance = (0.4 * ph * friction_velocity) / (ln + diabatic_correction_heat)
+
+    # Ensure conductance is not less than gmin
+    return max(molar_conductance, minimum_conductance)
+
+
+def calculate_stomatal_conductance(
+    shortwave_radiation: float,
+    maximum_stomatal_conductance: float,
+    half_saturation_stomatal_conductance: float,
+) -> float:
+    """Calculate the stomatal conductance.
+
+    Args:
+        shortwave_radiation: Shortwave radiation absorbed by the leaves, [W m-2]
+        maximum_stomatal_conductance: Maximum stomatal conductance, [mol m-2 s-1]
+        half_saturation_stomatal_conductance: Half-saturation point for stomatal
+            conductance, [W m-2]
+
+    Returns:
+        Stomatal conductance (gs), [mol m-2 s-1]
+    """
+    rpar = shortwave_radiation * 4.6  # Photosynthetically active radiation (PAR)
+    return (maximum_stomatal_conductance * rpar) / (
+        rpar + half_saturation_stomatal_conductance
+    )
+
+
+def calculate_dewpoint_temperature(
+    air_temperature: float,
+    actual_vapour_pressure: float,
+) -> float:
+    """Calculate the dewpoint temperature.
+
+    Args:
+        air_temperature: Air temperature, [C]
+        actual_vapour_pressure: Actual vapor pressure, [kPa]
+
+    Returns:
+        Dewpoint temperature, [C]
+    """
+    if air_temperature >= 0:
+        e0 = 611.2 / 1000  # e0 in kPa
+        latent_heat_vapourisation = (2.501 * 10**6) - (2340 * air_temperature)
+        intermediate_temperature = 1 / 273.15 - (
+            461.5 / latent_heat_vapourisation
+        ) * np.log(actual_vapour_pressure / e0)
+
+    else:
+        e0 = 610.78 / 1000
+        latent_heat_sublimation = 2.834 * 10**6
+        intermediate_temperature = 1 / 273.16 - (
+            461.5 / latent_heat_sublimation
+        ) * np.log(actual_vapour_pressure / e0)
+
+    return 1 / intermediate_temperature - 273.15
+
+
+def calculate_saturation_vapour_pressure(
+    temperature: float,
+    saturation_vapour_pressure_factors: list[float],
+) -> float:
+    r"""Calculate saturation vapour pressure, kPa.
+
+    Saturation vapour pressure :math:`e_{s} (T)` is here calculated as
+
+    :math:`e_{s}(T) = 0.61078 exp(\frac{7.5 T}{T + 237.3})`
+
+    where :math:`T` is temperature in degree C. (from abiotic simple model)
+
+    Args:
+        temperature: Air temperature, [C]
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
+
+    Returns:
+        saturation vapour pressure, [kPa]
+    """
+    factor1, factor2, factor3 = saturation_vapour_pressure_factors
+    return factor1 * np.exp((factor2 * temperature) / (temperature + factor3))
+
+
+# Penman-Monteith equation for Ts ??
+
+
+def hour_to_day(hourly_data: list[float], output_statistic: str) -> NDArray[np.float64]:
+    """Compute daily statistics from hourly input data.
+
+    Args:
+        hourly_data: Hourly input data
+        output_statistic: Output statistic, select "mean", "min" or "max"
+
+    Returns:
+        Daily output statistics
+    """
+
+    number_of_days = len(hourly_data) // 24
+    daily = np.zeros(number_of_days * 24)
+
+    for i in range(number_of_days):
+        daily_statistics = hourly_data[i * 24]
+
+        if output_statistic == "max":
+            for j in range(1, 24):
+                daily_statistics = max(daily_statistics, hourly_data[i * 24 + j])
+        elif output_statistic == "min":
+            for j in range(1, 24):
+                daily_statistics = min(daily_statistics, hourly_data[i * 24 + j])
+        elif output_statistic == "mean":
+            daily_statistics = sum(hourly_data[i * 24 : (i + 1) * 24]) / 24
+        else:
+            raise ValueError("Invalid statistic. Please use 'max', 'min', or 'mean'.")
+
+        # Fill daily with replicated values for each day
+        daily[i * 24 : (i + 1) * 24] = daily_statistics
+
+    return daily
+
+
+def hour_to_day_no_replication(
+    hourly_data: list[float],
+    output_statistic: str,
+) -> list[float]:
+    """Compute daily statistics from hourly input data without replicating 24 times.
+
+    Args:
+        hourly_data: Hourly input data
+        output_statistic: Output statistic, select "mean", "min", "max", or "sum"
+
+    Returns:
+        List of daily output statistics
+    """
+    number_of_days = len(hourly_data) // 24
+    daily = np.zeros(number_of_days)
+
+    for i in range(number_of_days):
+        daily_stat = hourly_data[i * 24]
+
+        if output_statistic == "max":
+            for j in range(1, 24):
+                daily_stat = max(daily_stat, hourly_data[i * 24 + j])
+        elif output_statistic == "min":
+            for j in range(1, 24):
+                daily_stat = min(daily_stat, hourly_data[i * 24 + j])
+        elif output_statistic == "mean":
+            daily_stat = sum(hourly_data[i * 24 : (i + 1) * 24]) / 24
+        elif output_statistic == "sum":
+            daily_stat = sum(hourly_data[i * 24 : (i + 1) * 24])
+        else:
+            raise ValueError(
+                "Invalid statistic. Please use 'max', 'min', 'mean', or 'sum'."
+            )
+
+        daily[i] = daily_stat
+
+    return daily.tolist()
+
+
+def calculate_moving_average(
+    values: list[float],
+    window_size: int,
+) -> list[float]:
+    """Compute the moving average of a list of values.
+
+    Args:
+        values: List of values
+        window_size: Number of elements to include in the moving average
+
+    Returns:
+        List of moving average values.
+    """
+    number_of_values = len(values)
+    output = np.zeros(number_of_values)
+
+    for i in range(number_of_values):
+        sum_values = 0.0
+        for j in range(window_size):
+            sum_values += values[(i - j + number_of_values) % number_of_values]
+        output[i] = sum_values / window_size
+
+    return output.tolist()
+
+
+def calculate_yearly_moving_average(
+    hourly_values: list[float], window_size: int = 91
+) -> list[float]:
+    """Calculate the yearly moving average from hourly input data.
+
+    Args:
+        hourly_values: List of hourly values
+        window_size: Number of elements to include in the moving average
+
+    Returns:
+        List of yearly moving average values, replicated for each hour of the day.
+    """
+    # Calculate daily mean
+    num_days = len(hourly_values) // 24
+    daily_means = np.zeros(num_days)
+
+    for day in range(num_days):
+        daily_sum = sum(hourly_values[day * 24 : (day + 1) * 24])
+        daily_means[day] = daily_sum / 24.0
+
+    # Calculate moving average
+    moving_average_values = np.zeros(num_days)
+    for i in range(num_days):
+        rolling_sum = 0.0
+        for j in range(window_size):
+            rolling_sum += daily_means[(i - j + num_days) % num_days]
+        moving_average_values[i] = rolling_sum / window_size
+
+    # Replicate moving average values for each hour of the day
+    yearly_moving_average = []
+    for daily_mean in moving_average_values:
+        yearly_moving_average.extend([daily_mean] * 24)
+
+    return yearly_moving_average
+
+
+def calculate_ground_heat_flux(
+    soil_surface_temperature: list[float],
+    soil_moisture: list[float],
+    bulk_density_soil: float,
+    volumetric_mineral_content: float,
+    volumetric_quartz_content: float,
+    mass_fraction_clay: float,
+    calculate_yearly_flux: bool = True,
+) -> dict[str, NDArray[np.float64]]:
+    """Calculate the ground heat flux, [W m-2].
+
+    Args:
+        soil_surface_temperature: List of soil surface temperatures, [C]
+        soil_moisture: List of soil moisture values
+        bulk_density_soil: Bulk density of soil
+        volumetric_mineral_content: Volumetric minearal content of soil
+        volumetric_quartz_content: Volumetric quarz content of soil
+        mass_fraction_clay: Mass fraction of clay
+        calculate_yearly_flux: Flag to determine if yearly ground flux should be
+            calculated.
+
+    Returns:
+        Dictionary containing ground heat flux, min/man ground heat flux
+    """
+
+    # Time invariant variables for calculation of thermal conductivity Campbell (1986)
+    frs = volumetric_mineral_content + volumetric_quartz_content
+    c1 = (
+        0.57 + 1.73 * volumetric_quartz_content + 0.93 * volumetric_mineral_content
+    ) / (
+        1 - 0.74 * volumetric_quartz_content - 0.49 * volumetric_mineral_content
+    ) - 2.8 * frs * (1 - frs)
+    c3 = 1 + 2.6 * (mass_fraction_clay**-0.5)
+    c4 = 0.03 + 0.7 * frs * frs
+    mu1 = 2400 * bulk_density_soil / 2.64
+    mu2 = 1.06 * bulk_density_soil
+
+    # Calculate daily mean soil surface temperature
+    daily_mean_soil_surface_temperature = hour_to_day(
+        hourly_data=soil_surface_temperature, output_statistic="mean"
+    )
+
+    # Initialize variables that need retaining
+    num_hours = len(soil_surface_temperature)
+    soil_diffusivity = np.zeros(num_hours)
+    daily_surface_temperature_fluctuations = np.zeros(num_hours)
+    thermal_conductivity = np.zeros(num_hours)
+    thermal_diffusivity = np.zeros(num_hours)
+
+    for i in range(num_hours):
+        # Find soil diffusivity
+        specific_heat_soil = mu1 + 4180 * soil_moisture[i]
+        volumetric_density_soil = (
+            bulk_density_soil * (1 - soil_moisture[i]) + soil_moisture[i]
+        ) * 1000
+        c2 = mu2 * soil_moisture[i]
+        thermal_conductivity[i] = (
+            c1
+            + c2 * soil_moisture[i]
+            - (c1 - c4) * np.exp(-((c3 * soil_moisture[i]) ** 4))
+        )
+        thermal_diffusivity[i] = thermal_conductivity[i] / (
+            specific_heat_soil * volumetric_density_soil
+        )
+        daily_angular_frequency = (2 * np.pi) / (24 * 3600)
+        diurnal_damping_depth = np.sqrt(
+            2 * thermal_diffusivity[i] / daily_angular_frequency
+        )
+        soil_diffusivity[i] = (
+            np.sqrt(2) * (thermal_conductivity[i] / diurnal_damping_depth) * 0.5
+        )
+
+        # Calculate temperature fluctuation from daily mean
+
+        daily_surface_temperature_fluctuations[i] = (
+            soil_surface_temperature[i] - daily_mean_soil_surface_temperature[i]
+        )
+
+    # Calculate 6-hour moving average of soil_diffusivity and
+    # daily_surface_temperature_fluctuations to get 3-hour lag
+    daily_soil_diffusivity = calculate_moving_average(soil_diffusivity.tolist(), 6)
+    ground_heat_flux = calculate_moving_average(
+        daily_surface_temperature_fluctuations.tolist(), 6
+    )
+    ground_heat_flux = [
+        ground_heat_flux[i] * daily_soil_diffusivity[i] * 1.1171
+        for i in range(len(ground_heat_flux))
+    ]
+
+    min_ground_heat_flux = hour_to_day(
+        hourly_data=ground_heat_flux, output_statistic="min"
+    )
+    max_ground_heat_flux = hour_to_day(
+        hourly_data=ground_heat_flux, output_statistic="max"
+    )
+
+    # Apply min and max constraints
+    ground_heat_flux = [
+        max(ground_heat_flux[i], min_ground_heat_flux[i])
+        for i in range(len(ground_heat_flux))
+    ]
+    ground_heat_flux = [
+        min(ground_heat_flux[i], max_ground_heat_flux[i])
+        for i in range(len(ground_heat_flux))
+    ]
+
+    if calculate_yearly_flux:
+        # Calculate yearly moving averages of thermal_conductivity & thermal diffusivity
+        thermal_conductivity_yearly_moving_average = calculate_yearly_moving_average(
+            hourly_values=thermal_conductivity.tolist(), window_size=91
+        )
+        thermal_diffusivity_moving_average = calculate_yearly_moving_average(
+            hourly_values=thermal_diffusivity.tolist(), window_size=91
+        )
+        yearly_soil_diffusivityy = np.zeros(num_hours)
+        for i in range(num_hours):
+            yearly_angular_frequency = (2 * np.pi) / (num_hours * 3600)
+            yearly_soil_diffusivityy[i] = (
+                np.sqrt(2)
+                * thermal_conductivity_yearly_moving_average[i]
+                / np.sqrt(
+                    2 * thermal_diffusivity_moving_average[i] / yearly_angular_frequency
+                )
+            )
+
+        # Calculate yearly mean soil surface temperature
+        yearly_mean_soil_surface_temperature = np.mean(
+            daily_mean_soil_surface_temperature
+        )
+        yearly_surface_temperature_fluctuations = [
+            daily_mean_soil_surface_temperature[i]
+            - yearly_mean_soil_surface_temperature
+            for i in range(num_hours)
+        ]
+        moving_average_yearly_surface_temperature_fluctuations = (
+            calculate_yearly_moving_average(
+                hourly_values=yearly_surface_temperature_fluctuations, window_size=91
+            )
+        )
+        ground_heat_flux = [
+            ground_heat_flux[i]
+            + moving_average_yearly_surface_temperature_fluctuations[i]
+            * yearly_soil_diffusivityy[i]
+            * 1.1171
+            for i in range(num_hours)
+        ]
+
+    return {
+        "ground_heat_flux": np.array(ground_heat_flux),
+        "min_ground_heat_flux": min_ground_heat_flux,
+        "max_ground_heat_flux": max_ground_heat_flux,
+    }
