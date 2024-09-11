@@ -297,10 +297,24 @@ class AnimalCohort:
     def update_carcass_pool(self, carcass_mass: float, carcass_pool: DecayPool) -> None:
         """Updates the carcass pool based on consumed mass and predator's efficiency.
 
+        Mass of dead individuals is transferred to the carcass pool, split between a
+        decomposed and a scavengable compartment. Carbon, nitrogen and phosphorus are
+        all transferred. An assumption here is that the stoichiometric ratios of the
+        flows to each compartment are equal, i.e. the nutrient split between
+        compartments is calculated identically to the carbon split.
+
+        TODO: This needs to take in carbon mass not total mass
+        TODO: This needs to use proper stochiometry
+
         Args:
             carcass_mass: The total mass consumed from the prey cohort.
             carcass_pool: The pool to which remains of eaten individuals are delivered.
         """
+
+        # TODO - Carcass stochiometries are found using a hard coded ratio, this needs
+        # to go once stoichiometry is properly implemented
+        carcass_mass_nitrogen = 0.1 * carcass_mass
+        carcass_mass_phosphorus = 0.01 * carcass_mass
 
         # TODO - This also needs to be updated to carbon mass rather than total mass
         # terms
@@ -309,6 +323,18 @@ class AnimalCohort:
             1 - self.decay_fraction_carcasses
         ) * carcass_mass
         carcass_pool.decomposed_carbon += self.decay_fraction_carcasses * carcass_mass
+        carcass_pool.scavengeable_nitrogen += (
+            1 - self.decay_fraction_carcasses
+        ) * carcass_mass_nitrogen
+        carcass_pool.decomposed_nitrogen += (
+            self.decay_fraction_carcasses * carcass_mass_nitrogen
+        )
+        carcass_pool.scavengeable_phosphorus += (
+            1 - self.decay_fraction_carcasses
+        ) * carcass_mass_phosphorus
+        carcass_pool.decomposed_phosphorus += (
+            self.decay_fraction_carcasses * carcass_mass_phosphorus
+        )
 
     def get_eaten(
         self,

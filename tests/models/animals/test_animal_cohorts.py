@@ -451,6 +451,45 @@ class TestAnimalCohort:
         assert carcass_pool_instance.scavengeable_phosphorus == final_carcass_phosphorus
         assert carcass_pool_instance.decomposed_phosphorus == decomp_carcass_phosphorus
 
+    @pytest.mark.parametrize(
+        argnames=[
+            "carcass_mass",
+            "final_carcass_carbon",
+            "final_carcass_nitrogen",
+            "final_carcass_phosphorus",
+            "decomp_carcass_carbon",
+            "decomp_carcass_nitrogen",
+            "decomp_carcass_phosphorus",
+        ],
+        argvalues=[
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (1000.0, 800.0, 80.0, 8.0, 200.0, 20.0, 2.0),
+            (3000.0, 2400.0, 240.0, 24.0, 600.0, 60.0, 6.0),
+        ],
+    )
+    def test_update_carcass_pool(
+        self,
+        herbivore_cohort_instance,
+        carcass_pool_instance,
+        carcass_mass,
+        final_carcass_carbon,
+        final_carcass_nitrogen,
+        final_carcass_phosphorus,
+        decomp_carcass_carbon,
+        decomp_carcass_nitrogen,
+        decomp_carcass_phosphorus,
+    ):
+        """Test function to update the carcass pool after predation."""
+        herbivore_cohort_instance.update_carcass_pool(
+            carcass_mass, carcass_pool_instance
+        )
+        assert carcass_pool_instance.scavengeable_carbon == final_carcass_carbon
+        assert carcass_pool_instance.decomposed_carbon == decomp_carcass_carbon
+        assert carcass_pool_instance.scavengeable_nitrogen == final_carcass_nitrogen
+        assert carcass_pool_instance.decomposed_nitrogen == decomp_carcass_nitrogen
+        assert carcass_pool_instance.scavengeable_phosphorus == final_carcass_phosphorus
+        assert carcass_pool_instance.decomposed_phosphorus == decomp_carcass_phosphorus
+
     def test_get_eaten(
         self, prey_cohort_instance, predator_cohort_instance, carcass_pool_instance
     ):
