@@ -329,12 +329,22 @@ class TestAnimalCohort:
         assert carbon_waste == expected_carbon_waste
 
     @pytest.mark.parametrize(
-        "scav_initial, scav_final, decomp_initial, decomp_final, consumed_carbon",
-        [
-            (1000.0, 1500.0, 0.0, 500.0, 1000.0),
-            (0.0, 500.0, 1000.0, 1500.0, 1000.0),
-            (1000.0, 1000.0, 0.0, 0.0, 0.0),
-            (0.0, 0.0, 1000.0, 1000.0, 0.0),
+        argnames=[
+            "scav_initial",
+            "scav_final_carbon",
+            "scav_final_nitrogen",
+            "scav_final_phosphorus",
+            "decomp_initial",
+            "decomp_final_carbon",
+            "decomp_final_nitrogen",
+            "decomp_final_phosphorus",
+            "consumed_carbon",
+        ],
+        argvalues=[
+            pytest.param(1000.0, 1500.0, 50.0, 5.0, 0.0, 500.0, 50.0, 5.0, 1000.0),
+            pytest.param(0.0, 500.0, 50.0, 5.0, 1000.0, 1500.0, 50.0, 5.0, 1000.0),
+            pytest.param(1000.0, 1000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            pytest.param(0.0, 0.0, 0.0, 0.0, 1000.0, 1000.0, 0.0, 0.0, 0.0),
         ],
     )
     def test_defecate(
@@ -342,17 +352,29 @@ class TestAnimalCohort:
         herbivore_cohort_instance,
         excrement_pool_instance,
         scav_initial,
-        scav_final,
+        scav_final_carbon,
+        scav_final_nitrogen,
+        scav_final_phosphorus,
         decomp_initial,
-        decomp_final,
+        decomp_final_carbon,
+        decomp_final_nitrogen,
+        decomp_final_phosphorus,
         consumed_carbon,
     ):
         """Testing defecate() for varying soil energy levels."""
         excrement_pool_instance.scavengeable_carbon = scav_initial
         excrement_pool_instance.decomposed_carbon = decomp_initial
+        excrement_pool_instance.scavengeable_nitrogen = 0.0
+        excrement_pool_instance.decomposed_nitrogen = 0.0
+        excrement_pool_instance.scavengeable_phosphorus = 0.0
+        excrement_pool_instance.decomposed_phosphorus = 0.0
         herbivore_cohort_instance.defecate(excrement_pool_instance, consumed_carbon)
-        assert excrement_pool_instance.scavengeable_carbon == scav_final
-        assert excrement_pool_instance.decomposed_carbon == decomp_final
+        assert excrement_pool_instance.scavengeable_carbon == scav_final_carbon
+        assert excrement_pool_instance.decomposed_carbon == decomp_final_carbon
+        assert excrement_pool_instance.scavengeable_nitrogen == scav_final_nitrogen
+        assert excrement_pool_instance.decomposed_nitrogen == decomp_final_nitrogen
+        assert excrement_pool_instance.scavengeable_phosphorus == scav_final_phosphorus
+        assert excrement_pool_instance.decomposed_phosphorus == decomp_final_phosphorus
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
