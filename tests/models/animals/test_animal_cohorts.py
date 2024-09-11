@@ -237,12 +237,19 @@ class TestAnimalCohort:
             assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "cohort_type, excreta_mass, initial_pool_carbon, expected_pool_carbon",
-        [
-            ("herbivore", 100.0, 500.0, 500.0),  # normal case for herbivore
-            ("herbivore", 0.0, 500.0, 500.0),  # zero excreta mass for herbivore
-            ("ectotherm", 50.0, 300.0, 300.0),  # normal case for ectotherm
-            ("ectotherm", 0.0, 300.0, 300.0),  # zero excreta mass for ectotherm
+        argnames=[
+            "cohort_type",
+            "excreta_mass",
+            "initial_pool_nitrogen",
+            "expected_pool_nitrogen",
+            "expected_pool_carbon",
+            "expected_pool_phosphorus",
+        ],
+        argvalues=[
+            ("herbivore", 100.0, 500.0, 510.0, 5.0, 0.1),  # normal case herbivore
+            ("herbivore", 0.0, 500.0, 500.0, 0.0, 0.0),  # zero excreta mass herbivore
+            ("ectotherm", 50.0, 300.0, 305.0, 2.5, 0.05),  # normal case ectotherm
+            ("ectotherm", 0.0, 300.0, 300.0, 0.0, 0.0),  # zero excreta mass ectotherm
         ],
         ids=[
             "herbivore_normal",
@@ -258,8 +265,10 @@ class TestAnimalCohort:
         ectotherm_cohort_instance,
         cohort_type,
         excreta_mass,
-        initial_pool_carbon,
+        initial_pool_nitrogen,
+        expected_pool_nitrogen,
         expected_pool_carbon,
+        expected_pool_phosphorus,
     ):
         """Testing excrete method for various scenarios.
 
@@ -277,20 +286,24 @@ class TestAnimalCohort:
 
         # Mock the excrement pool
         excrement_pool = mocker.Mock()
-        excrement_pool.decomposed_carbon = initial_pool_carbon
+        excrement_pool.decomposed_nitrogen = initial_pool_nitrogen
+        excrement_pool.decomposed_carbon = 0.0
+        excrement_pool.decomposed_phosphorus = 0.0
 
         # Call the excrete method
         cohort_instance.excrete(excreta_mass, excrement_pool)
 
         # Check the expected results
+        assert excrement_pool.decomposed_nitrogen == expected_pool_nitrogen
         assert excrement_pool.decomposed_carbon == expected_pool_carbon
+        assert excrement_pool.decomposed_phosphorus == expected_pool_phosphorus
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass, expected_carbon_waste",
         [
-            ("herbivore", 100.0, 100.0),  # normal case for herbivore
+            ("herbivore", 100.0, 90.0),  # normal case for herbivore
             ("herbivore", 0.0, 0.0),  # zero excreta mass for herbivore
-            ("ectotherm", 50.0, 50.0),  # normal case for ectotherm
+            ("ectotherm", 50.0, 45.0),  # normal case for ectotherm
             ("ectotherm", 0.0, 0.0),  # zero excreta mass for ectotherm
         ],
         ids=[

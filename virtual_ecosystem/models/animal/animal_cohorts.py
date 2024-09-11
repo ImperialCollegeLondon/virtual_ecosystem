@@ -130,7 +130,7 @@ class AnimalCohort:
         current metabolic wastes are carbonaceous and so all this does is provide a link
         joining metabolism to a soil pool for later use.
 
-        TODO: Update with stoichiometry, should this actually flow to nitrogen?
+        TODO: Update with sensible (rather than hardcoded) stoichiometry
 
         Args:
             excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
@@ -138,8 +138,17 @@ class AnimalCohort:
                 flow.
 
         """
-        excrement_pool.decomposed_carbon += (
+        excrement_pool.decomposed_nitrogen += (
             excreta_mass * self.constants.nitrogen_excreta_proportion
+        )
+        # TODO - Carbon and phosphorus flows are just hardcoded fractions of the
+        # nitrogen flow. This needs to be changed when proper animal stoichiometry is
+        # done.
+        excrement_pool.decomposed_carbon += (
+            0.5 * excreta_mass * self.constants.nitrogen_excreta_proportion
+        )
+        excrement_pool.decomposed_phosphorus += (
+            0.01 * excreta_mass * self.constants.nitrogen_excreta_proportion
         )
 
     def respire(self, excreta_mass: float) -> float:

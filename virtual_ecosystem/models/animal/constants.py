@@ -214,11 +214,11 @@ class AnimalConsts(ConstantsDataclass):
     """The mortality proportion inflicted on a larval cohort undergoing
     metamorphosis. """
 
-    carbon_excreta_proportion = 1.0  # toy [unitless]
+    carbon_excreta_proportion = 0.9  # toy [unitless]
     """The proportion of metabolic wastes that are carbonaceous. This is a temporary
     fix to facilitate building the machinery and will be updated with stoichiometry."""
 
-    nitrogen_excreta_proportion = 0.0  # toy [unitless]
+    nitrogen_excreta_proportion = 0.1  # toy [unitless]
     """The proportion of metabolic wastes that are nitrogenous. This is a temporary
     fix to facilitate building the machinery and will be updated with stoichiometry."""
 
