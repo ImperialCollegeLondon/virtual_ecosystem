@@ -43,10 +43,21 @@ class AnimalModel(
     vars_required_for_init=(),
     vars_populated_by_init=("total_animal_respiration", "population_densities"),
     vars_required_for_update=(),
-    vars_populated_by_first_update=("decomposed_excrement", "decomposed_carcasses"),
+    vars_populated_by_first_update=(
+        "decomposed_excrement_carbon",
+        "decomposed_excrement_nitrogen",
+        "decomposed_excrement_phosphorus",
+        "decomposed_carcasses_carbon",
+        "decomposed_carcasses_nitrogen",
+        "decomposed_carcasses_phosphorus",
+    ),
     vars_updated=(
-        "decomposed_excrement",
-        "decomposed_carcasses",
+        "decomposed_excrement_carbon",
+        "decomposed_excrement_nitrogen",
+        "decomposed_excrement_phosphorus",
+        "decomposed_carcasses_carbon",
+        "decomposed_carcasses_nitrogen",
+        "decomposed_carcasses_phosphorus",
         "total_animal_respiration",
     ),
 ):
@@ -260,11 +271,11 @@ class AnimalModel(
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the
-        # litter model can be extracted
-        additions_to_litter = self.calculate_litter_additions()
+        # soil model can be extracted
+        additions_to_soil = self.calculate_soil_additions()
 
         # Update the litter pools
-        self.data.add_from_dict(additions_to_litter)
+        self.data.add_from_dict(additions_to_soil)
 
         # Update population densities
         self.update_population_densities()
@@ -272,37 +283,68 @@ class AnimalModel(
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
 
-    def calculate_litter_additions(self) -> dict[str, DataArray]:
-        """Calculate the how much animal matter should be transferred to the litter."""
+    def calculate_soil_additions(self) -> dict[str, DataArray]:
+        """Calculate the how much animal matter should be transferred to the soil."""
 
+        nutrients = ["carbon", "nitrogen", "phosphorus"]
         # Find the size of all decomposed excrement and carcass pools
-        decomposed_excrement = [
-            community.excrement_pool.decomposed_nutrient_per_area(
-                nutrient="carbon", grid_cell_area=self.data.grid.cell_area
-            )
-            for community in self.communities.values()
-        ]
-        decomposed_carcasses = [
-            community.carcass_pool.decomposed_nutrient_per_area(
-                nutrient="carbon", grid_cell_area=self.data.grid.cell_area
-            )
-            for community in self.communities.values()
-        ]
+        decomposed_excrement = {
+            nutrient: [
+                community.excrement_pool.decomposed_nutrient_per_area(
+                    nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
+                )
+                for community in self.communities.values()
+            ]
+            for nutrient in nutrients
+        }
+        decomposed_carcasses = {
+            nutrient: [
+                community.carcass_pool.decomposed_nutrient_per_area(
+                    nutrient=nutrient, grid_cell_area=self.data.grid.cell_area
+                )
+                for community in self.communities.values()
+            ]
+            for nutrient in nutrients
+        }
 
         # All excrement and carcasses in their respective decomposed subpools are moved
         # to the litter model, so stored carbon of each subpool is reset to zero
         for community in self.communities.values():
             community.excrement_pool.decomposed_carbon = 0.0
+            community.excrement_pool.decomposed_nitrogen = 0.0
+            community.excrement_pool.decomposed_phosphorus = 0.0
             community.carcass_pool.decomposed_carbon = 0.0
+            community.carcass_pool.decomposed_nitrogen = 0.0
+            community.carcass_pool.decomposed_phosphorus = 0.0
 
         return {
-            "decomposed_excrement": DataArray(
-                array(decomposed_excrement)
+            "decomposed_excrement_carbon": DataArray(
+                array(decomposed_excrement["carbon"])
                 / self.model_timing.update_interval_quantity.to("days").magnitude,
                 dims="cell_id",
             ),
-            "decomposed_carcasses": DataArray(
-                array(decomposed_carcasses)
+            "decomposed_excrement_nitrogen": DataArray(
+                array(decomposed_excrement["nitrogen"])
+                / self.model_timing.update_interval_quantity.to("days").magnitude,
+                dims="cell_id",
+            ),
+            "decomposed_excrement_phosphorus": DataArray(
+                array(decomposed_excrement["phosphorus"])
+                / self.model_timing.update_interval_quantity.to("days").magnitude,
+                dims="cell_id",
+            ),
+            "decomposed_carcasses_carbon": DataArray(
+                array(decomposed_carcasses["carbon"])
+                / self.model_timing.update_interval_quantity.to("days").magnitude,
+                dims="cell_id",
+            ),
+            "decomposed_carcasses_nitrogen": DataArray(
+                array(decomposed_carcasses["nitrogen"])
+                / self.model_timing.update_interval_quantity.to("days").magnitude,
+                dims="cell_id",
+            ),
+            "decomposed_carcasses_phosphorus": DataArray(
+                array(decomposed_carcasses["phosphorus"])
                 / self.model_timing.update_interval_quantity.to("days").magnitude,
                 dims="cell_id",
             ),
