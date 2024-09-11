@@ -637,6 +637,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Rate of phosphorus addition to soil from litter"
+name = "litter_P_mineralisation_rate"
+unit = "kg P m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Proportion of above ground structural pool which is lignin"
 name = "lignin_above_structural"
 unit = "kg lignin kg C^-1"
@@ -688,6 +695,41 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Carbon nitrogen ratio of woody litter pool"
 name = "c_n_ratio_woody"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of above ground metabolic pool"
+name = "c_p_ratio_above_metabolic"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of above ground structural pool"
+name = "c_p_ratio_above_structural"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of below ground metabolic pool"
+name = "c_p_ratio_below_metabolic"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of below ground structural pool"
+name = "c_p_ratio_below_structural"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of woody litter pool"
+name = "c_p_ratio_woody"
 unit = "-"
 variable_type = "float"
 
@@ -786,6 +828,34 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Carbon:nitrogen ratio of root turnover"
 name = "root_turnover_c_n_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of deadwood"
+name = "deadwood_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of leaf turnover"
+name = "leaf_turnover_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of plant reproductive tissue turnover"
+name = "plant_reproductive_tissue_turnover_c_p_ratio"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon:phosphorus ratio of root turnover"
+name = "root_turnover_c_p_ratio"
 unit = "-"
 variable_type = "float"
 
