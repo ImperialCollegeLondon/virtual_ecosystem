@@ -410,14 +410,18 @@ class TestAnimalCohort:
             "initial_pop",
             "final_pop",
             "initial_carcass",
-            "final_carcass",
-            "decomp_carcass",
+            "final_carcass_carbon",
+            "final_carcass_nitrogen",
+            "final_carcass_phosphorus",
+            "decomp_carcass_carbon",
+            "decomp_carcass_nitrogen",
+            "decomp_carcass_phosphorus",
         ],
         argvalues=[
-            (0, 0, 0, 0.0, 0.0, 0.0),
-            (0, 1000, 1000, 0.0, 0.0, 0.0),
-            (1, 1, 0, 1.0, 8001.0, 2000.0),
-            (100, 200, 100, 0.0, 800000.0, 200000.0),
+            (0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0, 1000, 1000, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (1, 1, 0, 1.0, 8001.0, 800.0, 80.0, 2000.0, 200.0, 20.0),
+            (100, 200, 100, 0.0, 800000.0, 80000.0, 8000.0, 200000.0, 20000.0, 2000.0),
         ],
     )
     def test_die_individual(
@@ -428,16 +432,24 @@ class TestAnimalCohort:
         final_pop,
         carcass_pool_instance,
         initial_carcass,
-        final_carcass,
-        decomp_carcass,
+        final_carcass_carbon,
+        final_carcass_nitrogen,
+        final_carcass_phosphorus,
+        decomp_carcass_carbon,
+        decomp_carcass_nitrogen,
+        decomp_carcass_phosphorus,
     ):
         """Testing death."""
         herbivore_cohort_instance.individuals = initial_pop
         carcass_pool_instance.scavengeable_carbon = initial_carcass
         herbivore_cohort_instance.die_individual(number_dead, carcass_pool_instance)
         assert herbivore_cohort_instance.individuals == final_pop
-        assert carcass_pool_instance.scavengeable_carbon == final_carcass
-        assert carcass_pool_instance.decomposed_carbon == decomp_carcass
+        assert carcass_pool_instance.scavengeable_carbon == final_carcass_carbon
+        assert carcass_pool_instance.decomposed_carbon == decomp_carcass_carbon
+        assert carcass_pool_instance.scavengeable_nitrogen == final_carcass_nitrogen
+        assert carcass_pool_instance.decomposed_nitrogen == decomp_carcass_nitrogen
+        assert carcass_pool_instance.scavengeable_phosphorus == final_carcass_phosphorus
+        assert carcass_pool_instance.decomposed_phosphorus == decomp_carcass_phosphorus
 
     def test_get_eaten(
         self, prey_cohort_instance, predator_cohort_instance, carcass_pool_instance

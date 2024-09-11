@@ -249,12 +249,14 @@ class AnimalCohort:
         are made to capture large body size and multi-grid occupancy, this will be
         updated.
 
-        Currently, this function is in an inbetween state where mass is removed from
-        the animal cohort but it is received by the litter pool as energy. This will be
-        fixed once the litter pools are updated for mass.
+        Mass of dead individuals is transferred to the carcass pool, split between a
+        decomposed and a scavengable compartment. Carbon, nitrogen and phosphorus are
+        all transferred. An assumption here is that the stoichiometric ratios of the
+        flows to each compartment are equal, i.e. the nutrient split between
+        compartments is calculated identically to the carbon split.
 
-        TODO: Rework after update litter pools for mass, this needs to take in carbon
-        mass not total mass
+        TODO: This needs to take in carbon mass not total mass
+        TODO: This needs to use proper stochiometry
 
         Args:
             number_dead: The number of individuals by which to decrease the population
@@ -266,13 +268,31 @@ class AnimalCohort:
         self.individuals -= number_dead
 
         # Find total mass contained in the carcasses
+        # TODO - This mass needs to be total mass not carbon mass
         carcass_mass = number_dead * self.mass_current
+
+        # TODO - Carcass stochiometries are found using a hard coded ratio, this needs
+        # to go once stoichiometry is properly implemented
+        carcass_mass_nitrogen = 0.1 * carcass_mass
+        carcass_mass_phosphorus = 0.01 * carcass_mass
 
         # Split this mass between carcass decay, and scavengeable carcasses
         carcass_pool.scavengeable_carbon += (
             1 - self.decay_fraction_carcasses
         ) * carcass_mass
         carcass_pool.decomposed_carbon += self.decay_fraction_carcasses * carcass_mass
+        carcass_pool.scavengeable_nitrogen += (
+            1 - self.decay_fraction_carcasses
+        ) * carcass_mass_nitrogen
+        carcass_pool.decomposed_nitrogen += (
+            self.decay_fraction_carcasses * carcass_mass_nitrogen
+        )
+        carcass_pool.scavengeable_phosphorus += (
+            1 - self.decay_fraction_carcasses
+        ) * carcass_mass_phosphorus
+        carcass_pool.decomposed_phosphorus += (
+            self.decay_fraction_carcasses * carcass_mass_phosphorus
+        )
 
     def update_carcass_pool(self, carcass_mass: float, carcass_pool: DecayPool) -> None:
         """Updates the carcass pool based on consumed mass and predator's efficiency.
