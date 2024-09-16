@@ -10,8 +10,6 @@ from dataclasses import dataclass
 class CarcassPool:
     """This class store information about the carcass biomass in each grid cell."""
 
-    # TODO - NEED TO THINK ABOUT AREA UNITS
-
     scavengeable_carbon: float
     """The amount of animal accessible carbon in the carcass pool [kg C]."""
 
@@ -96,3 +94,21 @@ class ExcrementPool:
         decomposed_nutrient = getattr(self, f"decomposed_{nutrient}")
 
         return decomposed_nutrient / grid_cell_area
+
+
+def find_decay_consumed_split(
+    microbial_decay_rate: float, animal_scavenging_rate: float
+):
+    """Find fraction of biomass that is assumed to decay rather than being scavenged.
+
+    This should be calculated separately for each relevant biomass type (excrement and
+    carcasses). This function should could be replaced in future by something that
+    incorporates more of the factors determining this split (e.g. temperature).
+
+    Args:
+        microbial_decay_rate: Rate at which biomass type decays due to microbes [day^-1]
+        animal_scavenging_rate: Rate at which biomass type is scavenged due to animals
+            [day^-1]
+    """
+
+    return microbial_decay_rate / (animal_scavenging_rate + microbial_decay_rate)

@@ -78,3 +78,26 @@ class TestExcrementPool:
         )
         with pytest.raises(AttributeError):
             poo.decomposed_nutrient_per_area("molybdenum", 10000)
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "decay_rate",
+        "scavenging_rate",
+        "expected_split",
+    ],
+    argvalues=[
+        (0.25, 0.25, 0.5),
+        (0.0625, 0.25, 0.2),
+        (0.25, 0.0625, 0.8),
+    ],
+)
+def test_find_decay_consumed_split(decay_rate, scavenging_rate, expected_split):
+    """Test the function to find decay/scavenged split works as expected."""
+    from virtual_ecosystem.models.animal.decay import find_decay_consumed_split
+
+    actual_split = find_decay_consumed_split(
+        microbial_decay_rate=decay_rate, animal_scavenging_rate=scavenging_rate
+    )
+
+    assert actual_split == expected_split
