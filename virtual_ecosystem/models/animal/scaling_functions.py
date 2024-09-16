@@ -250,7 +250,7 @@ def k_i_k(alpha_i_k: float, phi_herb_t: float, B_k_t: float, A_cell: float) -> f
         alpha_i_k: Effective rate at which an individual herbivore searches its
           environment.
         phi_herb_t: Fraction of the total plant stock that is available to any one
-          herbivore cohort
+          herbivore cohort (default 0.1)
         B_k_t: Plant resource bool biomass.
         A_cell: The area of one cell [standard = 1 ha]
 
@@ -370,7 +370,6 @@ def alpha_i_j(alpha_0_pred: float, mass: float, w_bar_i_j: float) -> float:
 def k_i_j(alpha_i_j: float, N_i_t: float, A_cell: float, theta_i_j: float) -> float:
     """Potential number of prey items eaten off j by i.
 
-    TODO: Finish docstring
     TODO: double check output needs to be float, might be int
     TODO: update name
 
@@ -439,3 +438,34 @@ def juvenile_dispersal_speed(
     """
 
     return V_disp * (current_mass / M_disp_ref) ** o_disp
+
+
+def territory_size(mass: float) -> float:
+    """This function provides allometric scaling for territory size.
+
+    TODO: Replace this toy scaling with a real allometry
+    TODO: decide if this allometry will be based on current mass or adult mass
+
+    Args:
+        mass: The mass of the animal cohort
+
+    Returns:
+        The size of the cohort's territory in hectares
+    """
+
+    if mass < 10.0:
+        territory = 1.0
+    elif 10.0 <= mass < 25.0:
+        territory = 2.0
+    elif 25.0 <= mass < 50.0:
+        territory = 5.0
+    elif 50.0 <= mass < 100.0:
+        territory = 10.0
+    elif 100.0 <= mass < 200.0:
+        territory = 15.0
+    elif 200.0 <= mass < 500.0:
+        territory = 20.0
+    else:
+        territory = 30.0
+
+    return territory

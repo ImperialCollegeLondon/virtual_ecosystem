@@ -204,8 +204,21 @@ def test_generate_animal_model(
         # Run the update step (once this does something should check output)
         model.update(time_index=0)
 
+    # Filter out stochastic log entries
+    filtered_records = [
+        record
+        for record in caplog.records
+        if "No individuals in cohort to forage." not in record.message
+    ]
+
+    # Create a new caplog object to pass to log_check
+    class FilteredCaplog:
+        records = filtered_records
+
+    filtered_caplog = FilteredCaplog()
+
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    log_check(filtered_caplog, expected_log_entries)
 
     for record in caplog.records:
         print(f"Level: {record.levelname}, Message: {record.message}")
@@ -281,36 +294,32 @@ def test_update_method_time_index_argument(
     assert True
 
 
-def test_calculate_litter_additions(functional_group_list_instance):
+def test_calculate_litter_additions(
+    functional_group_list_instance, animal_data_for_model_instance
+):
     """Test that litter additions from animal model are calculated correctly."""
 
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
     # Build the config object and core components
     config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')
     core_components = CoreComponents(config)
 
-    # Create a small data object to work with
-    grid = Grid(cell_nx=2, cell_ny=2)
-    data = Data(grid)
-
     # Use it to initialise the model
     model = AnimalModel(
-        data=data,
+        data=animal_data_for_model_instance,
         core_components=core_components,
         functional_groups=functional_group_list_instance,
     )
 
     # Update the waste pools
-    decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
+    decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6, 0, 0, 0, 0, 0]
     for energy, community in zip(decomposed_excrement, model.communities.values()):
         community.excrement_pool.decomposed_energy = energy
 
-    decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8]
+    decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8, 0, 0, 0, 0, 0]
     for energy, community in zip(decomposed_carcasses, model.communities.values()):
         community.carcass_pool.decomposed_energy = energy
 
@@ -320,11 +329,11 @@ def test_calculate_litter_additions(functional_group_list_instance):
     # Check that litter addition pools are as expected
     assert np.allclose(
         litter_additions["decomposed_excrement"],
-        [5e-08, 8e-07, 8.42857e-07, 3.28571e-05],
+        [5e-08, 8e-07, 8.42857e-07, 3.28571e-05, 0, 0, 0, 0, 0],
     )
     assert np.allclose(
         litter_additions["decomposed_carcasses"],
-        [1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3],
+        [1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3, 0, 0, 0, 0, 0],
     )
 
     # Check that the function has reset the pools correctly

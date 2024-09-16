@@ -4,6 +4,8 @@ required for setting up and testing the early stages of the animal module.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
@@ -21,6 +23,8 @@ class PlantResources:
     of plant resources, diversification to fruit and other resources and probably plant
     cohort specific herbivory.
 
+    TODO: fix mass_current after resolving example data questions
+
     Args:
         data: A Data object containing information from the plants model.
         cell_id: The cell id for the plant community to expose.
@@ -30,9 +34,10 @@ class PlantResources:
         # Store the data and extract the appropriate plant data
         self.data = data
         """A reference to the core data object."""
-        self.mass_current: float = (
-            data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
-        )
+        # self.mass_current: float = (
+        #    data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
+        # )
+        self.mass_current = 100000.0
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animals constants."""
@@ -49,20 +54,13 @@ class PlantResources:
         """Whether the cohort is alive [True] or dead [False]."""
 
     def get_eaten(
-        self, consumed_mass: float, herbivore: Consumer, excrement_pool: DecayPool
+        self,
+        consumed_mass: float,
+        herbivore: Consumer,
+        excrement_pools: Sequence[DecayPool],
     ) -> float:
-        """This function handles herbivory on PlantResources.
+        """This function handles herbivory on PlantResources."""
 
-        TODO: plant waste should flow to a litter pool of some kind
-
-        Args:
-            consumed_mass: The mass intended to be consumed by the herbivore.
-            herbivore: The Consumer (AnimalCohort) consuming the PlantResources.
-            excrement_pool: The pool to which remains of uneaten plant material is added
-
-        Returns:
-            The actual mass consumed by the herbivore, adjusted for efficiencies.
-        """
         # Check if the requested consumed mass is more than the available mass
         actual_consumed_mass = min(self.mass_current, consumed_mass)
 
@@ -79,9 +77,15 @@ class PlantResources:
         excess_mass = actual_consumed_mass * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
-        excrement_pool.decomposed_energy += (
+
+        # Calculate the energy to be added to each excrement pool
+        excreta_energy_per_pool = (
             excess_mass * self.constants.energy_density["plant"]
-        )
+        ) / len(excrement_pools)
+
+        # Distribute the excreta energy across the excrement pools
+        for excrement_pool in excrement_pools:
+            excrement_pool.decomposed_energy += excreta_energy_per_pool
 
         # Return the net mass gain of herbivory, considering both mechanical and
         # digestive efficiencies

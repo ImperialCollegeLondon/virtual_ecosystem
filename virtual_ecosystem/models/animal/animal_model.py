@@ -131,7 +131,7 @@ class AnimalModel(
                 data=self.data,
                 community_key=k,
                 neighbouring_keys=list(self.data.grid.neighbours[k]),
-                get_destination=self.get_community_by_key,
+                get_community_by_key=self.get_community_by_key,
                 constants=self.model_constants,
             )
             for k in self.data.grid.cell_id
