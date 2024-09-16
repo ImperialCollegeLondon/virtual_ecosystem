@@ -92,8 +92,6 @@ class AnimalConsts(ConstantsDataclass):
     )
     dispersal_mass_threshold: float = 0.8  # Threshold for dispersal
     energy_percentile_threshold: float = 0.5  # Threshold for initiating migration
-    decay_fraction_excrement: float = 0.5  # Decay fraction for excrement
-    decay_fraction_carcasses: float = 0.2  # Decay fraction for carcasses
 
     # Madingley Foraging Parameters
 
@@ -222,21 +220,35 @@ class AnimalConsts(ConstantsDataclass):
     """The proportion of metabolic wastes that are nitrogenous. This is a temporary
     fix to facilitate building the machinery and will be updated with stoichiometry."""
 
+    decay_rate_excrement: float = 0.25
+    """Rate at which excrement decays due to microbial activity [day^-1].
+    
+    In reality this should not be constant, but as a simplifying assumption it is.
+    """
 
-DECAY_FRACTION_EXCREMENT: float = 0.5
-"""Fraction of excrement that is assumed to decay rather than be consumed [unitless].
+    scavenging_rate_excrement: float = 0.25
+    """Rate at which excrement is scavenged by animals [day^-1].
 
-TODO - The number given here is very much made up. In future, we either need to find a
-way of estimating this from data, or come up with a smarter way of handling this
-process.
-"""
+    Used along with :attr:`decay_rate_excrement` to calculate the split of excrement
+    between scavengable excrement and flow into the soil. In reality this should be a
+    constant, but as a simplifying assumption it is.
+    """
 
-DECAY_FRACTION_CARCASSES: float = 0.2
-"""Fraction of carcass biomass that is assumed to decay rather than be consumed.
+    decay_rate_carcasses: float = 0.0625
+    """Rate at which carcasses decay due to microbial activity [day^-1].
+    
+    In reality this should not be constant, but as a simplifying assumption it is.
+    """
 
-[unitless]. TODO - The number given here is very much made up, see
-:attr:`DECAY_FRACTION_EXCREMENT` for details of how this should be changed in future.
-"""
+    scavenging_rate_carcasses: float = 0.25
+    """Rate at which carcasses are scavenged by animals [day^-1].
+
+    Used along with :attr:`decay_rate_carcasses` to calculate the split of carcass
+    biomass between scavengable carcass biomass and flow into the soil. In reality this
+    should be a constant, but as a simplifying assumption it is.
+    """
+
+
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].

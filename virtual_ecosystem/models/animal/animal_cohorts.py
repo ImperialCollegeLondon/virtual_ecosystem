@@ -17,7 +17,7 @@ import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.decay import CarcassPool
+from virtual_ecosystem.models.animal.decay import CarcassPool, find_decay_consumed_split
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool, Resource
 
@@ -74,11 +74,15 @@ class AnimalCohort:
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
-        # TODO - In future this should be parameterised using a constants dataclass, but
-        # this hasn't yet been implemented for the animal model
-        self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
+        self.decay_fraction_excrement: float = find_decay_consumed_split(
+            microbial_decay_rate=self.constants.decay_rate_excrement,
+            animal_scavenging_rate=self.constants.scavenging_rate_excrement,
+        )
         """The fraction of excrement which decays before it gets consumed."""
-        self.decay_fraction_carcasses: float = self.constants.decay_fraction_carcasses
+        self.decay_fraction_carcasses: float = find_decay_consumed_split(
+            microbial_decay_rate=self.constants.decay_rate_carcasses,
+            animal_scavenging_rate=self.constants.scavenging_rate_carcasses,
+        )
         """The fraction of carcass biomass which decays before it gets consumed."""
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
