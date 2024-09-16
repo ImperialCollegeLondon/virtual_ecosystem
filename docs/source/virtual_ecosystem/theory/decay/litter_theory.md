@@ -80,18 +80,21 @@ where $L$ is the proportion of the litter pool which is lignin and $r$ is a (neg
 empirical constant setting the strength of the inhibition. This choice of function form
 follows {cite:t}`kirschbaum_modelling_2002`.
 
-TODO - EXPLAIN WHAT I MEAN BY INPUT BIOMASS TYPE
-Nitrogen and phosphorus concentrations indirectly impact the total rate of litter
-breakdown because they (along with lignin concentration) effect how input biomass gets
-partitioned between structural and metabolic litter pools. The fraction of a given input
-biomass type ($i$) that goes into the relevant metabolic litter pool is given by
+The litter model takes in input biomass from the plant model as four separate biomass
+streams: wood, leaves, roots, and reproductive biomass (e.g. fruits and flowers). All
+wood input goes to the woody litter pool, but the other three streams need to be
+partitioned between the relevant metabolic and structural litter pools. This partition
+depends on the lignin concentration of the input biomass, as well as its nitrogen and
+phosphorus concentrations. The fraction of a given input biomass stream ($i$) that goes
+into the relevant metabolic litter pool is given by
 
-TODO - Expand this to include phosphorus
-$$f_{m,i} = f_M - (s * l_i * C:N_i)$$
+$$f_{m,i} = f_M - l_i * (s_N N_i + s_P P_i)$$
 
-where $f_m$ is the maximum fraction that can go to the metabolic pool, $l_i$ is the
-lignin proportion of the input biomass stream $i$, $C:N_i$ is the carbon:nitrogen ratio
-of input biomass of type $i$, and $s$ is a constant capturing how fast the split changes
-in response to changes in lignin and nitrogen concentration.
+where $f_M$ is the maximum fraction that can go to the metabolic pool, $l_i$ is the
+lignin proportion for input stream $i$, $N_i$ is the carbon:nitrogen ratio of input
+stream $i$, $P_i$ is the carbon:phosphorus ratio of input stream $i$, $s_N$ parametrises
+the responsiveness of the split to changes in the product of lignin proportion and
+carbon:nitrogen ratio, and $s_P$ parametrises the responsiveness of the split to changes
+in the product of lignin proportion and carbon:phosphorus ratio.
 
 TODO - Add section about Environmental factors
