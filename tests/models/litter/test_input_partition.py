@@ -17,9 +17,9 @@ def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
     )
 
     expected_proportions = {
-        "leaves": [0.8365, 0.73525, 0.61726, 0.261076],
-        "reproductive": [0.84775, 0.837148, 0.838696, 0.843448],
-        "roots": [0.74092, 0.56272, 0.639562, 0.58288],
+        "leaves": [0.812403025, 0.640197595, 0.424077745, 0.0089426731],
+        "reproductive": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
+        "roots": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
     }
 
     actual_proportions = calculate_metabolic_proportions_of_input(
@@ -33,6 +33,11 @@ def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
             "plant_reproductive_tissue_turnover_c_n_ratio"
         ],
         root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        leaf_turnover_c_p_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"],
+        reproduct_turnover_c_p_ratio=dummy_litter_data[
+            "plant_reproductive_tissue_turnover_c_p_ratio"
+        ],
+        root_turnover_c_p_ratio=dummy_litter_data["root_turnover_c_p_ratio"],
         constants=LitterConsts,
     )
 
@@ -50,10 +55,10 @@ def test_partion_plant_inputs_between_pools(dummy_litter_data, metabolic_splits)
     )
 
     expected_woody = [0.075, 0.099, 0.063, 0.033]
-    expected_above_meta = [0.02512875, 0.006499185, 0.01510113, 0.0106036]
-    expected_above_struct = [0.00487125, 0.001300815, 0.00844887, 0.0216464]
-    expected_below_meta = [0.02000484, 0.01181712, 0.00019187, 0.01451371]
-    expected_below_struct = [0.00699516, 0.00918288, 0.00010813, 0.01038629]
+    expected_above_meta = [0.02447376, 0.00644323, 0.01102713, 0.00340132]
+    expected_above_struct = [0.00552624, 0.00135677, 0.01252287, 0.02884868]
+    expected_below_meta = [0.01588666, 0.00797100, 0.00015073, 0.01021211]
+    expected_below_struct = [0.01111334, 0.013029, 0.00014927, 0.01468789]
 
     actual_splits = partion_plant_inputs_between_pools(
         deadwood_production=dummy_litter_data["deadwood_production"],
@@ -77,13 +82,15 @@ def test_split_pool_into_metabolic_and_structural_litter(dummy_litter_data):
         split_pool_into_metabolic_and_structural_litter,
     )
 
-    expected_split = [0.8365, 0.73525, 0.61726, 0.261076]
+    expected_split = [0.812403025, 0.640197595, 0.424077745, 0.0089426731]
 
     actual_split = split_pool_into_metabolic_and_structural_litter(
         lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
         carbon_nitrogen_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        carbon_phosphorus_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"],
         max_metabolic_fraction=LitterConsts.max_metabolic_fraction_of_input,
-        split_sensitivity=LitterConsts.structural_metabolic_split_sensitivity,
+        split_sensitivity_nitrogen=LitterConsts.metabolic_split_nitrogen_sensitivity,
+        split_sensitivity_phosphorus=LitterConsts.metabolic_split_phosphorus_sensitivity,
     )
 
     assert np.allclose(actual_split, expected_split)
@@ -127,13 +134,16 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
 
     # C:N ratio of >400 is far too high for the function to behave sensibly
     lignin_proportions = np.array([0.5, 0.4, 0.35, 0.23])
+    c_p_ratios = np.array([[415.0, 327.4, 554.5, 145.0]])
 
     with pytest.raises(ValueError):
         split_pool_into_metabolic_and_structural_litter(
             lignin_proportion=lignin_proportions,
             carbon_nitrogen_ratio=c_n_ratios,
+            carbon_phosphorus_ratio=c_p_ratios,
             max_metabolic_fraction=LitterConsts.max_metabolic_fraction_of_input,
-            split_sensitivity=LitterConsts.structural_metabolic_split_sensitivity,
+            split_sensitivity_nitrogen=LitterConsts.metabolic_split_nitrogen_sensitivity,
+            split_sensitivity_phosphorus=LitterConsts.metabolic_split_phosphorus_sensitivity,
         )
 
     # Check the error reports

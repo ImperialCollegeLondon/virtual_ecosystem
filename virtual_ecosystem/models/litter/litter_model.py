@@ -76,6 +76,11 @@ class LitterModel(
         "c_n_ratio_woody",
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
     ),
     vars_populated_by_init=(),
     vars_required_for_update=(
@@ -92,6 +97,11 @@ class LitterModel(
         "c_n_ratio_woody",
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
         "deadwood_production",
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
@@ -119,12 +129,19 @@ class LitterModel(
         "c_n_ratio_woody",
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
     vars_populated_by_first_update=(
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
 ):
     """A class defining the litter model.
@@ -194,6 +211,11 @@ class LitterModel(
             "c_n_ratio_woody",
             "c_n_ratio_below_metabolic",
             "c_n_ratio_below_structural",
+            "c_p_ratio_above_metabolic",
+            "c_p_ratio_above_structural",
+            "c_p_ratio_woody",
+            "c_p_ratio_below_metabolic",
+            "c_p_ratio_below_structural",
         ]
         negative_ratios = []
         for ratio in nutrient_ratios:
@@ -294,6 +316,11 @@ class LitterModel(
                 "plant_reproductive_tissue_turnover_c_n_ratio"
             ].to_numpy(),
             root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
+            leaf_turnover_c_p_ratio=self.data["leaf_turnover_c_p_ratio"].to_numpy(),
+            reproduct_turnover_c_p_ratio=self.data[
+                "plant_reproductive_tissue_turnover_c_p_ratio"
+            ].to_numpy(),
+            root_turnover_c_p_ratio=self.data["root_turnover_c_p_ratio"].to_numpy(),
             constants=self.model_constants,
         )
 
@@ -340,6 +367,10 @@ class LitterModel(
             decay_rates=decay_rates,
             active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
+        total_P_mineralisation_rate = self.litter_chemistry.calculate_P_mineralisation(
+            decay_rates=decay_rates,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
+        )
 
         # Construct dictionary of data arrays to return
         updated_litter_variables = {
@@ -374,11 +405,27 @@ class LitterModel(
             "c_n_ratio_below_structural": updated_chemistries[
                 "c_n_ratio_below_structural"
             ],
+            "c_p_ratio_above_metabolic": updated_chemistries[
+                "c_p_ratio_above_metabolic"
+            ],
+            "c_p_ratio_above_structural": updated_chemistries[
+                "c_p_ratio_above_structural"
+            ],
+            "c_p_ratio_woody": updated_chemistries["c_p_ratio_woody"],
+            "c_p_ratio_below_metabolic": updated_chemistries[
+                "c_p_ratio_below_metabolic"
+            ],
+            "c_p_ratio_below_structural": updated_chemistries[
+                "c_p_ratio_below_structural"
+            ],
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
             ),
             "litter_N_mineralisation_rate": DataArray(
                 total_N_mineralisation_rate, dims="cell_id"
+            ),
+            "litter_P_mineralisation_rate": DataArray(
+                total_P_mineralisation_rate, dims="cell_id"
             ),
         }
 
