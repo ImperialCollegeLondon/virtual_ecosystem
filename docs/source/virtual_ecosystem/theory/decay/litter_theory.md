@@ -80,7 +80,18 @@ where $L$ is the proportion of the litter pool which is lignin and $r$ is a (neg
 empirical constant setting the strength of the inhibition. This choice of function form
 follows {cite:t}`kirschbaum_modelling_2002`.
 
-TODO - explain partition, how it determines litter quality. Maybe give the actual
-function and explain the terms.
+TODO - EXPLAIN WHAT I MEAN BY INPUT BIOMASS TYPE
+Nitrogen and phosphorus concentrations indirectly impact the total rate of litter
+breakdown because they (along with lignin concentration) effect how input biomass gets
+partitioned between structural and metabolic litter pools. The fraction of a given input
+biomass type ($i$) that goes into the relevant metabolic litter pool is given by
+
+TODO - Expand this to include phosphorus
+$$f_{m,i} = f_M - (s * l_i * C:N_i)$$
+
+where $f_m$ is the maximum fraction that can go to the metabolic pool, $l_i$ is the
+lignin proportion of the input biomass stream $i$, $C:N_i$ is the carbon:nitrogen ratio
+of input biomass of type $i$, and $s$ is a constant capturing how fast the split changes
+in response to changes in lignin and nitrogen concentration.
 
 TODO - Add section about Environmental factors
