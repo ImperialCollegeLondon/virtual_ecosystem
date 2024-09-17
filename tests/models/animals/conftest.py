@@ -342,15 +342,11 @@ def get_community_by_key(animal_community_instance):
 
 
 @pytest.fixture
-def animal_territory_instance(get_community_by_key):
-    """Fixture for animal territories."""
+def animal_territory_instance():
+    """Fixture to create an AnimalTerritory instance."""
     from virtual_ecosystem.models.animal.animal_territories import AnimalTerritory
 
-    return AnimalTerritory(
-        centroid=0,
-        grid_cell_keys=[1, 2, 3],
-        get_community_by_key=get_community_by_key,
-    )
+    return AnimalTerritory(centroid=1, grid_cell_keys=[1, 2, 3])
 
 
 @pytest.fixture

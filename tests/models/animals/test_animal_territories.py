@@ -27,19 +27,16 @@ class TestAnimalTerritories:
             animal_territory_instance, "get_carcass_pools", return_value=[]
         )
 
-    def test_update_territory(
-        self,
-        animal_territory_instance,
-        mock_get_plant_resources,
-        mock_get_excrement_pools,
-        mock_get_carcass_pools,
-    ):
+    def test_update_territory(self, animal_territory_instance):
         """Test for update_territory method."""
-        animal_territory_instance.update_territory()
+        # Define new grid cell keys for updating the territory
+        new_grid_cell_keys = [4, 5, 6]
 
-        mock_get_plant_resources.assert_called_once()
-        mock_get_excrement_pools.assert_called_once()
-        mock_get_carcass_pools.assert_called_once()
+        # Call update_territory with new grid cell keys
+        animal_territory_instance.update_territory(new_grid_cell_keys)
+
+        # Check if the territory was updated correctly
+        assert animal_territory_instance.grid_cell_keys == new_grid_cell_keys
 
     def test_get_prey(
         self,
