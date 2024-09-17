@@ -47,7 +47,11 @@ if [ -d /tmp/ve_example ]; then
 fi
 ```
 
-A fresh example data directory can then be installed.
+It should be noted that this is a nuclear option, which is only really appropriate for a
+tutorial like this. In general, you can prevent errors due to output files already
+existing by either moving or deleting the contents of the `ve_example/out` folder. With
+leftover example data directories now removed, a fresh example data directory can then
+be installed.
 
 ```{code-cell} ipython3
 %%bash
