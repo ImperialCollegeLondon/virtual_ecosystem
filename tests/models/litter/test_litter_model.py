@@ -457,7 +457,7 @@ def test_generate_litter_model(
 def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.31567198, 0.1529074957, 0.0813030042, 0.0736771942]
+    end_above_meta = [0.3154561, 0.15193439, 0.07892301, 0.0712972]
     end_above_struct = [0.50519138, 0.25011962, 0.10250070, 0.11882651]
     end_woody = [4.77403361, 11.89845863, 7.3598224, 7.3298224]
     end_below_meta = [0.3976309, 0.3630269, 0.06787947, 0.07794085]
@@ -465,12 +465,12 @@ def test_update(fixture_litter_model, dummy_litter_data):
     end_lignin_above_struct = [0.49726219, 0.10065698, 0.67693666, 0.6673972]
     end_lignin_woody = [0.49580543, 0.7978783, 0.35224272, 0.35012606]
     end_lignin_below_struct = [0.49974338, 0.26270806, 0.74846367, 0.71955592]
-    end_c_n_above_metabolic = [7.39175978, 8.93054462, 10.40414542, 9.86041981]
+    end_c_n_above_metabolic = [7.3918226, 8.9320212, 10.413317, 9.8624367]
     end_c_n_above_structural = [37.5547150, 43.3448492, 48.0974058, 52.0359678]
     end_c_n_woody = [55.5816919, 63.2550698, 47.5208477, 59.0819914]
     end_c_n_below_metabolic = [10.7299421, 11.3394567, 15.1984024, 12.2222413]
     end_c_n_below_structural = [50.6228215, 55.9998994, 73.0948342, 58.6661277]
-    end_c_p_above_metabolic = [69.957176, 68.5502416, 107.1709994, 96.55826106]
+    end_c_p_above_metabolic = [69.965838, 68.549282, 107.38423, 96.583573]
     end_c_p_above_structural = [346.048307, 472.496124, 465.834123, 525.882608]
     end_c_p_woody = [560.22870571, 762.56863636, 848.03530307, 600.40427444]
     end_c_p_below_metabolic = [308.200782, 405.110726, 314.824814, 372.870229]

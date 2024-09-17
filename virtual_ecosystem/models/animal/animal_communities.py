@@ -72,9 +72,26 @@ class AnimalCommunity:
             k.name: [] for k in self.functional_groups
         }
         """A dictionary of lists of animal cohort keyed by functional group."""
-        self.carcass_pool: CarcassPool = CarcassPool(10000.0, 0.0)
+        # TODO - In future, need to take in data on average size of excrement and
+        # carcasses pools and their stoichiometries for the initial scavengeable pool
+        # parameterisations
+        self.carcass_pool: CarcassPool = CarcassPool(
+            scavengeable_carbon=1e-3,
+            scavengeable_nitrogen=1e-4,
+            scavengeable_phosphorus=1e-6,
+            decomposed_carbon=0.0,
+            decomposed_nitrogen=0.0,
+            decomposed_phosphorus=0.0,
+        )
         """A pool for animal carcasses within the community."""
-        self.excrement_pool: ExcrementPool = ExcrementPool(10000.0, 0.0)
+        self.excrement_pool: ExcrementPool = ExcrementPool(
+            scavengeable_carbon=1e-3,
+            scavengeable_nitrogen=1e-4,
+            scavengeable_phosphorus=1e-6,
+            decomposed_carbon=0.0,
+            decomposed_nitrogen=0.0,
+            decomposed_phosphorus=0.0,
+        )
         """A pool for excrement within the community."""
 
     @property

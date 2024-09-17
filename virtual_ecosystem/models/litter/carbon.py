@@ -179,8 +179,6 @@ def calculate_updated_pools(
     woody: NDArray[np.float32],
     below_metabolic: NDArray[np.float32],
     below_structural: NDArray[np.float32],
-    decomposed_excrement: NDArray[np.float32],
-    decomposed_carcasses: NDArray[np.float32],
     decay_rates: dict[str, NDArray[np.float32]],
     plant_inputs: dict[str, NDArray[np.float32]],
     update_interval: float,
@@ -196,10 +194,6 @@ def calculate_updated_pools(
         woody: The woody litter pool [kg C m^-2]
         below_metabolic: Below ground metabolic litter pool [kg C m^-2]
         below_structural: Below ground structural litter pool [kg C m^-2]
-        decomposed_excrement: Input rate of excrement from the animal model [kg C m^-2
-            day^-1]
-        decomposed_carcasses: Input rate of (partially) decomposed carcass biomass from
-            the animal model [kg C m^-2 day^-1]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
         plant_inputs: Dictionary containing the amount of each litter type that is added
@@ -215,10 +209,8 @@ def calculate_updated_pools(
 
     # Net pool changes are found by combining input and decay rates, and then
     # multiplying by the update time step.
-    change_in_metabolic_above = (
-        plant_inputs["above_ground_metabolic"]
-        + (decomposed_excrement + decomposed_carcasses - decay_rates["metabolic_above"])
-        * update_interval
+    change_in_metabolic_above = plant_inputs["above_ground_metabolic"] - (
+        decay_rates["metabolic_above"] * update_interval
     )
     change_in_structural_above = plant_inputs["above_ground_structural"] - (
         decay_rates["structural_above"] * update_interval

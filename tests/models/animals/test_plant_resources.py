@@ -12,7 +12,7 @@ class TestPlantResources:
 
         consumed_mass = 50.0  # Define a mass to be consumed for the test
         initial_mass_current = plant_instance.mass_current
-        initial_excrement_energy = excrement_pool_instance.decomposed_energy
+        initial_excrement_carbon = excrement_pool_instance.decomposed_carbon
 
         actual_mass_gain = plant_instance.get_eaten(
             consumed_mass, herbivore_cohort_instance, excrement_pool_instance
@@ -38,9 +38,9 @@ class TestPlantResources:
         excess_mass = consumed_mass * (
             1 - herbivore_cohort_instance.functional_group.mechanical_efficiency
         )
-        expected_excrement_energy_increase = (
+        expected_excrement_carbon_increase = (
             excess_mass * plant_instance.constants.energy_density["plant"]
         )
-        assert excrement_pool_instance.decomposed_energy == pytest.approx(
-            initial_excrement_energy + expected_excrement_energy_increase
+        assert excrement_pool_instance.decomposed_carbon == pytest.approx(
+            initial_excrement_carbon + expected_excrement_carbon_increase
         ), "Excrement pool energy should increase by energy value of the excess mass."
