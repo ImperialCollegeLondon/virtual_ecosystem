@@ -10,10 +10,6 @@ from numpy import timedelta64
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.animal.animal_territories import (
-    AnimalTerritory,
-    bfs_territory,
-)
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
@@ -86,6 +82,9 @@ class AnimalCohort:
         self.occupancy_proportion: float = 1.0 / self.territory_size
         """The proportion of the cohort that is within a territorial given grid cell."""
         self._initialize_territory(centroid_key)
+        """Initialize the territory using the centroid grid key."""
+        self.territory: list[int]
+        """The list of grid cells currently occupied by the cohort."""
         # TODO - In future this should be parameterised using a constants dataclass, but
         # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = self.constants.decay_fraction_excrement
@@ -96,16 +95,18 @@ class AnimalCohort:
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
 
+        TODO: local import of bfs_territory is temporary while deciding whether to keep
+        animal_territory.py
+
         Args:
             centroid_key: The central grid cell key of the territory.
 
         """
-
         # Each grid cell is 1 hectare, territory size in grids is the same as hectares
         target_cell_number = int(self.territory_size)
 
         # Perform BFS to determine the territory cells
-        territory_cells = bfs_territory(
+        territory_cells = sf.bfs_territory(
             centroid_key,
             target_cell_number,
             self.grid.cell_nx,
@@ -120,15 +121,24 @@ class AnimalCohort:
     ) -> None:
         """This initializes the territory occupied by the cohort.
 
+        TODO: local import of AnimalTerritory is temporary while deciding whether to
+        keep the class
+
         Args:
             centroid_key: The grid cell key anchoring the territory.
-            get_community_by_key: The method for accessing animal communities by key.
         """
 
-        territory_cells = self.get_territory_cells(centroid_key)
+        self.territory = self.get_territory_cells(centroid_key)
 
-        # Generate the territory
-        self.territory = AnimalTerritory(centroid_key, territory_cells)
+    def update_territory(self, new_grid_cell_keys: list[int]) -> None:
+        """Update territory details at initialization and after migration.
+
+        Args:
+            new_grid_cell_keys: The new list of grid cell keys the territory occupies.
+
+        """
+
+        self.territory = new_grid_cell_keys
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce body mass through metabolism.
@@ -388,7 +398,7 @@ class AnimalCohort:
             self.is_alive = False
 
         # Find the intersection of prey and predator territories
-        intersection_carcass_pools = self.territory.find_intersecting_carcass_pools(
+        intersection_carcass_pools = self.find_intersecting_carcass_pools(
             predator.territory, carcass_pools
         )
 
@@ -948,3 +958,139 @@ class AnimalCohort:
 
         # Remove the dead individuals from the cohort
         self.die_individual(number_dead, carcass_pools)
+
+    def get_prey(
+        self,
+        communities: dict[int, list[AnimalCohort]],
+    ) -> list[AnimalCohort]:
+        """Collect suitable prey for a given consumer cohort.
+
+        This method filters suitable prey from the list of animal cohorts across the
+        territory defined by the cohort's grid cells.
+
+        Args:
+            communities: A dictionary mapping cell IDs to sets of Consumers
+            (animal cohorts).
+            consumer_cohort: The Consumer for which a prey list is being collected.
+
+        Returns:
+            A sequence of Consumers that can be preyed upon.
+        """
+        prey_list: list = []
+
+        # Iterate over the grid cells in the consumer cohort's territory
+        for cell_id in self.territory:
+            potential_prey_cohorts = communities[cell_id]
+
+            # Iterate over each Consumer (potential prey) in the current community
+            for prey_cohort in potential_prey_cohorts:
+                # Skip if this cohort is not a prey of the current predator
+                if prey_cohort.functional_group not in self.prey_groups:
+                    continue
+
+                # Get the size range of the prey this predator eats
+                min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
+
+                # Filter the potential prey cohorts based on their size
+                if (
+                    min_size <= prey_cohort.mass_current <= max_size
+                    and prey_cohort.individuals != 0
+                    and prey_cohort is not self
+                ):
+                    prey_list.append(prey_cohort)
+
+        return prey_list
+
+    def get_plant_resources(
+        self, plant_resources: dict[int, list[PlantResources]]
+    ) -> list[PlantResources]:
+        """Returns a list of plant resources in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the plant resources available in those grid cells.
+
+        Args:
+            plant_resources: A dictionary of plants where keys are grid cell IDs.
+
+        Returns:
+            A list of PlantResources objects in this territory.
+        """
+        plant_resources_in_territory: list = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided plant resources
+            if cell_id in plant_resources:
+                plant_resources_in_territory.extend(plant_resources[cell_id])
+
+        return plant_resources_in_territory
+
+    def get_excrement_pools(
+        self, excrement_pools: dict[int, list[ExcrementPool]]
+    ) -> list[ExcrementPool]:
+        """Returns a list of excrement pools in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the excrement pools available in those grid cells.
+
+        Args:
+            excrement_pools: A dictionary of excrement pools where keys are grid
+            cell IDs.
+
+        Returns:
+            A list of ExcrementPool objects in this territory.
+        """
+        excrement_pools_in_territory: list[ExcrementPool] = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided excrement pools
+            if cell_id in excrement_pools:
+                excrement_pools_in_territory.extend(excrement_pools[cell_id])
+
+        return excrement_pools_in_territory
+
+    def get_carcass_pools(
+        self, carcass_pools: dict[int, list[CarcassPool]]
+    ) -> list[CarcassPool]:
+        """Returns a list of carcass pools in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the carcass pools available in those grid cells.
+
+        Args:
+            carcass_pools: A dictionary of carcass pools where keys are grid
+            cell IDs.
+
+        Returns:
+            A list of CarcassPool objects in this territory.
+        """
+        carcass_pools_in_territory: list[CarcassPool] = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided carcass pools
+            if cell_id in carcass_pools:
+                carcass_pools_in_territory.extend(carcass_pools[cell_id])
+
+        return carcass_pools_in_territory
+
+    def find_intersecting_carcass_pools(
+        self,
+        prey_territory: list[int],
+        carcass_pools: dict[int, list[CarcassPool]],
+    ) -> list[CarcassPool]:
+        """Find the carcass pools of the intersection of two territories.
+
+        Args:
+            prey_territory: Another AnimalTerritory to find the intersection with.
+            carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
+
+        Returns:
+            A list of CarcassPools in the intersecting grid cells.
+        """
+        intersecting_keys = set(self.territory) & set(prey_territory)
+        intersecting_carcass_pools: list[CarcassPool] = []
+        for cell_id in intersecting_keys:
+            intersecting_carcass_pools.extend(carcass_pools[cell_id])
+        return intersecting_carcass_pools

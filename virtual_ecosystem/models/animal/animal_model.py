@@ -389,7 +389,7 @@ class AnimalModel(
         Args:
             cohort: The cohort to be removed from the occupancy lists.
         """
-        for cell_id in cohort.territory.grid_cell_keys:
+        for cell_id in cohort.territory:
             if cohort.id in self.communities[cell_id]:
                 self.communities[cell_id].remove(cohort)
 
@@ -404,7 +404,7 @@ class AnimalModel(
         """
 
         territory_cells = cohort.get_territory_cells(centroid_key)
-        cohort.territory.update_territory(territory_cells)
+        cohort.update_territory(territory_cells)
 
         for cell_id in territory_cells:
             self.communities[cell_id].append(cohort)
@@ -519,7 +519,7 @@ class AnimalModel(
         # Check if the cohort exists in self.cohorts
         if cohort.id in self.cohorts.values():
             # Iterate over all grid cell keys in the cohort's territory
-            for cell_id in cohort.territory.grid_cell_keys:
+            for cell_id in cohort.territory:
                 if cell_id in self.communities:
                     self.communities[cell_id].remove(cohort)
 
@@ -625,15 +625,9 @@ class AnimalModel(
             # Prepare the prey list for the consumer cohort
             if consumer_cohort.territory is None:
                 raise ValueError("The cohort's territory hasn't been defined.")
-            prey_list = consumer_cohort.territory.get_prey(
-                self.communities, consumer_cohort
-            )
-            plant_list = consumer_cohort.territory.get_plant_resources(
-                self.plant_resources
-            )
-            excrement_list = consumer_cohort.territory.get_excrement_pools(
-                self.excrement_pools
-            )
+            prey_list = consumer_cohort.get_prey(self.communities)
+            plant_list = consumer_cohort.get_plant_resources(self.plant_resources)
+            excrement_list = consumer_cohort.get_excrement_pools(self.excrement_pools)
 
             # Initiate foraging for the consumer cohort with the prepared resources
             consumer_cohort.forage_cohort(
@@ -701,7 +695,7 @@ class AnimalModel(
         number_of_days = float(dt / timedelta64(1, "D"))
         for cohort in self.cohorts.values():
             cohort.inflict_non_predation_mortality(
-                number_of_days, cohort.territory.get_carcass_pools(self.carcass_pools)
+                number_of_days, cohort.get_carcass_pools(self.carcass_pools)
             )
             if cohort.individuals <= 0:
                 cohort.is_alive = False
@@ -726,7 +720,7 @@ class AnimalModel(
             larval_cohort.individuals * larval_cohort.constants.metamorph_mortality
         )
         larval_cohort.die_individual(
-            number_dead, larval_cohort.territory.get_carcass_pools(self.carcass_pools)
+            number_dead, larval_cohort.get_carcass_pools(self.carcass_pools)
         )
         # collect the adult functional group
         adult_functional_group = get_functional_group_by_name(
