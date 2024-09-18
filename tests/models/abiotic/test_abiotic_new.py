@@ -7,6 +7,7 @@ import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 @pytest.mark.parametrize(
@@ -140,7 +141,7 @@ def test_calculate_clear_sky_radiation(
 
 
 @pytest.mark.parametrize(
-    "solar_zenith_angle, slope_factor, solar_index, expected_coefficients",
+    "solar_zenith_angle, leaf_incl_coefficient, solar_index, expected_coefficients",
     [
         (45.0, 1.0, 0.5, [0.70, 1.0, 0.5]),
         (30.0, 2.0, 1.0, [0.75, 0.65, 0.72]),
@@ -148,7 +149,10 @@ def test_calculate_clear_sky_radiation(
     ],
 )
 def test_calculate_canopy_extinction_coefficients(
-    solar_zenith_angle, slope_factor, solar_index, expected_coefficients
+    solar_zenith_angle,
+    leaf_incl_coefficient,
+    solar_index,
+    expected_coefficients,
 ):
     """Test calculation of canopy extinction coefficients."""
 
@@ -157,14 +161,14 @@ def test_calculate_canopy_extinction_coefficients(
     )
 
     computed_coefficients = calculate_canopy_extinction_coefficients(
-        solar_zenith_angle, slope_factor, solar_index
+        solar_zenith_angle, leaf_incl_coefficient, solar_index
     )
     for computed, expected in zip(computed_coefficients, expected_coefficients):
         np.testing.assert_allclose(computed, expected, atol=1e-2)
 
 
 @pytest.mark.parametrize(
-    "adj_lai, absorption_coeff, gma, h, ground_refl, expected",
+    "adj_pai, absorption_coeff, gma, h, ground_refl, expected",
     [
         (1.0, 0.5, 0.2, 0.3, 0.8, [-2.048, 5.621, 1.185, -0.185]),
         (5.0, 0.6, 0.3, 0.4, 0.9, [0.240, -0.025, 1.004, -0.004]),
@@ -172,7 +176,7 @@ def test_calculate_canopy_extinction_coefficients(
     ],
 )
 def test_calculate_diffuse_radiation_parameters(
-    adj_lai,
+    adj_pai,
     absorption_coeff,
     gma,
     h,
@@ -186,7 +190,7 @@ def test_calculate_diffuse_radiation_parameters(
     )
 
     computed_parameters = calculate_diffuse_radiation_parameters(
-        adjusted_leaf_area_index=adj_lai,
+        adjusted_plant_area_index=adj_pai,
         scatter_absorption_coefficient=absorption_coeff,
         gma=gma,
         h=h,
@@ -197,7 +201,7 @@ def test_calculate_diffuse_radiation_parameters(
 
 
 @pytest.mark.parametrize(
-    "alai, scat_alb, scat_abs, gma, h, gref, incl, delta, k, kd, sigma, expected",
+    "apai, scat_alb, scat_abs, gma, h, gref, incl, delta, k, kd, sigma, expected",
     [
         (
             1.0,
@@ -244,7 +248,7 @@ def test_calculate_diffuse_radiation_parameters(
     ],
 )
 def test_calculate_direct_radiation_parameters(
-    alai, scat_alb, scat_abs, gma, h, gref, incl, delta, k, kd, sigma, expected
+    apai, scat_alb, scat_abs, gma, h, gref, incl, delta, k, kd, sigma, expected
 ):
     """Test calculation of direct radiation parameters."""
 
@@ -253,7 +257,7 @@ def test_calculate_direct_radiation_parameters(
     )
 
     computed_parameters = calculate_direct_radiation_parameters(
-        adjusted_leaf_area_index=alai,
+        adjusted_plant_area_index=apai,
         scattering_albedo=scat_alb,
         scatter_absorption_coefficient=scat_abs,
         gma=gma,
@@ -277,7 +281,7 @@ def test_calculate_absorbed_shortwave_radiation():
     )
 
     # Define input parameters
-    leaf_area_index = 2.0
+    plant_area_index = 2.0
     leaf_orientation_coefficient = 0.5
     leaf_reluctance_shortwave = 0.15
     leaf_transmittance_shortwave = 0.05
@@ -293,10 +297,11 @@ def test_calculate_absorbed_shortwave_radiation():
     local_time = np.array([12.0], dtype=np.float32)
     shortwave_radiation = np.array([800.0], dtype=np.float32)
     diffuse_radiation = np.array([200.0], dtype=np.float32)
+    leaf_inclination_angle_coefficient = 5.0
 
     # Call the function to test
     result = calculate_absorbed_shortwave_radiation(
-        leaf_area_index=leaf_area_index,
+        plant_area_index=plant_area_index,
         leaf_orientation_coefficient=leaf_orientation_coefficient,
         leaf_reluctance_shortwave=leaf_reluctance_shortwave,
         leaf_transmittance_shortwave=leaf_transmittance_shortwave,
@@ -312,6 +317,7 @@ def test_calculate_absorbed_shortwave_radiation():
         local_time=local_time,
         shortwave_radiation=shortwave_radiation,
         diffuse_radiation=diffuse_radiation,
+        leaf_inclination_angle_coefficient=leaf_inclination_angle_coefficient,
     )
 
     # Define expected output values
@@ -387,7 +393,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
 
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
+        plant_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
         zero_plane_scaling_parameter=7.5,
     )
 
@@ -403,18 +409,17 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
 
     result = calculate_roughness_length_momentum(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
+        plant_area_index=np.array([np.nan, 0.0, 7, 7]),
         zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
+        diabatic_correction_heat=np.array([0.0, 0.0, 0.0, 0.0]),
         substrate_surface_drag_coefficient=0.003,
-        roughness_element_drag_coefficient=0.3,
-        roughness_sublayer_depth_parameter=0.193,
-        max_ratio_wind_to_friction_velocity=0.3,
+        drag_coefficient=0.2,
+        von_karman_constant=0.4,
         min_roughness_length=0.01,
-        von_karman_constant=CoreConsts.von_karmans_constant,
     )
 
     np.testing.assert_allclose(
-        result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.020206, 1.497673, 1.497673]), rtol=1e-3, atol=1e-3
     )
 
 
@@ -446,7 +451,7 @@ def test_calculate_monin_obukov_length(
         specific_heat_air=1005,
         density_air=1.2,
         von_karman_constant=0.4,
-        gravitation=9.81,
+        gravity=9.81,
     )
     np.testing.assert_allclose(result, expected, atol=1e-3)
 
@@ -621,9 +626,10 @@ def calculate_molar_conductance_above_canopy(
         zero_plane_displacement=d,
         roughness_length_momentum=zm,
         reference_height=rh,
-        ph=ph,
+        molar_density_air=ph,
         diabatic_correction_heat=psih,
         minimum_conductance=gmin,
+        von_karmans_constant=0.4,
     )
     np.testing.assert_allclose(result, expected_conductance, atol=1e-6)
 
@@ -653,7 +659,7 @@ def calculate_stomatal_conductance():
 
 
 @pytest.mark.parametrize(
-    "air_temperature, actual_vapour_pressure, expected_dewpoint_temperature",
+    "air_temperature, effective_vapour_pressure_air, expected_dewpoint_temperature",
     [
         (20.0, 2.5, 21.304722),
         (-10.0, 0.8, 3.32904),
@@ -662,7 +668,7 @@ def calculate_stomatal_conductance():
 )
 def test_calculate_dewpoint_temperature(
     air_temperature,
-    actual_vapour_pressure,
+    effective_vapour_pressure_air,
     expected_dewpoint_temperature,
 ):
     """Test calculation of dewpoint temperature."""
@@ -672,7 +678,8 @@ def test_calculate_dewpoint_temperature(
     )
 
     result = calculate_dewpoint_temperature(
-        air_temperature=air_temperature, actual_vapour_pressure=actual_vapour_pressure
+        air_temperature=air_temperature,
+        effective_vapour_pressure_air=effective_vapour_pressure_air,
     )
 
     np.testing.assert_allclose(result, expected_dewpoint_temperature, atol=1e-2)
@@ -684,7 +691,6 @@ def test_calculate_saturation_vapour_pressure():
     from virtual_ecosystem.models.abiotic.abiotic_new import (
         calculate_saturation_vapour_pressure,
     )
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
     constants = AbioticSimpleConsts()
     air_temperature = 20.0
@@ -698,6 +704,57 @@ def test_calculate_saturation_vapour_pressure():
 
     exp_output = 1.094129
     np.testing.assert_allclose(result, exp_output)
+
+
+def test_calculate_latent_heat_vapourisation():
+    """Test calculation of latent heat of vapourization."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_latent_heat_vapourisation,
+    )
+
+    constants = AbioticConsts()
+    result = calculate_latent_heat_vapourisation(
+        temperature=np.array([[25.0] * 3, [20.0] * 3, [18.0] * 3]),
+        celsius_to_kelvin=CoreConsts.zero_Celsius,
+        latent_heat_vap_equ_factors=constants.latent_heat_vap_equ_factors,
+    )
+    exp_result = np.array([[2442.447596] * 3, [2453.174942] * 3, [2457.589459] * 3])
+
+    np.testing.assert_allclose(result, exp_result, rtol=1e-5, atol=1e-5)
+
+
+def test_calculate_surface_temperature():
+    """Test calculation of surface temperature."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_new import (
+        calculate_surface_temperature,
+    )
+
+    core_consts = CoreConsts()
+    abiotic_consts = AbioticConsts()
+
+    result = calculate_surface_temperature(
+        absorbed_shortwave_radiation=400,
+        heat_conductivity=0.2,
+        vapour_conductivity=0.01,
+        surface_temperature=25.0,
+        temperature_average_air_surface=20.0,  # tair+tleaf/2
+        atmospheric_pressure=101.3,
+        effective_vapour_pressure_air=1.2,
+        surface_emissivity=0.9,
+        ground_heat_flux=30.0,
+        relative_humidity=0.6,
+        stefan_boltzmann_constant=core_consts.stefan_boltzmann_constant,
+        celsius_to_kelvin=core_consts.zero_Celsius,
+        latent_heat_vap_equ_factors=abiotic_consts.latent_heat_vap_equ_factors,
+        molar_heat_capacity_air=29.1,  # TODO
+        specific_heat_equ_factors=abiotic_consts.specific_heat_equ_factors,
+        saturation_vapour_pressure_factors=[0.61078, 7.5, 237.3],
+    )
+    exp_result = 21.96655
+
+    np.testing.assert_allclose(result, exp_result, atol=1e-5)
 
 
 @pytest.mark.parametrize(
