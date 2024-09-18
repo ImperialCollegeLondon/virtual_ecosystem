@@ -7,9 +7,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import ExcrementPool
+from virtual_ecosystem.models.animal.protocols import Consumer
 
 
 class PlantResources:
@@ -59,7 +59,7 @@ class PlantResources:
     def get_eaten(
         self,
         consumed_mass: float,
-        herbivore: AnimalCohort,
+        herbivore: Consumer,
         excrement_pools: Sequence[ExcrementPool],
     ) -> float:
         """This function handles herbivory on PlantResources."""

@@ -14,7 +14,7 @@ from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.protocols import Resource
 
 
 class AnimalCohort:
@@ -423,7 +423,7 @@ class AnimalCohort:
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
 
     def calculate_potential_consumed_biomass(
-        self, target_plant: PlantResources, alpha: float
+        self, target_plant: Resource, alpha: float
     ) -> float:
         """Calculate potential consumed biomass for the target plant.
 
@@ -447,7 +447,7 @@ class AnimalCohort:
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
-        self, plant_list: list[PlantResources], alpha: float
+        self, plant_list: list[Resource], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
 
@@ -481,9 +481,7 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(
-        self, plant_list: list[PlantResources], target_plant: PlantResources
-    ) -> float:
+    def F_i_k(self, plant_list: list[Resource], target_plant: Resource) -> float:
         """Method to determine instantaneous herbivory rate on plant k.
 
         This method integrates the calculated search efficiency, potential consumed
@@ -693,7 +691,7 @@ class AnimalCohort:
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
-        self, plant_list: list[PlantResources], target_plant: PlantResources
+        self, plant_list: list[Resource], target_plant: Resource
     ) -> float:
         """Calculates the mass to be consumed from a plant resource by the herbivore.
 
@@ -721,7 +719,7 @@ class AnimalCohort:
 
     def delta_mass_herbivory(
         self,
-        plant_list: list[PlantResources],
+        plant_list: list[Resource],
         excrement_pools: list[ExcrementPool],
     ) -> float:
         """This method handles mass assimilation from herbivory.
@@ -754,7 +752,7 @@ class AnimalCohort:
 
     def forage_cohort(
         self,
-        plant_list: list[PlantResources],
+        plant_list: list[Resource],
         animal_list: list[AnimalCohort],
         excrement_pools: list[ExcrementPool],
         carcass_pools: dict[int, list[CarcassPool]],
@@ -1002,8 +1000,8 @@ class AnimalCohort:
         return prey_list
 
     def get_plant_resources(
-        self, plant_resources: dict[int, list[PlantResources]]
-    ) -> list[PlantResources]:
+        self, plant_resources: dict[int, list[Resource]]
+    ) -> list[Resource]:
         """Returns a list of plant resources in this territory.
 
         This method checks which grid cells are within this territory
@@ -1013,7 +1011,7 @@ class AnimalCohort:
             plant_resources: A dictionary of plants where keys are grid cell IDs.
 
         Returns:
-            A list of PlantResources objects in this territory.
+            A list of Resource objects in this territory.
         """
         plant_resources_in_territory: list = []
 

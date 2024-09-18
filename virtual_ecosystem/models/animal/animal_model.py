@@ -41,6 +41,7 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
 )
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
 
@@ -92,7 +93,7 @@ class AnimalModel(
         """List of functional groups in the model."""
         self.model_constants = model_constants
         """Animal constants."""
-        self.plant_resources: dict[int, list[PlantResources]] = {
+        self.plant_resources: dict[int, list[Resource]] = {
             cell_id: [
                 PlantResources(
                     data=self.data, cell_id=cell_id, constants=self.model_constants
