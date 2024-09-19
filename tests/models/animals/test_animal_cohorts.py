@@ -19,17 +19,20 @@ def predator_functional_group_instance(shared_datadir, constants_instance):
 
 @pytest.fixture
 def predator_cohort_instance(
-    predator_functional_group_instance, animal_territory_instance, constants_instance
+    predator_functional_group_instance,
+    animal_data_for_cohorts_instance,
+    constants_instance,
 ):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 
     return AnimalCohort(
-        predator_functional_group_instance,
-        10000.0,
-        1,
-        10,
-        animal_territory_instance,
+        predator_functional_group_instance,  # functional group
+        10000.0,  # mass
+        1,  # age
+        10,  # individuals
+        1,  # centroid
+        animal_data_for_cohorts_instance.grid,  # grid
         constants_instance,
     )
 
@@ -49,7 +52,9 @@ def ectotherm_functional_group_instance(shared_datadir, constants_instance):
 
 @pytest.fixture
 def ectotherm_cohort_instance(
-    ectotherm_functional_group_instance, animal_territory_instance, constants_instance
+    ectotherm_functional_group_instance,
+    animal_data_for_cohorts_instance,
+    constants_instance,
 ):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -59,14 +64,17 @@ def ectotherm_cohort_instance(
         100.0,
         1,
         10,
-        animal_territory_instance,
+        1,  # centroid
+        animal_data_for_cohorts_instance.grid,  # grid
         constants_instance,
     )
 
 
 @pytest.fixture
 def prey_cohort_instance(
-    herbivore_functional_group_instance, animal_territory_instance, constants_instance
+    herbivore_functional_group_instance,
+    animal_data_for_cohorts_instance,
+    constants_instance,
 ):
     """Fixture for an animal cohort used in tests."""
     from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -76,7 +84,8 @@ def prey_cohort_instance(
         100.0,
         1,
         10,
-        animal_territory_instance,
+        1,  # centroid
+        animal_data_for_cohorts_instance.grid,  # grid
         constants_instance,
     )
 
@@ -105,7 +114,7 @@ class TestAnimalCohort:
         age,
         individuals,
         error_type,
-        animal_territory_instance,
+        animal_data_for_cohorts_instance,
         constants_instance,
     ):
         """Test for invalid inputs during AnimalCohort initialization."""
@@ -117,7 +126,8 @@ class TestAnimalCohort:
                 mass,
                 age,
                 individuals,
-                animal_territory_instance,
+                1,  # centroid
+                animal_data_for_cohorts_instance.grid,  # grid
                 constants_instance,
             )
 
@@ -612,7 +622,7 @@ class TestAnimalCohort:
         carcass_pool_1 = mocker.Mock()
         carcass_pool_2 = mocker.Mock()
         mock_find_intersecting_carcass_pools = mocker.patch.object(
-            herbivore_cohort_instance.territory,
+            herbivore_cohort_instance,
             "find_intersecting_carcass_pools",
             return_value=[carcass_pool_1, carcass_pool_2],
         )
@@ -622,9 +632,12 @@ class TestAnimalCohort:
             herbivore_cohort_instance, "update_carcass_pool"
         )
 
+        # Provide a mocked carcass_pools to pass to the get_eaten method
+        carcass_pools = {1: [carcass_pool_1, carcass_pool_2]}
+
         # Execute the get_eaten method with test parameters
         actual_consumed_mass = herbivore_cohort_instance.get_eaten(
-            potential_consumed_mass, predator_cohort_instance
+            potential_consumed_mass, predator_cohort_instance, carcass_pools
         )
 
         # Calculate expected individuals killed
@@ -649,7 +662,7 @@ class TestAnimalCohort:
 
         # Check if find_intersecting_carcass_pools was called correctly
         mock_find_intersecting_carcass_pools.assert_called_once_with(
-            predator_cohort_instance.territory
+            predator_cohort_instance.territory, carcass_pools
         )
 
     @pytest.mark.parametrize(
@@ -763,7 +776,7 @@ class TestAnimalCohort:
         mass_current,
         expected_alpha,
         herbivore_functional_group_instance,
-        animal_territory_instance,
+        animal_data_for_cohorts_instance,
     ):
         """Testing for calculate alpha."""
         # Assuming necessary imports and setup based on previous examples
@@ -786,7 +799,8 @@ class TestAnimalCohort:
             mass=mass_current,
             age=1.0,  # Example age
             individuals=1,  # Example number of individuals
-            territory=animal_territory_instance,
+            centroid_key=1,  # centroid
+            grid=animal_data_for_cohorts_instance.grid,  # grid
             constants=constants,
         )
 
@@ -814,7 +828,7 @@ class TestAnimalCohort:
         mass_current,
         phi_herb_t,
         expected_biomass,
-        animal_territory_instance,
+        animal_data_for_cohorts_instance,
     ):
         """Testing for calculate_potential_consumed_biomass."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
@@ -847,7 +861,8 @@ class TestAnimalCohort:
             mass=100.0,  # Arbitrary value since mass is not directly used in this test
             age=1.0,  # Arbitrary value
             individuals=1,  # Arbitrary value
-            territory=animal_territory_instance,
+            centroid_key=1,  # Use centroid_key instead of centroid
+            grid=animal_data_for_cohorts_instance.grid,  # grid
             constants=mocker.MagicMock(),
         )
 
@@ -1194,6 +1209,7 @@ class TestAnimalCohort:
         predator_cohort_instance,
         animal_list_instance,
         excrement_pool_instance,
+        carcass_pool_instance,  # Add carcass_pool_instance
         consumed_mass,
         expected_total_consumed_mass,
     ):
@@ -1219,16 +1235,13 @@ class TestAnimalCohort:
         # Mock predator_cohort_instance.defecate to verify its call
         mock_defecate = mocker.patch.object(predator_cohort_instance, "defecate")
 
+        # Add carcass_pool_instance to the test call
         total_consumed_mass = predator_cohort_instance.delta_mass_predation(
-            animal_list_instance, excrement_pool_instance
+            animal_list_instance, excrement_pool_instance, carcass_pool_instance
         )
 
-        # Check if the total consumed mass matches the expected value
-        assert (
-            total_consumed_mass == expected_total_consumed_mass
-        ), "Total consumed mass should match expected value."
-
-        # Ensure defecate was called with the correct total consumed mass
+        # Assertions
+        assert total_consumed_mass == expected_total_consumed_mass
         mock_defecate.assert_called_once_with(
             excrement_pool_instance, total_consumed_mass
         )
@@ -1282,6 +1295,7 @@ class TestAnimalCohort:
         plant_list_instance,
         animal_list_instance,
         excrement_pool_instance,
+        carcass_pools_instance,
     ):
         """Test foraging behavior for different diet types."""
 
@@ -1297,7 +1311,7 @@ class TestAnimalCohort:
 
         # Test herbivore diet
         herbivore_cohort_instance.forage_cohort(
-            plant_list_instance, [], excrement_pool_instance
+            plant_list_instance, [], excrement_pool_instance, carcass_pools_instance
         )
         mock_delta_mass_herbivory.assert_called_once_with(
             plant_list_instance, excrement_pool_instance
@@ -1306,10 +1320,10 @@ class TestAnimalCohort:
 
         # Test carnivore diet
         predator_cohort_instance.forage_cohort(
-            [], animal_list_instance, excrement_pool_instance
+            [], animal_list_instance, excrement_pool_instance, carcass_pools_instance
         )
         mock_delta_mass_predation.assert_called_once_with(
-            animal_list_instance, excrement_pool_instance
+            animal_list_instance, excrement_pool_instance, carcass_pools_instance
         )
         mock_eat_predator.assert_called_once_with(200)
 

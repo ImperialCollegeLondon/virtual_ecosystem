@@ -224,32 +224,10 @@ def test_generate_animal_model(
         print(f"Level: {record.levelname}, Message: {record.message}")
 
 
-def test_get_community_by_key(animal_model_instance):
-    """Test the `get_community_by_key` method."""
-
-    from virtual_ecosystem.models.animal.animal_model import AnimalCommunity
-
-    # If you know that your model_instance should have a community with key 0
-    community_0 = animal_model_instance.get_community_by_key(0)
-
-    # Ensure it returns the right type and the community key matches
-    assert isinstance(
-        community_0, AnimalCommunity
-    ), "Expected instance of AnimalCommunity"
-    assert community_0.community_key == 0, "Expected the community with key 0"
-
-    # Perhaps you have more keys you expect, you can add similar checks:
-    community_1 = animal_model_instance.get_community_by_key(1)
-    assert isinstance(community_1, AnimalCommunity)
-    assert community_1.community_key == 1, "Expected the community with key 1"
-
-    # Test for an invalid key, expecting an error
-    with pytest.raises(KeyError):
-        animal_model_instance.get_community_by_key(999)
-
-
 def test_update_method_sequence(mocker, prepared_animal_model_instance):
     """Test update to ensure it runs the community methods in order."""
+
+    # List of methods that should be called in the update sequence
     method_names = [
         "forage_community",
         "migrate_community",
@@ -261,26 +239,25 @@ def test_update_method_sequence(mocker, prepared_animal_model_instance):
         "increase_age_community",
     ]
 
-    # Setup mock methods using spy
-    for community in prepared_animal_model_instance.communities.values():
-        for method_name in method_names:
-            mocker.spy(community, method_name)
+    # Setup mock methods using spy on the prepared_animal_model_instance itself
+    for method_name in method_names:
+        mocker.spy(prepared_animal_model_instance, method_name)
 
+    # Call the update method
     prepared_animal_model_instance.update(time_index=0)
 
-    # Now, let's verify the order of the calls for each community
-    for community in prepared_animal_model_instance.communities.values():
-        called_methods = []
-        for method_name in method_names:
-            method = getattr(community, method_name)
-            # If the method was called, add its name to the list
-            if method.spy_return is not None or method.call_count > 0:
-                called_methods.append(method_name)
+    # Verify the order of the method calls
+    called_methods = []
+    for method_name in method_names:
+        method = getattr(prepared_animal_model_instance, method_name)
+        # If the method was called, add its name to the list
+        if method.spy_return is not None or method.call_count > 0:
+            called_methods.append(method_name)
 
-        # Verify the called_methods list matches the expected method_names list
-        assert (
-            called_methods == method_names
-        ), f"Methods called in wrong order: {called_methods} for community {community}"
+    # Ensure the methods were called in the expected order
+    assert (
+        called_methods == method_names
+    ), f"Methods called in wrong order: {called_methods}"
 
 
 def test_update_method_time_index_argument(
@@ -307,7 +284,7 @@ def test_calculate_litter_additions(
     config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')
     core_components = CoreComponents(config)
 
-    # Use it to initialise the model
+    # Use it to initialize the model
     model = AnimalModel(
         data=animal_data_for_model_instance,
         core_components=core_components,
@@ -316,12 +293,18 @@ def test_calculate_litter_additions(
 
     # Update the waste pools
     decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6, 0, 0, 0, 0, 0]
-    for energy, community in zip(decomposed_excrement, model.communities.values()):
-        community.excrement_pool.decomposed_energy = energy
+    for energy, excrement_pools in zip(
+        decomposed_excrement, model.excrement_pools.values()
+    ):
+        for excrement_pool in excrement_pools:
+            excrement_pool.decomposed_energy = energy
 
     decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8, 0, 0, 0, 0, 0]
-    for energy, community in zip(decomposed_carcasses, model.communities.values()):
-        community.carcass_pool.decomposed_energy = energy
+    for energy, carcass_pools in zip(
+        decomposed_carcasses, model.carcass_pools.values()
+    ):
+        for carcass_pool in carcass_pools:
+            carcass_pool.decomposed_energy = energy
 
     # Calculate litter additions
     litter_additions = model.calculate_litter_additions()
@@ -337,20 +320,11 @@ def test_calculate_litter_additions(
     )
 
     # Check that the function has reset the pools correctly
-    assert np.allclose(
-        [
-            community.excrement_pool.decomposed_energy
-            for community in model.communities.values()
-        ],
-        0.0,
-    )
-    assert np.allclose(
-        [
-            community.carcass_pool.decomposed_energy
-            for community in model.communities.values()
-        ],
-        0.0,
-    )
+    for excrement_pools in model.excrement_pools.values():
+        assert np.allclose([pool.decomposed_energy for pool in excrement_pools], 0.0)
+
+    for carcass_pools in model.carcass_pools.values():
+        assert np.allclose([pool.decomposed_energy for pool in carcass_pools], 0.0)
 
 
 def test_setup_initializes_total_animal_respiration(
@@ -435,16 +409,21 @@ def test_update_population_densities(prepared_animal_model_instance):
     # Set up expected densities
     expected_densities = {}
 
-    # For simplicity in this example, assume we manually calculate expected densities
-    # based on your cohort setup logic. In practice, you would calculate these
-    # based on your specific test setup conditions.
+    # Manually calculate expected densities based on the cohorts in the community
     for community_id, community in prepared_animal_model_instance.communities.items():
         expected_densities[community_id] = {}
-        for fg_name, cohorts in community.animal_cohorts.items():
-            total_individuals = sum(cohort.individuals for cohort in cohorts)
+
+        # Iterate through the list of cohorts in each community
+        for cohort in community:
+            fg_name = cohort.functional_group.name
+            total_individuals = cohort.individuals
             community_area = prepared_animal_model_instance.data.grid.cell_area
             density = total_individuals / community_area
-            expected_densities[community_id][fg_name] = density
+
+            # Accumulate density for each functional group
+            if fg_name not in expected_densities[community_id]:
+                expected_densities[community_id][fg_name] = 0.0
+            expected_densities[community_id][fg_name] += density
 
     # Run the method under test
     prepared_animal_model_instance.update_population_densities()
@@ -460,7 +439,7 @@ def test_update_population_densities(prepared_animal_model_instance):
             ).item()
             expected_density = expected_densities[community_id][fg_name]
             assert calculated_density == pytest.approx(expected_density), (
-                f"Mismatch in density for community {community_id} and FG{fg_name}. "
+                f"Mismatch in density for community {community_id} and FG {fg_name}. "
                 f"Expected: {expected_density}, Found: {calculated_density}"
             )
 

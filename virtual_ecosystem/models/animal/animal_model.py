@@ -509,8 +509,6 @@ class AnimalModel(
         This method removes the cohort from every community listed in its territory's
         grid cell keys, and then removes it from the model's main cohort dictionary.
 
-        TODO: this might also need to remove territory objects
-
         Args:
             cohort: The AnimalCohort to be removed.
 
@@ -518,10 +516,10 @@ class AnimalModel(
             KeyError: If the cohort ID does not exist in the model's cohorts.
         """
         # Check if the cohort exists in self.cohorts
-        if cohort.id in self.cohorts.values():
+        if cohort.id in self.cohorts:
             # Iterate over all grid cell keys in the cohort's territory
             for cell_id in cohort.territory:
-                if cell_id in self.communities:
+                if cell_id in self.communities and cohort in self.communities[cell_id]:
                     self.communities[cell_id].remove(cohort)
 
             # Remove the cohort from the model's cohorts dictionary
@@ -531,10 +529,15 @@ class AnimalModel(
 
     def remove_dead_cohort_community(self) -> None:
         """This handles remove_dead_cohort for all cohorts in a community."""
-        for cohort in self.cohorts.values():
-            if cohort.individuals <= 0:
-                cohort.is_alive = False
-                self.remove_dead_cohort(cohort)
+        # Collect cohorts to remove (to avoid modifying the dictionary during iteration)
+        cohorts_to_remove = [
+            cohort for cohort in self.cohorts.values() if cohort.individuals <= 0
+        ]
+
+        # Remove each cohort
+        for cohort in cohorts_to_remove:
+            cohort.is_alive = False
+            self.remove_dead_cohort(cohort)
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
