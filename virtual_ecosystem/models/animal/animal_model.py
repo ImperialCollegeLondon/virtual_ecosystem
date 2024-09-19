@@ -33,6 +33,7 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
 from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.decay import LitterPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -248,12 +249,12 @@ class AnimalModel(
         events would be simultaneous. The ordering within the method is less a question
         of the science and more a question of computational logic and stability.
 
-
-
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+
+        # TODO - Populate the litter pools here
 
         for community in self.communities.values():
             community.forage_community()
@@ -274,7 +275,10 @@ class AnimalModel(
         # soil model can be extracted
         additions_to_soil = self.calculate_soil_additions()
 
-        # Update the litter pools
+        # TODO - Find total litter pool consumption here this should be done using a
+        # function
+
+        # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(additions_to_soil)
 
         # Update population densities
@@ -282,6 +286,37 @@ class AnimalModel(
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
+
+    def populate_litter_pools(self) -> dict[str, LitterPool]:
+        """Populate the litter pools that animals can consume from."""
+
+        return {
+            "above_metabolic": LitterPool(
+                pool_name="above_metabolic",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "above_structural": LitterPool(
+                pool_name="above_structural",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "woody": LitterPool(
+                pool_name="woody",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "below_metabolic": LitterPool(
+                pool_name="below_metabolic",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "below_structural": LitterPool(
+                pool_name="below_structural",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+        }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate the how much animal matter should be transferred to the soil."""

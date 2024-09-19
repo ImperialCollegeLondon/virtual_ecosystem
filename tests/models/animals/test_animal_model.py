@@ -285,6 +285,47 @@ def test_update_method_time_index_argument(
     assert True
 
 
+def test_populate_litter_pools(
+    litter_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
+):
+    """Test that function to populate animal consumable litter pool works properly."""
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data=litter_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
+    )
+
+    litter_pools = model.populate_litter_pools()
+    # Check that all five pools have been populated, with the correct values
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+    for pool_name in pool_names:
+        assert np.allclose(
+            litter_pools[pool_name].mass_current,
+            litter_data_instance[f"litter_pool_{pool_name}"]
+            * fixture_core_components.grid.cell_area,
+        )
+        assert np.allclose(
+            litter_pools[pool_name].c_n_ratio,
+            litter_data_instance[f"c_n_ratio_{pool_name}"],
+        )
+        assert np.allclose(
+            litter_pools[pool_name].c_p_ratio,
+            litter_data_instance[f"c_p_ratio_{pool_name}"],
+        )
+
+
 def test_calculate_soil_additions(functional_group_list_instance):
     """Test that soil additions from animal model are calculated correctly."""
 
