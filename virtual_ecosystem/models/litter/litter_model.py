@@ -110,6 +110,11 @@ class LitterModel(
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
+        "litter_consumption_above_metabolic",
+        "litter_consumption_above_structural",
+        "litter_consumption_woody",
+        "litter_consumption_below_metabolic",
+        "litter_consumption_below_structural",
     ),
     vars_updated=(
         "litter_pool_above_metabolic",
@@ -278,6 +283,9 @@ class LitterModel(
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+
+        # TODO - Add a step to calculate post consumption pools here. These pools should
+        # then be used for the subsequent calculations.
 
         # Calculate the litter pool decay rates
         decay_rates = calculate_decay_rates(
