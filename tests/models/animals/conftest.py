@@ -355,6 +355,5 @@ def litter_pool_instance(litter_data_instance):
     return LitterPool(
         pool_name="above_metabolic",
         data=litter_data_instance,
-        cell_id=3,
         cell_area=10000,
     )

@@ -131,42 +131,36 @@ class LitterPool:
     Args:
         pool_name: The name of the litter pool being accessed.
         data: A Data object containing information from the litter model.
-        cell_id: The cell id for the litter pool to use.
         cell_area: The size of the cell, used to convert from density to mass units
             [m^2]
     """
 
-    def __init__(
-        self, pool_name: str, data: Data, cell_id: int, cell_area: float
-    ) -> None:
-        self.mass_current: float = (
-            data[f"litter_pool_{pool_name}"].sel(cell_id=cell_id).item()
-        ) * cell_area
+    def __init__(self, pool_name: str, data: Data, cell_area: float) -> None:
+        self.mass_current = (data[f"litter_pool_{pool_name}"].to_numpy()) * cell_area
         """Mass of the litter pool in carbon terms [kg C]."""
 
-        self.c_n_ratio: float = (
-            data[f"c_n_ratio_{pool_name}"].sel(cell_id=cell_id).item()
-        )
+        self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
         """Carbon nitrogen ratio of the litter pool [unitless]."""
 
-        self.c_p_ratio: float = (
-            data[f"c_p_ratio_{pool_name}"].sel(cell_id=cell_id).item()
-        )
+        self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
         """Carbon phosphorus ratio of the litter pool [unitless]."""
 
-    def get_eaten(self, consumed_mass: float, detritivore: Consumer) -> float:
+    def get_eaten(
+        self, consumed_mass: float, detritivore: Consumer, grid_cell_id: int
+    ) -> float:
         """This function handles litter detritivory.
 
         Args:
             consumed_mass: The mass intended to be consumed by the herbivore [kg].
             detritivore: The Consumer (AnimalCohort) consuming the Litter.
+            grid_cell_id: The cell id of the cell the animal cohort is in.
 
         Returns:
             The actual mass consumed by the detritivore, adjusted for efficiencies [kg].
         """
 
         # Check if the requested consumed mass is more than the available mass
-        actually_available_mass = min(self.mass_current, consumed_mass)
+        actually_available_mass = min(self.mass_current[grid_cell_id], consumed_mass)
 
         # Calculate the mass of the consumed litter after mechanical efficiency
         actual_consumed_mass = (
@@ -174,7 +168,7 @@ class LitterPool:
         )
 
         # Update the litter pool mass to reflect the mass consumed
-        self.mass_current -= actual_consumed_mass
+        self.mass_current[grid_cell_id] -= actual_consumed_mass
 
         # Return the net mass gain of detritivory, after considering
         # digestive efficiencies

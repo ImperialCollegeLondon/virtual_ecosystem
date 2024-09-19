@@ -111,16 +111,17 @@ class TestLitterPool:
         import pytest
 
         consumed_mass = 50.0  # Define a mass to be consumed for the test
-        initial_mass_current = litter_pool_instance.mass_current
-        initial_c_n_ratio = litter_pool_instance.c_n_ratio
-        initial_c_p_ratio = litter_pool_instance.c_p_ratio
+        cell_id = 3
+        initial_mass_current = litter_pool_instance.mass_current[cell_id]
+        initial_c_n_ratio = litter_pool_instance.c_n_ratio[cell_id]
+        initial_c_p_ratio = litter_pool_instance.c_p_ratio[cell_id]
 
         actual_mass_gain = litter_pool_instance.get_eaten(
-            consumed_mass, herbivore_cohort_instance
+            consumed_mass, herbivore_cohort_instance, grid_cell_id=cell_id
         )
 
         # Check if the plant mass has been correctly reduced
-        assert litter_pool_instance.mass_current == pytest.approx(
+        assert litter_pool_instance.mass_current[cell_id] == pytest.approx(
             initial_mass_current
             - (
                 consumed_mass
@@ -140,5 +141,9 @@ class TestLitterPool:
         ), "Actual mass gain should match expected value after efficiency adjustments."
 
         # Check that carbon:nitrogen and carbon:phosphorus ratios remain unchanged
-        assert initial_c_n_ratio == pytest.approx(litter_pool_instance.c_n_ratio)
-        assert initial_c_p_ratio == pytest.approx(litter_pool_instance.c_p_ratio)
+        assert initial_c_n_ratio == pytest.approx(
+            litter_pool_instance.c_n_ratio[cell_id]
+        )
+        assert initial_c_p_ratio == pytest.approx(
+            litter_pool_instance.c_p_ratio[cell_id]
+        )
