@@ -43,7 +43,23 @@ class AnimalModel(
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=(),
     vars_populated_by_init=("total_animal_respiration", "population_densities"),
-    vars_required_for_update=(),
+    vars_required_for_update=(
+        "litter_pool_above_metabolic",
+        "litter_pool_above_structural",
+        "litter_pool_woody",
+        "litter_pool_below_metabolic",
+        "litter_pool_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
+    ),
     vars_populated_by_first_update=(
         "decomposed_excrement_carbon",
         "decomposed_excrement_nitrogen",
@@ -254,7 +270,9 @@ class AnimalModel(
             **kwargs: Further arguments to the update method.
         """
 
-        # TODO - Populate the litter pools here
+        # TODO: These pools are populated but nothing actually gets done with them at
+        # the moment, this will have to change when scavenging gets introduced
+        litter_pools = self.populate_litter_pools()
 
         for community in self.communities.values():
             community.forage_community()
@@ -272,13 +290,12 @@ class AnimalModel(
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the
-        # soil model can be extracted
+        # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
-
-        # TODO - Find total litter pool consumption here this should be done using a
-        # function
+        _ = self.calculate_total_litter_consumption(litter_pools)
 
         # Update the data object with the changes to soil and litter pools
+        # TODO - Add litter consumption in here and test the overall change
         self.data.add_from_dict(additions_to_soil)
 
         # Update population densities
@@ -316,6 +333,32 @@ class AnimalModel(
                 data=self.data,
                 cell_area=self.grid.cell_area,
             ),
+        }
+
+    def calculate_total_litter_consumption(
+        self, litter_pools: dict[str, LitterPool]
+    ) -> dict[str, DataArray]:
+        """Calculate total animal consumption of each litter pool.
+
+        Args:
+            litter_pools: The full set of animal accessible litter pools.
+
+        Returns:
+            The total consumption of litter from each pool [kg C m^-2]
+        """
+
+        # Find total animal consumption from each pool
+        total_consumption = {
+            pool_name: self.data[f"litter_pool_{pool_name}"]
+            - (litter_pools[pool_name].mass_current / self.data.grid.cell_area)
+            for pool_name in litter_pools.keys()
+        }
+
+        return {
+            f"litter_consumption_{pool_name}": DataArray(
+                array(total_consumption[pool_name]), dims="cell_id"
+            )
+            for pool_name in litter_pools.keys()
         }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:

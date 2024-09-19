@@ -77,6 +77,25 @@ def animal_data_for_model_instance(fixture_core_components):
     )
     data["air_temperature"] = air_temperature
 
+    # Adding in litter variables as these are also needed now
+    litter_pools = DataArray(np.full(grid.n_cells, fill_value=1.5), dims="cell_id")
+    litter_ratios = DataArray(np.full(grid.n_cells, fill_value=25.5), dims="cell_id")
+    data["litter_pool_above_metabolic"] = litter_pools
+    data["litter_pool_above_structural"] = litter_pools
+    data["litter_pool_woody"] = litter_pools
+    data["litter_pool_below_metabolic"] = litter_pools
+    data["litter_pool_below_structural"] = litter_pools
+    data["c_n_ratio_above_metabolic"] = litter_ratios
+    data["c_n_ratio_above_structural"] = litter_ratios
+    data["c_n_ratio_woody"] = litter_ratios
+    data["c_n_ratio_below_metabolic"] = litter_ratios
+    data["c_n_ratio_below_structural"] = litter_ratios
+    data["c_p_ratio_above_metabolic"] = litter_ratios
+    data["c_p_ratio_above_structural"] = litter_ratios
+    data["c_p_ratio_woody"] = litter_ratios
+    data["c_p_ratio_below_metabolic"] = litter_ratios
+    data["c_p_ratio_below_structural"] = litter_ratios
+
     return data
 
 
