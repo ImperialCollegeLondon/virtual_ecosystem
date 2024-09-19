@@ -67,6 +67,11 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
+        "litter_consumption_above_metabolic",
+        "litter_consumption_above_structural",
+        "litter_consumption_woody",
+        "litter_consumption_below_metabolic",
+        "litter_consumption_below_structural",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -76,6 +81,11 @@ class AnimalModel(
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
         "total_animal_respiration",
+        "litter_consumption_above_metabolic",
+        "litter_consumption_above_structural",
+        "litter_consumption_woody",
+        "litter_consumption_below_metabolic",
+        "litter_consumption_below_structural",
     ),
 ):
     """A class describing the animal model.
@@ -292,11 +302,10 @@ class AnimalModel(
         # Now that communities have been updated information required to update the
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
-        _ = self.calculate_total_litter_consumption(litter_pools)
+        litter_consumption = self.calculate_total_litter_consumption(litter_pools)
 
         # Update the data object with the changes to soil and litter pools
-        # TODO - Add litter consumption in here and test the overall change
-        self.data.add_from_dict(additions_to_soil)
+        self.data.add_from_dict(additions_to_soil | litter_consumption)
 
         # Update population densities
         self.update_population_densities()
