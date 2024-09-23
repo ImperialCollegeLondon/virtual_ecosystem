@@ -105,17 +105,13 @@ def dummy_litter_data(fixture_core_components):
 
 
 @pytest.fixture
-def decay_rates(dummy_litter_data, fixture_core_components):
+def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_pools):
     """Decay rates for the various litter pools."""
 
     from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
 
     decay_rates = calculate_decay_rates(
-        above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
-        above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
-        woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
-        below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
-        below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        post_consumption_pools=post_consumption_pools,
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
@@ -229,16 +225,41 @@ def input_c_p_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
 
 
 @pytest.fixture
-def updated_pools(dummy_litter_data, decay_rates, plant_inputs):
-    """Updated carbon mass of each pool."""
-    from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
+def post_consumption_pools(dummy_litter_data):
+    """Pool sizes after animal consumption for each litter pool."""
+    from virtual_ecosystem.models.litter.carbon import calculate_post_consumption_pools
 
-    updated_pools = calculate_updated_pools(
+    post_consumption_pools = calculate_post_consumption_pools(
         above_metabolic=dummy_litter_data["litter_pool_above_metabolic"].to_numpy(),
         above_structural=dummy_litter_data["litter_pool_above_structural"].to_numpy(),
         woody=dummy_litter_data["litter_pool_woody"].to_numpy(),
         below_metabolic=dummy_litter_data["litter_pool_below_metabolic"].to_numpy(),
         below_structural=dummy_litter_data["litter_pool_below_structural"].to_numpy(),
+        consumption_above_metabolic=dummy_litter_data[
+            "litter_consumption_above_metabolic"
+        ].to_numpy(),
+        consumption_above_structural=dummy_litter_data[
+            "litter_consumption_above_structural"
+        ].to_numpy(),
+        consumption_woody=dummy_litter_data["litter_consumption_woody"].to_numpy(),
+        consumption_below_metabolic=dummy_litter_data[
+            "litter_consumption_below_metabolic"
+        ].to_numpy(),
+        consumption_below_structural=dummy_litter_data[
+            "litter_consumption_below_structural"
+        ].to_numpy(),
+    )
+
+    return post_consumption_pools
+
+
+@pytest.fixture
+def updated_pools(dummy_litter_data, decay_rates, plant_inputs, post_consumption_pools):
+    """Updated carbon mass of each pool."""
+    from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
+
+    updated_pools = calculate_updated_pools(
+        post_consumption_pools=post_consumption_pools,
         decay_rates=decay_rates,
         plant_inputs=plant_inputs,
         update_interval=2.0,
