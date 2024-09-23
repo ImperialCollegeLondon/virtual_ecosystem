@@ -26,6 +26,55 @@ from virtual_ecosystem.models.litter.env_factors import (
 )
 
 
+def calculate_post_consumption_pools(
+    above_metabolic: NDArray[np.float32],
+    above_structural: NDArray[np.float32],
+    woody: NDArray[np.float32],
+    below_metabolic: NDArray[np.float32],
+    below_structural: NDArray[np.float32],
+    consumption_above_metabolic: NDArray[np.float32],
+    consumption_above_structural: NDArray[np.float32],
+    consumption_woody: NDArray[np.float32],
+    consumption_below_metabolic: NDArray[np.float32],
+    consumption_below_structural: NDArray[np.float32],
+) -> dict[str, NDArray[np.float32]]:
+    """Calculates the size of the five litter pools after animal consumption.
+
+    At present the Virtual Ecosystem gives animals priority for consumption of litter.
+    And so only the litter not consumed by animals has a chance to decay. This is a
+    major assumption that we may have to revisit in future.
+
+    Args:
+        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
+        above_structural: Above ground structural litter pool [kg C m^-2]
+        woody: The woody litter pool [kg C m^-2]
+        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
+        below_structural: Below ground structural litter pool [kg C m^-2]
+        consumption_above_metabolic: Amount of above-ground metabolic litter that has
+            been consumed by animals [kg C m^-2]
+        consumption_above_structural: Amount of above-ground structural litter that has
+            been consumed by animals [kg C m^-2]
+        consumption_woody: Amount of woody litter that has been consumed by animals [kg
+            C m^-2]
+        consumption_below_metabolic: Amount of below-ground metabolic litter that has
+            been consumed by animals [kg C m^-2]
+        consumption_below_structural: Amount of below-ground structural litter that has
+            been consumed by animals [kg C m^-2]
+
+    Returns:
+        A dictionary containing the size of each litter pool after the mass consumed by
+        animals has been removed [kg C m^-2].
+    """
+
+    return {
+        "above_metabolic": above_metabolic - consumption_above_metabolic,
+        "above_structural": above_structural - consumption_above_structural,
+        "woody": woody - consumption_woody,
+        "below_metabolic": below_metabolic - consumption_below_metabolic,
+        "below_structural": below_structural - consumption_below_structural,
+    }
+
+
 def calculate_decay_rates(
     above_metabolic: NDArray[np.float32],
     above_structural: NDArray[np.float32],

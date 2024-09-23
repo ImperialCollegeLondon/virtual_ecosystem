@@ -284,8 +284,8 @@ class LitterModel(
             **kwargs: Further arguments to the update method.
         """
 
-        # TODO - Add a step to calculate post consumption pools here. These pools should
-        # then be used for the subsequent calculations.
+        # TODO - Calculate the pool sizes after animal consumption has occurred, and
+        # then use then for subsequent calculations
 
         # Calculate the litter pool decay rates
         decay_rates = calculate_decay_rates(
