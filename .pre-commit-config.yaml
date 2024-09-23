@@ -5,7 +5,7 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.2
+    rev: v0.6.7
     hooks:
       - id: ruff        #  Run the linter.
         args: [--fix, --exit-non-zero-on-fix]
