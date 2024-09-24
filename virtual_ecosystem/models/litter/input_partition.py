@@ -23,6 +23,9 @@ def calculate_metabolic_proportions_of_input(
     leaf_turnover_c_n_ratio: NDArray[np.float32],
     reproduct_turnover_c_n_ratio: NDArray[np.float32],
     root_turnover_c_n_ratio: NDArray[np.float32],
+    leaf_turnover_c_p_ratio: NDArray[np.float32],
+    reproduct_turnover_c_p_ratio: NDArray[np.float32],
+    root_turnover_c_p_ratio: NDArray[np.float32],
     constants: LitterConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the proportion of each input type that flows to the metabolic pool.
@@ -42,6 +45,11 @@ def calculate_metabolic_proportions_of_input(
         reproduct_turnover_c_n_ratio: Carbon:nitrogen ratio of turned over reproductive
             tissues [unitless]
         root_turnover_c_n_ratio: Carbon:nitrogen ratio of turned over roots [unitless]
+        leaf_turnover_c_p_ratio: Carbon:phosphorus ratio of turned over leaves
+            [unitless]
+        reproduct_turnover_c_p_ratio: Carbon:phosphorus ratio of turned over
+            reproductive tissues [unitless]
+        root_turnover_c_p_ratio: Carbon:phosphorus ratio of turned over roots [unitless]
         constants: Set of constants for the litter model.
 
     Returns:
@@ -54,20 +62,26 @@ def calculate_metabolic_proportions_of_input(
     leaves_metabolic_split = split_pool_into_metabolic_and_structural_litter(
         lignin_proportion=leaf_turnover_lignin_proportion,
         carbon_nitrogen_ratio=leaf_turnover_c_n_ratio,
+        carbon_phosphorus_ratio=leaf_turnover_c_p_ratio,
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity=constants.structural_metabolic_split_sensitivity,
+        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
+        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
     repoduct_metabolic_split = split_pool_into_metabolic_and_structural_litter(
         lignin_proportion=reproduct_turnover_lignin_proportion,
         carbon_nitrogen_ratio=reproduct_turnover_c_n_ratio,
+        carbon_phosphorus_ratio=reproduct_turnover_c_p_ratio,
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity=constants.structural_metabolic_split_sensitivity,
+        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
+        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
     roots_metabolic_split = split_pool_into_metabolic_and_structural_litter(
         lignin_proportion=root_turnover_lignin_proportion,
         carbon_nitrogen_ratio=root_turnover_c_n_ratio,
+        carbon_phosphorus_ratio=root_turnover_c_p_ratio,
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
-        split_sensitivity=constants.structural_metabolic_split_sensitivity,
+        split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
+        split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
 
     return {
@@ -133,25 +147,29 @@ def partion_plant_inputs_between_pools(
 def split_pool_into_metabolic_and_structural_litter(
     lignin_proportion: NDArray[np.float32],
     carbon_nitrogen_ratio: NDArray[np.float32],
+    carbon_phosphorus_ratio: NDArray[np.float32],
     max_metabolic_fraction: float,
-    split_sensitivity: float,
+    split_sensitivity_nitrogen: float,
+    split_sensitivity_phosphorus: float,
 ) -> NDArray[np.float32]:
     """Calculate the split of input biomass between metabolic and structural pools.
 
     This division depends on the lignin and nitrogen content of the input biomass, the
     functional form is taken from :cite:t:`parton_dynamics_1988`.
 
-    TODO - This can almost certainly be extended to include phosphorus co-limitation.
-
     Args:
         lignin_proportion: Proportion of input biomass carbon that is lignin [kg lignin
             kg C^-1]
         carbon_nitrogen_ratio: Ratio of carbon to nitrogen for the input biomass
             [unitless]
+        carbon_phosphorus_ratio: Ratio of carbon to phosphorus for the input biomass
+            [unitless]
         max_metabolic_fraction: Fraction of pool that becomes metabolic litter for the
             easiest to breakdown case, i.e. no lignin, ample nitrogen [unitless]
-        split_sensitivity: Sets how rapidly the split changes in response to changing
-            lignin and nitrogen contents [unitless]
+        split_sensitivity_nitrogen: Sets how rapidly the split changes in response to
+            changing lignin and nitrogen contents [unitless]
+        split_sensitivity_phosphorus: Sets how rapidly the split changes in response to
+            changing lignin and phosphorus contents [unitless]
 
     Raises:
         ValueError: If any of the metabolic fractions drop below zero, or if any
@@ -162,8 +180,9 @@ def split_pool_into_metabolic_and_structural_litter(
         The fraction of the biomass that goes to the metabolic pool [unitless]
     """
 
-    metabolic_fraction = max_metabolic_fraction - split_sensitivity * (
-        lignin_proportion * carbon_nitrogen_ratio
+    metabolic_fraction = max_metabolic_fraction - lignin_proportion * (
+        split_sensitivity_nitrogen * carbon_nitrogen_ratio
+        + split_sensitivity_phosphorus * carbon_phosphorus_ratio
     )
 
     if np.any(metabolic_fraction < 0.0):
