@@ -22,11 +22,19 @@ class Pool(Protocol):
 
 
 class DecayPool(Protocol):
-    """Defines biotic pools containing both accessible and inaccessible energy."""
+    """Defines biotic pools containing both accessible and inaccessible nutrients."""
 
-    scavengeable_energy: float
+    scavengeable_carbon: float
 
-    decomposed_energy: float
+    decomposed_carbon: float
+
+    scavengeable_nitrogen: float
+
+    decomposed_nitrogen: float
+
+    scavengeable_phosphorus: float
+
+    decomposed_phosphorus: float
 
 
 class Resource(Protocol):
