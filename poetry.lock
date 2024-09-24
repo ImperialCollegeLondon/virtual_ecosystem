@@ -4301,19 +4301,19 @@ test = ["websockets"]
 
 [[package]]
 name = "xarray"
-version = "2024.6.0"
+version = "2024.9.0"
 description = "N-D labeled arrays and datasets in Python"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "xarray-2024.6.0-py3-none-any.whl", hash = "sha256:721a7394e8ec3d592b2d8ebe21eed074ac077dc1bb1bd777ce00e41700b4866c"},
-    {file = "xarray-2024.6.0.tar.gz", hash = "sha256:0b91e0bc4dc0296947947640fe31ec6e867ce258d2f7cbc10bedf4a6d68340c7"},
+    {file = "xarray-2024.9.0-py3-none-any.whl", hash = "sha256:4fd534abdf12d5fa75dd566c56483d5081f77864462cf3d6ad53e13f9db48222"},
+    {file = "xarray-2024.9.0.tar.gz", hash = "sha256:e796a6b3eaec11da24f33e4bb14af41897011660a0516fa4037d3ae4bbd1d378"},
 ]
 
 [package.dependencies]
-numpy = ">=1.23"
+numpy = ">=1.24"
 packaging = ">=23.1"
-pandas = ">=2.0"
+pandas = ">=2.1"
 
 [package.extras]
 accel = ["bottleneck", "flox", "numbagg", "opt-einsum", "scipy"]
