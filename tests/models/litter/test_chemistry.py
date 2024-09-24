@@ -35,12 +35,12 @@ def test_calculate_new_pool_chemistries(
         "lignin_above_structural": [0.49726219, 0.10065698, 0.67693666, 0.6673972],
         "lignin_woody": [0.49580543, 0.7978783, 0.35224272, 0.35012606],
         "lignin_below_structural": [0.49974338, 0.26270806, 0.74846367, 0.71955592],
-        "c_n_ratio_above_metabolic": [7.39175978, 8.93054462, 10.40414542, 9.86041981],
+        "c_n_ratio_above_metabolic": [7.3918226, 8.9320212, 10.413317, 9.8624367],
         "c_n_ratio_above_structural": [37.5547150, 43.3448492, 48.0974058, 52.0359678],
         "c_n_ratio_woody": [55.5816919, 63.2550698, 47.5208477, 59.0819914],
         "c_n_ratio_below_metabolic": [10.7299421, 11.3394567, 15.1984024, 12.2222413],
         "c_n_ratio_below_structural": [50.6228215, 55.9998994, 73.0948342, 58.6661277],
-        "c_p_ratio_above_metabolic": [69.957176, 68.5502416, 107.1709994, 96.55826106],
+        "c_p_ratio_above_metabolic": [69.965838, 68.549282, 107.38423, 96.583573],
         "c_p_ratio_above_structural": [346.048307, 472.496124, 465.834123, 525.882608],
         "c_p_ratio_woody": [560.22870571, 762.56863636, 848.03530307, 600.40427444],
         "c_p_ratio_below_metabolic": [308.200782, 405.110726, 314.824814, 372.870229],
@@ -109,7 +109,7 @@ def test_calculate_c_n_ratio_updates(
     """Test that calculation of C:N ratio updates works properly."""
 
     expected_change = {
-        "above_metabolic": [0.09175978, 0.23054462, 0.30414542, 0.06041981],
+        "above_metabolic": [0.091822576, 0.232021211, 0.313317200, 0.062436702],
         "above_structural": [0.05471499, 0.14484922, 2.29740576, 1.835967773],
         "woody": [0.0816919, -0.0449302, 0.2208477, -0.0180086],
         "below_metabolic": [0.02994209, 0.03945672, -0.00159759, -0.17775875],
@@ -134,7 +134,7 @@ def test_calculate_c_p_ratio_updates(
     """Test that calculation of C:P ratio updates works properly."""
 
     expected_change = {
-        "above_metabolic": [12.657176, -0.14975840, 7.07099940, 0.75826106],
+        "above_metabolic": [12.665838, -0.15071757, 7.28423174, 0.78357281],
         "above_structural": [8.5483073, -0.7038764, 50.034123, -44.317392],
         "woody": [4.72870571, -0.73136364, 0.73530307, 1.30427444],
         "below_metabolic": [-2.49921796, -6.18927446, -0.37518617, -39.52977135],

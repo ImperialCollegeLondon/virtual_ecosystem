@@ -735,16 +735,44 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of excrement flow from animals into litter"
-name = "decomposed_excrement"
+description = "Rate of carbon flow from animal excrement into the soil"
+name = "decomposed_excrement_carbon"
 unit = "kg C m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate of decomposed carcass biomass flow from animals into litter"
-name = "decomposed_carcasses"
+description = "Rate of nitrogen flow from animal excrement into the soil"
+name = "decomposed_excrement_nitrogen"
+unit = "kg N m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of phosphorus flow from animal excrement into the soil"
+name = "decomposed_excrement_phosphorus"
+unit = "kg P m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of carbon flow from decomposed animal carcasses into the soil"
+name = "decomposed_carcasses_carbon"
 unit = "kg C m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of nitrogen flow from decomposed animal carcasses into the soil"
+name = "decomposed_carcasses_nitrogen"
+unit = "kg N m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of phosphorus flow from decomposed animal carcasses into the soil"
+name = "decomposed_carcasses_phosphorus"
+unit = "kg P m^-3 day^-1"
 variable_type = "float"
 
 [[variable]]
