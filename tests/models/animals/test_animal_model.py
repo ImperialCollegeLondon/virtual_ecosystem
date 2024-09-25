@@ -169,8 +169,17 @@ def test_animal_model_initialization(
                 ),
                 (INFO, "Adding data array for 'total_animal_respiration'"),
                 (INFO, "Adding data array for 'population_densities'"),
-                (INFO, "Adding data array for 'decomposed_excrement'"),
-                (INFO, "Adding data array for 'decomposed_carcasses'"),
+                (INFO, "Adding data array for 'decomposed_excrement_carbon'"),
+                (INFO, "Adding data array for 'decomposed_excrement_nitrogen'"),
+                (INFO, "Adding data array for 'decomposed_excrement_phosphorus'"),
+                (INFO, "Adding data array for 'decomposed_carcasses_carbon'"),
+                (INFO, "Adding data array for 'decomposed_carcasses_nitrogen'"),
+                (INFO, "Adding data array for 'decomposed_carcasses_phosphorus'"),
+                (INFO, "Adding data array for 'litter_consumption_above_metabolic'"),
+                (INFO, "Adding data array for 'litter_consumption_above_structural'"),
+                (INFO, "Adding data array for 'litter_consumption_woody'"),
+                (INFO, "Adding data array for 'litter_consumption_below_metabolic'"),
+                (INFO, "Adding data array for 'litter_consumption_below_structural'"),
             ),
             id="success",
         ),
@@ -281,8 +290,128 @@ def test_update_method_time_index_argument(
     assert True
 
 
-def test_calculate_litter_additions(functional_group_list_instance):
-    """Test that litter additions from animal model are calculated correctly."""
+def test_populate_litter_pools(
+    litter_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
+):
+    """Test that function to populate animal consumable litter pool works properly."""
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data=litter_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
+    )
+
+    litter_pools = model.populate_litter_pools()
+    # Check that all five pools have been populated, with the correct values
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+    for pool_name in pool_names:
+        assert np.allclose(
+            litter_pools[pool_name].mass_current,
+            litter_data_instance[f"litter_pool_{pool_name}"]
+            * fixture_core_components.grid.cell_area,
+        )
+        assert np.allclose(
+            litter_pools[pool_name].c_n_ratio,
+            litter_data_instance[f"c_n_ratio_{pool_name}"],
+        )
+        assert np.allclose(
+            litter_pools[pool_name].c_p_ratio,
+            litter_data_instance[f"c_p_ratio_{pool_name}"],
+        )
+
+
+def test_calculate_total_litter_consumption(
+    litter_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
+):
+    """Test that calculation of total consumption of litter by animals is correct."""
+    from copy import deepcopy
+
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    model = AnimalModel(
+        data=litter_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
+    )
+
+    new_data = deepcopy(litter_data_instance)
+    # Add new values for each pool
+    new_data["litter_pool_above_metabolic"] = (
+        litter_data_instance["litter_pool_above_metabolic"] - 0.03
+    )
+    new_data["litter_pool_above_structural"] = (
+        litter_data_instance["litter_pool_above_structural"] - 0.04
+    )
+    new_data["litter_pool_woody"] = litter_data_instance["litter_pool_woody"] - 1.2
+    new_data["litter_pool_below_metabolic"] = (
+        litter_data_instance["litter_pool_below_metabolic"] - 0.06
+    )
+    new_data["litter_pool_below_structural"] = (
+        litter_data_instance["litter_pool_below_structural"] - 0.01
+    )
+
+    # Make an updated set of litter pools
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+    new_litter_pools = {
+        pool_name: LitterPool(
+            pool_name=pool_name,
+            data=new_data,
+            cell_area=fixture_core_components.grid.cell_area,
+        )
+        for pool_name in pool_names
+    }
+
+    # Calculate litter consumption
+    consumption = model.calculate_total_litter_consumption(
+        litter_pools=new_litter_pools
+    )
+
+    assert np.allclose(
+        consumption["litter_consumption_above_metabolic"],
+        0.03 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_above_structural"],
+        0.04 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_woody"],
+        1.2 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_below_metabolic"],
+        0.06 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_below_structural"],
+        0.01 * np.ones(4),
+    )
+
+
+def test_calculate_soil_additions(functional_group_list_instance):
+    """Test that soil additions from animal model are calculated correctly."""
 
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -306,38 +435,106 @@ def test_calculate_litter_additions(functional_group_list_instance):
     )
 
     # Update the waste pools
-    decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6]
-    for energy, community in zip(decomposed_excrement, model.communities.values()):
-        community.excrement_pool.decomposed_energy = energy
+    decomposed_excrement_carbon = [3.5e-3, 5.6e-2, 5.9e-2, 2.3e0]
+    for carbon, community in zip(
+        decomposed_excrement_carbon, model.communities.values()
+    ):
+        community.excrement_pool.decomposed_carbon = carbon
+    decomposed_excrement_nitrogen = [2.4e-4, 7.3e-3, 3.4e-3, 9.3e-2]
+    for nitrogen, community in zip(
+        decomposed_excrement_nitrogen, model.communities.values()
+    ):
+        community.excrement_pool.decomposed_nitrogen = nitrogen
+    decomposed_excrement_phosphorus = [5.4e-6, 1.7e-4, 4.5e-5, 9.8e-5]
+    for phosphorus, community in zip(
+        decomposed_excrement_phosphorus, model.communities.values()
+    ):
+        community.excrement_pool.decomposed_phosphorus = phosphorus
 
-    decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8]
-    for energy, community in zip(decomposed_carcasses, model.communities.values()):
-        community.carcass_pool.decomposed_energy = energy
+    decomposed_carcasses_carbon = [1.7e2, 7.5e0, 3.4e1, 8.1e1]
+    for carbon, community in zip(
+        decomposed_carcasses_carbon, model.communities.values()
+    ):
+        community.carcass_pool.decomposed_carbon = carbon
+    decomposed_carcasses_nitrogen = [9.3e-2, 2.4e-4, 7.3e-3, 3.4e-3]
+    for nitrogen, community in zip(
+        decomposed_carcasses_nitrogen, model.communities.values()
+    ):
+        community.carcass_pool.decomposed_nitrogen = nitrogen
+    decomposed_carcasses_phosphorus = [9.8e-5, 5.4e-6, 1.7e-4, 4.5e-5]
+    for phosphorus, community in zip(
+        decomposed_carcasses_phosphorus, model.communities.values()
+    ):
+        community.carcass_pool.decomposed_phosphorus = phosphorus
 
     # Calculate litter additions
-    litter_additions = model.calculate_litter_additions()
+    soil_additions = model.calculate_soil_additions()
 
     # Check that litter addition pools are as expected
     assert np.allclose(
-        litter_additions["decomposed_excrement"],
+        soil_additions["decomposed_excrement_carbon"],
         [5e-08, 8e-07, 8.42857e-07, 3.28571e-05],
     )
     assert np.allclose(
-        litter_additions["decomposed_carcasses"],
-        [1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3],
+        soil_additions["decomposed_excrement_nitrogen"],
+        [3.4285714e-9, 1.0428571e-7, 4.8571429e-8, 1.3285714e-6],
+    )
+    assert np.allclose(
+        soil_additions["decomposed_excrement_phosphorus"],
+        [7.7142857e-11, 2.4285714e-9, 6.4285714e-10, 1.4e-9],
+    )
+    assert np.allclose(
+        soil_additions["decomposed_carcasses_carbon"],
+        [2.42857e-3, 1.0714e-4, 4.8571e-4, 1.15714e-3],
+    )
+    assert np.allclose(
+        soil_additions["decomposed_carcasses_nitrogen"],
+        [1.3285714e-6, 3.4285714e-9, 1.0428571e-7, 4.8571429e-8],
+    )
+    assert np.allclose(
+        soil_additions["decomposed_carcasses_phosphorus"],
+        [1.4e-9, 7.7142857e-11, 2.4285714e-9, 6.4285714e-10],
     )
 
     # Check that the function has reset the pools correctly
     assert np.allclose(
         [
-            community.excrement_pool.decomposed_energy
+            community.excrement_pool.decomposed_carbon
             for community in model.communities.values()
         ],
         0.0,
     )
     assert np.allclose(
         [
-            community.carcass_pool.decomposed_energy
+            community.carcass_pool.decomposed_carbon
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
+    assert np.allclose(
+        [
+            community.excrement_pool.decomposed_nitrogen
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
+    assert np.allclose(
+        [
+            community.carcass_pool.decomposed_nitrogen
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
+    assert np.allclose(
+        [
+            community.excrement_pool.decomposed_phosphorus
+            for community in model.communities.values()
+        ],
+        0.0,
+    )
+    assert np.allclose(
+        [
+            community.carcass_pool.decomposed_phosphorus
             for community in model.communities.values()
         ],
         0.0,
