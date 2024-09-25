@@ -101,3 +101,49 @@ def test_find_decay_consumed_split(decay_rate, scavenging_rate, expected_split):
     )
 
     assert actual_split == expected_split
+
+
+class TestLitterPool:
+    """Test LitterPool class."""
+
+    def test_get_eaten(self, litter_pool_instance, herbivore_cohort_instance):
+        """Test the get_eaten method for LitterPool."""
+        import pytest
+
+        consumed_mass = 50.0  # Define a mass to be consumed for the test
+        cell_id = 3
+        initial_mass_current = litter_pool_instance.mass_current[cell_id]
+        initial_c_n_ratio = litter_pool_instance.c_n_ratio[cell_id]
+        initial_c_p_ratio = litter_pool_instance.c_p_ratio[cell_id]
+
+        actual_mass_gain = litter_pool_instance.get_eaten(
+            consumed_mass, herbivore_cohort_instance, grid_cell_id=cell_id
+        )
+
+        # Check if the plant mass has been correctly reduced
+        assert litter_pool_instance.mass_current[cell_id] == pytest.approx(
+            initial_mass_current
+            - (
+                consumed_mass
+                * herbivore_cohort_instance.functional_group.mechanical_efficiency
+            )
+        ), "Litter mass should be reduced by the consumed amount."
+
+        # Check if the actual mass gain matches the expected value after
+        # efficiency adjustments
+        expected_mass_gain = (
+            consumed_mass
+            * herbivore_cohort_instance.functional_group.mechanical_efficiency
+            * herbivore_cohort_instance.functional_group.conversion_efficiency
+        )
+        assert actual_mass_gain == pytest.approx(
+            expected_mass_gain
+        ), "Actual mass gain should match expected value after efficiency adjustments."
+
+        # Check that carbon:nitrogen and carbon:phosphorus ratios remain unchanged
+        assert initial_c_n_ratio == pytest.approx(
+            litter_pool_instance.c_n_ratio[cell_id]
+        )
+        assert initial_c_p_ratio == pytest.approx(
+            litter_pool_instance.c_p_ratio[cell_id]
+        )

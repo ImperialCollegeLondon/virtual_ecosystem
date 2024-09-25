@@ -33,6 +33,7 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_communities import AnimalCommunity
 from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.decay import LitterPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -42,7 +43,23 @@ class AnimalModel(
     model_update_bounds=("1 day", "1 month"),
     vars_required_for_init=(),
     vars_populated_by_init=("total_animal_respiration", "population_densities"),
-    vars_required_for_update=(),
+    vars_required_for_update=(
+        "litter_pool_above_metabolic",
+        "litter_pool_above_structural",
+        "litter_pool_woody",
+        "litter_pool_below_metabolic",
+        "litter_pool_below_structural",
+        "c_n_ratio_above_metabolic",
+        "c_n_ratio_above_structural",
+        "c_n_ratio_woody",
+        "c_n_ratio_below_metabolic",
+        "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
+    ),
     vars_populated_by_first_update=(
         "decomposed_excrement_carbon",
         "decomposed_excrement_nitrogen",
@@ -50,6 +67,11 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
+        "litter_consumption_above_metabolic",
+        "litter_consumption_above_structural",
+        "litter_consumption_woody",
+        "litter_consumption_below_metabolic",
+        "litter_consumption_below_structural",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -59,6 +81,11 @@ class AnimalModel(
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
         "total_animal_respiration",
+        "litter_consumption_above_metabolic",
+        "litter_consumption_above_structural",
+        "litter_consumption_woody",
+        "litter_consumption_below_metabolic",
+        "litter_consumption_below_structural",
     ),
 ):
     """A class describing the animal model.
@@ -248,12 +275,14 @@ class AnimalModel(
         events would be simultaneous. The ordering within the method is less a question
         of the science and more a question of computational logic and stability.
 
-
-
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+
+        # TODO: These pools are populated but nothing actually gets done with them at
+        # the moment, this will have to change when scavenging gets introduced
+        litter_pools = self.populate_litter_pools()
 
         for community in self.communities.values():
             community.forage_community()
@@ -271,17 +300,75 @@ class AnimalModel(
             community.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the
-        # soil model can be extracted
+        # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
+        litter_consumption = self.calculate_total_litter_consumption(litter_pools)
 
-        # Update the litter pools
-        self.data.add_from_dict(additions_to_soil)
+        # Update the data object with the changes to soil and litter pools
+        self.data.add_from_dict(additions_to_soil | litter_consumption)
 
         # Update population densities
         self.update_population_densities()
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
+
+    def populate_litter_pools(self) -> dict[str, LitterPool]:
+        """Populate the litter pools that animals can consume from."""
+
+        return {
+            "above_metabolic": LitterPool(
+                pool_name="above_metabolic",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "above_structural": LitterPool(
+                pool_name="above_structural",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "woody": LitterPool(
+                pool_name="woody",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "below_metabolic": LitterPool(
+                pool_name="below_metabolic",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+            "below_structural": LitterPool(
+                pool_name="below_structural",
+                data=self.data,
+                cell_area=self.grid.cell_area,
+            ),
+        }
+
+    def calculate_total_litter_consumption(
+        self, litter_pools: dict[str, LitterPool]
+    ) -> dict[str, DataArray]:
+        """Calculate total animal consumption of each litter pool.
+
+        Args:
+            litter_pools: The full set of animal accessible litter pools.
+
+        Returns:
+            The total consumption of litter from each pool [kg C m^-2]
+        """
+
+        # Find total animal consumption from each pool
+        total_consumption = {
+            pool_name: self.data[f"litter_pool_{pool_name}"]
+            - (litter_pools[pool_name].mass_current / self.data.grid.cell_area)
+            for pool_name in litter_pools.keys()
+        }
+
+        return {
+            f"litter_consumption_{pool_name}": DataArray(
+                array(total_consumption[pool_name]), dims="cell_id"
+            )
+            for pool_name in litter_pools.keys()
+        }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate the how much animal matter should be transferred to the soil."""

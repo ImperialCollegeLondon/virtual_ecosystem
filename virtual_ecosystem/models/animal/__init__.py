@@ -20,8 +20,9 @@ Each of the animal sub-modules has its own API reference page:
   module.
 * The :mod:`~virtual_ecosystem.models.animal.constants` provides a set of dataclasses
   containing the constants required by the broader animal model.
-* The :mod:`~virtual_ecosystem.models.animal.decay` provides a model for
-  both surface carcasses created by mortality and animal excrement.
+* The :mod:`~virtual_ecosystem.models.animal.decay` provides a model for carcasses
+  created by animal mortality, animal excrement and the litter available for animals to
+  consume.
 * The :mod:`~virtual_ecosystem.models.animal.plant_resources` provides the
   :class:`~virtual_ecosystem.models.animal.plant_resources.PlantResources` class,
   which provides an API for exposing plant model data via the animal model protocols.

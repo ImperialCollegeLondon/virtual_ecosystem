@@ -175,6 +175,11 @@ def test_animal_model_initialization(
                 (INFO, "Adding data array for 'decomposed_carcasses_carbon'"),
                 (INFO, "Adding data array for 'decomposed_carcasses_nitrogen'"),
                 (INFO, "Adding data array for 'decomposed_carcasses_phosphorus'"),
+                (INFO, "Adding data array for 'litter_consumption_above_metabolic'"),
+                (INFO, "Adding data array for 'litter_consumption_above_structural'"),
+                (INFO, "Adding data array for 'litter_consumption_woody'"),
+                (INFO, "Adding data array for 'litter_consumption_below_metabolic'"),
+                (INFO, "Adding data array for 'litter_consumption_below_structural'"),
             ),
             id="success",
         ),
@@ -283,6 +288,126 @@ def test_update_method_time_index_argument(
     prepared_animal_model_instance.update(time_index=time_index)
 
     assert True
+
+
+def test_populate_litter_pools(
+    litter_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
+):
+    """Test that function to populate animal consumable litter pool works properly."""
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    model = AnimalModel(
+        data=litter_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
+    )
+
+    litter_pools = model.populate_litter_pools()
+    # Check that all five pools have been populated, with the correct values
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+    for pool_name in pool_names:
+        assert np.allclose(
+            litter_pools[pool_name].mass_current,
+            litter_data_instance[f"litter_pool_{pool_name}"]
+            * fixture_core_components.grid.cell_area,
+        )
+        assert np.allclose(
+            litter_pools[pool_name].c_n_ratio,
+            litter_data_instance[f"c_n_ratio_{pool_name}"],
+        )
+        assert np.allclose(
+            litter_pools[pool_name].c_p_ratio,
+            litter_data_instance[f"c_p_ratio_{pool_name}"],
+        )
+
+
+def test_calculate_total_litter_consumption(
+    litter_data_instance,
+    fixture_core_components,
+    functional_group_list_instance,
+    constants_instance,
+):
+    """Test that calculation of total consumption of litter by animals is correct."""
+    from copy import deepcopy
+
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    model = AnimalModel(
+        data=litter_data_instance,
+        core_components=fixture_core_components,
+        functional_groups=functional_group_list_instance,
+        model_constants=constants_instance,
+    )
+
+    new_data = deepcopy(litter_data_instance)
+    # Add new values for each pool
+    new_data["litter_pool_above_metabolic"] = (
+        litter_data_instance["litter_pool_above_metabolic"] - 0.03
+    )
+    new_data["litter_pool_above_structural"] = (
+        litter_data_instance["litter_pool_above_structural"] - 0.04
+    )
+    new_data["litter_pool_woody"] = litter_data_instance["litter_pool_woody"] - 1.2
+    new_data["litter_pool_below_metabolic"] = (
+        litter_data_instance["litter_pool_below_metabolic"] - 0.06
+    )
+    new_data["litter_pool_below_structural"] = (
+        litter_data_instance["litter_pool_below_structural"] - 0.01
+    )
+
+    # Make an updated set of litter pools
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+    new_litter_pools = {
+        pool_name: LitterPool(
+            pool_name=pool_name,
+            data=new_data,
+            cell_area=fixture_core_components.grid.cell_area,
+        )
+        for pool_name in pool_names
+    }
+
+    # Calculate litter consumption
+    consumption = model.calculate_total_litter_consumption(
+        litter_pools=new_litter_pools
+    )
+
+    assert np.allclose(
+        consumption["litter_consumption_above_metabolic"],
+        0.03 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_above_structural"],
+        0.04 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_woody"],
+        1.2 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_below_metabolic"],
+        0.06 * np.ones(4),
+    )
+    assert np.allclose(
+        consumption["litter_consumption_below_structural"],
+        0.01 * np.ones(4),
+    )
 
 
 def test_calculate_soil_additions(functional_group_list_instance):

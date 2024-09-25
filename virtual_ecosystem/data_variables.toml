@@ -777,6 +777,41 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Amount of above-ground metabolic litter that has been consumed by animals"
+name = "litter_consumption_above_metabolic"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of above-ground structural litter that has been consumed by animals"
+name = "litter_consumption_above_structural"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of woody litter that has been consumed by animals"
+name = "litter_consumption_woody"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of below-ground metabolic litter that has been consumed by animals"
+name = "litter_consumption_below_metabolic"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of below-ground structural litter that has been consumed by animals"
+name = "litter_consumption_below_structural"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Amount of dead wood produced since last update"
 name = "deadwood_production"
 unit = "kg C m^-2"

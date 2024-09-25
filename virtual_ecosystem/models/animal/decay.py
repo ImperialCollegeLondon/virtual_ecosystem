@@ -1,9 +1,14 @@
 """The :mod:`~virtual_ecosystem.models.animal.decay` module contains
 pools which are still potentially forageable by animals but are in the process of
-microbial decomposition. And the moment this consists of animal carcasses and excrement.
+microbial decomposition. This includes excrement and carcasses that are tracked solely
+in the animal module. This also includes plant litter which is mainly tracked in the
+`litter` module, but is made available for animal consumption.
 """  # noqa: D205
 
 from dataclasses import dataclass
+
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.animal.protocols import Consumer
 
 
 @dataclass
@@ -112,3 +117,63 @@ def find_decay_consumed_split(
     """
 
     return microbial_decay_rate / (animal_scavenging_rate + microbial_decay_rate)
+
+
+class LitterPool:
+    """A class that makes litter available for animal consumption.
+
+    This class acts as the interface between litter model data stored in the core data
+    object and the animal model.
+
+    This class is designed to be reused for all five of the litter pools used in the
+    litter model, as all of these pools are consumable by animals.
+
+    Args:
+        pool_name: The name of the litter pool being accessed.
+        data: A Data object containing information from the litter model.
+        cell_area: The size of the cell, used to convert from density to mass units
+            [m^2]
+    """
+
+    def __init__(self, pool_name: str, data: Data, cell_area: float) -> None:
+        self.mass_current = (data[f"litter_pool_{pool_name}"].to_numpy()) * cell_area
+        """Mass of the litter pool in carbon terms [kg C]."""
+
+        self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
+        """Carbon nitrogen ratio of the litter pool [unitless]."""
+
+        self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
+        """Carbon phosphorus ratio of the litter pool [unitless]."""
+
+    def get_eaten(
+        self, consumed_mass: float, detritivore: Consumer, grid_cell_id: int
+    ) -> float:
+        """This function handles litter detritivory.
+
+        Args:
+            consumed_mass: The mass intended to be consumed by the herbivore [kg].
+            detritivore: The Consumer (AnimalCohort) consuming the Litter.
+            grid_cell_id: The cell id of the cell the animal cohort is in.
+
+        Returns:
+            The actual mass consumed by the detritivore, adjusted for efficiencies [kg].
+        """
+
+        # Check if the requested consumed mass is more than the available mass
+        actually_available_mass = min(self.mass_current[grid_cell_id], consumed_mass)
+
+        # Calculate the mass of the consumed litter after mechanical efficiency
+        actual_consumed_mass = (
+            actually_available_mass * detritivore.functional_group.mechanical_efficiency
+        )
+
+        # Update the litter pool mass to reflect the mass consumed
+        self.mass_current[grid_cell_id] -= actual_consumed_mass
+
+        # Return the net mass gain of detritivory, after considering
+        # digestive efficiencies
+        net_mass_gain = (
+            actual_consumed_mass * detritivore.functional_group.conversion_efficiency
+        )
+
+        return net_mass_gain
