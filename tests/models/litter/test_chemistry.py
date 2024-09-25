@@ -82,7 +82,9 @@ def test_calculate_lignin_updates(
         assert np.allclose(actual_lignin[name], expected_lignin[name])
 
 
-def test_calculate_change_in_chemical_concentration(dummy_litter_data):
+def test_calculate_change_in_chemical_concentration(
+    dummy_litter_data, post_consumption_pools
+):
     """Test that function to calculate chemistry changes works properly."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_change_in_chemical_concentration,
@@ -95,7 +97,7 @@ def test_calculate_change_in_chemical_concentration(dummy_litter_data):
 
     actual_lignin = calculate_change_in_chemical_concentration(
         input_carbon=input_carbon,
-        updated_pool_carbon=dummy_litter_data["litter_pool_woody"].to_numpy(),
+        updated_pool_carbon=post_consumption_pools["woody"],
         input_conc=input_lignin,
         old_pool_conc=dummy_litter_data["lignin_woody"].to_numpy(),
     )

@@ -26,12 +26,57 @@ from virtual_ecosystem.models.litter.env_factors import (
 )
 
 
-def calculate_decay_rates(
+def calculate_post_consumption_pools(
     above_metabolic: NDArray[np.float32],
     above_structural: NDArray[np.float32],
     woody: NDArray[np.float32],
     below_metabolic: NDArray[np.float32],
     below_structural: NDArray[np.float32],
+    consumption_above_metabolic: NDArray[np.float32],
+    consumption_above_structural: NDArray[np.float32],
+    consumption_woody: NDArray[np.float32],
+    consumption_below_metabolic: NDArray[np.float32],
+    consumption_below_structural: NDArray[np.float32],
+) -> dict[str, NDArray[np.float32]]:
+    """Calculates the size of the five litter pools after animal consumption.
+
+    At present the Virtual Ecosystem gives animals priority for consumption of litter.
+    And so only the litter not consumed by animals has a chance to decay. This is a
+    major assumption that we may have to revisit in future.
+
+    Args:
+        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
+        above_structural: Above ground structural litter pool [kg C m^-2]
+        woody: The woody litter pool [kg C m^-2]
+        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
+        below_structural: Below ground structural litter pool [kg C m^-2]
+        consumption_above_metabolic: Amount of above-ground metabolic litter that has
+            been consumed by animals [kg C m^-2]
+        consumption_above_structural: Amount of above-ground structural litter that has
+            been consumed by animals [kg C m^-2]
+        consumption_woody: Amount of woody litter that has been consumed by animals [kg
+            C m^-2]
+        consumption_below_metabolic: Amount of below-ground metabolic litter that has
+            been consumed by animals [kg C m^-2]
+        consumption_below_structural: Amount of below-ground structural litter that has
+            been consumed by animals [kg C m^-2]
+
+    Returns:
+        A dictionary containing the size of each litter pool after the mass consumed by
+        animals has been removed [kg C m^-2].
+    """
+
+    return {
+        "above_metabolic": above_metabolic - consumption_above_metabolic,
+        "above_structural": above_structural - consumption_above_structural,
+        "woody": woody - consumption_woody,
+        "below_metabolic": below_metabolic - consumption_below_metabolic,
+        "below_structural": below_structural - consumption_below_structural,
+    }
+
+
+def calculate_decay_rates(
+    post_consumption_pools: dict[str, NDArray[np.float32]],
     lignin_above_structural: NDArray[np.float32],
     lignin_woody: NDArray[np.float32],
     lignin_below_structural: NDArray[np.float32],
@@ -44,11 +89,8 @@ def calculate_decay_rates(
     """Calculate the decay rate for all five of the litter pools.
 
     Args:
-        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
-        above_structural: Above ground structural litter pool [kg C m^-2]
-        woody: The woody litter pool [kg C m^-2]
-        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
-        below_structural: Below ground structural litter pool [kg C m^-2]
+        post_consumption_pools: The five litter pools after animal consumption has been
+            subtracted [kg C m^-2]
         lignin_above_structural: Proportion of above ground structural pool which is
             lignin [unitless]
         lignin_woody: Proportion of dead wood pool which is lignin [unitless]
@@ -79,19 +121,19 @@ def calculate_decay_rates(
     # Calculate decay rate for each pool
     metabolic_above_decay = calculate_litter_decay_metabolic_above(
         temperature_factor=env_factors["temp_above"],
-        litter_pool_above_metabolic=above_metabolic,
+        litter_pool_above_metabolic=post_consumption_pools["above_metabolic"],
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
     structural_above_decay = calculate_litter_decay_structural_above(
         temperature_factor=env_factors["temp_above"],
-        litter_pool_above_structural=above_structural,
+        litter_pool_above_structural=post_consumption_pools["above_structural"],
         lignin_proportion=lignin_above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     woody_decay = calculate_litter_decay_woody(
         temperature_factor=env_factors["temp_above"],
-        litter_pool_woody=woody,
+        litter_pool_woody=post_consumption_pools["woody"],
         lignin_proportion=lignin_woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
@@ -99,13 +141,13 @@ def calculate_decay_rates(
     metabolic_below_decay = calculate_litter_decay_metabolic_below(
         temperature_factor=env_factors["temp_below"],
         moisture_factor=env_factors["water"],
-        litter_pool_below_metabolic=below_metabolic,
+        litter_pool_below_metabolic=post_consumption_pools["below_metabolic"],
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_below,
     )
     structural_below_decay = calculate_litter_decay_structural_below(
         temperature_factor=env_factors["temp_below"],
         moisture_factor=env_factors["water"],
-        litter_pool_below_structural=below_structural,
+        litter_pool_below_structural=post_consumption_pools["below_structural"],
         lignin_proportion=lignin_below_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
@@ -174,11 +216,7 @@ def calculate_total_C_mineralised(
 
 
 def calculate_updated_pools(
-    above_metabolic: NDArray[np.float32],
-    above_structural: NDArray[np.float32],
-    woody: NDArray[np.float32],
-    below_metabolic: NDArray[np.float32],
-    below_structural: NDArray[np.float32],
+    post_consumption_pools: dict[str, NDArray[np.float32]],
     decay_rates: dict[str, NDArray[np.float32]],
     plant_inputs: dict[str, NDArray[np.float32]],
     update_interval: float,
@@ -189,11 +227,8 @@ def calculate_updated_pools(
     each pool after the update interval, rather than a rate of change to be integrated.
 
     Args:
-        above_metabolic: Above ground metabolic litter pool [kg C m^-2]
-        above_structural: Above ground structural litter pool [kg C m^-2]
-        woody: The woody litter pool [kg C m^-2]
-        below_metabolic: Below ground metabolic litter pool [kg C m^-2]
-        below_structural: Below ground structural litter pool [kg C m^-2]
+        post_consumption_pools: The five litter pools after animal consumption has been
+            subtracted [kg C m^-2]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
         plant_inputs: Dictionary containing the amount of each litter type that is added
@@ -225,11 +260,15 @@ def calculate_updated_pools(
 
     # New value for each pool is found and returned in a dictionary
     return {
-        "above_metabolic": above_metabolic + change_in_metabolic_above,
-        "above_structural": above_structural + change_in_structural_above,
-        "woody": woody + change_in_woody,
-        "below_metabolic": below_metabolic + change_in_metabolic_below,
-        "below_structural": below_structural + change_in_structural_below,
+        "above_metabolic": post_consumption_pools["above_metabolic"]
+        + change_in_metabolic_above,
+        "above_structural": post_consumption_pools["above_structural"]
+        + change_in_structural_above,
+        "woody": post_consumption_pools["woody"] + change_in_woody,
+        "below_metabolic": post_consumption_pools["below_metabolic"]
+        + change_in_metabolic_below,
+        "below_structural": post_consumption_pools["below_structural"]
+        + change_in_structural_below,
     }
 
 
