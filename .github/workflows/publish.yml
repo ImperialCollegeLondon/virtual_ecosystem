@@ -38,7 +38,7 @@ jobs:
       # Add the built files to the release assets, alongside the repo archives 
       # automatically added by GitHub. These files should then match exactly to the
       # published files on PyPI.
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: dist/virtual_ecosystem*
 
