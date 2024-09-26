@@ -1,5 +1,5 @@
 """The ``models.litter.input_partition`` module handles the partitioning of dead plant
-and animal matter into the various pools of the litter model.
+matter into the various pools of the litter model.
 """  # noqa: D205
 
 import numpy as np

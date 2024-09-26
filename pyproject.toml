@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 name = "virtual_ecosystem"
 readme = "README.md"
 repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
-version = "0.1.1a5"
+version = "0.1.1a6"
 
 [tool.poetry.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
@@ -52,7 +52,7 @@ types-tqdm = "^4.66.0.20240106"
 [tool.poetry.group.test.dependencies]
 hypothesis = "^6.54.2"
 pytest = "^7.1.2"
-pytest-cov = "^3.0.0"
+pytest-cov = ">=3,<6"
 pytest-datadir = "^1.4.1"
 pytest-mock = "^3.8.1"
 
@@ -66,7 +66,7 @@ jupytext = "^1.16.2"
 matplotlib = "^3.5.2"
 mdformat = "^0.7.14"
 mdformat_frontmatter = "^0.4.1"
-mdformat_tables = "^0.4.1"
+mdformat_tables = ">=0.4.1,<1.1.0"
 mypy = "^1.5.1"
 pre-commit = "^2.19.0"
 
