@@ -97,4 +97,20 @@ the responsiveness of the split to changes in the product of lignin proportion a
 carbon:nitrogen ratio, and $s_P$ parametrises the responsiveness of the split to changes
 in the product of lignin proportion and carbon:phosphorus ratio.
 
-TODO - Add section about Environmental factors
+## Environmental impacts on decay rates
+
+The decay rates of all classes of litter are effected by temperature. For the
+above-ground pools, this temperature is simply the air temperature just above the soil
+surface. For the below ground pools, the temperature is an average of the temperatures
+for the biologically active soil layers. The "intrinsic" litter decay rates are altered
+to capture the effect of temperature by multiplying them with a factor that takes the
+following form
+
+$$f(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)}$$
+
+where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
+establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
+$\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
+changes.
+
+TODO - ADD SOMETHING SIMILAR FOR SOIL MOISTURE
