@@ -545,8 +545,17 @@ class AnimalModel(
         # reduce reproductive mass by amount used to generate offspring
         parent_cohort.reproductive_mass = 0.0
 
+        if number_offspring <= 0:
+            print("No offspring created, exiting birth method.")
+            return
+
+        offspring_functional_group = get_functional_group_by_name(
+            self.functional_groups,
+            parent_cohort.functional_group.offspring_functional_group,
+        )
+
         offspring_cohort = AnimalCohort(
-            parent_cohort.functional_group,
+            offspring_functional_group,
             parent_cohort.functional_group.birth_mass,
             0.0,
             number_offspring,
@@ -557,6 +566,9 @@ class AnimalModel(
 
         # add a new cohort of the parental type to the community
         self.cohorts[offspring_cohort.id] = offspring_cohort
+
+        # Debug: Print cohorts after adding offspring
+        print(f"Total cohorts after adding offspring: {len(self.cohorts)}")
 
         # add the new cohort to the community lists it occupies
         self.update_community_occupancy(offspring_cohort, offspring_cohort.centroid_key)

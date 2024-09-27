@@ -763,3 +763,202 @@ class TestAnimalModel:
 
         # Assert that starvation check was applied
         herbivore_cohort_instance.is_below_mass_threshold.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "is_cohort_in_model, expected_exception",
+        [
+            (True, None),  # Cohort exists, should be removed
+            (False, KeyError),  # Cohort does not exist, KeyError expected
+        ],
+    )
+    def test_remove_dead_cohort(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        mocker,
+        is_cohort_in_model,
+        expected_exception,
+    ):
+        """Test the remove_dead_cohort method for both success and error cases."""
+
+        # Setup cohort ID and mock territory
+        cohort_id = herbivore_cohort_instance.id
+        herbivore_cohort_instance.territory = [
+            1,
+            2,
+        ]  # Simulate a territory covering two cells
+
+        # If cohort should exist, add it to model's cohorts and communities
+        if is_cohort_in_model:
+            animal_model_instance.cohorts[cohort_id] = herbivore_cohort_instance
+            animal_model_instance.communities = {
+                1: [herbivore_cohort_instance],
+                2: [herbivore_cohort_instance],
+            }
+
+        # If cohort doesn't exist, make sure it's not in the model
+        else:
+            animal_model_instance.cohorts = {}
+
+        if expected_exception:
+            # Expect KeyError if cohort does not exist
+            with pytest.raises(
+                KeyError, match=f"Cohort with ID {cohort_id} does not exist."
+            ):
+                animal_model_instance.remove_dead_cohort(herbivore_cohort_instance)
+        else:
+            # Call the method to remove the cohort if it exists
+            animal_model_instance.remove_dead_cohort(herbivore_cohort_instance)
+
+            # Assert that the cohort has been removed from both communities
+            assert herbivore_cohort_instance not in animal_model_instance.communities[1]
+            assert herbivore_cohort_instance not in animal_model_instance.communities[2]
+
+            # Assert that the cohort has been removed from the model's cohorts
+            assert cohort_id not in animal_model_instance.cohorts
+
+    @pytest.mark.parametrize(
+        "cohort_individuals, should_be_removed",
+        [
+            (0, True),  # Cohort with 0 individuals, should be removed
+            (10, False),  # Cohort with >0 individuals, should not be removed
+        ],
+    )
+    def test_remove_dead_cohort_community(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        mocker,
+        cohort_individuals,
+        should_be_removed,
+    ):
+        """Test remove_dead_cohort_community for both dead and alive cohorts."""
+
+        # Set up cohort with individuals count
+        herbivore_cohort_instance.individuals = cohort_individuals
+        cohort_id = herbivore_cohort_instance.id
+
+        # Add the cohort to the model's cohorts and communities
+        animal_model_instance.cohorts[cohort_id] = herbivore_cohort_instance
+        herbivore_cohort_instance.territory = [1, 2]  # Simulate a territory
+        animal_model_instance.communities = {
+            1: [herbivore_cohort_instance],
+            2: [herbivore_cohort_instance],
+        }
+
+        # Mock remove_dead_cohort to track when it is called
+        mock_remove_dead_cohort = mocker.patch.object(
+            animal_model_instance, "remove_dead_cohort"
+        )
+
+        # Call the method to remove dead cohorts from the community
+        animal_model_instance.remove_dead_cohort_community()
+
+        if should_be_removed:
+            # If the cohort should be removed, check if remove_dead_cohort was called
+            mock_remove_dead_cohort.assert_called_once_with(herbivore_cohort_instance)
+            assert (
+                herbivore_cohort_instance.is_alive is False
+            )  # Cohort should be marked as not alive
+        else:
+            # If cohort should not be removed, ensure remove_dead_cohort wasn't called
+            mock_remove_dead_cohort.assert_not_called()
+            assert (
+                herbivore_cohort_instance.is_alive is True
+            )  # Cohort should still be alive
+
+    @pytest.mark.parametrize(
+        "functional_group_type, reproductive_mass, mass_current, birth_mass,"
+        "individuals, is_semelparous, expected_offspring",
+        [
+            # Test case for semelparous organism
+            ("herbivore", 100.0, 1000.0, 10.0, 5, False, 50),
+            # Test case for iteroparous organism
+            ("butterfly", 50.0, 200.0, 0.5, 50, True, 15000),
+        ],
+    )
+    def test_birth(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        butterfly_cohort_instance,
+        functional_group_type,
+        reproductive_mass,
+        mass_current,
+        birth_mass,
+        individuals,
+        is_semelparous,
+        expected_offspring,
+    ):
+        """Test the birth method with semelparous and iteroparous cohorts."""
+
+        from uuid import uuid4
+
+        # Choose the appropriate cohort instance based on the test case
+        parent_cohort = (
+            herbivore_cohort_instance
+            if functional_group_type == "herbivore"
+            else butterfly_cohort_instance
+        )
+
+        # Mock the attributes of the parent cohort for the test case
+        parent_cohort.reproductive_mass = reproductive_mass
+        parent_cohort.mass_current = mass_current
+        parent_cohort.functional_group.birth_mass = birth_mass
+        parent_cohort.individuals = individuals
+        parent_cohort.functional_group.reproductive_type = (
+            "semelparous" if is_semelparous else "iteroparous"
+        )
+        parent_cohort.functional_group.offspring_functional_group = (
+            parent_cohort.functional_group.name
+        )
+
+        # Set a mock cohort ID
+        cohort_id = uuid4()
+        parent_cohort.id = cohort_id
+
+        # Add the parent cohort to the model's cohorts dictionary
+        animal_model_instance.cohorts[cohort_id] = parent_cohort
+
+        # Store the initial number of cohorts in the model
+        initial_num_cohorts = len(animal_model_instance.cohorts)
+
+        # Call the birth method (without mocking `get_functional_group_by_name`)
+        animal_model_instance.birth(parent_cohort)
+
+        # Check if the parent cohort is dead (only if semelparous)
+        if is_semelparous:
+            assert parent_cohort.is_alive is False
+        else:
+            assert parent_cohort.is_alive is True
+
+        # Check that reproductive mass is reset
+        assert parent_cohort.reproductive_mass == 0.0
+
+        # Check the number of offspring generated and added to the cohort list
+        if is_semelparous:
+            # For semelparous organisms, the parent dies and the offspring cohort
+            # replaces it
+            assert (
+                len(animal_model_instance.cohorts) == initial_num_cohorts
+            ), f"Expected {initial_num_cohorts} cohorts but"
+            " found {len(animal_model_instance.cohorts)}"
+        else:
+            # For iteroparous organisms, the parent survives and the offspring is added
+            assert (
+                len(animal_model_instance.cohorts) == initial_num_cohorts + 1
+            ), f"Expected {initial_num_cohorts + 1} cohorts but"
+            " found {len(animal_model_instance.cohorts)}"
+
+        # Get the offspring cohort (assuming it was added correctly)
+        offspring_cohort = list(animal_model_instance.cohorts.values())[-1]
+
+        # Validate the attributes of the offspring cohort
+        assert (
+            offspring_cohort.functional_group.name
+            == parent_cohort.functional_group.name
+        )
+        assert (
+            offspring_cohort.mass_current == parent_cohort.functional_group.birth_mass
+        )
+        assert offspring_cohort.individuals == expected_offspring
