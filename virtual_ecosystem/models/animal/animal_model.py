@@ -279,7 +279,7 @@ class AnimalModel(
         self.birth_community()
         self.metamorphose_community()
         self.metabolize_community(
-            float(self.data["air_temperature"][0][self.communities.keys()].values),
+            self.data["air_temperature"],
             self.update_interval_timedelta,
         )
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
@@ -644,7 +644,9 @@ class AnimalModel(
             # temporary solution
             self.remove_dead_cohort_community()
 
-    def metabolize_community(self, temperature: float, dt: timedelta64) -> None:
+    def metabolize_community(
+        self, air_temperature_data: DataArray, dt: timedelta64
+    ) -> None:
         """This handles metabolize for all cohorts in a community.
 
         This method generates a total amount of metabolic waste per cohort and passes
@@ -656,22 +658,35 @@ class AnimalModel(
         Excretion wastes are handled cohort by cohort because they will need to be
         spatially explicit with multi-grid occupancy.
 
-        TODO: Rework with stoichiometry
-
         Args:
-            temperature: Current air temperature (K).
+            air_temperature_data: The full air temperature data (as a DataArray) for
+                all communities.
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
         for cell_id, community in self.communities.items():
+            # Check for empty community and skip processing if empty
+            if not community:
+                continue
+
             total_carbonaceous_waste = 0.0
 
+            # Extract the temperature for this specific community (cell_id)
+            temperature_for_cell = float(
+                air_temperature_data.loc[{"cell_id": cell_id}].values
+            )
+
             for cohort in community:
-                metabolic_waste_mass = cohort.metabolize(temperature, dt)
+                # Calculate metabolic waste based on cohort properties
+                metabolic_waste_mass = cohort.metabolize(temperature_for_cell, dt)
+
+                # Carbonaceous waste from respiration
                 total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)
+
+                # Excretion of waste into the excrement pool
                 cohort.excrete(metabolic_waste_mass, self.excrement_pools[cell_id])
 
-            # Update the total_animal_respiration for this cell_id.
+            # Update the total_animal_respiration for the specific cell_id
             self.data["total_animal_respiration"].loc[{"cell_id": cell_id}] += (
                 total_carbonaceous_waste
             )
@@ -697,7 +712,7 @@ class AnimalModel(
 
         """
         number_of_days = float(dt / timedelta64(1, "D"))
-        for cohort in self.cohorts.values():
+        for cohort in list(self.cohorts.values()):
             cohort.inflict_non_predation_mortality(
                 number_of_days, cohort.get_carcass_pools(self.carcass_pools)
             )
@@ -755,7 +770,8 @@ class AnimalModel(
     def metamorphose_community(self) -> None:
         """Handle metamorphosis for all applicable cohorts in the community."""
 
-        for cohort in self.cohorts.values():
+        # Iterate over a static list of cohort values
+        for cohort in list(self.cohorts.values()):
             if (
                 cohort.functional_group.development_type == DevelopmentType.INDIRECT
                 and (cohort.mass_current >= cohort.functional_group.adult_mass)
