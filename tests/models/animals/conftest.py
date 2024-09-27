@@ -153,7 +153,7 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 @pytest.fixture
 def animal_model_instance(
-    animal_data_for_community_instance,
+    animal_data_for_model_instance,
     fixture_core_components,
     functional_group_list_instance,
     constants_instance,
@@ -163,7 +163,7 @@ def animal_model_instance(
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
     return AnimalModel(
-        data=animal_data_for_community_instance,
+        data=animal_data_for_model_instance,
         core_components=fixture_core_components,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,

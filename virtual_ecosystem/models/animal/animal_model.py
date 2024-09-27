@@ -391,8 +391,9 @@ class AnimalModel(
             cohort: The cohort to be removed from the occupancy lists.
         """
         for cell_id in cohort.territory:
-            if cohort.id in self.communities[cell_id]:
-                self.communities[cell_id].remove(cohort)
+            self.communities[cell_id] = [
+                c for c in self.communities[cell_id] if c.id != cohort.id
+            ]
 
     def update_community_occupancy(
         self, cohort: AnimalCohort, centroid_key: int
@@ -409,40 +410,6 @@ class AnimalModel(
 
         for cell_id in territory_cells:
             self.communities[cell_id].append(cohort)
-
-    def populate_community(self) -> None:
-        """This function creates an instance of each functional group.
-
-        Currently, this is the simplest implementation of populating the animal model.
-        In each AnimalCommunity one AnimalCohort of each FunctionalGroup type is
-        generated. So the more functional groups that are made, the denser the animal
-        community will be. This function will need to be reworked dramatically later on.
-
-        Currently, the number of individuals in a cohort is handled using Damuth's Law,
-        which only holds for mammals.
-
-        TODO: Move populate_community to following Madingley instead of damuth
-
-        """
-        for cell_id, community in self.communities.items():
-            for functional_group in self.functional_groups:
-                individuals = damuths_law(
-                    functional_group.adult_mass, functional_group.damuths_law_terms
-                )
-
-                # create a cohort of the functional group
-                cohort = AnimalCohort(
-                    functional_group,
-                    functional_group.adult_mass,
-                    0.0,
-                    individuals,
-                    cell_id,
-                    self.grid,
-                    self.model_constants,
-                )
-                # add the cohort to the flat cohort list and the specific community
-                community.append(cohort)
-                self.cohorts[cohort.id] = cohort
 
     def migrate(self, migrant: AnimalCohort, destination_centroid: int) -> None:
         """Function to move an AnimalCohort between grid cells.
