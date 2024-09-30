@@ -228,8 +228,15 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_component
         fxt_plants_model.data["plant_reproductive_tissue_turnover_lignin"], 0.01
     )
     assert np.allclose(fxt_plants_model.data["root_turnover_lignin"], 0.2)
+    assert np.allclose(fxt_plants_model.data["deadwood_c_n_ratio"], 56.5)
     assert np.allclose(fxt_plants_model.data["leaf_turnover_c_n_ratio"], 25.5)
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"], 12.5
     )
     assert np.allclose(fxt_plants_model.data["root_turnover_c_n_ratio"], 45.6)
+    assert np.allclose(fxt_plants_model.data["deadwood_c_p_ratio"], 856.5)
+    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_p_ratio"], 415.0)
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"], 125.5
+    )
+    assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)

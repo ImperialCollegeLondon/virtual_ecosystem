@@ -16,12 +16,8 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205
 
-# TODO - At the moment this model only receives two things from the animal model,
-# excrement and decayed carcass biomass. Both of these are simply added to the above
-# ground metabolic litter. In future, bones and feathers should also be added, these
-# will be handled using the more recalcitrant litter pools. However, we are leaving off
-# adding these for now as they have minimal effects on the carbon cycle, though they
-# probably matter for other nutrient cycles.
+# TODO - At the moment this model only receives nothing from the animal model. In
+# future, litter flows due to waste from herbivory need to be added.
 
 # FUTURE - Potentially make a more numerically accurate version of this model by using
 # differential equations at some point. In reality, litter chemistry should change
@@ -47,6 +43,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.litter.carbon import (
     calculate_decay_rates,
+    calculate_post_consumption_pools,
     calculate_total_C_mineralised,
     calculate_updated_pools,
 )
@@ -76,6 +73,11 @@ class LitterModel(
         "c_n_ratio_woody",
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
     ),
     vars_populated_by_init=(),
     vars_required_for_update=(
@@ -92,6 +94,11 @@ class LitterModel(
         "c_n_ratio_woody",
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
         "deadwood_production",
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
@@ -104,6 +111,11 @@ class LitterModel(
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
+        "litter_consumption_above_metabolic",
+        "litter_consumption_above_structural",
+        "litter_consumption_woody",
+        "litter_consumption_below_metabolic",
+        "litter_consumption_below_structural",
     ),
     vars_updated=(
         "litter_pool_above_metabolic",
@@ -119,12 +131,19 @@ class LitterModel(
         "c_n_ratio_woody",
         "c_n_ratio_below_metabolic",
         "c_n_ratio_below_structural",
+        "c_p_ratio_above_metabolic",
+        "c_p_ratio_above_structural",
+        "c_p_ratio_woody",
+        "c_p_ratio_below_metabolic",
+        "c_p_ratio_below_structural",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
     vars_populated_by_first_update=(
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
 ):
     """A class defining the litter model.
@@ -194,6 +213,11 @@ class LitterModel(
             "c_n_ratio_woody",
             "c_n_ratio_below_metabolic",
             "c_n_ratio_below_structural",
+            "c_p_ratio_above_metabolic",
+            "c_p_ratio_above_structural",
+            "c_p_ratio_woody",
+            "c_p_ratio_below_metabolic",
+            "c_p_ratio_below_structural",
         ]
         negative_ratios = []
         for ratio in nutrient_ratios:
@@ -261,13 +285,32 @@ class LitterModel(
             **kwargs: Further arguments to the update method.
         """
 
-        # Calculate the litter pool decay rates
-        decay_rates = calculate_decay_rates(
+        # Calculate the pool sizes after animal consumption has occurred, which then get
+        # used then for subsequent calculations
+        consumed_pools = calculate_post_consumption_pools(
             above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
             above_structural=self.data["litter_pool_above_structural"].to_numpy(),
             woody=self.data["litter_pool_woody"].to_numpy(),
             below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
             below_structural=self.data["litter_pool_below_structural"].to_numpy(),
+            consumption_above_metabolic=self.data[
+                "litter_consumption_above_metabolic"
+            ].to_numpy(),
+            consumption_above_structural=self.data[
+                "litter_consumption_above_structural"
+            ].to_numpy(),
+            consumption_woody=self.data["litter_consumption_woody"].to_numpy(),
+            consumption_below_metabolic=self.data[
+                "litter_consumption_below_metabolic"
+            ].to_numpy(),
+            consumption_below_structural=self.data[
+                "litter_consumption_below_structural"
+            ].to_numpy(),
+        )
+
+        # Calculate the litter pool decay rates
+        decay_rates = calculate_decay_rates(
+            post_consumption_pools=consumed_pools,
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
@@ -294,6 +337,11 @@ class LitterModel(
                 "plant_reproductive_tissue_turnover_c_n_ratio"
             ].to_numpy(),
             root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
+            leaf_turnover_c_p_ratio=self.data["leaf_turnover_c_p_ratio"].to_numpy(),
+            reproduct_turnover_c_p_ratio=self.data[
+                "plant_reproductive_tissue_turnover_c_p_ratio"
+            ].to_numpy(),
+            root_turnover_c_p_ratio=self.data["root_turnover_c_p_ratio"].to_numpy(),
             constants=self.model_constants,
         )
 
@@ -309,13 +357,7 @@ class LitterModel(
 
         # Calculate the updated pool masses
         updated_pools = calculate_updated_pools(
-            above_metabolic=self.data["litter_pool_above_metabolic"].to_numpy(),
-            above_structural=self.data["litter_pool_above_structural"].to_numpy(),
-            woody=self.data["litter_pool_woody"].to_numpy(),
-            below_metabolic=self.data["litter_pool_below_metabolic"].to_numpy(),
-            below_structural=self.data["litter_pool_below_structural"].to_numpy(),
-            decomposed_excrement=self.data["decomposed_excrement"].to_numpy(),
-            decomposed_carcasses=self.data["decomposed_carcasses"].to_numpy(),
+            post_consumption_pools=consumed_pools,
             decay_rates=decay_rates,
             plant_inputs=plant_inputs,
             update_interval=self.model_timing.update_interval_quantity.to(
@@ -337,6 +379,10 @@ class LitterModel(
             core_constants=self.core_constants,
         )
         total_N_mineralisation_rate = self.litter_chemistry.calculate_N_mineralisation(
+            decay_rates=decay_rates,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
+        )
+        total_P_mineralisation_rate = self.litter_chemistry.calculate_P_mineralisation(
             decay_rates=decay_rates,
             active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
@@ -374,11 +420,27 @@ class LitterModel(
             "c_n_ratio_below_structural": updated_chemistries[
                 "c_n_ratio_below_structural"
             ],
+            "c_p_ratio_above_metabolic": updated_chemistries[
+                "c_p_ratio_above_metabolic"
+            ],
+            "c_p_ratio_above_structural": updated_chemistries[
+                "c_p_ratio_above_structural"
+            ],
+            "c_p_ratio_woody": updated_chemistries["c_p_ratio_woody"],
+            "c_p_ratio_below_metabolic": updated_chemistries[
+                "c_p_ratio_below_metabolic"
+            ],
+            "c_p_ratio_below_structural": updated_chemistries[
+                "c_p_ratio_below_structural"
+            ],
             "litter_C_mineralisation_rate": DataArray(
                 total_C_mineralisation_rate, dims="cell_id"
             ),
             "litter_N_mineralisation_rate": DataArray(
                 total_N_mineralisation_rate, dims="cell_id"
+            ),
+            "litter_P_mineralisation_rate": DataArray(
+                total_P_mineralisation_rate, dims="cell_id"
             ),
         }
 

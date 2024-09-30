@@ -79,7 +79,8 @@ class PlantResources:
         excess_mass = actual_consumed_mass * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
-        excrement_pool.decomposed_energy += (
+        # TODO - Check if this constant can go
+        excrement_pool.decomposed_carbon += (
             excess_mass * self.constants.energy_density["plant"]
         )
 
