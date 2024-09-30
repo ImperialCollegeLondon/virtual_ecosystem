@@ -1111,7 +1111,10 @@ class TestAnimalCohort:
         # Mock the PlantResources.get_eaten method
         mock_get_eaten = mocker.patch(
             "virtual_ecosystem.models.animal.plant_resources.PlantResources.get_eaten",
-            side_effect=lambda consumed_mass, herbivore, excrement_pool: consumed_mass,
+            side_effect=lambda consumed_mass, herbivore, excrement_pool: (
+                consumed_mass,
+                0.01 * consumed_mass,
+            ),
         )
 
         delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
@@ -1126,6 +1129,7 @@ class TestAnimalCohort:
 
         # Calculate the expected total consumed mass based on the number of plants
         expected_delta_mass = 10.0 * len(plant_list_instance)
+        # TODO - Add a check in here for litter mass as well
 
         # Assert the calculated delta_mass_herb matches the expected value
         assert delta_mass == pytest.approx(

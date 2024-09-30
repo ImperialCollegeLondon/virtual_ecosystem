@@ -50,10 +50,12 @@ class PlantResources:
 
     def get_eaten(
         self, consumed_mass: float, herbivore: Consumer, excrement_pool: DecayPool
-    ) -> float:
+    ) -> tuple[float, float]:
         """This function handles herbivory on PlantResources.
 
-        TODO: plant waste should flow to a litter pool of some kind
+        TODO: the plant waste here is specifically leaf litter, alternative functions
+        (or classes) will need to be written for consumption of roots and reproductive
+        tissues (fruits and flowers).
 
         Args:
             consumed_mass: The mass intended to be consumed by the herbivore.
@@ -61,7 +63,9 @@ class PlantResources:
             excrement_pool: The pool to which remains of uneaten plant material is added
 
         Returns:
-            The actual mass consumed by the herbivore, adjusted for efficiencies.
+            A tuple consisting of the actual mass consumed by the herbivore (adjusted
+            for efficiencies), and the mass removed from the plants by herbivory that
+            isn't consumed and instead becomes litter.
         """
         # Check if the requested consumed mass is more than the available mass
         actual_consumed_mass = min(self.mass_current, consumed_mass)
@@ -79,10 +83,6 @@ class PlantResources:
         excess_mass = actual_consumed_mass * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
-        # TODO - Check if this constant can go
-        excrement_pool.decomposed_carbon += (
-            excess_mass * self.constants.energy_density["plant"]
-        )
 
         # Return the net mass gain of herbivory, considering both mechanical and
         # digestive efficiencies
@@ -91,4 +91,4 @@ class PlantResources:
             * herbivore.functional_group.conversion_efficiency
         )
 
-        return net_mass_gain
+        return net_mass_gain, excess_mass
