@@ -1116,7 +1116,9 @@ class TestAnimalCohort:
             ),
         )
 
-        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(plant_list_instance)
+        delta_mass, litter_addition = herbivore_cohort_instance.delta_mass_herbivory(
+            plant_list_instance
+        )
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
         assert mock_calculate_consumed_mass_herbivory.call_count == len(
@@ -1126,12 +1128,15 @@ class TestAnimalCohort:
 
         # Calculate the expected total consumed mass based on the number of plants
         expected_delta_mass = 10.0 * len(plant_list_instance)
-        # TODO - Add a check in here for litter mass as well
+        expected_litter_addition = 0.1 * len(plant_list_instance)
 
         # Assert the calculated delta_mass_herb matches the expected value
         assert delta_mass == pytest.approx(
             expected_delta_mass
         ), "Calculated change in mass due to herbivory did not match expected value."
+        assert litter_addition == pytest.approx(
+            expected_litter_addition
+        ), "Addition to leaf litter due to herbivory did not match expected value."
 
     def test_forage_cohort(
         self,
@@ -1147,7 +1152,7 @@ class TestAnimalCohort:
 
         # Mocking the delta_mass_herbivory and delta_mass_predation methods
         mock_delta_mass_herbivory = mocker.patch.object(
-            herbivore_cohort_instance, "delta_mass_herbivory", return_value=100
+            herbivore_cohort_instance, "delta_mass_herbivory", return_value=(100, 1)
         )
         mock_delta_mass_predation = mocker.patch.object(
             predator_cohort_instance, "delta_mass_predation", return_value=200

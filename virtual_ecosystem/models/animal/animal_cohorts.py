@@ -690,20 +690,24 @@ class AnimalCohort:
         )
         return consumed_mass
 
-    def delta_mass_herbivory(self, plant_list: Sequence[PlantResources]) -> float:
+    def delta_mass_herbivory(
+        self, plant_list: Sequence[PlantResources]
+    ) -> tuple[float, float]:
         """This method handles mass assimilation from herbivory.
 
         TODO: update name
 
         Args:
             plant_list: A sequence of plant resources available for herbivory.
-            excrement_pool: A pool representing the excrement in the grid cell.
 
         Returns:
-            A float of the total plant mass consumed by the animal cohort in g.
+            A tuple containing the total plant mass consumed by the animal cohort in g,
+            and the total addition to litter caused by herbivory (at present this is all
+            leaves).
 
         """
         total_consumed_mass = 0.0  # Initialize the total consumed mass
+        total_leaf_litter = 0.0
 
         for plant in plant_list:
             # Calculate the mass to be consumed from this plant
@@ -712,9 +716,9 @@ class AnimalCohort:
             actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
-            # TODO - SOMETHING SHOULD BE DONE WITH EXCESS MASS HERE
+            total_leaf_litter += excess_mass
 
-        return total_consumed_mass
+        return total_consumed_mass, total_leaf_litter
 
     def forage_cohort(
         self,
@@ -740,7 +744,8 @@ class AnimalCohort:
 
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            consumed_mass = self.delta_mass_herbivory(
+            # TODO - Do something with this consumed litter
+            consumed_mass, _ = self.delta_mass_herbivory(
                 plant_list
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
