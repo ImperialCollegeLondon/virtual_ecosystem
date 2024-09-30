@@ -17,7 +17,11 @@ import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.decay import CarcassPool, find_decay_consumed_split
+from virtual_ecosystem.models.animal.decay import (
+    CarcassPool,
+    HerbivoryWaste,
+    find_decay_consumed_split,
+)
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
@@ -691,23 +695,25 @@ class AnimalCohort:
         return consumed_mass
 
     def delta_mass_herbivory(
-        self, plant_list: Sequence[PlantResources]
-    ) -> tuple[float, float]:
+        self, plant_list: Sequence[PlantResources], waste_pool: HerbivoryWaste
+    ) -> float:
         """This method handles mass assimilation from herbivory.
 
         TODO: update name
+        TODO: At present this just takes a single herbivory waste pool (for leaves),
+        this probably should change to be a list of waste pools once herbivory for other
+        plant tissues is added.
 
         Args:
             plant_list: A sequence of plant resources available for herbivory.
+            waste_pool: Waste pool for plant biomass (at this point just leaves) that
+                gets removed as part of herbivory but not actually consumed.
 
         Returns:
-            A tuple containing the total plant mass consumed by the animal cohort in g,
-            and the total addition to litter caused by herbivory (at present this is all
-            leaves).
+            The total plant mass consumed by the animal cohort in g.
 
         """
         total_consumed_mass = 0.0  # Initialize the total consumed mass
-        total_leaf_litter = 0.0
 
         for plant in plant_list:
             # Calculate the mass to be consumed from this plant
@@ -716,9 +722,9 @@ class AnimalCohort:
             actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
-            total_leaf_litter += excess_mass
+            waste_pool.mass_current += excess_mass
 
-        return total_consumed_mass, total_leaf_litter
+        return total_consumed_mass
 
     def forage_cohort(
         self,
@@ -742,11 +748,13 @@ class AnimalCohort:
             LOGGER.warning("No individuals in cohort to forage.")
             return
 
+        # TODO - This is a temporary solution and this should become an input instead
+        waste_pool = HerbivoryWaste(plant_matter_type="leaf")
+
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            # TODO - Do something with this consumed litter
-            consumed_mass, _ = self.delta_mass_herbivory(
-                plant_list
+            consumed_mass = self.delta_mass_herbivory(
+                plant_list, waste_pool
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 

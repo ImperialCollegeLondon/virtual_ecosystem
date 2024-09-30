@@ -1096,6 +1096,7 @@ class TestAnimalCohort:
         mocker,
         herbivore_cohort_instance,
         plant_list_instance,
+        herbivory_waste_instance,
     ):
         """Test mass assimilation calculation from herbivory."""
 
@@ -1116,8 +1117,8 @@ class TestAnimalCohort:
             ),
         )
 
-        delta_mass, litter_addition = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance
+        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
+            plant_list_instance, herbivory_waste_instance
         )
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
@@ -1134,7 +1135,7 @@ class TestAnimalCohort:
         assert delta_mass == pytest.approx(
             expected_delta_mass
         ), "Calculated change in mass due to herbivory did not match expected value."
-        assert litter_addition == pytest.approx(
+        assert herbivory_waste_instance.mass_current == pytest.approx(
             expected_litter_addition
         ), "Addition to leaf litter due to herbivory did not match expected value."
 
@@ -1147,6 +1148,7 @@ class TestAnimalCohort:
         animal_list_instance,
         excrement_pool_instance,
         carcass_pool_instance,
+        herbivory_waste_instance,
     ):
         """Test foraging behavior for different diet types."""
 
@@ -1164,7 +1166,9 @@ class TestAnimalCohort:
         herbivore_cohort_instance.forage_cohort(
             plant_list_instance, [], excrement_pool_instance, carcass_pool_instance
         )
-        mock_delta_mass_herbivory.assert_called_once_with(plant_list_instance)
+        mock_delta_mass_herbivory.assert_called_once_with(
+            plant_list_instance, herbivory_waste_instance
+        )
         mock_eat_herbivore.assert_called_once_with(100)
 
         # Test carnivore diet
