@@ -4,9 +4,7 @@
 class TestPlantResources:
     """Test Plant class."""
 
-    def test_get_eaten(
-        self, plant_instance, herbivore_cohort_instance, excrement_pool_instance
-    ):
+    def test_get_eaten(self, plant_instance, herbivore_cohort_instance):
         """Test the get_eaten method for PlantResources."""
         import pytest
 
@@ -14,7 +12,7 @@ class TestPlantResources:
         initial_mass_current = plant_instance.mass_current
 
         actual_mass_gain, actual_excess_mass = plant_instance.get_eaten(
-            consumed_mass, herbivore_cohort_instance, excrement_pool_instance
+            consumed_mass, herbivore_cohort_instance
         )
 
         # Check if the plant mass has been correctly reduced

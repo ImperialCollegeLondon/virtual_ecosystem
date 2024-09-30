@@ -1096,7 +1096,6 @@ class TestAnimalCohort:
         mocker,
         herbivore_cohort_instance,
         plant_list_instance,
-        excrement_pool_instance,
     ):
         """Test mass assimilation calculation from herbivory."""
 
@@ -1111,15 +1110,13 @@ class TestAnimalCohort:
         # Mock the PlantResources.get_eaten method
         mock_get_eaten = mocker.patch(
             "virtual_ecosystem.models.animal.plant_resources.PlantResources.get_eaten",
-            side_effect=lambda consumed_mass, herbivore, excrement_pool: (
+            side_effect=lambda consumed_mass, herbivore: (
                 consumed_mass,
                 0.01 * consumed_mass,
             ),
         )
 
-        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance, excrement_pool_instance
-        )
+        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(plant_list_instance)
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
         assert mock_calculate_consumed_mass_herbivory.call_count == len(
@@ -1162,9 +1159,7 @@ class TestAnimalCohort:
         herbivore_cohort_instance.forage_cohort(
             plant_list_instance, [], excrement_pool_instance, carcass_pool_instance
         )
-        mock_delta_mass_herbivory.assert_called_once_with(
-            plant_list_instance, excrement_pool_instance
-        )
+        mock_delta_mass_herbivory.assert_called_once_with(plant_list_instance)
         mock_eat_herbivore.assert_called_once_with(100)
 
         # Test carnivore diet

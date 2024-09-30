@@ -690,9 +690,7 @@ class AnimalCohort:
         )
         return consumed_mass
 
-    def delta_mass_herbivory(
-        self, plant_list: Sequence[PlantResources], excrement_pool: DecayPool
-    ) -> float:
+    def delta_mass_herbivory(self, plant_list: Sequence[PlantResources]) -> float:
         """This method handles mass assimilation from herbivory.
 
         TODO: update name
@@ -711,9 +709,7 @@ class AnimalCohort:
             # Calculate the mass to be consumed from this plant
             consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
             # Update the plant resource's state based on consumed mass
-            actual_consumed_mass, excess_mass = plant.get_eaten(
-                consumed_mass, self, excrement_pool
-            )
+            actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
             # TODO - SOMETHING SHOULD BE DONE WITH EXCESS MASS HERE
@@ -745,7 +741,7 @@ class AnimalCohort:
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
-                plant_list, excrement_pool
+                plant_list
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 

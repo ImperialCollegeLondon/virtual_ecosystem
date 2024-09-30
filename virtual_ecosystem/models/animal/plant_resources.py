@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
+from virtual_ecosystem.models.animal.protocols import Consumer
 
 
 class PlantResources:
@@ -49,7 +49,7 @@ class PlantResources:
         """Whether the cohort is alive [True] or dead [False]."""
 
     def get_eaten(
-        self, consumed_mass: float, herbivore: Consumer, excrement_pool: DecayPool
+        self, consumed_mass: float, herbivore: Consumer
     ) -> tuple[float, float]:
         """This function handles herbivory on PlantResources.
 
@@ -60,7 +60,6 @@ class PlantResources:
         Args:
             consumed_mass: The mass intended to be consumed by the herbivore.
             herbivore: The Consumer (AnimalCohort) consuming the PlantResources.
-            excrement_pool: The pool to which remains of uneaten plant material is added
 
         Returns:
             A tuple consisting of the actual mass consumed by the herbivore (adjusted
