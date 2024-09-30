@@ -99,7 +99,7 @@ class AbioticModel(
         "stomatal_conductance",
         "canopy_absorption",
     ),
-    vars_populated_by_init=(  # TODO move functions from setup() to __init__
+    vars_populated_by_init=(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
@@ -190,12 +190,6 @@ class AbioticModel(
             core_components=core_components,
             model_constants=model_constants,
         )
-
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
 
     def _setup(self) -> None:
         """Function to set up the abiotic model.
@@ -294,11 +288,6 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
-
-        # TODO This selection of layers should be included in LayerStructure at the
-        # start of the simulation and updated at each time step (except topsoil index)
-        # At the moment this is duplicated in setup() and other parts of the Virtual
-        # Ecosystem
 
         # Wind profiles
 

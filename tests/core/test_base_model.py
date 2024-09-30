@@ -316,7 +316,7 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
     #   from_config, setup, spinup, update
     # versus
     # - Can't instantiate abstract class InitVarModel without an implementation for
-    #   abstract methods 'cleanup', 'from_config', 'setup', 'spinup', 'update'
+    #   abstract methods 'cleanup', 'from_config', 'spinup', 'update'
     assert str(err.value).startswith("Can't instantiate abstract class InitVarModel ")
 
 

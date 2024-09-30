@@ -8,7 +8,6 @@ each stage, although the specific methods may simply do nothing if no action is 
 at that stage. The stages are:
 
 * Creating a model instance (:class:`~virtual_ecosystem.core.base_model.BaseModel`).
-* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel.setup`).
 * Perform any spinup required to get a model state to equilibrate
   (:meth:`~virtual_ecosystem.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
@@ -119,8 +118,8 @@ class BaseModel(ABC):
     """A superclass for all Virtual Ecosystem models.
 
     This abstract base class defines the shared common methods and attributes used as an
-    API across all Virtual Ecosystem models. This includes functions to setup, spin up
-    and update the specific model, as well as a function to cleanup redundant model
+    API across all Virtual Ecosystem models. This includes methods to initialise, spin
+    up and update the specific model, as well as a function to cleanup redundant model
     data.
 
     The base class defines the core abstract methods that must be defined in subclasses
@@ -182,11 +181,11 @@ class BaseModel(ABC):
     """
 
     vars_populated_by_init: tuple[str, ...]
-    """Variables that are initialised by the model during the setup.
+    """Variables that are populated when initialising a model instance.
 
     These are the variables that are initialised by the model and stored in the data
-    object when running the setup method and that will be available for other models to
-    use in their own setup or update methods.
+    object when running the __init__ method and that will be available for other models
+    to use in their own __init__ or update methods.
     """
 
     vars_populated_by_first_update: tuple[str, ...]
@@ -194,7 +193,7 @@ class BaseModel(ABC):
 
     These are the variables that are initialised by the model and stored in the data
     object when running the update method for the first time. They will be available for
-    other models to use in their update methods but not in the setup methos.
+    other models to use in their update methods but not in the __init__ methods.
     """
 
     def __init__(
@@ -245,10 +244,6 @@ class BaseModel(ABC):
         self.check_init_data()
         # Check the configured update interval is within model bounds
         self._check_update_speed()
-
-    @abstractmethod
-    def setup(self) -> None:
-        """Function to use input data to set up the model."""
 
     @abstractmethod
     def spinup(self) -> None:

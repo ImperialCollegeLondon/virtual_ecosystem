@@ -463,16 +463,14 @@ def from_config(
 
 ## Other model steps
 
-There are four functions that must be included as part of the model class. The names and
-roles of these functions might well change as the Virtual Ecosystem model develops, but
-that kind of API change is something that would require significant discussion. Only the
-`update` function is used at present. The other functions need to be included, but
-there's no need to include any particular content within them (i.e. they can just be
-function definitions with docstrings).
+There are three methods that must be defined as part of the model class: `spinup`,
+`update` and `cleanup`. The names and roles of these functions might well change as the
+Virtual Ecosystem model develops, but that kind of API change is something that would
+require significant discussion. Only the `update` function is used at present. The other
+functions need to be defined, but there's no need to include any particular content
+within them (i.e. they can just be function definitions with docstrings).
 
 ```python
-def setup(self) -> None:
-    """Placeholder function to set up the freshwater model."""
 
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
