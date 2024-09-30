@@ -1179,13 +1179,17 @@ class TestAnimalCohort:
             herbivory_waste_pool=herbivory_waste_instance,
         )
         mock_delta_mass_herbivory.assert_called_once_with(
-            plant_list_instance, herbivory_waste_instance
+            plant_list_instance, excrement_pool_instance, herbivory_waste_instance
         )
         mock_eat_herbivore.assert_called_once_with(100)
 
         # Test carnivore diet
         predator_cohort_instance.forage_cohort(
-            [], animal_list_instance, excrement_pool_instance, carcass_pool_instance
+            [],
+            animal_list_instance,
+            excrement_pool_instance,
+            carcass_pool_instance,
+            herbivory_waste_pool=herbivory_waste_instance,
         )
         mock_delta_mass_predation.assert_called_once_with(
             animal_list_instance, excrement_pool_instance, carcass_pool_instance

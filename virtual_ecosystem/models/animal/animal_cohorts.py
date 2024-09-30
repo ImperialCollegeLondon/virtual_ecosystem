@@ -732,7 +732,6 @@ class AnimalCohort:
         self.defecate(excrement_pool, total_consumed_mass)
         return total_consumed_mass
 
-    # TODO - WORK OUT WHERE THIS GETS CALLED
     def forage_cohort(
         self,
         plant_list: Sequence[PlantResources],
