@@ -33,7 +33,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
+from virtual_ecosystem.models.animal.animal_traits import DevelopmentType, DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
 from virtual_ecosystem.models.animal.functional_group import (
@@ -592,6 +592,9 @@ class AnimalModel(
     def forage_community(self) -> None:
         """This function organizes the foraging of animal cohorts.
 
+        Herbivores will only forage plant resources, while carnivores will forage for
+        prey (other animal cohorts).
+
         It loops over every animal cohort in the community and calls the
         forage_cohort function with a list of suitable trophic resources. This action
         initiates foraging for those resources, with mass transfer details handled
@@ -599,20 +602,26 @@ class AnimalModel(
         include functions for handling scavenging and soil consumption behaviors.
 
         Cohorts with no remaining individuals post-foraging are marked for death.
-
-        TODO: find a more elegant way to remove dead cohorts between foraging bouts
-
         """
 
         for consumer_cohort in self.cohorts.values():
-            # Prepare the prey list for the consumer cohort
+            # Check that the cohort has a valid territory defined
             if consumer_cohort.territory is None:
                 raise ValueError("The cohort's territory hasn't been defined.")
-            prey_list = consumer_cohort.get_prey(self.communities)
-            plant_list = consumer_cohort.get_plant_resources(self.plant_resources)
+
+            # Initialize empty resource lists
+            plant_list = []
+            prey_list = []
             excrement_list = consumer_cohort.get_excrement_pools(self.excrement_pools)
 
-            # Initiate foraging for the consumer cohort with the prepared resources
+            # Check the diet of the cohort and get appropriate resources
+            if consumer_cohort.functional_group.diet == DietType.HERBIVORE:
+                plant_list = consumer_cohort.get_plant_resources(self.plant_resources)
+
+            elif consumer_cohort.functional_group.diet == DietType.CARNIVORE:
+                prey_list = consumer_cohort.get_prey(self.communities)
+
+            # Initiate foraging for the consumer cohort with the available resources
             consumer_cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
@@ -620,7 +629,7 @@ class AnimalModel(
                 carcass_pools=self.carcass_pools,  # the full list of carcass pools
             )
 
-            # temporary solution
+            # Temporary solution to remove dead cohorts
             self.remove_dead_cohort_community()
 
     def metabolize_community(

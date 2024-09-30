@@ -962,3 +962,89 @@ class TestAnimalModel:
             offspring_cohort.mass_current == parent_cohort.functional_group.birth_mass
         )
         assert offspring_cohort.individuals == expected_offspring
+
+    def test_forage_community(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        mocker,
+    ):
+        """Test that forage_cohort is called correctly."""
+
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+
+        # Mock the methods for herbivore and predator cohorts using the mocker fixture
+        mock_forage_herbivore = mocker.Mock()
+        mock_forage_predator = mocker.Mock()
+        mock_get_excrement_pools_herbivore = mocker.Mock(
+            return_value=["excrement_pools_herbivore"]
+        )
+        mock_get_excrement_pools_predator = mocker.Mock(
+            return_value=["excrement_pools_predator"]
+        )
+        mock_get_plant_resources = mocker.Mock(return_value=["plant_resources"])
+        mock_get_prey = mocker.Mock(return_value=["prey"])
+
+        # Set up herbivore cohort
+        herbivore_cohort_instance.functional_group.diet = DietType.HERBIVORE
+        mocker.patch.object(
+            herbivore_cohort_instance, "get_plant_resources", mock_get_plant_resources
+        )
+        mocker.patch.object(
+            herbivore_cohort_instance, "get_prey", mocker.Mock()
+        )  # Should not be called for herbivores
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "get_excrement_pools",
+            mock_get_excrement_pools_herbivore,
+        )
+        mocker.patch.object(
+            herbivore_cohort_instance, "forage_cohort", mock_forage_herbivore
+        )
+
+        # Set up predator cohort
+        predator_cohort_instance.functional_group.diet = DietType.CARNIVORE
+        mocker.patch.object(
+            predator_cohort_instance, "get_plant_resources", mocker.Mock()
+        )  # Should not be called for predators
+        mocker.patch.object(predator_cohort_instance, "get_prey", mock_get_prey)
+        mocker.patch.object(
+            predator_cohort_instance,
+            "get_excrement_pools",
+            mock_get_excrement_pools_predator,
+        )
+        mocker.patch.object(
+            predator_cohort_instance, "forage_cohort", mock_forage_predator
+        )
+
+        # Add cohorts to the animal_model_instance
+        animal_model_instance.cohorts = {
+            "herbivore": herbivore_cohort_instance,
+            "predator": predator_cohort_instance,
+        }
+
+        # Run the forage_community method
+        animal_model_instance.forage_community()
+
+        # Verify that herbivores forage plant resources and not animal prey
+        mock_get_plant_resources.assert_called_once_with(
+            animal_model_instance.plant_resources
+        )
+        herbivore_cohort_instance.get_prey.assert_not_called()
+        mock_forage_herbivore.assert_called_once_with(
+            plant_list=["plant_resources"],
+            animal_list=[],
+            excrement_pools=["excrement_pools_herbivore"],
+            carcass_pools=animal_model_instance.carcass_pools,
+        )
+
+        # Verify that predators forage prey and not plant resources
+        mock_get_prey.assert_called_once_with(animal_model_instance.communities)
+        predator_cohort_instance.get_plant_resources.assert_not_called()
+        mock_forage_predator.assert_called_once_with(
+            plant_list=[],
+            animal_list=["prey"],
+            excrement_pools=["excrement_pools_predator"],
+            carcass_pools=animal_model_instance.carcass_pools,
+        )
