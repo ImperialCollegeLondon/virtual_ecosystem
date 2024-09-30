@@ -1048,3 +1048,280 @@ class TestAnimalModel:
             excrement_pools=["excrement_pools_predator"],
             carcass_pools=animal_model_instance.carcass_pools,
         )
+
+    def test_metabolize_community(
+        self, animal_model_instance, animal_data_for_cohorts_instance, mocker
+    ):
+        """Test metabolize_community using real data from fixture."""
+
+        from numpy import timedelta64
+
+        # Assign the data from the fixture to the animal model
+        animal_model_instance.data = animal_data_for_cohorts_instance
+        air_temperature_data = animal_data_for_cohorts_instance["air_temperature"]
+
+        # Create mock cohorts and their behaviors
+        mock_cohort_1 = mocker.Mock()
+        mock_cohort_2 = mocker.Mock()
+
+        # Mock return values for metabolize and respire
+        mock_cohort_1.metabolize.return_value = (
+            10.0  # Metabolic waste mass for cohort 1
+        )
+        mock_cohort_2.metabolize.return_value = (
+            15.0  # Metabolic waste mass for cohort 2
+        )
+        mock_cohort_1.respire.return_value = 5.0  # Carbonaceous waste for cohort 1
+        mock_cohort_2.respire.return_value = 8.0  # Carbonaceous waste for cohort 2
+
+        # Setup the community and excrement pools in the animal model
+        animal_model_instance.communities = {
+            1: [mock_cohort_1, mock_cohort_2],  # Community in cell 1 with two cohorts
+            2: [],  # Empty community in cell 2
+        }
+        animal_model_instance.excrement_pools = {
+            1: "excrement_pool_1",
+            2: "excrement_pool_2",
+        }
+
+        # Run the metabolize_community method
+        dt = timedelta64(1, "D")  # 1 day as the time delta
+        animal_model_instance.metabolize_community(air_temperature_data, dt)
+
+        # Assertions for the first cohort in cell 1
+        mock_cohort_1.metabolize.assert_called_once_with(
+            25.0, dt
+        )  # Temperature for cell 1 from the fixture (25.0)
+        mock_cohort_1.respire.assert_called_once_with(
+            10.0
+        )  # Metabolic waste returned by metabolize
+        mock_cohort_1.excrete.assert_called_once_with(10.0, "excrement_pool_1")
+
+        # Assertions for the second cohort in cell 1
+        mock_cohort_2.metabolize.assert_called_once_with(
+            25.0, dt
+        )  # Temperature for cell 1 from the fixture (25.0)
+        mock_cohort_2.respire.assert_called_once_with(
+            15.0
+        )  # Metabolic waste returned by metabolize
+        mock_cohort_2.excrete.assert_called_once_with(15.0, "excrement_pool_1")
+
+        # Assert total animal respiration was updated for cell 1
+        total_animal_respiration = animal_model_instance.data[
+            "total_animal_respiration"
+        ]
+        assert total_animal_respiration.loc[{"cell_id": 1}] == 13.0  # 5.0 + 8.0
+
+        # Ensure no cohort methods were called for the empty community in cell 2
+        mock_cohort_1.reset_mock()
+        mock_cohort_2.reset_mock()
+        mock_cohort_1.metabolize.assert_not_called()
+        mock_cohort_2.metabolize.assert_not_called()
+
+    def test_increase_age_community(self, animal_model_instance, mocker):
+        """Test increase_age."""
+
+        from numpy import timedelta64
+
+        # Create mock cohorts
+        mock_cohort_1 = mocker.Mock()
+        mock_cohort_2 = mocker.Mock()
+
+        # Setup the animal model with mock cohorts
+        animal_model_instance.cohorts = {
+            "cohort_1": mock_cohort_1,
+            "cohort_2": mock_cohort_2,
+        }
+
+        # Define the time delta
+        dt = timedelta64(10, "D")  # 10 days
+
+        # Run the increase_age_community method
+        animal_model_instance.increase_age_community(dt)
+
+        # Assert that increase_age was called with the correct time delta
+        mock_cohort_1.increase_age.assert_called_once_with(dt)
+        mock_cohort_2.increase_age.assert_called_once_with(dt)
+
+    def test_inflict_non_predation_mortality_community(
+        self, animal_model_instance, mocker
+    ):
+        """Test inflict_non_predation_mortality_community."""
+
+        from numpy import timedelta64
+
+        # Create mock cohorts
+        mock_cohort_1 = mocker.Mock()
+        mock_cohort_2 = mocker.Mock()
+
+        # Setup the animal model with mock cohorts
+        animal_model_instance.cohorts = {
+            "cohort_1": mock_cohort_1,
+            "cohort_2": mock_cohort_2,
+        }
+
+        # Mock return values for cohort methods
+        mock_cohort_1.get_carcass_pools.return_value = "carcass_pool_1"
+        mock_cohort_2.get_carcass_pools.return_value = "carcass_pool_2"
+
+        # Define the number of individuals
+        mock_cohort_1.individuals = 100
+        mock_cohort_2.individuals = 0  # This cohort should be marked as dead
+
+        # Mock the remove_dead_cohort method
+        mock_remove_dead_cohort = mocker.patch.object(
+            animal_model_instance, "remove_dead_cohort"
+        )
+
+        # Define the time delta
+        dt = timedelta64(10, "D")  # 10 days
+
+        # Run the inflict_non_predation_mortality_community method
+        animal_model_instance.inflict_non_predation_mortality_community(dt)
+
+        # Calculate the number of days from dt
+        number_of_days = float(dt / timedelta64(1, "D"))
+
+        # Assert that inflict_non_predation_mortality called with the correct arguments
+        mock_cohort_1.inflict_non_predation_mortality.assert_called_once_with(
+            number_of_days, "carcass_pool_1"
+        )
+        mock_cohort_2.inflict_non_predation_mortality.assert_called_once_with(
+            number_of_days, "carcass_pool_2"
+        )
+
+        # Assert that remove_dead_cohort was called for the cohort with zero individuals
+        mock_remove_dead_cohort.assert_called_once_with(mock_cohort_2)
+
+        # Ensure that the cohort with zero individuals is marked as dead
+        assert mock_cohort_2.is_alive is False
+
+        # Ensure that the cohort with individuals is not marked as dead
+        assert mock_cohort_1.is_alive is not False
+
+    def test_metamorphose(
+        self,
+        animal_model_instance,
+        caterpillar_cohort_instance,
+    ):
+        """Test metamorphose.
+
+        TODO: add broader assertions
+
+
+        """
+
+        from math import ceil
+
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Clear the cohorts list to ensure it is empty
+        animal_model_instance.cohorts = {}
+
+        # Add the caterpillar cohort to the animal model's cohorts
+        animal_model_instance.cohorts[caterpillar_cohort_instance.id] = (
+            caterpillar_cohort_instance
+        )
+
+        # Set the larval cohort (caterpillar) properties
+        caterpillar_cohort_instance.functional_group.offspring_functional_group = (
+            "butterfly"
+        )
+
+        initial_individuals = 100
+        caterpillar_cohort_instance.individuals = initial_individuals
+
+        # Calculate the expected number of individuals lost due to mortality
+        number_dead = ceil(
+            initial_individuals
+            * caterpillar_cohort_instance.constants.metamorph_mortality
+        )
+
+        # Set up functional groups in the animal model instance
+        butterfly_functional_group = get_functional_group_by_name(
+            animal_model_instance.functional_groups,
+            caterpillar_cohort_instance.functional_group.offspring_functional_group,
+        )
+
+        # Ensure the butterfly functional group is found
+        assert (
+            butterfly_functional_group is not None
+        ), "Butterfly functional group not found"
+
+        # Run the metamorphose method on the caterpillar cohort
+        animal_model_instance.metamorphose(caterpillar_cohort_instance)
+
+        # Assert that the number of individuals in the caterpillar cohort was reduced
+        assert (
+            caterpillar_cohort_instance.individuals == initial_individuals - number_dead
+        ), "Caterpillar cohort's individuals count is incorrect after metamorphosis"
+
+        # Assert that a new butterfly cohort was created from the caterpillar
+        adult_cohort = next(
+            (
+                cohort
+                for cohort in animal_model_instance.cohorts.values()
+                if cohort.functional_group == butterfly_functional_group
+            ),
+            None,
+        )
+        assert adult_cohort is not None, "Butterfly cohort was not created"
+
+        # Assert that the number of individuals in the butterfly cohort is correct
+        assert (
+            adult_cohort.individuals == caterpillar_cohort_instance.individuals
+        ), "Butterfly cohort's individuals count does not match the expected value"
+
+        # Assert that the caterpillar cohort is marked as dead and removed
+        assert (
+            not caterpillar_cohort_instance.is_alive
+        ), "Caterpillar cohort should be marked as dead"
+        assert (
+            caterpillar_cohort_instance not in animal_model_instance.cohorts.values()
+        ), "Caterpillar cohort should be removed from the model"
+
+    def test_metamorphose_community(self, animal_model_instance, mocker):
+        """Test metamorphose_community."""
+
+        from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
+
+        # Create mock cohorts
+        mock_cohort_1 = mocker.Mock()
+        mock_cohort_2 = mocker.Mock()
+        mock_cohort_3 = mocker.Mock()
+
+        # Setup the animal model with mock cohorts
+        animal_model_instance.cohorts = {
+            "cohort_1": mock_cohort_1,
+            "cohort_2": mock_cohort_2,
+            "cohort_3": mock_cohort_3,
+        }
+
+        # Set the properties for each cohort
+        mock_cohort_1.functional_group.development_type = DevelopmentType.INDIRECT
+        mock_cohort_1.mass_current = 20.0
+        mock_cohort_1.functional_group.adult_mass = 15.0  # Ready for metamorphosis
+
+        mock_cohort_2.functional_group.development_type = DevelopmentType.INDIRECT
+        mock_cohort_2.mass_current = 10.0
+        mock_cohort_2.functional_group.adult_mass = 15.0  # Not ready for metamorphosis
+
+        mock_cohort_3.functional_group.development_type = DevelopmentType.DIRECT
+        mock_cohort_3.mass_current = 20.0
+        mock_cohort_3.functional_group.adult_mass = (
+            15.0  # Direct development, should not metamorphose
+        )
+
+        # Mock the metamorphose method
+        mock_metamorphose = mocker.patch.object(animal_model_instance, "metamorphose")
+
+        # Run the metamorphose_community method
+        animal_model_instance.metamorphose_community()
+
+        # Assert that metamorphose was called only for cohort that is ready and indirect
+        mock_metamorphose.assert_called_once_with(mock_cohort_1)
+
+        # Assert that the other cohorts did not trigger metamorphosis
+        mock_metamorphose.assert_called_once()  # Ensure it was called exactly once
