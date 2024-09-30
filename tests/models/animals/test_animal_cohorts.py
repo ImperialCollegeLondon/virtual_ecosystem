@@ -1096,6 +1096,7 @@ class TestAnimalCohort:
         mocker,
         herbivore_cohort_instance,
         plant_list_instance,
+        excrement_pool_instance,
         herbivory_waste_instance,
     ):
         """Test mass assimilation calculation from herbivory."""
@@ -1118,7 +1119,7 @@ class TestAnimalCohort:
         )
 
         delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance, herbivory_waste_instance
+            plant_list_instance, excrement_pool_instance, herbivory_waste_instance
         )
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
@@ -1138,6 +1139,13 @@ class TestAnimalCohort:
         assert herbivory_waste_instance.mass_current == pytest.approx(
             expected_litter_addition
         ), "Addition to leaf litter due to herbivory did not match expected value."
+        # Check that excrement pool has actually been added to
+        assert excrement_pool_instance.decomposed_carbon == pytest.approx(
+            0.5
+            * expected_delta_mass
+            * herbivore_cohort_instance.functional_group.conversion_efficiency
+            * herbivore_cohort_instance.individuals
+        ), "Carbon hasn't been added to the excrement pool."
 
     def test_forage_cohort(
         self,
@@ -1154,7 +1162,7 @@ class TestAnimalCohort:
 
         # Mocking the delta_mass_herbivory and delta_mass_predation methods
         mock_delta_mass_herbivory = mocker.patch.object(
-            herbivore_cohort_instance, "delta_mass_herbivory", return_value=(100, 1)
+            herbivore_cohort_instance, "delta_mass_herbivory", return_value=100
         )
         mock_delta_mass_predation = mocker.patch.object(
             predator_cohort_instance, "delta_mass_predation", return_value=200
@@ -1164,7 +1172,11 @@ class TestAnimalCohort:
 
         # Test herbivore diet
         herbivore_cohort_instance.forage_cohort(
-            plant_list_instance, [], excrement_pool_instance, carcass_pool_instance
+            plant_list_instance,
+            [],
+            excrement_pool=excrement_pool_instance,
+            carcass_pool=carcass_pool_instance,
+            herbivory_waste_pool=herbivory_waste_instance,
         )
         mock_delta_mass_herbivory.assert_called_once_with(
             plant_list_instance, herbivory_waste_instance

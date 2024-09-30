@@ -695,7 +695,10 @@ class AnimalCohort:
         return consumed_mass
 
     def delta_mass_herbivory(
-        self, plant_list: Sequence[PlantResources], waste_pool: HerbivoryWaste
+        self,
+        plant_list: Sequence[PlantResources],
+        excrement_pool: DecayPool,
+        plant_waste_pool: HerbivoryWaste,
     ) -> float:
         """This method handles mass assimilation from herbivory.
 
@@ -706,8 +709,9 @@ class AnimalCohort:
 
         Args:
             plant_list: A sequence of plant resources available for herbivory.
-            waste_pool: Waste pool for plant biomass (at this point just leaves) that
-                gets removed as part of herbivory but not actually consumed.
+            excrement_pool: A pool representing the excrement in the grid cell.
+            plant_waste_pool: Waste pool for plant biomass (at this point just leaves)
+                that gets removed as part of herbivory but not actually consumed.
 
         Returns:
             The total plant mass consumed by the animal cohort in g.
@@ -722,16 +726,20 @@ class AnimalCohort:
             actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
-            waste_pool.mass_current += excess_mass
+            plant_waste_pool.mass_current += excess_mass
 
+        # Process waste generated from predation, separate from carnivory b/c diff waste
+        self.defecate(excrement_pool, total_consumed_mass)
         return total_consumed_mass
 
+    # TODO - WORK OUT WHERE THIS GETS CALLED
     def forage_cohort(
         self,
         plant_list: Sequence[PlantResources],
         animal_list: Sequence[AnimalCohort],
         excrement_pool: DecayPool,
         carcass_pool: CarcassPool,
+        herbivory_waste_pool: HerbivoryWaste,
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 
@@ -740,6 +748,7 @@ class AnimalCohort:
             animal_list: A sequence of animal cohorts available for predation.
             excrement_pool: A pool representing the excrement in the grid cell.
             carcass_pool: A pool representing the carcasses in the grid cell.
+            herbivory_waste_pool: A pool representing waste caused by herbivory.
 
         Return:
             A float value of the net change in consumer mass due to foraging.
@@ -748,13 +757,10 @@ class AnimalCohort:
             LOGGER.warning("No individuals in cohort to forage.")
             return
 
-        # TODO - This is a temporary solution and this should become an input instead
-        waste_pool = HerbivoryWaste(plant_matter_type="leaf")
-
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
-                plant_list, waste_pool
+                plant_list, excrement_pool, herbivory_waste_pool
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 
