@@ -372,7 +372,6 @@ class AnimalModel(
             for pool_name in litter_pools.keys()
         }
 
-    # TODO - I NEED TO WORK OUT STOICHIOMETRY HERE
     def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
         """Calculate additions to litter due to herbivory mechanical inefficiencies.
 
@@ -380,12 +379,28 @@ class AnimalModel(
         that should be changed once herbivory as a whole is fleshed out.
 
         Returns:
-            Total amount of leaf litter added to the litter model [kg C m^-2]
+            A dictionary containing details of the leaf litter addition due to herbivory
+            this comprises of the mass added in carbon terms [kg C m^-2], ratio of
+            carbon to nitrogen [unitless], ratio of carbon to phosphorus [unitless], and
+            the proportion of input carbon that is lignin [unitless].
         """
 
-        # Find the size of the leaf waste pool
+        # Find the size of the leaf waste pool (in carbon terms)
         leaf_addition = [
             community.leaf_waste_pool.mass_current / self.data.grid.cell_area
+            for community in self.communities.values()
+        ]
+        # Find the chemistry of the pools as well
+        leaf_c_n = [
+            community.leaf_waste_pool.c_n_ratio
+            for community in self.communities.values()
+        ]
+        leaf_c_p = [
+            community.leaf_waste_pool.c_p_ratio
+            for community in self.communities.values()
+        ]
+        leaf_lignin = [
+            community.leaf_waste_pool.lignin_proportion
             for community in self.communities.values()
         ]
 
@@ -393,7 +408,18 @@ class AnimalModel(
         for community in self.communities.values():
             community.leaf_waste_pool.mass_current = 0.0
 
-        return {"herbivory_waste_leaf": DataArray(array(leaf_addition), dims="cell_id")}
+        return {
+            "herbivory_waste_leaf_carbon": DataArray(
+                array(leaf_addition), dims="cell_id"
+            ),
+            "herbivory_waste_leaf_nitrogen": DataArray(array(leaf_c_n), dims="cell_id"),
+            "herbivory_waste_leaf_phosphorus": DataArray(
+                array(leaf_c_p), dims="cell_id"
+            ),
+            "herbivory_waste_leaf_lignin": DataArray(
+                array(leaf_lignin), dims="cell_id"
+            ),
+        }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate the how much animal matter should be transferred to the soil."""

@@ -438,13 +438,23 @@ def test_calculate_litter_additions_from_herbivory(functional_group_list_instanc
     for waste, community in zip(waste_leaves, model.communities.values()):
         community.leaf_waste_pool.mass_current = waste
 
-    # Calculate litter additions
-    litter_additions = model.calculate_litter_additions_from_herbivory()
+    expected_additions = {
+        "herbivory_waste_leaf_carbon": [3.4e-5, 7.6e-2, 4.5e-3, 1.9e-2],
+        "herbivory_waste_leaf_nitrogen": [20.0, 20.0, 20.0, 20.0],
+        "herbivory_waste_leaf_phosphorus": [150.0, 150.0, 150.0, 150.0],
+        "herbivory_waste_leaf_lignin": [0.25, 0.25, 0.25, 0.25],
+    }
 
-    # Check that litter addition pools are as expected
-    assert np.allclose(
-        litter_additions["herbivory_waste_leaf"], [3.4e-5, 7.6e-2, 4.5e-3, 1.9e-2]
-    )
+    # Calculate litter additions
+    actual_additions = model.calculate_litter_additions_from_herbivory()
+
+    assert set(actual_additions.keys()) == set(expected_additions.keys())
+
+    for name in actual_additions.keys():
+        assert np.allclose(actual_additions[name], expected_additions[name])
+
+    # Check that the waste pools have been emptied for the next run
+    assert np.allclose(community.leaf_waste_pool.mass_current, [0.0, 0.0, 0.0, 0.0])
 
 
 def test_calculate_soil_additions(functional_group_list_instance):
