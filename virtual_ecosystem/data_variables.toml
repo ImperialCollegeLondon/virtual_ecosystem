@@ -777,6 +777,34 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Mass of leaves added to the litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_leaf_carbon"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon nitrogen ratio of leaves added to litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_leaf_nitrogen"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Carbon phosphorus ratio of leaves added to litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_leaf_phosphorus"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Lignin proportion of leaves added to litter due to herbivore mechanical inefficiency"
+name = "herbivory_waste_leaf_lignin"
+unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Amount of above-ground metabolic litter that has been consumed by animals"
 name = "litter_consumption_above_metabolic"
 unit = "kg C m^-2"
