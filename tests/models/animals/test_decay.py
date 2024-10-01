@@ -164,6 +164,9 @@ class TestHerbivoryWaste:
         # Test that function to calculate stored carbon works as expected
         assert pytest.approx(dead_leaves.plant_matter_type) == "leaf"
         assert pytest.approx(dead_leaves.mass_current) == 0.0
+        assert pytest.approx(dead_leaves.c_n_ratio) == 20.0
+        assert pytest.approx(dead_leaves.c_p_ratio) == 150.0
+        assert pytest.approx(dead_leaves.lignin_proportion) == 0.25
 
     def test_bad_initialization(self, caplog):
         """Testing that initialization of HerbivoryWaste fails sensibly."""

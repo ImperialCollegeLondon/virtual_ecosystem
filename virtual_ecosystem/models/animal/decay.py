@@ -223,3 +223,15 @@ class HerbivoryWaste:
 
         self.mass_current = 0.0
         """Mass of the herbivory waste pool in carbon terms [kg C]."""
+
+        # TODO - These are all hard coded, but once herbivory is properly implemented
+        # they should be updated based on the stoichiometry of the actual plant matter
+        # consumed.
+        self.c_n_ratio = 20.0
+        """Ratio of carbon to nitrogen of the herbivory waste pool [unitless]."""
+
+        self.c_p_ratio = 150.0
+        """Ratio of carbon to phosphorus of the herbivory waste pool [unitless]."""
+
+        self.lignin_proportion = 0.25
+        """Proportion of the herbivory waste pool carbon that is lignin [unitless]."""
