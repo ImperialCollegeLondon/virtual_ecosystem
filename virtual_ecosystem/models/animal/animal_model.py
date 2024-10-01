@@ -303,6 +303,8 @@ class AnimalModel(
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
         litter_consumption = self.calculate_total_litter_consumption(litter_pools)
+        # TODO - Actually do something with this
+        _ = self.calculate_litter_additions_from_herbivory()
 
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(additions_to_soil | litter_consumption)
@@ -369,6 +371,29 @@ class AnimalModel(
             )
             for pool_name in litter_pools.keys()
         }
+
+    # TODO - I NEED TO WORK OUT STOICHIOMETRY HERE
+    def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
+        """Calculate additions to litter due to herbivory mechanical inefficiencies.
+
+        TODO - At present the only type of herbivory this works for is leaf herbivory,
+        that should be changed once herbivory as a whole is fleshed out.
+
+        Returns:
+            Total amount of leaf litter added to the litter model [kg C m^-2]
+        """
+
+        # Find the size of the leaf waste pool
+        leaf_addition = [
+            community.leaf_waste_pool.mass_current / self.data.grid.cell_area
+            for community in self.communities.values()
+        ]
+
+        # Reset all of the herbivory waste pools to zero
+        for community in self.communities.values():
+            community.leaf_waste_pool.mass_current = 0.0
+
+        return {"herbivory_waste_leaf": DataArray(array(leaf_addition), dims="cell_id")}
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate the how much animal matter should be transferred to the soil."""

@@ -410,6 +410,43 @@ def test_calculate_total_litter_consumption(
     )
 
 
+def test_calculate_litter_additions_from_herbivory(functional_group_list_instance):
+    """Test that calculation of additions to the litter by animals is correct."""
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    # Build the config object and core components
+    config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')
+    core_components = CoreComponents(config)
+
+    # Create a small data object to work with
+    grid = Grid(cell_nx=2, cell_ny=2)
+    data = Data(grid)
+
+    # Use it to initialise the model
+    model = AnimalModel(
+        data=data,
+        core_components=core_components,
+        functional_groups=functional_group_list_instance,
+    )
+
+    # Update the herbivory waste pools
+    waste_leaves = [3.4e-1, 7.6e2, 4.5e1, 1.9e2]
+    for waste, community in zip(waste_leaves, model.communities.values()):
+        community.leaf_waste_pool.mass_current = waste
+
+    # Calculate litter additions
+    litter_additions = model.calculate_litter_additions_from_herbivory()
+
+    # Check that litter addition pools are as expected
+    assert np.allclose(
+        litter_additions["herbivory_waste_leaf"], [3.4e-5, 7.6e-2, 4.5e-3, 1.9e-2]
+    )
+
+
 def test_calculate_soil_additions(functional_group_list_instance):
     """Test that soil additions from animal model are calculated correctly."""
 
