@@ -9,16 +9,13 @@ Todo:
 - adjust for numpy arrays in all dimensions
 - add horizontal dimension
 - check what can be replaced by pyrealm
+- check where top and bottom is, I think microclims starts near surface
 """
-
-import math
 
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+from virtual_ecosystem.core.logger import LOGGER
 
 
 def calculate_julian_day(year: int, month: int, day: int) -> int:
@@ -38,21 +35,21 @@ def calculate_julian_day(year: int, month: int, day: int) -> int:
     month_adjusted = month + (month < 3) * 12
     year_adjusted = year + (month < 3) * -1
     julian = (
-        math.trunc(365.25 * (year_adjusted + 4716))
-        + math.trunc(30.6001 * (month_adjusted + 1))
+        np.trunc(365.25 * (year_adjusted + 4716))
+        + np.trunc(30.6001 * (month_adjusted + 1))
         + day_adjusted
         - 1524.5
     )
     correction_factor = (
-        2
-        - math.trunc(year_adjusted / 100)
-        + math.trunc(math.trunc(year_adjusted / 100) / 4)
+        2 - np.trunc(year_adjusted / 100) + np.trunc(np.trunc(year_adjusted / 100) / 4)
     )
     julian_day = int(julian + (julian > 2299160) * correction_factor)
     return julian_day
 
 
-def calculate_solar_time(julian_day: int, local_time: float, longitude: float) -> float:
+def calculate_solar_time(
+    julian_day: int, local_time: float, longitude: NDArray[np.float64]
+) -> float:
     """Calculate solar time.
 
     Args:
@@ -67,7 +64,7 @@ def calculate_solar_time(julian_day: int, local_time: float, longitude: float) -
     mean_anomaly = 6.24004077 + 0.01720197 * (julian_day - 2451545)
 
     # Calculate the equation of time (EoT)
-    equation_of_time = -7.659 * math.sin(mean_anomaly) + 9.863 * math.sin(
+    equation_of_time = -7.659 * np.sin(mean_anomaly) + 9.863 * np.sin(
         2 * mean_anomaly + 3.5932
     )
 
@@ -78,13 +75,13 @@ def calculate_solar_time(julian_day: int, local_time: float, longitude: float) -
 
 
 def calculate_solar_position(
-    latitude: float,
-    longitude: float,
+    latitude: NDArray[np.float64],
+    longitude: NDArray[np.float64],
     year: int,
     month: int,
     day: int,
     local_time: float,
-) -> tuple:
+) -> list[NDArray[np.float64]]:
     """Calculate solar position.
 
     Args:
@@ -105,65 +102,60 @@ def calculate_solar_position(
     )
 
     # Convert latitude to radians
-    latitude_rad = math.radians(latitude)
+    latitude_rad = np.radians(latitude)
 
     # Calculate solar declination
-    solar_declination = math.radians(23.5) * math.cos(
-        (2 * math.pi * julian_day - 159.5) / 365.25
+    solar_declination = np.radians(23.5) * np.cos(
+        (2 * np.pi * julian_day - 159.5) / 365.25
     )
 
     # Calculate Solar hour angle
-    solar_hour_angle = math.radians(0.261799 * (solar_time - 12))
+    solar_hour_angle = np.radians(0.261799 * (solar_time - 12))
 
     # Calculate solar zenith angle
-    coh = math.sin(solar_declination) * math.sin(latitude_rad) + math.cos(
+    coh = np.sin(solar_declination) * np.sin(latitude_rad) + np.cos(
         solar_declination
-    ) * math.cos(latitude_rad) * math.cos(solar_hour_angle)
-    solar_zenith_angle = math.degrees(math.acos(coh))
+    ) * np.cos(latitude_rad) * np.cos(solar_hour_angle)
+    solar_zenith_angle = np.degrees(np.acos(coh))
 
     # Calculate solar azimuth angle
-    sh = math.sin(solar_declination) * math.sin(latitude_rad) + math.cos(
+    sh = np.sin(solar_declination) * np.sin(latitude_rad) + np.cos(
         solar_declination
-    ) * math.cos(latitude_rad) * math.cos(solar_hour_angle)
-    hh = math.atan(sh / math.sqrt(1 - sh * sh))
-    sazi = math.cos(solar_declination) * math.sin(solar_hour_angle) / math.cos(hh)
+    ) * np.cos(latitude_rad) * np.cos(solar_hour_angle)
+    hh = np.atan(sh / np.sqrt(1 - sh * sh))
+    sazi = np.cos(solar_declination) * np.sin(solar_hour_angle) / np.cos(hh)
     cazi = (
-        math.sin(latitude_rad)
-        * math.cos(solar_declination)
-        * math.cos(solar_hour_angle)
-        - math.cos(latitude_rad) * math.sin(solar_declination)
-    ) / math.sqrt(
-        math.pow(math.cos(solar_declination) * math.sin(solar_hour_angle), 2)
-        + math.pow(
-            math.sin(latitude_rad)
-            * math.cos(solar_declination)
-            * math.cos(solar_hour_angle)
-            - math.cos(latitude_rad) * math.sin(solar_declination),
+        np.sin(latitude_rad) * np.cos(solar_declination) * np.cos(solar_hour_angle)
+        - np.cos(latitude_rad) * np.sin(solar_declination)
+    ) / np.sqrt(
+        np.pow(np.cos(solar_declination) * np.sin(solar_hour_angle), 2)
+        + np.pow(
+            np.sin(latitude_rad) * np.cos(solar_declination) * np.cos(solar_hour_angle)
+            - np.cos(latitude_rad) * np.sin(solar_declination),
             2,
         )
     )
 
-    sqt = 1 - sazi * sazi
-    if sqt < 0:
-        sqt = 0
+    sqt = np.maximum(1 - sazi**2, 0)
 
-    solar_azimuth_angle = 180 + (180 * math.atan(sazi / math.sqrt(sqt))) / math.pi
-    if cazi < 0:
-        if sazi < 0:
-            solar_azimuth_angle = 180 - solar_azimuth_angle
-        else:
-            solar_azimuth_angle = 540 - solar_azimuth_angle
+    solar_azimuth_angle = 180 + (180 * np.atan(sazi / np.sqrt(sqt))) / np.pi
 
-    return (solar_zenith_angle, solar_azimuth_angle)
+    solar_azimuth_angle = np.where(
+        cazi < 0,
+        np.where(sazi < 0, 180 - solar_azimuth_angle, 540 - solar_azimuth_angle),
+        solar_azimuth_angle,
+    )
+
+    return [solar_zenith_angle, solar_azimuth_angle]
 
 
 def calculate_solar_index(
-    slope: float,
-    aspect: float,
-    zenith: float,
-    azimuth: float,
+    slope: NDArray[np.float64],
+    aspect: NDArray[np.float64],
+    zenith: NDArray[np.float64],
+    azimuth: NDArray[np.float64],
     shadowmask=bool,
-):
+) -> NDArray[np.float64]:
     """Calculate the solar index.
 
     Parameters:
@@ -178,29 +170,32 @@ def calculate_solar_index(
         The solar index
     """
 
-    if zenith > 90.0 and not shadowmask:
-        return 0.0
+    if not shadowmask:
+        zenith = np.where(zenith > 90.0, 0.0, zenith)
 
-    zenith_rad = math.radians(zenith)
-    slope_rad = math.radians(slope)
-    azimuth_minus_aspect_rad = math.radians(azimuth - aspect)
+    zenith_rad = np.radians(zenith)
+    slope_rad = np.radians(slope)
+    azimuth_minus_aspect_rad = np.radians(azimuth - aspect)
 
-    if slope == 0.0:
-        solar_index_value = math.cos(zenith_rad)
-    else:
-        solar_index_value = math.cos(zenith_rad) * math.cos(slope_rad) + math.sin(
-            zenith_rad
-        ) * math.sin(slope_rad) * math.cos(azimuth_minus_aspect_rad)
+    # Check for slope == 0.0 element-wise
+    solar_index_value = np.where(
+        slope == 0.0,
+        np.cos(zenith_rad),  # If slope is 0, use cos(zenith_rad)
+        (
+            np.cos(zenith_rad) * np.cos(slope_rad)
+            + np.sin(zenith_rad) * np.sin(slope_rad) * np.cos(azimuth_minus_aspect_rad)
+        ),
+    )
 
-    return max(solar_index_value, 0.0)
+    return np.maximum(solar_index_value, 0.0)
 
 
 def calculate_clear_sky_radiation(
-    solar_zenith_angle: float,
-    temperature: float,
-    relative_humidity: float,
-    atmospheric_pressure: float,
-) -> float:
+    solar_zenith_angle: NDArray[np.float64],
+    temperature: NDArray[np.float64],
+    relative_humidity: NDArray[np.float64],
+    atmospheric_pressure: NDArray[np.float64],
+) -> NDArray[np.float64]:
     """Calculate the clear sky radiation for a given set of dates and locations.
 
     Parameters:
@@ -213,47 +208,62 @@ def calculate_clear_sky_radiation(
         List of clear sky radiation values
     """
 
-    solar_zenith_angle_rad = math.radians(solar_zenith_angle)
+    solar_zenith_angle_rad = np.radians(solar_zenith_angle)
 
-    if solar_zenith_angle <= 90.0:
-        optical_thickness = (
-            35
-            * math.cos(solar_zenith_angle_rad)
-            * (1224 * math.cos(solar_zenith_angle_rad) ** 2 + 1) ** -0.5
-        )
-        transmittance_to_zenith = 1.021 - 0.084 * math.sqrt(
-            optical_thickness * 0.00949 * atmospheric_pressure + 0.051
-        )
+    # Vectorized condition: apply formula only where solar_zenith_angle <= 90
+    optical_thickness = np.where(
+        solar_zenith_angle <= 90.0,
+        35
+        * np.cos(solar_zenith_angle_rad)
+        * (1224 * np.cos(solar_zenith_angle_rad) ** 2 + 1) ** -0.5,
+        0.0,  # Set to 0 where condition is false
+    )
 
-        log_relative_humidity = math.log(relative_humidity / 100)
-        temperature_factor = (17.27 * temperature) / (237.3 + temperature)
-        dew_point_temperature = (
-            237.3 * (log_relative_humidity + temperature_factor)
-        ) / (17.27 - (log_relative_humidity + temperature_factor))
+    transmittance_to_zenith = np.where(
+        solar_zenith_angle <= 90.0,
+        1.021
+        - 0.084 * np.sqrt(optical_thickness * 0.00949 * atmospheric_pressure + 0.051),
+        0.0,
+    )
 
-        humidity_adjustment_factor = math.exp(
-            0.1133 - math.log(3.78) + 0.0393 * dew_point_temperature
-        )
-        water_vapor_adjustment = (
-            1 - 0.077 * (humidity_adjustment_factor * optical_thickness) ** 0.3
-        )
-        aerosol_optical_depth = 0.935 * optical_thickness
+    log_relative_humidity = np.log(relative_humidity / 100)
+    temperature_factor = (17.27 * temperature) / (237.3 + temperature)
+    dew_point_temperature = (237.3 * (log_relative_humidity + temperature_factor)) / (
+        17.27 - (log_relative_humidity + temperature_factor)
+    )
 
-        clear_sky_optical_depth = (
-            transmittance_to_zenith * water_vapor_adjustment * aerosol_optical_depth
-        )
-        clear_sky_radiation = (
-            1352.778 * math.cos(solar_zenith_angle_rad) * clear_sky_optical_depth
-        )
+    humidity_adjustment_factor = np.exp(
+        0.1133 - np.log(3.78) + 0.0393 * dew_point_temperature
+    )
+
+    water_vapor_adjustment = np.where(
+        solar_zenith_angle <= 90.0,
+        1 - 0.077 * (humidity_adjustment_factor * optical_thickness) ** 0.3,
+        0.0,
+    )
+
+    aerosol_optical_depth = np.where(
+        solar_zenith_angle <= 90.0, 0.935 * optical_thickness, 0.0
+    )
+
+    clear_sky_optical_depth = (
+        transmittance_to_zenith * water_vapor_adjustment * aerosol_optical_depth
+    )
+
+    clear_sky_radiation = np.where(
+        solar_zenith_angle <= 90.0,
+        1352.778 * np.cos(solar_zenith_angle_rad) * clear_sky_optical_depth,
+        0.0,
+    )
 
     return clear_sky_radiation
 
 
 def calculate_canopy_extinction_coefficients(
-    solar_zenith_angle: float,
+    solar_zenith_angle: NDArray[np.float64],
     leaf_inclination_angle_coefficient: float,
-    solar_index: float,
-) -> list[float]:
+    solar_index: NDArray[np.float64],
+) -> list[float | NDArray[np.float64]]:
     """Calculate the canopy extinction coefficients for sloped ground surfaces.
 
     Parameters:
@@ -264,43 +274,45 @@ def calculate_canopy_extinction_coefficients(
     Returns:
         List of canopy extinction coefficients [k, kd, k0]
     """
-    if solar_zenith_angle > 90.0:
-        solar_zenith_angle = 90.0
-    zenith_angle_rad = math.radians(solar_zenith_angle)
+    # Ensure solar zenith angles don't exceed 90 degrees
+    solar_zenith_angle = np.where(solar_zenith_angle > 90.0, 90.0, solar_zenith_angle)
+    zenith_angle_rad = np.radians(solar_zenith_angle)
 
     # Calculate normal canopy extinction coefficient k
     if leaf_inclination_angle_coefficient == 1.0:
-        extinction_coefficient_k = 1 / (2 * math.cos(zenith_angle_rad))
-    elif math.isinf(leaf_inclination_angle_coefficient):
+        extinction_coefficient_k = 1 / (2 * np.cos(zenith_angle_rad))
+    elif np.isinf(leaf_inclination_angle_coefficient):
         extinction_coefficient_k = 1.0
     else:
-        extinction_coefficient_k = math.sqrt(
-            leaf_inclination_angle_coefficient**2 + math.tan(zenith_angle_rad) ** 2
+        extinction_coefficient_k = np.sqrt(
+            leaf_inclination_angle_coefficient**2 + np.tan(zenith_angle_rad) ** 2
         ) / (
             leaf_inclination_angle_coefficient
             + 1.774 * (leaf_inclination_angle_coefficient + 1.182) ** -0.733
         )
 
-    if extinction_coefficient_k > 6000.0:
-        extinction_coefficient_k = 6000.0
+    # Cap extinction coefficient k at 6000
+    extinction_coefficient_k = np.where(
+        extinction_coefficient_k > 6000.0, 6000.0, extinction_coefficient_k
+    )
 
-    # Calculate adjusted k
+    # Calculate adjusted k0
     if leaf_inclination_angle_coefficient == 1.0:
         extinction_coefficient_k0 = 0.5
-    elif math.isinf(leaf_inclination_angle_coefficient):
+    elif np.isinf(leaf_inclination_angle_coefficient):
         extinction_coefficient_k0 = 1.0
     else:
-        extinction_coefficient_k0 = math.sqrt(leaf_inclination_angle_coefficient**2) / (
+        extinction_coefficient_k0 = np.sqrt(leaf_inclination_angle_coefficient**2) / (
             leaf_inclination_angle_coefficient
             + 1.774 * (leaf_inclination_angle_coefficient + 1.182) ** -0.733
         )
 
-    if solar_index == 0:
-        extinction_coefficient_kd = 1.0
-    else:
-        extinction_coefficient_kd = (
-            extinction_coefficient_k * math.cos(zenith_angle_rad) / solar_index
-        )
+    # Calculate kd (adjusted extinction coefficient)
+    extinction_coefficient_kd = np.where(
+        solar_index == 0,
+        1.0,
+        extinction_coefficient_k * np.cos(zenith_angle_rad) / solar_index,
+    )
 
     return [
         extinction_coefficient_k,  # k
@@ -310,59 +322,83 @@ def calculate_canopy_extinction_coefficients(
 
 
 def calculate_diffuse_radiation_parameters(
-    adjusted_plant_area_index: float,  # pait, with(vegp,(pai/(1-clump)))
-    scatter_absorption_coefficient: float,  # a, a<-1-om
-    gma: float,  # gma, gma<-0.5*(om+J*del)
-    h: float,  # , h<-sqrt(a^2+2*a*gma)
+    adjusted_plant_area_index: NDArray[np.float64],
+    scatter_absorption_coefficient: float,
+    backward_scattering_coefficient: float,
+    diffuse_scattering_coefficient: float,
     ground_reflectance: float,  # gref
 ) -> list[float]:
     """Calculates parameters for diffuse radiation using two-stream model.
 
     Args:
         adjusted_plant_area_index: Plant area index adjusted by clumping factor,
-            [m2 m-2]
+            [m2 m-2]  # reference: pait, with(vegp,(pai/(1-clump)))
         scatter_absorption_coefficient: Absorption coefficient for incoming diffuse
-            radiation per unit leaf area
-        gma: Backward scattering coefficient?
-        h: ?? some absorption and scatter related coefficient
+            radiation per unit leaf area   # reference: a, a<-1-om
+        backward_scattering_coefficient: Backward scattering coefficient  # reference:
+            gma, gma<-0.5*(om+J*del)
+        diffuse_scattering_coefficient: Constant diffuse radiation related coefficient
+          # reference: , h<-sqrt(a^2+2*a*gma)
         ground_reflectance: Ground reflectance (0-1)
 
     Returns:
         List of diffuse radiation parameters [p1, p2, p3, p4]
     """
 
+    # Handle division by zero for ground reflectance
+    if ground_reflectance == 0:
+        ground_reflectance = np.finfo(np.float64).eps
+
     # Calculate base parameters
-    leaf_extinction_factor = np.exp(-h * adjusted_plant_area_index)
-    u1 = scatter_absorption_coefficient + gma * (1 - 1 / ground_reflectance)
-    u2 = scatter_absorption_coefficient + gma * (1 - ground_reflectance)
-    d1 = (scatter_absorption_coefficient + gma + h) * (
-        u1 - h
-    ) * 1 / leaf_extinction_factor - (scatter_absorption_coefficient + gma - h) * (
-        u1 + h
+    leaf_extinction_factor = np.exp(
+        -diffuse_scattering_coefficient * adjusted_plant_area_index
+    )
+    u1 = scatter_absorption_coefficient + backward_scattering_coefficient * (
+        1 - 1 / ground_reflectance
+    )
+    u2 = scatter_absorption_coefficient + backward_scattering_coefficient * (
+        1 - ground_reflectance
+    )
+    d1 = (
+        scatter_absorption_coefficient
+        + backward_scattering_coefficient
+        + diffuse_scattering_coefficient
+    ) * (u1 - diffuse_scattering_coefficient) * 1 / leaf_extinction_factor - (
+        scatter_absorption_coefficient
+        + backward_scattering_coefficient
+        - diffuse_scattering_coefficient
+    ) * (u1 + diffuse_scattering_coefficient) * leaf_extinction_factor
+    d2 = (u2 + diffuse_scattering_coefficient) * 1 / leaf_extinction_factor - (
+        u2 - diffuse_scattering_coefficient
     ) * leaf_extinction_factor
-    d2 = (u2 + h) * 1 / leaf_extinction_factor - (u2 - h) * leaf_extinction_factor
 
     # Calculate parameters
-    parameter_1 = (gma / (d1 * leaf_extinction_factor)) * (u1 - h)
-    parameter_2 = (-gma * leaf_extinction_factor / d1) * (u1 + h)
-    parameter_3 = (1 / (d2 * leaf_extinction_factor)) * (u2 + h)
-    parameter_4 = (-leaf_extinction_factor / d2) * (u2 - h)
+    parameter_1 = (backward_scattering_coefficient / (d1 * leaf_extinction_factor)) * (
+        u1 - diffuse_scattering_coefficient
+    )
+    parameter_2 = (-backward_scattering_coefficient * leaf_extinction_factor / d1) * (
+        u1 + diffuse_scattering_coefficient
+    )
+    parameter_3 = (1 / (d2 * leaf_extinction_factor)) * (
+        u2 + diffuse_scattering_coefficient
+    )
+    parameter_4 = (-leaf_extinction_factor / d2) * (u2 - diffuse_scattering_coefficient)
 
     return [parameter_1, parameter_2, parameter_3, parameter_4]
 
 
 def calculate_direct_radiation_parameters(
-    adjusted_plant_area_index: float,  # pait, with(vegp,(pai/(1-clump)))
-    scattering_albedo: float,  # om, om<-with(vegp,lref+ltra)
-    scatter_absorption_coefficient: float,  # a, a<-1-om
-    gma: float,  # gma, gma<-0.5*(om+J*del)
-    h: float,  # , h<-sqrt(a^2+2*a*gma)
-    ground_reflectance: float,  # groundparameter
-    inclination_distribution: float,  # J
-    delta_reflectance_transmittance: float,  # del
-    extinction_coefficient_k: float,  # k
-    extinction_coefficient_kd: float,  # kd
-    sigma: float,  # sig
+    adjusted_plant_area_index: NDArray[np.float64],
+    scattering_albedo: float,
+    scatter_absorption_coefficient: float,
+    backward_scattering_coefficient: float,
+    diffuse_scattering_coefficient: float,
+    ground_reflectance: float,
+    inclination_distribution: float,
+    delta_reflectance_transmittance: float,
+    extinction_coefficient_k: NDArray[np.float64],
+    extinction_coefficient_kd: NDArray[np.float64],
+    sigma: float,
 ) -> list[float]:
     """Calculates parameters for direct radiation using two-stream model.
 
@@ -370,11 +406,15 @@ def calculate_direct_radiation_parameters(
 
     Args:
         adjusted_plant_area_index: Plant area index adjusted by clumping factor
+            # reference: pait, with(vegp,(pai/(1-clump)))
         scattering_albedo: Single scattering albedo of individual canopy elements
+            # reference: om, om<-with(vegp,lref+ltra)
         scatter_absorption_coefficient: Absorption coefficient for incoming diffuse
-            radiation per unit leaf area
-        gma: Backward scattering coefficient?
-        h: ?? some absorption and scatter related coefficient
+            radiation per unit leaf area  # reference: a, a<-1-om
+        backward_scattering_coefficient: Backward scattering coefficient  # reference:
+            gma, gma<-0.5*(om+J*del)
+        diffuse_scattering_coefficient: Constant diffuse radiation related coefficient
+          # reference: , h<-sqrt(a^2+2*a*gma)
         ground_reflectance: Ground reflectance (0-1)
         inclination_distribution: Integral function of the inclination distribution of
             canopy elements
@@ -402,55 +442,101 @@ def calculate_direct_radiation_parameters(
     sstr = scattering_albedo * extinction_coefficient_k - ss
 
     # Calculate intermediate parameters
-    leaf_extinction_factor_1 = np.exp(-h * adjusted_plant_area_index)
+    leaf_extinction_factor_1 = np.exp(
+        -diffuse_scattering_coefficient * adjusted_plant_area_index
+    )
     leaf_extinction_factor_2 = np.exp(
         -extinction_coefficient_kd * adjusted_plant_area_index
     )
 
     # Calculate parameters
-    u1 = scatter_absorption_coefficient + gma * (1 - 1 / ground_reflectance)
-    u2 = scatter_absorption_coefficient + gma * (1 - ground_reflectance)
-    d1 = (scatter_absorption_coefficient + gma + h) * (
-        u1 - h
-    ) * 1 / leaf_extinction_factor_1 - (scatter_absorption_coefficient + gma - h) * (
-        u1 + h
+    u1 = scatter_absorption_coefficient + backward_scattering_coefficient * (
+        1 - 1 / ground_reflectance
+    )
+    u2 = scatter_absorption_coefficient + backward_scattering_coefficient * (
+        1 - ground_reflectance
+    )
+    d1 = (
+        scatter_absorption_coefficient
+        + backward_scattering_coefficient
+        + diffuse_scattering_coefficient
+    ) * (u1 - diffuse_scattering_coefficient) * 1 / leaf_extinction_factor_1 - (
+        scatter_absorption_coefficient
+        + backward_scattering_coefficient
+        - diffuse_scattering_coefficient
+    ) * (u1 + diffuse_scattering_coefficient) * leaf_extinction_factor_1
+    d2 = (u2 + diffuse_scattering_coefficient) * 1 / leaf_extinction_factor_1 - (
+        u2 - diffuse_scattering_coefficient
     ) * leaf_extinction_factor_1
-    d2 = (u2 + h) * 1 / leaf_extinction_factor_1 - (u2 - h) * leaf_extinction_factor_1
     parameter_5 = (
-        -ss * (scatter_absorption_coefficient + gma - extinction_coefficient_kd)
-        - gma * sstr
+        -ss
+        * (
+            scatter_absorption_coefficient
+            + backward_scattering_coefficient
+            - extinction_coefficient_kd
+        )
+        - backward_scattering_coefficient * sstr
     )
     v1 = (
         ss
         - (
             parameter_5
-            * (scatter_absorption_coefficient + gma + extinction_coefficient_kd)
+            * (
+                scatter_absorption_coefficient
+                + backward_scattering_coefficient
+                + extinction_coefficient_kd
+            )
         )
         / sigma
     )
-    v2 = ss - gma - (parameter_5 / sigma) * (u1 + extinction_coefficient_kd)
+    v2 = (
+        ss
+        - backward_scattering_coefficient
+        - (parameter_5 / sigma) * (u1 + extinction_coefficient_kd)
+    )
     parameter_6 = (1 / d1) * (
-        (v1 / leaf_extinction_factor_1) * (u1 - h)
-        - (scatter_absorption_coefficient + gma - h) * leaf_extinction_factor_2 * v2
+        (v1 / leaf_extinction_factor_1) * (u1 - diffuse_scattering_coefficient)
+        - (
+            scatter_absorption_coefficient
+            + backward_scattering_coefficient
+            - diffuse_scattering_coefficient
+        )
+        * leaf_extinction_factor_2
+        * v2
     )
     parameter_7 = (-1 / d1) * (
-        (v1 * leaf_extinction_factor_1) * (u1 + h)
-        - (scatter_absorption_coefficient + gma + h) * leaf_extinction_factor_2 * v2
+        (v1 * leaf_extinction_factor_1) * (u1 + diffuse_scattering_coefficient)
+        - (
+            scatter_absorption_coefficient
+            + backward_scattering_coefficient
+            + diffuse_scattering_coefficient
+        )
+        * leaf_extinction_factor_2
+        * v2
     )
     parameter_8 = (
-        sstr * (scatter_absorption_coefficient + gma + extinction_coefficient_kd)
-        - gma * ss
+        sstr
+        * (
+            scatter_absorption_coefficient
+            + backward_scattering_coefficient
+            + extinction_coefficient_kd
+        )
+        - backward_scattering_coefficient * ss
     )
     v3 = (
         sstr
-        + gma * ground_reflectance
+        + backward_scattering_coefficient * ground_reflectance
         - (parameter_8 / sigma) * (u2 - extinction_coefficient_kd)
     ) * leaf_extinction_factor_2
     parameter_9 = (-1 / d2) * (
-        (parameter_8 / (sigma * leaf_extinction_factor_1)) * (u2 + h) + v3
+        (parameter_8 / (sigma * leaf_extinction_factor_1))
+        * (u2 + diffuse_scattering_coefficient)
+        + v3
     )
     parameter_10 = (1 / d2) * (
-        ((parameter_8 * leaf_extinction_factor_1) / sigma) * (u2 - h) + v3
+        ((parameter_8 * leaf_extinction_factor_1) / sigma)
+        * (u2 - diffuse_scattering_coefficient)
+        + v3
     )
 
     return [
@@ -464,27 +550,28 @@ def calculate_direct_radiation_parameters(
 
 
 def calculate_absorbed_shortwave_radiation(
-    plant_area_index: float,
-    leaf_orientation_coefficient: float,
+    plant_area_index: NDArray[np.float64],
+    leaf_orientation_coefficient: NDArray[np.float64],
     leaf_reluctance_shortwave: float,
     leaf_transmittance_shortwave: float,
     clumping_factor: float,
     ground_reflectance: float,
-    slope: float,
-    aspect: float,
-    latitude: float,
-    longitude: float,
-    year: NDArray[np.int32],
-    month: NDArray[np.int32],
-    day: NDArray[np.int32],
-    local_time: NDArray[np.float32],
-    shortwave_radiation: NDArray[np.float32],
-    diffuse_radiation: NDArray[np.float32],
+    slope: NDArray[np.float64],
+    aspect: NDArray[np.float64],
+    latitude: NDArray[np.float64],
+    longitude: NDArray[np.float64],
+    year: int,
+    month: int,
+    day: int,
+    local_time: float,
+    shortwave_radiation: NDArray[np.float64],
+    diffuse_radiation: NDArray[np.float64],
     leaf_inclination_angle_coefficient: float,
 ) -> dict[str, NDArray[np.float64]]:
     """Calculate absorbed shortwave radiation for ground and canopy.
 
-    The initial model is for a time series and includes a loop, thus inputs are arrays
+    The initial model is for a time series and includes a loop, here only for one time
+    step. The ground absorption as an additional dimension, needs fixing.
 
     Args:
         plant_area_index: Plant area index, [m2 m-2]?
@@ -513,206 +600,201 @@ def calculate_absorbed_shortwave_radiation(
         dictionary with ground and canopy absorbed radiation
     """
 
-    # Define output variables
+    # Initialize output variables
     output = {}
-    ground_shortwave_absorption = np.zeros(len(shortwave_radiation))
-    canopy_shortwave_absorption = np.zeros(len(shortwave_radiation))
-    albedo = np.zeros(len(shortwave_radiation))
 
-    if plant_area_index > 0.0:  # TODO np.where()
-        # Calculate time invariant variables
-        adjusted_plant_area_index = plant_area_index / (1 - clumping_factor)
-        scattering_albedo = leaf_reluctance_shortwave + leaf_transmittance_shortwave
-        scatter_absorption_coefficient = 1 - scattering_albedo
-        delta_reflectance_transmittance = (
-            leaf_reluctance_shortwave - leaf_transmittance_shortwave
+    # Calculate time-invariant variables
+    adjusted_plant_area_index = plant_area_index / (1 - clumping_factor)
+
+    scattering_albedo = leaf_reluctance_shortwave + leaf_transmittance_shortwave
+    scatter_absorption_coefficient = 1 - scattering_albedo
+    delta_reflectance_transmittance = (
+        leaf_reluctance_shortwave - leaf_transmittance_shortwave
+    )
+
+    # Calculate mean_inclination_angle where leaf orientation coefficient is not = 1.0
+    mean_inclination_angle_full = np.where(
+        leaf_orientation_coefficient != 1.0,
+        9.65 * np.power((3 + leaf_orientation_coefficient), -1.65),
+        1.0 / 3.0,  # note: value from micropoint
+    )
+
+    # Clip mean_inclination_angle values to be at most π/2
+    mean_inclination_angle = np.minimum(mean_inclination_angle_full, np.pi / 2)
+
+    # Calculate inclination distribution
+    inclination_distribution = np.cos(mean_inclination_angle) ** 2
+
+    backward_scattering_coefficient = 0.5 * (
+        scattering_albedo + inclination_distribution * delta_reflectance_transmittance
+    )
+    diffuse_scattering_coefficient = np.sqrt(
+        scatter_absorption_coefficient**2
+        + 2 * scatter_absorption_coefficient * backward_scattering_coefficient
+    )
+
+    # Calculate two-stream parameters (diffuse)
+    diffuse_radiation_parameters = calculate_diffuse_radiation_parameters(
+        adjusted_plant_area_index=adjusted_plant_area_index,
+        scatter_absorption_coefficient=scatter_absorption_coefficient,
+        backward_scattering_coefficient=backward_scattering_coefficient,
+        diffuse_scattering_coefficient=diffuse_scattering_coefficient,
+        ground_reflectance=ground_reflectance,
+    )
+    p1, p2, p3, p4 = diffuse_radiation_parameters
+
+    # Downward diffuse stream
+    clumping_factor_diffuse = clumping_factor**2
+    diffuse_downward_radiation_full = (
+        (1 - clumping_factor_diffuse)
+        * (
+            p3 * np.exp(-diffuse_scattering_coefficient * adjusted_plant_area_index)
+            + p4 * np.exp(diffuse_scattering_coefficient * adjusted_plant_area_index)
         )
-        inclination_distribution = 1.0 / 3.0
+        + clumping_factor_diffuse,
+    )
+    diffuse_downward_radiation = np.minimum(diffuse_downward_radiation_full, 1.0)
 
-        if leaf_orientation_coefficient != 1.0:
-            mean_inclination_angle = 9.65 * pow(
-                (3 + leaf_orientation_coefficient), -1.65
-            )
-            if mean_inclination_angle > math.pi / 2:
-                mean_inclination_angle = math.pi / 2
-            inclination_distribution = math.cos(mean_inclination_angle) * math.cos(
-                mean_inclination_angle
-            )
+    # Calculate two-stream parameters (direct)
+    # Calculate solar variables
+    solar_position = calculate_solar_position(
+        latitude=latitude,
+        longitude=longitude,
+        year=year,
+        month=month,
+        day=day,
+        local_time=local_time,
+    )
+    zenith, azimuth = solar_position
+    solar_index = calculate_solar_index(
+        slope=slope,
+        aspect=aspect,
+        zenith=zenith,
+        azimuth=azimuth,
+    )
+    zenith = np.minimum(zenith, 90.0)
 
-        gma = 0.5 * (
-            scattering_albedo
-            + inclination_distribution * delta_reflectance_transmittance
-        )
-        h = math.sqrt(
-            scatter_absorption_coefficient * scatter_absorption_coefficient
-            + 2 * scatter_absorption_coefficient * gma
-        )
-        # Calculate two-stream parameters (diffuse)
-        diffuse_radiation_parameters = calculate_diffuse_radiation_parameters(
-            adjusted_plant_area_index=adjusted_plant_area_index,
-            scatter_absorption_coefficient=scatter_absorption_coefficient,
-            gma=gma,
-            h=h,
-            ground_reflectance=ground_reflectance,
-        )
-        p1, p2, p3, p4 = diffuse_radiation_parameters
+    # Calculate canopy extinction coefficients
+    canopy_extinction_coefficients = calculate_canopy_extinction_coefficients(
+        solar_zenith_angle=zenith,
+        leaf_inclination_angle_coefficient=leaf_inclination_angle_coefficient,
+        solar_index=solar_index,
+    )
+    k, kd, k0 = canopy_extinction_coefficients
+    kc = kd / k0
 
-        # Downward diffuse stream
-        clumping_factor_diffuse = clumping_factor * clumping_factor
-        diffuse_downward_radiation = (1 - clumping_factor_diffuse) * (
-            p3 * math.exp(-h * adjusted_plant_area_index)
-            + p4 * math.exp(h * adjusted_plant_area_index)
-        ) + clumping_factor_diffuse
-        diffuse_downward_radiation = min(diffuse_downward_radiation, 1)
+    # Calculate two-stream parameters (direct)
+    sigma = (
+        kd**2
+        + backward_scattering_coefficient**2
+        - (scatter_absorption_coefficient + backward_scattering_coefficient) ** 2
+    )
 
-        # Calculate time-variant two-stream parameters (direct)
-        for i, radiation in enumerate(shortwave_radiation):
-            if radiation > 0:
-                # Calculate solar indexes
-                solar_position = calculate_solar_position(
-                    latitude=latitude,
-                    longitude=longitude,
-                    year=year[i],
-                    month=month[i],
-                    day=day[i],
-                    local_time=local_time[i],
-                )
-                # TODO replace rad
-                zenith, azimuth = solar_position
-                solar_index = calculate_solar_index(
-                    slope=slope, aspect=aspect, zenith=zenith, azimuth=azimuth
-                )
-                zenith = min(zenith, 90.0)
-                # calculate canopy extinction coefficients
-                canopy_extinction_coefficients = (
-                    calculate_canopy_extinction_coefficients(
-                        solar_zenith_angle=zenith,
-                        leaf_inclination_angle_coefficient=(
-                            leaf_inclination_angle_coefficient
-                        ),
-                        solar_index=solar_index,
-                    )
-                )
-                k, kd, k0 = canopy_extinction_coefficients
-                kc = kd / k0
-                # Calculate two-stream parameters (direct)
-                sigma = (
-                    kd * kd + gma * gma - pow((scatter_absorption_coefficient + gma), 2)
-                )
-                direct_radiation_parameters = calculate_direct_radiation_parameters(
-                    adjusted_plant_area_index=adjusted_plant_area_index,
-                    scattering_albedo=scattering_albedo,
-                    scatter_absorption_coefficient=scatter_absorption_coefficient,
-                    gma=gma,
-                    inclination_distribution=inclination_distribution,
-                    delta_reflectance_transmittance=delta_reflectance_transmittance,
-                    h=h,
-                    ground_reflectance=ground_reflectance,
-                    extinction_coefficient_k=k,
-                    extinction_coefficient_kd=kd,
-                    sigma=sigma,
-                )
-                p5, p6, p7, p8, p9, p10 = direct_radiation_parameters
-                # Calculate albedo
-                albedo_diffuse = (1 - clumping_factor_diffuse) * (
-                    p1 + p2
-                ) + clumping_factor_diffuse * ground_reflectance
-                clumping_factor_beam = pow(clumping_factor, kc)
-                albedo_beam = (1 - clumping_factor_beam) * (
-                    p5 / sigma + p6 + p7
-                ) + clumping_factor_beam * ground_reflectance
-                if math.isinf(albedo_beam):
-                    albedo_beam = albedo_diffuse
-                # Direct beam radiation
-                beam_radiation = (radiation - diffuse_radiation[i]) / math.cos(
-                    zenith * math.pi / 180
-                )
-                # Contribution of direct to downward diffuse stream
-                diffuse_beam_radiation = (1 - clumping_factor_beam) * (
-                    (p8 / sigma) * math.exp(-kd * adjusted_plant_area_index)
-                    + p9 * math.exp(-h * adjusted_plant_area_index)
-                    + p10 * math.exp(h * adjusted_plant_area_index)
-                )
-                diffuse_beam_radiation = max(0.0, min(diffuse_beam_radiation, 1.0))
-                # Downward direct stream
-                downward_direct_stream = (1 - clumping_factor_beam) * math.exp(
-                    -kd * adjusted_plant_area_index
-                ) + clumping_factor_beam
-                downward_direct_stream = min(downward_direct_stream, 1)
-                # Radiation absorbed by ground
-                diffuse_radiation_ground = (1 - ground_reflectance) * (
-                    diffuse_beam_radiation * beam_radiation
-                    + diffuse_downward_radiation * diffuse_radiation[i]
-                )
-                direct_radiation_ground = (1 - ground_reflectance) * (
-                    downward_direct_stream * beam_radiation * solar_index
-                )
-                ground_shortwave_absorption[i] = (
-                    diffuse_radiation_ground + direct_radiation_ground
-                )
-                # Radiation absorbed by canopy
-                diffuse_radiation_canopy = (1 - albedo_diffuse) * diffuse_radiation[i]
-                direct_radiation_canopy = (
-                    (1 - albedo_beam) * beam_radiation * solar_index
-                )
-                canopy_shortwave_absorption[i] = (
-                    diffuse_radiation_canopy + direct_radiation_canopy
-                )
+    direct_radiation_parameters = calculate_direct_radiation_parameters(
+        adjusted_plant_area_index=adjusted_plant_area_index,
+        scattering_albedo=scattering_albedo,
+        scatter_absorption_coefficient=scatter_absorption_coefficient,
+        backward_scattering_coefficient=backward_scattering_coefficient,
+        inclination_distribution=inclination_distribution,
+        delta_reflectance_transmittance=delta_reflectance_transmittance,
+        diffuse_scattering_coefficient=diffuse_scattering_coefficient,
+        ground_reflectance=ground_reflectance,
+        extinction_coefficient_k=k,
+        extinction_coefficient_kd=kd,
+        sigma=sigma,
+    )
+    p5, p6, p7, p8, p9, p10 = direct_radiation_parameters
 
-                albedo[i] = 1 - (canopy_shortwave_absorption[i] / radiation)
-                albedo[i] = min(max(albedo[i], 0.01), 0.99)
+    # Calculate albedo
+    albedo_diffuse = (1 - clumping_factor_diffuse) * (
+        p1 + p2
+    ) + clumping_factor_diffuse * ground_reflectance
+    clumping_factor_beam = clumping_factor**kc
+    albedo_beam = (1 - clumping_factor_beam) * (
+        p5 / sigma + p6 + p7
+    ) + clumping_factor_beam * ground_reflectance
+    albedo_beam = np.where(np.isinf(albedo_beam), albedo_diffuse, albedo_beam)
 
-            else:
-                ground_shortwave_absorption[i] = 0
-                canopy_shortwave_absorption[i] = 0
-                albedo[i] = leaf_reluctance_shortwave
+    beam_radiation = (shortwave_radiation - diffuse_radiation) / np.cos(
+        zenith * np.pi / 180
+    )
+    # Contribution of direct to downward diffuse stream
+    diffuse_beam_radiation = (1 - clumping_factor_beam) * (
+        (p8 / sigma) * np.exp(-kd * adjusted_plant_area_index)
+        + p9 * np.exp(-diffuse_scattering_coefficient * adjusted_plant_area_index)
+        + p10 * np.exp(diffuse_scattering_coefficient * adjusted_plant_area_index)
+    )
+    diffuse_beam_radiation = np.clip(diffuse_beam_radiation, 0.0, 1.0)
 
-    else:
-        for i, radiation in enumerate(shortwave_radiation):
-            albedo[i] = ground_reflectance
-            if radiation > 0:
-                solar_position = calculate_solar_position(
-                    latitude=latitude,
-                    longitude=longitude,
-                    year=year[i],
-                    month=month[i],
-                    day=day[i],
-                    local_time=local_time[i],
-                )
-                zenith, azimuth = solar_position
-                solar_index = calculate_solar_index(
-                    slope=slope,
-                    aspect=aspect,
-                    zenith=zenith,
-                    azimuth=azimuth,
-                )
-                zenith = min(zenith, 90.0)
+    # Downward direct stream
+    downward_direct_stream = (1 - clumping_factor_beam) * np.exp(
+        -kd * adjusted_plant_area_index
+    ) + clumping_factor_beam
+    downward_direct_stream = np.minimum(downward_direct_stream, 1)
 
-                dirr = (radiation - diffuse_radiation[i]) / math.cos(
-                    zenith * math.pi / 180.0
-                )
-                ground_shortwave_absorption[i] = (1 - ground_reflectance) * (
-                    diffuse_radiation[i] + solar_index * dirr
-                )
-                canopy_shortwave_absorption[i] = ground_shortwave_absorption[i]
-            else:
-                ground_shortwave_absorption[i] = 0
-                canopy_shortwave_absorption[i] = 0
+    # Radiation absorbed by ground
+    diffuse_radiation_ground = (1 - ground_reflectance) * (
+        diffuse_beam_radiation * beam_radiation
+        + diffuse_downward_radiation * diffuse_radiation
+    )
+    direct_radiation_ground = (1 - ground_reflectance) * (
+        downward_direct_stream * beam_radiation * solar_index
+    )
 
-    output["ground_shortwave_absorption"] = ground_shortwave_absorption
-    output["canopy_shortwave_absorption"] = canopy_shortwave_absorption
-    output["albedo"] = albedo
+    ground_shortwave_absorption_veg = diffuse_radiation_ground + direct_radiation_ground
+
+    # Radiation absorbed by canopy TODO coordinate with plants model
+    diffuse_radiation_canopy = (1 - albedo_diffuse) * diffuse_radiation
+    direct_radiation_canopy = (1 - albedo_beam) * beam_radiation * solar_index
+    canopy_shortwave_absorption_veg = diffuse_radiation_canopy + direct_radiation_canopy
+
+    albedo_veg = np.clip(
+        1 - (canopy_shortwave_absorption_veg / shortwave_radiation), 0.01, 0.99
+    )
+
+    # where plant area index not >0
+    ground_shortwave_absorption_no_veg = (1 - ground_reflectance) * (
+        diffuse_radiation + solar_index * beam_radiation
+    )
+
+    ground_shortwave_absorption = np.where(
+        plant_area_index > 0,
+        ground_shortwave_absorption_veg,
+        ground_shortwave_absorption_no_veg,
+    )
+    canopy_shortwave_absorption = np.where(
+        plant_area_index > 0,
+        canopy_shortwave_absorption_veg,
+        ground_shortwave_absorption_no_veg,
+    )
+    albedo = np.where(plant_area_index > 0, albedo_veg, ground_reflectance)
+
+    # return values for positive shortwave radiation, else 0.
+    output["ground_shortwave_absorption"] = np.where(
+        shortwave_radiation > 0,
+        ground_shortwave_absorption,
+        0.0,
+    ).squeeze()  # TODO for some reason I have extra dimension here
+    output["canopy_shortwave_absorption"] = np.where(
+        shortwave_radiation > 0,
+        canopy_shortwave_absorption,
+        0.0,
+    )
+
+    output["albedo"] = np.where(
+        shortwave_radiation > 0, albedo, leaf_reluctance_shortwave
+    )
 
     return output
 
 
 def calculate_molar_density_air(
-    temperature: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
+    temperature: NDArray[np.float64],
+    atmospheric_pressure: NDArray[np.float64],
     standard_mole: float,
     standard_pressure: float,
     celsius_to_kelvin: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.float64]:
     """Calculate temperature-dependent molar density of air.
 
     Implementation after :cite:t:`maclean_microclimc_2021`.
@@ -739,10 +821,10 @@ def calculate_molar_density_air(
 
 
 def calculate_specific_heat_air(
-    temperature: NDArray[np.float32],
+    temperature: NDArray[np.float64],
     molar_heat_capacity_air: float,
     specific_heat_equ_factors: list[float],
-) -> NDArray[np.float32]:
+) -> NDArray[np.float64]:
     """Calculate temperature-dependent specific heat of air.
 
     Implementation after :cite:t:`maclean_microclimc_2021`.
@@ -763,10 +845,10 @@ def calculate_specific_heat_air(
 
 
 def calculate_zero_plane_displacement(
-    canopy_height: NDArray[np.float32],
-    plant_area_index: NDArray[np.float32],
+    canopy_height: NDArray[np.float64],
+    plant_area_index: NDArray[np.float64],
     zero_plane_scaling_parameter: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.float64]:
     """Calculate zero plane displacement height, [m].
 
     The zero plane displacement height is a concept used in micrometeorology to describe
@@ -799,15 +881,15 @@ def calculate_zero_plane_displacement(
 
 
 def calculate_roughness_length_momentum(
-    canopy_height: NDArray[np.float32],
-    plant_area_index: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
-    diabatic_correction_heat: NDArray[np.float32],
+    canopy_height: NDArray[np.float64],
+    plant_area_index: NDArray[np.float64],
+    zero_plane_displacement: NDArray[np.float64],
+    diabatic_correction_heat: NDArray[np.float64],
     substrate_surface_drag_coefficient: float,
     drag_coefficient: float,
     min_roughness_length: float,
     von_karman_constant: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.float64]:
     """Calculate roughness length governing momentum transfer, [m].
 
     Roughness length is defined as the height at which the mean velocity is zero due to
@@ -858,15 +940,15 @@ def calculate_roughness_length_momentum(
 
 
 def calculate_monin_obukov_length(
-    air_temperature: float,
-    friction_velocity: float,
-    sensible_heat_flux: float,
+    air_temperature: NDArray[np.float64],
+    friction_velocity: NDArray[np.float64],
+    sensible_heat_flux: NDArray[np.float64],
     zero_degree: float,
     specific_heat_air: float,
     density_air: float,
     von_karman_constant: float,
     gravity: float,
-) -> float:
+) -> NDArray[np.float64]:
     r"""Calculate Monin-Obukov length.
 
     The Monin-Obukhov length (L) is given by:
@@ -891,6 +973,10 @@ def calculate_monin_obukov_length(
     Returns:
         Monin-Obukov length, [m]
     """
+    if np.any(sensible_heat_flux == 0):
+        to_raise = ValueError("The sensible heat flux must not be zero!")
+        LOGGER.error(to_raise)
+        raise to_raise
 
     temperature_kelvin = air_temperature + zero_degree
     return -(
@@ -900,9 +986,9 @@ def calculate_monin_obukov_length(
 
 def calculate_stability_parameter(
     reference_height: float,
-    zero_plance_displacement: float,
-    monin_obukov_length: float,
-):
+    zero_plance_displacement: NDArray[np.float64],
+    monin_obukov_length: NDArray[np.float64],
+) -> NDArray[np.float64]:
     """Calculate stability parameter zeta.
 
     Zeta is a parameter in Monin-Obukov Theory that characterizes stratification in
@@ -922,7 +1008,7 @@ def calculate_stability_parameter(
 
 
 def calculate_diabatic_correction_factors(
-    stability_parameter: float,
+    stability_parameter: NDArray[np.float64],
     stability_formulation: str,
 ) -> dict[str, NDArray[np.float64]]:
     r"""Integrated Stability Correction Functions for Heat and Momentum.
@@ -999,7 +1085,9 @@ def calculate_diabatic_correction_factors(
     return {"psi_h": psi_h, "psi_m": psi_m}
 
 
-def calculate_diabatic_influence_heat(stability_parameter: float) -> float:
+def calculate_diabatic_influence_heat(
+    stability_parameter: NDArray[np.float64],
+) -> NDArray[np.float64]:
     """Calculate the diabatic influencing factor for heat.
 
     Args:
@@ -1008,22 +1096,26 @@ def calculate_diabatic_influence_heat(stability_parameter: float) -> float:
     Returns:
         Diabatic influencing factor for heat (phih)
     """
-    if stability_parameter < 0:
-        phim = 1 / np.power((1.0 - 16.0 * stability_parameter), 0.25)
-        phih = np.power(phim, 2.0)
+    # Initialize `phih` with zeros
+    phih = np.zeros_like(stability_parameter)
 
-    else:
-        phih = 1 + (6.0 * stability_parameter) / (1.0 + stability_parameter)
+    # Apply the calculation where stability_parameter < 0
+    phim = np.where(
+        stability_parameter < 0,
+        1 / np.power((1.0 - 16.0 * stability_parameter), 0.25),
+        1,  # Default value for non-negative stability_parameter to avoid indexing issue
+    )
+    phih_non_negative = 1 + (6.0 * stability_parameter) / (1.0 + stability_parameter)
+    phih = np.where(stability_parameter < 0, np.power(phim, 2.0), phih_non_negative)
 
-    phih = np.clip(phih, 0.5, 1.5)
-
-    return phih
+    # Clip the values of `phih` to be between 0.5 and 1.5
+    return np.clip(phih, 0.5, 1.5)
 
 
 def calculate_free_convection(
     leaf_dimension: float,
-    sensible_heat_flux: float,
-) -> float:
+    sensible_heat_flux: NDArray[np.float64],
+) -> NDArray[np.float64]:
     """Calculate free convection, gha.
 
     Args:
@@ -1038,21 +1130,19 @@ def calculate_free_convection(
     gha = 0.0375 * np.power(dt / d, 0.25)
 
     # Ensure gha is not less than 0.1
-    gha = max(gha, 0.1)
-
-    return gha
+    return np.maximum(gha, 0.1)
 
 
 def calculate_molar_conductance_above_canopy(
-    friction_velocity: float,
-    zero_plane_displacement: float,
-    roughness_length_momentum: float,
+    friction_velocity: NDArray[np.float64],
+    zero_plane_displacement: NDArray[np.float64],
+    roughness_length_momentum: NDArray[np.float64],
     reference_height: float,
-    molar_density_air: float,
-    diabatic_correction_heat: float,
+    molar_density_air: NDArray[np.float64],
+    diabatic_correction_heat: NDArray[np.float64],
     minimum_conductance: float,
     von_karmans_constant: float,
-) -> float:
+) -> NDArray[np.float64]:
     r"""Calculate molar conductance above canopy, gt.
 
     Heat conductance, :math:`g_{t}` between any two heights :math:`z_{1}` and
@@ -1078,9 +1168,8 @@ def calculate_molar_conductance_above_canopy(
     Returns:
         molar conductance above canopy, [m s-1]
     """
-    z0 = (
-        0.2 * roughness_length_momentum + zero_plane_displacement
-    )  # Heat exchange surface height
+    # Heat exchange surface height
+    z0 = 0.2 * roughness_length_momentum + zero_plane_displacement
     ln = np.log(
         (reference_height - zero_plane_displacement) / (z0 - zero_plane_displacement)
     )
@@ -1089,14 +1178,14 @@ def calculate_molar_conductance_above_canopy(
     ) / (ln + diabatic_correction_heat)
 
     # Ensure conductance is not less than minimum_conductance
-    return max(molar_conductance, minimum_conductance)
+    return np.maximum(molar_conductance, minimum_conductance)
 
 
 def calculate_stomatal_conductance(
-    shortwave_radiation: float,
+    shortwave_radiation: NDArray[np.float64],
     maximum_stomatal_conductance: float,
     half_saturation_stomatal_conductance: float,
-) -> float:
+) -> NDArray[np.float64]:
     """Calculate the stomatal conductance.
 
     Args:
@@ -1115,9 +1204,9 @@ def calculate_stomatal_conductance(
 
 
 def calculate_dewpoint_temperature(
-    air_temperature: float,
-    effective_vapour_pressure_air: float,
-) -> float:
+    air_temperature: NDArray[np.float64],
+    effective_vapour_pressure_air: NDArray[np.float64],
+) -> NDArray[np.float64]:
     """Calculate the dewpoint temperature.
 
     Args:
@@ -1127,27 +1216,30 @@ def calculate_dewpoint_temperature(
     Returns:
         Dewpoint temperature, [C]
     """
-    if air_temperature >= 0:
-        e0 = 611.2 / 1000  # e0 in kPa
-        latent_heat_vapourisation = (2.501 * 10**6) - (2340 * air_temperature)
-        intermediate_temperature = 1 / 273.15 - (
-            461.5 / latent_heat_vapourisation
-        ) * np.log(effective_vapour_pressure_air / e0)
 
-    else:
-        e0 = 610.78 / 1000
-        latent_heat_sublimation = 2.834 * 10**6
-        intermediate_temperature = 1 / 273.16 - (
-            461.5 / latent_heat_sublimation
-        ) * np.log(effective_vapour_pressure_air / e0)
+    e0_positive = 611.2 / 1000  # e0 in kPa
+    latent_heat_vapourisation = (2.501 * 10**6) - (2340 * air_temperature)
+    dewpoint_temperature_positive = 1 / 273.15 - (
+        461.5 / latent_heat_vapourisation
+    ) * np.log(effective_vapour_pressure_air / e0_positive)
 
-    return 1 / intermediate_temperature - 273.15
+    e0_negative = 610.78 / 1000
+    latent_heat_sublimation = 2.834 * 10**6
+    dewpoint_temperature_negative = 1 / 273.16 - (
+        461.5 / latent_heat_sublimation
+    ) * np.log(effective_vapour_pressure_air / e0_negative)
+
+    return np.where(
+        air_temperature >= 0,
+        1 / dewpoint_temperature_positive - 273.15,
+        1 / dewpoint_temperature_negative - 273.15,
+    )
 
 
 def calculate_saturation_vapour_pressure(
-    temperature: float,
+    temperature: NDArray[np.float64],
     saturation_vapour_pressure_factors: list[float],
-) -> float:
+) -> NDArray[np.float64]:
     r"""Calculate saturation vapour pressure, kPa.
 
     Saturation vapour pressure :math:`e_{s} (T)` is here calculated as
@@ -1169,10 +1261,10 @@ def calculate_saturation_vapour_pressure(
 
 
 def calculate_latent_heat_vapourisation(
-    temperature: NDArray[np.float32],
+    temperature: NDArray[np.float64],
     celsius_to_kelvin: float,
     latent_heat_vap_equ_factors: list[float],
-) -> NDArray[np.float32]:
+) -> NDArray[np.float64]:
     """Calculate latent heat of vapourisation.
 
     Implementation after Eq. 8, :cite:t:`henderson-sellers_new_1984`.
@@ -1196,16 +1288,16 @@ def calculate_latent_heat_vapourisation(
 
 
 def calculate_surface_temperature(
-    absorbed_shortwave_radiation: float,
-    heat_conductivity: float,
-    vapour_conductivity: float,
-    surface_temperature: float,
-    temperature_average_air_surface: float,  # tair+tleaf/2
-    atmospheric_pressure: float,
-    effective_vapour_pressure_air: float,
+    absorbed_shortwave_radiation: NDArray[np.float64],
+    heat_conductivity: NDArray[np.float64],
+    vapour_conductivity: NDArray[np.float64],
+    surface_temperature: NDArray[np.float64],
+    temperature_average_air_surface: NDArray[np.float64],
+    atmospheric_pressure: NDArray[np.float64],
+    effective_vapour_pressure_air: NDArray[np.float64],
     surface_emissivity: float,
-    ground_heat_flux: float,
-    relative_humidity: float,
+    ground_heat_flux: NDArray[np.float64],
+    relative_humidity: NDArray[np.float64],
     stefan_boltzmann_constant: float,
     celsius_to_kelvin: float,
     latent_heat_vap_equ_factors: list[float],
@@ -1221,7 +1313,7 @@ def calculate_surface_temperature(
         vapour_conductivity: Vapour conductivity of surface
         surface_temperature: Surface temperature, [C]
         temperature_average_air_surface: Average between air temperature and surface
-            temperature, [C]
+            temperature, [C]  # tair+tleaf/2
         atmospheric_pressure: Atmospheric pressure, [kPa]
         effective_vapour_pressure_air: Effective vapour pressure of air
         surface_emissivity: Surface emissivity
@@ -1301,44 +1393,49 @@ def calculate_surface_temperature(
     return new_surface_temperature
 
 
-def hour_to_day(hourly_data: list[float], output_statistic: str) -> NDArray[np.float64]:
+def hour_to_day(
+    hourly_data: list[NDArray[np.float64]], output_statistic: str
+) -> NDArray[np.float64]:
     """Compute daily statistics from hourly input data.
 
     Args:
         hourly_data: Hourly input data
-        output_statistic: Output statistic, select "mean", "min" or "max"
+        output_statistic: Output statistic, select "mean", "min", "max", pr "sum
 
     Returns:
         Daily output statistics
     """
 
-    number_of_days = len(hourly_data) // 24
-    daily = np.zeros(number_of_days * 24)
+    num_days = len(hourly_data) // 24
+    daily = np.zeros_like(hourly_data)
 
-    for i in range(number_of_days):
-        daily_statistics = hourly_data[i * 24]
+    for i in range(num_days):
+        # Extract the 24-hour block for the current day
+        day_data = hourly_data[i * 24 : (i + 1) * 24]
 
         if output_statistic == "max":
-            for j in range(1, 24):
-                daily_statistics = max(daily_statistics, hourly_data[i * 24 + j])
+            daily_stat = np.max(day_data)
         elif output_statistic == "min":
-            for j in range(1, 24):
-                daily_statistics = min(daily_statistics, hourly_data[i * 24 + j])
+            daily_stat = np.min(day_data)
         elif output_statistic == "mean":
-            daily_statistics = sum(hourly_data[i * 24 : (i + 1) * 24]) / 24
+            daily_stat = np.mean(day_data)
+        elif output_statistic == "sum":
+            daily_stat = np.sum(day_data)
         else:
-            raise ValueError("Invalid statistic. Please use 'max', 'min', or 'mean'.")
+            raise ValueError(
+                "Invalid statistic. Please use 'max', 'min', 'mean', or 'sum."
+            )
 
-        # Fill daily with replicated values for each day
-        daily[i * 24 : (i + 1) * 24] = daily_statistics
+        # Replicate the daily statistic for each hour of the day
+        daily[i * 24 : (i + 1) * 24] = daily_stat
 
     return daily
 
 
 def hour_to_day_no_replication(
-    hourly_data: list[float],
+    hourly_data: list[NDArray[np.float64]],
     output_statistic: str,
-) -> list[float]:
+) -> NDArray[np.float64]:
     """Compute daily statistics from hourly input data without replicating 24 times.
 
     Args:
@@ -1348,22 +1445,23 @@ def hour_to_day_no_replication(
     Returns:
         List of daily output statistics
     """
-    number_of_days = len(hourly_data) // 24
-    daily = np.zeros(number_of_days)
+    num_days = len(hourly_data) // 24
+    if len(hourly_data) % 24 != 0:
+        raise ValueError("Hourly data length must be a multiple of 24")
 
-    for i in range(number_of_days):
-        daily_stat = hourly_data[i * 24]
+    daily = np.zeros(num_days)
+
+    for i in range(num_days):
+        day_data = hourly_data[i * 24 : (i + 1) * 24]
 
         if output_statistic == "max":
-            for j in range(1, 24):
-                daily_stat = max(daily_stat, hourly_data[i * 24 + j])
+            daily_stat = np.max(day_data)
         elif output_statistic == "min":
-            for j in range(1, 24):
-                daily_stat = min(daily_stat, hourly_data[i * 24 + j])
+            daily_stat = np.min(day_data)
         elif output_statistic == "mean":
-            daily_stat = sum(hourly_data[i * 24 : (i + 1) * 24]) / 24
+            daily_stat = np.mean(day_data)
         elif output_statistic == "sum":
-            daily_stat = sum(hourly_data[i * 24 : (i + 1) * 24])
+            daily_stat = np.sum(day_data)
         else:
             raise ValueError(
                 "Invalid statistic. Please use 'max', 'min', 'mean', or 'sum'."
@@ -1371,13 +1469,13 @@ def hour_to_day_no_replication(
 
         daily[i] = daily_stat
 
-    return daily.tolist()
+    return daily
 
 
 def calculate_moving_average(
-    values: list[float],
+    values: list[NDArray[np.float64]],
     window_size: int,
-) -> list[float]:
+) -> NDArray[np.float64]:
     """Compute the moving average of a list of values.
 
     Args:
@@ -1385,23 +1483,32 @@ def calculate_moving_average(
         window_size: Number of elements to include in the moving average
 
     Returns:
-        List of moving average values.
+        moving average values
     """
+
     number_of_values = len(values)
+    if window_size > number_of_values:
+        raise ValueError("Window size is larger than length of data set.")
+
     output = np.zeros(number_of_values)
 
     for i in range(number_of_values):
-        sum_values = 0.0
-        for j in range(window_size):
-            sum_values += values[(i - j + number_of_values) % number_of_values]
-        output[i] = sum_values / window_size
+        # Calculate the sum over the window with circular wrapping
+        sum_window = np.sum(
+            [
+                values[(i - j + number_of_values) % number_of_values]
+                for j in range(window_size)
+            ]
+        )
+        output[i] = sum_window / window_size
 
-    return output.tolist()
+    return output
 
 
 def calculate_yearly_moving_average(
-    hourly_values: list[float], window_size: int = 91
-) -> list[float]:
+    hourly_values: list[NDArray[np.float64]],
+    window_size: int,
+) -> NDArray[np.float64]:
     """Calculate the yearly moving average from hourly input data.
 
     Args:
@@ -1415,17 +1522,14 @@ def calculate_yearly_moving_average(
     num_days = len(hourly_values) // 24
     daily_means = np.zeros(num_days)
 
-    for day in range(num_days):
-        daily_sum = sum(hourly_values[day * 24 : (day + 1) * 24])
-        daily_means[day] = daily_sum / 24.0
+    daily_means = np.array(
+        [np.mean(hourly_values[i * 24 : (i + 1) * 24]) for i in range(num_days)]
+    )
 
     # Calculate moving average
-    moving_average_values = np.zeros(num_days)
-    for i in range(num_days):
-        rolling_sum = 0.0
-        for j in range(window_size):
-            rolling_sum += daily_means[(i - j + num_days) % num_days]
-        moving_average_values[i] = rolling_sum / window_size
+    moving_average_values = calculate_moving_average(
+        values=daily_means, window_size=window_size
+    )
 
     # Replicate moving average values for each hour of the day
     yearly_moving_average = []
@@ -1436,14 +1540,15 @@ def calculate_yearly_moving_average(
 
 
 def calculate_ground_heat_flux(
-    soil_surface_temperature: list[float],
-    soil_moisture: list[float],
+    soil_surface_temperature: list[NDArray[np.float64]],
+    soil_moisture: list[NDArray[np.float64]],
     bulk_density_soil: float,
     volumetric_mineral_content: float,
     volumetric_quartz_content: float,
     mass_fraction_clay: float,
+    window_size_yearly: int,
     calculate_yearly_flux: bool = True,
-) -> dict[str, NDArray[np.float64]]:
+) -> dict[str, list[float]]:
     """Calculate the ground heat flux, [W m-2].
 
     Args:
@@ -1455,272 +1560,147 @@ def calculate_ground_heat_flux(
         mass_fraction_clay: Mass fraction of clay
         calculate_yearly_flux: Flag to determine if yearly ground flux should be
             calculated.
+        window_size_yearly: Size of moving average window for annual averaging
 
     Returns:
         Dictionary containing ground heat flux, min/man ground heat flux
     """
 
-    # Time invariant variables for calculation of thermal conductivity Campbell (1986)
+    # Prepare output lists
+    ground_heat_flux_out = []
+    min_ground_heat_flux_out = []
+    max_ground_heat_flux_out = []
+
+    # Precompute time invariant variables for thermal conductivity calculation
     frs = volumetric_mineral_content + volumetric_quartz_content
     c1 = (
         0.57 + 1.73 * volumetric_quartz_content + 0.93 * volumetric_mineral_content
     ) / (
         1 - 0.74 * volumetric_quartz_content - 0.49 * volumetric_mineral_content
     ) - 2.8 * frs * (1 - frs)
-    c3 = 1 + 2.6 * (mass_fraction_clay**-0.5)
-    c4 = 0.03 + 0.7 * frs * frs
+    c3 = 1 + 2.6 * np.power(mass_fraction_clay, -0.5)
+    c4 = 0.03 + 0.7 * frs**2
     mu1 = 2400 * bulk_density_soil / 2.64
     mu2 = 1.06 * bulk_density_soil
 
-    # Calculate daily mean soil surface temperature
-    daily_mean_soil_surface_temperature = hour_to_day(
-        hourly_data=soil_surface_temperature, output_statistic="mean"
-    )
+    for temperature, moisture in zip(soil_surface_temperature, soil_moisture):
+        # Calculate daily mean soil surface temperature
+        daily_mean_soil_surface_temperature = hour_to_day(
+            hourly_data=temperature, output_statistic="mean"
+        )
 
-    # Initialize variables that need retaining
-    num_hours = len(soil_surface_temperature)
-    soil_diffusivity = np.zeros(num_hours)
-    daily_surface_temperature_fluctuations = np.zeros(num_hours)
-    thermal_conductivity = np.zeros(num_hours)
-    thermal_diffusivity = np.zeros(num_hours)
+        # Vectorize the number of hours
+        num_hours = len(temperature)
 
-    for i in range(num_hours):
-        # Find soil diffusivity
-        specific_heat_soil = mu1 + 4180 * soil_moisture[i]
+        # Prepare arrays
+        moisture_array = np.array(moisture)
+        temperature_array = np.array(temperature)
+
+        specific_heat_soil = mu1 + 4180 * moisture_array
         volumetric_density_soil = (
-            bulk_density_soil * (1 - soil_moisture[i]) + soil_moisture[i]
+            bulk_density_soil * (1 - moisture_array) + moisture_array
         ) * 1000
-        c2 = mu2 * soil_moisture[i]
-        thermal_conductivity[i] = (
-            c1
-            + c2 * soil_moisture[i]
-            - (c1 - c4) * np.exp(-((c3 * soil_moisture[i]) ** 4))
+        c2 = mu2 * moisture_array
+
+        # Calculate thermal conductivity
+        thermal_conductivity = (
+            c1 + c2 * moisture_array - (c1 - c4) * np.exp(-((c3 * moisture_array) ** 4))
         )
-        thermal_diffusivity[i] = thermal_conductivity[i] / (
-            specific_heat_soil * volumetric_density_soil
+
+        # Avoid division by zero when calculating thermal diffusivity
+        thermal_diffusivity = np.where(
+            specific_heat_soil * volumetric_density_soil != 0,
+            thermal_conductivity / (specific_heat_soil * volumetric_density_soil),
+            0.001,
         )
+
         daily_angular_frequency = (2 * np.pi) / (24 * 3600)
         diurnal_damping_depth = np.sqrt(
-            2 * thermal_diffusivity[i] / daily_angular_frequency
+            2 * thermal_diffusivity / daily_angular_frequency
         )
-        soil_diffusivity[i] = (
-            np.sqrt(2) * (thermal_conductivity[i] / diurnal_damping_depth) * 0.5
-        )
-
-        # Calculate temperature fluctuation from daily mean
-
-        daily_surface_temperature_fluctuations[i] = (
-            soil_surface_temperature[i] - daily_mean_soil_surface_temperature[i]
+        soil_diffusivity = (
+            np.sqrt(2) * (thermal_conductivity / diurnal_damping_depth) * 0.5
         )
 
-    # Calculate 6-hour moving average of soil_diffusivity and
-    # daily_surface_temperature_fluctuations to get 3-hour lag
-    daily_soil_diffusivity = calculate_moving_average(soil_diffusivity.tolist(), 6)
-    ground_heat_flux = calculate_moving_average(
-        daily_surface_temperature_fluctuations.tolist(), 6
-    )
-    ground_heat_flux = [
-        ground_heat_flux[i] * daily_soil_diffusivity[i] * 1.1171
-        for i in range(len(ground_heat_flux))
-    ]
-
-    min_ground_heat_flux = hour_to_day(
-        hourly_data=ground_heat_flux, output_statistic="min"
-    )
-    max_ground_heat_flux = hour_to_day(
-        hourly_data=ground_heat_flux, output_statistic="max"
-    )
-
-    # Apply min and max constraints
-    ground_heat_flux = [
-        max(ground_heat_flux[i], min_ground_heat_flux[i])
-        for i in range(len(ground_heat_flux))
-    ]
-    ground_heat_flux = [
-        min(ground_heat_flux[i], max_ground_heat_flux[i])
-        for i in range(len(ground_heat_flux))
-    ]
-
-    if calculate_yearly_flux:
-        # Calculate yearly moving averages of thermal_conductivity & thermal diffusivity
-        thermal_conductivity_yearly_moving_average = calculate_yearly_moving_average(
-            hourly_values=thermal_conductivity.tolist(), window_size=91
+        # Calculate temperature fluctuations
+        daily_surface_temperature_fluctuations = (
+            temperature_array - daily_mean_soil_surface_temperature
         )
-        thermal_diffusivity_moving_average = calculate_yearly_moving_average(
-            hourly_values=thermal_diffusivity.tolist(), window_size=91
+
+        # Calculate moving averages
+        daily_soil_diffusivity = calculate_moving_average(soil_diffusivity, 6)
+        ground_heat_flux_avg = calculate_moving_average(
+            daily_surface_temperature_fluctuations, 6
         )
-        yearly_soil_diffusivityy = np.zeros(num_hours)
-        for i in range(num_hours):
-            yearly_angular_frequency = (2 * np.pi) / (num_hours * 3600)
-            yearly_soil_diffusivityy[i] = (
-                np.sqrt(2)
-                * thermal_conductivity_yearly_moving_average[i]
-                / np.sqrt(
-                    2 * thermal_diffusivity_moving_average[i] / yearly_angular_frequency
+        ground_heat_flux = (
+            np.array(ground_heat_flux_avg) * np.array(daily_soil_diffusivity) * 1.1171
+        )
+
+        # Calculate min/max ground heat flux
+        min_ground_heat_flux = hour_to_day(ground_heat_flux, output_statistic="min")
+        max_ground_heat_flux = hour_to_day(ground_heat_flux, output_statistic="max")
+
+        # Apply min/max constraints
+        ground_heat_flux = np.clip(
+            ground_heat_flux, min_ground_heat_flux, max_ground_heat_flux
+        )
+
+        if calculate_yearly_flux:
+            # Calculate yearly moving averages
+            thermal_conductivity_yearly_moving_average = (
+                calculate_yearly_moving_average(
+                    thermal_conductivity, window_size=window_size_yearly
                 )
             )
-
-        # Calculate yearly mean soil surface temperature
-        yearly_mean_soil_surface_temperature = np.mean(
-            daily_mean_soil_surface_temperature
-        )
-        yearly_surface_temperature_fluctuations = [
-            daily_mean_soil_surface_temperature[i]
-            - yearly_mean_soil_surface_temperature
-            for i in range(num_hours)
-        ]
-        moving_average_yearly_surface_temperature_fluctuations = (
-            calculate_yearly_moving_average(
-                hourly_values=yearly_surface_temperature_fluctuations, window_size=91
+            thermal_diffusivity_moving_average = calculate_yearly_moving_average(
+                thermal_diffusivity, window_size=window_size_yearly
             )
-        )
-        ground_heat_flux = [
-            ground_heat_flux[i]
-            + moving_average_yearly_surface_temperature_fluctuations[i]
-            * yearly_soil_diffusivityy[i]
-            * 1.1171
-            for i in range(num_hours)
-        ]
+
+            yearly_angular_frequency = (2 * np.pi) / (num_hours * 3600)
+            yearly_soil_diffusivity = np.where(
+                thermal_diffusivity_moving_average != 0,
+                np.sqrt(2)
+                * np.array(thermal_conductivity_yearly_moving_average)
+                / np.sqrt(
+                    2
+                    * np.array(thermal_diffusivity_moving_average)
+                    / yearly_angular_frequency
+                ),
+                0.001,
+            )
+
+            yearly_mean_soil_surface_temperature = np.mean(
+                daily_mean_soil_surface_temperature
+            )
+            yearly_surface_temperature_fluctuations = (
+                daily_mean_soil_surface_temperature
+                - yearly_mean_soil_surface_temperature
+            )
+            moving_average_yearly_surface_temperature_fluctuations = (
+                calculate_yearly_moving_average(
+                    yearly_surface_temperature_fluctuations,
+                    window_size=window_size_yearly,
+                )
+            )
+            ground_heat_flux += (
+                moving_average_yearly_surface_temperature_fluctuations
+                * yearly_soil_diffusivity
+                * 1.1171
+            )
+
+        # Store results
+        ground_heat_flux_out.append(ground_heat_flux)
+        min_ground_heat_flux_out.append(min_ground_heat_flux)
+        max_ground_heat_flux_out.append(max_ground_heat_flux)
 
     return {
-        "ground_heat_flux": np.array(ground_heat_flux),
-        "min_ground_heat_flux": min_ground_heat_flux,
-        "max_ground_heat_flux": max_ground_heat_flux,
+        "ground_heat_flux": ground_heat_flux_out,
+        "min_ground_heat_flux": min_ground_heat_flux_out,
+        "max_ground_heat_flux": max_ground_heat_flux_out,
     }
 
 
-def weather_height_adjustment(
-    timestep: dict[str, int],
-    climate_data: dict[str, NDArray[np.float64]],
-    canopy_height: float,
-    plant_area_index: float,
-    reference_height_in: float,
-    wind_reference_height_in: float,
-    reference_height_out: float,
-    latitude: float,
-    longitude: float,
-    core_constants: CoreConsts,
-    abiotic_constants: AbioticConsts,
-    abiotic_simple_constants: AbioticSimpleConsts,
-) -> dict[str, NDArray[np.float64]]:
-    """Adjust height of climate input data."""
-
-    air_temperature = climate_data["temp"].values
-    relative_humidity = climate_data["relhum"].values
-    wind_speed = climate_data["windspeed"].values
-
-    vegetation_parameters = [0.12, 1, 1, 0.1, 0.4, 0.2, 0.05, 0.97, 0.33, 100.0]
-    ground_parameters = [
-        0.15,
-        0.0,
-        180.0,
-        0.97,
-        1.529643,
-        0.509,
-        0.06,
-        0.5422,
-        5.2,
-        -5.6,
-        0.419,
-        0.074,
-    ]
-    soil_moisture = np.full_like(
-        air_temperature, 0.2
-    )  # Initialize soilm with size and value 0.2
-
-    # Run point model
-    bigleaf = {
-        "air_temperature": np.full_like(air_temperature, 20.0)
-    }  # TODO insert function
-
-    # Extract things needed from list
-    psih = bigleaf["psih"]
-    bigleaf_air_temperature = bigleaf["air_temperature"]
-
-    # Define variables
-    adjusted_air_temperature = np.zeros_like(air_temperature)
-    adjusted_relative_humidity = np.zeros_like(air_temperature)
-    adjusted_wind_speed = np.zeros_like(air_temperature)
-
-    # Zero-plane displacement
-    zero_plane_displacement = calculate_zero_plane_displacement(
-        canopy_height=canopy_height,
-        plant_area_index=plant_area_index,
-        zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
-    )
-
-    for i, _ in enumerate(air_temperature):
-        roughness_length_momentum = calculate_roughness_length_momentum(
-            canopy_height=canopy_height,
-            plant_area_index=plant_area_index,
-            zero_plane_displacement=zero_plane_displacement,
-            diabatic_correction_heat=psih[i],
-            substrate_surface_drag_coefficient=(
-                abiotic_constants.substrate_surface_drag_coefficient
-            ),
-            drag_coefficient=abiotic_constants.drag_coefficient,
-            min_roughness_length=abiotic_constants.min_roughness_length,
-            von_karman_constant=core_constants.von_karmans_constant,
-        )
-        adjustment_height = (
-            abiotic_constants.drag_coefficient * roughness_length_momentum
-        )
-        log_profile_reference_height = np.log(
-            (reference_height_out - zero_plane_displacement) / adjustment_height
-        ) / np.log((reference_height_in - zero_plane_displacement) / adjustment_height)
-
-        # Temperature
-        adjusted_air_temperature[i] = (
-            bigleaf_air_temperature[i] - air_temperature[i]
-        ) * (1 - log_profile_reference_height) + air_temperature[i]
-
-        # Humidity
-        saturation_vapour_pressure_in = calculate_saturation_vapour_pressure(
-            air_temperature[i],
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
-        )
-        effective_vapour_pressure_air = (
-            saturation_vapour_pressure_in * relative_humidity[i] / 100
-        )
-        saturation_vapour_pressure_bigleaf = calculate_saturation_vapour_pressure(
-            bigleaf_air_temperature[i],
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
-        )
-        saturation_vapour_pressure_adjusted = effective_vapour_pressure_air + (
-            saturation_vapour_pressure_bigleaf - effective_vapour_pressure_air
-        ) * (1 - log_profile_reference_height)
-        saturation_vapour_pressure_adjusted = calculate_saturation_vapour_pressure(
-            adjusted_air_temperature[i],
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
-        )
-        adjusted_relative_humidity[i] = (
-            saturation_vapour_pressure_adjusted / saturation_vapour_pressure_bigleaf
-        ) * 100
-
-        # Wind speed
-        log_profile_wind_reference_height = np.log(
-            (reference_height_out - zero_plane_displacement) / roughness_length_momentum
-        ) / np.log(
-            (wind_reference_height_in - zero_plane_displacement)
-            / roughness_length_momentum
-        )
-        adjusted_wind_speed[i] = wind_speed[i] * log_profile_wind_reference_height
-
-    # Create a copy of climdata to avoid overwriting original input
-    climdata_copy = climate_data.copy()
-    climdata_copy["temp"] = adjusted_air_temperature
-    climdata_copy["relhum"] = adjusted_relative_humidity
-    climdata_copy["windspeed"] = adjusted_wind_speed
-
-    return climdata_copy
-
-
+#  UP TO HERE, ALL SHOULD WORK. CHECK TOP TO BOTTOM ASSUMPTIONS
 # # Big leaf model
 # def big_leaf_model(
 #     timestep: dict[str, int],
@@ -1746,8 +1726,10 @@ def weather_height_adjustment(
 #     TODO check how the iterations work re convergence and over a whole month
 #     TODO find out wat bwgt is
 #     TODO set typing to work with numpy arrays
-#     TODO check that functions run ok with numpy arrays, atm some of the if's will break
+#     TODO check that functions run ok with numpy arrays, atm some of if's will break
 #     TODO add tests
+#     TODO to numpy
+#     TODO check order (top to bottom)
 
 #     Args:
 #         timestep: Date and time
@@ -1757,7 +1739,7 @@ def weather_height_adjustment(
 #         soil_moisture: Soil moisture
 #         latitude: Latitude in degrees
 #         longitude: Longitude in degrees
-#         max_surface_air_temperature_difference: Maximum amount (degrees C) by which the
+#         max_surface_air_temperature_difference: Maximum amount (degrees C) by whichthe
 #             vegetation heat exchange surface of the canopy can exceed air temperature
 #         reference_height: Reference height, [m]
 #         max_iterations: Maximum number of iterations over which to run the model to
@@ -1852,7 +1834,7 @@ def weather_height_adjustment(
 #         plant_area_index=plant_area_index,
 #         zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
 #     )
-#     # Used to avoid (h-d)/zm being less than one, meaning log((h-d)/zm) becomes negative
+#  # Used to avoid (h-d)/zm being less than one, meaning log((h-d)/zm) becomes negative
 #     drag_limit = core_constants.von_karmans_constant / np.sqrt(
 #         abiotic_constants.substrate_surface_drag_coefficient
 #         + (abiotic_constants.drag_coefficient * plant_area_index) / 2
@@ -2001,7 +1983,7 @@ def weather_height_adjustment(
 #                 heat_conductivity=air_heat_conductivity,
 #                 vapour_conductivity=leaf_vapour_conductivity,
 #                 surface_temperature=air_temperature[i],  # ?
-#                 temperature_average_air_surface=temperature_average_air_canopy[i],  # ?
+#                 temperature_average_air_surface=temperature_average_air_canopy[i],
 #                 atmospheric_pressure=atmospheric_pressure[i],
 #                 effective_vapour_pressure_air=effective_vapour_pressure_air,
 #                 surface_emissivity=leaf_emissivity,
@@ -2038,7 +2020,7 @@ def weather_height_adjustment(
 #                 heat_conductivity=air_heat_conductivity,  # TODO micropoint uses gHa
 #                 vapour_conductivity=air_heat_conductivity,  # not sure why ??
 #                 surface_temperature=temperature_average_air_ground[i],  # ?
-#                 temperature_average_air_surface=temperature_average_air_canopy[i],  # ??
+#                 temperature_average_air_surface=temperature_average_air_canopy[i],
 #                 atmospheric_pressure=atmospheric_pressure[i],
 #                 effective_vapour_pressure_air=effective_vapour_pressure_air,
 #                 surface_emissivity=ground_emissivity,  # ??
@@ -2169,7 +2151,8 @@ def weather_height_adjustment(
 
 #             # Set limits to diabatic coefficients
 #             ln1 = np.log(
-#                 (reference_height - zero_plane_displacement) / roughness_length_momentum
+#                 (reference_height - zero_plane_displacement) /
+# roughness_length_momentum
 #             )
 #             ln2 = np.log(
 #                 (reference_height - zero_plane_displacement)
@@ -2221,3 +2204,779 @@ def weather_height_adjustment(
 #         "err": [tst],
 #         "albedo": absorbed_shortwave_radiation["albedo"],
 #     }
+
+
+# def weather_height_adjustment(
+#     timestep: dict[str, int],
+#     climate_data: dict[str, NDArray[np.float64]],
+#     canopy_height: float,
+#     plant_area_index: float,
+#     reference_height_in: float,
+#     wind_reference_height_in: float,
+#     reference_height_out: float,
+#     latitude: float,
+#     longitude: float,
+#     core_constants: CoreConsts,
+#     abiotic_constants: AbioticConsts,
+#     abiotic_simple_constants: AbioticSimpleConsts,
+# ) -> dict[str, NDArray[np.float64]]:
+#     """Adjust height of climate input data."""
+
+#     air_temperature = climate_data["temp"].values
+#     relative_humidity = climate_data["relhum"].values
+#     wind_speed = climate_data["windspeed"].values
+
+#     vegetation_parameters = [0.12, 1, 1, 0.1, 0.4, 0.2, 0.05, 0.97, 0.33, 100.0]
+#     ground_parameters = [
+#         0.15,
+#         0.0,
+#         180.0,
+#         0.97,
+#         1.529643,
+#         0.509,
+#         0.06,
+#         0.5422,
+#         5.2,
+#         -5.6,
+#         0.419,
+#         0.074,
+#     ]
+#     soil_moisture = np.full_like(
+#         air_temperature, 0.2
+#     )  # Initialize soilm with size and value 0.2
+
+#     # Run point model
+#     bigleaf = {
+#         "air_temperature": np.full_like(air_temperature, 20.0)
+#     }  # TODO insert function
+
+#     # Extract things needed from list
+#     psih = bigleaf["psih"]
+#     bigleaf_air_temperature = bigleaf["air_temperature"]
+
+#     # Define variables
+#     adjusted_air_temperature = np.zeros_like(air_temperature)
+#     adjusted_relative_humidity = np.zeros_like(air_temperature)
+#     adjusted_wind_speed = np.zeros_like(air_temperature)
+
+#     # Zero-plane displacement
+#     zero_plane_displacement = calculate_zero_plane_displacement(
+#         canopy_height=canopy_height,
+#         plant_area_index=plant_area_index,
+#         zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
+#     )
+
+#     for i, _ in enumerate(air_temperature):
+#         roughness_length_momentum = calculate_roughness_length_momentum(
+#             canopy_height=canopy_height,
+#             plant_area_index=plant_area_index,
+#             zero_plane_displacement=zero_plane_displacement,
+#             diabatic_correction_heat=psih[i],
+#             substrate_surface_drag_coefficient=(
+#                 abiotic_constants.substrate_surface_drag_coefficient
+#             ),
+#             drag_coefficient=abiotic_constants.drag_coefficient,
+#             min_roughness_length=abiotic_constants.min_roughness_length,
+#             von_karman_constant=core_constants.von_karmans_constant,
+#         )
+#         adjustment_height = (
+#             abiotic_constants.drag_coefficient * roughness_length_momentum
+#         )
+#         log_profile_reference_height = np.log(
+#             (reference_height_out - zero_plane_displacement) / adjustment_height
+#         ) / np.log((reference_height_in - zero_plane_displacement) /
+# adjustment_height)
+
+#         # Temperature
+#         adjusted_air_temperature[i] = (
+#             bigleaf_air_temperature[i] - air_temperature[i]
+#         ) * (1 - log_profile_reference_height) + air_temperature[i]
+
+#         # Humidity
+#         saturation_vapour_pressure_in = calculate_saturation_vapour_pressure(
+#             air_temperature[i],
+#             saturation_vapour_pressure_factors=(
+#                 abiotic_simple_constants.saturation_vapour_pressure_factors
+#             ),
+#         )
+#         effective_vapour_pressure_air = (
+#             saturation_vapour_pressure_in * relative_humidity[i] / 100
+#         )
+#         saturation_vapour_pressure_bigleaf = calculate_saturation_vapour_pressure(
+#             bigleaf_air_temperature[i],
+#             saturation_vapour_pressure_factors=(
+#                 abiotic_simple_constants.saturation_vapour_pressure_factors
+#             ),
+#         )
+#         saturation_vapour_pressure_adjusted = effective_vapour_pressure_air + (
+#             saturation_vapour_pressure_bigleaf - effective_vapour_pressure_air
+#         ) * (1 - log_profile_reference_height)
+#         saturation_vapour_pressure_adjusted = calculate_saturation_vapour_pressure(
+#             adjusted_air_temperature[i],
+#             saturation_vapour_pressure_factors=(
+#                 abiotic_simple_constants.saturation_vapour_pressure_factors
+#             ),
+#         )
+#         adjusted_relative_humidity[i] = (
+#             saturation_vapour_pressure_adjusted / saturation_vapour_pressure_bigleaf
+#         ) * 100
+
+#         # Wind speed
+#         log_profile_wind_reference_height = np.log(
+#          (reference_height_out - zero_plane_displacement) / roughness_length_momentum
+#         ) / np.log(
+#             (wind_reference_height_in - zero_plane_displacement)
+#             / roughness_length_momentum
+#         )
+#         adjusted_wind_speed[i] = wind_speed[i] * log_profile_wind_reference_height
+
+#     # Create a copy of climdata to avoid overwriting original input
+#     climdata_copy = climate_data.copy()
+#     climdata_copy["temp"] = adjusted_air_temperature
+#     climdata_copy["relhum"] = adjusted_relative_humidity
+#     climdata_copy["windspeed"] = adjusted_wind_speed
+
+#     return climdata_copy
+
+
+def calculate_soil_moisture(
+    air_temperature: NDArray[np.float64],
+    shortwave_radiation_down: NDArray[np.float64],
+    longwave_radiation_down: NDArray[np.float64],
+    precipitation: NDArray[np.float64],
+    infiltration_rate: float,
+    evaporation_rate: float,
+    pwr: float,
+    soil_moisture_capacity: float,
+    soil_moisture_residual: float,
+    saturated_hydraulic_conductivity: float,
+    a: float,
+) -> NDArray[np.float64]:
+    """Simple soil moisture bucket model.
+
+    Similar but simpler to our hydrology model, can be replaced, works on daily basis.
+    TODO where is the initial soil moisture value?
+
+    Args:
+        air_temperature: Air temperature, [C]
+        shortwave_radiation_down: Shortwave downward radiation, [W m-2]
+        longwave_radiation_down: Longwave downward radiation, [W m-2]
+        precipitation: Precipitation, [mm]
+        infiltration_rate: Factor that affects infiltration of water in topsoil
+        evaporation_rate: Factor that affects evaporation from topsoil
+        pwr: Parameter in calculation of hydraulic conductivity
+        soil_moisture_capacity: Soil moisture capacity, vol
+        soil_moisture_residual: Soil moisture residual, vol
+        saturated_hydraulic_conductivity: float,
+        a: Parameter in calculation of soil moisture distribution
+
+    Returns:
+        soil moisture for two layers, vol
+    """
+
+    # Calculate net radiation
+    shortwave_radiation = (1 - 0.15) * shortwave_radiation_down
+    longwave_radiation_out = (
+        5.67 * 10**-8 * 0.95 * np.power(air_temperature + 273.15, 4)
+    )
+    longwave_net_radiation = longwave_radiation_out - longwave_radiation_down
+    net_radiation = np.maximum(shortwave_radiation - longwave_net_radiation, 0)
+
+    # Convert to daily values
+    daily_net_radiation = hour_to_day(net_radiation, "mean")
+    daily_precipitation = hour_to_day(precipitation, "sum")
+
+    # Run soil model
+    soil_moisture = np.zeros_like(daily_precipitation)
+    top_soil_layer = soil_moisture_capacity
+    lowertop_soil_layer = soil_moisture_capacity
+    soil_moisture[0] = soil_moisture_capacity
+
+    for i in range(1, len(daily_precipitation)):
+        average_saturation = (top_soil_layer + lowertop_soil_layer) / 2
+        saturation_difference = lowertop_soil_layer - top_soil_layer
+        top_soil_layer = (
+            top_soil_layer
+            + infiltration_rate * daily_precipitation[i]
+            - evaporation_rate * daily_net_radiation[i]
+        )
+        hydraulic_conductivity = saturated_hydraulic_conductivity * np.power(
+            average_saturation / soil_moisture_capacity, pwr
+        )
+        top_soil_layer = (
+            top_soil_layer + a * hydraulic_conductivity * saturation_difference
+        )
+        lowertop_soil_layer = (
+            lowertop_soil_layer
+            - (a * hydraulic_conductivity * saturation_difference) / 10
+        )
+
+        # Enforce bounds
+        top_soil_layer = np.clip(
+            top_soil_layer, soil_moisture_residual, soil_moisture_capacity
+        )
+        lowertop_soil_layer = np.clip(
+            lowertop_soil_layer, soil_moisture_residual, soil_moisture_capacity
+        )
+
+        soil_moisture[i] = (top_soil_layer + lowertop_soil_layer) / 2
+
+    return soil_moisture
+
+
+# THE FOLLOWING IS NOT TESTED
+def calculate_shortwave_radiation_below_canopy(
+    latitude: NDArray[np.float64],
+    longitude: NDArray[np.float64],
+    year: int,
+    month: int,
+    day: int,
+    local_time: float,
+    required_height: NDArray[np.float64],
+    canopy_height: NDArray[np.float64],
+    plant_area_index_profile: NDArray[np.float64],
+    leaf_orientation_coefficient: float,
+    leaf_reluctance_shortwave: float,
+    leaf_transmittance_shortwave: float,
+    leaf_reluctance_shortwave_par: float,
+    leaf_transmittance_shortwave_par: float,
+    clumping_factor: float,
+    ground_reflectance: float,
+    slope: NDArray[np.float64],
+    aspect: NDArray[np.float64],
+    shortwave_radiation_down: NDArray[np.float64],
+    diffuse_radiation_down: NDArray[np.float64],
+):
+    """Calculate shortwavre radiation below canopy, small leaf model.
+
+    TODO to numpy
+    TODO avoid division by zero
+    TODO reverse order
+    TODO some of the parameters might be plant community and grid cell specific
+    TODO check the other functions, there seems to be a lot of repetition, break out
+    TODO add test
+
+    """
+    # Create output variables
+    n_layers = len(plant_area_index_profile)
+    absorbed_shortwave_radiation = np.zeros(n_layers)
+    par = np.zeros(n_layers)
+    downward_direct = np.zeros(n_layers)
+    downward_diffuse = np.zeros(n_layers)
+    upward_diffuse = np.zeros(n_layers)
+
+    if shortwave_radiation_down > 0:
+        # Calculate heights and cumulative plant area index
+        mindif = canopy_height
+        whichz = 0
+        z = np.zeros(n_layers)
+        paic = np.zeros(n_layers)
+        paic[0] = plant_area_index_profile[0]
+        nn = n_layers
+        z[0] = (1 / nn) * canopy_height
+
+        for i in range(1, n_layers):
+            z[i] = ((i + 1) / nn) * canopy_height
+            paic[i] = paic[i - 1] + plant_area_index_profile[i]
+            newdif = abs(z[i] - required_height)
+            if newdif < mindif:
+                whichz = i
+                mindif = newdif
+
+        z[whichz] = required_height
+
+        # Calculate and adjust plant area index, TODO note inverted order of layers
+        adjusted_plant_area_index = paic[-1] / (1 - clumping_factor)
+
+        # Calculate additional variables
+        scattering_albedo = leaf_reluctance_shortwave + leaf_transmittance_shortwave
+        scatter_absorption_coefficient = 1 - scattering_albedo
+        delta_reflectance_transmittance = (
+            leaf_reluctance_shortwave - leaf_transmittance_shortwave
+        )
+
+        # Calculate mean_inclination_angle where leaf orientation coefficient not = 1.0
+        mean_inclination_angle_full = np.where(
+            leaf_orientation_coefficient != 1.0,
+            9.65 * np.power((3 + leaf_orientation_coefficient), -1.65),
+            1.0 / 3.0,  # note: value from micropoint
+        )
+
+        # Clip mean_inclination_angle values to be at most π/2
+        mean_inclination_angle = np.minimum(mean_inclination_angle_full, np.pi / 2)
+
+        # Calculate inclination distribution
+        inclination_distribution = np.cos(mean_inclination_angle) ** 2
+
+        backward_scattering_coefficient = 0.5 * (
+            scattering_albedo
+            + inclination_distribution * delta_reflectance_transmittance
+        )
+        diffuse_scattering_coefficient = np.sqrt(
+            scatter_absorption_coefficient**2
+            + 2 * scatter_absorption_coefficient * backward_scattering_coefficient
+        )
+
+        # Calculate additional variables for PAR
+        scattering_albedo_par = (
+            leaf_reluctance_shortwave_par + leaf_transmittance_shortwave_par
+        )
+        scatter_absorption_coefficient_par = 1 - scattering_albedo_par
+        delta_reflectance_transmittance_par = (
+            leaf_reluctance_shortwave_par - leaf_transmittance_shortwave_par
+        )
+
+        backward_scattering_coefficient_par = 0.5 * (
+            scattering_albedo_par
+            + inclination_distribution * delta_reflectance_transmittance_par
+        )
+        diffuse_scattering_coefficient_par = np.sqrt(
+            scatter_absorption_coefficient_par**2
+            + 2
+            * scatter_absorption_coefficient_par
+            * backward_scattering_coefficient_par
+        )
+
+        # Calculate solar position
+        solar_position = calculate_solar_position(
+            latitude=latitude,
+            longitude=longitude,
+            year=year,
+            month=month,
+            day=day,
+            local_time=local_time,
+        )
+        zenith, azimuth = solar_position
+        solar_index = calculate_solar_index(
+            slope=slope, aspect=aspect, zenith=zenith, azimuth=azimuth
+        )
+        zenith = min(zenith, 90.0)
+
+        # Calculate two-stream parameters (diffuse)
+        diffuse_radiation_parameters = calculate_diffuse_radiation_parameters(
+            adjusted_plant_area_index=adjusted_plant_area_index,
+            scatter_absorption_coefficient=scatter_absorption_coefficient,
+            backward_scattering_coefficient=backward_scattering_coefficient,
+            diffuse_scattering_coefficient=diffuse_scattering_coefficient,
+            ground_reflectance=ground_reflectance,
+        )
+
+        diffuse_radiation_parameters_par = calculate_diffuse_radiation_parameters(
+            adjusted_plant_area_index=adjusted_plant_area_index,
+            scatter_absorption_coefficient=scatter_absorption_coefficient_par,
+            backward_scattering_coefficient=backward_scattering_coefficient_par,
+            diffuse_scattering_coefficient=diffuse_scattering_coefficient_par,
+            ground_reflectance=ground_reflectance,
+        )
+
+        # Canopy extinction coefficient
+        kp = calculate_canopy_extinction_coefficients(
+            solar_zenith_angle=zenith,
+            leaf_inclination_angle_coefficient=leaf_orientation_coefficient,
+            solar_index=solar_index,
+        )
+        k, kd, k0 = kp[0], kp[1], kp[2]
+        kc = kd / k0
+
+        # Calculate two-stream parameters (direct)
+        sigma = (
+            kd**2
+            + backward_scattering_coefficient**2
+            - (scatter_absorption_coefficient + backward_scattering_coefficient) ** 2
+        )
+        sigma_par = (
+            kd**2
+            + backward_scattering_coefficient_par**2
+            - (scatter_absorption_coefficient_par + backward_scattering_coefficient_par)
+            ** 2
+        )
+
+        direct_radiation_parameters = calculate_direct_radiation_parameters(
+            adjusted_plant_area_index=adjusted_plant_area_index,
+            scattering_albedo=scattering_albedo,
+            scatter_absorption_coefficient=scatter_absorption_coefficient,
+            backward_scattering_coefficient=backward_scattering_coefficient,
+            diffuse_scattering_coefficient=diffuse_scattering_coefficient,
+            ground_reflectance=ground_reflectance,
+            inclination_distribution=inclination_distribution,
+            delta_reflectance_transmittance=delta_reflectance_transmittance,
+            extinction_coefficient_k=k,
+            extinction_coefficient_kd=kd,
+            sigma=sigma,
+        )
+        direct_radiation_parameters_par = calculate_direct_radiation_parameters(
+            adjusted_plant_area_index,
+            scattering_albedo_par,
+            scatter_absorption_coefficient_par,
+            backward_scattering_coefficient_par,
+            diffuse_scattering_coefficient=diffuse_scattering_coefficient_par,
+            ground_reflectance=ground_reflectance,
+            inclination_distribution=inclination_distribution,
+            delta_reflectance_transmittance=delta_reflectance_transmittance_par,
+            extinction_coefficient_k=k,
+            extinction_coefficient_kd=kd,
+            sigma=sigma_par,
+        )
+
+        # Direct beam above canopy
+        direct_beam_above_canopy = (
+            shortwave_radiation_down - diffuse_radiation_down
+        ) / np.cos(zenith * np.pi / 180)
+
+        # Extract two-stream parameters
+        p1, p2, p3, p4 = diffuse_radiation_parameters
+        p5, p6, p7, p8, p9, p10 = direct_radiation_parameters
+        p1_par, p2_par, p3_par, p4_par = diffuse_radiation_parameters_par
+        p5_par, p6_par, p7_par, p8_par, p9_par, p10_par = (
+            direct_radiation_parameters_par
+        )
+
+        # Iterate through to calculate radiation for each canopy element
+        for i in range(n_layers):
+            paia = adjusted_plant_area_index - paic[i]
+            # Adjust for clumping factor
+            n = (canopy_height - z[i]) / canopy_height
+            n = max(n, 1 / (nn * 2))
+            paia /= 1 - clumping_factor * n
+            # transmission through canopy gaps (direct)
+            direct_transmission_gaps = clumping_factor ** (kc * n)
+            # transmission through canopy gaps (diffuse)
+            diffuse_transmission_gaps = clumping_factor ** (2 * n)
+
+            # Shortwave contributions
+            # Contribution of direct to downward diffuse
+            contribution_direct_to_downward_diffuse = (
+                (1 - direct_transmission_gaps)
+                * (
+                    (p8 / sigma) * np.exp(-kd * paia)
+                    + p9 * np.exp(-diffuse_scattering_coefficient * paia)
+                    + p10 * np.exp(diffuse_scattering_coefficient * paia)
+                )
+                + direct_transmission_gaps
+            ) * direct_beam_above_canopy
+            contribution_direct_to_downward_diffuse = max(
+                0,
+                min(contribution_direct_to_downward_diffuse, direct_beam_above_canopy),
+            )
+
+            #  Contribution of direct to upward diffuse
+            contribution_direct_to_upward_diffuse = (
+                (1 - direct_transmission_gaps)
+                * (
+                    (p5 / sigma) * np.exp(-kd * paia)
+                    + p6 * np.exp(-diffuse_scattering_coefficient * paia)
+                    + p7 * np.exp(diffuse_scattering_coefficient * paia)
+                )
+            ) * direct_beam_above_canopy
+            contribution_direct_to_upward_diffuse = max(
+                0, min(contribution_direct_to_upward_diffuse, direct_beam_above_canopy)
+            )
+
+            # Downward diffuse
+            downward_diffuse[i] = (
+                (1 - diffuse_transmission_gaps)
+                * (
+                    p3 * np.exp(-diffuse_scattering_coefficient * paia)
+                    + p4 * np.exp(diffuse_scattering_coefficient * paia)
+                )
+                + diffuse_transmission_gaps
+            ) * diffuse_radiation_down + contribution_direct_to_downward_diffuse
+
+            # Upward diffuse
+            upward_diffuse[i] = (
+                (1 - diffuse_transmission_gaps)
+                * (
+                    p1 * np.exp(-diffuse_scattering_coefficient * paia)
+                    + p2 * np.exp(diffuse_scattering_coefficient * paia)
+                )
+                + diffuse_transmission_gaps
+            ) * diffuse_radiation_down + contribution_direct_to_upward_diffuse
+
+            # Downward direct
+            downward_direct[i] = (
+                (1 - direct_transmission_gaps) * (np.exp(-kd * paia))
+                + direct_transmission_gaps
+            ) * direct_beam_above_canopy
+
+            # Absorbed shortwave radiation
+            sil = k * np.cos(zenith * np.pi / 180)
+            swupper = (1 - leaf_reluctance_shortwave) * (
+                downward_diffuse[i] + sil * downward_direct[i]
+            )
+            swunder = (1 - leaf_reluctance_shortwave) * upward_diffuse[i]
+            absorbed_shortwave_radiation[i] = 0.5 * (swupper + swunder)
+
+            # PAR contributions
+            contribution_direct_to_downward_diffuse_par = (
+                (1 - direct_transmission_gaps)
+                * (
+                    (p8_par / sigma_par) * np.exp(-kd * paia)
+                    + p9_par * np.exp(-diffuse_scattering_coefficient_par * paia)
+                    + p10_par * np.exp(diffuse_scattering_coefficient_par * paia)
+                )
+                + direct_transmission_gaps
+            ) * direct_beam_above_canopy
+            contribution_direct_to_downward_diffuse_par = max(
+                0,
+                min(
+                    contribution_direct_to_downward_diffuse_par,
+                    direct_beam_above_canopy,
+                ),
+            )
+
+            contribution_direct_to_upward_diffuse_par = (
+                (1 - direct_transmission_gaps)
+                * (
+                    (p5_par / sigma_par) * np.exp(-kd * paia)
+                    + p6_par * np.exp(-diffuse_scattering_coefficient_par * paia)
+                    + p7_par * np.exp(diffuse_scattering_coefficient_par * paia)
+                )
+            ) * direct_beam_above_canopy
+            contribution_direct_to_upward_diffuse_par = max(
+                0,
+                min(
+                    contribution_direct_to_upward_diffuse_par, direct_beam_above_canopy
+                ),
+            )
+
+            # Downward diffuse
+            downward_diffuse_par = (
+                (1 - diffuse_transmission_gaps)
+                * (
+                    p3_par * np.exp(-diffuse_scattering_coefficient_par * paia)
+                    + p4_par * np.exp(diffuse_scattering_coefficient_par * paia)
+                )
+                + diffuse_transmission_gaps
+            ) * diffuse_radiation_down + contribution_direct_to_downward_diffuse_par
+
+            # Upward diffuse
+            upward_diffuse_par = (
+                (1 - diffuse_transmission_gaps)
+                * (
+                    p1_par * np.exp(-diffuse_scattering_coefficient_par * paia)
+                    + p2_par * np.exp(diffuse_scattering_coefficient_par * paia)
+                )
+                + diffuse_transmission_gaps
+            ) * diffuse_radiation_down + contribution_direct_to_upward_diffuse_par
+
+            # Absorbed radiation for PAR
+            par_upper = (1 - leaf_reluctance_shortwave_par) * (
+                downward_diffuse_par + sil * downward_direct[i]
+            )
+            par_under = (1 - leaf_reluctance_shortwave_par) * upward_diffuse_par
+            par[i] = 0.5 * (par_upper + par_under)
+
+    return {
+        "absorbed_shortwave_radiation": absorbed_shortwave_radiation,
+        "par": par,
+        "Rdirdown": downward_direct,
+        "diffuse_radiation_downdown": downward_diffuse,
+        "shortwave_radiation_up": upward_diffuse,
+    }
+
+
+# from here tested again
+def calculate_longwave_radiation_weights(
+    plant_area_index_profile: NDArray[np.float64],
+) -> dict[str, NDArray[np.float64]]:
+    """Calculate weights for longwave radiation through the canopy.
+
+    TODO the order or layers is bottom to top, needs to be
+
+    Args:
+        plant_area_index_profile: Plant area index for each canopt layer, [m2 m-2]
+
+    Returns:
+        transmission factors (trg, trh) and weights (wgt)
+    """
+
+    # Assuming input is a 2D array with shape (n_grid_cells, n_vertical_layers)
+    n = plant_area_index_profile.shape[1]  # Number of vertical layers
+
+    # Initialize paib (cumulative PAI across vertical layers) and paia
+    paib = np.zeros((plant_area_index_profile.shape[0], n))
+    paib[:, 0] = plant_area_index_profile[
+        :, 0
+    ]  # First vertical layer for each grid cell
+    for i in range(1, n):
+        paib[:, i] = paib[:, i - 1] + plant_area_index_profile[:, i]
+
+    # pait is the total PAI across all vertical layers for each grid cell
+    pait = paib[:, -1]
+
+    # paia is the complement of paib (i.e., total PAI minus cumulative PAI)
+    paia = np.zeros_like(paib)
+    for i in range(n):
+        paia[:, i] = pait - paib[:, i]
+
+    # Initialize transmission matrix tr (n x n for each grid cell)
+    tr = np.zeros((plant_area_index_profile.shape[0], n, n))
+    for i in range(n):
+        for j in range(n):
+            pai_diff = np.zeros(plant_area_index_profile.shape[0])
+            if i > j:
+                pai_diff = paib[:, i] - paib[:, j]
+            elif i < j:
+                pai_diff = paia[:, i] - paia[:, j]
+            tr[:, i, j] = np.exp(-pai_diff)
+
+    # Calculate total weighting from foliage should be
+    trg = np.exp(-paib)
+    trh = np.exp(-paia)
+
+    # Calculate weights matrix wgt
+    wgt = np.zeros_like(tr)
+    for i in range(n):
+        xx = np.zeros_like(plant_area_index_profile)
+        sum_xx = np.zeros(plant_area_index_profile.shape[0])
+        for j in range(n):
+            xx[:, j] = tr[:, i, j] * plant_area_index_profile[:, j]
+            sum_xx += xx[:, j]
+
+        for j in range(n):
+            wgt[:, i, j] = xx[:, j] / sum_xx
+
+    return {"trg": trg, "trh": trh, "wgt": wgt}
+
+
+def calculate_longwave_radiation_below_canopy(
+    plant_area_index_profile: NDArray[np.float64],
+    longwave_radiation_down: NDArray[np.float64],
+    ground_temperature: NDArray[np.float64],
+    ground_emissivity: float,
+    vegetation_emissivity: float,
+    leaf_temperature: NDArray[np.float64],
+    stefan_boltzmann_constant: float,
+) -> dict[str, NDArray[np.float64]]:
+    """Calculate longwave radiation below canopy.
+
+    Args:
+        plant_area_index_profile: Plant area index for each canopy layer, [m2 m-2]
+        longwave_radiation_down: Longwave downward radiation, [W m-2]
+        ground_temperature: Ground temperature, [C]
+        ground_emissivity: Ground emissivity, unitless
+        vegetation_emissivity: Vegetation emissivity, unitless
+        leaf_temperature: Leaf temperature for each canopy layer, [C]
+        stefan_boltzmann_constant: Stefan Boltzmann constant
+
+    Returns:
+        upward and downward longwave radiation below canopy, [W m-2]
+    """
+
+    num_cells, num_layers = plant_area_index_profile.shape
+    lwupper = np.zeros((num_cells, num_layers))
+    lwunder = np.zeros((num_cells, num_layers))
+    # Calculate longwave radiation weights
+    wgts = calculate_longwave_radiation_weights(
+        plant_area_index_profile=plant_area_index_profile
+    )
+    for cell in range(num_cells):
+        for layer in range(num_layers):
+            longwave_sky = longwave_radiation_down[cell] * wgts["trh"][cell, layer]
+            longwave_ground = (
+                ground_emissivity
+                * stefan_boltzmann_constant
+                * wgts["trg"][cell, layer]
+                * (ground_temperature[cell] + 273.15) ** 4
+            )
+
+            smd = np.sum(wgts["wgt"][cell, layer, layer:])  # Sum from layer to n
+            smu = np.sum(wgts["wgt"][cell, layer, : layer + 1])  # Sum from 0 to layer
+
+            mua = 1.0 / smd if smd > 0 else 1.0
+            mub = 1.0 / smu if smu > 0 else 1.0
+
+            # Calculate weighted longwave radiation for foliage
+            lwfd = np.sum(
+                wgts["wgt"][cell, layer, layer:]
+                * stefan_boltzmann_constant
+                * (leaf_temperature[cell, layer:] + 273.15) ** 4
+            )
+            lwfu = np.sum(
+                wgts["wgt"][cell, layer, : layer + 1]
+                * stefan_boltzmann_constant
+                * (leaf_temperature[cell, : layer + 1] + 273.15) ** 4
+            )
+
+            # Aggregate results across layers
+            lwupper[cell, layer] += (
+                longwave_sky
+                + (1 - wgts["trh"][cell, layer]) * lwfd * mua * vegetation_emissivity
+            )
+            lwunder[cell, layer] += (
+                longwave_ground
+                + (1 - wgts["trg"][cell, layer]) * lwfu * mub * vegetation_emissivity
+            )
+
+    # Average over layers for final output
+    lwupper_mean = np.mean(lwupper, axis=1)
+    lwunder_mean = np.mean(lwunder, axis=1)
+
+    return {
+        "longwave_radiation_down": lwupper_mean,
+        "longwave_radiation_up": lwunder_mean,
+    }
+
+
+def calculate_canopy_wind(
+    canopy_height: NDArray[np.float64],
+    plant_area_index_profile: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Calculate canopy wind.
+
+    Args:
+        canopy_height: Canopy height, [m]
+        plant_area_index_profile: Vertical profile of plant area index, [m2 m-2]
+
+    Returns:
+        wind speed, [m s-1]
+    """
+
+    num_cells, num_layers = plant_area_index_profile.shape
+    wind_profile = np.ones((num_cells, num_layers))
+
+    for i in range(num_cells):
+        # Step 1: Calculate whole canopy attenuation coefficient for this grid cell
+        plant_area_index_sum = np.sum(plant_area_index_profile[i, :])
+        beta = 0.205 * np.power(plant_area_index_sum, 0.445) + 0.1
+        a = plant_area_index_sum / canopy_height[i]
+        canopy_factor = np.power(0.25 * a, -1)
+        mixing_length = 2 * np.power(beta, 3) * canopy_factor
+        attenuation_coefficient = beta * canopy_height[i] / mixing_length
+
+        # Step 2: Calculate attenuation coefficient for each vertical layer in this cell
+        attenuation_coefficient_i = np.zeros(num_layers)
+        sum_attenuation_coefficient_i = 0
+        for j in range(num_layers):
+            beta_i = 0.205 * np.power(plant_area_index_profile[i, j], 0.445) + 0.1
+            a_i = plant_area_index_profile[i, j] / canopy_height[i]
+            canopy_factor_i = np.power(0.25 * a_i, -1)
+            mixing_length_i = 2 * np.power(beta_i, 3) * canopy_factor_i
+            attenuation_coefficient_i[j] = beta_i * canopy_height[i] / mixing_length_i
+            sum_attenuation_coefficient_i += attenuation_coefficient_i[j]
+
+        # Step 3: Adjust attenuation coefficient for this grid cell
+        attenuation_coefficient_i /= sum_attenuation_coefficient_i
+        attenuation_coefficient_i *= attenuation_coefficient
+
+        # Step 4: Calculate canopy wind shelter coefficient
+        n2 = np.trunc(num_layers / 10).astype(int)
+        for j in range(num_layers - 1, n2, -1):
+            wind_profile[i, j - 1] = wind_profile[i, j] * (
+                1 - attenuation_coefficient_i[j - 1]
+            )
+
+        # Step 5: Calculate bottom 10% of the wind profile
+        roughness_length = canopy_height[i] / (20.0 * n2)
+        for j in range(n2):
+            z2 = (j + 1) * canopy_height[i] / (10 * n2)
+            uf = (0.4 * wind_profile[i, n2 - 1]) / np.log(
+                canopy_height[i] / (10 * roughness_length)
+            )
+            wind_profile[i, j] = (uf / 0.4) * np.log(z2 / roughness_length)
+
+    return wind_profile  # return values need to be transposed i think
+
+
+# fluxes
+# LangrangianOne
