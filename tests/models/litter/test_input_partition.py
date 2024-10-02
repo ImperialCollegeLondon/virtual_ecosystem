@@ -9,12 +9,17 @@ from tests.conftest import log_check
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
-def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
-    """Test that function to calculate metabolic input proportions works as expected."""
+def test_input_partition_initialisation(dummy_litter_data):
+    """Test that the InputPartition class initialises as expected."""
+    from virtual_ecosystem.models.litter.input_partition import InputPartition
 
-    from virtual_ecosystem.models.litter.input_partition import (
-        calculate_metabolic_proportions_of_input,
-    )
+    input_partition = InputPartition(dummy_litter_data)
+
+    assert input_partition.data == dummy_litter_data
+
+
+def test_calculate_metabolic_proportions_of_input(input_partition):
+    """Test that function to calculate metabolic input proportions works as expected."""
 
     expected_proportions = {
         "leaves": [0.812403025, 0.640197595, 0.424077745, 0.0089426731],
@@ -22,22 +27,7 @@ def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
         "roots": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
     }
 
-    actual_proportions = calculate_metabolic_proportions_of_input(
-        leaf_turnover_lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
-        reproduct_turnover_lignin_proportion=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_lignin"
-        ],
-        root_turnover_lignin_proportion=dummy_litter_data["root_turnover_lignin"],
-        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
-        reproduct_turnover_c_n_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_n_ratio"
-        ],
-        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
-        leaf_turnover_c_p_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"],
-        reproduct_turnover_c_p_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_p_ratio"
-        ],
-        root_turnover_c_p_ratio=dummy_litter_data["root_turnover_c_p_ratio"],
+    actual_proportions = input_partition.calculate_metabolic_proportions_of_input(
         constants=LitterConsts,
     )
 
@@ -47,12 +37,8 @@ def test_calculate_metabolic_proportions_of_input(dummy_litter_data):
         assert np.allclose(actual_proportions[key], expected_proportions[key])
 
 
-def test_partion_plant_inputs_between_pools(dummy_litter_data, metabolic_splits):
+def test_partion_plant_inputs_between_pools(input_partition, metabolic_splits):
     """Check function to partition inputs into litter pools works as expected."""
-
-    from virtual_ecosystem.models.litter.input_partition import (
-        partion_plant_inputs_between_pools,
-    )
 
     expected_woody = [0.075, 0.099, 0.063, 0.033]
     expected_above_meta = [0.02447376, 0.00644323, 0.01102713, 0.00340132]
@@ -60,11 +46,7 @@ def test_partion_plant_inputs_between_pools(dummy_litter_data, metabolic_splits)
     expected_below_meta = [0.01588666, 0.00797100, 0.00015073, 0.01021211]
     expected_below_struct = [0.01111334, 0.013029, 0.00014927, 0.01468789]
 
-    actual_splits = partion_plant_inputs_between_pools(
-        deadwood_production=dummy_litter_data["deadwood_production"],
-        leaf_turnover=dummy_litter_data["leaf_turnover"],
-        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
-        root_turnover=dummy_litter_data["root_turnover"],
+    actual_splits = input_partition.partion_plant_inputs_between_pools(
         metabolic_splits=metabolic_splits,
     )
 

@@ -126,53 +126,22 @@ def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_poo
 
 
 @pytest.fixture
-def metabolic_splits(dummy_litter_data):
+def metabolic_splits(input_partition):
     """Metabolic splits for the various plant inputs."""
 
-    from virtual_ecosystem.models.litter.input_partition import (
-        calculate_metabolic_proportions_of_input,
-    )
-
-    metabolic_splits = calculate_metabolic_proportions_of_input(
-        leaf_turnover_lignin_proportion=dummy_litter_data[
-            "leaf_turnover_lignin"
-        ].to_numpy(),
-        reproduct_turnover_lignin_proportion=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_lignin"
-        ].to_numpy(),
-        root_turnover_lignin_proportion=dummy_litter_data[
-            "root_turnover_lignin"
-        ].to_numpy(),
-        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"].to_numpy(),
-        reproduct_turnover_c_n_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_n_ratio"
-        ].to_numpy(),
-        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"].to_numpy(),
-        leaf_turnover_c_p_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"].to_numpy(),
-        reproduct_turnover_c_p_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_p_ratio"
-        ].to_numpy(),
-        root_turnover_c_p_ratio=dummy_litter_data["root_turnover_c_p_ratio"].to_numpy(),
-        constants=LitterConsts,
+    metabolic_splits = input_partition.calculate_metabolic_proportions_of_input(
+        constants=LitterConsts
     )
 
     return metabolic_splits
 
 
 @pytest.fixture
-def plant_inputs(dummy_litter_data, metabolic_splits):
+def plant_inputs(input_partition, metabolic_splits):
     """Plant inputs to each of the litter pools."""
 
-    from virtual_ecosystem.models.litter.input_partition import (
-        partion_plant_inputs_between_pools,
-    )
-
-    plant_inputs = partion_plant_inputs_between_pools(
-        deadwood_production=dummy_litter_data["deadwood_production"],
-        leaf_turnover=dummy_litter_data["leaf_turnover"],
-        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
-        root_turnover=dummy_litter_data["root_turnover"],
-        metabolic_splits=metabolic_splits,
+    plant_inputs = input_partition.partion_plant_inputs_between_pools(
+        metabolic_splits=metabolic_splits
     )
 
     return plant_inputs
@@ -186,6 +155,16 @@ def litter_chemistry(dummy_litter_data):
     litter_chemistry = LitterChemistry(dummy_litter_data, constants=LitterConsts)
 
     return litter_chemistry
+
+
+@pytest.fixture
+def input_partition(dummy_litter_data):
+    """InputPartition object to be use throughout testing."""
+    from virtual_ecosystem.models.litter.input_partition import InputPartition
+
+    input_partition = InputPartition(dummy_litter_data)
+
+    return input_partition
 
 
 @pytest.fixture

@@ -49,10 +49,7 @@ from virtual_ecosystem.models.litter.carbon import (
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import (
-    calculate_metabolic_proportions_of_input,
-    partion_plant_inputs_between_pools,
-)
+from virtual_ecosystem.models.litter.input_partition import InputPartition
 
 
 class LitterModel(
@@ -111,6 +108,10 @@ class LitterModel(
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
+        "herbivory_waste_leaf_carbon",
+        "herbivory_waste_leaf_nitrogen",
+        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
         "litter_consumption_woody",
@@ -234,6 +235,9 @@ class LitterModel(
         self.litter_chemistry = LitterChemistry(data, constants=model_constants)
         """Litter chemistry object for tracking of litter pool chemistries."""
 
+        self.input_partition = InputPartition(data)
+        """Input partition object for tracking split between litter pools."""
+
         self.model_constants = model_constants
         """Set of constants for the litter model."""
 
@@ -321,37 +325,16 @@ class LitterModel(
             constants=self.model_constants,
         )
 
+        # TODO - This will need to take new input
         # Find the plant inputs to each of the litter pools
-        metabolic_splits = calculate_metabolic_proportions_of_input(
-            leaf_turnover_lignin_proportion=self.data[
-                "leaf_turnover_lignin"
-            ].to_numpy(),
-            reproduct_turnover_lignin_proportion=self.data[
-                "plant_reproductive_tissue_turnover_lignin"
-            ].to_numpy(),
-            root_turnover_lignin_proportion=self.data[
-                "root_turnover_lignin"
-            ].to_numpy(),
-            leaf_turnover_c_n_ratio=self.data["leaf_turnover_c_n_ratio"].to_numpy(),
-            reproduct_turnover_c_n_ratio=self.data[
-                "plant_reproductive_tissue_turnover_c_n_ratio"
-            ].to_numpy(),
-            root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
-            leaf_turnover_c_p_ratio=self.data["leaf_turnover_c_p_ratio"].to_numpy(),
-            reproduct_turnover_c_p_ratio=self.data[
-                "plant_reproductive_tissue_turnover_c_p_ratio"
-            ].to_numpy(),
-            root_turnover_c_p_ratio=self.data["root_turnover_c_p_ratio"].to_numpy(),
-            constants=self.model_constants,
+        metabolic_splits = (
+            self.input_partition.calculate_metabolic_proportions_of_input(
+                constants=self.model_constants,
+            )
         )
 
-        plant_inputs = partion_plant_inputs_between_pools(
-            deadwood_production=self.data["deadwood_production"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
-            root_turnover=self.data["root_turnover"].to_numpy(),
+        # TODO - This will need to take new input
+        plant_inputs = self.input_partition.partion_plant_inputs_between_pools(
             metabolic_splits=metabolic_splits,
         )
 
@@ -365,6 +348,7 @@ class LitterModel(
             ).magnitude,
         )
 
+        # TODO - THIS USES THE DATA OBJECT DIRECTLY SO HAS TO BE REVISED
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             plant_inputs=plant_inputs,
