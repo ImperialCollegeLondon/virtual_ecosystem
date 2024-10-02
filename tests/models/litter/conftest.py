@@ -80,6 +80,10 @@ def dummy_litter_data(fixture_core_components):
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
         "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
         "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
+        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
+        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
+        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
+        "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
     for var, vals in pool_values.items():

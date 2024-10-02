@@ -5,6 +5,7 @@ natural tissue death as well as from mechanical inefficiencies in herbivory.
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
@@ -20,6 +21,80 @@ class InputPartition:
 
     def __init__(self, data: Data):
         self.data = data
+
+    def combine_input_sources(self) -> dict[str, DataArray]:
+        """Combine the plant death and herbivory inputs into a single total input.
+
+        The total input for each plant matter type (leaves, roots, deadwood,
+        reproductive tissue) is returned, the chemical concentration of each of these
+        new pools is also calculated.
+
+        TODO - At the moment there is only leaf input defined so this function doesn't
+        really do anything for the other types of plant matter. Once input is defined
+        for them this function should be updated to actually do something with them.
+
+        Returns:
+            A dictionary containing the total pool size for each input pools [kg C
+            m^-3], as well as the chemistry proportions (lignin, nitrogen and
+            phosphorus) of each of these pools [unitless].
+        """
+
+        # Calculate totals for each plant matter type
+        leaf_total = (
+            self.data["leaf_turnover"] + self.data["herbivory_waste_leaf_carbon"]
+        )
+        root_total = self.data["root_turnover"]
+        deadwood_total = self.data["deadwood_production"]
+        reprod_total = self.data["plant_reproductive_tissue_turnover"]
+
+        # Calculate leaf lignin concentrations for each combined pool
+        leaf_lignin = (
+            self.data["leaf_turnover_lignin"] * self.data["leaf_turnover"]
+            + self.data["herbivory_waste_leaf_lignin"]
+            * self.data["herbivory_waste_leaf_carbon"]
+        ) / (leaf_total)
+        root_lignin = self.data["root_turnover_lignin"]
+        deadwood_lignin = self.data["deadwood_lignin"]
+        reprod_lignin = self.data["plant_reproductive_tissue_turnover_lignin"]
+
+        # Calculate leaf nitrogen concentrations for each combined pool
+        leaf_nitrogen = (
+            self.data["leaf_turnover_c_n_ratio"] * self.data["leaf_turnover"]
+            + self.data["herbivory_waste_leaf_nitrogen"]
+            * self.data["herbivory_waste_leaf_carbon"]
+        ) / (leaf_total)
+        root_nitrogen = self.data["root_turnover_c_n_ratio"]
+        deadwood_nitrogen = self.data["deadwood_c_n_ratio"]
+        reprod_nitrogen = self.data["plant_reproductive_tissue_turnover_c_n_ratio"]
+
+        # Calculate leaf phosphorus concentrations for each combined pool
+        leaf_phosphorus = (
+            self.data["leaf_turnover_c_p_ratio"] * self.data["leaf_turnover"]
+            + self.data["herbivory_waste_leaf_phosphorus"]
+            * self.data["herbivory_waste_leaf_carbon"]
+        ) / (leaf_total)
+        root_phosphorus = self.data["root_turnover_c_p_ratio"]
+        deadwood_phosphorus = self.data["deadwood_c_p_ratio"]
+        reprod_phosphorus = self.data["plant_reproductive_tissue_turnover_c_p_ratio"]
+
+        return {
+            "leaf_mass": leaf_total,
+            "root_mass": root_total,
+            "deadwood_mass": deadwood_total,
+            "reprod_mass": reprod_total,
+            "leaf_lignin": leaf_lignin,
+            "root_lignin": root_lignin,
+            "deadwood_lignin": deadwood_lignin,
+            "reprod_lignin": reprod_lignin,
+            "leaf_nitrogen": leaf_nitrogen,
+            "root_nitrogen": root_nitrogen,
+            "deadwood_nitrogen": deadwood_nitrogen,
+            "reprod_nitrogen": reprod_nitrogen,
+            "leaf_phosphorus": leaf_phosphorus,
+            "root_phosphorus": root_phosphorus,
+            "deadwood_phosphorus": deadwood_phosphorus,
+            "reprod_phosphorus": reprod_phosphorus,
+        }
 
     def calculate_metabolic_proportions_of_input(
         self, constants: LitterConsts

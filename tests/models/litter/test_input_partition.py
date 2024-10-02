@@ -18,6 +18,36 @@ def test_input_partition_initialisation(dummy_litter_data):
     assert input_partition.data == dummy_litter_data
 
 
+def test_combine_input_sources(input_partition):
+    """Test that function to combine input sources works as expected."""
+
+    expected_combined = {
+        "leaf_mass": [0.02703, 0.0024, 0.02385, 0.0312],
+        "root_mass": [0.027, 0.021, 0.0003, 0.0249],
+        "deadwood_mass": [0.075, 0.099, 0.063, 0.033],
+        "reprod_mass": [0.003, 0.0075, 0.00255, 0.00375],
+        "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
+        "root_lignin": [0.2, 0.35, 0.27, 0.4],
+        "deadwood_lignin": [0.233, 0.545, 0.612, 0.378],
+        "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
+        "leaf_nitrogen": [15.00899, 32.5, 40.710063, 53.929808],
+        "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
+        "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
+        "reprod_nitrogen": [12.5, 23.8, 15.7, 18.2],
+        "leaf_phosphorus": [414.77525, 342.625, 528.24654, 384.29231],
+        "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
+        "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
+    }
+
+    actual_combined = input_partition.combine_input_sources()
+
+    assert set(expected_combined.keys()) == set(actual_combined.keys())
+
+    for key in actual_combined.keys():
+        assert np.allclose(actual_combined[key], expected_combined[key])
+
+
 def test_calculate_metabolic_proportions_of_input(input_partition):
     """Test that function to calculate metabolic input proportions works as expected."""
 
