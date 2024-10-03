@@ -22,6 +22,35 @@ class InputPartition:
     def __init__(self, data: Data):
         self.data = data
 
+    def determine_all_plant_to_litter_flows(
+        self, constants: LitterConsts
+    ) -> tuple[dict[str, NDArray[np.float32]], dict[str, NDArray[np.float32]]]:
+        """Determine the total flow to each litter pool from dead plant matter.
+
+        TODO - At the moment this doesn't combine the different input flows, but it will
+        soon. And when it does I need to describe it in this docstring.
+
+        Args:
+            constants: Set of constants for the litter model.
+
+        Returns:
+            Two dictionaries, the first of which provides the proportion of the input
+            that goes to the relevant metabolic pool for each input type (expect
+            deadwood) [unitless]. The second dictionary provides the total plant biomass
+            flow into each of the litter pools [kg C m^-2].
+        """
+
+        # Find the plant inputs to each of the litter pools
+        metabolic_splits = self.calculate_metabolic_proportions_of_input(
+            constants=constants
+        )
+
+        plant_inputs = self.partion_plant_inputs_between_pools(
+            metabolic_splits=metabolic_splits
+        )
+
+        return metabolic_splits, plant_inputs
+
     def combine_input_sources(self) -> dict[str, DataArray]:
         """Combine the plant death and herbivory inputs into a single total input.
 

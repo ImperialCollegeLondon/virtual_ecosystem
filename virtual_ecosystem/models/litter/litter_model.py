@@ -325,17 +325,11 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        # TODO - This will need to take new input
-        # Find the plant inputs to each of the litter pools
-        metabolic_splits = (
-            self.input_partition.calculate_metabolic_proportions_of_input(
+        # Find total plant inputs and how they get split between pools
+        metabolic_splits, plant_inputs = (
+            self.input_partition.determine_all_plant_to_litter_flows(
                 constants=self.model_constants,
             )
-        )
-
-        # TODO - This will need to take new input
-        plant_inputs = self.input_partition.partion_plant_inputs_between_pools(
-            metabolic_splits=metabolic_splits,
         )
 
         # Calculate the updated pool masses

@@ -18,6 +18,39 @@ def test_input_partition_initialisation(dummy_litter_data):
     assert input_partition.data == dummy_litter_data
 
 
+def test_determine_all_plant_to_litter_flows(input_partition):
+    """Test that function to determine plant to litter flows works correctly."""
+
+    expected_proportions = {
+        "leaves": [0.812403025, 0.640197595, 0.424077745, 0.0089426731],
+        "reproductive": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
+        "roots": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+    }
+
+    expected_splits = {
+        "woody": [0.075, 0.099, 0.063, 0.033],
+        "above_ground_metabolic": [0.02447376, 0.00644323, 0.01102713, 0.00340132],
+        "above_ground_structural": [0.00552624, 0.00135677, 0.01252287, 0.02884868],
+        "below_ground_metabolic": [0.01588666, 0.00797100, 0.00015073, 0.01021211],
+        "below_ground_structural": [0.01111334, 0.013029, 0.00014927, 0.01468789],
+    }
+
+    actual_proportions, actual_splits = (
+        input_partition.determine_all_plant_to_litter_flows(constants=LitterConsts)
+    )
+
+    # Check that all keys match and have correct values for both dictionaries
+    assert set(expected_proportions.keys()) == set(actual_proportions.keys())
+
+    for key in actual_proportions.keys():
+        assert np.allclose(actual_proportions[key], expected_proportions[key])
+
+    assert set(expected_splits.keys()) == set(actual_splits.keys())
+
+    for key in actual_splits.keys():
+        assert np.allclose(actual_splits[key], expected_splits[key])
+
+
 def test_combine_input_sources(input_partition):
     """Test that function to combine input sources works as expected."""
 
@@ -58,7 +91,7 @@ def test_calculate_metabolic_proportions_of_input(input_partition):
     }
 
     actual_proportions = input_partition.calculate_metabolic_proportions_of_input(
-        constants=LitterConsts,
+        constants=LitterConsts
     )
 
     assert set(expected_proportions.keys()) == set(actual_proportions.keys())
