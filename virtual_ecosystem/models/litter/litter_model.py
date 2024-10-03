@@ -325,7 +325,8 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        # Find total plant inputs and how they get split between pools
+        # TODO - REALLY NEED TO THINK ABOUT WHAT'S BEING RETURNED HERE, SO THAT
+        # LITTER_CHEMISTRY HAS THE INFO IT NEEDS
         metabolic_splits, plant_inputs = (
             self.input_partition.determine_all_plant_to_litter_flows(
                 constants=self.model_constants,
@@ -342,12 +343,14 @@ class LitterModel(
             ).magnitude,
         )
 
-        # TODO - THIS USES THE DATA OBJECT DIRECTLY SO HAS TO BE REVISED
+        # TODO - This will need to change when I've worked out what I'm actually doing
+        # with total_input
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             plant_inputs=plant_inputs,
             metabolic_splits=metabolic_splits,
             updated_pools=updated_pools,
+            total_input={},
         )
 
         # Calculate the total mineralisation rates from the litter
