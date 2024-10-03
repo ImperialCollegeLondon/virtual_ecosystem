@@ -130,22 +130,22 @@ def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_poo
 
 
 @pytest.fixture
-def metabolic_splits(input_partition):
+def metabolic_splits(input_partition, total_litter_input):
     """Metabolic splits for the various plant inputs."""
 
     metabolic_splits = input_partition.calculate_metabolic_proportions_of_input(
-        constants=LitterConsts
+        total_input=total_litter_input, constants=LitterConsts
     )
 
     return metabolic_splits
 
 
 @pytest.fixture
-def plant_inputs(input_partition, metabolic_splits):
+def plant_inputs(input_partition, metabolic_splits, total_litter_input):
     """Plant inputs to each of the litter pools."""
 
     plant_inputs = input_partition.partion_plant_inputs_between_pools(
-        metabolic_splits=metabolic_splits
+        metabolic_splits=metabolic_splits, total_input=total_litter_input
     )
 
     return plant_inputs
@@ -234,6 +234,15 @@ def post_consumption_pools(dummy_litter_data):
     )
 
     return post_consumption_pools
+
+
+@pytest.fixture
+def total_litter_input(input_partition):
+    """Total input mass a chemistry for each plant biomass type."""
+
+    total_litter_input = input_partition.combine_input_sources()
+
+    return total_litter_input
 
 
 @pytest.fixture

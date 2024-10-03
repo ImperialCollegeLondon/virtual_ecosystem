@@ -146,8 +146,8 @@ def test_calculate_updated_pools(
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     expected_pools = {
-        "above_metabolic": [0.3154561, 0.15193439, 0.07892301, 0.0712972],
-        "above_structural": [0.50519138, 0.25011962, 0.10250070, 0.11882651],
+        "above_metabolic": [0.3154788, 0.15354349, 0.080772679, 0.073701212],
+        "above_structural": [0.5051986807, 0.2506105228, 0.1035010262, 0.1191224962],
         "woody": [4.77403361, 11.89845863, 7.3598224, 7.3298224],
         "below_metabolic": [0.3976309, 0.3630269, 0.06787947, 0.07794085],
         "below_structural": [0.61050583, 0.32205947352, 0.02014514530, 0.03468376530],
