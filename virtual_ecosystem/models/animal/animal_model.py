@@ -89,6 +89,8 @@ class AnimalModel(
         self._setup_grid_neighbours()
         """Determine grid square adjacency."""
 
+        self.core_components = core_components
+        """The core components of the models."""
         self.functional_groups = functional_groups
         """List of functional groups in the model."""
         self.model_constants = model_constants
@@ -279,7 +281,6 @@ class AnimalModel(
         self.birth_community()
         self.metamorphose_community()
         self.metabolize_community(
-            self.data["air_temperature"],
             self.update_interval_timedelta,
         )
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
@@ -632,9 +633,7 @@ class AnimalModel(
             # Temporary solution to remove dead cohorts
             self.remove_dead_cohort_community()
 
-    def metabolize_community(
-        self, air_temperature_data: DataArray, dt: timedelta64
-    ) -> None:
+    def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
 
         This method generates a total amount of metabolic waste per cohort and passes
@@ -660,13 +659,15 @@ class AnimalModel(
             total_carbonaceous_waste = 0.0
 
             # Extract the temperature for this specific community (cell_id)
-            temperature_for_cell = float(
-                air_temperature_data.loc[{"cell_id": cell_id}].values
-            )
+            surface_temperature = self.data["air_temperature"][
+                self.core_components.layer_structure.index_surface_scalar
+            ].to_numpy()
+
+            grid_temperature = surface_temperature[cell_id]
 
             for cohort in community:
                 # Calculate metabolic waste based on cohort properties
-                metabolic_waste_mass = cohort.metabolize(temperature_for_cell, dt)
+                metabolic_waste_mass = cohort.metabolize(grid_temperature, dt)
 
                 # Carbonaceous waste from respiration
                 total_carbonaceous_waste += cohort.respire(metabolic_waste_mass)

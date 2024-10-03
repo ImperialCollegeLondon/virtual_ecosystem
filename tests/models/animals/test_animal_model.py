@@ -11,7 +11,7 @@ from tests.conftest import log_check
 
 @pytest.fixture
 def prepared_animal_model_instance(
-    animal_data_for_model_instance,
+    dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
     constants_instance,
@@ -20,7 +20,7 @@ def prepared_animal_model_instance(
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
     model = AnimalModel(
-        data=animal_data_for_model_instance,
+        data=dummy_animal_data,
         core_components=fixture_core_components,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
@@ -34,7 +34,7 @@ class TestAnimalModel:
 
     def test_animal_model_initialization(
         self,
-        animal_data_for_model_instance,
+        dummy_animal_data,
         fixture_core_components,
         functional_group_list_instance,
         constants_instance,
@@ -45,7 +45,7 @@ class TestAnimalModel:
 
         # Initialize model
         model = AnimalModel(
-            data=animal_data_for_model_instance,
+            data=dummy_animal_data,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
@@ -59,118 +59,18 @@ class TestAnimalModel:
         assert isinstance(model.communities, dict)
 
     @pytest.mark.parametrize(
-        "config_string,raises,expected_log_entries",
+        "raises,expected_log_entries",
         [
             pytest.param(
-                """[core.timing]
-                start_date = "2020-01-01"
-                update_interval = "7 days"
-                [[animal.functional_groups]]
-                name = "carnivorous_bird"
-                taxa = "bird"
-                diet = "carnivore"
-                metabolic_type = "endothermic"
-                reproductive_type = "iteroparous"
-                development_type = "direct"
-                development_status = "adult"
-                offspring_functional_group = "carnivorous_bird"
-                excretion_type = "uricotelic"
-                birth_mass = 0.1
-                adult_mass = 1.0
-                [[animal.functional_groups]]
-                name = "herbivorous_bird"
-                taxa = "bird"
-                diet = "herbivore"
-                metabolic_type = "endothermic"
-                reproductive_type = "iteroparous"
-                development_type = "direct"
-                development_status = "adult"
-                offspring_functional_group = "herbivorous_bird"
-                excretion_type = "uricotelic"
-                birth_mass = 0.05
-                adult_mass = 0.5
-                [[animal.functional_groups]]
-                name = "carnivorous_mammal"
-                taxa = "mammal"
-                diet = "carnivore"
-                metabolic_type = "endothermic"
-                reproductive_type = "iteroparous"
-                development_type = "direct"
-                development_status = "adult"
-                offspring_functional_group = "carnivorous_mammal"
-                excretion_type = "ureotelic"
-                birth_mass = 4.0
-                adult_mass = 40.0
-                [[animal.functional_groups]]
-                name = "herbivorous_mammal"
-                taxa = "mammal"
-                diet = "herbivore"
-                metabolic_type = "endothermic"
-                reproductive_type = "iteroparous"
-                development_type = "direct"
-                development_status = "adult"
-                offspring_functional_group = "herbivorous_mammal"
-                excretion_type = "ureotelic"
-                birth_mass = 1.0
-                adult_mass = 10.0
-                [[animal.functional_groups]]
-                name = "carnivorous_insect"
-                taxa = "insect"
-                diet = "carnivore"
-                metabolic_type = "ectothermic"
-                reproductive_type = "iteroparous"
-                development_type = "direct"
-                development_status = "adult"
-                offspring_functional_group = "carnivorous_insect"
-                excretion_type = "uricotelic"
-                birth_mass = 0.001
-                adult_mass = 0.01
-                [[animal.functional_groups]]
-                name = "herbivorous_insect"
-                taxa = "insect"
-                diet = "herbivore"
-                metabolic_type = "ectothermic"
-                reproductive_type = "semelparous"
-                development_type = "direct"
-                development_status = "adult"
-                offspring_functional_group = "herbivorous_insect"
-                excretion_type = "uricotelic"
-                birth_mass = 0.0005
-                adult_mass = 0.005
-                [[animal.functional_groups]]
-                name = "butterfly"
-                taxa = "insect"
-                diet = "herbivore"
-                metabolic_type = "ectothermic"
-                reproductive_type = "semelparous"
-                development_type = "indirect"
-                development_status = "adult"
-                offspring_functional_group = "caterpillar"
-                excretion_type = "uricotelic"
-                birth_mass = 0.0005
-                adult_mass = 0.005
-                [[animal.functional_groups]]
-                name = "caterpillar"
-                taxa = "insect"
-                diet = "herbivore"
-                metabolic_type = "ectothermic"
-                reproductive_type = "nonreproductive"
-                development_type = "indirect"
-                development_status = "larval"
-                offspring_functional_group = "butterfly"
-                excretion_type = "uricotelic"
-                birth_mass = 0.0005
-                adult_mass = 0.005
-                """,
                 does_not_raise(),
                 (
                     (INFO, "Initialised animal.AnimalConsts from config"),
                     (
                         INFO,
-                        "Information required to initialise the animal model "
-                        "successfully extracted.",
+                        "Information required to initialise the animal model"
+                        " successfully extracted.",
                     ),
-                    (INFO, "Adding data array for 'total_animal_respiration'"),
+                    (INFO, "Replacing data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Adding data array for 'decomposed_excrement'"),
                     (INFO, "Adding data array for 'decomposed_carcasses'"),
@@ -182,25 +82,24 @@ class TestAnimalModel:
     def test_generate_animal_model(
         self,
         caplog,
-        animal_data_for_model_instance,
-        config_string,
+        dummy_animal_data,
+        animal_fixture_config,  # Use the config fixture
         raises,
         expected_log_entries,
     ):
         """Test that the function to initialise the animal model behaves as expected."""
-        from virtual_ecosystem.core.config import Config
         from virtual_ecosystem.core.core_components import CoreComponents
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Build the config object and core components
-        config = Config(cfg_strings=config_string)
+        # Build the config object and core components using the fixture
+        config = animal_fixture_config
         core_components = CoreComponents(config)
         caplog.clear()
 
         # Check whether model is initialised (or not) as expected
         with raises:
             model = AnimalModel.from_config(
-                data=animal_data_for_model_instance,
+                data=dummy_animal_data,
                 core_components=core_components,
                 config=config,
             )
@@ -1050,15 +949,17 @@ class TestAnimalModel:
         )
 
     def test_metabolize_community(
-        self, animal_model_instance, animal_data_for_cohorts_instance, mocker
+        self, animal_model_instance, dummy_animal_data, mocker
     ):
         """Test metabolize_community using real data from fixture."""
 
         from numpy import timedelta64
 
         # Assign the data from the fixture to the animal model
-        animal_model_instance.data = animal_data_for_cohorts_instance
-        air_temperature_data = animal_data_for_cohorts_instance["air_temperature"]
+        animal_model_instance.data = dummy_animal_data
+        air_temperature_data = dummy_animal_data["air_temperature"]
+
+        print(air_temperature_data.shape)
 
         # Create mock cohorts and their behaviors
         mock_cohort_1 = mocker.Mock()
@@ -1086,11 +987,11 @@ class TestAnimalModel:
 
         # Run the metabolize_community method
         dt = timedelta64(1, "D")  # 1 day as the time delta
-        animal_model_instance.metabolize_community(air_temperature_data, dt)
+        animal_model_instance.metabolize_community(dt)
 
         # Assertions for the first cohort in cell 1
         mock_cohort_1.metabolize.assert_called_once_with(
-            25.0, dt
+            16.145945, dt
         )  # Temperature for cell 1 from the fixture (25.0)
         mock_cohort_1.respire.assert_called_once_with(
             10.0
@@ -1099,7 +1000,7 @@ class TestAnimalModel:
 
         # Assertions for the second cohort in cell 1
         mock_cohort_2.metabolize.assert_called_once_with(
-            25.0, dt
+            16.145945, dt
         )  # Temperature for cell 1 from the fixture (25.0)
         mock_cohort_2.respire.assert_called_once_with(
             15.0
