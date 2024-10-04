@@ -1097,6 +1097,7 @@ class TestAnimalCohort:
         herbivore_cohort_instance,
         plant_list_instance,
         excrement_pool_instance,
+        herbivory_waste_instance,
     ):
         """Test mass assimilation calculation from herbivory."""
 
@@ -1111,11 +1112,14 @@ class TestAnimalCohort:
         # Mock the PlantResources.get_eaten method
         mock_get_eaten = mocker.patch(
             "virtual_ecosystem.models.animal.plant_resources.PlantResources.get_eaten",
-            side_effect=lambda consumed_mass, herbivore, excrement_pool: consumed_mass,
+            side_effect=lambda consumed_mass, herbivore: (
+                consumed_mass,
+                0.01 * consumed_mass,
+            ),
         )
 
         delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance, excrement_pool_instance
+            plant_list_instance, excrement_pool_instance, herbivory_waste_instance
         )
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
@@ -1126,11 +1130,22 @@ class TestAnimalCohort:
 
         # Calculate the expected total consumed mass based on the number of plants
         expected_delta_mass = 10.0 * len(plant_list_instance)
+        expected_litter_addition = 0.1 * len(plant_list_instance)
 
         # Assert the calculated delta_mass_herb matches the expected value
         assert delta_mass == pytest.approx(
             expected_delta_mass
         ), "Calculated change in mass due to herbivory did not match expected value."
+        assert herbivory_waste_instance.mass_current == pytest.approx(
+            expected_litter_addition
+        ), "Addition to leaf litter due to herbivory did not match expected value."
+        # Check that excrement pool has actually been added to
+        assert excrement_pool_instance.decomposed_carbon == pytest.approx(
+            0.5
+            * expected_delta_mass
+            * herbivore_cohort_instance.functional_group.conversion_efficiency
+            * herbivore_cohort_instance.individuals
+        ), "Carbon hasn't been added to the excrement pool."
 
     def test_forage_cohort(
         self,
@@ -1141,6 +1156,7 @@ class TestAnimalCohort:
         animal_list_instance,
         excrement_pool_instance,
         carcass_pool_instance,
+        herbivory_waste_instance,
     ):
         """Test foraging behavior for different diet types."""
 
@@ -1156,16 +1172,24 @@ class TestAnimalCohort:
 
         # Test herbivore diet
         herbivore_cohort_instance.forage_cohort(
-            plant_list_instance, [], excrement_pool_instance, carcass_pool_instance
+            plant_list_instance,
+            [],
+            excrement_pool=excrement_pool_instance,
+            carcass_pool=carcass_pool_instance,
+            herbivory_waste_pool=herbivory_waste_instance,
         )
         mock_delta_mass_herbivory.assert_called_once_with(
-            plant_list_instance, excrement_pool_instance
+            plant_list_instance, excrement_pool_instance, herbivory_waste_instance
         )
         mock_eat_herbivore.assert_called_once_with(100)
 
         # Test carnivore diet
         predator_cohort_instance.forage_cohort(
-            [], animal_list_instance, excrement_pool_instance, carcass_pool_instance
+            [],
+            animal_list_instance,
+            excrement_pool_instance,
+            carcass_pool_instance,
+            herbivory_waste_pool=herbivory_waste_instance,
         )
         mock_delta_mass_predation.assert_called_once_with(
             animal_list_instance, excrement_pool_instance, carcass_pool_instance

@@ -3,7 +3,11 @@
 This module tests the functionality of decay.py
 """
 
+from logging import ERROR
+
 import pytest
+
+from tests.conftest import log_check
 
 
 class TestCarcassPool:
@@ -147,3 +151,36 @@ class TestLitterPool:
         assert initial_c_p_ratio == pytest.approx(
             litter_pool_instance.c_p_ratio[cell_id]
         )
+
+
+class TestHerbivoryWaste:
+    """Test the HerbivoryWaste class."""
+
+    def test_initialization(self):
+        """Testing initialization of HerbivoryWaste."""
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+        dead_leaves = HerbivoryWaste(plant_matter_type="leaf")
+        # Test that function to calculate stored carbon works as expected
+        assert pytest.approx(dead_leaves.plant_matter_type) == "leaf"
+        assert pytest.approx(dead_leaves.mass_current) == 0.0
+        assert pytest.approx(dead_leaves.c_n_ratio) == 20.0
+        assert pytest.approx(dead_leaves.c_p_ratio) == 150.0
+        assert pytest.approx(dead_leaves.lignin_proportion) == 0.25
+
+    def test_bad_initialization(self, caplog):
+        """Testing that initialization of HerbivoryWaste fails sensibly."""
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+        expected_log = (
+            (
+                ERROR,
+                "fig not a valid form of herbivory waste, valid forms are as follows: ",
+            ),
+        )
+
+        with pytest.raises(ValueError):
+            HerbivoryWaste(plant_matter_type="fig")
+
+        # Check the error reports
+        log_check(caplog, expected_log)
