@@ -208,10 +208,10 @@ class AnimalCohort:
 
         for excrement_pool in excrement_pools:
             # This total waste is then split between decay and scavengeable excrement
-            excrement_pool.scavengeable_energy += (
+            excrement_pool.scavengeable_carbon += (
                 1 - self.decay_fraction_excrement
             ) * excreta_mass_per_community
-            excrement_pool.decomposed_energy += (
+            excrement_pool.decomposed_carbon += (
                 self.decay_fraction_excrement * excreta_mass_per_community
             )
 
@@ -269,10 +269,10 @@ class AnimalCohort:
 
         for excrement_pool in excrement_pools:
             # This total waste is then split between decay and scavengeable excrement
-            excrement_pool.scavengeable_energy += (
+            excrement_pool.scavengeable_carbon += (
                 1 - self.decay_fraction_excrement
             ) * waste_energy_per_community
-            excrement_pool.decomposed_energy += (
+            excrement_pool.decomposed_carbon += (
                 self.decay_fraction_excrement * waste_energy_per_community
             )
 
@@ -344,10 +344,10 @@ class AnimalCohort:
 
         for carcass_pool in carcass_pools:
             # Update the carcass pool with the remainder
-            carcass_pool.scavengeable_energy += (
+            carcass_pool.scavengeable_carbon += (
                 1 - self.decay_fraction_carcasses
             ) * carcass_mass_per_pool
-            carcass_pool.decomposed_energy += (
+            carcass_pool.decomposed_carbon += (
                 self.decay_fraction_carcasses * carcass_mass_per_pool
             )
 

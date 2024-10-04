@@ -88,7 +88,7 @@ class PlantResources:
 
         # Distribute the excreta energy across the excrement pools
         for excrement_pool in excrement_pools:
-            excrement_pool.decomposed_energy += excreta_energy_per_pool
+            excrement_pool.decomposed_carbon += excreta_energy_per_pool
 
         # Return the net mass gain of herbivory, considering both mechanical and
         # digestive efficiencies
