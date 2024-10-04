@@ -51,7 +51,7 @@ types-tqdm = "^4.66.0.20240106"
 
 [tool.poetry.group.test.dependencies]
 hypothesis = "^6.54.2"
-pytest = "^7.1.2"
+pytest = ">=7.1.2,<9.0.0"
 pytest-cov = ">=3,<6"
 pytest-datadir = "^1.4.1"
 pytest-mock = "^3.8.1"
