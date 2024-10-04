@@ -2660,13 +2660,13 @@ xmp = ["defusedxml"]
 
 [[package]]
 name = "pint"
-version = "0.24.1"
+version = "0.24.3"
 description = "Physical quantities module"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "Pint-0.24.1-py3-none-any.whl", hash = "sha256:69b05357c4cb2ac8f3346e235aff4477447e2f56805a79a4f59a2b6d5fc32020"},
-    {file = "pint-0.24.1.tar.gz", hash = "sha256:8849fe9d7b8532e5a5dc41e719e9e19268e18eac179d9a5645f21929a2a15caf"},
+    {file = "Pint-0.24.3-py3-none-any.whl", hash = "sha256:d98667e46fd03a1b94694fbfa104ec30858684d8ab26952e2a348b48059089bb"},
+    {file = "pint-0.24.3.tar.gz", hash = "sha256:d54771093e8b94c4e0a35ac638c2444ddf3ef685652bab7675ffecfa0c5c5cdf"},
 ]
 
 [package.dependencies]
