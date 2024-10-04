@@ -424,6 +424,27 @@ def dummy_animal_data(animal_fixture_core_components):
         dims=("groundwater_layers", "cell_id"),
     )
 
+    # Adding in litter variables as these are also needed now
+    litter_pools = DataArray(np.full(data.grid.n_cells, fill_value=1.5), dims="cell_id")
+    litter_ratios = DataArray(
+        np.full(data.grid.n_cells, fill_value=25.5), dims="cell_id"
+    )
+    data["litter_pool_above_metabolic"] = litter_pools
+    data["litter_pool_above_structural"] = litter_pools
+    data["litter_pool_woody"] = litter_pools
+    data["litter_pool_below_metabolic"] = litter_pools
+    data["litter_pool_below_structural"] = litter_pools
+    data["c_n_ratio_above_metabolic"] = litter_ratios
+    data["c_n_ratio_above_structural"] = litter_ratios
+    data["c_n_ratio_woody"] = litter_ratios
+    data["c_n_ratio_below_metabolic"] = litter_ratios
+    data["c_n_ratio_below_structural"] = litter_ratios
+    data["c_p_ratio_above_metabolic"] = litter_ratios
+    data["c_p_ratio_above_structural"] = litter_ratios
+    data["c_p_ratio_woody"] = litter_ratios
+    data["c_p_ratio_below_metabolic"] = litter_ratios
+    data["c_p_ratio_below_structural"] = litter_ratios
+
     # Initialize total_animal_respiration with zeros for each cell
     total_animal_respiration = np.zeros(
         len(animal_fixture_core_components.grid.cell_id)
@@ -664,7 +685,14 @@ def excrement_pool_instance():
     """Fixture for a soil pool used in tests."""
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
-    return ExcrementPool(100000.0, 0.0)
+    return ExcrementPool(
+        scavengeable_carbon=0.0,
+        decomposed_carbon=0.0,
+        scavengeable_nitrogen=0.0,
+        decomposed_nitrogen=0.0,
+        scavengeable_phosphorus=0.0,
+        decomposed_phosphorus=0.0,
+    )
 
 
 @pytest.fixture
@@ -715,10 +743,17 @@ def animal_list_instance(
 
 @pytest.fixture
 def carcass_pool_instance():
-    """Fixture for an carcass pool used in tests."""
+    """Fixture for a carcass pool used in tests."""
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
-    return CarcassPool(0.0, 0.0)
+    return CarcassPool(
+        scavengeable_carbon=0.0,
+        decomposed_carbon=0.0,
+        scavengeable_nitrogen=0.0,
+        decomposed_nitrogen=0.0,
+        scavengeable_phosphorus=0.0,
+        decomposed_phosphorus=0.0,
+    )
 
 
 @pytest.fixture
@@ -726,4 +761,62 @@ def carcass_pools_instance():
     """Fixture for carcass pools used in tests."""
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
-    return {1: [CarcassPool(scavengeable_energy=500.0, decomposed_energy=0.0)]}
+    return {
+        1: [
+            CarcassPool(
+                scavengeable_carbon=500.0,
+                decomposed_carbon=0.0,
+                scavengeable_nitrogen=100.0,
+                decomposed_nitrogen=0.0,
+                scavengeable_phosphorus=50.0,
+                decomposed_phosphorus=0.0,
+            )
+        ]
+    }
+
+
+@pytest.fixture
+def litter_data_instance(fixture_core_components):
+    """Creates a dummy litter data for use in tests."""
+
+    from virtual_ecosystem.core.data import Data
+
+    # Setup the data object with four cells.
+    data = Data(fixture_core_components.grid)
+
+    # The required data is now added. This is basically the 5 litter pool sizes and
+    # stoichiometric ratios
+    data_values = {
+        "litter_pool_above_metabolic": [0.3, 0.15, 0.07, 0.07],
+        "litter_pool_above_structural": [0.5, 0.25, 0.09, 0.09],
+        "litter_pool_woody": [4.7, 11.8, 7.3, 7.3],
+        "litter_pool_below_metabolic": [0.4, 0.37, 0.07, 0.07],
+        "litter_pool_below_structural": [0.6, 0.31, 0.02, 0.02],
+        "c_n_ratio_above_metabolic": [7.3, 8.7, 10.1, 9.8],
+        "c_n_ratio_above_structural": [37.5, 43.2, 45.8, 50.2],
+        "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
+        "c_n_ratio_below_metabolic": [10.7, 11.3, 15.2, 12.4],
+        "c_n_ratio_below_structural": [50.5, 55.6, 73.1, 61.2],
+        "c_p_ratio_above_metabolic": [57.3, 68.7, 100.1, 95.8],
+        "c_p_ratio_above_structural": [337.5, 473.2, 415.8, 570.2],
+        "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
+        "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
+        "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
+    }
+
+    for var_name, var_values in data_values.items():
+        data[var_name] = DataArray(var_values, dims=["cell_id"])
+
+    return data
+
+
+@pytest.fixture
+def litter_pool_instance(litter_data_instance):
+    """Fixture for a litter pool class to be used in tests."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    return LitterPool(
+        pool_name="above_metabolic",
+        data=litter_data_instance,
+        cell_area=10000,
+    )

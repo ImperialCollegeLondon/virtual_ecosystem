@@ -3,9 +3,10 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
+from collections.abc import Sequence
 from typing import Protocol
 
-from virtual_ecosystem.models.animal.decay import ExcrementPool
+# from virtual_ecosystem.models.animal.decay import ExcrementPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -44,7 +45,7 @@ class Resource(Protocol):
     mass_current: float
 
     def get_eaten(
-        self, consumed_mass: float, consumer: Consumer, pool: list[ExcrementPool]
+        self, consumed_mass: float, herbivore: Consumer, pool: Sequence[DecayPool]
     ) -> float:
         """The get_eaten method defines a resource."""
         ...

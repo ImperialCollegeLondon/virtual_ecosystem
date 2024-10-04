@@ -259,21 +259,21 @@ class AnimalCohort:
 
         # Find total waste mass, the total amount of waste is found by the
         # average cohort member * number individuals.
-        waste_energy = (
+        waste_mass = (
             mass_consumed
             * self.functional_group.conversion_efficiency
             * self.individuals
         )
 
-        waste_energy_per_community = waste_energy / number_communities
+        waste_mass_per_community = waste_mass / number_communities
 
         for excrement_pool in excrement_pools:
             # This total waste is then split between decay and scavengeable excrement
             excrement_pool.scavengeable_carbon += (
                 1 - self.decay_fraction_excrement
-            ) * waste_energy_per_community
+            ) * waste_mass_per_community
             excrement_pool.decomposed_carbon += (
-                self.decay_fraction_excrement * waste_energy_per_community
+                self.decay_fraction_excrement * waste_mass_per_community
             )
 
     def increase_age(self, dt: timedelta64) -> None:

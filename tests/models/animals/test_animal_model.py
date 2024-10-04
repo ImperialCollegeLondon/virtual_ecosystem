@@ -72,8 +72,29 @@ class TestAnimalModel:
                     ),
                     (INFO, "Replacing data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
-                    (INFO, "Adding data array for 'decomposed_excrement'"),
-                    (INFO, "Adding data array for 'decomposed_carcasses'"),
+                    (INFO, "Adding data array for 'decomposed_excrement_carbon'"),
+                    (INFO, "Adding data array for 'decomposed_excrement_nitrogen'"),
+                    (INFO, "Adding data array for 'decomposed_excrement_phosphorus'"),
+                    (INFO, "Adding data array for 'decomposed_carcasses_carbon'"),
+                    (INFO, "Adding data array for 'decomposed_carcasses_nitrogen'"),
+                    (INFO, "Adding data array for 'decomposed_carcasses_phosphorus'"),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumption_above_metabolic'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumption_above_structural'",
+                    ),
+                    (INFO, "Adding data array for 'litter_consumption_woody'"),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumption_below_metabolic'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'litter_consumption_below_structural'",
+                    ),
                 ),
                 id="success",
             ),
@@ -175,63 +196,6 @@ class TestAnimalModel:
         prepared_animal_model_instance.update(time_index=time_index)
 
         assert True
-
-    def test_calculate_litter_additions(
-        self, functional_group_list_instance, animal_data_for_model_instance
-    ):
-        """Test that litter additions from animal model are calculated correctly."""
-
-        from virtual_ecosystem.core.config import Config
-        from virtual_ecosystem.core.core_components import CoreComponents
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
-
-        # Build the config object and core components
-        config = Config(cfg_strings='[core.timing]\nupdate_interval="1 week"')
-        core_components = CoreComponents(config)
-
-        # Use it to initialize the model
-        model = AnimalModel(
-            data=animal_data_for_model_instance,
-            core_components=core_components,
-            functional_groups=functional_group_list_instance,
-        )
-
-        # Update the waste pools
-        decomposed_excrement = [3.5e3, 5.6e4, 5.9e4, 2.3e6, 0, 0, 0, 0, 0]
-        for energy, excrement_pools in zip(
-            decomposed_excrement, model.excrement_pools.values()
-        ):
-            for excrement_pool in excrement_pools:
-                excrement_pool.decomposed_energy = energy
-
-        decomposed_carcasses = [7.5e6, 3.4e7, 8.1e7, 1.7e8, 0, 0, 0, 0, 0]
-        for energy, carcass_pools in zip(
-            decomposed_carcasses, model.carcass_pools.values()
-        ):
-            for carcass_pool in carcass_pools:
-                carcass_pool.decomposed_energy = energy
-
-        # Calculate litter additions
-        litter_additions = model.calculate_litter_additions()
-
-        # Check that litter addition pools are as expected
-        assert np.allclose(
-            litter_additions["decomposed_excrement"],
-            [5e-08, 8e-07, 8.42857e-07, 3.28571e-05, 0, 0, 0, 0, 0],
-        )
-        assert np.allclose(
-            litter_additions["decomposed_carcasses"],
-            [1.0714e-4, 4.8571e-4, 1.15714e-3, 2.42857e-3, 0, 0, 0, 0, 0],
-        )
-
-        # Check that the function has reset the pools correctly
-        for excrement_pools in model.excrement_pools.values():
-            assert np.allclose(
-                [pool.decomposed_energy for pool in excrement_pools], 0.0
-            )
-
-        for carcass_pools in model.carcass_pools.values():
-            assert np.allclose([pool.decomposed_energy for pool in carcass_pools], 0.0)
 
     def test_setup_initializes_total_animal_respiration(
         self,
@@ -358,6 +322,126 @@ class TestAnimalModel:
                     " and FG {fg_name}. "
                     f"Expected: {expected_density}, Found: {calculated_density}"
                 )
+
+    def test_populate_litter_pools(
+        self,
+        litter_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test function to populate animal consumable litter pool works properly."""
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        model = AnimalModel(
+            data=litter_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+        )
+
+        litter_pools = model.populate_litter_pools()
+        # Check that all five pools have been populated, with the correct values
+        pool_names = [
+            "above_metabolic",
+            "above_structural",
+            "woody",
+            "below_metabolic",
+            "below_structural",
+        ]
+        for pool_name in pool_names:
+            assert np.allclose(
+                litter_pools[pool_name].mass_current,
+                litter_data_instance[f"litter_pool_{pool_name}"]
+                * fixture_core_components.grid.cell_area,
+            )
+            assert np.allclose(
+                litter_pools[pool_name].c_n_ratio,
+                litter_data_instance[f"c_n_ratio_{pool_name}"],
+            )
+            assert np.allclose(
+                litter_pools[pool_name].c_p_ratio,
+                litter_data_instance[f"c_p_ratio_{pool_name}"],
+            )
+
+    def test_calculate_total_litter_consumption(
+        self,
+        litter_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test calculation of total consumption of litter by animals is correct."""
+        from copy import deepcopy
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.decay import LitterPool
+
+        model = AnimalModel(
+            data=litter_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+        )
+
+        new_data = deepcopy(litter_data_instance)
+        # Add new values for each pool
+        new_data["litter_pool_above_metabolic"] = (
+            litter_data_instance["litter_pool_above_metabolic"] - 0.03
+        )
+        new_data["litter_pool_above_structural"] = (
+            litter_data_instance["litter_pool_above_structural"] - 0.04
+        )
+        new_data["litter_pool_woody"] = litter_data_instance["litter_pool_woody"] - 1.2
+        new_data["litter_pool_below_metabolic"] = (
+            litter_data_instance["litter_pool_below_metabolic"] - 0.06
+        )
+        new_data["litter_pool_below_structural"] = (
+            litter_data_instance["litter_pool_below_structural"] - 0.01
+        )
+
+        # Make an updated set of litter pools
+        pool_names = [
+            "above_metabolic",
+            "above_structural",
+            "woody",
+            "below_metabolic",
+            "below_structural",
+        ]
+        new_litter_pools = {
+            pool_name: LitterPool(
+                pool_name=pool_name,
+                data=new_data,
+                cell_area=fixture_core_components.grid.cell_area,
+            )
+            for pool_name in pool_names
+        }
+
+        # Calculate litter consumption
+        consumption = model.calculate_total_litter_consumption(
+            litter_pools=new_litter_pools
+        )
+
+        assert np.allclose(
+            consumption["litter_consumption_above_metabolic"],
+            0.03 * np.ones(4),
+        )
+        assert np.allclose(
+            consumption["litter_consumption_above_structural"],
+            0.04 * np.ones(4),
+        )
+        assert np.allclose(
+            consumption["litter_consumption_woody"],
+            1.2 * np.ones(4),
+        )
+        assert np.allclose(
+            consumption["litter_consumption_below_metabolic"],
+            0.06 * np.ones(4),
+        )
+        assert np.allclose(
+            consumption["litter_consumption_below_structural"],
+            0.01 * np.ones(4),
+        )
 
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""
