@@ -20,35 +20,45 @@ def test_input_partition_initialisation(dummy_litter_data):
 
 def test_determine_all_plant_to_litter_flows(input_partition, total_litter_input):
     """Test that function to determine plant to litter flows works correctly."""
+    from dataclasses import asdict
 
-    expected_proportions = {
-        "leaves": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
-        "reproductive": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
-        "roots": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+    expected_details = {
+        "leaves_meta_split": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
+        "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
+        "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "input_woody": [0.075, 0.099, 0.063, 0.033],
+        "input_above_metabolic": [0.02449646, 0.00805233, 0.0128768, 0.00580533],
+        "input_above_structural": [0.00553354, 0.00184767, 0.0135232, 0.0291447],
+        "input_below_metabolic": [0.01588666, 0.007971, 0.00015073, 0.01021211],
+        "input_below_structural": [0.01111334, 0.013029, 0.00014927, 0.01468789],
+        "leaf_mass": [0.02703, 0.0024, 0.02385, 0.0312],
+        "root_mass": [0.027, 0.021, 0.0003, 0.0249],
+        "deadwood_mass": [0.075, 0.099, 0.063, 0.033],
+        "reprod_mass": [0.003, 0.0075, 0.00255, 0.00375],
+        "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
+        "root_lignin": [0.2, 0.35, 0.27, 0.4],
+        "deadwood_lignin": [0.233, 0.545, 0.612, 0.378],
+        "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
+        "leaf_nitrogen": [15.00899, 32.5, 40.710063, 53.929808],
+        "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
+        "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
+        "reprod_nitrogen": [12.5, 23.8, 15.7, 18.2],
+        "leaf_phosphorus": [414.77525, 342.625, 528.24654, 384.29231],
+        "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
+        "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
-    expected_splits = {
-        "woody": [0.075, 0.099, 0.063, 0.033],
-        "above_ground_metabolic": [0.02449646, 0.00805233, 0.012876799, 0.005805332],
-        "above_ground_structural": [0.00553354, 0.00184767, 0.01352320, 0.02914467],
-        "below_ground_metabolic": [0.01588666, 0.00797100, 0.00015073, 0.01021211],
-        "below_ground_structural": [0.01111334, 0.013029, 0.00014927, 0.01468789],
-    }
-
-    actual_proportions, actual_splits = (
-        input_partition.determine_all_plant_to_litter_flows(constants=LitterConsts)
+    actual_details = input_partition.determine_all_plant_to_litter_flows(
+        constants=LitterConsts
     )
+    actual_details = asdict(actual_details)
 
     # Check that all keys match and have correct values for both dictionaries
-    assert set(expected_proportions.keys()) == set(actual_proportions.keys())
+    assert set(expected_details.keys()) == set(actual_details.keys())
 
-    for key in actual_proportions.keys():
-        assert np.allclose(actual_proportions[key], expected_proportions[key])
-
-    assert set(expected_splits.keys()) == set(actual_splits.keys())
-
-    for key in actual_splits.keys():
-        assert np.allclose(actual_splits[key], expected_splits[key])
+    for key in actual_details.keys():
+        assert np.allclose(actual_details[key], expected_details[key])
 
 
 def test_combine_input_sources(input_partition):
@@ -83,14 +93,17 @@ def test_combine_input_sources(input_partition):
 
 def test_calculate_metabolic_proportions_of_input(input_partition, total_litter_input):
     """Test that function to calculate metabolic input proportions works as expected."""
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_metabolic_proportions_of_input,
+    )
 
     expected_proportions = {
-        "leaves": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
-        "reproductive": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
-        "roots": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
+        "leaves_meta_split": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
+        "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
+        "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
     }
 
-    actual_proportions = input_partition.calculate_metabolic_proportions_of_input(
+    actual_proportions = calculate_metabolic_proportions_of_input(
         total_input=total_litter_input, constants=LitterConsts
     )
 
@@ -100,26 +113,28 @@ def test_calculate_metabolic_proportions_of_input(input_partition, total_litter_
         assert np.allclose(actual_proportions[key], expected_proportions[key])
 
 
-def test_partion_plant_inputs_between_pools(
-    input_partition, metabolic_splits, total_litter_input
-):
+def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input):
     """Check function to partition inputs into litter pools works as expected."""
+    from virtual_ecosystem.models.litter.input_partition import (
+        partion_plant_inputs_between_pools,
+    )
 
-    expected_woody = [0.075, 0.099, 0.063, 0.033]
-    expected_above_meta = [0.02449646, 0.00805233, 0.012876799, 0.005805332]
-    expected_above_struct = [0.00553354, 0.00184767, 0.01352320, 0.02914467]
-    expected_below_meta = [0.01588666, 0.00797100, 0.00015073, 0.01021211]
-    expected_below_struct = [0.01111334, 0.013029, 0.00014927, 0.01468789]
+    expected_inputs = {
+        "input_woody": [0.075, 0.099, 0.063, 0.033],
+        "input_above_metabolic": [0.02449646, 0.00805233, 0.0128768, 0.00580533],
+        "input_above_structural": [0.00553354, 0.00184767, 0.0135232, 0.02914467],
+        "input_below_metabolic": [0.01588666, 0.007971, 0.00015073, 0.01021211],
+        "input_below_structural": [0.01111334, 0.013029, 0.00014927, 0.01468789],
+    }
 
-    actual_splits = input_partition.partion_plant_inputs_between_pools(
+    actual_inputs = partion_plant_inputs_between_pools(
         total_input=total_litter_input, metabolic_splits=metabolic_splits
     )
 
-    assert np.allclose(actual_splits["woody"], expected_woody)
-    assert np.allclose(actual_splits["above_ground_metabolic"], expected_above_meta)
-    assert np.allclose(actual_splits["above_ground_structural"], expected_above_struct)
-    assert np.allclose(actual_splits["below_ground_metabolic"], expected_below_meta)
-    assert np.allclose(actual_splits["below_ground_structural"], expected_below_struct)
+    assert set(expected_inputs.keys()) == set(actual_inputs.keys())
+
+    for key in actual_inputs.keys():
+        assert np.allclose(actual_inputs[key], expected_inputs[key])
 
 
 def test_split_pool_into_metabolic_and_structural_litter(dummy_litter_data):

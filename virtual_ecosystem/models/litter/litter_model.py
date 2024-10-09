@@ -16,9 +16,6 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205
 
-# TODO - At the moment this model only receives nothing from the animal model. In
-# future, litter flows due to waste from herbivory need to be added.
-
 # FUTURE - Potentially make a more numerically accurate version of this model by using
 # differential equations at some point. In reality, litter chemistry should change
 # continuously with time not just at the final time step as in the current
@@ -325,32 +322,23 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        # TODO - REALLY NEED TO THINK ABOUT WHAT'S BEING RETURNED HERE, SO THAT
-        # LITTER_CHEMISTRY HAS THE INFO IT NEEDS
-        metabolic_splits, plant_inputs = (
-            self.input_partition.determine_all_plant_to_litter_flows(
-                constants=self.model_constants,
-            )
+        input_details = self.input_partition.determine_all_plant_to_litter_flows(
+            constants=self.model_constants,
         )
 
         # Calculate the updated pool masses
         updated_pools = calculate_updated_pools(
             post_consumption_pools=consumed_pools,
             decay_rates=decay_rates,
-            plant_inputs=plant_inputs,
+            input_details=input_details,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
         )
 
-        # TODO - This will need to change when I've worked out what I'm actually doing
-        # with total_input
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            plant_inputs=plant_inputs,
-            metabolic_splits=metabolic_splits,
-            updated_pools=updated_pools,
-            total_input={},
+            updated_pools=updated_pools, input_details=input_details
         )
 
         # Calculate the total mineralisation rates from the litter

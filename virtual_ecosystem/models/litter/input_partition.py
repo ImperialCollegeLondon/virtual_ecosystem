@@ -3,13 +3,73 @@ matter into the various pools of the litter model. This plant matter comes from 
 natural tissue death as well as from mechanical inefficiencies in herbivory.
 """  # noqa: D205
 
+from dataclasses import dataclass
+
 import numpy as np
 from numpy.typing import NDArray
-from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.litter.constants import LitterConsts
+
+
+@dataclass
+class InputDetails:
+    """The full details of the input to the litter model."""
+
+    leaf_mass: NDArray[np.float32]
+    """Total leaf input mass to litter [kg C m^-2]"""
+    root_mass: NDArray[np.float32]
+    """Total root input mass to litter [kg C m^-2]"""
+    deadwood_mass: NDArray[np.float32]
+    """Total deadwood input mass to litter [kg C m^-2]"""
+    reprod_mass: NDArray[np.float32]
+    """Total plant reproductive tissue input mass to litter [kg C m^-2]"""
+
+    leaf_lignin: NDArray[np.float32]
+    """Lignin proportion of leaf input [unitless]"""
+    root_lignin: NDArray[np.float32]
+    """Lignin proportion of root input [unitless]"""
+    deadwood_lignin: NDArray[np.float32]
+    """Lignin proportion of deadwood input [unitless]"""
+    reprod_lignin: NDArray[np.float32]
+    """Lignin proportion of reproductive tissue input [unitless]"""
+
+    leaf_nitrogen: NDArray[np.float32]
+    """Carbon nitrogen ratio of leaf input [unitless]"""
+    root_nitrogen: NDArray[np.float32]
+    """Carbon nitrogen ratio of root input [unitless]"""
+    deadwood_nitrogen: NDArray[np.float32]
+    """Carbon nitrogen ratio of deadwood input [unitless]"""
+    reprod_nitrogen: NDArray[np.float32]
+    """Carbon nitrogen ratio of reproductive tissue input [unitless]"""
+
+    leaf_phosphorus: NDArray[np.float32]
+    """Carbon phosphorus ratio of leaf input [unitless]"""
+    root_phosphorus: NDArray[np.float32]
+    """Carbon phosphorus ratio of root input [unitless]"""
+    deadwood_phosphorus: NDArray[np.float32]
+    """Carbon phosphorus ratio of deadwood input [unitless]"""
+    reprod_phosphorus: NDArray[np.float32]
+    """Carbon phosphorus ratio of reproductive tissue input [unitless]"""
+
+    leaves_meta_split: NDArray[np.float32]
+    """Fraction of leaf input that goes to metabolic litter [unitless]"""
+    reproduct_meta_split: NDArray[np.float32]
+    """Fraction of leaf input that goes to metabolic litter [unitless]"""
+    roots_meta_split: NDArray[np.float32]
+    """Fraction of leaf input that goes to metabolic litter [unitless]"""
+
+    input_woody: NDArray[np.float32]
+    """Total input to the woody litter pool [kg C m^-2]"""
+    input_above_metabolic: NDArray[np.float32]
+    """Total input to the above ground metabolic litter pool [kg C m^-2]"""
+    input_above_structural: NDArray[np.float32]
+    """Total input to the above ground structural litter pool [kg C m^-2]"""
+    input_below_metabolic: NDArray[np.float32]
+    """Total input to the below ground metabolic litter pool [kg C m^-2]"""
+    input_below_structural: NDArray[np.float32]
+    """Total input to the below ground structural litter pool [kg C m^-2]"""
 
 
 class InputPartition:
@@ -24,7 +84,7 @@ class InputPartition:
 
     def determine_all_plant_to_litter_flows(
         self, constants: LitterConsts
-    ) -> tuple[dict[str, NDArray[np.float32]], dict[str, NDArray[np.float32]]]:
+    ) -> InputDetails:
         """Determine the total flow to each litter pool from dead plant matter.
 
         This method first combines the two different input streams for dead plant matter
@@ -35,10 +95,10 @@ class InputPartition:
             constants: Set of constants for the litter model.
 
         Returns:
-            Two dictionaries, the first of which provides the proportion of the input
-            that goes to the relevant metabolic pool for each input type (expect
-            deadwood) [unitless]. The second dictionary provides the total plant biomass
-            flow into each of the litter pools [kg C m^-2].
+            An InputDetails instance containing the total input of each plant biomass
+            type, the proportion of the input that goes to the relevant metabolic pool
+            for each input type (expect deadwood) and the total input into each litter
+            pool.
         """
 
         # Find the total input for each plant matter type
@@ -53,9 +113,9 @@ class InputPartition:
             total_input=total_input, metabolic_splits=metabolic_splits
         )
 
-        return metabolic_splits, plant_inputs
+        return InputDetails(**metabolic_splits, **plant_inputs, **total_input)
 
-    def combine_input_sources(self) -> dict[str, DataArray]:
+    def combine_input_sources(self) -> dict[str, NDArray[np.float32]]:
         """Combine the plant death and herbivory inputs into a single total input.
 
         The total input for each plant matter type (leaves, roots, deadwood,
@@ -111,27 +171,27 @@ class InputPartition:
         reprod_phosphorus = self.data["plant_reproductive_tissue_turnover_c_p_ratio"]
 
         return {
-            "leaf_mass": leaf_total,
-            "root_mass": root_total,
-            "deadwood_mass": deadwood_total,
-            "reprod_mass": reprod_total,
-            "leaf_lignin": leaf_lignin,
-            "root_lignin": root_lignin,
-            "deadwood_lignin": deadwood_lignin,
-            "reprod_lignin": reprod_lignin,
-            "leaf_nitrogen": leaf_nitrogen,
-            "root_nitrogen": root_nitrogen,
-            "deadwood_nitrogen": deadwood_nitrogen,
-            "reprod_nitrogen": reprod_nitrogen,
-            "leaf_phosphorus": leaf_phosphorus,
-            "root_phosphorus": root_phosphorus,
-            "deadwood_phosphorus": deadwood_phosphorus,
-            "reprod_phosphorus": reprod_phosphorus,
+            "leaf_mass": leaf_total.to_numpy(),
+            "root_mass": root_total.to_numpy(),
+            "deadwood_mass": deadwood_total.to_numpy(),
+            "reprod_mass": reprod_total.to_numpy(),
+            "leaf_lignin": leaf_lignin.to_numpy(),
+            "root_lignin": root_lignin.to_numpy(),
+            "deadwood_lignin": deadwood_lignin.to_numpy(),
+            "reprod_lignin": reprod_lignin.to_numpy(),
+            "leaf_nitrogen": leaf_nitrogen.to_numpy(),
+            "root_nitrogen": root_nitrogen.to_numpy(),
+            "deadwood_nitrogen": deadwood_nitrogen.to_numpy(),
+            "reprod_nitrogen": reprod_nitrogen.to_numpy(),
+            "leaf_phosphorus": leaf_phosphorus.to_numpy(),
+            "root_phosphorus": root_phosphorus.to_numpy(),
+            "deadwood_phosphorus": deadwood_phosphorus.to_numpy(),
+            "reprod_phosphorus": reprod_phosphorus.to_numpy(),
         }
 
 
 def calculate_metabolic_proportions_of_input(
-    total_input: dict[str, DataArray], constants: LitterConsts
+    total_input: dict[str, NDArray[np.float32]], constants: LitterConsts
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the proportion of each input type that flows to the metabolic pool.
 
@@ -153,41 +213,41 @@ def calculate_metabolic_proportions_of_input(
 
     # Calculate split of each input biomass type
     leaves_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        lignin_proportion=total_input["leaf_lignin"].to_numpy(),
-        carbon_nitrogen_ratio=total_input["leaf_nitrogen"].to_numpy(),
-        carbon_phosphorus_ratio=total_input["leaf_phosphorus"].to_numpy(),
+        lignin_proportion=total_input["leaf_lignin"],
+        carbon_nitrogen_ratio=total_input["leaf_nitrogen"],
+        carbon_phosphorus_ratio=total_input["leaf_phosphorus"],
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
 
     repoduct_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        lignin_proportion=total_input["reprod_lignin"].to_numpy(),
-        carbon_nitrogen_ratio=total_input["reprod_nitrogen"].to_numpy(),
-        carbon_phosphorus_ratio=total_input["reprod_phosphorus"].to_numpy(),
+        lignin_proportion=total_input["reprod_lignin"],
+        carbon_nitrogen_ratio=total_input["reprod_nitrogen"],
+        carbon_phosphorus_ratio=total_input["reprod_phosphorus"],
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
 
     roots_metabolic_split = split_pool_into_metabolic_and_structural_litter(
-        lignin_proportion=total_input["root_lignin"].to_numpy(),
-        carbon_nitrogen_ratio=total_input["root_nitrogen"].to_numpy(),
-        carbon_phosphorus_ratio=total_input["root_phosphorus"].to_numpy(),
+        lignin_proportion=total_input["root_lignin"],
+        carbon_nitrogen_ratio=total_input["root_nitrogen"],
+        carbon_phosphorus_ratio=total_input["root_phosphorus"],
         max_metabolic_fraction=constants.max_metabolic_fraction_of_input,
         split_sensitivity_nitrogen=constants.metabolic_split_nitrogen_sensitivity,
         split_sensitivity_phosphorus=constants.metabolic_split_phosphorus_sensitivity,
     )
 
     return {
-        "leaves": leaves_metabolic_split,
-        "reproductive": repoduct_metabolic_split,
-        "roots": roots_metabolic_split,
+        "leaves_meta_split": leaves_metabolic_split,
+        "reproduct_meta_split": repoduct_metabolic_split,
+        "roots_meta_split": roots_metabolic_split,
     }
 
 
 def partion_plant_inputs_between_pools(
-    total_input: dict[str, DataArray],
+    total_input: dict[str, NDArray[np.float32]],
     metabolic_splits: dict[str, NDArray[np.float32]],
 ):
     """Function to partition input biomass between the various litter pools.
@@ -199,7 +259,7 @@ def partion_plant_inputs_between_pools(
     concentration and carbon nitrogen ratios.
 
     Args:
-        total_input: The total pool size for each input pool [kg C m^-3], as well as
+        total_input: The total pool size for each input pool [kg C m^-2], as well as
             the chemical proportions (lignin, nitrogen and phosphorus) of each of
             these pools [unitless].
         metabolic_splits: Dictionary containing the proportion of each input that
@@ -215,23 +275,27 @@ def partion_plant_inputs_between_pools(
     # Calculate input to each of the five litter pools
     woody_input = total_input["deadwood_mass"]
     above_ground_metabolic_input = (
-        metabolic_splits["leaves"] * total_input["leaf_mass"]
-        + metabolic_splits["reproductive"] * total_input["reprod_mass"]
+        metabolic_splits["leaves_meta_split"] * total_input["leaf_mass"]
+        + metabolic_splits["reproduct_meta_split"] * total_input["reprod_mass"]
     )
-    above_ground_strutural_input = (1 - metabolic_splits["leaves"]) * total_input[
-        "leaf_mass"
-    ] + (1 - metabolic_splits["reproductive"]) * total_input["reprod_mass"]
-    below_ground_metabolic_input = metabolic_splits["roots"] * total_input["root_mass"]
-    below_ground_structural_input = (1 - metabolic_splits["roots"]) * total_input[
-        "root_mass"
-    ]
+    above_ground_strutural_input = (
+        1 - metabolic_splits["leaves_meta_split"]
+    ) * total_input["leaf_mass"] + (
+        1 - metabolic_splits["reproduct_meta_split"]
+    ) * total_input["reprod_mass"]
+    below_ground_metabolic_input = (
+        metabolic_splits["roots_meta_split"] * total_input["root_mass"]
+    )
+    below_ground_structural_input = (
+        1 - metabolic_splits["roots_meta_split"]
+    ) * total_input["root_mass"]
 
     return {
-        "woody": woody_input,
-        "above_ground_metabolic": above_ground_metabolic_input,
-        "above_ground_structural": above_ground_strutural_input,
-        "below_ground_metabolic": below_ground_metabolic_input,
-        "below_ground_structural": below_ground_structural_input,
+        "input_woody": woody_input,
+        "input_above_metabolic": above_ground_metabolic_input,
+        "input_above_structural": above_ground_strutural_input,
+        "input_below_metabolic": below_ground_metabolic_input,
+        "input_below_structural": below_ground_structural_input,
     }
 
 

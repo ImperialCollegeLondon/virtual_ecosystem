@@ -130,28 +130,6 @@ def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_poo
 
 
 @pytest.fixture
-def metabolic_splits(input_partition, total_litter_input):
-    """Metabolic splits for the various plant inputs."""
-
-    metabolic_splits = input_partition.calculate_metabolic_proportions_of_input(
-        total_input=total_litter_input, constants=LitterConsts
-    )
-
-    return metabolic_splits
-
-
-@pytest.fixture
-def plant_inputs(input_partition, metabolic_splits, total_litter_input):
-    """Plant inputs to each of the litter pools."""
-
-    plant_inputs = input_partition.partion_plant_inputs_between_pools(
-        metabolic_splits=metabolic_splits, total_input=total_litter_input
-    )
-
-    return plant_inputs
-
-
-@pytest.fixture
 def litter_chemistry(dummy_litter_data):
     """LitterChemistry object to be use throughout testing."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
@@ -172,23 +150,28 @@ def input_partition(dummy_litter_data):
 
 
 @pytest.fixture
-def input_lignin(dummy_litter_data, plant_inputs, litter_chemistry):
+def input_lignin(input_details):
     """Lignin proportion of the relevant input flows."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_litter_input_lignin_concentrations,
+    )
 
-    input_lignin = litter_chemistry.calculate_litter_input_lignin_concentrations(
-        plant_input_below_struct=plant_inputs["below_ground_structural"],
-        plant_input_above_struct=plant_inputs["above_ground_structural"],
+    input_lignin = calculate_litter_input_lignin_concentrations(
+        input_details=input_details
     )
 
     return input_lignin
 
 
 @pytest.fixture
-def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
+def input_c_n_ratios(input_details):
     """Carbon:nitrogen ratio of each input flow."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_litter_input_nitrogen_ratios,
+    )
 
-    input_c_n_ratios = litter_chemistry.calculate_litter_input_nitrogen_ratios(
-        metabolic_splits=metabolic_splits,
+    input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+        input_details=input_details,
         struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
     )
 
@@ -196,15 +179,33 @@ def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
 
 
 @pytest.fixture
-def input_c_p_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
+def input_c_p_ratios(input_details):
     """Carbon:nitrogen ratio of each input flow."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_litter_input_phosphorus_ratios,
+    )
 
-    input_c_p_ratios = litter_chemistry.calculate_litter_input_phosphorus_ratios(
-        metabolic_splits=metabolic_splits,
+    input_c_p_ratios = calculate_litter_input_phosphorus_ratios(
+        input_details=input_details,
         struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
     )
 
     return input_c_p_ratios
+
+
+@pytest.fixture
+def metabolic_splits(total_litter_input):
+    """Metabolic splits for the various plant inputs."""
+    from virtual_ecosystem.models.litter.input_partition import (
+        calculate_metabolic_proportions_of_input,
+    )
+
+    metabolic_splits = calculate_metabolic_proportions_of_input(
+        total_input=total_litter_input,
+        constants=LitterConsts,
+    )
+
+    return metabolic_splits
 
 
 @pytest.fixture
@@ -246,15 +247,28 @@ def total_litter_input(input_partition):
 
 
 @pytest.fixture
-def updated_pools(dummy_litter_data, decay_rates, plant_inputs, post_consumption_pools):
+def updated_pools(
+    dummy_litter_data, decay_rates, post_consumption_pools, input_details
+):
     """Updated carbon mass of each pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     updated_pools = calculate_updated_pools(
         post_consumption_pools=post_consumption_pools,
         decay_rates=decay_rates,
-        plant_inputs=plant_inputs,
+        input_details=input_details,
         update_interval=2.0,
     )
 
     return updated_pools
+
+
+@pytest.fixture
+def input_details(input_partition):
+    """Complete set of details for inputs to the litter model."""
+
+    input_details = input_partition.determine_all_plant_to_litter_flows(
+        constants=LitterConsts
+    )
+
+    return input_details
