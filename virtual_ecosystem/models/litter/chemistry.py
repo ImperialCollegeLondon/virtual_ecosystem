@@ -438,7 +438,7 @@ def calculate_litter_input_lignin_concentrations(
         structural) [kg lignin kg C^-1]
     """
 
-    lignin_proportion_woody = input_details.deadwood_mass
+    lignin_proportion_woody = input_details.deadwood_lignin
 
     lignin_proportion_below_structural = (
         input_details.root_lignin
