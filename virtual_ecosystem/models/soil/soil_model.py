@@ -66,6 +66,7 @@ class SoilModel(
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
+        "matric_potential",
     ),
     vars_updated=(
         "soil_c_pool_maom",
