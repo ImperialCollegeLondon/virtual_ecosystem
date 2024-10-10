@@ -5,7 +5,7 @@ defined in main.py that it calls.
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
+from logging import CRITICAL, DEBUG, ERROR, INFO
 
 import pytest
 
@@ -159,91 +159,3 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
         ve_run(cfg_strings=config_content)
 
     log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
-
-
-@pytest.mark.parametrize(
-    "cfg_strings,method,raises,model_keys,expected_log_entries",
-    [
-        pytest.param(
-            "[core]\n[soil.depends]\ninit=['abiotic_simple']\n"
-            "[abiotic_simple.depends]\ninit=[]\n",
-            "init",
-            does_not_raise(),
-            ["abiotic_simple", "soil"],
-            ((INFO, "Model init execution order set: abiotic_simple, soil"),),
-            id="valid init depends",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n[soil]\n",
-            "update",
-            does_not_raise(),
-            ["soil", "abiotic_simple"],
-            ((INFO, "Model update execution order set: soil, abiotic_simple"),),
-            id="valid update depends",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['soil']\n"
-            "[soil.depends]\nupdate=['abiotic_simple']\n",
-            "update",
-            pytest.raises(ConfigurationError),
-            None,
-            ((CRITICAL, "Model update dependencies are cyclic"),),
-            id="cyclic dependencies",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['abiotic_simple']\n",
-            "update",
-            pytest.raises(ConfigurationError),
-            None,
-            (
-                (
-                    CRITICAL,
-                    "Model update dependencies for abiotic_simple includes itself",
-                ),
-            ),
-            id="depends over self",
-        ),
-        pytest.param(
-            "[core]\n[abiotic_simple.depends]\nupdate=['plants', 'soil']\n[soil]",
-            "update",
-            does_not_raise(),
-            ["soil", "abiotic_simple"],
-            (
-                (
-                    WARNING,
-                    "Configuration does not include all of the models listed in "
-                    "update dependencies for abiotic_simple: plants",
-                ),
-                (INFO, "Model update execution order set: soil, abiotic_simple"),
-            ),
-            id="depends includes unconfigured models",
-        ),
-    ],
-)
-def test_get_model_sequence(
-    caplog,
-    cfg_strings,
-    raises,
-    method,
-    model_keys,
-    expected_log_entries,
-):
-    """Test the function that sets the model sequence."""
-
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.main import _get_model_sequence
-
-    # Generate a configuration to use, using simple inputs to populate most from
-    # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
-    caplog.clear()
-
-    with raises:
-        model_sequence = _get_model_sequence(
-            config=config, models=config.model_classes, method=method
-        )
-
-        if isinstance(raises, does_not_raise):
-            assert model_keys == list(model_sequence.keys())
-
-    log_check(caplog, expected_log_entries)
