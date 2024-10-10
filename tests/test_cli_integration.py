@@ -29,11 +29,6 @@ def test_ve_run(capsys, mocker):
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.entry_points import ve_run_cli
 
-    # TODO: Once models are adapted, this should be removed, probably
-    mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
-    mocker.patch("virtual_ecosystem.core.variables.setup_variables")
-    mocker.patch("virtual_ecosystem.core.variables.verify_variables_axis")
-
     with TemporaryDirectory() as tempdir:
         try:
             # Install the example directory to run it - tested above - and consume the
