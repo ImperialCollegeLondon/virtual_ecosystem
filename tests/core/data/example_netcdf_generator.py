@@ -1,11 +1,11 @@
 """Generate NetCDF datasets for testing."""
 
+import numpy as np
+import xarray
+
 
 def generate_files() -> None:
     """Generates a set of test files for test_data."""
-
-    import numpy as np
-    import xarray
 
     # https://towardsdatascience.com/basic-data-structures-of-xarray-80bab8094efa
 
