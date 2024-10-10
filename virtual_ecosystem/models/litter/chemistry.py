@@ -8,7 +8,7 @@ phosphorus content are tracked for every pool.
 
 Nitrogen and phosphorus contents do not have an explicit impact on decay rates, instead
 these contents determine how input material is split between pools (see
-:mod:`~virtual_ecosystem.models.litter.input_partition`), which indirectly captures the
+:mod:`~virtual_ecosystem.models.litter.inputs`), which indirectly captures the
 impact of N and P stoichiometry on litter decomposition rates. By contrast, the impact
 of lignin on decay rates is directly calculated.
 """  # noqa: D205
@@ -19,7 +19,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import LitterInputs
+from virtual_ecosystem.models.litter.inputs import LitterInputs
 
 
 class LitterChemistry:

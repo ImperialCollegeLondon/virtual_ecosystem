@@ -1,6 +1,6 @@
-"""The ``models.litter.input_partition`` module handles the partitioning of plant
-matter into the various pools of the litter model. This plant matter comes from both
-natural tissue death as well as from mechanical inefficiencies in herbivory.
+"""The ``models.litter.inputs`` module handles the partitioning of plant matter into the
+various pools of the litter model. This plant matter comes from both natural tissue
+death as well as from mechanical inefficiencies in herbivory.
 """  # noqa: D205
 
 from __future__ import annotations

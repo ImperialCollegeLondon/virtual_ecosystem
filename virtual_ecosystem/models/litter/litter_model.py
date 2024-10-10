@@ -46,7 +46,7 @@ from virtual_ecosystem.models.litter.carbon import (
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import LitterInputs
+from virtual_ecosystem.models.litter.inputs import LitterInputs
 
 
 class LitterModel(

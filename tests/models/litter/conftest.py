@@ -186,7 +186,7 @@ def input_c_p_ratios(input_details):
 @pytest.fixture
 def metabolic_splits(total_litter_input):
     """Metabolic splits for the various plant inputs."""
-    from virtual_ecosystem.models.litter.input_partition import (
+    from virtual_ecosystem.models.litter.inputs import (
         calculate_metabolic_proportions_of_input,
     )
 
@@ -230,7 +230,7 @@ def post_consumption_pools(dummy_litter_data):
 @pytest.fixture
 def total_litter_input(dummy_litter_data):
     """Total input mass a chemistry for each plant biomass type."""
-    from virtual_ecosystem.models.litter.input_partition import combine_input_sources
+    from virtual_ecosystem.models.litter.inputs import combine_input_sources
 
     total_litter_input = combine_input_sources(dummy_litter_data)
 
@@ -257,7 +257,7 @@ def updated_pools(
 @pytest.fixture
 def input_details(dummy_litter_data):
     """Complete set of details for inputs to the litter model."""
-    from virtual_ecosystem.models.litter.input_partition import LitterInputs
+    from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     input_details = LitterInputs.create_from_data(
         data=dummy_litter_data, constants=LitterConsts

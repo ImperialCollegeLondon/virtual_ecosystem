@@ -1,4 +1,4 @@
-"""Test module for models.litter.input_partition.py."""
+"""Test module for models.litter.inputs.py."""
 
 from logging import ERROR
 
@@ -13,7 +13,7 @@ def test_determine_all_plant_to_litter_flows(dummy_litter_data):
     """Test that function to determine plant to litter flows works correctly."""
     from dataclasses import asdict
 
-    from virtual_ecosystem.models.litter.input_partition import LitterInputs
+    from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     expected_inputs = {
         "leaves_meta_split": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
@@ -60,7 +60,7 @@ def test_determine_all_plant_to_litter_flows(dummy_litter_data):
 
 def test_combine_input_sources(dummy_litter_data):
     """Test that function to combine input sources works as expected."""
-    from virtual_ecosystem.models.litter.input_partition import combine_input_sources
+    from virtual_ecosystem.models.litter.inputs import combine_input_sources
 
     expected_combined = {
         "leaf_mass": [0.02703, 0.0024, 0.02385, 0.0312],
@@ -91,7 +91,7 @@ def test_combine_input_sources(dummy_litter_data):
 
 def test_calculate_metabolic_proportions_of_input(total_litter_input):
     """Test that function to calculate metabolic input proportions works as expected."""
-    from virtual_ecosystem.models.litter.input_partition import (
+    from virtual_ecosystem.models.litter.inputs import (
         calculate_metabolic_proportions_of_input,
     )
 
@@ -113,7 +113,7 @@ def test_calculate_metabolic_proportions_of_input(total_litter_input):
 
 def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input):
     """Check function to partition inputs into litter pools works as expected."""
-    from virtual_ecosystem.models.litter.input_partition import (
+    from virtual_ecosystem.models.litter.inputs import (
         partion_plant_inputs_between_pools,
     )
 
@@ -138,7 +138,7 @@ def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input
 def test_split_pool_into_metabolic_and_structural_litter(dummy_litter_data):
     """Check function to split input biomass between litter pools works as expected."""
 
-    from virtual_ecosystem.models.litter.input_partition import (
+    from virtual_ecosystem.models.litter.inputs import (
         split_pool_into_metabolic_and_structural_litter,
     )
 
@@ -188,7 +188,7 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
 ):
     """Check that pool split functions raises an error if out of bounds data is used."""
 
-    from virtual_ecosystem.models.litter.input_partition import (
+    from virtual_ecosystem.models.litter.inputs import (
         split_pool_into_metabolic_and_structural_litter,
     )
 

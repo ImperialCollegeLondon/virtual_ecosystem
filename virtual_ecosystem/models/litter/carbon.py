@@ -24,7 +24,7 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import (
     calculate_environmental_factors,
 )
-from virtual_ecosystem.models.litter.input_partition import LitterInputs
+from virtual_ecosystem.models.litter.inputs import LitterInputs
 
 
 def calculate_post_consumption_pools(
