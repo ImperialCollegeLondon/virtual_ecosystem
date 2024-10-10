@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.7
+    rev: v0.6.9
     hooks:
       - id: ruff        #  Run the linter.
         args: [--fix, --exit-non-zero-on-fix]
@@ -16,7 +16,7 @@ repos:
       - id: mypy
         additional_dependencies: [types-jsonschema, xarray, types-tabulate, numpy]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.41.0
+    rev: v0.42.0
     hooks:
     - id: markdownlint
 
