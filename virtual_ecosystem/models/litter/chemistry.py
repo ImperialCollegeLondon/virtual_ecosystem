@@ -19,7 +19,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import InputDetails
+from virtual_ecosystem.models.litter.input_partition import LitterInputs
 
 
 class LitterChemistry:
@@ -38,7 +38,7 @@ class LitterChemistry:
     def calculate_new_pool_chemistries(
         self,
         updated_pools: dict[str, NDArray[np.float32]],
-        input_details: InputDetails,
+        input_details: LitterInputs,
     ) -> dict[str, DataArray]:
         """Method to calculate the updated chemistry of each litter pool.
 
@@ -49,7 +49,7 @@ class LitterChemistry:
         Args:
             updated_pools: Dictionary containing the updated pool densities for all 5
                 litter pools [kg C m^-2]
-            input_details: An InputDetails instance containing the total input of each
+            input_details: An LitterInputs instance containing the total input of each
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
                 total input into each litter pool.
@@ -121,7 +121,7 @@ class LitterChemistry:
 
     def calculate_lignin_updates(
         self,
-        input_details: InputDetails,
+        input_details: LitterInputs,
         input_lignin: dict[str, NDArray[np.float32]],
         updated_pools: dict[str, NDArray[np.float32]],
     ) -> dict[str, NDArray[np.float32]]:
@@ -132,7 +132,7 @@ class LitterChemistry:
         used in an integration process.
 
         Args:
-            input_details: An InputDetails instance containing the total input of each
+            input_details: An LitterInputs instance containing the total input of each
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
                 total input into each litter pool.
@@ -174,7 +174,7 @@ class LitterChemistry:
 
     def calculate_c_n_ratio_updates(
         self,
-        input_details: InputDetails,
+        input_details: LitterInputs,
         input_c_n_ratios: dict[str, NDArray[np.float32]],
         updated_pools: dict[str, NDArray[np.float32]],
     ) -> dict[str, NDArray[np.float32]]:
@@ -184,7 +184,7 @@ class LitterChemistry:
         be used in an integration process.
 
         Args:
-            input_details: An InputDetails instance containing the total input of each
+            input_details: An LitterInputs instance containing the total input of each
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
                 total input into each litter pool.
@@ -239,7 +239,7 @@ class LitterChemistry:
 
     def calculate_c_p_ratio_updates(
         self,
-        input_details: InputDetails,
+        input_details: LitterInputs,
         input_c_p_ratios: dict[str, NDArray[np.float32]],
         updated_pools: dict[str, NDArray[np.float32]],
     ) -> dict[str, NDArray[np.float32]]:
@@ -249,7 +249,7 @@ class LitterChemistry:
         be used in an integration process.
 
         Args:
-            input_details: An InputDetails instance containing the total input of each
+            input_details: An LitterInputs instance containing the total input of each
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
                 total input into each litter pool.
@@ -408,7 +408,7 @@ class LitterChemistry:
 
 
 def calculate_litter_input_lignin_concentrations(
-    input_details: InputDetails,
+    input_details: LitterInputs,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the concentration of lignin for each plant biomass to litter flow.
 
@@ -427,7 +427,7 @@ def calculate_litter_input_lignin_concentrations(
     then converted to a back into a concentration.
 
     Args:
-        input_details: An InputDetails instance containing the total input of each
+        input_details: An LitterInputs instance containing the total input of each
             plant biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.
@@ -459,7 +459,7 @@ def calculate_litter_input_lignin_concentrations(
 
 
 def calculate_litter_input_nitrogen_ratios(
-    input_details: InputDetails,
+    input_details: LitterInputs,
     struct_to_meta_nitrogen_ratio: float,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the carbon to nitrogen ratio for each plant biomass to litter flow.
@@ -472,7 +472,7 @@ def calculate_litter_input_nitrogen_ratios(
     tissue turnover) must be taken.
 
     Args:
-        input_details: An InputDetails instance containing the total input of each
+        input_details: An LitterInputs instance containing the total input of each
             plant biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.
@@ -553,7 +553,7 @@ def calculate_litter_input_nitrogen_ratios(
 
 
 def calculate_litter_input_phosphorus_ratios(
-    input_details: InputDetails,
+    input_details: LitterInputs,
     struct_to_meta_phosphorus_ratio: float,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate carbon to phosphorus ratio for each plant biomass to litter flow.
@@ -566,7 +566,7 @@ def calculate_litter_input_phosphorus_ratios(
     turnover) must be taken.
 
     Args:
-        input_details: An InputDetails instance containing the total input of each
+        input_details: An LitterInputs instance containing the total input of each
             plant biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.

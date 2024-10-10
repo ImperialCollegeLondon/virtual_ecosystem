@@ -24,7 +24,7 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import (
     calculate_environmental_factors,
 )
-from virtual_ecosystem.models.litter.input_partition import InputDetails
+from virtual_ecosystem.models.litter.input_partition import LitterInputs
 
 
 def calculate_post_consumption_pools(
@@ -219,7 +219,7 @@ def calculate_total_C_mineralised(
 def calculate_updated_pools(
     post_consumption_pools: dict[str, NDArray[np.float32]],
     decay_rates: dict[str, NDArray[np.float32]],
-    input_details: InputDetails,
+    input_details: LitterInputs,
     update_interval: float,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the updated mass of each litter pool.
@@ -232,7 +232,7 @@ def calculate_updated_pools(
             subtracted [kg C m^-2]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
-        input_details: An InputDetails instance containing the total input of each plant
+        input_details: An LitterInputs instance containing the total input of each plant
             biomass type, the proportion of the input that goes to the relevant
             metabolic pool for each input type (expect deadwood) and the total input
             into each litter pool.

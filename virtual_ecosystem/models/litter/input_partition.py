@@ -14,7 +14,7 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
 @dataclass
-class InputDetails:
+class LitterInputs:
     """The full details of the input to the litter model."""
 
     leaf_mass: NDArray[np.float32]
@@ -84,7 +84,7 @@ class InputPartition:
 
     def determine_all_plant_to_litter_flows(
         self, constants: LitterConsts
-    ) -> InputDetails:
+    ) -> LitterInputs:
         """Determine the total flow to each litter pool from dead plant matter.
 
         This method first combines the two different input streams for dead plant matter
@@ -95,7 +95,7 @@ class InputPartition:
             constants: Set of constants for the litter model.
 
         Returns:
-            An InputDetails instance containing the total input of each plant biomass
+            An LitterInputs instance containing the total input of each plant biomass
             type, the proportion of the input that goes to the relevant metabolic pool
             for each input type (expect deadwood) and the total input into each litter
             pool.
@@ -113,7 +113,7 @@ class InputPartition:
             total_input=total_input, metabolic_splits=metabolic_splits
         )
 
-        return InputDetails(**metabolic_splits, **plant_inputs, **total_input)
+        return LitterInputs(**metabolic_splits, **plant_inputs, **total_input)
 
     def combine_input_sources(self) -> dict[str, NDArray[np.float32]]:
         """Combine the plant death and herbivory inputs into a single total input.
