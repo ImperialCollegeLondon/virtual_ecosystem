@@ -140,16 +140,6 @@ def litter_chemistry(dummy_litter_data):
 
 
 @pytest.fixture
-def input_partition(dummy_litter_data):
-    """InputPartition object to be use throughout testing."""
-    from virtual_ecosystem.models.litter.input_partition import InputPartition
-
-    input_partition = InputPartition(dummy_litter_data)
-
-    return input_partition
-
-
-@pytest.fixture
 def input_lignin(input_details):
     """Lignin proportion of the relevant input flows."""
     from virtual_ecosystem.models.litter.chemistry import (
@@ -238,10 +228,11 @@ def post_consumption_pools(dummy_litter_data):
 
 
 @pytest.fixture
-def total_litter_input(input_partition):
+def total_litter_input(dummy_litter_data):
     """Total input mass a chemistry for each plant biomass type."""
+    from virtual_ecosystem.models.litter.input_partition import combine_input_sources
 
-    total_litter_input = input_partition.combine_input_sources()
+    total_litter_input = combine_input_sources(dummy_litter_data)
 
     return total_litter_input
 
@@ -264,11 +255,12 @@ def updated_pools(
 
 
 @pytest.fixture
-def input_details(input_partition):
+def input_details(dummy_litter_data):
     """Complete set of details for inputs to the litter model."""
+    from virtual_ecosystem.models.litter.input_partition import LitterInputs
 
-    input_details = input_partition.determine_all_plant_to_litter_flows(
-        constants=LitterConsts
+    input_details = LitterInputs.create_from_data(
+        data=dummy_litter_data, constants=LitterConsts
     )
 
     return input_details

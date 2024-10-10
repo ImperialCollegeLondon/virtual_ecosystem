@@ -9,20 +9,13 @@ from tests.conftest import log_check
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
-def test_input_partition_initialisation(dummy_litter_data):
-    """Test that the InputPartition class initialises as expected."""
-    from virtual_ecosystem.models.litter.input_partition import InputPartition
-
-    input_partition = InputPartition(dummy_litter_data)
-
-    assert input_partition.data == dummy_litter_data
-
-
-def test_determine_all_plant_to_litter_flows(input_partition, total_litter_input):
+def test_determine_all_plant_to_litter_flows(dummy_litter_data):
     """Test that function to determine plant to litter flows works correctly."""
     from dataclasses import asdict
 
-    expected_details = {
+    from virtual_ecosystem.models.litter.input_partition import LitterInputs
+
+    expected_inputs = {
         "leaves_meta_split": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
         "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
         "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
@@ -49,20 +42,25 @@ def test_determine_all_plant_to_litter_flows(input_partition, total_litter_input
         "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
-    actual_details = input_partition.determine_all_plant_to_litter_flows(
-        constants=LitterConsts
+    litter_inputs = LitterInputs.create_from_data(
+        data=dummy_litter_data, constants=LitterConsts
     )
-    actual_details = asdict(actual_details)
+    # Check that the right sort of object has been created
+    assert isinstance(litter_inputs, LitterInputs)
+
+    # Then convert to a dict to check the values
+    litter_inputs = asdict(litter_inputs)
 
     # Check that all keys match and have correct values for both dictionaries
-    assert set(expected_details.keys()) == set(actual_details.keys())
+    assert set(expected_inputs.keys()) == set(litter_inputs.keys())
 
-    for key in actual_details.keys():
-        assert np.allclose(actual_details[key], expected_details[key])
+    for key in litter_inputs.keys():
+        assert np.allclose(litter_inputs[key], expected_inputs[key])
 
 
-def test_combine_input_sources(input_partition):
+def test_combine_input_sources(dummy_litter_data):
     """Test that function to combine input sources works as expected."""
+    from virtual_ecosystem.models.litter.input_partition import combine_input_sources
 
     expected_combined = {
         "leaf_mass": [0.02703, 0.0024, 0.02385, 0.0312],
@@ -83,7 +81,7 @@ def test_combine_input_sources(input_partition):
         "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
-    actual_combined = input_partition.combine_input_sources()
+    actual_combined = combine_input_sources(dummy_litter_data)
 
     assert set(expected_combined.keys()) == set(actual_combined.keys())
 
@@ -91,7 +89,7 @@ def test_combine_input_sources(input_partition):
         assert np.allclose(actual_combined[key], expected_combined[key])
 
 
-def test_calculate_metabolic_proportions_of_input(input_partition, total_litter_input):
+def test_calculate_metabolic_proportions_of_input(total_litter_input):
     """Test that function to calculate metabolic input proportions works as expected."""
     from virtual_ecosystem.models.litter.input_partition import (
         calculate_metabolic_proportions_of_input,

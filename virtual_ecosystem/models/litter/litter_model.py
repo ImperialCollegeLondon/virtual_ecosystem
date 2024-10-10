@@ -46,7 +46,7 @@ from virtual_ecosystem.models.litter.carbon import (
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import InputPartition
+from virtual_ecosystem.models.litter.input_partition import LitterInputs
 
 
 class LitterModel(
@@ -105,6 +105,10 @@ class LitterModel(
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
+        "deadwood_c_p_ratio",
+        "leaf_turnover_c_p_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_turnover_c_p_ratio",
         "herbivory_waste_leaf_carbon",
         "herbivory_waste_leaf_nitrogen",
         "herbivory_waste_leaf_phosphorus",
@@ -232,9 +236,6 @@ class LitterModel(
         self.litter_chemistry = LitterChemistry(data, constants=model_constants)
         """Litter chemistry object for tracking of litter pool chemistries."""
 
-        self.input_partition = InputPartition(data)
-        """Input partition object for tracking split between litter pools."""
-
         self.model_constants = model_constants
         """Set of constants for the litter model."""
 
@@ -322,15 +323,15 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        input_details = self.input_partition.determine_all_plant_to_litter_flows(
-            constants=self.model_constants,
+        litter_inputs = LitterInputs.create_from_data(
+            self.data, constants=self.model_constants
         )
 
         # Calculate the updated pool masses
         updated_pools = calculate_updated_pools(
             post_consumption_pools=consumed_pools,
             decay_rates=decay_rates,
-            input_details=input_details,
+            input_details=litter_inputs,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
@@ -338,7 +339,7 @@ class LitterModel(
 
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            updated_pools=updated_pools, input_details=input_details
+            updated_pools=updated_pools, input_details=litter_inputs
         )
 
         # Calculate the total mineralisation rates from the litter
