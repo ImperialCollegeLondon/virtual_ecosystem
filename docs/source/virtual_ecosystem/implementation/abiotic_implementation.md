@@ -246,9 +246,9 @@ mystnb:
 
 display_markdown(
     generate_variable_table(
-        'AbioticModel', 
+        'AbioticModel',
         ['vars_updated']
-    ), 
+    ),
     raw=True
 )
 ```
