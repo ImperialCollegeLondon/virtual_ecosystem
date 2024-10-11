@@ -111,7 +111,27 @@ establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperat
 $\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
 changes.
 
-TODO - ADD SOMETHING SIMILAR FOR SOIL MOISTURE
+The decay rates for the two below-ground litter pools are also impacted by how wet the
+soil is. In very dry soils decay rates are extremely slow, this is because microbial
+movement is restricted so microbes struggle to reach litter fragments to decompose them.
+As soils get wetter, microbial motility increases resulting in faster decay rates.
+However, increasing soil moisture makes it harder for oxygen to permeate the soil, so at
+a certain point litter decay rates begin to decrease with increasing soil moisture as
+oxygen availability has become limiting. The "intrinsic" litter decay rates are altered
+to capture the effect of soil moisture by multiplying them with a factor that takes the
+following form
+
+$$
+A(\psi) = 1 - \left(
+\frac{\log_{10}|\psi| - \log_{10}|\psi_{o}|}
+{\log_{10}|\psi_{h}| - \log_{10}|\psi_{o}|}
+\right)^\alpha
+$$
+
+where $\psi$ is the soil water potential, $\psi_{o}$ is the "optimal" water potential at
+which litter decay is maximised, $\psi_{h}$ is the water potential at which decay stops
+entirely, and $\alpha$ is an empirically determined parameter which sets the curvature
+of the response to changing soil water potential.
 
 ## Animal impacts on litter
 
