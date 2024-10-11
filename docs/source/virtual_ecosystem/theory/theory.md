@@ -1,7 +1,7 @@
 # The theory of the Virtual Ecosystem
 
 Ecosystems are complex systems that arise from the interplay between
-[animals](./animal_theory.md),
+[animals](./animals/animal_theory.md),
 [plants](./plant_theory.md),
 and [soil microbes](./decay/decay_theory.md) with their
 [abiotic environment](./abiotic_theory.md). Many of these interactions are

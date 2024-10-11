@@ -16,7 +16,9 @@ subtrees:
             entries:
               - file: virtual_ecosystem/theory/decay/soil_theory
               - file: virtual_ecosystem/theory/decay/litter_theory
-          - file: virtual_ecosystem/theory/animal_theory
+          - file: virtual_ecosystem/theory/animals/animal_theory
+            entries:
+              - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
       - file: virtual_ecosystem/implementation/implementation
         title: Implementation
         entries:
