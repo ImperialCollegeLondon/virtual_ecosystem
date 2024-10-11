@@ -350,9 +350,13 @@ class AnimalModel(
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
         litter_consumption = self.calculate_total_litter_consumption(litter_pools)
+        # litter_additions = self.calculate_litter_additions_from_herbivory()
 
         # Update the data object with the changes to soil and litter pools
-        self.data.add_from_dict(additions_to_soil | litter_consumption)
+        self.data.add_from_dict(
+            additions_to_soil | litter_consumption  # | litter_additions
+        )  # TODO - TEST THIS!
+
         # Update population densities
         self.update_population_densities()
 
