@@ -140,7 +140,7 @@ def test_calculate_total_C_mineralised(decay_rates):
 
 
 def test_calculate_updated_pools(
-    dummy_litter_data, decay_rates, post_consumption_pools, input_details
+    dummy_litter_data, decay_rates, post_consumption_pools, litter_inputs
 ):
     """Test that the function to calculate the pool values after the update works."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
@@ -156,7 +156,7 @@ def test_calculate_updated_pools(
     actual_pools = calculate_updated_pools(
         post_consumption_pools=post_consumption_pools,
         decay_rates=decay_rates,
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         update_interval=2.0,
     )
 

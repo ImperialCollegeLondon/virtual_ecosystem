@@ -27,7 +27,7 @@ def test_calculate_litter_chemistry_factor():
 
 
 def test_calculate_new_pool_chemistries(
-    dummy_litter_data, input_details, updated_pools, litter_chemistry
+    dummy_litter_data, litter_inputs, updated_pools, litter_chemistry
 ):
     """Test that function to calculate updated pool chemistries works correctly."""
 
@@ -48,7 +48,7 @@ def test_calculate_new_pool_chemistries(
     }
 
     actual_chemistries = litter_chemistry.calculate_new_pool_chemistries(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         updated_pools=updated_pools,
     )
 
@@ -59,7 +59,7 @@ def test_calculate_new_pool_chemistries(
 
 
 def test_calculate_lignin_updates(
-    input_lignin, updated_pools, litter_chemistry, input_details
+    input_lignin, updated_pools, litter_chemistry, litter_inputs
 ):
     """Test that the function to calculate the lignin updates works as expected."""
 
@@ -71,7 +71,7 @@ def test_calculate_lignin_updates(
 
     actual_lignin = litter_chemistry.calculate_lignin_updates(
         input_lignin=input_lignin,
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         updated_pools=updated_pools,
     )
 
@@ -105,7 +105,7 @@ def test_calculate_change_in_chemical_concentration(
 
 
 def test_calculate_c_n_ratio_updates(
-    dummy_litter_data, input_details, input_c_n_ratios, updated_pools, litter_chemistry
+    dummy_litter_data, litter_inputs, input_c_n_ratios, updated_pools, litter_chemistry
 ):
     """Test that calculation of C:N ratio updates works properly."""
 
@@ -118,7 +118,7 @@ def test_calculate_c_n_ratio_updates(
     }
 
     actual_change = litter_chemistry.calculate_c_n_ratio_updates(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         input_c_n_ratios=input_c_n_ratios,
         updated_pools=updated_pools,
     )
@@ -130,7 +130,7 @@ def test_calculate_c_n_ratio_updates(
 
 
 def test_calculate_c_p_ratio_updates(
-    dummy_litter_data, input_details, input_c_p_ratios, updated_pools, litter_chemistry
+    dummy_litter_data, litter_inputs, input_c_p_ratios, updated_pools, litter_chemistry
 ):
     """Test that calculation of C:P ratio updates works properly."""
 
@@ -143,7 +143,7 @@ def test_calculate_c_p_ratio_updates(
     }
 
     actual_change = litter_chemistry.calculate_c_p_ratio_updates(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         input_c_p_ratios=input_c_p_ratios,
         updated_pools=updated_pools,
     )
@@ -180,7 +180,7 @@ def test_calculate_P_mineralisation(dummy_litter_data, decay_rates, litter_chemi
     assert np.allclose(actual_p_mineral, expected_p_mineral)
 
 
-def test_calculate_litter_input_lignin_concentrations(input_details):
+def test_calculate_litter_input_lignin_concentrations(litter_inputs):
     """Check calculation of lignin concentrations of each plant flow to litter."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_lignin_concentrations,
@@ -191,7 +191,7 @@ def test_calculate_litter_input_lignin_concentrations(input_details):
     expected_concs_below_struct = [0.48590258, 0.56412613, 0.54265483, 0.67810978]
 
     actual_concs = calculate_litter_input_lignin_concentrations(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
     )
 
     assert np.allclose(actual_concs["woody"], expected_woody)
@@ -199,7 +199,7 @@ def test_calculate_litter_input_lignin_concentrations(input_details):
     assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)
 
 
-def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, input_details):
+def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, litter_inputs):
     """Check function to calculate the C:N ratios of input to each litter pool works."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_nitrogen_ratios,
@@ -214,7 +214,7 @@ def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, input_details
     }
 
     actual_c_n_ratios = calculate_litter_input_nitrogen_ratios(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
     )
 
@@ -224,7 +224,7 @@ def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, input_details
         assert np.allclose(actual_c_n_ratios[key], expected_c_n_ratios[key])
 
 
-def test_calculate_litter_input_phosphorus_ratios(dummy_litter_data, input_details):
+def test_calculate_litter_input_phosphorus_ratios(dummy_litter_data, litter_inputs):
     """Check function to calculate the C:P ratios of input to each litter pool works."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_phosphorus_ratios,
@@ -239,7 +239,7 @@ def test_calculate_litter_input_phosphorus_ratios(dummy_litter_data, input_detai
     }
 
     actual_c_p_ratios = calculate_litter_input_phosphorus_ratios(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
     )
 
@@ -250,7 +250,7 @@ def test_calculate_litter_input_phosphorus_ratios(dummy_litter_data, input_detai
 
 
 def test_calculate_nutrient_split_between_litter_pools(
-    dummy_litter_data, input_details
+    dummy_litter_data, litter_inputs
 ):
     """Check the function to calculate the nutrient split between litter pools."""
     from virtual_ecosystem.models.litter.chemistry import (
@@ -262,7 +262,7 @@ def test_calculate_nutrient_split_between_litter_pools(
 
     actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
         input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
-        metabolic_split=input_details.roots_meta_split,
+        metabolic_split=litter_inputs.roots_meta_split,
         struct_to_meta_nutrient_ratio=LitterConsts.structural_to_metabolic_n_ratio,
     )
 
@@ -279,7 +279,7 @@ def test_calculate_nutrient_split_between_litter_pools(
     assert np.allclose(
         dummy_litter_data["root_turnover_c_n_ratio"],
         (
-            actual_meta_c_n * input_details.roots_meta_split
-            + actual_struct_c_n * (1 - input_details.roots_meta_split)
+            actual_meta_c_n * litter_inputs.roots_meta_split
+            + actual_struct_c_n * (1 - litter_inputs.roots_meta_split)
         ),
     )

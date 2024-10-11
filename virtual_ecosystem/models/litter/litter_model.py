@@ -331,7 +331,7 @@ class LitterModel(
         updated_pools = calculate_updated_pools(
             post_consumption_pools=consumed_pools,
             decay_rates=decay_rates,
-            input_details=litter_inputs,
+            litter_inputs=litter_inputs,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
@@ -339,7 +339,7 @@ class LitterModel(
 
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            updated_pools=updated_pools, input_details=litter_inputs
+            updated_pools=updated_pools, litter_inputs=litter_inputs
         )
 
         # Calculate the total mineralisation rates from the litter

@@ -140,28 +140,28 @@ def litter_chemistry(dummy_litter_data):
 
 
 @pytest.fixture
-def input_lignin(input_details):
+def input_lignin(litter_inputs):
     """Lignin proportion of the relevant input flows."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_lignin_concentrations,
     )
 
     input_lignin = calculate_litter_input_lignin_concentrations(
-        input_details=input_details
+        litter_inputs=litter_inputs
     )
 
     return input_lignin
 
 
 @pytest.fixture
-def input_c_n_ratios(input_details):
+def input_c_n_ratios(litter_inputs):
     """Carbon:nitrogen ratio of each input flow."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_nitrogen_ratios,
     )
 
     input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
     )
 
@@ -169,14 +169,14 @@ def input_c_n_ratios(input_details):
 
 
 @pytest.fixture
-def input_c_p_ratios(input_details):
+def input_c_p_ratios(litter_inputs):
     """Carbon:nitrogen ratio of each input flow."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_phosphorus_ratios,
     )
 
     input_c_p_ratios = calculate_litter_input_phosphorus_ratios(
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
     )
 
@@ -239,7 +239,7 @@ def total_litter_input(dummy_litter_data):
 
 @pytest.fixture
 def updated_pools(
-    dummy_litter_data, decay_rates, post_consumption_pools, input_details
+    dummy_litter_data, decay_rates, post_consumption_pools, litter_inputs
 ):
     """Updated carbon mass of each pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
@@ -247,7 +247,7 @@ def updated_pools(
     updated_pools = calculate_updated_pools(
         post_consumption_pools=post_consumption_pools,
         decay_rates=decay_rates,
-        input_details=input_details,
+        litter_inputs=litter_inputs,
         update_interval=2.0,
     )
 
@@ -255,12 +255,12 @@ def updated_pools(
 
 
 @pytest.fixture
-def input_details(dummy_litter_data):
+def litter_inputs(dummy_litter_data):
     """Complete set of details for inputs to the litter model."""
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
-    input_details = LitterInputs.create_from_data(
+    litter_inputs = LitterInputs.create_from_data(
         data=dummy_litter_data, constants=LitterConsts
     )
 
-    return input_details
+    return litter_inputs
