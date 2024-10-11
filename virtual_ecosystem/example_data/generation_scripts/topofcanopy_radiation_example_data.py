@@ -37,4 +37,4 @@ data["topofcanopy_radiation"] = DataArray(
 
 data["time"] = DataArray(time, coords={"time_index": time_index})
 
-data.to_netcdf("../data/example_topofcanopy_radiation.nc", format="NETCDF3_64BIT")
+data.to_netcdf("../data/example_topofcanopy_radiation.nc")
