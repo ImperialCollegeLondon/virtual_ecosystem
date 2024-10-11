@@ -82,6 +82,34 @@ def test_register_variable_duplicate(known_variables):
         )
 
 
+def test_variables_related_models(known_variables):
+    """Test the related_models function of the Variable class."""
+    from virtual_ecosystem.core import variables
+
+    var = variables.Variable(
+        name="test_var",
+        description="Test variable",
+        unit="m",
+        variable_type="float",
+        axis=("x", "y", "z"),
+    )
+
+    # Check that the related models are empty when no data is provided
+    assert var.related_models == set()
+
+    # Check that the related models are correctly returned
+    var.populated_by_init = ["model1"]
+    var.populated_by_update = ["model2"]
+    var.required_by_init = ["model3"]
+    var.required_by_update = ["model4", "model5"]
+    var.updated_by = ["model5"]
+    assert var.related_models == set(["model1", "model2", "model3", "model4", "model5"])
+
+    # Test that data is not included in the related models
+    var.updated_by = ["data"]
+    assert var.related_models == set(["model1", "model2", "model3", "model4", "model5"])
+
+
 def test_register_all_variables(known_variables):
     """Test the register_all_variables function."""
     from virtual_ecosystem.core import variables
@@ -468,3 +496,50 @@ axis           ('x', 'y')
 """
 
     assert _format_varriables_list(vars) == expected_output
+
+
+def test_get_model_order(run_variables):
+    """Test the get_model_order function."""
+    from virtual_ecosystem.core import variables
+    from virtual_ecosystem.core.exceptions import ConfigurationError
+
+    # Test wrong stage
+    with pytest.raises(
+        ConfigurationError, match="Stage must be either 'init' or 'update'."
+    ):
+        variables.get_model_order("wrong_stage")
+
+    var1 = variables.Variable("var1", "", "", "", ())
+    var2 = variables.Variable("var2", "", "", "", ())
+    var3 = variables.Variable("var3", "", "", "", ())
+
+    run_variables["var1"] = var1
+    run_variables["var2"] = var2
+    run_variables["var3"] = var3
+
+    # Test cyclic dependencies issues
+    var1.required_by_init = ["model2"]
+    var1.populated_by_init = ["model1"]
+    var2.required_by_init = ["model1"]
+    var2.populated_by_init = ["model2"]
+    with pytest.raises(ConfigurationError, match="Model init dependencies are cyclic"):
+        variables.get_model_order("init")
+
+    # Check that a model that does not depend on init is still included (model3)
+    var2.required_by_init = ["model2"]
+    var2.populated_by_init = ["model1"]
+    var3.required_by_update = ["model3"]
+    assert variables.get_model_order("init") == ["model1", "model3", "model2"]
+
+    # Check that a model that depends on data is still included, but data isn't
+    var3.required_by_init = ["model3"]
+    var3.populated_by_init = ["data"]
+    var3.required_by_update = []
+    assert variables.get_model_order("init") == ["model1", "model3", "model2"]
+
+    # Check that a cascade of dependencies is correctly ordered (model3 should be last)
+    var2.required_by_init = ["model3"]
+    var2.populated_by_init = ["model1"]
+    var3.required_by_init = ["model3"]
+    var3.populated_by_init = ["model2"]
+    assert variables.get_model_order("init") == ["model1", "model2", "model3"]

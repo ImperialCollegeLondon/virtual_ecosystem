@@ -67,6 +67,10 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
+        "herbivory_waste_leaf_carbon",
+        "herbivory_waste_leaf_nitrogen",
+        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
         "litter_consumption_woody",
@@ -80,6 +84,10 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
+        "herbivory_waste_leaf_carbon",
+        "herbivory_waste_leaf_nitrogen",
+        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_lignin",
         "total_animal_respiration",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
@@ -303,9 +311,12 @@ class AnimalModel(
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
         litter_consumption = self.calculate_total_litter_consumption(litter_pools)
+        litter_additions = self.calculate_litter_additions_from_herbivory()
 
         # Update the data object with the changes to soil and litter pools
-        self.data.add_from_dict(additions_to_soil | litter_consumption)
+        self.data.add_from_dict(
+            additions_to_soil | litter_consumption | litter_additions
+        )  # TODO - TEST THIS!
 
         # Update population densities
         self.update_population_densities()
@@ -368,6 +379,55 @@ class AnimalModel(
                 array(total_consumption[pool_name]), dims="cell_id"
             )
             for pool_name in litter_pools.keys()
+        }
+
+    def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
+        """Calculate additions to litter due to herbivory mechanical inefficiencies.
+
+        TODO - At present the only type of herbivory this works for is leaf herbivory,
+        that should be changed once herbivory as a whole is fleshed out.
+
+        Returns:
+            A dictionary containing details of the leaf litter addition due to herbivory
+            this comprises of the mass added in carbon terms [kg C m^-2], ratio of
+            carbon to nitrogen [unitless], ratio of carbon to phosphorus [unitless], and
+            the proportion of input carbon that is lignin [unitless].
+        """
+
+        # Find the size of the leaf waste pool (in carbon terms)
+        leaf_addition = [
+            community.leaf_waste_pool.mass_current / self.data.grid.cell_area
+            for community in self.communities.values()
+        ]
+        # Find the chemistry of the pools as well
+        leaf_c_n = [
+            community.leaf_waste_pool.c_n_ratio
+            for community in self.communities.values()
+        ]
+        leaf_c_p = [
+            community.leaf_waste_pool.c_p_ratio
+            for community in self.communities.values()
+        ]
+        leaf_lignin = [
+            community.leaf_waste_pool.lignin_proportion
+            for community in self.communities.values()
+        ]
+
+        # Reset all of the herbivory waste pools to zero
+        for community in self.communities.values():
+            community.leaf_waste_pool.mass_current = 0.0
+
+        return {
+            "herbivory_waste_leaf_carbon": DataArray(
+                array(leaf_addition), dims="cell_id"
+            ),
+            "herbivory_waste_leaf_nitrogen": DataArray(array(leaf_c_n), dims="cell_id"),
+            "herbivory_waste_leaf_phosphorus": DataArray(
+                array(leaf_c_p), dims="cell_id"
+            ),
+            "herbivory_waste_leaf_lignin": DataArray(
+                array(leaf_lignin), dims="cell_id"
+            ),
         }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:

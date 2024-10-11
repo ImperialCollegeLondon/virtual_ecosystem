@@ -47,7 +47,15 @@ jobs:
       run: poetry run pytest --cov-report xml
 
     - name: Upload coverage to Codecov
-      if: (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10')
+      if: >- 
+          ${{ ! (
+             github.event.pull_request.user.login == 'dependabot[bot]' || 
+             github.event.pull_request.user.login == 'pre-commit-ci[bot]'
+            ) && (
+             matrix.os == 'ubuntu-latest' && 
+             matrix.python-version == '3.10'
+            )
+          }}
       uses: codecov/codecov-action@v4
       with:
         fail_ci_if_error: true

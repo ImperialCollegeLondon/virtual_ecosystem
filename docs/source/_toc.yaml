@@ -188,8 +188,8 @@ subtrees:
                 title: The constants submodule
               - file: api/models/litter/env_factors
                 title: The env_factors submodule
-              - file: api/models/litter/input_partition
-                title: The input_partition submodule
+              - file: api/models/litter/inputs
+                title: The inputs submodule
               - file: api/models/litter/litter_model
                 title: The litter_model submodule
           - file: api/models/soil
