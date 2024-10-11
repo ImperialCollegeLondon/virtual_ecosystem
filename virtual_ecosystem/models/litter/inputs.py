@@ -15,7 +15,7 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
-@dataclass
+@dataclass(frozen=True)
 class LitterInputs:
     """The full set input flows to the litter model."""
 
