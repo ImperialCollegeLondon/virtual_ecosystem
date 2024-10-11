@@ -11,6 +11,24 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # Bundle updates in the pyproject.toml [tool.poetry.dependencies] section
+      production-dependencies:
+        dependency-type: "production"
+      # Should bundle updates in the pyproject.toml [tool.poetry.groups.*] sections
+      # but leave the sphinx ecosystem alone
+      development-dependencies:
+        dependency-type: "development"
+        exclude-patterns:
+        - "sphinx*"
+      sphinx: 
+      # Separately allow it to move sphinx updates within minor versions
+        applies-to: version-updates
+        patterns:
+        - "sphinx*"
+        update-types:
+        - "minor"
+        - "patch"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
