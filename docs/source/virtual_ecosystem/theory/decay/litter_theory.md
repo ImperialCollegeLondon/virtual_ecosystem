@@ -16,8 +16,6 @@ The rest of this page gives provides details on the specific litter pools, the
 partitioning of organic matter input between them, and the environmental factors that
 effect decay rates.
 
-TODO - Talk about animal inputs + consumption once that is settled
-
 ## Litter pools
 
 In our model, pools are principally defined by input type, e.g. woody, structural and
@@ -114,3 +112,20 @@ $\gamma$ is a parameter capturing how responsive litter decay rates are to tempe
 changes.
 
 TODO - ADD SOMETHING SIMILAR FOR SOIL MOISTURE
+
+## Animal impacts on litter
+
+Animals interact with the litter model in two ways. Firstly, all litter pools are
+available to be scavenged from by animals. So, the presence of functional groups with
+the right traits to exploit a certain litter pool (e.g. termites for woody litter) will
+increase the breakdown rate of the pool. Secondly, herbivores often remove more biomass
+from plants than they actually consume (e.g. elephants with pull off entire branches
+from saplings and then eat only the easy to chew bits). This excess plant biomass gets
+added to the litter.
+
+TODO - ADD LINK TO ANIMAL DECAY PAGE
+The litter model does not track the decay of animal excrement or carcasses. This is
+because the animal model already models their decay (explained here), tracking these
+within the litter model would essentially force them to decay twice. Instead the flow of
+decayed matter from carcasses and excrement flows straight from the animal model to the
+soil model.
