@@ -2003,7 +2003,7 @@ def calculate_ground_heat_flux(
 
 #             dewpoint_temperature = calculate_dewpoint_temperature(
 #                 air_temperature=air_temperature[i],
-#                 effective_vapour_pressure_air=effective_vapour_pressure_air,
+#                 effective_vapour_pressure_air=effective_vapour_pressure_air/1000,
 #             )
 #             canopy_temperature_new = np.where(
 #                 canopy_temperature_new < dewpoint_temperature,
@@ -2447,7 +2447,7 @@ def calculate_shortwave_radiation_below_canopy(
     shortwave_radiation_down: NDArray[np.float64],
     diffuse_radiation_down: NDArray[np.float64],
 ):
-    """Calculate shortwavre radiation below canopy, small leaf model.
+    """Calculate shortwave radiation below canopy, small leaf model.
 
     TODO to numpy
     TODO avoid division by zero
@@ -2781,7 +2781,7 @@ def calculate_longwave_radiation_weights(
 ) -> dict[str, NDArray[np.float64]]:
     """Calculate weights for longwave radiation through the canopy.
 
-    TODO the order or layers is bottom to top, needs to be
+    TODO the order of layers is bottom to top, needs to be reversed
 
     Args:
         plant_area_index_profile: Plant area index for each canopt layer, [m2 m-2]
@@ -2908,13 +2908,13 @@ def calculate_longwave_radiation_below_canopy(
                 + (1 - wgts["trg"][cell, layer]) * lwfu * mub * vegetation_emissivity
             )
 
-    # Average over layers for final output
-    lwupper_mean = np.mean(lwupper, axis=1)
-    lwunder_mean = np.mean(lwunder, axis=1)
+    # # Average over layers for final output
+    # lwupper_mean = np.mean(lwupper, axis=1)
+    # lwunder_mean = np.mean(lwunder, axis=1)
 
     return {
-        "longwave_radiation_down": lwupper_mean,
-        "longwave_radiation_up": lwunder_mean,
+        "longwave_radiation_down": lwupper,
+        "longwave_radiation_up": lwunder,
     }
 
 
@@ -2923,6 +2923,8 @@ def calculate_canopy_wind(
     plant_area_index_profile: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     """Calculate canopy wind.
+
+    test missing
 
     Args:
         canopy_height: Canopy height, [m]
@@ -2970,13 +2972,658 @@ def calculate_canopy_wind(
         roughness_length = canopy_height[i] / (20.0 * n2)
         for j in range(n2):
             z2 = (j + 1) * canopy_height[i] / (10 * n2)
-            uf = (0.4 * wind_profile[i, n2 - 1]) / np.log(
+            friction_velocity = (0.4 * wind_profile[i, n2 - 1]) / np.log(
                 canopy_height[i] / (10 * roughness_length)
             )
-            wind_profile[i, j] = (uf / 0.4) * np.log(z2 / roughness_length)
+            wind_profile[i, j] = (friction_velocity / 0.4) * np.log(
+                z2 / roughness_length
+            )
 
     return wind_profile  # return values need to be transposed i think
 
 
-# fluxes
-# LangrangianOne
+def calculate_canopy_heat_fluxes(
+    wind_speed_ref: NDArray[np.float64],
+    atmospheric_pressure: NDArray[np.float64],
+    shortwave_radiation_par: NDArray[np.float64],
+    shortwave_radiation_absorbed: NDArray[np.float64],
+    longwave_radiation_down: NDArray[np.float64],
+    longwave_radiation_up: NDArray[np.float64],
+    wc: NDArray[np.float64],
+    leaf_dimension: float,
+    maximum_stomatal_conductance: float,
+    half_saturation_stomatal_conductance: float,
+    vegetation_emissivity: float,
+    leaf_temperature: NDArray[np.float64],
+    air_temperature: NDArray[np.float64],
+    relative_humidity: NDArray[np.float64],
+    effective_vapour_pressure_air: NDArray[np.float64],
+    wet_surface_fraction: float,
+    stefan_boltzmann_constant: float,
+    celsius_to_kelvin: float,
+    latent_heat_vap_equ_factors: list[float],
+    molar_heat_capacity_air: float,
+    specific_heat_equ_factors: list[float],
+    saturation_vapour_pressure_factors: list[float],
+) -> dict[str, NDArray[np.float64]]:
+    """Calculate sensible and latent heat fluxes below the canopy.
+
+    Args:
+        wind_speed_ref: Wind speed at reference height, [m s-1]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        shortwave_radiation_par: PAR component of shortwave radiation, [W m-2]
+        shortwave_radiation_absorbed: Absorbed shortwave radiation, [W m-2]
+        longwave_radiation_down: Downward longwave radiation, [W m-2]
+        longwave_radiation_up: Upward longwave radiation, [W m-2]
+        wc: wind parameter
+        leaf_dimension: Characteristic dimension of leaf
+        maximum_stomatal_conductance: Maximum stomatal conductance
+        half_saturation_stomatal_conductance: half saturation stomatal conductance
+        vegetation_emissivity: Vegetation emissivity, unitless
+        leaf_temperature: Leaf temperature, [C]
+        air_temperature: Air temperature, [C]
+        relative_humidity: Relative humidity, fraction
+        effective_vapour_pressure_air: Effective vapour pressure air, [kPa]
+        wet_surface_fraction: fraction of the canopy surface acting like a freely
+        evaporating water surface
+        stefan_boltzmann_constant: Stefan Boltzmann constant
+        celsius_to_kelvin: Celsius to kelvin conversion factor
+        latent_heat_vap_equ_factors: Factors for calculation of latent heat of
+            vapourisation
+        molar_heat_capacity_air: Molar heat capacity of air
+        specific_heat_equ_factors: Factors for calculation of specific heat of air
+        saturation_vapour_pressure_factors: factors for calcualtion of saturation
+            vapour pressure
+    Returns:
+        Dict with sensible_heat_flux, latent_heat_flux, leaf_temperature, wind_speed
+    """
+
+    num_cells, num_layers = air_temperature.shape
+
+    sensible_heat_flux = np.zeros((num_cells, num_layers))
+    latent_heat_flux = np.zeros((num_cells, num_layers))
+    leaf_temperature_n = np.zeros((num_cells, num_layers))
+    wind_speed = np.zeros((num_cells, num_layers))
+
+    for cell in range(num_cells):
+        for layer in range(num_layers):
+            # Conductance for heat
+            wind_speed[cell, layer] = wc[cell, layer] * wind_speed_ref[cell]
+            free_convection = (  # equivalent to air heat conductivity
+                1.4 * 0.135 * np.sqrt(wind_speed[cell, layer] / (0.71 * leaf_dimension))
+            )
+            forced_convection = (
+                1.4
+                * 0.05
+                * np.abs(leaf_temperature[cell, layer] - air_temperature[cell, layer])
+                ** 0.25
+                / (0.71 * leaf_dimension)
+            )
+            free_convection = max(forced_convection, free_convection, 0.25)
+
+            # Conductance for vapor
+            stomatal_conductance = calculate_stomatal_conductance(
+                shortwave_radiation=shortwave_radiation_par[cell, layer],
+                maximum_stomatal_conductance=maximum_stomatal_conductance,
+                half_saturation_stomatal_conductance=(
+                    half_saturation_stomatal_conductance
+                ),
+            )
+            vapour_conductivity = np.where(
+                stomatal_conductance > 0,
+                1 / (1 / free_convection + 1 / stomatal_conductance),
+                0.0,
+            )
+
+            # Radiation absorption
+            longwave_radiation_absorbed = (
+                0.5
+                * vegetation_emissivity
+                * (
+                    longwave_radiation_down[cell, layer]
+                    + longwave_radiation_up[cell, layer]
+                )
+            )
+            total_absorbed_radiation = (
+                shortwave_radiation_absorbed[cell, layer] + longwave_radiation_absorbed
+            )
+
+            temperature_average_air_surface = (
+                air_temperature[cell, layer] + leaf_temperature[cell, layer]
+            ) / 2
+            leaf_temperature_n[cell, layer] = calculate_surface_temperature(
+                absorbed_shortwave_radiation=total_absorbed_radiation,
+                heat_conductivity=free_convection,
+                vapour_conductivity=vapour_conductivity,
+                surface_temperature=air_temperature[cell, layer],
+                temperature_average_air_surface=temperature_average_air_surface,
+                atmospheric_pressure=atmospheric_pressure[cell],
+                effective_vapour_pressure_air=effective_vapour_pressure_air[
+                    cell, layer
+                ],
+                surface_emissivity=vegetation_emissivity,
+                ground_heat_flux=0.0,
+                relative_humidity=relative_humidity[cell, layer],
+                stefan_boltzmann_constant=stefan_boltzmann_constant,
+                celsius_to_kelvin=celsius_to_kelvin,
+                latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+                molar_heat_capacity_air=molar_heat_capacity_air,
+                specific_heat_equ_factors=specific_heat_equ_factors,
+                saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+            )
+
+            dewpoint_temperature = calculate_dewpoint_temperature(
+                air_temperature=air_temperature[cell, layer],
+                effective_vapour_pressure_air=effective_vapour_pressure_air[cell, layer]
+                / 1000,
+            )
+            leaf_temperature_n[cell, layer] = max(
+                leaf_temperature_n[cell, layer], dewpoint_temperature
+            )
+
+            temperature_average_air_surface = (
+                air_temperature[cell, layer] + leaf_temperature_n[cell, layer]
+            ) / 2
+
+            # Sensible heat flux
+            specific_heat_air = calculate_specific_heat_air(
+                temperature_average_air_surface,
+                molar_heat_capacity_air=molar_heat_capacity_air,
+                specific_heat_equ_factors=specific_heat_equ_factors,
+            )
+            sensible_heat_flux[cell, layer] = (
+                specific_heat_air
+                * free_convection
+                * (leaf_temperature_n[cell, layer] - air_temperature[cell, layer])
+            )
+
+            # Latent heat flux
+            latent_heat_vapourisation = calculate_latent_heat_vapourisation(
+                temperature=temperature_average_air_surface,
+                celsius_to_kelvin=celsius_to_kelvin,
+                latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+            )
+
+            saturated_vapour_pressure = calculate_saturation_vapour_pressure(
+                temperature=temperature_average_air_surface,
+                saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+            )
+            latent_heat_flux[cell, layer] = (
+                latent_heat_vapourisation
+                * vapour_conductivity
+                / atmospheric_pressure[cell]
+                * (
+                    saturated_vapour_pressure
+                    - effective_vapour_pressure_air[cell, layer]
+                )
+                * wet_surface_fraction
+            )
+
+    return {
+        "sensible_heat_flux": sensible_heat_flux,
+        "latent_heat_flux": latent_heat_flux,
+        "leaf_temperature": leaf_temperature_n,
+        "wind_speed": wind_speed,
+    }
+
+
+def calculate_friction_velocity(
+    wind_speed_ref: NDArray[np.float64],
+    canopy_height: NDArray[np.float64],
+    zeroplane_displacement: NDArray[np.float64],
+    roughness_length_momentum: NDArray[np.float64],
+    diabatic_correction_momentum: float | NDArray[np.float64],
+    von_karmans_constant: float,
+    min_friction_velocity: float,
+) -> NDArray[np.float64]:
+    """Calculate friction velocity from wind speed at reference height, [m s-1].
+
+    Args:
+        wind_speed_ref: Wind speed at reference height, [m s-1]
+        canopy_height: Canopy height, [m]
+        zeroplane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+        roughness_length_momentum: Momentum roughness length, [m]
+        diabatic_correction_momentum: Diabatic correction factor for momentum as
+            returned by
+            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_diabatic_correction_above`
+        von_karmans_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+        min_friction_velocity: Minimum friction velocity, [m s-1]
+
+    Returns:
+        Friction velocity, [m s-1]
+    """
+    friction_velocity = (von_karmans_constant * wind_speed_ref) / (
+        np.log((canopy_height - zeroplane_displacement) / roughness_length_momentum)
+        + diabatic_correction_momentum
+    )
+    return np.where(
+        friction_velocity < min_friction_velocity,
+        min_friction_velocity,
+        friction_velocity,
+    )
+
+
+def run_lagrangian(
+    # required_height,
+    wind_speed_ref: NDArray[np.float64],
+    air_temperature_topofcanopy: NDArray[np.float64],
+    leaf_temperature_topofcanopy: NDArray[np.float64],
+    effective_vapour_pressure_air_topofcanopy: NDArray[np.float64],
+    atmospheric_pressure: NDArray[np.float64],
+    longwave_radiation_down: dict[str, NDArray[np.float64]],
+    shortwave_radiation: dict[str, NDArray[np.float64]],
+    wc: NDArray[np.float64],
+    canopy_height: NDArray[np.float64],
+    plant_area_index_sum: NDArray[np.float64],
+    leaf_dimension: float,
+    vegetation_emissivity: float,
+    maximum_stomatal_conductance: float,
+    half_saturation_stomatal_conductance: float,
+    plant_area_index_profile: NDArray[np.float64],
+    ground_emissivity: float,
+    leaf_temperature: NDArray[np.float64],
+    air_temperature: NDArray[np.float64],
+    relative_humidity: NDArray[np.float64],
+    effective_vapour_pressure_air: NDArray[np.float64],
+    ground_temperature: NDArray[np.float64],
+    wet_surface_fraction: float,
+    theta: float,
+    psim: NDArray[np.float64],
+    psih: NDArray[np.float64],
+    phih: NDArray[np.float64],
+    z: NDArray[np.float64],
+    stefan_boltzmann_constant: float,
+    celsius_to_kelvin: float,
+    latent_heat_vap_equ_factors: list[float],
+    molar_heat_capacity_air: float,
+    specific_heat_equ_factors: list[float],
+    saturation_vapour_pressure_factors: list[float],
+    zero_plane_scaling_parameter: float,
+    substrate_surface_drag_coefficient: float,
+    drag_coefficient: float,
+    min_roughness_length: float,
+    von_karman_constant: float,
+    min_friction_velocity: float,
+    standard_mole: float,
+    standard_pressure: float,
+    max_surface_air_temperature_difference: float,
+    a0: float = 0.25,
+    a1: float = 1.25,
+) -> dict[str, NDArray[np.float64]]:
+    """Run langrangian model for one time step."""
+
+    # Calculate longwave radiation
+    longwave_radiation = calculate_longwave_radiation_below_canopy(
+        plant_area_index_profile=plant_area_index_profile,
+        longwave_radiation_down=longwave_radiation_down,
+        ground_temperature=ground_temperature,
+        ground_emissivity=ground_emissivity,
+        vegetation_emissivity=vegetation_emissivity,
+        leaf_temperature=leaf_temperature,
+        stefan_boltzmann_constant=stefan_boltzmann_constant,
+    )
+
+    # Calculate canopy sensible and latent heat
+    canopy_heat_fluxes = calculate_canopy_heat_fluxes(
+        wind_speed_ref=wind_speed_ref,
+        atmospheric_pressure=atmospheric_pressure,
+        shortwave_radiation_par=shortwave_radiation["par"],
+        shortwave_radiation_absorbed=shortwave_radiation[
+            "absorbed_shortwave_radiation"
+        ],
+        longwave_radiation_down=longwave_radiation["longwave_radiation_down"],
+        longwave_radiation_up=longwave_radiation["longwave_radiation_up"],
+        wc=wc,
+        leaf_dimension=leaf_dimension,
+        maximum_stomatal_conductance=maximum_stomatal_conductance,
+        half_saturation_stomatal_conductance=half_saturation_stomatal_conductance,
+        vegetation_emissivity=vegetation_emissivity,
+        leaf_temperature=leaf_temperature,
+        air_temperature=air_temperature,
+        relative_humidity=relative_humidity,
+        effective_vapour_pressure_air=effective_vapour_pressure_air,
+        wet_surface_fraction=wet_surface_fraction,
+        stefan_boltzmann_constant=stefan_boltzmann_constant,
+        celsius_to_kelvin=celsius_to_kelvin,
+        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+        molar_heat_capacity_air=molar_heat_capacity_air,
+        specific_heat_equ_factors=specific_heat_equ_factors,
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+
+    leaf_temperature_new = canopy_heat_fluxes["leaf_temperature"]
+
+    # Calculate Langrangian timescale
+    zero_plane_displacement = calculate_zero_plane_displacement(
+        canopy_height=canopy_height,
+        plant_area_index=plant_area_index_sum,
+        zero_plane_scaling_parameter=zero_plane_scaling_parameter,
+    )
+    roughness_length_momentum = calculate_roughness_length_momentum(
+        canopy_height=canopy_height,
+        plant_area_index=plant_area_index_sum,
+        zero_plane_displacement=zero_plane_displacement,
+        diabatic_correction_heat=psih,
+        substrate_surface_drag_coefficient=substrate_surface_drag_coefficient,
+        drag_coefficient=drag_coefficient,
+        min_roughness_length=min_roughness_length,
+        von_karman_constant=von_karman_constant,
+    )
+
+    friction_velocity = calculate_friction_velocity(
+        wind_speed_ref=wind_speed_ref,
+        canopy_height=canopy_height,
+        zeroplane_displacement=zero_plane_displacement,
+        roughness_length_momentum=roughness_length_momentum,
+        diabatic_correction_momentum=psim,
+        von_karmans_constant=von_karman_constant,
+        min_friction_velocity=min_friction_velocity,
+    )
+    a2 = (
+        von_karman_constant
+        * (1 - zero_plane_displacement / canopy_height)
+        / (phih * (a1**2))
+    )
+    lagrangian_timescale = a2 * canopy_height / friction_velocity
+
+    # Calculate thermal diffusivity and resistance
+    nn = len(plant_area_index_profile)
+    x = np.pi * (1 - z / canopy_height)
+    particle_position_variance = friction_velocity * (
+        0.5 * (a1 + a0) + 0.5 * (a1 - a0) * np.cos(x)
+    )
+    thermal_diffusivity = lagrangian_timescale * particle_position_variance**2
+    thermal_resistance = 1 / thermal_diffusivity
+    sum_thermal_resistance = np.cumsum(thermal_resistance)
+    resistance_to_heat_transfer = np.where(
+        sum_thermal_resistance * (canopy_height / nn) > 2.0,
+        2.0,
+        sum_thermal_resistance * (canopy_height / nn),
+    )
+
+    # Calculate ground heat flux
+    molar_density_air = calculate_molar_density_air(
+        temperature=air_temperature,
+        atmospheric_pressure=np.tile(
+            atmospheric_pressure[:, np.newaxis], (1, air_temperature.shape[1])
+        ),
+        standard_mole=standard_mole,
+        standard_pressure=standard_pressure,
+        celsius_to_kelvin=celsius_to_kelvin,
+    )
+
+    specific_heat_air = calculate_specific_heat_air(
+        temperature=air_temperature,
+        molar_heat_capacity_air=molar_heat_capacity_air,
+        specific_heat_equ_factors=specific_heat_equ_factors,
+    )
+
+    ground_sensible_heat_flux = (  # TODO select correct layer
+        molar_density_air[:, -1]
+        * specific_heat_air[:, -1]
+        / resistance_to_heat_transfer
+    ) * (ground_temperature - air_temperature[:, -1])
+
+    # Calculate ground evapotranspiration NOTE this is adjusted to ground evaporation
+    saturated_vapour_pressure = calculate_saturation_vapour_pressure(
+        temperature=air_temperature[:, -1],
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    mean_ground_air_temperature = (ground_temperature - air_temperature[:, 1]) / 2
+
+    latent_heat_vapourisation = calculate_latent_heat_vapourisation(
+        temperature=mean_ground_air_temperature,
+        celsius_to_kelvin=celsius_to_kelvin,
+        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+    )
+
+    ground_latent_heat_flux = (
+        (
+            latent_heat_vapourisation
+            / (resistance_to_heat_transfer * atmospheric_pressure)
+        )
+        * (saturated_vapour_pressure - effective_vapour_pressure_air[:, 1])
+        * theta
+    )
+
+    # Add to total flux
+    sensible_heat_flux = (
+        canopy_heat_fluxes["sensible_heat_flux"] + ground_sensible_heat_flux
+    )
+    latent_heat_flux = canopy_heat_fluxes["latent_heat_flux"] + ground_latent_heat_flux
+
+    # Calculate source concentration
+    sensible_heat_source_concentration = np.full((2, 3), 1)  # (
+    #     plant_area_index_profile / canopy_height[:, np.newaxis]
+    # ) * canopy_heat_fluxes["sensible_heat_flux"]
+    latent_heat_source_concentration = np.full((2, 3), 1)  # (
+    #     plant_area_index_profile / canopy_height
+    # ) * canopy_heat_fluxes["latent_heat_flux"]
+
+    # Near-field correction factor
+    btm = (
+        -0.399
+        * canopy_height
+        * np.log(1 - np.exp(-np.abs(canopy_height / 2.0 - z)))
+        / nn
+    )
+    sbtm = np.sum(btm)
+
+    # Compute reference height near - field and far - field
+    zeta = np.abs(
+        (canopy_height - z) / (particle_position_variance * lagrangian_timescale)
+    )
+    kn = -0.39894 * np.log(1.0 - np.exp(-zeta)) - 0.15623 * np.exp(-zeta)
+
+    # Near-field component calculation
+    near_field_component_sensible_heat = np.sum(
+        (sensible_heat_source_concentration / particle_position_variance)
+        * (
+            kn
+            * (
+                (canopy_height - z)
+                / (particle_position_variance * lagrangian_timescale)
+            )
+            + kn
+            * (
+                (canopy_height + z)
+                / (particle_position_variance * lagrangian_timescale)
+            )
+        )
+    )
+    near_field_component_latent_heat = np.sum(
+        (latent_heat_source_concentration / particle_position_variance)
+        * (
+            kn
+            * (
+                (canopy_height - z)
+                / (particle_position_variance * lagrangian_timescale)
+            )
+            + kn
+            * (
+                (canopy_height + z)
+                / (particle_position_variance * lagrangian_timescale)
+            )
+        )
+    )
+
+    # Near-field correction factor for small sample size
+    alpha = np.where(canopy_height < 10, 0.756 + 0.3012 * canopy_height, 1.31)
+    mu = alpha / sbtm
+    near_field_component_sensible_heat *= mu
+    near_field_component_latent_heat *= mu
+
+    # Far-field concentration at top of canopy
+    temperture_difference_topofcanopy = (
+        leaf_temperature_topofcanopy + air_temperature_topofcanopy
+    ) / 2
+    specific_heat_air_topofcanopy = calculate_specific_heat_air(
+        temperature=air_temperature_topofcanopy,
+        molar_heat_capacity_air=molar_heat_capacity_air,
+        specific_heat_equ_factors=specific_heat_equ_factors,
+    )
+    molar_density_air_topofcanopy = calculate_molar_density_air(
+        air_temperature_topofcanopy,
+        atmospheric_pressure,
+        standard_mole=standard_mole,
+        standard_pressure=standard_pressure,
+        celsius_to_kelvin=celsius_to_kelvin,
+    )
+    latent_heat_vapourisation_topofcanopy = calculate_latent_heat_vapourisation(
+        temperature=temperture_difference_topofcanopy,
+        celsius_to_kelvin=celsius_to_kelvin,
+        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+    )
+    far_field_component_sensible_heat = (
+        air_temperature_topofcanopy
+        * specific_heat_air_topofcanopy
+        * molar_density_air_topofcanopy
+    )
+    far_field_component_latent_heat = (
+        effective_vapour_pressure_air_topofcanopy
+        * molar_density_air_topofcanopy
+        * latent_heat_vapourisation_topofcanopy
+        / atmospheric_pressure
+    )
+
+    # Calculate near and far-field concentrations for all layers
+    #  Initialize variables
+    num_cells, num_layers = air_temperature.shape
+    air_temperature_new = np.zeros_like(air_temperature)
+    effective_vapour_pressure_air_new = np.zeros_like(effective_vapour_pressure_air)
+
+    # Calculate alpha and mu based on canopy height
+    alpha = np.where(canopy_height < 10, 0.756 + 0.3012 * canopy_height, 1.31)
+    mu = alpha / nn
+
+    for i in range(num_cells):
+        # Near-field contributions
+        CnT = 0.0
+        CnL = 0.0
+        for j in range(num_layers):
+            if i != j:
+                zeta = np.abs(
+                    (z[i] - z[j])
+                    / (particle_position_variance[j] * lagrangian_timescale)
+                )
+                kn = -0.39894 * np.log(1.0 - np.exp(-zeta)) - 0.15623 * np.exp(-zeta)
+                CnT += (
+                    sensible_heat_source_concentration[j]
+                    / particle_position_variance[j]
+                ) * (
+                    kn
+                    * (
+                        (z[i] - z[j])
+                        / (particle_position_variance[j] * lagrangian_timescale)
+                    )
+                    + kn
+                    * (
+                        (z[i] + z[j])
+                        / (particle_position_variance[j] * lagrangian_timescale)
+                    )
+                )
+                CnL += (
+                    latent_heat_source_concentration[j] / particle_position_variance[j]
+                ) * (
+                    kn
+                    * (
+                        (z[i] - z[j])
+                        / (particle_position_variance[j] * lagrangian_timescale)
+                    )
+                    + kn
+                    * (
+                        (z[i] + z[j])
+                        / (particle_position_variance[j] * lagrangian_timescale)
+                    )
+                )
+        CnT *= mu
+        CnL *= mu
+
+        # Far-field
+        CfsT = np.sum(sensible_heat_flux[i:] / thermal_diffusivity[i:])
+        CfsL = np.sum(latent_heat_flux[i:] / thermal_diffusivity[i:])
+        CfsT *= canopy_height / nn
+        CfsL *= canopy_height / nn
+        CfT = (
+            far_field_component_sensible_heat
+            - near_field_component_sensible_heat
+            + CfsT
+        )
+        CfL = far_field_component_latent_heat - near_field_component_latent_heat + CfsL
+        CT = CfT + CnT
+        CL = CfL + CnL
+        molar_density_air = calculate_molar_density_air(
+            temperature=air_temperature[i],
+            atmospheric_pressure=atmospheric_pressure,
+            standard_mole=standard_mole,
+            standard_pressure=standard_pressure,
+            celsius_to_kelvin=celsius_to_kelvin,
+        )
+        specific_heat_air = calculate_specific_heat_air(
+            temperature=air_temperature[i],
+            molar_heat_capacity_air=molar_heat_capacity_air,
+            specific_heat_equ_factors=specific_heat_equ_factors,
+        )
+        surface_air_temperature_difference = (
+            air_temperature[i] + leaf_temperature_new[i]
+        ) / 2
+
+        latent_heat_vapourisation = calculate_latent_heat_vapourisation(
+            temperature=surface_air_temperature_difference,
+            celsius_to_kelvin=celsius_to_kelvin,
+            latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+        )
+        air_temperature_new[i] = CT / (molar_density_air * specific_heat_air)
+        effective_vapour_pressure_air_new[i] = (
+            (CL * atmospheric_pressure) / latent_heat_vapourisation * molar_density_air
+        )
+
+        # Cap temperature and vapor at limits
+        tmx = max(
+            [
+                ground_temperature,
+                air_temperature_topofcanopy,
+                leaf_temperature_new[i],
+                air_temperature_new[i],
+            ]
+        )
+        tmn = min(
+            [
+                ground_temperature,
+                air_temperature_topofcanopy,
+                leaf_temperature_new[i],
+                air_temperature_new[i],
+            ]
+        )
+        air_temperature_new[i] = min(max(air_temperature_new[i], tmn), tmx)
+
+        emx = calculate_saturation_vapour_pressure(
+            temperature=air_temperature_new[i],
+            saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+        )
+        effective_vapour_pressure_air_new[i] = min(
+            max(effective_vapour_pressure_air_new[i], 0.1 * emx), emx
+        )
+
+        # Track maximum differences
+        max_surface_air_temperature_difference = max(
+            max_surface_air_temperature_difference,
+            np.abs(air_temperature_new[i] - air_temperature[i]),
+            np.abs(leaf_temperature_new[i] - leaf_temperature[i]),
+            np.abs(
+                effective_vapour_pressure_air_new[i] - effective_vapour_pressure_air[i]
+            ),
+        )
+
+    return {
+        "leaf_temperature": leaf_temperature_new,
+        "air_temperature": air_temperature_new,
+        "effective_vapour_pressure_air": effective_vapour_pressure_air_new,
+        "wind_speed": canopy_heat_fluxes["wind_speed"],
+        "longwave_radiation_down": longwave_radiation["longwave_radiation_down"],
+        "longwave_radiation_up": longwave_radiation["longwave_radiation_up"],
+        "max_surface_air_temperature_difference": max_surface_air_temperature_difference,
+    }

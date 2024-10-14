@@ -1248,8 +1248,18 @@ def test_calculate_longwave_radiation_below_canopy():
     stefan_boltzmann_constant = 5.670374419e-8
 
     # Expected outputs
-    expected_longwave_radiation_down = np.array([339.318847, 339.318847])
-    expected_longwave_radiation_up = np.array([384.601641, 384.601641])
+    expected_longwave_radiation_down = np.array(
+        [
+            [364.430765, 355.575311, 337.269313, 300.0],
+            [364.430765, 355.575311, 337.269313, 300.0],
+        ],
+    )
+    expected_longwave_radiation_up = np.array(
+        [
+            [374.030725, 379.626279, 387.648895, 397.100664],
+            [374.030725, 379.626279, 387.648895, 397.100664],
+        ]
+    )
 
     # Call the function
     result = calculate_longwave_radiation_below_canopy(
@@ -1313,3 +1323,196 @@ def test_calculate_canopy_wind():
         ),
         rtol=1e-4,
     )
+
+
+def test_calculate_canopy_heat_fluxes():
+    """Test calculation of canopy heat fluxes."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_new import (
+        calculate_canopy_heat_fluxes,
+    )
+
+    # Define test inputs
+
+    num_cells, num_layers = 2, 3
+
+    wind_speed_ref = np.repeat(2.0, num_cells)
+    atmospheric_pressure = np.repeat(101.325, num_cells)
+    shortwave_radiation_par = np.random.uniform(100, 300, (num_cells, num_layers))
+    shortwave_radiation_absorbed = np.random.uniform(100, 300, (num_cells, num_layers))
+    longwave_radiation_down = np.random.uniform(300, 400, (num_cells, num_layers))
+    longwave_radiation_up = np.random.uniform(300, 400, (num_cells, num_layers))
+    wc = np.random.uniform(0.5, 1.5, (num_cells, num_layers))
+    leaf_dimension = 0.05
+    maximum_stomatal_conductance = 0.01
+    half_saturation_stomatal_conductance = 100
+    vegetation_emissivity = 0.95
+    leaf_temperature = np.random.uniform(15, 25, (num_cells, num_layers))
+    air_temperature = np.random.uniform(20, 30, (num_cells, num_layers))
+    relative_humidity = np.random.uniform(0.40, 0.60, (num_cells, num_layers))
+    effective_vapour_pressure_air = np.random.uniform(
+        1000, 2000, (num_cells, num_layers)
+    )
+    wet_surface_fraction = 0.2
+
+    abiotic_const = AbioticConsts()
+    core_const = CoreConsts()
+    simple_const = AbioticSimpleConsts()
+
+    # Call the function
+    result = calculate_canopy_heat_fluxes(
+        wind_speed_ref,
+        atmospheric_pressure,
+        shortwave_radiation_par,
+        shortwave_radiation_absorbed,
+        longwave_radiation_down,
+        longwave_radiation_up,
+        wc,
+        leaf_dimension,
+        maximum_stomatal_conductance,
+        half_saturation_stomatal_conductance,
+        vegetation_emissivity,
+        leaf_temperature,
+        air_temperature,
+        relative_humidity,
+        effective_vapour_pressure_air,
+        wet_surface_fraction,
+        stefan_boltzmann_constant=core_const.stefan_boltzmann_constant,
+        celsius_to_kelvin=core_const.zero_Celsius,
+        latent_heat_vap_equ_factors=abiotic_const.latent_heat_vap_equ_factors,
+        molar_heat_capacity_air=core_const.molar_heat_capacity_air,
+        specific_heat_equ_factors=abiotic_const.specific_heat_equ_factors,
+        saturation_vapour_pressure_factors=(
+            simple_const.saturation_vapour_pressure_factors
+        ),
+    )
+
+    # Check output shape
+    assert result["sensible_heat_flux"].shape == (num_cells, num_layers)
+    assert result["latent_heat_flux"].shape == (num_cells, num_layers)
+    assert result["leaf_temperature"].shape == (num_cells, num_layers)
+    assert result["wind_speed"].shape == (num_cells, num_layers)
+
+    # Optionally check some specific values if the output can be predicted or ranges
+    assert np.all(result["leaf_temperature"] >= leaf_temperature.min())
+    assert np.all(result["leaf_temperature"] <= 40.0)
+
+
+def test_calculate_friction_velocity(dummy_climate_data):
+    """Calculate friction velocity."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_new import (
+        calculate_friction_velocity,
+    )
+
+    result = calculate_friction_velocity(
+        wind_speed_ref=(
+            dummy_climate_data.data["wind_speed_ref"].isel(time_index=0).to_numpy()
+        ),
+        canopy_height=(dummy_climate_data["layer_heights"][1]).to_numpy(),
+        zeroplane_displacement=np.array([0.0, 25.312559, 27.58673, 27.58673]),
+        roughness_length_momentum=np.array([0.017, 1.4533, 0.9591, 0.9591]),
+        diabatic_correction_momentum=np.array([0.063098, 0.0149, 0.004855, 0.004855]),
+        von_karmans_constant=CoreConsts.von_karmans_constant,
+        min_friction_velocity=0.001,
+    )
+    exp_result = np.array([0.053059, 0.337282, 0.431221, 0.431221])
+    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
+
+
+def mock_calculate_canopy_heat_fluxes(**kwargs):
+    """Mock canopy fluxes."""
+    num_layers = kwargs["leaf_temperature"].shape[0]
+    return {
+        "leaf_temperature": np.array([25.0 + i for i in range(num_layers)]),
+        "sensible_heat_flux": np.array([50.0 + i for i in range(num_layers)]),
+        "latent_heat_flux": np.array([40.0 + i for i in range(num_layers)]),
+        "wind_speed": np.array([3.0, 2.5]),
+    }
+
+
+@pytest.fixture
+def lagrangian_inputs():
+    """Create inputs for lagrangian function."""
+    return {
+        "wind_speed_ref": np.array([2.5, 2.5]),
+        "air_temperature_topofcanopy": np.array([20.0, 20.0]),
+        "leaf_temperature_topofcanopy": np.array([22.0, 22.0]),
+        "effective_vapour_pressure_air_topofcanopy": np.array([1.5, 1.5]),
+        "atmospheric_pressure": np.array([1013.25, 1013.25]),
+        "longwave_radiation_down": np.array([100.0, 110.0]),
+        "shortwave_radiation": {
+            "par": np.array([[600.0, 610.0, 620.0], [600.0, 610.0, 620.0]]),
+            "absorbed_shortwave_radiation": np.array(
+                [[300.0, 305.0, 3.10], [300.0, 305.0, 310.0]]
+            ),
+        },
+        "wc": np.array([[0.2, 0.25, 0.27], [0.2, 0.25, 0.27]]),
+        "canopy_height": np.array([10.0, 10.0]),
+        "plant_area_index_sum": np.array([4.0, 4.0]),
+        "leaf_dimension": 0.02,
+        "vegetation_emissivity": 0.98,
+        "maximum_stomatal_conductance": 0.003,
+        "half_saturation_stomatal_conductance": 200.0,
+        "plant_area_index_profile": np.array([[3.0, 2.5, 1.5], [3.0, 2.5, 1.5]]),
+        "ground_emissivity": 0.95,
+        "leaf_temperature": np.array([[22.0, 21.5, 21.0], [22.0, 21.5, 21.0]]),
+        "air_temperature": np.array([[20.0, 19.5, 19.0], [20.0, 19.5, 19.0]]),
+        "relative_humidity": np.array([[60.0, 65.0, 70.0], [60.0, 65, 70.0]]),
+        "effective_vapour_pressure_air": np.array([[1.2, 1.1, 1.0], [1.2, 1.1, 1.0]]),
+        "ground_temperature": np.array([15.0, 15]),
+        "wet_surface_fraction": 0.1,
+        "theta": 1.0,
+        "psim": np.array([0.1, 0.1]),
+        "psih": np.array([0.05, 0.05]),
+        "phih": np.array([0.2, 0.2]),
+        "z": np.array([5.0, 10.0]),
+        "stefan_boltzmann_constant": 5.67e-8,
+        "celsius_to_kelvin": 273.15,
+        "latent_heat_vap_equ_factors": [1.0, 0.2],
+        "molar_heat_capacity_air": 29.0,
+        "specific_heat_equ_factors": [1.0, 0.2],
+        "saturation_vapour_pressure_factors": [0.61078, 7.5, 237.3],
+        "zero_plane_scaling_parameter": 0.7,
+        "substrate_surface_drag_coefficient": 0.005,
+        "drag_coefficient": 0.3,
+        "min_roughness_length": 0.01,
+        "von_karman_constant": 0.41,
+        "min_friction_velocity": 0.1,
+        "standard_mole": 44.6,
+        "standard_pressure": 1013.25,
+        "max_surface_air_temperature_difference": 10.0,
+        "a0": 0.25,
+        "a1": 1.25,
+    }
+
+
+def test_run_lagrangian(mocker, lagrangian_inputs):
+    """Test run lagrangian model."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_new import run_lagrangian
+
+    # Mock the external functions
+    mocker.patch(
+        "virtual_ecosystem.models.abiotic.abiotic_new.calculate_canopy_heat_fluxes",
+        side_effect=mock_calculate_canopy_heat_fluxes,
+    )
+
+    # Run the function
+    result = run_lagrangian(**lagrangian_inputs)
+
+    # Assertions
+    assert "leaf_temperature" in result
+    assert "air_temperature" in result
+    assert "effective_vapour_pressure_air" in result
+    assert "wind_speed" in result
+    assert "longwave_radiation_down" in result
+    assert "longwave_radiation_up" in result
+    assert isinstance(result["leaf_temperature"], np.ndarray)
+    assert isinstance(result["air_temperature"], np.ndarray)
+    assert isinstance(result["effective_vapour_pressure_air"], np.ndarray)
+
+    # Check some specific values
+    np.testing.assert_almost_equal(result["leaf_temperature"], np.array([25.0, 26.0]))
+    np.testing.assert_almost_equal(result["air_temperature"], np.array([22.5, 23.0]))
+    np.testing.assert_almost_equal(result["wind_speed"], np.array([3.0, 2.5, 2.0]))
