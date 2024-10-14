@@ -86,7 +86,7 @@ depends on the lignin concentration of the input biomass, as well as its nitroge
 phosphorus concentrations. The fraction of a given input biomass stream ($i$) that goes
 into the relevant metabolic litter pool is given by
 
-$$f_{m,i} = f_M - l_i * (s_N N_i + s_P P_i)$$
+$$f_{m,i} = f_M - l_i * (s_N N_i + s_P P_i),$$
 
 where $f_M$ is the maximum fraction that can go to the metabolic pool, $l_i$ is the
 lignin proportion for input stream $i$, $N_i$ is the carbon:nitrogen ratio of input
@@ -104,7 +104,7 @@ for the biologically active soil layers. The "intrinsic" litter decay rates are 
 to capture the effect of temperature by multiplying them with a factor that takes the
 following form
 
-$$f(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)}$$
+$$f(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)},$$
 
 where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
 establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
@@ -125,7 +125,7 @@ $$
 A(\psi) = 1 - \left(
 \frac{\log_{10}|\psi| - \log_{10}|\psi_{o}|}
 {\log_{10}|\psi_{h}| - \log_{10}|\psi_{o}|}
-\right)^\alpha
+\right)^\alpha,
 $$
 
 where $\psi$ is the soil water potential, $\psi_{o}$ is the "optimal" water potential at
