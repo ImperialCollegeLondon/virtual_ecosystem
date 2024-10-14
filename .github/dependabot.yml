@@ -11,6 +11,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
+      time: "03:00"
+      timezone: "Europe/London"
     groups:
       # Bundle updates in the pyproject.toml [tool.poetry.dependencies] section
       production-dependencies:
