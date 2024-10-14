@@ -198,7 +198,7 @@ def output_known_variables(output_file: Path) -> None:
             RUN_VARIABLES_REGISTRY[name] = var
 
     _collect_vars_required_for_init(models)
-    _collect_updated_by_vars(models)
+    _collect_updated_by_vars(models, check_unique_update=False)
     _collect_vars_required_for_update(models)
 
     vars = {
@@ -310,11 +310,14 @@ def _collect_vars_populated_by_first_update(
             RUN_VARIABLES_REGISTRY[var] = KNOWN_VARIABLES[var]
 
 
-def _collect_updated_by_vars(models: list[type[base_model.BaseModel]]) -> None:
+def _collect_updated_by_vars(
+    models: list[type[base_model.BaseModel]], check_unique_update: bool = True
+) -> None:
     """Verify that all variables updated by models are in the runtime registry.
 
     Args:
         models: The list of models to check.
+        check_unique_update: Fail on duplicate update.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
@@ -332,7 +335,7 @@ def _collect_updated_by_vars(models: list[type[base_model.BaseModel]]) -> None:
                     f"Variable {var} required by {model.model_name} is not initialised"
                     " by any model."
                 )
-            if len(RUN_VARIABLES_REGISTRY[var].updated_by):
+            if len(RUN_VARIABLES_REGISTRY[var].updated_by) and check_unique_update:
                 LOGGER.warning(
                     f"Variable {var} updated by {model.model_name} is already updated"
                     f" by {RUN_VARIABLES_REGISTRY[var].updated_by}."
