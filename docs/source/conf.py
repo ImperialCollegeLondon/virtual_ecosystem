@@ -204,7 +204,7 @@ html_theme = "sphinx_rtd_theme"  # 'sphinx_material'
 
 html_theme_options = {
     "logo_only": False,
-    "display_version": True,
+    "version_selector": True,
     "prev_next_buttons_location": "top",
     "style_external_links": False,
     "style_nav_header_background": "grey",
