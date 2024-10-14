@@ -40,8 +40,45 @@ display_markdown(
 
 ## Model overview
 
-TODO - Add a high level overview of how this model works here, this can only be done
-after the new flow is fixed
+When the litter model is run, the first thing it does is subtract the amount of litter
+consumed by animals from the relevant pools. This happens first to ensure that the
+litter eaten by animals never gets treated as also having decayed into the soil.
+However, there is an issue with this approach in that it gives animals preferential
+access to litter over microbes (which drive the decay processes). This is something we
+may have to address in future, potentially by only making a limited portion of the
+litter available for animal consumption.
+
+Once the size of the pools post animal consumption has been found, then the decay rates
+of the pools are calculated. These rates vary based on environmental conditions (these
+factors are calculated using the [environmental factors
+submodule](virtual_ecosystem.models.litter.env_factors)) and the lignin proportion of
+each pool. The decay rate for all the pools are calculated using the
+[calculate_decay_rates
+function](virtual_ecosystem.models.litter.carbon.calculate_decay_rates).
+
+The total input of plant matter is calculated. This comes from two sources, the death of
+plants and their tissues, and waste products generated herbivory (where animals remove
+plant biomass but fail to consume all of it). Before plant tissues die plants actively
+remove limiting nutrients from them, in contrast herbivores actively seek out plant
+matter rich in limiting nutrients, so inputs from the two different sources would be
+expected to have different chemistries. So, for each input plant matter type (leaves,
+roots, dead wood and reproductive tissues) both the total input mass and the chemistry
+of this input mass needs to be calculated. The flow to each litter pool also needs to be
+calculated. All of this is calculated and stored using the [LitterInputs
+class](virtual_ecosystem.models.litter.inputs.LitterInputs).
+
+With the new inputs to the litter and the decay of the existing litter known, the
+updated litter pool sizes can then be calculated. This is done using the
+[calculate_updated_pools
+function](virtual_ecosystem.models.litter.carbon.calculate_updated_pools). The chemistry
+of these new pools is then found using the [calculate_new_pool_chemistries
+method](virtual_ecosystem.models.litter.chemistry.LitterChemistry.calculate_new_pool_chemistries)
+of the [LitterChemistry
+class](virtual_ecosystem.models.litter.chemistry.LitterChemistry). As a final step
+minerialisation (rates at which nutrients enter the soil) rates are found. We track
+carbon (using the [calculate_total_C_mineralised
+function](virtual_ecosystem.models.litter.carbon.calculate_total_C_mineralised)) and
+also nitrogen and phosphorus (using `LitterChemistry` class methods).
 
 ## Generated variables
 
