@@ -206,10 +206,10 @@ def output_known_variables(output_file: Path) -> None:
         for var in sorted(KNOWN_VARIABLES.values(), key=lambda x: x.name)
     }
 
-    Path(output_file).with_suffix(".rst").write_text(_format_varriables_list(vars))
+    Path(output_file).with_suffix(".rst").write_text(_format_variables_list(vars))
 
 
-def _format_varriables_list(vars: dict[str, dict]) -> str:
+def _format_variables_list(vars: dict[str, dict]) -> str:
     """Format the variables list for the RST output.
 
     Args:

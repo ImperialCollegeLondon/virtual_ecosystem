@@ -165,7 +165,9 @@ def test_output_known_variables(known_variables, mocker, tmpdir):
         [], check_unique_initialisation=False
     )
     variables._collect_vars_required_for_init.assert_called_once_with([])
-    variables._collect_updated_by_vars.assert_called_once_with([])
+    variables._collect_updated_by_vars.assert_called_once_with(
+        [], check_unique_update=False
+    )
     variables._collect_vars_required_for_update.assert_called_once_with([])
     assert path.exists()
 
@@ -452,8 +454,8 @@ def test_to_camel_case():
 
 
 def test_format_variables_list():
-    """Test the _format_varriables_list function."""
-    from virtual_ecosystem.core.variables import _format_varriables_list
+    """Test the _format_variables_list function."""
+    from virtual_ecosystem.core.variables import _format_variables_list
 
     vars = {
         "var1": {
@@ -495,7 +497,7 @@ axis           ('x', 'y')
 =============  =============
 """
 
-    assert _format_varriables_list(vars) == expected_output
+    assert _format_variables_list(vars) == expected_output
 
 
 def test_get_model_order(run_variables):
