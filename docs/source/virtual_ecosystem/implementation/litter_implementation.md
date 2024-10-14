@@ -14,7 +14,62 @@ kernelspec:
 
 # The Litter Model implementation
 
-## Required variables
+## Model overview
+
+The litter model uses the following sequence:
+
+1. The amount of litter consumed by animals is subtracted from the relevant pools and
+   diverted into animal digestion processes.
+
+2. Decay rates are calculated for the remaining litter in the pools. These rates vary
+   based on environmental conditions (see the [environmental factors
+   submodule](virtual_ecosystem.models.litter.env_factors)) and the lignin proportion of
+   each pool. The decay rates across pools are calculated using the
+   [calculate_decay_rates
+   function](virtual_ecosystem.models.litter.carbon.calculate_decay_rates).
+
+3. Plant inputs are considered from two sources, which have different stochiometric
+   properties.
+
+    * Inputs from tissue senescence and turnover directly from plant communities
+      typically have reduced nutrient concentrations through translocation.
+
+    * Plant inputs generated during herbivory, where animals drop unconsumed biomass,
+      are not depleted in nutrients and heribvores may be actively selecting plant
+      matter rich in limiting nutrients.
+
+    The [LitterInputs class](virtual_ecosystem.models.litter.inputs.LitterInputs)
+    therefore handles multiple different tissue types and pathways to keep information
+    on the total input mass and chemistry of these different input routes, along with
+    flows into the different litter pools.
+
+4. Given the litter loss to consumption and decay and the new inputs, updated litter
+   pool sizes are calculated using the [calculate_updated_pools
+   function](virtual_ecosystem.models.litter.carbon.calculate_updated_pools).
+
+5. The chemistry of these new pools is then found using the
+   [calculate_new_pool_chemistries
+   method](virtual_ecosystem.models.litter.chemistry.LitterChemistry.calculate_new_pool_chemistries)
+   of the [LitterChemistry
+   class](virtual_ecosystem.models.litter.chemistry.LitterChemistry).
+
+6. The mineralisation rates at which nutrients enter the soil are then found. We track
+   carbon (using the [calculate_total_C_mineralised
+   function](virtual_ecosystem.models.litter.carbon.calculate_total_C_mineralised)) and
+   also nitrogen and phosphorus (using `LitterChemistry` class methods).
+
+:::{admonition} Future directions :telescope:
+
+However, there is an issue with this approach in that it gives animals preferential
+access to litter over microbes (which drive the decay processes). This is something we
+may have to address in future, potentially by only making a limited portion of the
+litter available for animal consumption.
+
+:::
+
+## Model variables
+
+## Initialisation and update
 
 The tables below show the variables that are required to initialise the litter model and
 then update it at each time step.
@@ -38,52 +93,10 @@ display_markdown(
 )
 ```
 
-## Model overview
-
-When the litter model is run, the first thing it does is subtract the amount of litter
-consumed by animals from the relevant pools. This happens first to ensure that the
-litter eaten by animals never gets treated as also having decayed into the soil.
-However, there is an issue with this approach in that it gives animals preferential
-access to litter over microbes (which drive the decay processes). This is something we
-may have to address in future, potentially by only making a limited portion of the
-litter available for animal consumption.
-
-Once the size of the pools post animal consumption has been found, then the decay rates
-of the pools are calculated. These rates vary based on environmental conditions (these
-factors are calculated using the [environmental factors
-submodule](virtual_ecosystem.models.litter.env_factors)) and the lignin proportion of
-each pool. The decay rate for all the pools are calculated using the
-[calculate_decay_rates
-function](virtual_ecosystem.models.litter.carbon.calculate_decay_rates).
-
-The total input of plant matter is calculated. This comes from two sources, the death of
-plants and their tissues, and waste products generated herbivory (where animals remove
-plant biomass but fail to consume all of it). Before plant tissues die plants actively
-remove limiting nutrients from them, in contrast herbivores actively seek out plant
-matter rich in limiting nutrients, so inputs from the two different sources would be
-expected to have different chemistries. So, for each input plant matter type (leaves,
-roots, dead wood and reproductive tissues) both the total input mass and the chemistry
-of this input mass needs to be calculated. The flow to each litter pool also needs to be
-calculated. All of this is calculated and stored using the [LitterInputs
-class](virtual_ecosystem.models.litter.inputs.LitterInputs).
-
-With the new inputs to the litter and the decay of the existing litter known, the
-updated litter pool sizes can then be calculated. This is done using the
-[calculate_updated_pools
-function](virtual_ecosystem.models.litter.carbon.calculate_updated_pools). The chemistry
-of these new pools is then found using the [calculate_new_pool_chemistries
-method](virtual_ecosystem.models.litter.chemistry.LitterChemistry.calculate_new_pool_chemistries)
-of the [LitterChemistry
-class](virtual_ecosystem.models.litter.chemistry.LitterChemistry). As a final step
-minerialisation (rates at which nutrients enter the soil) rates are found. We track
-carbon (using the [calculate_total_C_mineralised
-function](virtual_ecosystem.models.litter.carbon.calculate_total_C_mineralised)) and
-also nitrogen and phosphorus (using `LitterChemistry` class methods).
-
 ## Generated variables
 
-The calculations described above result in the following variables being calculated and
-saved within the model data store, and then updated
+The first update of the litter model adds the following variables to the data
+environment of the Virtual Ecosystem:
 
 ```{code-cell}
 ---
@@ -103,8 +116,7 @@ display_markdown(
 
 ## Updated variables
 
-The table below shows the complete set of model variables that are updated at each model
-step.
+At each model step, the following variables are then updated.
 
 ```{code-cell}
 ---
