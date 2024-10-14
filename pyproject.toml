@@ -31,7 +31,7 @@ ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
 [tool.poetry.dependencies]
 Shapely = "^2.0"
-dask = "^2023.6.0"
+dask = ">=2023.6,<2025.0"
 dpath = "^2.0.6"
 jsonschema = "^4.14.0"
 netcdf4 = "^1.6.5"
