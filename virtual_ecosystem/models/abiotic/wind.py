@@ -11,9 +11,7 @@ TODO change temperatures to Kelvin
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    find_last_valid_row,
-)
+from virtual_ecosystem.core.logger import LOGGER
 
 
 def calculate_zero_plane_displacement(
@@ -124,326 +122,488 @@ def calculate_roughness_length_momentum(
     return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
 
 
-def calculate_diabatic_correction_above(
-    molar_density_air: float | NDArray[np.float32],
-    specific_heat_air: float | NDArray[np.float32],
-    temperature: NDArray[np.float32],
-    sensible_heat_flux: NDArray[np.float32],
-    friction_velocity: NDArray[np.float32],
-    wind_heights: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
-    celsius_to_kelvin: float,
-    von_karmans_constant: float,
-    yasuda_stability_parameters: list[float],
-    diabatic_heat_momentum_ratio: float,
-) -> dict[str, NDArray[np.float32]]:
-    r"""Calculate the diabatic correction factors for momentum and heat above canopy.
-
-    Diabatic correction factors for heat and momentum are used to adjust wind profiles
-    for surface heating and cooling :cite:p:`maclean_microclimc_2021`. When the surface
-    is strongly heated, the diabatic correction factor for momentum :math:`\Psi_{M}`
-    becomes negative and drops to values of around -1.5. In contrast, when the surface
-    is much cooler than the air above it, it increases to values around 4.
-
-    Args:
-        molar_density_air: Molar density of air above canopy, [mol m-3]
-        specific_heat_air: Specific heat of air above canopy, [J mol-1 K-1]
-        temperature: 2 m temperature above canopy, [C]
-        sensible_heat_flux: Sensible heat flux from canopy to atmosphere above, [W m-2]
-        friction_velocity: Friction velocity above canopy, [m s-1]
-        wind_heights: Height for which wind speed is calculated, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
-        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
-            temperature in Kelvin
-        von_karmans_constant: Von Karman's constant, dimensionless constant describing
-            the logarithmic velocity profile of a turbulent fluid near a no-slip
-            boundary.
-        yasuda_stability_parameters: Parameters to approximate diabatic correction
-            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
-        diabatic_heat_momentum_ratio: Factor that relates diabatic correction
-            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
-
-    Returns:
-        Diabatic correction factors for heat :math:`\Psi_{H}` and momentum
-        :math:`\Psi_{M}` transfer
-    """
-
-    # Calculate atmospheric stability
-    stability = (
-        von_karmans_constant
-        * (wind_heights - zero_plane_displacement)
-        * sensible_heat_flux
-    ) / (
-        molar_density_air
-        * specific_heat_air
-        * (temperature + celsius_to_kelvin)
-        * friction_velocity
-    )
-
-    stable_condition = yasuda_stability_parameters[0] * np.log(1 - stability)
-    unstable_condition = -yasuda_stability_parameters[1] * np.log(
-        (1 + np.sqrt(1 - yasuda_stability_parameters[2] * stability)) / 2
-    )
-
-    # Calculate diabatic correction factors for stable and unstable conditions
-    diabatic_correction_heat = np.where(
-        sensible_heat_flux < 0, stable_condition, unstable_condition
-    )
-
-    diabatic_correction_momentum = np.where(
-        sensible_heat_flux < 0,
-        diabatic_correction_heat,
-        diabatic_heat_momentum_ratio * diabatic_correction_heat,
-    )
-
-    return {"psi_m": diabatic_correction_momentum, "psi_h": diabatic_correction_heat}
-
-
-def calculate_diabatic_correction_canopy(
-    air_temperature: NDArray[np.float32],
-    wind_speed: NDArray[np.float32],
-    layer_heights: NDArray[np.float32],
-    mean_mixing_length: NDArray[np.float32],
-    stable_temperature_gradient_intercept: float,
-    stable_wind_shear_slope: float,
-    yasuda_stability_parameters: list[float],
-    richardson_bounds: list[float],
+def calculate_monin_obukov_length(
+    air_temperature: NDArray[np.float64],
+    friction_velocity: NDArray[np.float64],
+    sensible_heat_flux: NDArray[np.float64],
+    specific_heat_air: NDArray[np.float64],
+    density_air: NDArray[np.float64],
+    zero_degree: float,
+    von_karman_constant: float,
     gravity: float,
-    celsius_to_kelvin: float,
-) -> dict[str, NDArray[np.float32]]:
-    r"""Calculate diabatic correction factors for momentum and heat in canopy.
+) -> NDArray[np.float64]:
+    r"""Calculate Monin-Obukov length.
 
-    This function calculates the diabatic correction factors for heat and momentum used
-    in adjustment of wind profiles and calculation of turbulent conductivity within the
-    canopy. Momentum and heat correction factors should be greater than or equal to 1
-    under stable conditions and smaller than 1 under unstable conditions. From
-    :cite:t:`goudriaan_crop_1977` it is assumed that :math:`\Phi_{H}` remains
-    relatively constant within the canopy. Thus, the function returns a mean value for
-    the whole canopy and below. Implementation after :cite:t:`maclean_microclimc_2021`.
+    The Monin-Obukhov length (L) is given by:
 
-    Args:
-        air_temperature: Air temperature, [C]
-        wind_speed: Wind speed, [m s-1]
-        layer_heights: Layer heights, [m]
-        mean_mixing_length: Mean mixing length, [m]
-        stable_temperature_gradient_intercept: Temperature gradient intercept under
-            stable athmospheric conditions after :cite:t:`goudriaan_crop_1977`.
-        stable_wind_shear_slope: Wind shear slope under stable atmospheric conditions
-            after :cite:t:`goudriaan_crop_1977`.
-        richardson_bounds: Minimum and maximum value for Richardson number
-        yasuda_stability_parameters: Parameters to approximate diabatic correction
-            factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
-        gravity: Newtonian constant of gravitation, [m s-1]
-        celsius_to_kelvin: Factor to convert between Celsius and Kelvin
-
-    Returns:
-        diabatic correction factor for momentum :math:`\Phi_{M}` and heat
-        :math:`\Phi_{H}` transfer
-    """
-
-    # Calculate differences between consecutive elements along the vertical axis
-    temperature_differences = np.diff(air_temperature, axis=0)
-    height_differences = np.diff(layer_heights, axis=0)
-    temperature_gradient = temperature_differences / height_differences
-
-    # Calculate mean temperature in Kelvin
-    mean_temperature_kelvin = np.mean(air_temperature, axis=0) + celsius_to_kelvin
-    mean_wind_speed = np.mean(wind_speed, axis=0)
-
-    # Calculate Richardson number
-    richardson_number = (
-        (gravity / mean_temperature_kelvin)
-        * temperature_gradient
-        * (mean_mixing_length / mean_wind_speed) ** 2
-    )
-    richardson_number[richardson_number > richardson_bounds[0]] = richardson_bounds[0]
-    richardson_number[richardson_number <= richardson_bounds[1]] = richardson_bounds[1]
-
-    # Calculate stability term
-    stability_factor = (
-        4
-        * stable_wind_shear_slope
-        * (1 - stable_temperature_gradient_intercept)
-        / (stable_temperature_gradient_intercept) ** 2
-    )
-    stability_term = (
-        stable_temperature_gradient_intercept
-        * (1 + stability_factor * richardson_number) ** 0.5
-        + 2 * stable_wind_shear_slope * richardson_number
-        - stable_temperature_gradient_intercept
-    ) / (
-        2 * stable_wind_shear_slope * (1 - stable_wind_shear_slope * richardson_number)
-    )
-    sel = np.where(temperature_gradient <= 0)  # Unstable conditions
-    stability_term[sel] = richardson_number[sel]
-
-    # Initialize phi_m and phi_h with values for stable conditions
-    phi_m = 1 + (yasuda_stability_parameters[0] * stability_term) / (1 + stability_term)
-    phi_h = phi_m.copy()
-
-    # Adjust for unstable conditions
-    phi_m[sel] = 1 / (1 - yasuda_stability_parameters[2] * stability_term[sel]) ** 0.25
-    phi_h[sel] = phi_m[sel] ** 2
-
-    # Calculate mean values across the vertical axis for phi_m and phi_h
-    phi_m_mean = np.mean(phi_m, axis=0)
-    phi_h_mean = np.mean(phi_h, axis=0)
-
-    return {"phi_m": phi_m_mean, "phi_h": phi_h_mean}
-
-
-def calculate_mean_mixing_length(
-    canopy_height: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
-    roughness_length_momentum: NDArray[np.float32],
-    mixing_length_factor: float,
-) -> NDArray[np.float32]:
-    """Calculate mixing length for canopy air transport, [m].
-
-    The mean mixing length is used to calculate turbulent air transport inside vegetated
-    canopies. It is made equivalent to the above canopy value at the canopy surface. In
-    absence of vegetation, it is set to zero. Implementation after
-    :cite:t:`maclean_microclimc_2021`.
+    :math:`L = -(\rho \dot cp \dot ustar**3 \dot T_{air})/(k \dot g \dot H)`
+    Foken, T, 2008: Micrometeorology. Springer, Berlin, Germany.
+    Note that L gets very small for very low ustar values with implications
+    for subsequent functions using L as input. It is recommended to filter
+    data and exclude low ustar values (ustar < ~0.2) beforehand.
 
     Args:
-        canopy_height: Canopy height, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
-        roughness_length_momentum: Momentum roughness length, [m]
-        mixing_length_factor: Factor in calculation of mean mixing length, dimensionless
+        air_temperature: Air temperature, {c}
+        friction_velocity: Friction velocity, [m s-1]
+        sensible_heat_flux: Sensible heat flux, [W m-2]
+        specific_heat_air: Specific heat of air, [J K-1 kg-1]
+        density_air: Sensity of air, [kg m-3]
+        zero_degree: Celsius to Kelvin conversion
+        von_karman_constant: Von karman constant, []
+        gravity: Gravitational acceleration, [m s-2]
 
     Returns:
-        Mixing length for canopy air transport, [m]
+        Monin-Obukov length, [m]
     """
+    if np.any(sensible_heat_flux == 0):
+        to_raise = ValueError("The sensible heat flux must not be zero!")
+        LOGGER.error(to_raise)
+        raise to_raise
 
-    mean_mixing_length = (
-        mixing_length_factor * (canopy_height - zero_plane_displacement)
-    ) / np.log((canopy_height - zero_plane_displacement) / roughness_length_momentum)
+    temperature_kelvin = air_temperature + zero_degree
+    return -(
+        density_air * specific_heat_air * friction_velocity**3 * temperature_kelvin
+    ) / (von_karman_constant * gravity * sensible_heat_flux)
 
-    return np.nan_to_num(mean_mixing_length, nan=0)
 
+def calculate_stability_parameter(
+    reference_height: float,
+    zero_plance_displacement: NDArray[np.float64],
+    monin_obukov_length: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Calculate stability parameter zeta.
 
-def generate_relative_turbulence_intensity(
-    layer_heights: NDArray[np.float32],
-    min_relative_turbulence_intensity: float,
-    max_relative_turbulence_intensity: float,
-    increasing_with_height: bool,
-) -> NDArray[np.float32]:
-    """Generate relative turbulence intensity profile, dimensionless.
-
-    At the moment, default values are for a maize crop Shaw et al (1974)
-    Agricultural Meteorology, 13: 419-425. TODO adjust default to environment
+    Zeta is a parameter in Monin-Obukov Theory that characterizes stratification in
+    the lower atmosphere:
+    zeta = (reference_height - zero_plance_displacenemt)/ monin-obukov_length
 
     Args:
-        layer_heights: Heights of above ground layers, [m]
-        min_relative_turbulence_intensity: Minimum relative turbulence intensity,
-            dimensionless
-        max_relative_turbulence_intensity: Maximum relative turbulence intensity,
-            dimensionless
-        increasing_with_height: Increasing logical indicating whether turbulence
-            intensity increases (TRUE) or decreases (FALSE) with height
+        reference_height: Reference height, [m]
+        zero_plance_displacement: Zero plance displacement height, [m]
+        monin_obukov_length: Monin-Obukov length, [m]
 
     Returns:
-        Relative turbulence intensity for each node, dimensionless
+        stability parameter zeta
     """
-
-    direction = 1 if increasing_with_height else -1
-
-    return (
-        min_relative_turbulence_intensity
-        + direction
-        * (max_relative_turbulence_intensity - min_relative_turbulence_intensity)
-        * layer_heights
-    )
+    return (reference_height - zero_plance_displacement) / monin_obukov_length
 
 
-def calculate_wind_attenuation_coefficient(
-    canopy_height: NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
-    mean_mixing_length: NDArray[np.float32],
-    drag_coefficient: float,
-    relative_turbulence_intensity: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    """Calculate wind attenuation coefficient, dimensionless.
+def calculate_diabatic_correction_factors(
+    stability_parameter: NDArray[np.float64],
+    stability_formulation: str,
+) -> dict[str, NDArray[np.float64]]:
+    r"""Integrated Stability Correction Functions for Heat and Momentum.
 
-    The wind attenuation coefficient describes how wind is slowed down by the presence
-    of vegetation. In absence of vegetation, the coefficient is set to zero.
-    Implementation after :cite:t:`maclean_microclimc_2021`.
+    Dimensionless stability functions needed to correct deviations from the exponential
+    wind profile under non-neutral conditions. The functions give the integrated form of
+    the universal functions. They depend on the value of the stability parameter
+    :math:`\zeta`.
+    The integration of the universal functions is:
+    :math:`psi = -x * \zeta`
+    for stable atmospheric conditions (:math:`\zeta >= 0`), and
+    :math:`\psi = 2 * log( (1 + y) / 2)`
+    for unstable atmospheric conditions (:math:`\zeta < 0`).
+    The different formulations differ in their value of x and y.
+    Dyer, A.J., 1974: A review of flux-profile relationships.
+    Boundary-Layer Meteorology 7, 363-372.
+    Dyer, A. J., Hicks, B.B., 1970: Flux-Gradient relationships in the
+    constant flux layer. Quart. J. R. Meteorol. Soc. 96, 715-721.
+    Businger, J.A., Wyngaard, J. C., Izumi, I., Bradley, E. F., 1971:
+    Flux-Profile relationships in the atmospheric surface layer.
+    J. Atmospheric Sci. 28, 181-189.
+    Paulson, C.A., 1970: The mathematical representation of wind speed
+    and temperature profiles in the unstable atmospheric surface layer.
+    Journal of Applied Meteorology 9, 857-861.
+    Foken, T, 2008: Micrometeorology. Springer, Berlin, Germany.
 
     Args:
-        canopy_height: Canopy height, [m]
-        leaf_area_index: Leaf area index, [m m-1]
-        mean_mixing_length: Mixing length for canopy air transport, [m]
-        drag_coefficient: Drag coefficient, dimensionless
-        relative_turbulence_intensity: Relative turbulence intensity, dimensionless
+        stability_parameter: Stability parameter zeta (-)
+        stability_formulation: Formulation for the stability function.
+        Either \code{"Dyer_1970"} or \code{"Businger_1971"}
 
     Returns:
-        Wind attenuation coefficient, dimensionless
+        psi_h, the value of the stability function for heat and water vapor (-), and
+        psi_m, the value of the stability function for momentum (-)
     """
 
-    # VIVI - this is operating on inputs containing all true aboveground rows. Because
-    # LAI is only defined for the canopy layers, the result of this operation is
-    # undefined for the top and bottom row and so can just be filled in rather than
-    # having to concatenate. We _could_ subset the inputs and then concatenate - those
-    # are more intuitive inputs - but handling those extra layers maintains the same
-    # calculation shape throughout the wind calculation stack.
-    attenuation_coefficient = (drag_coefficient * leaf_area_index * canopy_height) / (
-        2 * mean_mixing_length * relative_turbulence_intensity
+    # Choose formulation
+    if stability_formulation == "Businger_1971":
+        x_h, x_m = -7.8, -6
+        y_h = 0.95 * np.sqrt(1 - 11.6 * stability_parameter)
+        y_m = np.power(1 - 19.3 * stability_parameter, 0.25)
+
+    elif stability_formulation == "Dyer_1970":
+        x_h, x_m = -5, -5
+        y_h = np.sqrt(1 - 16 * stability_parameter)
+        y_m = np.power(1 - 16 * stability_parameter, 0.25)
+
+    else:
+        raise ValueError(f"Unknown formulation: {stability_formulation}")
+
+    psi_h = np.where(
+        stability_parameter >= 0, x_h * stability_parameter, 2 * np.log((1 + y_h) / 2)
+    )
+    psi_m = np.where(
+        stability_parameter >= 0,
+        x_m * stability_parameter,
+        (
+            2 * np.log((1 + y_m) / 2)
+            + np.log((1 + y_m**2) / 2)
+            - 2 * np.arctan(y_m)
+            + np.pi / 2
+        ),
     )
 
-    # Above the canopy is set to zero and the surface layer is set to the last valid
-    # canopy value
-    attenuation_coefficient[0] = 0
-    attenuation_coefficient[-1] = find_last_valid_row(attenuation_coefficient)
-
-    return attenuation_coefficient
+    return {"psi_h": psi_h, "psi_m": psi_m}
 
 
-def wind_log_profile(
-    height: float | NDArray[np.float32],
-    zeroplane_displacement: float | NDArray[np.float32],
-    roughness_length_momentum: float | NDArray[np.float32],
-    diabatic_correction_momentum: float | NDArray[np.float32],
-) -> NDArray[np.float32]:
-    """Calculate logarithmic wind profile.
-
-    Note that this function can return NaN, this is not corrected here because it might
-    cause division by zero later on in the work flow.
+def calculate_diabatic_influence_heat(
+    stability_parameter: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Calculate the diabatic influencing factor for heat.
 
     Args:
-        height: Array of heights for which wind speed is calculated, [m]
-        zeroplane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
-        roughness_length_momentum: Momentum roughness length, [m]
-        diabatic_correction_momentum: Diabatic correction factor for momentum
+        stability_parameter: Stability parameter zeta
 
     Returns:
-        logarithmic wind profile
+        Diabatic influencing factor for heat (phih)
     """
+    # Initialize `phih` with zeros
+    phih = np.zeros_like(stability_parameter)
 
-    wind_profile = (
-        np.log((height - zeroplane_displacement) / roughness_length_momentum)
-        + diabatic_correction_momentum,
+    # Apply the calculation where stability_parameter < 0
+    phim = np.where(
+        stability_parameter < 0,
+        1 / np.power((1.0 - 16.0 * stability_parameter), 0.25),
+        1,  # Default value for non-negative stability_parameter to avoid indexing issue
     )
+    phih_non_negative = 1 + (6.0 * stability_parameter) / (1.0 + stability_parameter)
+    phih = np.where(stability_parameter < 0, np.power(phim, 2.0), phih_non_negative)
 
-    return np.where(wind_profile == 0.0, np.nan, wind_profile).squeeze()
+    # Clip the values of `phih` to be between 0.5 and 1.5
+    return np.clip(phih, 0.5, 1.5)
 
 
-def calculate_friction_velocity_reference_height(
-    wind_speed_ref: NDArray[np.float32],
-    reference_height: float | NDArray[np.float32],
-    zeroplane_displacement: NDArray[np.float32],
-    roughness_length_momentum: NDArray[np.float32],
-    diabatic_correction_momentum: float | NDArray[np.float32],
+# def calculate_diabatic_correction_above(
+#     molar_density_air: float | NDArray[np.float32],
+#     specific_heat_air: float | NDArray[np.float32],
+#     temperature: NDArray[np.float32],
+#     sensible_heat_flux: NDArray[np.float32],
+#     friction_velocity: NDArray[np.float32],
+#     wind_heights: NDArray[np.float32],
+#     zero_plane_displacement: NDArray[np.float32],
+#     celsius_to_kelvin: float,
+#     von_karmans_constant: float,
+#     yasuda_stability_parameters: list[float],
+#     diabatic_heat_momentum_ratio: float,
+# ) -> dict[str, NDArray[np.float32]]:
+#     r"""Calculate the diabatic correction factors for momentum and heat above canopy.
+
+#     Diabatic correction factors for heat and momentum are used to adjust wind profiles
+#    for surface heating and cooling :cite:p:`maclean_microclimc_2021`. When the surface
+#     is strongly heated, the diabatic correction factor for momentum :math:`\Psi_{M}`
+#     becomes negative and drops to values of around -1.5. In contrast, when the surface
+#     is much cooler than the air above it, it increases to values around 4.
+
+#     Args:
+#         molar_density_air: Molar density of air above canopy, [mol m-3]
+#         specific_heat_air: Specific heat of air above canopy, [J mol-1 K-1]
+#         temperature: 2 m temperature above canopy, [C]
+#        sensible_heat_flux: Sensible heat flux from canopy to atmosphere above, [W m-2]
+#         friction_velocity: Friction velocity above canopy, [m s-1]
+#         wind_heights: Height for which wind speed is calculated, [m]
+#         zero_plane_displacement: Height above ground within the canopy where the wind
+#             profile extrapolates to zero, [m]
+#         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+#             temperature in Kelvin
+#         von_karmans_constant: Von Karman's constant, dimensionless constant describing
+#             the logarithmic velocity profile of a turbulent fluid near a no-slip
+#             boundary.
+#         yasuda_stability_parameters: Parameters to approximate diabatic correction
+#             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
+#         diabatic_heat_momentum_ratio: Factor that relates diabatic correction
+#             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
+
+#     Returns:
+#         Diabatic correction factors for heat :math:`\Psi_{H}` and momentum
+#         :math:`\Psi_{M}` transfer
+#     """
+
+#     # Calculate atmospheric stability
+#     stability = (
+#         von_karmans_constant
+#         * (wind_heights - zero_plane_displacement)
+#         * sensible_heat_flux
+#     ) / (
+#         molar_density_air
+#         * specific_heat_air
+#         * (temperature + celsius_to_kelvin)
+#         * friction_velocity
+#     )
+
+#     stable_condition = yasuda_stability_parameters[0] * np.log(1 - stability)
+#     unstable_condition = -yasuda_stability_parameters[1] * np.log(
+#         (1 + np.sqrt(1 - yasuda_stability_parameters[2] * stability)) / 2
+#     )
+
+#     # Calculate diabatic correction factors for stable and unstable conditions
+#     diabatic_correction_heat = np.where(
+#         sensible_heat_flux < 0, stable_condition, unstable_condition
+#     )
+
+#     diabatic_correction_momentum = np.where(
+#         sensible_heat_flux < 0,
+#         diabatic_correction_heat,
+#         diabatic_heat_momentum_ratio * diabatic_correction_heat,
+#     )
+
+#     return {"psi_m": diabatic_correction_momentum, "psi_h": diabatic_correction_heat}
+
+
+# def calculate_diabatic_correction_canopy(
+#     air_temperature: NDArray[np.float32],
+#     wind_speed: NDArray[np.float32],
+#     layer_heights: NDArray[np.float32],
+#     mean_mixing_length: NDArray[np.float32],
+#     stable_temperature_gradient_intercept: float,
+#     stable_wind_shear_slope: float,
+#     yasuda_stability_parameters: list[float],
+#     richardson_bounds: list[float],
+#     gravity: float,
+#     celsius_to_kelvin: float,
+# ) -> dict[str, NDArray[np.float32]]:
+#     r"""Calculate diabatic correction factors for momentum and heat in canopy.
+
+#    This function calculates the diabatic correction factors for heat and momentum used
+#    in adjustment of wind profiles and calculation of turbulent conductivity within the
+#     canopy. Momentum and heat correction factors should be greater than or equal to 1
+#     under stable conditions and smaller than 1 under unstable conditions. From
+#     :cite:t:`goudriaan_crop_1977` it is assumed that :math:`\Phi_{H}` remains
+#     relatively constant within the canopy. Thus, the function returns a mean value for
+#    the whole canopy and below. Implementation after :cite:t:`maclean_microclimc_2021`.
+
+#     Args:
+#         air_temperature: Air temperature, [C]
+#         wind_speed: Wind speed, [m s-1]
+#         layer_heights: Layer heights, [m]
+#         mean_mixing_length: Mean mixing length, [m]
+#         stable_temperature_gradient_intercept: Temperature gradient intercept under
+#             stable athmospheric conditions after :cite:t:`goudriaan_crop_1977`.
+#         stable_wind_shear_slope: Wind shear slope under stable atmospheric conditions
+#             after :cite:t:`goudriaan_crop_1977`.
+#         richardson_bounds: Minimum and maximum value for Richardson number
+#         yasuda_stability_parameters: Parameters to approximate diabatic correction
+#             factors for heat and momentum after :cite:t:`yasuda_turbulent_1988`
+#         gravity: Newtonian constant of gravitation, [m s-1]
+#         celsius_to_kelvin: Factor to convert between Celsius and Kelvin
+
+#     Returns:
+#         diabatic correction factor for momentum :math:`\Phi_{M}` and heat
+#         :math:`\Phi_{H}` transfer
+#     """
+
+#     # Calculate differences between consecutive elements along the vertical axis
+#     temperature_differences = np.diff(air_temperature, axis=0)
+#     height_differences = np.diff(layer_heights, axis=0)
+#     temperature_gradient = temperature_differences / height_differences
+
+#     # Calculate mean temperature in Kelvin
+#     mean_temperature_kelvin = np.mean(air_temperature, axis=0) + celsius_to_kelvin
+#     mean_wind_speed = np.mean(wind_speed, axis=0)
+
+#     # Calculate Richardson number
+#     richardson_number = (
+#         (gravity / mean_temperature_kelvin)
+#         * temperature_gradient
+#         * (mean_mixing_length / mean_wind_speed) ** 2
+#     )
+#     richardson_number[richardson_number > richardson_bounds[0]] = richardson_bounds[0]
+#    richardson_number[richardson_number <= richardson_bounds[1]] = richardson_bounds[1]
+
+#     # Calculate stability term
+#     stability_factor = (
+#         4
+#         * stable_wind_shear_slope
+#         * (1 - stable_temperature_gradient_intercept)
+#         / (stable_temperature_gradient_intercept) ** 2
+#     )
+#     stability_term = (
+#         stable_temperature_gradient_intercept
+#         * (1 + stability_factor * richardson_number) ** 0.5
+#         + 2 * stable_wind_shear_slope * richardson_number
+#         - stable_temperature_gradient_intercept
+#     ) / (
+#        2 * stable_wind_shear_slope * (1 - stable_wind_shear_slope * richardson_number)
+#     )
+#     sel = np.where(temperature_gradient <= 0)  # Unstable conditions
+#     stability_term[sel] = richardson_number[sel]
+
+#     # Initialize phi_m and phi_h with values for stable conditions
+#   phi_m = 1 + (yasuda_stability_parameters[0] * stability_term) / (1 + stability_term)
+#     phi_h = phi_m.copy()
+
+#     # Adjust for unstable conditions
+#    phi_m[sel] = 1 / (1 - yasuda_stability_parameters[2] * stability_term[sel]) ** 0.25
+#     phi_h[sel] = phi_m[sel] ** 2
+
+#     # Calculate mean values across the vertical axis for phi_m and phi_h
+#     phi_m_mean = np.mean(phi_m, axis=0)
+#     phi_h_mean = np.mean(phi_h, axis=0)
+
+#     return {"phi_m": phi_m_mean, "phi_h": phi_h_mean}
+
+
+# def calculate_mean_mixing_length(
+#     canopy_height: NDArray[np.float32],
+#     zero_plane_displacement: NDArray[np.float32],
+#     roughness_length_momentum: NDArray[np.float32],
+#     mixing_length_factor: float,
+# ) -> NDArray[np.float32]:
+#     """Calculate mixing length for canopy air transport, [m].
+
+#   The mean mixing length is used to calculate turbulent air transport inside vegetated
+#   canopies. It is made equivalent to the above canopy value at the canopy surface. In
+#     absence of vegetation, it is set to zero. Implementation after
+#     :cite:t:`maclean_microclimc_2021`.
+
+#     Args:
+#         canopy_height: Canopy height, [m]
+#         zero_plane_displacement: Height above ground within the canopy where the wind
+#             profile extrapolates to zero, [m]
+#         roughness_length_momentum: Momentum roughness length, [m]
+#       mixing_length_factor: Factor in calculation of mean mixing length, dimensionless
+
+#     Returns:
+#         Mixing length for canopy air transport, [m]
+#     """
+
+#     mean_mixing_length = (
+#         mixing_length_factor * (canopy_height - zero_plane_displacement)
+#     ) / np.log((canopy_height - zero_plane_displacement) / roughness_length_momentum)
+
+#     return np.nan_to_num(mean_mixing_length, nan=0)
+
+
+# def generate_relative_turbulence_intensity(
+#     layer_heights: NDArray[np.float32],
+#     min_relative_turbulence_intensity: float,
+#     max_relative_turbulence_intensity: float,
+#     increasing_with_height: bool,
+# ) -> NDArray[np.float32]:
+#     """Generate relative turbulence intensity profile, dimensionless.
+
+#     At the moment, default values are for a maize crop Shaw et al (1974)
+#     Agricultural Meteorology, 13: 419-425. TODO adjust default to environment
+
+#     Args:
+#         layer_heights: Heights of above ground layers, [m]
+#         min_relative_turbulence_intensity: Minimum relative turbulence intensity,
+#             dimensionless
+#         max_relative_turbulence_intensity: Maximum relative turbulence intensity,
+#             dimensionless
+#         increasing_with_height: Increasing logical indicating whether turbulence
+#             intensity increases (TRUE) or decreases (FALSE) with height
+
+#     Returns:
+#         Relative turbulence intensity for each node, dimensionless
+#     """
+
+#     direction = 1 if increasing_with_height else -1
+
+#     return (
+#         min_relative_turbulence_intensity
+#         + direction
+#         * (max_relative_turbulence_intensity - min_relative_turbulence_intensity)
+#         * layer_heights
+#     )
+
+
+# def calculate_wind_attenuation_coefficient(
+#     canopy_height: NDArray[np.float32],
+#     leaf_area_index: NDArray[np.float32],
+#     mean_mixing_length: NDArray[np.float32],
+#     drag_coefficient: float,
+#     relative_turbulence_intensity: NDArray[np.float32],
+# ) -> NDArray[np.float32]:
+#     """Calculate wind attenuation coefficient, dimensionless.
+
+#     The wind attenuation coefficient describes how wind is slowed down by the presence
+#     of vegetation. In absence of vegetation, the coefficient is set to zero.
+#     Implementation after :cite:t:`maclean_microclimc_2021`.
+
+#     Args:
+#         canopy_height: Canopy height, [m]
+#         leaf_area_index: Leaf area index, [m m-1]
+#         mean_mixing_length: Mixing length for canopy air transport, [m]
+#         drag_coefficient: Drag coefficient, dimensionless
+#         relative_turbulence_intensity: Relative turbulence intensity, dimensionless
+
+#     Returns:
+#         Wind attenuation coefficient, dimensionless
+#     """
+
+#     # VIVI - this is operating on inputs containing all true aboveground rows. Because
+#     # LAI is only defined for the canopy layers, the result of this operation is
+#     # undefined for the top and bottom row and so can just be filled in rather than
+#     # having to concatenate. We _could_ subset the inputs and then concatenate - those
+#     # are more intuitive inputs - but handling those extra layers maintains the same
+#     # calculation shape throughout the wind calculation stack.
+#     attenuation_coefficient = (drag_coefficient * leaf_area_index * canopy_height) / (
+#         2 * mean_mixing_length * relative_turbulence_intensity
+#     )
+
+#     # Above the canopy is set to zero and the surface layer is set to the last valid
+#     # canopy value
+#     attenuation_coefficient[0] = 0
+#     attenuation_coefficient[-1] = find_last_valid_row(attenuation_coefficient)
+
+#     return attenuation_coefficient
+
+
+# def wind_log_profile(
+#     height: float | NDArray[np.float32],
+#     zeroplane_displacement: float | NDArray[np.float32],
+#     roughness_length_momentum: float | NDArray[np.float32],
+#     diabatic_correction_momentum: float | NDArray[np.float32],
+# ) -> NDArray[np.float32]:
+#     """Calculate logarithmic wind profile.
+
+#    Note that this function can return NaN, this is not corrected here because it might
+#     cause division by zero later on in the work flow.
+
+#     Args:
+#         height: Array of heights for which wind speed is calculated, [m]
+#         zeroplane_displacement: Height above ground within the canopy where the wind
+#             profile extrapolates to zero, [m]
+#         roughness_length_momentum: Momentum roughness length, [m]
+#         diabatic_correction_momentum: Diabatic correction factor for momentum
+
+#     Returns:
+#         logarithmic wind profile
+#     """
+
+#     wind_profile = (
+#         np.log((height - zeroplane_displacement) / roughness_length_momentum)
+#         + diabatic_correction_momentum,
+#     )
+
+#     return np.where(wind_profile == 0.0, np.nan, wind_profile).squeeze()
+
+
+def calculate_friction_velocity(
+    wind_speed_ref: NDArray[np.float64],
+    canopy_height: NDArray[np.float64],
+    zeroplane_displacement: NDArray[np.float64],
+    roughness_length_momentum: NDArray[np.float64],
+    diabatic_correction_momentum: float | NDArray[np.float64],
     von_karmans_constant: float,
     min_friction_velocity: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.float64]:
     """Calculate friction velocity from wind speed at reference height, [m s-1].
 
     Args:
         wind_speed_ref: Wind speed at reference height, [m s-1]
-        reference_height: Height of wind measurement, [m]
+        canopy_height: Canopy height, [m]
         zeroplane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
@@ -458,16 +618,10 @@ def calculate_friction_velocity_reference_height(
     Returns:
         Friction velocity, [m s-1]
     """
-
-    wind_profile_reference = wind_log_profile(
-        height=reference_height,
-        zeroplane_displacement=zeroplane_displacement,
-        roughness_length_momentum=roughness_length_momentum,
-        diabatic_correction_momentum=diabatic_correction_momentum,
+    friction_velocity = (von_karmans_constant * wind_speed_ref) / (
+        np.log((canopy_height - zeroplane_displacement) / roughness_length_momentum)
+        + diabatic_correction_momentum
     )
-
-    friction_velocity = von_karmans_constant * (wind_speed_ref / wind_profile_reference)
-
     return np.where(
         friction_velocity < min_friction_velocity,
         min_friction_velocity,
@@ -475,91 +629,91 @@ def calculate_friction_velocity_reference_height(
     )
 
 
-def calculate_wind_above_canopy(
-    friction_velocity: NDArray[np.float32],
-    wind_height_above: NDArray[np.float32],
-    zeroplane_displacement: NDArray[np.float32],
-    roughness_length_momentum: NDArray[np.float32],
-    diabatic_correction_momentum: NDArray[np.float32],
-    von_karmans_constant: float,
-    min_wind_speed_above_canopy: float,
-) -> NDArray[np.float32]:
-    """Calculate wind speed above canopy from wind speed at reference height, [m s-1].
+# def calculate_wind_above_canopy(
+#     friction_velocity: NDArray[np.float32],
+#     wind_height_above: NDArray[np.float32],
+#     zeroplane_displacement: NDArray[np.float32],
+#     roughness_length_momentum: NDArray[np.float32],
+#     diabatic_correction_momentum: NDArray[np.float32],
+#     von_karmans_constant: float,
+#     min_wind_speed_above_canopy: float,
+# ) -> NDArray[np.float32]:
+#     """Calculate wind speed above canopy from wind speed at reference height, [m s-1].
 
-    Wind speed above the canopy dictates heat and vapour exchange between the canopy
-    and the air above it, and therefore ultimately determines temperature and vapour
-    profiles.
-    The wind profile above canopy typically follows a logarithmic height profile, which
-    extrapolates to zero roughly two thirds of the way to the top of the canopy. The
-    profile itself is thus dependent on the height of the canopy, but also on the
-    roughness of the vegetation layer, which causes wind shear. We follow the
-    implementation by :cite:t:`campbell_introduction_1998` as described in
-    :cite:t:`maclean_microclimc_2021`.
+#     Wind speed above the canopy dictates heat and vapour exchange between the canopy
+#     and the air above it, and therefore ultimately determines temperature and vapour
+#     profiles.
+#    The wind profile above canopy typically follows a logarithmic height profile, which
+#     extrapolates to zero roughly two thirds of the way to the top of the canopy. The
+#     profile itself is thus dependent on the height of the canopy, but also on the
+#     roughness of the vegetation layer, which causes wind shear. We follow the
+#     implementation by :cite:t:`campbell_introduction_1998` as described in
+#     :cite:t:`maclean_microclimc_2021`.
 
-    Args:
-        friction_velocity: friction velocity, [m s-1]
-        wind_height_above: Heights above canopy for which wind speed is required, [m].
-            For use in the calculation of the full wind profiles, this typically
-            includes two values: the height of the first layer ('above') and the first
-            canopy layer which corresponds to the canopy height.
-        zeroplane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
-        roughness_length_momentum: Momentum roughness length, [m]
-        diabatic_correction_momentum: Diabatic correction factor for momentum as
-            returned by
-            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_diabatic_correction_above`
-        von_karmans_constant: Von Karman's constant, dimensionless constant describing
-            the logarithmic velocity profile of a turbulent fluid near a no-slip
-            boundary.
-        min_wind_speed_above_canopy: Minimum wind speed above canopy, [m s-1]
+#     Args:
+#         friction_velocity: friction velocity, [m s-1]
+#         wind_height_above: Heights above canopy for which wind speed is required, [m].
+#             For use in the calculation of the full wind profiles, this typically
+#             includes two values: the height of the first layer ('above') and the first
+#             canopy layer which corresponds to the canopy height.
+#         zeroplane_displacement: Height above ground within the canopy where the wind
+#             profile extrapolates to zero, [m]
+#         roughness_length_momentum: Momentum roughness length, [m]
+#         diabatic_correction_momentum: Diabatic correction factor for momentum as
+#             returned by
+#     :func:`~virtual_ecosystem.models.abiotic.wind.calculate_diabatic_correction_above`
+#         von_karmans_constant: Von Karman's constant, dimensionless constant describing
+#             the logarithmic velocity profile of a turbulent fluid near a no-slip
+#             boundary.
+#         min_wind_speed_above_canopy: Minimum wind speed above canopy, [m s-1]
 
-    Returns:
-        wind speed at required heights above canopy, [m s-1]
-    """
+#     Returns:
+#         wind speed at required heights above canopy, [m s-1]
+#     """
 
-    wind_profile_above = wind_log_profile(
-        height=wind_height_above,
-        zeroplane_displacement=zeroplane_displacement,
-        roughness_length_momentum=roughness_length_momentum,
-        diabatic_correction_momentum=diabatic_correction_momentum,
-    )
-    wind_profile = (friction_velocity / von_karmans_constant) * wind_profile_above
+#     wind_profile_above = wind_log_profile(
+#         height=wind_height_above,
+#         zeroplane_displacement=zeroplane_displacement,
+#         roughness_length_momentum=roughness_length_momentum,
+#         diabatic_correction_momentum=diabatic_correction_momentum,
+#     )
+#     wind_profile = (friction_velocity / von_karmans_constant) * wind_profile_above
 
-    return np.where(
-        wind_profile < min_wind_speed_above_canopy,
-        min_wind_speed_above_canopy,
-        wind_profile,
-    )
+#     return np.where(
+#         wind_profile < min_wind_speed_above_canopy,
+#         min_wind_speed_above_canopy,
+#         wind_profile,
+#     )
 
 
-def calculate_wind_canopy(
-    top_of_canopy_wind_speed: NDArray[np.float32],
-    wind_layer_heights: NDArray[np.float32],
-    canopy_height: NDArray[np.float32],
-    attenuation_coefficient: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    """Calculate wind speed in a multi-layer canopy, [m s-1].
+# def calculate_wind_canopy(
+#     top_of_canopy_wind_speed: NDArray[np.float32],
+#     wind_layer_heights: NDArray[np.float32],
+#     canopy_height: NDArray[np.float32],
+#     attenuation_coefficient: NDArray[np.float32],
+# ) -> NDArray[np.float32]:
+#     """Calculate wind speed in a multi-layer canopy, [m s-1].
 
-    This function can be extended to account for edge distance effects.
+#     This function can be extended to account for edge distance effects.
 
-    Args:
-        top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m s-1]
-        wind_layer_heights: Heights of canopy layers, [m]
-        canopy_height: Height to top of canopy layer, [m]
-        attenuation_coefficient: Mean attenuation coefficient based on the profile
-            calculated by
-            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_wind_attenuation_coefficient`
-        min_windspeed_below_canopy: Minimum wind speed below the canopy or in absence of
-            vegetation, [m/s]. This value is set to avoid dividion by zero.
+#     Args:
+#         top_of_canopy_wind_speed: Wind speed at top of canopy layer, [m s-1]
+#         wind_layer_heights: Heights of canopy layers, [m]
+#         canopy_height: Height to top of canopy layer, [m]
+#         attenuation_coefficient: Mean attenuation coefficient based on the profile
+#             calculated by
+#  :func:`~virtual_ecosystem.models.abiotic.wind.calculate_wind_attenuation_coefficient`
+#      min_windspeed_below_canopy: Minimum wind speed below the canopy or in absence of
+#             vegetation, [m/s]. This value is set to avoid dividion by zero.
 
-    Returns:
-        wind speed at height of canopy layers, [m s-1]
-    """
+#     Returns:
+#         wind speed at height of canopy layers, [m s-1]
+#     """
 
-    zero_displacement = top_of_canopy_wind_speed * np.exp(
-        attenuation_coefficient * ((wind_layer_heights / canopy_height) - 1)
-    )
-    return zero_displacement
+#     zero_displacement = top_of_canopy_wind_speed * np.exp(
+#         attenuation_coefficient * ((wind_layer_heights / canopy_height) - 1)
+#     )
+#     return zero_displacement
 
 
 # def calculate_wind_profile(

@@ -1,6 +1,9 @@
 """Test module for abiotic.wind.py."""
 
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 
@@ -41,6 +44,183 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
     np.testing.assert_allclose(
         result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
     )
+
+
+@pytest.mark.parametrize(
+    "air_temperature, friction_velocity, sensible_heat_flux, raises, expected",
+    [
+        (
+            np.repeat(25.0, 3),
+            np.repeat(0.5, 3),
+            np.repeat(100.0, 3),
+            does_not_raise(),
+            np.repeat(-114.541571, 3),
+        ),
+        (
+            np.repeat(15.0, 3),
+            np.repeat(0.1, 3),
+            np.repeat(-50.0, 3),
+            does_not_raise(),
+            np.repeat(1.771197, 3),
+        ),
+        (
+            np.repeat(10.0, 3),
+            np.repeat(0.3, 3),
+            np.repeat(0.0, 3),
+            pytest.raises(ValueError),
+            (),
+        ),
+        (
+            np.repeat(-10.0, 3),
+            np.repeat(0.6, 3),
+            np.repeat(150.0, 3),
+            does_not_raise(),
+            np.repeat(-116.461982, 3),
+        ),
+    ],
+)
+def test_calculate_monin_obukov_length(
+    air_temperature,
+    friction_velocity,
+    sensible_heat_flux,
+    raises,
+    expected,
+):
+    """Test calculation of Monin-Obukov length."""
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_monin_obukov_length,
+    )
+
+    with raises:
+        result = calculate_monin_obukov_length(
+            air_temperature=air_temperature,
+            friction_velocity=friction_velocity,
+            sensible_heat_flux=sensible_heat_flux,
+            specific_heat_air=np.repeat(1005, 3),
+            density_air=np.repeat(1.2, 3),
+            zero_degree=273.15,
+            von_karman_constant=0.4,
+            gravity=9.81,
+        )
+        np.testing.assert_allclose(result, expected, atol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "reference_height, zero_plane_displacement, monin_obukov_length, expected",
+    [
+        (  # Typical case with positive zeta
+            np.repeat(10.0, 3),
+            np.repeat(10, 3),
+            np.repeat(50.0, 3),
+            np.repeat(0.0, 3),
+        ),
+        (  # Typical case with positive zeta
+            np.repeat(50.0, 3),
+            np.repeat(30, 3),
+            np.repeat(60.0, 3),
+            np.repeat(0.333, 3),
+        ),
+        (  # Case with zero zeta
+            np.repeat(10.0, 3),
+            np.repeat(10, 3),
+            np.repeat(1.0, 3),
+            np.repeat(0.0, 3),
+        ),
+        (  # Case with negative Monin-Obukov length
+            np.repeat(10.0, 3),
+            np.repeat(5, 3),
+            np.repeat(-5.0, 3),
+            np.repeat(-1.0, 3),
+        ),
+    ],
+)
+def test_calculate_stability_parameter(
+    reference_height, zero_plane_displacement, monin_obukov_length, expected
+):
+    """Test calculation of stability parameter zeta."""
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_stability_parameter,
+    )
+
+    result = calculate_stability_parameter(
+        reference_height, zero_plane_displacement, monin_obukov_length
+    )
+    np.testing.assert_allclose(result, expected, atol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "stability_parameter, stability_formulation, expected_psi_h, expected_psi_m",
+    [
+        (
+            np.repeat(0.5, 3),
+            "Businger_1971",
+            np.repeat(-3.9, 3),
+            np.repeat(-3.0, 3),
+        ),  # Example for stable conditions, Businger_1971
+        (
+            np.repeat(0.5, 3),
+            "Dyer_1970",
+            np.repeat(-2.5, 3),
+            np.repeat(-2.5, 3),
+        ),  # Example for stable conditions, Dyer_1970
+        (
+            np.repeat(-0.5, 3),
+            "Businger_1971",
+            np.repeat(1.106216, 3),
+            np.repeat(0.87485, 3),
+        ),  # Unstable conditions, Businger_1971
+        (
+            np.repeat(-0.5, 3),
+            "Dyer_1970",
+            np.repeat(1.38629, 3),
+            np.repeat(0.793359, 3),
+        ),  # Unstable conditions, Dyer_1970
+        (
+            np.repeat(0.0, 3),
+            "Businger_1971",
+            np.repeat(0.0, 3),
+            np.repeat(0.0, 3),
+        ),  # Edge case for zero stability parameter, Businger_1971
+        (
+            np.repeat(0.0, 3),
+            "Dyer_1970",
+            np.repeat(0.0, 3),
+            np.repeat(0.0, 3),
+        ),  # Edge case for zero stability parameter, Dyer_1970
+    ],
+)
+def test_calculate_diabatic_correction_factors(
+    stability_parameter, stability_formulation, expected_psi_h, expected_psi_m
+):
+    """Test calculation of diabatic correction factors."""
+
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_diabatic_correction_factors,
+    )
+
+    result = calculate_diabatic_correction_factors(
+        stability_parameter, stability_formulation
+    )
+    np.testing.assert_allclose(result["psi_h"], expected_psi_h, rtol=1e-5)
+    np.testing.assert_allclose(result["psi_m"], expected_psi_m, rtol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "stability_parameter, expected_phih",
+    [
+        (np.repeat(-0.5, 3), np.repeat(0.5, 3)),  # Unstable case
+        (np.repeat(0.0, 3), np.repeat(1.0, 3)),  # Neutral case
+        (np.repeat(1.0, 3), np.repeat(1.5, 3)),  # Stable case
+    ],
+)
+def test_calculate_diabatic_influence_heat(stability_parameter, expected_phih):
+    """Test calculation of diabatic influencing factor for heat."""
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_diabatic_influence_heat,
+    )
+
+    result = calculate_diabatic_influence_heat(stability_parameter=stability_parameter)
+    np.testing.assert_allclose(result, expected_phih, atol=1e-6)
 
 
 # def test_calculate_diabatic_correction_above(dummy_climate_data):
