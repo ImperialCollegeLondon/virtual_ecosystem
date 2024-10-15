@@ -160,85 +160,6 @@ class LitterModel(
         model_constants: Set of constants for the litter model.
     """
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        model_constants: LitterConsts = LitterConsts(),
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        # Check that no litter pool is negative
-        all_pools = [
-            "litter_pool_above_metabolic",
-            "litter_pool_above_structural",
-            "litter_pool_woody",
-            "litter_pool_below_metabolic",
-            "litter_pool_below_structural",
-        ]
-        negative_pools = []
-        for pool in all_pools:
-            if np.any(data[pool] < 0):
-                negative_pools.append(pool)
-
-        if negative_pools:
-            to_raise = InitialisationError(
-                f"Negative pool sizes found in: {', '.join(negative_pools)}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Check that lignin proportions are between 0 and 1
-        lignin_proportions = [
-            "lignin_above_structural",
-            "lignin_woody",
-            "lignin_below_structural",
-        ]
-        bad_proportions = []
-        for lignin_prop in lignin_proportions:
-            if np.any(data[lignin_prop] < 0) or np.any(data[lignin_prop] > 1):
-                bad_proportions.append(lignin_prop)
-
-        if bad_proportions:
-            to_raise = InitialisationError(
-                "Lignin proportions not between 0 and 1 found in: "
-                f"{', '.join(bad_proportions)}",
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Check that nutrient ratios are not negative
-        nutrient_ratios = [
-            "c_n_ratio_above_metabolic",
-            "c_n_ratio_above_structural",
-            "c_n_ratio_woody",
-            "c_n_ratio_below_metabolic",
-            "c_n_ratio_below_structural",
-            "c_p_ratio_above_metabolic",
-            "c_p_ratio_above_structural",
-            "c_p_ratio_woody",
-            "c_p_ratio_below_metabolic",
-            "c_p_ratio_below_structural",
-        ]
-        negative_ratios = []
-        for ratio in nutrient_ratios:
-            if np.any(data[ratio] < 0):
-                negative_ratios.append(ratio)
-
-        if negative_ratios:
-            to_raise = InitialisationError(
-                f"Negative nutrient ratios found in: {', '.join(negative_ratios)}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        self.litter_chemistry = LitterChemistry(data, constants=model_constants)
-        """Litter chemistry object for tracking of litter pool chemistries."""
-
-        self.model_constants = model_constants
-        """Set of constants for the litter model."""
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -269,7 +190,92 @@ class LitterModel(
         )
 
     def setup(self) -> None:
-        """Placeholder function to setup up the litter model."""
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(
+        self,
+        model_constants: LitterConsts = LitterConsts(),
+        **kwargs: Any,
+    ) -> None:
+        """Method to setup the litter model specific data variables.
+
+        Args:
+            model_constants: Set of constants for the litter model.
+            **kwargs: Further arguments to the setup method.
+        """
+
+        # Check that no litter pool is negative
+        all_pools = [
+            "litter_pool_above_metabolic",
+            "litter_pool_above_structural",
+            "litter_pool_woody",
+            "litter_pool_below_metabolic",
+            "litter_pool_below_structural",
+        ]
+        negative_pools = []
+        for pool in all_pools:
+            if np.any(self.data[pool] < 0):
+                negative_pools.append(pool)
+
+        if negative_pools:
+            to_raise = InitialisationError(
+                f"Negative pool sizes found in: {', '.join(negative_pools)}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check that lignin proportions are between 0 and 1
+        lignin_proportions = [
+            "lignin_above_structural",
+            "lignin_woody",
+            "lignin_below_structural",
+        ]
+        bad_proportions = []
+        for lignin_prop in lignin_proportions:
+            if np.any(self.data[lignin_prop] < 0) or np.any(self.data[lignin_prop] > 1):
+                bad_proportions.append(lignin_prop)
+
+        if bad_proportions:
+            to_raise = InitialisationError(
+                "Lignin proportions not between 0 and 1 found in: "
+                f"{', '.join(bad_proportions)}",
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # Check that nutrient ratios are not negative
+        nutrient_ratios = [
+            "c_n_ratio_above_metabolic",
+            "c_n_ratio_above_structural",
+            "c_n_ratio_woody",
+            "c_n_ratio_below_metabolic",
+            "c_n_ratio_below_structural",
+            "c_p_ratio_above_metabolic",
+            "c_p_ratio_above_structural",
+            "c_p_ratio_woody",
+            "c_p_ratio_below_metabolic",
+            "c_p_ratio_below_structural",
+        ]
+        negative_ratios = []
+        for ratio in nutrient_ratios:
+            if np.any(self.data[ratio] < 0):
+                negative_ratios.append(ratio)
+
+        if negative_ratios:
+            to_raise = InitialisationError(
+                f"Negative nutrient ratios found in: {', '.join(negative_ratios)}"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        self.litter_chemistry = LitterChemistry(self.data, constants=model_constants)
+        """Litter chemistry object for tracking of litter pool chemistries."""
+
+        self.model_constants = model_constants
+        """Set of constants for the litter model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
