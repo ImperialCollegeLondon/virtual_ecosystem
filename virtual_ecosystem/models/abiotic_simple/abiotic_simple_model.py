@@ -96,6 +96,7 @@ class AbioticSimpleModel(
         model_constants = load_constants(
             config, "abiotic_simple", "AbioticSimpleConsts"
         )
+        static = config["abiotic_simple"]["static"]
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
@@ -104,6 +105,7 @@ class AbioticSimpleModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 

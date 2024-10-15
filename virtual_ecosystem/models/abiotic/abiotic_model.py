@@ -178,8 +178,8 @@ class AbioticModel(
         return cls(
             data,
             core_components=core_components,
-            model_constants=model_constants,
             static=static,
+            model_constants=model_constants,
         )
 
     def setup(self) -> None:
