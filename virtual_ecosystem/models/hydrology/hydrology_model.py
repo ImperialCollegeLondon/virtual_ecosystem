@@ -159,6 +159,7 @@ class HydrologyModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "hydrology", "HydroConsts")
+        static = config["hydrology"]["static"]
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
@@ -167,6 +168,7 @@ class HydrologyModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             initial_soil_moisture=initial_soil_moisture,
             initial_groundwater_saturation=initial_groundwater_saturation,
             model_constants=model_constants,
