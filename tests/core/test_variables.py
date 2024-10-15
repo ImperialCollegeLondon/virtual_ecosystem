@@ -10,7 +10,7 @@ else:
     import tomli as tomllib  # noqa: F401
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def known_variables():
     """Fixture to reset the known variables after each test."""
     from virtual_ecosystem.core import variables
@@ -22,7 +22,7 @@ def known_variables():
     variables.KNOWN_VARIABLES.update(vars_bkp)
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def run_variables():
     """Fixture to reset the run variables after each test."""
     from virtual_ecosystem.core import variables
