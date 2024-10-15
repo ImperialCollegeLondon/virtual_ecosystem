@@ -169,6 +169,7 @@ class AbioticModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "abiotic", "AbioticConsts")
+        static = config["abiotic"]["static"]
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
@@ -178,6 +179,7 @@ class AbioticModel(
             data,
             core_components=core_components,
             model_constants=model_constants,
+            static=static,
         )
 
     def setup(self) -> None:
