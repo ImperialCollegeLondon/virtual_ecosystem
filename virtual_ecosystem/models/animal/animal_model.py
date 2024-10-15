@@ -276,7 +276,7 @@ class AnimalModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the animal model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Function to step the animal model through time.
 
         This method sets the order of operations for the animal module. In nature, these

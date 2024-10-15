@@ -319,7 +319,7 @@ class HydrologyModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         r"""Function to update the hydrology model.
 
         This function calculates the main hydrological components of the Virtual

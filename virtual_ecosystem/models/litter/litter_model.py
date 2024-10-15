@@ -274,7 +274,7 @@ class LitterModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Calculate changes in the litter pools and use them to update the pools.
 
         This function first calculates the decay rates for each litter pool, as well as

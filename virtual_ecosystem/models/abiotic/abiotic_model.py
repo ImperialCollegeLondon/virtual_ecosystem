@@ -277,7 +277,7 @@ class AbioticModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the abiotic model.
 
         The function updates the microclimate in the following order:
