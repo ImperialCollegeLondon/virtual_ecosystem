@@ -16,9 +16,6 @@ caught and handled by downstream functions so that all model configuration failu
 be reported as one.
 """  # noqa: D205
 
-# TODO - At the moment this model only receives nothing from the animal model. In
-# future, litter flows due to waste from herbivory need to be added.
-
 # FUTURE - Potentially make a more numerically accurate version of this model by using
 # differential equations at some point. In reality, litter chemistry should change
 # continuously with time not just at the final time step as in the current
@@ -49,10 +46,7 @@ from virtual_ecosystem.models.litter.carbon import (
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.input_partition import (
-    calculate_metabolic_proportions_of_input,
-    partion_plant_inputs_between_pools,
-)
+from virtual_ecosystem.models.litter.inputs import LitterInputs
 
 
 class LitterModel(
@@ -111,6 +105,14 @@ class LitterModel(
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "root_turnover_c_n_ratio",
+        "deadwood_c_p_ratio",
+        "leaf_turnover_c_p_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_turnover_c_p_ratio",
+        "herbivory_waste_leaf_carbon",
+        "herbivory_waste_leaf_nitrogen",
+        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
         "litter_consumption_woody",
@@ -321,45 +323,15 @@ class LitterModel(
             constants=self.model_constants,
         )
 
-        # Find the plant inputs to each of the litter pools
-        metabolic_splits = calculate_metabolic_proportions_of_input(
-            leaf_turnover_lignin_proportion=self.data[
-                "leaf_turnover_lignin"
-            ].to_numpy(),
-            reproduct_turnover_lignin_proportion=self.data[
-                "plant_reproductive_tissue_turnover_lignin"
-            ].to_numpy(),
-            root_turnover_lignin_proportion=self.data[
-                "root_turnover_lignin"
-            ].to_numpy(),
-            leaf_turnover_c_n_ratio=self.data["leaf_turnover_c_n_ratio"].to_numpy(),
-            reproduct_turnover_c_n_ratio=self.data[
-                "plant_reproductive_tissue_turnover_c_n_ratio"
-            ].to_numpy(),
-            root_turnover_c_n_ratio=self.data["root_turnover_c_n_ratio"].to_numpy(),
-            leaf_turnover_c_p_ratio=self.data["leaf_turnover_c_p_ratio"].to_numpy(),
-            reproduct_turnover_c_p_ratio=self.data[
-                "plant_reproductive_tissue_turnover_c_p_ratio"
-            ].to_numpy(),
-            root_turnover_c_p_ratio=self.data["root_turnover_c_p_ratio"].to_numpy(),
-            constants=self.model_constants,
-        )
-
-        plant_inputs = partion_plant_inputs_between_pools(
-            deadwood_production=self.data["deadwood_production"].to_numpy(),
-            leaf_turnover=self.data["leaf_turnover"].to_numpy(),
-            reproduct_turnover=self.data[
-                "plant_reproductive_tissue_turnover"
-            ].to_numpy(),
-            root_turnover=self.data["root_turnover"].to_numpy(),
-            metabolic_splits=metabolic_splits,
+        litter_inputs = LitterInputs.create_from_data(
+            self.data, constants=self.model_constants
         )
 
         # Calculate the updated pool masses
         updated_pools = calculate_updated_pools(
             post_consumption_pools=consumed_pools,
             decay_rates=decay_rates,
-            plant_inputs=plant_inputs,
+            litter_inputs=litter_inputs,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
@@ -367,9 +339,7 @@ class LitterModel(
 
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            plant_inputs=plant_inputs,
-            metabolic_splits=metabolic_splits,
-            updated_pools=updated_pools,
+            updated_pools=updated_pools, litter_inputs=litter_inputs
         )
 
         # Calculate the total mineralisation rates from the litter

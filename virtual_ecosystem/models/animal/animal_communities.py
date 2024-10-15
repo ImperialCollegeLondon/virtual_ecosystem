@@ -20,7 +20,11 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import DevelopmentType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool
+from virtual_ecosystem.models.animal.decay import (
+    CarcassPool,
+    ExcrementPool,
+    HerbivoryWaste,
+)
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
@@ -93,6 +97,8 @@ class AnimalCommunity:
             decomposed_phosphorus=0.0,
         )
         """A pool for excrement within the community."""
+        self.leaf_waste_pool: HerbivoryWaste = HerbivoryWaste(plant_matter_type="leaf")
+        """A pool for leaves removed by herbivory but not actually consumed."""
 
     @property
     def all_animal_cohorts(self) -> Iterable[AnimalCohort]:
@@ -291,6 +297,7 @@ class AnimalCommunity:
                 animal_list=prey_list,
                 excrement_pool=self.excrement_pool,
                 carcass_pool=self.carcass_pool,
+                herbivory_waste_pool=self.leaf_waste_pool,
             )
 
             # Check if the cohort has been depleted to zero individuals post-foraging

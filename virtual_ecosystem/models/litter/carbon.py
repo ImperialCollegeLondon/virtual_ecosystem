@@ -24,6 +24,7 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.env_factors import (
     calculate_environmental_factors,
 )
+from virtual_ecosystem.models.litter.inputs import LitterInputs
 
 
 def calculate_post_consumption_pools(
@@ -218,7 +219,7 @@ def calculate_total_C_mineralised(
 def calculate_updated_pools(
     post_consumption_pools: dict[str, NDArray[np.float32]],
     decay_rates: dict[str, NDArray[np.float32]],
-    plant_inputs: dict[str, NDArray[np.float32]],
+    litter_inputs: LitterInputs,
     update_interval: float,
 ) -> dict[str, NDArray[np.float32]]:
     """Calculate the updated mass of each litter pool.
@@ -231,8 +232,10 @@ def calculate_updated_pools(
             subtracted [kg C m^-2]
         decay_rates: Dictionary containing the rates of decay for all 5 litter pools
             [kg C m^-2 day^-1]
-        plant_inputs: Dictionary containing the amount of each litter type that is added
-            from the plant model in this time step [kg C m^-2]
+        litter_inputs: An LitterInputs instance containing the total input of each plant
+            biomass type, the proportion of the input that goes to the relevant
+            metabolic pool for each input type (expect deadwood) and the total input
+            into each litter pool.
         update_interval: Interval that the litter pools are being updated for [days]
         constants: Set of constants for the litter model
 
@@ -244,17 +247,19 @@ def calculate_updated_pools(
 
     # Net pool changes are found by combining input and decay rates, and then
     # multiplying by the update time step.
-    change_in_metabolic_above = plant_inputs["above_ground_metabolic"] - (
+    change_in_metabolic_above = litter_inputs.input_above_metabolic - (
         decay_rates["metabolic_above"] * update_interval
     )
-    change_in_structural_above = plant_inputs["above_ground_structural"] - (
+    change_in_structural_above = litter_inputs.input_above_structural - (
         decay_rates["structural_above"] * update_interval
     )
-    change_in_woody = plant_inputs["woody"] - (decay_rates["woody"] * update_interval)
-    change_in_metabolic_below = plant_inputs["below_ground_metabolic"] - (
+    change_in_woody = litter_inputs.input_woody - (
+        decay_rates["woody"] * update_interval
+    )
+    change_in_metabolic_below = litter_inputs.input_below_metabolic - (
         decay_rates["metabolic_below"] * update_interval
     )
-    change_in_structural_below = plant_inputs["below_ground_structural"] - (
+    change_in_structural_below = litter_inputs.input_below_structural - (
         decay_rates["structural_below"] * update_interval
     )
 

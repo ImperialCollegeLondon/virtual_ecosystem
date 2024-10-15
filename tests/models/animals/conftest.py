@@ -376,3 +376,11 @@ def litter_pool_instance(litter_data_instance):
         data=litter_data_instance,
         cell_area=10000,
     )
+
+
+@pytest.fixture
+def herbivory_waste_instance():
+    """Fixture for a herbivory waste class to use in tests."""
+    from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+    return HerbivoryWaste(plant_matter_type="leaf")

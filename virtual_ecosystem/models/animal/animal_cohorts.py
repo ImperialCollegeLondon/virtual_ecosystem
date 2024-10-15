@@ -17,9 +17,14 @@ import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.decay import CarcassPool, find_decay_consumed_split
+from virtual_ecosystem.models.animal.decay import (
+    CarcassPool,
+    HerbivoryWaste,
+    find_decay_consumed_split,
+)
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool, Resource
+from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
 
 
 class AnimalCohort:
@@ -401,7 +406,7 @@ class AnimalCohort:
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
 
     def calculate_potential_consumed_biomass(
-        self, target_plant: Resource, alpha: float
+        self, target_plant: PlantResources, alpha: float
     ) -> float:
         """Calculate potential consumed biomass for the target plant.
 
@@ -425,7 +430,7 @@ class AnimalCohort:
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
-        self, plant_list: Sequence[Resource], alpha: float
+        self, plant_list: Sequence[PlantResources], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
 
@@ -458,7 +463,9 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(self, plant_list: Sequence[Resource], target_plant: Resource) -> float:
+    def F_i_k(
+        self, plant_list: Sequence[PlantResources], target_plant: PlantResources
+    ) -> float:
         """Method to determine instantaneous herbivory rate on plant k.
 
         This method integrates the calculated search efficiency, potential consumed
@@ -661,7 +668,7 @@ class AnimalCohort:
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
-        self, plant_list: Sequence[Resource], target_plant: Resource
+        self, plant_list: Sequence[PlantResources], target_plant: PlantResources
     ) -> float:
         """Calculates the mass to be consumed from a plant resource by the herbivore.
 
@@ -688,18 +695,26 @@ class AnimalCohort:
         return consumed_mass
 
     def delta_mass_herbivory(
-        self, plant_list: Sequence[Resource], excrement_pool: DecayPool
+        self,
+        plant_list: Sequence[PlantResources],
+        excrement_pool: DecayPool,
+        plant_waste_pool: HerbivoryWaste,
     ) -> float:
         """This method handles mass assimilation from herbivory.
 
         TODO: update name
+        TODO: At present this just takes a single herbivory waste pool (for leaves),
+        this probably should change to be a list of waste pools once herbivory for other
+        plant tissues is added.
 
         Args:
             plant_list: A sequence of plant resources available for herbivory.
             excrement_pool: A pool representing the excrement in the grid cell.
+            plant_waste_pool: Waste pool for plant biomass (at this point just leaves)
+                that gets removed as part of herbivory but not actually consumed.
 
         Returns:
-            A float of the total plant mass consumed by the animal cohort in g.
+            The total plant mass consumed by the animal cohort in g.
 
         """
         total_consumed_mass = 0.0  # Initialize the total consumed mass
@@ -708,18 +723,22 @@ class AnimalCohort:
             # Calculate the mass to be consumed from this plant
             consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
             # Update the plant resource's state based on consumed mass
-            actual_consumed_mass = plant.get_eaten(consumed_mass, self, excrement_pool)
+            actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
+            plant_waste_pool.mass_current += excess_mass
 
+        # Process waste generated from predation, separate from carnivory b/c diff waste
+        self.defecate(excrement_pool, total_consumed_mass)
         return total_consumed_mass
 
     def forage_cohort(
         self,
-        plant_list: Sequence[Resource],
+        plant_list: Sequence[PlantResources],
         animal_list: Sequence[AnimalCohort],
         excrement_pool: DecayPool,
         carcass_pool: CarcassPool,
+        herbivory_waste_pool: HerbivoryWaste,
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 
@@ -728,6 +747,7 @@ class AnimalCohort:
             animal_list: A sequence of animal cohorts available for predation.
             excrement_pool: A pool representing the excrement in the grid cell.
             carcass_pool: A pool representing the carcasses in the grid cell.
+            herbivory_waste_pool: A pool representing waste caused by herbivory.
 
         Return:
             A float value of the net change in consumer mass due to foraging.
@@ -739,7 +759,7 @@ class AnimalCohort:
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
-                plant_list, excrement_pool
+                plant_list, excrement_pool, herbivory_waste_pool
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 

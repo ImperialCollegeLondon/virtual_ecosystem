@@ -164,20 +164,7 @@ subcanopy_layer_height = 1.5
 initial_soil_moisture = 0.5
 initial_groundwater_saturation = 0.9
 
-[hydrology.depends]
-init = [
-    "plants",
-]
-update = [
-    "plants",
-    "abiotic_simple",
-]
-
-[abiotic_simple.depends]
-init = [
-    "plants",
-]
-update = []
+[abiotic_simple]
 
 [[animal.functional_groups]]
 name = "carnivorous_bird"
@@ -283,36 +270,9 @@ excretion_type = "uricotelic"
 birth_mass = 0.0005
 adult_mass = 0.005
 
-[animal.depends]
-init = []
-update = []
-
-[litter.depends]
-update = [
-    "hydrology",
-    "abiotic_simple",
-]
-init = []
-
-[soil.depends]
-init = [
-    "hydrology",
-    "abiotic_simple",
-]
-update = [
-    "hydrology",
-    "abiotic_simple",
-]
-
 [plants]
 a_plant_integer = 12
 ftypes = [
     { pft_name = "shrub", max_height = 1.0 },
     { pft_name = "broadleaf", max_height = 50.0 },
-]
-
-[plants.depends]
-init = []
-update = [
-    "abiotic_simple",
 ]
