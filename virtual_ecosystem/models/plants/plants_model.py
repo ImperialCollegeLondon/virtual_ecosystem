@@ -142,42 +142,6 @@ class PlantsModel(
     #        initialisation  data, but the issue here is that the length of this is
     #        variable.
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        flora: Flora,
-        model_constants: PlantsConsts = PlantsConsts(),
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        # Save the class attributes
-        self.flora = flora
-        """A flora containing the plant functional types used in the plants model."""
-        self.model_constants = model_constants
-        """Set of constants for the plants model"""
-        self.communities = PlantCommunities(data, self.flora)
-        """Initialise the plant communities from the data object."""
-
-        # Initialise and then update the canopy layers.
-        # TODO - this initialisation step may move somewhere else at some point.
-        self.data = initialise_canopy_layers(
-            data=data,
-            layer_structure=self.layer_structure,
-        )
-        """A reference to the global data object."""
-
-        # This is widely used internally so store it as an attribute.
-        self._canopy_layer_indices = self.layer_structure.index_canopy
-        """The indices of the canopy layers within wider vertical profile"""
-
-        # Run the canopy initialisation - update the canopy structure from the initial
-        # cohort data and then initialise the irradiance using the first observation for
-        # PPFD.
-        self.update_canopy_layers()
-        self.set_canopy_absorption(time_index=0)
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -217,7 +181,51 @@ class PlantsModel(
         return inst
 
     def setup(self) -> None:
-        """Placeholder function to set up the plants model."""
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(
+        self,
+        flora: Flora,
+        model_constants: PlantsConsts = PlantsConsts(),
+        **kwargs: Any,
+    ) -> None:
+        """Placeholder function to set up the plants model.
+
+        Args:
+            flora: A flora containing the plant functional types used in the plants
+                model.
+            model_constants: Set of constants for the plants model.
+            **kwargs: Further arguments to the setup method.
+        """
+
+        # Save the class attributes
+        self.flora = flora
+        """A flora containing the plant functional types used in the plants model."""
+        self.model_constants = model_constants
+        """Set of constants for the plants model"""
+        self.communities = PlantCommunities(self.data, self.flora)
+        """Initialise the plant communities from the data object."""
+
+        # Initialise and then update the canopy layers.
+        # TODO - this initialisation step may move somewhere else at some point.
+        self.data = initialise_canopy_layers(
+            data=self.data,
+            layer_structure=self.layer_structure,
+        )
+        """A reference to the global data object."""
+
+        # This is widely used internally so store it as an attribute.
+        self._canopy_layer_indices = self.layer_structure.index_canopy
+        """The indices of the canopy layers within wider vertical profile"""
+
+        # Run the canopy initialisation - update the canopy structure from the initial
+        # cohort data and then initialise the irradiance using the first observation for
+        # PPFD.
+        self.update_canopy_layers()
+        self.set_canopy_absorption(time_index=0)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
