@@ -9,7 +9,7 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check
+from tests.conftest import log_check, patch_bypass_setup, patch_run_update
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 REQUIRED_INIT_VAR_CHECKS = (
@@ -50,14 +50,9 @@ def test_abiotic_model_initialization(
     from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     # Initialize model
-    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch(
-            f"{object_to_patch}._run_update_due_to_static_configuration"
-        ) as mock_update,
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic") as mock_update,
+        patch_bypass_setup("abiotic") as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
@@ -202,12 +197,8 @@ def test_generate_abiotic_model(
     expected_constants = AbioticConsts(drag_coefficient=drag_coeff)
     object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch(
-            f"{object_to_patch}._run_update_due_to_static_configuration"
-        ) as mock_update,
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic") as mock_update,
+        patch_bypass_setup("abiotic") as mock_bypass_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
         mock_bypass_setup.return_value = False
@@ -269,12 +260,9 @@ def test_generate_abiotic_model_bounds_error(
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
-    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic"),
+        patch_bypass_setup("abiotic") as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:
@@ -296,12 +284,9 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic"),
+        patch_bypass_setup("abiotic") as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
@@ -377,14 +362,9 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch(
-            f"{object_to_patch}._run_update_due_to_static_configuration"
-        ) as mock_update,
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic") as mock_update,
+        patch_bypass_setup("abiotic") as mock_bypass_setup,
     ):
         mock_update.return_value = False
         mock_bypass_setup.return_value = False

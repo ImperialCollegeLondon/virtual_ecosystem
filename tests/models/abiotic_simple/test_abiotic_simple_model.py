@@ -9,7 +9,7 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check
+from tests.conftest import log_check, patch_bypass_setup, patch_run_update
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Global set of messages from model required var checks
@@ -45,15 +45,9 @@ def test_abiotic_simple_model_initialization(
         AbioticSimpleConsts,
     )
 
-    object_to_patch = (
-        "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
-        ".AbioticSimpleModel"
-    )
     with (
-        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic_simple"),
+        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:
@@ -171,10 +165,8 @@ def test_generate_abiotic_simple_model(
         ".AbioticSimpleModel"
     )
     with (
-        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic_simple"),
+        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
         mock_bypass_setup.return_value = False
@@ -202,15 +194,9 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    object_to_patch = (
-        "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
-        ".AbioticSimpleModel"
-    )
     with (
-        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
-        patch(
-            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
-        ) as mock_bypass_setup,
+        patch_run_update("abiotic_simple"),
+        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticSimpleModel(
