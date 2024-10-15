@@ -112,6 +112,7 @@ class SoilModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
+        static = config["soil"]["static"]
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
@@ -121,6 +122,7 @@ class SoilModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 
