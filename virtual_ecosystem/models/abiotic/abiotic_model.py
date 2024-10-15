@@ -188,6 +188,10 @@ class AbioticModel(
         corresponding layers and calculates the reference vapour pressure deficit for
         all time steps of the simulation. All variables are added directly to the
         self.data object.
+
+        Args:
+            model_constants: Set of constants for the abiotic model.
+            **kwargs: Further arguments to the setup method.
         """
 
         self.model_constants = model_constants

@@ -71,22 +71,6 @@ class AbioticSimpleModel(
         model_constants: Set of constants for the abiotic_simple model.
     """
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        model_constants: AbioticSimpleConsts = AbioticSimpleConsts(),
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        self.model_constants = model_constants
-        """Set of constants for the abiotic simple model"""
-        self.bounds = AbioticSimpleBounds()
-        """Upper and lower bounds for abiotic variables."""
-
-        self._setup()
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -124,13 +108,22 @@ class AbioticSimpleModel(
         TODO: Remove when the base model is updated.
         """
 
-    def _setup(self) -> None:
+    def _setup(self, model_constants: AbioticSimpleConsts, **kwargs) -> None:
         """Function to set up the abiotic simple model.
 
         This function initializes soil temperature for all soil layers and calculates
         the reference vapour pressure deficit for all time steps. Both variables are
         added directly to the self.data object.
+
+        Args:
+            model_constants: Set of constants for the abiotic simple model.
+            **kwargs: Further arguments to the setup method.
         """
+        self.model_constants = model_constants
+        """Set of constants for the abiotic simple model"""
+
+        self.bounds = AbioticSimpleBounds()
+        """Upper and lower bounds for abiotic variables."""
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
