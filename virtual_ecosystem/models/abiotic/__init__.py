@@ -16,6 +16,9 @@ Each of the abiotic sub-modules has its own API reference page:
   of general functions that are shared across submodules in the
   :mod:`~virtual_ecosystem.models.abiotic` model.
 
+* The :mod:`~virtual_ecosystem.models.abiotic.radiation` submodule calculates the direct
+  and diffuse radiation balance of the Virtual Ecosystem.
+
 * The :mod:`~virtual_ecosystem.models.abiotic.wind` submodule calculates the
   above- and within-canopy wind profiles for the Virtual Ecosystem. These profiles will
   determine the exchange of heat, water, and :math:`\ce{CO_{2}}` between soil and
