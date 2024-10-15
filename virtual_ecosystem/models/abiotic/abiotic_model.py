@@ -146,6 +146,11 @@ class AbioticModel(
         model_constants: Set of constants for the abiotic model.
     """
 
+    model_constants: AbioticConsts
+    """Set of constants for the abiotic model."""
+    simple_constants: AbioticSimpleConsts
+    """Set of constants for simple abiotic model."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -195,10 +200,7 @@ class AbioticModel(
         """
 
         self.model_constants = model_constants
-        """Set of constants for the abiotic model."""
-
         self.simple_constants = AbioticSimpleConsts()
-        """Set of constants for simple abiotic model."""  # TODO metaconstants
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
