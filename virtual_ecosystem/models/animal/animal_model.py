@@ -184,6 +184,7 @@ class AnimalModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "animal", "AnimalConsts")
+        static = config["animal"]["static"]
 
         # Load functional groups
         functional_groups = [
@@ -199,6 +200,7 @@ class AnimalModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             functional_groups=functional_groups,
             model_constants=model_constants,
         )
