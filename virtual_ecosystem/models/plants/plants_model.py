@@ -159,6 +159,7 @@ class PlantsModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "plants", "PlantsConsts")
+        static = config["plants"]["static"]
 
         # Generate the flora
         flora = Flora.from_config(config=config)
@@ -168,6 +169,7 @@ class PlantsModel(
             inst = cls(
                 data=data,
                 core_components=core_components,
+                static=static,
                 flora=flora,
                 model_constants=model_constants,
             )
