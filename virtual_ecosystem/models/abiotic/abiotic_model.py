@@ -146,11 +146,6 @@ class AbioticModel(
         model_constants: Set of constants for the abiotic model.
     """
 
-    model_constants: AbioticConsts
-    """Set of constants for the abiotic model."""
-    simple_constants: AbioticSimpleConsts
-    """Set of constants for simple abiotic model."""
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -188,7 +183,9 @@ class AbioticModel(
         TODO: Remove when the base model is updated.
         """
 
-    def _setup(self, model_constants: AbioticConsts, **kwargs) -> None:
+    def _setup(
+        self, model_constants: AbioticConsts = AbioticConsts(), **kwargs
+    ) -> None:
         """Function to set up the abiotic model.
 
         This function initializes soil temperature and canopy temperature for all
@@ -201,8 +198,10 @@ class AbioticModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        self.model_constants = model_constants
-        self.simple_constants = AbioticSimpleConsts()
+        self.model_constants: AbioticConsts = model_constants
+        """Set of constants for the abiotic model."""
+        self.simple_constants: AbioticSimpleConsts = AbioticSimpleConsts()
+        """Set of constants for simple abiotic model."""
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()

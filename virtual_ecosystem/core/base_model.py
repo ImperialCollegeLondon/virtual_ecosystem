@@ -345,7 +345,6 @@ class BaseModel(ABC):
     def _setup(self, *args: Any, **kwargs: Any) -> None:
         """Function to setup the model during initialisation."""
 
-    @abstractmethod
     def setup(self) -> None:
         """Function to use input data to set up the model.
 

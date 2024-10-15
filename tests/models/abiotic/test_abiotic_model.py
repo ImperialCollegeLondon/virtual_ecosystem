@@ -50,11 +50,23 @@ def test_abiotic_model_initialization(
     from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     # Initialize model
-    model = AbioticModel(
-        dummy_climate_data,
-        core_components=fixture_core_components,
-        model_constants=AbioticConsts(),
-    )
+    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
+    with (
+        patch(
+            f"{object_to_patch}._run_update_due_to_static_configuration"
+        ) as mock_update,
+        patch(
+            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
+        ) as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        model = AbioticModel(
+            dummy_climate_data,
+            core_components=fixture_core_components,
+            model_constants=AbioticConsts(),
+        )
+        mock_update.assert_called_once()
+        mock_bypass_setup.assert_called_once()
 
     # In cases where it passes then checks that the object has the right properties
     assert isinstance(model, BaseModel)
@@ -179,6 +191,7 @@ def test_generate_abiotic_model(
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
+    from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -186,17 +199,28 @@ def test_generate_abiotic_model(
     caplog.clear()
 
     # We patch the _setup step as it is tested separately
-    module_name = "virtual_ecosystem.models.abiotic.abiotic_model"
-    with patch(f"{module_name}.AbioticModel._setup") as mock_setup:
+    expected_constants = AbioticConsts(drag_coefficient=drag_coeff)
+    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
+    with (
+        patch(
+            f"{object_to_patch}._run_update_due_to_static_configuration"
+        ) as mock_update,
+        patch(
+            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
+        ) as mock_bypass_setup,
+        patch(f"{object_to_patch}._setup") as mock_setup,
+    ):
+        mock_bypass_setup.return_value = False
         # Check whether model is initialised (or not) as expected
         with raises:
-            model = AbioticModel.from_config(
+            AbioticModel.from_config(
                 data=dummy_climate_data,
                 core_components=core_components,
                 config=config,
             )
-            assert model.model_constants.drag_coefficient == drag_coeff
-            mock_setup.assert_called_once()
+            mock_setup.assert_called_once_with(model_constants=expected_constants)
+            mock_bypass_setup.assert_called_once()
+            mock_update.assert_called_once()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -245,12 +269,20 @@ def test_generate_abiotic_model_bounds_error(
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
-    with raises:
-        _ = AbioticModel.from_config(
-            data=dummy_climate_data,
-            core_components=core_components,
-            config=config,
-        )
+    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
+    with (
+        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
+        patch(
+            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
+        ) as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with raises:
+            _ = AbioticModel.from_config(
+                data=dummy_climate_data,
+                core_components=core_components,
+                config=config,
+            )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -264,10 +296,18 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    model = AbioticModel(
-        data=dummy_climate_data,
-        core_components=fixture_core_components,
-    )
+    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
+    with (
+        patch(f"{object_to_patch}._run_update_due_to_static_configuration"),
+        patch(
+            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
+        ) as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        model = AbioticModel(
+            data=dummy_climate_data,
+            core_components=fixture_core_components,
+        )
 
     # check all variables are in data object
     for var in [
@@ -337,12 +377,23 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    model = AbioticModel(
-        data=dummy_climate_data,
-        core_components=fixture_core_components,
-    )
+    object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
+    with (
+        patch(
+            f"{object_to_patch}._run_update_due_to_static_configuration"
+        ) as mock_update,
+        patch(
+            f"{object_to_patch}._bypass_setup_due_to_static_configuration"
+        ) as mock_bypass_setup,
+    ):
+        mock_update.return_value = False
+        mock_bypass_setup.return_value = False
+        model = AbioticModel(
+            data=dummy_climate_data,
+            core_components=fixture_core_components,
+        )
 
-    model.update(time_index=0)
+        model.update(time_index=0)
 
     # Check that updated vars are in data object
     for var in [
