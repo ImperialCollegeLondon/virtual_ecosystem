@@ -80,6 +80,10 @@ def dummy_litter_data(fixture_core_components):
         "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
         "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
         "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
+        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
+        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
+        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
+        "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
     for var, vals in pool_values.items():
@@ -126,59 +130,6 @@ def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_poo
 
 
 @pytest.fixture
-def metabolic_splits(dummy_litter_data):
-    """Metabolic splits for the various plant inputs."""
-
-    from virtual_ecosystem.models.litter.input_partition import (
-        calculate_metabolic_proportions_of_input,
-    )
-
-    metabolic_splits = calculate_metabolic_proportions_of_input(
-        leaf_turnover_lignin_proportion=dummy_litter_data[
-            "leaf_turnover_lignin"
-        ].to_numpy(),
-        reproduct_turnover_lignin_proportion=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_lignin"
-        ].to_numpy(),
-        root_turnover_lignin_proportion=dummy_litter_data[
-            "root_turnover_lignin"
-        ].to_numpy(),
-        leaf_turnover_c_n_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"].to_numpy(),
-        reproduct_turnover_c_n_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_n_ratio"
-        ].to_numpy(),
-        root_turnover_c_n_ratio=dummy_litter_data["root_turnover_c_n_ratio"].to_numpy(),
-        leaf_turnover_c_p_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"].to_numpy(),
-        reproduct_turnover_c_p_ratio=dummy_litter_data[
-            "plant_reproductive_tissue_turnover_c_p_ratio"
-        ].to_numpy(),
-        root_turnover_c_p_ratio=dummy_litter_data["root_turnover_c_p_ratio"].to_numpy(),
-        constants=LitterConsts,
-    )
-
-    return metabolic_splits
-
-
-@pytest.fixture
-def plant_inputs(dummy_litter_data, metabolic_splits):
-    """Plant inputs to each of the litter pools."""
-
-    from virtual_ecosystem.models.litter.input_partition import (
-        partion_plant_inputs_between_pools,
-    )
-
-    plant_inputs = partion_plant_inputs_between_pools(
-        deadwood_production=dummy_litter_data["deadwood_production"],
-        leaf_turnover=dummy_litter_data["leaf_turnover"],
-        reproduct_turnover=dummy_litter_data["plant_reproductive_tissue_turnover"],
-        root_turnover=dummy_litter_data["root_turnover"],
-        metabolic_splits=metabolic_splits,
-    )
-
-    return plant_inputs
-
-
-@pytest.fixture
 def litter_chemistry(dummy_litter_data):
     """LitterChemistry object to be use throughout testing."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
@@ -189,23 +140,28 @@ def litter_chemistry(dummy_litter_data):
 
 
 @pytest.fixture
-def input_lignin(dummy_litter_data, plant_inputs, litter_chemistry):
+def input_lignin(litter_inputs):
     """Lignin proportion of the relevant input flows."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_litter_input_lignin_concentrations,
+    )
 
-    input_lignin = litter_chemistry.calculate_litter_input_lignin_concentrations(
-        plant_input_below_struct=plant_inputs["below_ground_structural"],
-        plant_input_above_struct=plant_inputs["above_ground_structural"],
+    input_lignin = calculate_litter_input_lignin_concentrations(
+        litter_inputs=litter_inputs
     )
 
     return input_lignin
 
 
 @pytest.fixture
-def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
+def input_c_n_ratios(litter_inputs):
     """Carbon:nitrogen ratio of each input flow."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_litter_input_nitrogen_ratios,
+    )
 
-    input_c_n_ratios = litter_chemistry.calculate_litter_input_nitrogen_ratios(
-        metabolic_splits=metabolic_splits,
+    input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+        litter_inputs=litter_inputs,
         struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
     )
 
@@ -213,15 +169,33 @@ def input_c_n_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
 
 
 @pytest.fixture
-def input_c_p_ratios(dummy_litter_data, metabolic_splits, litter_chemistry):
+def input_c_p_ratios(litter_inputs):
     """Carbon:nitrogen ratio of each input flow."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_litter_input_phosphorus_ratios,
+    )
 
-    input_c_p_ratios = litter_chemistry.calculate_litter_input_phosphorus_ratios(
-        metabolic_splits=metabolic_splits,
+    input_c_p_ratios = calculate_litter_input_phosphorus_ratios(
+        litter_inputs=litter_inputs,
         struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
     )
 
     return input_c_p_ratios
+
+
+@pytest.fixture
+def metabolic_splits(total_litter_input):
+    """Metabolic splits for the various plant inputs."""
+    from virtual_ecosystem.models.litter.inputs import (
+        calculate_metabolic_proportions_of_input,
+    )
+
+    metabolic_splits = calculate_metabolic_proportions_of_input(
+        total_input=total_litter_input,
+        constants=LitterConsts,
+    )
+
+    return metabolic_splits
 
 
 @pytest.fixture
@@ -254,15 +228,39 @@ def post_consumption_pools(dummy_litter_data):
 
 
 @pytest.fixture
-def updated_pools(dummy_litter_data, decay_rates, plant_inputs, post_consumption_pools):
+def total_litter_input(dummy_litter_data):
+    """Total input mass a chemistry for each plant biomass type."""
+    from virtual_ecosystem.models.litter.inputs import combine_input_sources
+
+    total_litter_input = combine_input_sources(dummy_litter_data)
+
+    return total_litter_input
+
+
+@pytest.fixture
+def updated_pools(
+    dummy_litter_data, decay_rates, post_consumption_pools, litter_inputs
+):
     """Updated carbon mass of each pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
     updated_pools = calculate_updated_pools(
         post_consumption_pools=post_consumption_pools,
         decay_rates=decay_rates,
-        plant_inputs=plant_inputs,
+        litter_inputs=litter_inputs,
         update_interval=2.0,
     )
 
     return updated_pools
+
+
+@pytest.fixture
+def litter_inputs(dummy_litter_data):
+    """Complete set of details for inputs to the litter model."""
+    from virtual_ecosystem.models.litter.inputs import LitterInputs
+
+    litter_inputs = LitterInputs.create_from_data(
+        data=dummy_litter_data, constants=LitterConsts
+    )
+
+    return litter_inputs

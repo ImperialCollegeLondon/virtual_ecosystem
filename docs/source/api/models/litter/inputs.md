@@ -14,10 +14,10 @@ kernelspec:
   name: python3
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.models.litter.input_partition` module
+# API documentation for the {mod}`~virtual_ecosystem.models.litter.inputs` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.litter.input_partition
+.. automodule:: virtual_ecosystem.models.litter.inputs
     :autosummary:
     :members:
 ```
