@@ -109,34 +109,12 @@ class AnimalModel(
         model_constants: Set of constants for the animal model.
     """
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        functional_groups: list[FunctionalGroup],
-        model_constants: AnimalConsts = AnimalConsts(),
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
-        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
-        """Convert pint update_interval to timedelta64 once during initialization."""
-
-        self._setup_grid_neighbors()
-        """Determine grid square adjacency."""
-
-        self.functional_groups = functional_groups
-        """List of functional groups in the model."""
-        self.communities: dict[int, AnimalCommunity] = {}
-        """Set empty dict for populating with communities."""
-        self.model_constants = model_constants
-        """Animal constants."""
-        self._initialize_communities(functional_groups)
-        """Create the dictionary of animal communities and populate each community with
-        animal cohorts."""
-        self.setup()
-        """Initialize the data variables used by the animal model."""
+    communities: dict[int, AnimalCommunity]
+    """Set empty dict for populating with communities."""
+    functional_groups: list[FunctionalGroup]
+    """List of functional groups in the model."""
+    model_constants: AnimalConsts
+    """Animal constants."""
 
     def _setup_grid_neighbors(self) -> None:
         """Set up grid neighbors for the model.
@@ -225,12 +203,35 @@ class AnimalModel(
             model_constants=model_constants,
         )
 
-    def setup(self) -> None:
+    def _setup(
+        self,
+        functional_groups: list[FunctionalGroup],
+        model_constants: AnimalConsts = AnimalConsts(),
+        **kwargs: Any,
+    ) -> None:
         """Method to setup the animal model specific data variables.
 
-        TODO: rename this as something else because you've used it crazy
+        This method initializes the data variables required by the animal model.
 
+        Args:
+            functional_groups: The list of animal functional groups present in the
+                simulation.
+            model_constants: Set of constants for the animal model.
+            **kwargs: Further arguments to the setup method.
         """
+        days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
+        self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
+        """Convert pint update_interval to timedelta64 once during initialization."""
+
+        self._setup_grid_neighbors()
+        """Determine grid square adjacency."""
+        self.functional_groups = functional_groups
+        """List of functional groups in the model."""
+        self.model_constants = model_constants
+        """Animal constants."""
+        self._initialize_communities(functional_groups)
+        """Create the dictionary of animal communities and populate each community with
+        animal cohorts."""
 
         # animal respiration data variable
         # the array should have one value for each animal community
