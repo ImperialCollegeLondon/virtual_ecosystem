@@ -2131,23 +2131,23 @@ tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
 name = "mdformat-frontmatter"
-version = "0.4.1"
+version = "2.0.8"
 description = "An mdformat plugin for parsing / ignoring frontmatter."
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 files = [
-    {file = "mdformat_frontmatter-0.4.1-py3-none-any.whl", hash = "sha256:9c13f6b7a53de7b401af3c95e66735237545bd174e6619392153b296135ffd49"},
-    {file = "mdformat_frontmatter-0.4.1.tar.gz", hash = "sha256:15d3eed1543849d4fe72b1f75b8dffd8b49750c5149186591a1b9617178e2aa2"},
+    {file = "mdformat_frontmatter-2.0.8-py3-none-any.whl", hash = "sha256:577396695af96ad66dff1ff781284ff3764a10be3ab8659f2ef842ab42264ebb"},
+    {file = "mdformat_frontmatter-2.0.8.tar.gz", hash = "sha256:c11190ae3f9c91ada78fbd820f5b221631b520484e0b644715aa0f6ed7f097ed"},
 ]
 
 [package.dependencies]
-mdformat = ">=0.7.0,<0.8.0"
-mdit-py-plugins = "*"
+mdformat = ">=0.7.16,<0.8.0"
+mdit-py-plugins = ">=0.4.0"
 "ruamel.yaml" = "*"
 
 [package.extras]
-dev = ["pre-commit"]
-test = ["coverage", "pytest (>=6.0,<7.0)", "pytest-cov"]
+dev = ["flit (>=3.9)", "pre-commit", "python-semantic-release (>=8.3.0)"]
+test = ["coverage", "pytest (>=7.3)", "pytest-cov"]
 
 [[package]]
 name = "mdformat-tables"
@@ -4555,4 +4555,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "56801ba16e70f81857be3c85142025364993607d94a8461112aea7e7668f6d9c"
+content-hash = "1d8a04b2c4c21608fc5359b45d56ee1f070d44405a9147457e6dfc424bcda8bb"
