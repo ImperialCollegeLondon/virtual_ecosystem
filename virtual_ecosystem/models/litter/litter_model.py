@@ -178,6 +178,7 @@ class LitterModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "litter", "LitterConsts")
+        static = config["litter"]["static"]
 
         LOGGER.info(
             "Information required to initialise the litter model successfully "
@@ -186,6 +187,7 @@ class LitterModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 
