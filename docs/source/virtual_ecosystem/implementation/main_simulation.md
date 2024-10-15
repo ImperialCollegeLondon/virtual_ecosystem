@@ -13,14 +13,16 @@ science model. These are now used to initialise each requested model using the
 for each model. This method checks that the configuration is valid for the science
 model.
 
-## Model setup
+## Model intialisation
 
-Some models require an additional setup step to calculate values for internal variables
-from the initial loaded data or to set up further structures within the model, such as
-representations of plant or animal communities. Each model will run the
-{meth}`~virtual_ecosystem.core.base_model.BaseModel.setup` method defined for the
-specific model. In simple science models, this method may not actually need to do
-anything.
+When a model instance is created, the
+{meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__` runs. This model
+initialisation is responsible for any validation of initial model inputs, the
+calculattion of values for internal variables from the initial loaded data and setting
+up further structures within the model, such as representations of plant or animal
+communities. Each model will run the
+{meth}`~virtual_ecosystem.core.base_model.BaseModel.__init__` method defined for the
+specific model.
 
 ## Model spinup
 
@@ -38,7 +40,7 @@ model is run as part of the simulation process described below.
 ## Simulation process
 
 Now that the simulation core and science models have been configure and initialised,
-along with any setup or spinup steps, the simulation itself starts.
+along with any spinup steps, the simulation itself starts.
 
 ### Saving the initial state
 

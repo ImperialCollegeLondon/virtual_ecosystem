@@ -146,15 +146,11 @@ def ve_run(
     if progress:
         print(f"* Models initialised: {', '.join(init_sequence.keys())}")
 
-    LOGGER.info("All models successfully intialised.")
+    LOGGER.info("All models successfully initialised.")
 
-    # Setup all models (those with placeholder setup processes won't change at all)
-    for model in models_init.values():
-        model.setup()
-
-    LOGGER.info("All models successfully set up.")
-
-    # TODO - A model spin up might be needed here in future
+    # TODO - A model spin up might be needed here in future. Maybe think about reporting
+    # here as placeholder spinups might be confusing? Can we have an optional ABC
+    # method, where we could test if it is defined.
 
     # Create output folder if it does not exist
     out_path = Path(config["core"]["data_output_options"]["out_path"])
