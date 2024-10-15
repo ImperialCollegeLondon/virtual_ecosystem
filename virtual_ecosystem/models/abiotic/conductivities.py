@@ -7,8 +7,6 @@ from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
-from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def interpolate_along_heights(
@@ -370,135 +368,135 @@ def calculate_leaf_vapour_conductivity(
     return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
 
 
-def calculate_current_conductivities(
-    data: Data,
-    characteristic_dimension_leaf: float | NDArray[np.float32],
-    von_karmans_constant: float,
-    abiotic_constants: AbioticConsts,
-) -> dict[str, NDArray[np.float32]]:
-    """Calculate conductivities based on current reference data.
+# def calculate_current_conductivities(
+#     data: Data,
+#     characteristic_dimension_leaf: float | NDArray[np.float32],
+#     von_karmans_constant: float,
+#     abiotic_constants: AbioticConsts,
+# ) -> dict[str, NDArray[np.float32]]:
+#     """Calculate conductivities based on current reference data.
 
-    This function calculates the conductivites for heat and vapour between air layers
-    and the leaf and surrounding atmosphere for the current time step. The first value
-    on the vertical axis is 2m above the canopy, the second value corresponds to the top
-    of the canopy.
+#     This function calculates the conductivites for heat and vapour between air layers
+#     and the leaf and surrounding atmosphere for the current time step. The first value
+#   on the vertical axis is 2m above the canopy, the second value corresponds to the top
+#     of the canopy.
 
-    The data object must provide the following variables:
+#     The data object must provide the following variables:
 
-    * layer_heights: layer heights, [m]
-    * air_temperature, [C]
-    * canopy_temperature, [C]
-    * attenuation_coefficient: Wind attenuation coefficient, dimensionless
-    * mean_mixing_length: Mixing length for canopy air transport, [m]
-    * molar_density_air: Molar density of air, [mol m-3]
-    * relative_turbulence_intensity: Relative turbulence intensity, dimensionless
-    * wind_speed: wind speed, [m s-1]
-    * stomatal_conductance: Stomatal conductance, [mmol m-2 s-1]
-    * zero_displacement_height: Zero displacement height, [m]
-    * friction_velocity: Friction velocity
-    * diabatic_correction_heat: Diabatic correction for heat in canopy
+#     * layer_heights: layer heights, [m]
+#     * air_temperature, [C]
+#     * canopy_temperature, [C]
+#     * attenuation_coefficient: Wind attenuation coefficient, dimensionless
+#     * mean_mixing_length: Mixing length for canopy air transport, [m]
+#     * molar_density_air: Molar density of air, [mol m-3]
+#     * relative_turbulence_intensity: Relative turbulence intensity, dimensionless
+#     * wind_speed: wind speed, [m s-1]
+#     * stomatal_conductance: Stomatal conductance, [mmol m-2 s-1]
+#     * zero_displacement_height: Zero displacement height, [m]
+#     * friction_velocity: Friction velocity
+#     * diabatic_correction_heat: Diabatic correction for heat in canopy
 
-    Args:
-        data: The core data object.
-        characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
-            0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
-            value per grid cell, or a 3D-array with one value for each layer.
-        von_karmans_constant: Von Karman constant
-        abiotic_constants: set of abiotic constants
+#     Args:
+#         data: The core data object.
+#       characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
+#             0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
+#             value per grid cell, or a 3D-array with one value for each layer.
+#         von_karmans_constant: Von Karman constant
+#         abiotic_constants: set of abiotic constants
 
-    Returns:
-        dictionnary of conductivities, [mol m-2 s-1]
-    """
+#     Returns:
+#         dictionnary of conductivities, [mol m-2 s-1]
+#     """
 
-    output = {}
+#     output = {}
 
-    # Air heat conductivity, gt
-    air_heat_conductivity_above = calculate_air_heat_conductivity_above(
-        height_above_canopy=data["layer_heights"].isel(layers=0).to_numpy(),
-        zero_displacement_height=data["zero_displacement_height"].to_numpy(),
-        canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
-        friction_velocity=data["friction_velocity"].to_numpy(),
-        molar_density_air=data["molar_density_air"][0].to_numpy(),
-        diabatic_correction_heat=data["diabatic_correction_heat_canopy"].to_numpy(),
-        von_karmans_constant=von_karmans_constant,
-    )
-    current_air_heat_conductivity = []
-    for layer in np.arange(0, len(data["layer_heights"]) - 1):
-        result = calculate_air_heat_conductivity_canopy(
-            attenuation_coefficient=data["attenuation_coefficient"][layer].to_numpy(),
-            mean_mixing_length=data["mean_mixing_length"].to_numpy(),
-            molar_density_air=data["molar_density_air"][layer].to_numpy(),
-            upper_height=data["layer_heights"].isel(layers=layer).to_numpy(),
-            lower_height=data["layer_heights"].isel(layers=layer + 1).to_numpy(),
-            relative_turbulence_intensity=(
-                data["relative_turbulence_intensity"][layer].to_numpy()
-            ),
-            top_of_canopy_wind_speed=data["wind_speed"].isel(layers=1).to_numpy(),
-            diabatic_correction_momentum=(
-                data["diabatic_correction_momentum_canopy"].to_numpy()
-            ),
-            canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
-        )
-        current_air_heat_conductivity.append(result)
+#     # Air heat conductivity, gt
+#     air_heat_conductivity_above = calculate_air_heat_conductivity_above(
+#         height_above_canopy=data["layer_heights"].isel(layers=0).to_numpy(),
+#         zero_displacement_height=data["zero_displacement_height"].to_numpy(),
+#         canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
+#         friction_velocity=data["friction_velocity"].to_numpy(),
+#         molar_density_air=data["molar_density_air"][0].to_numpy(),
+#         diabatic_correction_heat=data["diabatic_correction_heat_canopy"].to_numpy(),
+#         von_karmans_constant=von_karmans_constant,
+#     )
+#     current_air_heat_conductivity = []
+#     for layer in np.arange(0, len(data["layer_heights"]) - 1):
+#         result = calculate_air_heat_conductivity_canopy(
+#             attenuation_coefficient=data["attenuation_coefficient"][layer].to_numpy(),
+#             mean_mixing_length=data["mean_mixing_length"].to_numpy(),
+#             molar_density_air=data["molar_density_air"][layer].to_numpy(),
+#             upper_height=data["layer_heights"].isel(layers=layer).to_numpy(),
+#             lower_height=data["layer_heights"].isel(layers=layer + 1).to_numpy(),
+#             relative_turbulence_intensity=(
+#                 data["relative_turbulence_intensity"][layer].to_numpy()
+#             ),
+#             top_of_canopy_wind_speed=data["wind_speed"].isel(layers=1).to_numpy(),
+#             diabatic_correction_momentum=(
+#                 data["diabatic_correction_momentum_canopy"].to_numpy()
+#             ),
+#             canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
+#         )
+#         current_air_heat_conductivity.append(result)
 
-    output["air_heat_conductivity"] = np.vstack(
-        [air_heat_conductivity_above, np.vstack(current_air_heat_conductivity)]
-    )
+#     output["air_heat_conductivity"] = np.vstack(
+#         [air_heat_conductivity_above, np.vstack(current_air_heat_conductivity)]
+#     )
 
-    # Air heat conductivity between layers and reference height
-    current_air_heat_conductivity_ref = []
-    for layer in np.arange(0, len(data["layer_heights"]) - 1):
-        result = calculate_air_heat_conductivity_canopy(
-            attenuation_coefficient=data["attenuation_coefficient"][layer].to_numpy(),
-            mean_mixing_length=data["mean_mixing_length"].to_numpy(),
-            molar_density_air=data["molar_density_air"][layer].to_numpy(),
-            upper_height=data["layer_heights"].isel(layers=0).to_numpy(),
-            lower_height=data["layer_heights"].isel(layers=layer + 1).to_numpy(),
-            relative_turbulence_intensity=(
-                data["relative_turbulence_intensity"][layer].to_numpy()
-            ),
-            top_of_canopy_wind_speed=data["wind_speed"].isel(layers=1).to_numpy(),
-            diabatic_correction_momentum=(
-                data["diabatic_correction_momentum_canopy"].to_numpy()
-            ),
-            canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
-        )
-        current_air_heat_conductivity_ref.append(result)
+#     # Air heat conductivity between layers and reference height
+#     current_air_heat_conductivity_ref = []
+#     for layer in np.arange(0, len(data["layer_heights"]) - 1):
+#         result = calculate_air_heat_conductivity_canopy(
+#             attenuation_coefficient=data["attenuation_coefficient"][layer].to_numpy(),
+#             mean_mixing_length=data["mean_mixing_length"].to_numpy(),
+#             molar_density_air=data["molar_density_air"][layer].to_numpy(),
+#             upper_height=data["layer_heights"].isel(layers=0).to_numpy(),
+#             lower_height=data["layer_heights"].isel(layers=layer + 1).to_numpy(),
+#             relative_turbulence_intensity=(
+#                 data["relative_turbulence_intensity"][layer].to_numpy()
+#             ),
+#             top_of_canopy_wind_speed=data["wind_speed"].isel(layers=1).to_numpy(),
+#             diabatic_correction_momentum=(
+#                 data["diabatic_correction_momentum_canopy"].to_numpy()
+#             ),
+#             canopy_height=data["layer_heights"].isel(layers=1).to_numpy(),
+#         )
+#         current_air_heat_conductivity_ref.append(result)
 
-    output["conductivity_from_ref_height"] = np.vstack(
-        [
-            np.repeat(np.nan, data.grid.n_cells),
-            np.vstack(current_air_heat_conductivity_ref),
-        ]
-    )
+#     output["conductivity_from_ref_height"] = np.vstack(
+#         [
+#             np.repeat(np.nan, data.grid.n_cells),
+#             np.vstack(current_air_heat_conductivity_ref),
+#         ]
+#     )
 
-    # Leaf air heat conductivity, gha
-    current_leaf_air_heat_conductivity = calculate_leaf_air_heat_conductivity(
-        temperature=data["air_temperature"].to_numpy(),
-        wind_speed=data["wind_speed"].to_numpy(),
-        characteristic_dimension_leaf=characteristic_dimension_leaf,
-        temperature_difference=(
-            data["canopy_temperature"] - data["air_temperature"]
-        ).to_numpy(),
-        molar_density_air=data["molar_density_air"].to_numpy(),
-        kinematic_viscosity_parameters=abiotic_constants.kinematic_viscosity_parameters,
-        thermal_diffusivity_parameters=abiotic_constants.thermal_diffusivity_parameters,
-        grashof_parameter=abiotic_constants.grashof_parameter,
-        forced_conductance_parameter=abiotic_constants.forced_conductance_parameter,
-        positive_free_conductance_parameter=(
-            abiotic_constants.positive_free_conductance_parameter
-        ),
-        negative_free_conductance_parameter=(
-            abiotic_constants.negative_free_conductance_parameter
-        ),
-    )
-    output["leaf_air_heat_conductivity"] = current_leaf_air_heat_conductivity
+#     # Leaf air heat conductivity, gha
+#     current_leaf_air_heat_conductivity = calculate_leaf_air_heat_conductivity(
+#         temperature=data["air_temperature"].to_numpy(),
+#         wind_speed=data["wind_speed"].to_numpy(),
+#         characteristic_dimension_leaf=characteristic_dimension_leaf,
+#         temperature_difference=(
+#             data["canopy_temperature"] - data["air_temperature"]
+#         ).to_numpy(),
+#         molar_density_air=data["molar_density_air"].to_numpy(),
+#       kinematic_viscosity_parameters=abiotic_constants.kinematic_viscosity_parameters,
+#       thermal_diffusivity_parameters=abiotic_constants.thermal_diffusivity_parameters,
+#         grashof_parameter=abiotic_constants.grashof_parameter,
+#         forced_conductance_parameter=abiotic_constants.forced_conductance_parameter,
+#         positive_free_conductance_parameter=(
+#             abiotic_constants.positive_free_conductance_parameter
+#         ),
+#         negative_free_conductance_parameter=(
+#             abiotic_constants.negative_free_conductance_parameter
+#         ),
+#     )
+#     output["leaf_air_heat_conductivity"] = current_leaf_air_heat_conductivity
 
-    # Leaf vapour conductivity, gv
-    current_leaf_vapour_conductivity = calculate_leaf_vapour_conductivity(
-        leaf_air_conductivity=current_leaf_air_heat_conductivity,
-        stomatal_conductance=data["stomatal_conductance"].to_numpy(),
-    )
-    output["leaf_vapour_conductivity"] = current_leaf_vapour_conductivity
+#     # Leaf vapour conductivity, gv
+#     current_leaf_vapour_conductivity = calculate_leaf_vapour_conductivity(
+#         leaf_air_conductivity=current_leaf_air_heat_conductivity,
+#         stomatal_conductance=data["stomatal_conductance"].to_numpy(),
+#     )
+#     output["leaf_vapour_conductivity"] = current_leaf_vapour_conductivity
 
-    return output
+#     return output

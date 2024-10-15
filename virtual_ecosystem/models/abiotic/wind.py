@@ -11,13 +11,9 @@ TODO change temperatures to Kelvin
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
-    calculate_molar_density_air,
-    calculate_specific_heat_air,
     find_last_valid_row,
 )
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def calculate_zero_plane_displacement(
@@ -566,247 +562,253 @@ def calculate_wind_canopy(
     return zero_displacement
 
 
-def calculate_wind_profile(
-    canopy_height: NDArray[np.float32],
-    wind_height_above: NDArray[np.float32],
-    wind_layer_heights: NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
-    sensible_heat_flux_topofcanopy: NDArray[np.float32],
-    wind_speed_ref: NDArray[np.float32],
-    wind_reference_height: float | NDArray[np.float32],
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
-) -> dict[str, NDArray[np.float32]]:
-    r"""Calculate wind speed above and below the canopy, [m s-1].
+# def calculate_wind_profile(
+#     canopy_height: NDArray[np.float32],
+#     wind_height_above: NDArray[np.float32],
+#     wind_layer_heights: NDArray[np.float32],
+#     leaf_area_index: NDArray[np.float32],
+#     air_temperature: NDArray[np.float32],
+#     atmospheric_pressure: NDArray[np.float32],
+#     sensible_heat_flux_topofcanopy: NDArray[np.float32],
+#     wind_speed_ref: NDArray[np.float32],
+#     wind_reference_height: float | NDArray[np.float32],
+#     abiotic_constants: AbioticConsts,
+#     core_constants: CoreConsts,
+# ) -> dict[str, NDArray[np.float32]]:
+#     r"""Calculate wind speed above and below the canopy, [m s-1].
 
-    The wind profile above the canopy is described as follows (based on
-    :cite:p:`campbell_introduction_1998` as implemented in
-    :cite:t:`maclean_microclimc_2021`):
+#     The wind profile above the canopy is described as follows (based on
+#     :cite:p:`campbell_introduction_1998` as implemented in
+#     :cite:t:`maclean_microclimc_2021`):
 
-    :math:`u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \Psi_M`
+#     :math:`u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \Psi_M`
 
-    where :math:`u_z` is wind speed at height :math:`z` above the canopy, :math:`d` is
-    the height above ground within the canopy where the wind profile extrapolates to
-    zero, :math:`z_m` the roughness length for momentum, :math:`\Psi_M` is a diabatic
-    correction for momentum and :math:`u^{*}` is the friction velocity, which gives the
-    wind speed at height :math:`d + z_m`.
+#     where :math:`u_z` is wind speed at height :math:`z` above the canopy, :math:`d` is
+#     the height above ground within the canopy where the wind profile extrapolates to
+#     zero, :math:`z_m` the roughness length for momentum, :math:`\Psi_M` is a diabatic
+#     correction for momentum and :math:`u^{*}` is the friction velocity, which gives
+# the
+#     wind speed at height :math:`d + z_m`.
 
-    The wind profile below canopy is derived as follows:
+#     The wind profile below canopy is derived as follows:
 
-    :math:`u_z = u_h exp(a(\frac{z}{h} - 1))`
+#     :math:`u_z = u_h exp(a(\frac{z}{h} - 1))`
 
-    where :math:`u_z` is wind speed at height :math:`z` within the canopy, :math:`u_h`
-    is wind speed at the top of the canopy at height :math:`h`, and :math:`a` is a wind
-    attenuation coefficient given by :math:`a = 2 l_m i_w`, where :math:`c_d` is a drag
-    coefficient that varies with leaf inclination and shape, :math:`i_w` is a
-    coefficient describing relative turbulence intensity and :math:`l_m` is the mean
-    mixing length, equivalent to the free space between the leaves and stems. For
-    details, see :cite:t:`maclean_microclimc_2021`.
+#     where :math:`u_z` is wind speed at height :math:`z` within the canopy, :math:`u_h`
+#     is wind speed at the top of the canopy at height :math:`h`, and :math:`a` is a
+# wind
+#     attenuation coefficient given by :math:`a = 2 l_m i_w`, where :math:`c_d` is a
+# drag
+#     coefficient that varies with leaf inclination and shape, :math:`i_w` is a
+#     coefficient describing relative turbulence intensity and :math:`l_m` is the mean
+#     mixing length, equivalent to the free space between the leaves and stems. For
+#     details, see :cite:t:`maclean_microclimc_2021`.
 
-    The following variables are returned:
+#     The following variables are returned:
 
-    * wind_speed
-    * friction_velocity
-    * molar_density_air
-    * specific_heat_air
-    * zero_plane_displacement
-    * roughness_length_momentum
-    * mean_mixing_length
-    * relative_turbulence_intensity
-    * attenuation_coefficient
+#     * wind_speed
+#     * friction_velocity
+#     * molar_density_air
+#     * specific_heat_air
+#     * zero_plane_displacement
+#     * roughness_length_momentum
+#     * mean_mixing_length
+#     * relative_turbulence_intensity
+#     * attenuation_coefficient
 
-    Args:
-        canopy_height: Canopy height, [m]
-        wind_height_above: Heights above canopy for which wind speed is required, [m].
-            For use in the calculation of the full wind profiles, this typically
-            includes two values: the height of the first layer ('above') and the first
-            canopy layer which corresponds to the canopy height.
-        wind_layer_heights: Layer heights above ground, [m]
-        leaf_area_index: Leaf area index, [m m-1]
-        air_temperature: Air temperature, [C]
-        atmospheric_pressure: Atmospheric pressure, [kPa]
-        sensible_heat_flux_topofcanopy: Sensible heat flux from the top of the canopy to
-            the atmosphere, [W m-2],
-        wind_speed_ref: Wind speed at reference height, [m s-1]
-        wind_reference_height: Reference height for wind measurement, [m]
-        diabatic_correction_parameters: Set of parameters for diabatic correction
-            calculations in canopy
-        abiotic_constants: Specific constants for the abiotic model
-        core_constants: Universal constants shared across all models
+#     Args:
+#         canopy_height: Canopy height, [m]
+#         wind_height_above: Heights above canopy for which wind speed is required, [m].
+#             For use in the calculation of the full wind profiles, this typically
+#             includes two values: the height of the first layer ('above') and the first
+#             canopy layer which corresponds to the canopy height.
+#         wind_layer_heights: Layer heights above ground, [m]
+#         leaf_area_index: Leaf area index, [m m-1]
+#         air_temperature: Air temperature, [C]
+#         atmospheric_pressure: Atmospheric pressure, [kPa]
+#         sensible_heat_flux_topofcanopy: Sensible heat flux from the top of the canopy
+# to
+#             the atmosphere, [W m-2],
+#         wind_speed_ref: Wind speed at reference height, [m s-1]
+#         wind_reference_height: Reference height for wind measurement, [m]
+#         diabatic_correction_parameters: Set of parameters for diabatic correction
+#             calculations in canopy
+#         abiotic_constants: Specific constants for the abiotic model
+#         core_constants: Universal constants shared across all models
 
-    Returns:
-        Dictionary that contains wind related outputs
-    """
+#     Returns:
+#         Dictionary that contains wind related outputs
+#     """
 
-    output = {}
+#     output = {}
 
-    # Calculate molar density of air, [mol m-3]
-    molar_density_air = calculate_molar_density_air(
-        temperature=air_temperature,
-        atmospheric_pressure=atmospheric_pressure,
-        standard_mole=core_constants.standard_mole,
-        standard_pressure=core_constants.standard_pressure,
-        celsius_to_kelvin=core_constants.zero_Celsius,
-    )
-    output["molar_density_air"] = molar_density_air
+#     # Calculate molar density of air, [mol m-3]
+#     molar_density_air = calculate_molar_density_air(
+#         temperature=air_temperature,
+#         atmospheric_pressure=atmospheric_pressure,
+#         standard_mole=core_constants.standard_mole,
+#         standard_pressure=core_constants.standard_pressure,
+#         celsius_to_kelvin=core_constants.zero_Celsius,
+#     )
+#     output["molar_density_air"] = molar_density_air
 
-    # Calculate specific heat of air, [J mol-1 K-1]
-    specific_heat_air = calculate_specific_heat_air(
-        temperature=air_temperature,
-        molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
-        specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
-    )
-    output["specific_heat_air"] = specific_heat_air
+#     # Calculate specific heat of air, [J mol-1 K-1]
+#     specific_heat_air = calculate_specific_heat_air(
+#         temperature=air_temperature,
+#         molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
+#         specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
+#     )
+#     output["specific_heat_air"] = specific_heat_air
 
-    # Calculate the total leaf area index, [m2 m-2]
-    leaf_area_index_sum = np.nansum(leaf_area_index, axis=0)
+#     # Calculate the total leaf area index, [m2 m-2]
+#     leaf_area_index_sum = np.nansum(leaf_area_index, axis=0)
 
-    zero_plane_displacement = calculate_zero_plane_displacement(
-        canopy_height=canopy_height,
-        leaf_area_index=leaf_area_index_sum,
-        zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
-    )
-    output["zero_plane_displacement"] = zero_plane_displacement
+#     zero_plane_displacement = calculate_zero_plane_displacement(
+#         canopy_height=canopy_height,
+#         leaf_area_index=leaf_area_index_sum,
+#         zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
+#     )
+#     output["zero_plane_displacement"] = zero_plane_displacement
 
-    # Calculate zero plane displacement height, [m]
-    roughness_length_momentum = calculate_roughness_length_momentum(
-        canopy_height=canopy_height,
-        leaf_area_index=leaf_area_index_sum,
-        zero_plane_displacement=zero_plane_displacement,
-        substrate_surface_drag_coefficient=(
-            abiotic_constants.substrate_surface_drag_coefficient
-        ),
-        roughness_element_drag_coefficient=(
-            abiotic_constants.roughness_element_drag_coefficient
-        ),
-        roughness_sublayer_depth_parameter=(
-            abiotic_constants.roughness_sublayer_depth_parameter
-        ),
-        max_ratio_wind_to_friction_velocity=(
-            abiotic_constants.max_ratio_wind_to_friction_velocity
-        ),
-        min_roughness_length=abiotic_constants.min_roughness_length,
-        von_karman_constant=core_constants.von_karmans_constant,
-    )
-    output["roughness_length_momentum"] = roughness_length_momentum
+#     # Calculate zero plane displacement height, [m]
+#     roughness_length_momentum = calculate_roughness_length_momentum(
+#         canopy_height=canopy_height,
+#         leaf_area_index=leaf_area_index_sum,
+#         zero_plane_displacement=zero_plane_displacement,
+#         substrate_surface_drag_coefficient=(
+#             abiotic_constants.substrate_surface_drag_coefficient
+#         ),
+#         roughness_element_drag_coefficient=(
+#             abiotic_constants.roughness_element_drag_coefficient
+#         ),
+#         roughness_sublayer_depth_parameter=(
+#             abiotic_constants.roughness_sublayer_depth_parameter
+#         ),
+#         max_ratio_wind_to_friction_velocity=(
+#             abiotic_constants.max_ratio_wind_to_friction_velocity
+#         ),
+#         min_roughness_length=abiotic_constants.min_roughness_length,
+#         von_karman_constant=core_constants.von_karmans_constant,
+#     )
+#     output["roughness_length_momentum"] = roughness_length_momentum
 
-    friction_velocity_uncorrected = calculate_friction_velocity_reference_height(
-        wind_speed_ref=wind_speed_ref,
-        reference_height=wind_reference_height,
-        zeroplane_displacement=zero_plane_displacement,
-        roughness_length_momentum=roughness_length_momentum,
-        diabatic_correction_momentum=0.0,
-        von_karmans_constant=core_constants.von_karmans_constant,
-        min_friction_velocity=abiotic_constants.min_friction_velocity,
-    )
+#     friction_velocity_uncorrected = calculate_friction_velocity_reference_height(
+#         wind_speed_ref=wind_speed_ref,
+#         reference_height=wind_reference_height,
+#         zeroplane_displacement=zero_plane_displacement,
+#         roughness_length_momentum=roughness_length_momentum,
+#         diabatic_correction_momentum=0.0,
+#         von_karmans_constant=core_constants.von_karmans_constant,
+#         min_friction_velocity=abiotic_constants.min_friction_velocity,
+#     )
 
-    # Calculate diabatic correction factor above canopy (Psi)
-    diabatic_correction_above = calculate_diabatic_correction_above(
-        molar_density_air=molar_density_air[0],
-        specific_heat_air=specific_heat_air[0],
-        temperature=air_temperature[0],
-        sensible_heat_flux=sensible_heat_flux_topofcanopy,
-        friction_velocity=friction_velocity_uncorrected,
-        wind_heights=wind_layer_heights[0],
-        zero_plane_displacement=zero_plane_displacement,
-        celsius_to_kelvin=core_constants.zero_Celsius,
-        von_karmans_constant=core_constants.von_karmans_constant,
-        yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
-        diabatic_heat_momentum_ratio=abiotic_constants.diabatic_heat_momentum_ratio,
-    )
-    output["diabatic_correction_heat_above"] = diabatic_correction_above["psi_h"]
-    output["diabatic_correction_momentum_above"] = diabatic_correction_above["psi_m"]
+#     # Calculate diabatic correction factor above canopy (Psi)
+#     diabatic_correction_above = calculate_diabatic_correction_above(
+#         molar_density_air=molar_density_air[0],
+#         specific_heat_air=specific_heat_air[0],
+#         temperature=air_temperature[0],
+#         sensible_heat_flux=sensible_heat_flux_topofcanopy,
+#         friction_velocity=friction_velocity_uncorrected,
+#         wind_heights=wind_layer_heights[0],
+#         zero_plane_displacement=zero_plane_displacement,
+#         celsius_to_kelvin=core_constants.zero_Celsius,
+#         von_karmans_constant=core_constants.von_karmans_constant,
+#         yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
+#         diabatic_heat_momentum_ratio=abiotic_constants.diabatic_heat_momentum_ratio,
+#     )
+#     output["diabatic_correction_heat_above"] = diabatic_correction_above["psi_h"]
+#     output["diabatic_correction_momentum_above"] = diabatic_correction_above["psi_m"]
 
-    # Update friction velocity with diabatic correction factor
-    friction_velocity = calculate_friction_velocity_reference_height(
-        wind_speed_ref=wind_speed_ref,
-        reference_height=wind_reference_height,
-        zeroplane_displacement=zero_plane_displacement,
-        roughness_length_momentum=roughness_length_momentum,
-        diabatic_correction_momentum=diabatic_correction_above["psi_m"],
-        von_karmans_constant=core_constants.von_karmans_constant,
-        min_friction_velocity=abiotic_constants.min_friction_velocity,
-    )
-    output["friction_velocity"] = friction_velocity
+#     # Update friction velocity with diabatic correction factor
+#     friction_velocity = calculate_friction_velocity_reference_height(
+#         wind_speed_ref=wind_speed_ref,
+#         reference_height=wind_reference_height,
+#         zeroplane_displacement=zero_plane_displacement,
+#         roughness_length_momentum=roughness_length_momentum,
+#         diabatic_correction_momentum=diabatic_correction_above["psi_m"],
+#         von_karmans_constant=core_constants.von_karmans_constant,
+#         min_friction_velocity=abiotic_constants.min_friction_velocity,
+#     )
+#     output["friction_velocity"] = friction_velocity
 
-    # Calculate mean mixing length, [m]
-    mean_mixing_length = calculate_mean_mixing_length(
-        canopy_height=canopy_height,
-        zero_plane_displacement=zero_plane_displacement,
-        roughness_length_momentum=roughness_length_momentum,
-        mixing_length_factor=abiotic_constants.mixing_length_factor,
-    )
-    output["mean_mixing_length"] = mean_mixing_length
+#     # Calculate mean mixing length, [m]
+#     mean_mixing_length = calculate_mean_mixing_length(
+#         canopy_height=canopy_height,
+#         zero_plane_displacement=zero_plane_displacement,
+#         roughness_length_momentum=roughness_length_momentum,
+#         mixing_length_factor=abiotic_constants.mixing_length_factor,
+#     )
+#     output["mean_mixing_length"] = mean_mixing_length
 
-    # Calculate profile of turbulent mixing intensities, dimensionless
-    relative_turbulence_intensity = generate_relative_turbulence_intensity(
-        layer_heights=wind_layer_heights,
-        min_relative_turbulence_intensity=(
-            abiotic_constants.min_relative_turbulence_intensity
-        ),
-        max_relative_turbulence_intensity=(
-            abiotic_constants.max_relative_turbulence_intensity
-        ),
-        increasing_with_height=abiotic_constants.turbulence_sign,
-    )
-    output["relative_turbulence_intensity"] = relative_turbulence_intensity
+#     # Calculate profile of turbulent mixing intensities, dimensionless
+#     relative_turbulence_intensity = generate_relative_turbulence_intensity(
+#         layer_heights=wind_layer_heights,
+#         min_relative_turbulence_intensity=(
+#             abiotic_constants.min_relative_turbulence_intensity
+#         ),
+#         max_relative_turbulence_intensity=(
+#             abiotic_constants.max_relative_turbulence_intensity
+#         ),
+#         increasing_with_height=abiotic_constants.turbulence_sign,
+#     )
+#     output["relative_turbulence_intensity"] = relative_turbulence_intensity
 
-    # Calculate profile of attenuation coefficients, dimensionless
-    # VIVI - This might be wildly wrong, but at the moment this is taking in the full
-    # set of true aboveground rows and then appending a row above and below. I think it
-    # should operate by taking only the canopy data (dropping two rows) and then
-    # replacing them.
-    attennuation_coefficient = calculate_wind_attenuation_coefficient(
-        canopy_height=canopy_height,
-        leaf_area_index=leaf_area_index,
-        mean_mixing_length=mean_mixing_length,
-        drag_coefficient=abiotic_constants.drag_coefficient,
-        relative_turbulence_intensity=relative_turbulence_intensity,
-    )
-    output["attennuation_coefficient"] = attennuation_coefficient
+#     # Calculate profile of attenuation coefficients, dimensionless
+#     # VIVI - This might be wildly wrong, but at the moment this is taking in the full
+#     # set of true aboveground rows and then appending a row above and below. I think
+# it
+#     # should operate by taking only the canopy data (dropping two rows) and then
+#     # replacing them.
+#     attennuation_coefficient = calculate_wind_attenuation_coefficient(
+#         canopy_height=canopy_height,
+#         leaf_area_index=leaf_area_index,
+#         mean_mixing_length=mean_mixing_length,
+#         drag_coefficient=abiotic_constants.drag_coefficient,
+#         relative_turbulence_intensity=relative_turbulence_intensity,
+#     )
+#     output["attennuation_coefficient"] = attennuation_coefficient
 
-    # Calculate wind speed above canopy (2m above and top of canopy), [m s-1]
-    wind_speed_above_canopy = calculate_wind_above_canopy(
-        friction_velocity=friction_velocity,
-        wind_height_above=wind_height_above,
-        zeroplane_displacement=zero_plane_displacement,
-        roughness_length_momentum=roughness_length_momentum,
-        diabatic_correction_momentum=diabatic_correction_above["psi_m"],
-        von_karmans_constant=core_constants.von_karmans_constant,
-        min_wind_speed_above_canopy=abiotic_constants.min_wind_speed_above_canopy,
-    )
+#     # Calculate wind speed above canopy (2m above and top of canopy), [m s-1]
+#     wind_speed_above_canopy = calculate_wind_above_canopy(
+#         friction_velocity=friction_velocity,
+#         wind_height_above=wind_height_above,
+#         zeroplane_displacement=zero_plane_displacement,
+#         roughness_length_momentum=roughness_length_momentum,
+#         diabatic_correction_momentum=diabatic_correction_above["psi_m"],
+#         von_karmans_constant=core_constants.von_karmans_constant,
+#         min_wind_speed_above_canopy=abiotic_constants.min_wind_speed_above_canopy,
+#     )
 
-    # Calculate wind speed in and below canopy, [m s-1]
-    wind_speed_canopy = calculate_wind_canopy(
-        top_of_canopy_wind_speed=wind_speed_above_canopy[1],
-        wind_layer_heights=wind_layer_heights,
-        canopy_height=canopy_height,
-        attenuation_coefficient=attennuation_coefficient,
-    )
+#     # Calculate wind speed in and below canopy, [m s-1]
+#     wind_speed_canopy = calculate_wind_canopy(
+#         top_of_canopy_wind_speed=wind_speed_above_canopy[1],
+#         wind_layer_heights=wind_layer_heights,
+#         canopy_height=canopy_height,
+#         attenuation_coefficient=attennuation_coefficient,
+#     )
 
-    # Combine wind speed above and in canopy to full profile
-    wind_speed_canopy[0:2] = wind_speed_above_canopy
-    output["wind_speed"] = wind_speed_canopy
+#     # Combine wind speed above and in canopy to full profile
+#     wind_speed_canopy[0:2] = wind_speed_above_canopy
+#     output["wind_speed"] = wind_speed_canopy
 
-    # Calculate diabatic correction factors for heat and momentum below canopy
-    # (required for the calculation of conductivities)
-    diabatic_correction_canopy = calculate_diabatic_correction_canopy(
-        air_temperature=air_temperature,
-        wind_speed=wind_speed_canopy,
-        layer_heights=wind_layer_heights,
-        mean_mixing_length=mean_mixing_length,
-        stable_temperature_gradient_intercept=(
-            abiotic_constants.stable_temperature_gradient_intercept
-        ),
-        stable_wind_shear_slope=abiotic_constants.stable_wind_shear_slope,
-        yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
-        richardson_bounds=abiotic_constants.richardson_bounds,
-        gravity=core_constants.gravity,
-        celsius_to_kelvin=core_constants.zero_Celsius,
-    )
-    output["diabatic_correction_heat_canopy"] = diabatic_correction_canopy["phi_h"]
-    output["diabatic_correction_momentum_canopy"] = diabatic_correction_canopy["phi_m"]
+#     # Calculate diabatic correction factors for heat and momentum below canopy
+#     # (required for the calculation of conductivities)
+#     diabatic_correction_canopy = calculate_diabatic_correction_canopy(
+#         air_temperature=air_temperature,
+#         wind_speed=wind_speed_canopy,
+#         layer_heights=wind_layer_heights,
+#         mean_mixing_length=mean_mixing_length,
+#         stable_temperature_gradient_intercept=(
+#             abiotic_constants.stable_temperature_gradient_intercept
+#         ),
+#         stable_wind_shear_slope=abiotic_constants.stable_wind_shear_slope,
+#         yasuda_stability_parameters=abiotic_constants.yasuda_stability_parameters,
+#         richardson_bounds=abiotic_constants.richardson_bounds,
+#         gravity=core_constants.gravity,
+#         celsius_to_kelvin=core_constants.zero_Celsius,
+#     )
+#     output["diabatic_correction_heat_canopy"] = diabatic_correction_canopy["phi_h"]
+#     output["diabatic_correction_momentum_canopy"] = diabatic_correction_canopy
+# ["phi_m"]
 
-    return output
+#     return output
