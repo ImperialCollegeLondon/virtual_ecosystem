@@ -256,20 +256,21 @@ def test_calculate_stomatal_conductance():
 #     )[:, None]
 
 #     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
+#
 
 
-# def test_calculate_leaf_vapour_conductivity():
-#     """Test calculate leaf vapour conductivity."""
+def test_calculate_leaf_vapour_conductivity():
+    """Test calculate leaf vapour conductivity."""
 
-#     from virtual_ecosystem.models.abiotic.conductivities import (
-#         calculate_leaf_vapour_conductivity,
-#     )
+    from virtual_ecosystem.models.abiotic.conductivities import (
+        calculate_leaf_vapour_conductivity,
+    )
 
-#     result = calculate_leaf_vapour_conductivity(
-#         leaf_air_conductivity=np.repeat(5.0, 4),
-#         stomatal_conductance=np.repeat(5.0, 4),
-#     )
-#     np.testing.assert_allclose(result, np.repeat(2.5, 4), rtol=1e-04, atol=1e-04)
+    result = calculate_leaf_vapour_conductivity(
+        leaf_air_conductivity=np.repeat(5.0, 4),
+        stomatal_conductance=np.repeat(5.0, 4),
+    )
+    np.testing.assert_allclose(result, np.repeat(2.5, 4), rtol=1e-04, atol=1e-04)
 
 
 # def test_calculate_current_conductivities(dummy_climate_data, fixture_core_components)

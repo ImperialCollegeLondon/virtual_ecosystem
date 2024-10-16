@@ -42,6 +42,13 @@ from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    calculate_latent_heat_vapourisation,
+    calculate_specific_heat_air,
+)
+from virtual_ecosystem.models.abiotic_simple.microclimate import (
+    calculate_saturation_vapour_pressure,
+)
 
 
 def initialise_absorbed_radiation(
@@ -263,6 +270,112 @@ def calculate_slope_of_saturated_pressure_curve(
         )
         / (temperature + saturated_pressure_slope_parameters[3]) ** 2
     )
+
+
+def calculate_surface_temperature(
+    absorbed_shortwave_radiation: NDArray[np.float32],
+    heat_conductivity: NDArray[np.float32],
+    vapour_conductivity: NDArray[np.float32],
+    surface_temperature: NDArray[np.float32],
+    temperature_average_air_surface: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+    effective_vapour_pressure_air: NDArray[np.float32],
+    surface_emissivity: float,
+    ground_heat_flux: NDArray[np.float32],
+    relative_humidity: NDArray[np.float32],
+    stefan_boltzmann_constant: float,
+    celsius_to_kelvin: float,
+    latent_heat_vap_equ_factors: list[float],
+    molar_heat_capacity_air: float,
+    specific_heat_equ_factors: list[float],
+    saturation_vapour_pressure_factors: list[float],
+) -> float:
+    """Calculate soil or canopy temperature with Penman-Montheith equation.
+
+    Args:
+        absorbed_shortwave_radiation: Absorbed shortwave radiation, [W m-2]
+        heat_conductivity: Heat conductivity of surface
+        vapour_conductivity: Vapour conductivity of surface
+        surface_temperature: Surface temperature, [C]
+        temperature_average_air_surface: Average between air temperature and surface
+            temperature, [C]  # tair+tleaf/2
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        effective_vapour_pressure_air: Effective vapour pressure of air
+        surface_emissivity: Surface emissivity
+        ground_heat_flux: Ground heat flux, [W m-2]
+        relative_humidity: Relative humidity
+        stefan_boltzmann_constant: Stefan Boltzmann constant
+        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+            temperature in Kelvin
+        latent_heat_vap_equ_factors: Factors in calculation of latent heat of
+            vapourisation
+        molar_heat_capacity_air: Molar heat capacity of air, [J mol-1 K-1]
+        specific_heat_equ_factors: Factors in calculation of molar specific heat of air
+        saturation_vapour_pressure_factors: factors in calculation of saturation vapour
+            pressure
+
+    Returns:
+        surface temperature, [C]
+    """
+
+    emitted_radiation = (
+        surface_emissivity
+        * stefan_boltzmann_constant
+        * (surface_temperature + celsius_to_kelvin) ** 4
+    )
+    latent_heat_vapourization = calculate_latent_heat_vapourisation(
+        temperature=temperature_average_air_surface,
+        celsius_to_kelvin=celsius_to_kelvin,
+        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+    )
+
+    specific_heat_air = calculate_specific_heat_air(
+        temperature=temperature_average_air_surface,
+        molar_heat_capacity_air=molar_heat_capacity_air,
+        specific_heat_equ_factors=specific_heat_equ_factors,
+    )
+    saturation_vapour_pressure = calculate_saturation_vapour_pressure(
+        temperature=DataArray(surface_temperature),
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    vapour_pressure_deficit = saturation_vapour_pressure - effective_vapour_pressure_air
+    radiative_transfer = (
+        4
+        * surface_emissivity
+        * stefan_boltzmann_constant
+        * (temperature_average_air_surface + celsius_to_kelvin) ** 3
+    ) / specific_heat_air
+
+    saturation_vapour_pressure_plus = calculate_saturation_vapour_pressure(
+        temperature=DataArray(temperature_average_air_surface + 0.5),
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    saturation_vapour_pressure_minus = calculate_saturation_vapour_pressure(
+        temperature=DataArray(temperature_average_air_surface - 0.5),
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    slope_saturation_vapour_pressure_curve = (
+        saturation_vapour_pressure_plus - saturation_vapour_pressure_minus
+    )
+    new_surface_temperature = surface_temperature + (
+        (
+            absorbed_shortwave_radiation
+            - emitted_radiation
+            - latent_heat_vapourization
+            * (vapour_conductivity / atmospheric_pressure)
+            * vapour_pressure_deficit
+            * relative_humidity
+            - ground_heat_flux
+        )
+        / (
+            specific_heat_air * (heat_conductivity + radiative_transfer)
+            + latent_heat_vapourization
+            * (vapour_conductivity / atmospheric_pressure)
+            * slope_saturation_vapour_pressure_curve
+            * relative_humidity
+        )
+    )
+    return new_surface_temperature
 
 
 # def calculate_leaf_and_air_temperature(

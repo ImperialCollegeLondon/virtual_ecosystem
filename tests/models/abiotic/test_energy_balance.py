@@ -129,6 +129,39 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
+def test_calculate_surface_temperature():
+    """Test calculation of surface temperature."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_surface_temperature,
+    )
+
+    core_consts = CoreConsts()
+    abiotic_consts = AbioticConsts()
+
+    result = calculate_surface_temperature(
+        absorbed_shortwave_radiation=np.repeat(400, 3),
+        heat_conductivity=np.repeat(0.2, 3),
+        vapour_conductivity=np.repeat(0.01, 3),
+        surface_temperature=np.repeat(25.0, 3),
+        temperature_average_air_surface=np.repeat(20.0, 3),
+        atmospheric_pressure=np.repeat(101.3, 3),
+        effective_vapour_pressure_air=np.repeat(1.2, 3),
+        surface_emissivity=0.9,
+        ground_heat_flux=np.repeat(30.0, 3),
+        relative_humidity=np.repeat(0.6, 3),
+        stefan_boltzmann_constant=core_consts.stefan_boltzmann_constant,
+        celsius_to_kelvin=core_consts.zero_Celsius,
+        latent_heat_vap_equ_factors=abiotic_consts.latent_heat_vap_equ_factors,
+        molar_heat_capacity_air=29.1,
+        specific_heat_equ_factors=abiotic_consts.specific_heat_equ_factors,
+        saturation_vapour_pressure_factors=[0.61078, 7.5, 237.3],
+    )
+    exp_result = np.repeat(21.96655, 3)
+
+    np.testing.assert_allclose(result, exp_result, atol=1e-5)
+
+
 # def test_calculate_leaf_and_air_temperature(
 #     fixture_core_components,
 #     dummy_climate_data,

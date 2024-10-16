@@ -92,3 +92,30 @@ def test_find_last_valid_row(input_array, expected):
 
     result = find_last_valid_row(input_array)
     np.testing.assert_allclose(result, expected)
+
+
+@pytest.mark.parametrize(
+    "air_temperature, effective_vapour_pressure_air, expected_dewpoint_temperature",
+    [
+        (np.repeat(20.0, 3), np.repeat(2.5, 3), np.repeat(21.304722, 3)),
+        (np.repeat(-10.0, 3), np.repeat(0.8, 3), np.repeat(3.32904, 3)),
+        (np.repeat(0.0, 3), np.repeat(1.0, 3), np.repeat(6.950734, 3)),
+    ],
+)
+def test_calculate_dewpoint_temperature(
+    air_temperature,
+    effective_vapour_pressure_air,
+    expected_dewpoint_temperature,
+):
+    """Test calculation of dewpoint temperature."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_dewpoint_temperature,
+    )
+
+    result = calculate_dewpoint_temperature(
+        air_temperature=air_temperature,
+        effective_vapour_pressure_air=effective_vapour_pressure_air,
+    )
+
+    np.testing.assert_allclose(result, expected_dewpoint_temperature, atol=1e-2)

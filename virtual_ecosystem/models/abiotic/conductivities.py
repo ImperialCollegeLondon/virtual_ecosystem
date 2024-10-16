@@ -388,27 +388,27 @@ def calculate_stomatal_conductance(
 #     return conductance
 
 
-# def calculate_leaf_vapour_conductivity(
-#     leaf_air_conductivity: NDArray[np.float32],
-#     stomatal_conductance: float | NDArray[np.float32],
-# ) -> NDArray[np.float32]:
-#     r"""Calculate leaf air conductivity for vapour, [mol m-2 s-1].
+def calculate_leaf_vapour_conductivity(
+    leaf_air_conductivity: NDArray[np.float32],
+    stomatal_conductance: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    r"""Calculate leaf air conductivity for vapour, [mol m-2 s-1].
 
-#     The conductance for vapour loss from leaves :math:`g_{v}` depends on stomatal
-#   conductance :math:`g_{c}` and heat conductivity between air and leaf :math:`g_{Ha}`:
+      The conductance for vapour loss from leaves :math:`g_{v}` depends on stomatal
+    conductance :math:`g_{c}` and heat conductivity between air and leaf :math:`g_{Ha}`:
 
-#     .. math:: g_{v} = \frac{1}{(\frac{1}{g_{Ha}} + \frac{1}{g_{c}})
+      .. math:: g_{v} = \frac{1}{(\frac{1}{g_{Ha}} + \frac{1}{g_{c}})
 
-#     :cite:p:`maclean_microclimc_2021`.
+      :cite:p:`maclean_microclimc_2021`.
 
-#     Args:
-#         leaf_air_conductivity: Heat conductivity between air and leaf, [mol m-2 s-1]
-#         stomatal_conductance: Stomatal conductance, [mol m-2 s-1]
+    Args:
+          leaf_air_conductivity: Heat conductivity between air and leaf, [mol m-2 s-1]
+          stomatal_conductance: Stomatal conductance, [mol m-2 s-1]
 
-#     Returns:
-#         Leaf vapour conductivity, [mol m-2 s-1]
-#     """
-#     return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
+    Returns:
+          Leaf vapour conductivity, [mol m-2 s-1]
+    """
+    return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
 
 
 # def calculate_current_conductivities(
