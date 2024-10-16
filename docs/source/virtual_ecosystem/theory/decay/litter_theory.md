@@ -40,7 +40,7 @@ metabolic pool, but is defined as containing the more recalcitrant material.
 ### Above-ground woody litter
 
 Above-ground dead wood is treated separately due to its substantially different turnover
-dynamics. So, all wood losses from tree falls, branch fall etc, is assumed to be added
+dynamics. So, all wood losses from tree falls, branch fall etc, are assumed to be added
 to an above-ground woody pool. We assume that the vast majority of dead wood ends up
 decaying on top of the soil, and so there is no corresponding below-ground pool. We
 considered including a separate pool for standing dead trees, as wood decaying in this
