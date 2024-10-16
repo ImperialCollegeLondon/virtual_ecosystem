@@ -64,6 +64,10 @@ and we use both the linting (`ruff`) and formatting (`ruff-format`) hooks.
 `markdownlint`
 : Checks all markdown files for common formatting issues.
 
+`jupytext`
+: This tool is used to pass all python code within notebooks through code formatting. At
+present, this still uses the `black` code formatter and not `ruff-format` as above.
+
 ### Output and configuration
 
 When `pre-commit` runs, you may see some lines about package installation and update,
@@ -77,6 +81,7 @@ ruff.................................................................Passed
 ruff-format..........................................................Passed
 mypy.................................................................Passed
 markdownlint.........................................................Passed
+jupytext.............................................................Passed
 ```
 
 ### Updating `pre-commit`

@@ -154,7 +154,8 @@ language_info:
 ```
 
 If you already have a simple Markdown file then the commands below will insert this YAML
-header:
+header, but at present the `language_info` section either needs to be added manually or
+by opening and saving the file in `jupyter`.
 
 ```sh
 % jupytext --set-format md:myst simple.md
