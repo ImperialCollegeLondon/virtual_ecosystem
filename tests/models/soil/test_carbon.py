@@ -320,3 +320,23 @@ def test_calculate_necromass_breakdown(dummy_carbon_data):
     )
 
     assert np.allclose(actual_breakdown, expected_breakdown)
+
+
+def test_calculate_mineralisation_split(dummy_carbon_data):
+    """Test that the calculation of the mineralisation split works as expected."""
+    from virtual_ecosystem.models.soil.carbon import calculate_mineralisation_split
+
+    expected_split = {
+        "dissolved": [3.18159e-6, 1.590795e-6, 7.35e-7, 8.25e-6],
+        "particulate": [0.00211787841, 0.001058939205, 0.000489265, 0.00549175],
+    }
+
+    actual_split = calculate_mineralisation_split(
+        mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
+        litter_leaching_coefficient=SoilConsts.litter_leaching_fraction_carbon,
+    )
+
+    assert set(expected_split.keys()) == set(actual_split.keys())
+
+    for key in actual_split.keys():
+        assert np.allclose(actual_split[key], expected_split[key])

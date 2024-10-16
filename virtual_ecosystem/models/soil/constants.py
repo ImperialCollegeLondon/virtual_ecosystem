@@ -9,8 +9,6 @@ import numpy as np
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
-# TODO - Once lignin is tracked a large number of constants will have to be duplicated
-
 
 @dataclass(frozen=True)
 class SoilConsts(ConstantsDataclass):
@@ -287,4 +285,10 @@ class SoilConsts(ConstantsDataclass):
     :attr:`necromass_decay_rate`, this means that 75% of necromass becomes MAOM with the
     remainder becoming LMWC. Replacing this with a function that depends on
     environmental conditions is a post release goal.
+    """
+
+    litter_leaching_fraction_carbon = 0.0015
+    """Fraction of carbon mineralisation from litter that occurs by leaching [unitless].
+    
+    The remainder of the mineralisation consists of particulates.
     """

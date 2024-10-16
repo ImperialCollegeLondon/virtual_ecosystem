@@ -18,6 +18,9 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_temperature_effect_on_microbes,
 )
 
+# TODO - For now I'm shoving every function in this module, once more has been written
+# hopefully a sensible split should be obvious
+
 
 @dataclass
 class MicrobialChanges:
@@ -172,6 +175,8 @@ def calculate_soil_carbon_updates(
         soil_c_pool=soil_c_pool_lmwc,
         sorption_rate_constant=model_constants.lmwc_sorption_rate,
     )
+
+    # TODO - Add mineralisation to lmwc flow
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -651,3 +656,30 @@ def calculate_necromass_breakdown(
     """
 
     return necromass_decay_rate * soil_c_pool_necromass
+
+
+def calculate_mineralisation_split(
+    mineralisation_rate: NDArray[np.float32], litter_leaching_coefficient: float
+) -> dict[str, NDArray[np.float32]]:
+    """Determine how nutrients from litter mineralisation get split between soil pools.
+
+    All nutrients that we track (carbon, nitrogen and phosphorus) get divided between
+    the particulate organic matter pool and the dissolved pool for their respective
+    nutrient (for the carbon case this pool is termed low molecular weight carbon). This
+    split is calculated based on empirically derived litter leaching constants.
+
+    Args:
+        mineralisation_rate: The rate at which the nutrient is being mineralised for the
+            litter [kg C m^-3 day^-1]
+        litter_leaching_coefficient: Fraction of the litter mineralisation of the
+            nutrient that occurs via leaching rather than as particulates [unitless]
+
+    Returns:
+        A dictionary containing the rate at which the nutrient is added to the soil as
+        particulates and as dissolved matter [kg C m^-3 day^-1].
+    """
+
+    return {
+        "particulate": (1 - litter_leaching_coefficient) * mineralisation_rate,
+        "dissolved": litter_leaching_coefficient * mineralisation_rate,
+    }
