@@ -11,6 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 
+# Shortwave radiation
 def calculate_julian_day(year: int, month: int, day: int) -> int:
     """Calculate Astronomical Julian day.
 
@@ -791,3 +792,52 @@ def calculate_absorbed_shortwave_radiation(
     )
 
     return absorbed_shortwave_radiation
+
+
+# longwave radiation
+def calculate_canopy_longwave_emission(
+    leaf_emissivity: float,
+    canopy_temperature: NDArray[np.float64],
+    stefan_boltzmann_constant: float,
+    zero_Celsius: float,
+) -> NDArray[np.float64]:
+    """Calculate mean canopy longwave emission.
+
+    Args:
+        leaf_emissivity: leaf emissivity, dimensionless
+        canopy_temperature: Canopy temperature, [C]
+        stefan_boltzmann_constant: Stefan boltzmann constant
+        zero_Celsius: Celsius to Kelvin conversion factor
+
+    Returns:
+        longwave emission from canopy, [W m-2]
+    """
+
+    return (
+        leaf_emissivity
+        * stefan_boltzmann_constant
+        * (np.mean(canopy_temperature, axis=1) + zero_Celsius) ** 4
+    )
+
+
+def calculate_longwave_emission_ground(
+    ground_emissivity: float,
+    radiation_transmission_coefficient: NDArray[np.float64],
+    longwave_downward_radiation_sky: NDArray[np.float64],
+    canopy_longwave_emission: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Calculate longwave emission from ground surface.
+
+    Args:
+        ground_emissivity: Ground emissivity, dimensionless
+        radiation_transmission_coefficient: Radiation transmission coefficient
+        longwave_downward_radiation_sky: Longwave downward radiation from sky, [W m-2]
+        canopy_longwave_emission: longwave emission from canopy, [W m-2]
+
+    Returns:
+        longwave emission from ground surface, [W m-2]
+    """
+    return ground_emissivity * (
+        radiation_transmission_coefficient * longwave_downward_radiation_sky
+        + (1 - radiation_transmission_coefficient) * canopy_longwave_emission
+    )

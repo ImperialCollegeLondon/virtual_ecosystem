@@ -448,3 +448,45 @@ def test_calculate_absorbed_shortwave_radiation():
         expected_albedo,
         atol=1e-3,
     )
+
+
+def test_calculate_canopy_longwave_emission():
+    """Test calculation of canopy longwave emission."""
+
+    from virtual_ecosystem.models.abiotic.radiation import (
+        calculate_canopy_longwave_emission,
+    )
+
+    expected_emission = np.array([431.38266876, 454.92201537])
+
+    # Calculate the actual emission
+    result = calculate_canopy_longwave_emission(
+        leaf_emissivity=0.95,
+        canopy_temperature=np.array([[25, 27, 26], [30, 31, 29]]),
+        stefan_boltzmann_constant=5.67e-8,
+        zero_Celsius=273.15,
+    )
+
+    # Compare the result with the expected value
+    np.testing.assert_allclose(result, expected_emission, rtol=1e-6)
+
+
+def test_calculate_longwave_emission_ground():
+    """Test calculation of ground longwave emission."""
+
+    from virtual_ecosystem.models.abiotic.radiation import (
+        calculate_longwave_emission_ground,
+    )
+
+    expected_emission = np.array([349.6, 389.16])
+
+    # Calculate the actual emission
+    result = calculate_longwave_emission_ground(
+        ground_emissivity=0.92,
+        radiation_transmission_coefficient=np.array([0.6, 0.7]),
+        longwave_downward_radiation_sky=np.array([400, 450]),
+        canopy_longwave_emission=np.array([350, 360]),
+    )
+
+    # Compare the result with the expected value
+    np.testing.assert_allclose(result, expected_emission, rtol=1e-6)
