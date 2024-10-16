@@ -68,7 +68,6 @@ def initialise_conductivities(
     canopy and the highest canopy layer. The last (above ground) value represents
     conductivity between the ground and the lowest canopy node.
     TODO account for variable layer depths
-    TODO account for variable layer depths
 
     Args:
         layer_structure: the model layer structure instance.
@@ -184,188 +183,232 @@ def calculate_air_heat_conductivity_above(
     )
 
 
-def calculate_air_heat_conductivity_canopy(
-    attenuation_coefficient: NDArray[np.float32],
-    mean_mixing_length: NDArray[np.float32],
-    molar_density_air: NDArray[np.float32],
-    upper_height: NDArray[np.float32],
-    lower_height: NDArray[np.float32],
-    relative_turbulence_intensity: NDArray[np.float32],
-    top_of_canopy_wind_speed: NDArray[np.float32],
-    diabatic_correction_momentum: NDArray[np.float32],
-    canopy_height: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    r"""Calculate air heat conductivity by turbulent convection in canopy,[mol m-2 s-1].
-
-    Within-canopy heat conductance (:math:`g_{t}`) between any two heights :math:`z_{1}`
-    and :math:`z_{0}` below-canopy is given by
-
-    .. math::
-        g_{t} = \frac{u_{h}l_{m}i_{w}a}
-        {(exp(\frac{-a_{z_{0}}}{h-1}) - exp(\frac{-a_{z_{1}}}{h-1})) \Phi_{H}}
-
-
-    where :math:`u_{h}` is wind speed at the top of the canopy at height :math:`h`,
-    :math:`a` is a wind attenuation coefficient, :math:`i_{w}` is a coefficient
-    describing relative turbulence intensity, :math:`l_{m}` is the mean mixing length,
-    equivalent to the free space between the leaves and stems, and :math:`\Phi_{H}` is a
-    within-canopy diabatic correction factor for heat.
-
-    TODO better tests for different conditions
+def calculate_free_convection(
+    leaf_dimension: float,
+    sensible_heat_flux: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Calculate free convection, gha.
 
     Args:
-        attenuation_coefficient: Wind attenuation coefficient, dimensionless
-        mean_mixing_length: Mixing length for canopy air transport, [m]
-        molar_density_air: Molar density of air, [mol m-3]
-        upper_height: Height of upper layer, [m]
-        lower_height: Height of lower layer, [m]
-        relative_turbulence_intensity: Relative turbulence intensity, dimensionless
-        top_of_canopy_wind_speed: Top of canopy wind speed, [m s-1]
-        diabatic_correction_momentum: Diabatic correction factor for momentum,
-            dimensionless
-        canopy_height: Canopy height, [m]
+        leaf_dimension: Leaf dimension (characteristic length), [m]
+        sensible_heat_flux: Sensible heat flux, [W m-2]
 
     Returns:
-       air heat conductivity by turbulent convection in the canopy, [mol m-2 s-1]
+        free convection coefficient, gha
     """
-    term1 = (
-        mean_mixing_length
-        * relative_turbulence_intensity
-        * molar_density_air
-        * top_of_canopy_wind_speed
-        * attenuation_coefficient
-    ) / diabatic_correction_momentum
+    d = 0.71 * leaf_dimension
+    dt = 0.7045388 * np.power((d * np.power(sensible_heat_flux, 4)), 0.2)
+    gha = 0.0375 * np.power(dt / d, 0.25)
 
-    term2 = np.exp(-attenuation_coefficient * (lower_height / canopy_height - 1))
-    term3 = np.exp(-attenuation_coefficient * (upper_height / canopy_height - 1))
-    return term1 / (term2 - term3)
+    # Ensure gha is not less than 0.1
+    return np.maximum(gha, 0.1)
 
 
-def calculate_leaf_air_heat_conductivity(
-    temperature: NDArray[np.float32],
-    wind_speed: NDArray[np.float32],
-    characteristic_dimension_leaf: float | NDArray[np.float32],
-    temperature_difference: NDArray[np.float32],
-    molar_density_air: NDArray[np.float32],
-    kinematic_viscosity_parameters: list[float],
-    thermal_diffusivity_parameters: list[float],
-    grashof_parameter: float,
-    forced_conductance_parameter: float,
-    positive_free_conductance_parameter: float,
-    negative_free_conductance_parameter: float,
-) -> NDArray[np.float32]:
-    r"""Calculate forced or free laminer conductance between leaf and air,[mol m-2 s-1].
-
-    When wind speeds are moderate to high, conduction between the leaf and air
-    :math:`g_{Ha}` is predominantly under laminar forced convection and from e.g.
-    :cite:t:`campbell_introduction_2012` is given by
-
-    .. math:: g_{Ha} = \frac {0.664 \hat{\rho} D_{H} R_{e}^{0.5} P_{r}^{0.5}}{x_{d}}
-
-    where :math:`D_{H}` is thermal diffusivity, :math:`x_{d}` is the characteristic
-    dimension of the leaf, :math:`\hat{\rho}` is the molar density of air,
-    :math:`R_{e}` is the Reynolds number, and :math:`P_{r}` is the Prandtl number.
-
-    When wind speeds are low, an expression that is adequate for leaves is given by
-    (Campbell and Norman, 2012)
-
-    .. math:: g_{Ha} = \frac{0.54 \hat{\rho} D_{H} (G_{r}P_{r})^{0.25}}{x_{d}}
-
-    where :math:`G_{r}` is the Grashof number. When the leaf is cooler than the air, the
-    heat transfer is only half as efficient so the constant 0.54 becomes 0.26.
-
-    TODO better tests for different conditions
+def calculate_stomatal_conductance(
+    shortwave_radiation: NDArray[np.float64],
+    maximum_stomatal_conductance: float,
+    half_saturation_stomatal_conductance: float,
+) -> NDArray[np.float64]:
+    """Calculate the stomatal conductance.
 
     Args:
-        temperature: Temperature, [C]
-        wind_speed: Wind speed, [m s-1]
-        characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
-            0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
-            value per grid cell, or a 3D-array with one value for each layer.
-        temperature_difference: Estimate of temperature differences of surface and air,
-            e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
-        molar_density_air: Molar density of air, [mol m-3]
-        kinematic_viscosity_parameters: Parameters in calculation of kinematic viscosity
-        thermal_diffusivity_parameters: Parameters in calculation of thermal diffusivity
-        grashof_parameter: Parameter in calculation of Grashof number
-        forced_conductance_parameter: Parameter in calculation of forced conductance
-        positive_free_conductance_parameter: Parameter in calculation of free
-            conductance for positive temperature difference
-        negative_free_conductance_parameter: Parameter in calculation of free
-            conductance for negative temperature difference
+        shortwave_radiation: Shortwave radiation absorbed by the leaves, [W m-2]
+        maximum_stomatal_conductance: Maximum stomatal conductance, [mol m-2 s-1]
+        half_saturation_stomatal_conductance: Half-saturation point for stomatal
+            conductance, [W m-2]
 
     Returns:
-        Leaf air heat conductance, [mol m-2 s-1]
+        Stomatal conductance (gs), [mol m-2 s-1]
     """
 
-    temperature_k = temperature + 273.15
-    kinematic_viscosity = (
-        kinematic_viscosity_parameters[0] * temperature_k
-        - kinematic_viscosity_parameters[1]
-    ) / 10**6
-    thermal_diffusivity = (
-        thermal_diffusivity_parameters[0] * temperature_k
-        - thermal_diffusivity_parameters[1]
-    ) / 10**6
-    grashof_number = (
-        grashof_parameter
-        * characteristic_dimension_leaf**3
-        * np.abs(temperature_difference)
-    ) / (temperature_k * kinematic_viscosity**2)
-    reyolds_number = wind_speed * characteristic_dimension_leaf / kinematic_viscosity
-    prandtl_number = kinematic_viscosity / thermal_diffusivity
-
-    # Forced conductance
-    forced_conductance = (
-        forced_conductance_parameter
-        * thermal_diffusivity
-        * molar_density_air
-        * reyolds_number**0.5
-        * prandtl_number ** (1 / 3)
-    ) / characteristic_dimension_leaf
-
-    # Free conductance
-    m = np.where(
-        temperature_difference > 0,
-        positive_free_conductance_parameter,
-        negative_free_conductance_parameter,
-    )
-    free_conductance = (
-        m
-        * molar_density_air
-        * thermal_diffusivity
-        * (grashof_number * prandtl_number) ** (1 / 4)
-    ) / characteristic_dimension_leaf
-
-    # Set to whichever is higher
-    conductance = np.where(
-        forced_conductance > free_conductance, forced_conductance, free_conductance
+    rpar = shortwave_radiation * 4.6  # Photosynthetically active radiation (PAR)
+    return (maximum_stomatal_conductance * rpar) / (
+        rpar + half_saturation_stomatal_conductance
     )
 
-    return conductance
+
+# def calculate_air_heat_conductivity_canopy(
+#     attenuation_coefficient: NDArray[np.float32],
+#     mean_mixing_length: NDArray[np.float32],
+#     molar_density_air: NDArray[np.float32],
+#     upper_height: NDArray[np.float32],
+#     lower_height: NDArray[np.float32],
+#     relative_turbulence_intensity: NDArray[np.float32],
+#     top_of_canopy_wind_speed: NDArray[np.float32],
+#     diabatic_correction_momentum: NDArray[np.float32],
+#     canopy_height: NDArray[np.float32],
+# ) -> NDArray[np.float32]:
+#   r"""Calculate air heat conductivity by turbulent convection in canopy,[mol m-2 s-1].
+
+#   Within-canopy heat conductance (:math:`g_{t}`) between any two heights :math:`z_{1}`
+#     and :math:`z_{0}` below-canopy is given by
+
+#     .. math::
+#         g_{t} = \frac{u_{h}l_{m}i_{w}a}
+#         {(exp(\frac{-a_{z_{0}}}{h-1}) - exp(\frac{-a_{z_{1}}}{h-1})) \Phi_{H}}
 
 
-def calculate_leaf_vapour_conductivity(
-    leaf_air_conductivity: NDArray[np.float32],
-    stomatal_conductance: float | NDArray[np.float32],
-) -> NDArray[np.float32]:
-    r"""Calculate leaf air conductivity for vapour, [mol m-2 s-1].
+#     where :math:`u_{h}` is wind speed at the top of the canopy at height :math:`h`,
+#     :math:`a` is a wind attenuation coefficient, :math:`i_{w}` is a coefficient
+#     describing relative turbulence intensity, :math:`l_{m}` is the mean mixing length,
+#   equivalent to the free space between the leaves and stems, and :math:`\Phi_{H}` is a
+#     within-canopy diabatic correction factor for heat.
 
-    The conductance for vapour loss from leaves :math:`g_{v}` depends on stomatal
-    conductance :math:`g_{c}` and heat conductivity between air and leaf :math:`g_{Ha}`:
+#     TODO better tests for different conditions
 
-    .. math:: g_{v} = \frac{1}{(\frac{1}{g_{Ha}} + \frac{1}{g_{c}})
+#     Args:
+#         attenuation_coefficient: Wind attenuation coefficient, dimensionless
+#         mean_mixing_length: Mixing length for canopy air transport, [m]
+#         molar_density_air: Molar density of air, [mol m-3]
+#         upper_height: Height of upper layer, [m]
+#         lower_height: Height of lower layer, [m]
+#         relative_turbulence_intensity: Relative turbulence intensity, dimensionless
+#         top_of_canopy_wind_speed: Top of canopy wind speed, [m s-1]
+#         diabatic_correction_momentum: Diabatic correction factor for momentum,
+#             dimensionless
+#         canopy_height: Canopy height, [m]
 
-    :cite:p:`maclean_microclimc_2021`.
+#     Returns:
+#        air heat conductivity by turbulent convection in the canopy, [mol m-2 s-1]
+#     """
+#     term1 = (
+#         mean_mixing_length
+#         * relative_turbulence_intensity
+#         * molar_density_air
+#         * top_of_canopy_wind_speed
+#         * attenuation_coefficient
+#     ) / diabatic_correction_momentum
 
-    Args:
-        leaf_air_conductivity: Heat conductivity between air and leaf, [mol m-2 s-1]
-        stomatal_conductance: Stomatal conductance, [mol m-2 s-1]
+#     term2 = np.exp(-attenuation_coefficient * (lower_height / canopy_height - 1))
+#     term3 = np.exp(-attenuation_coefficient * (upper_height / canopy_height - 1))
+#     return term1 / (term2 - term3)
 
-    Returns:
-        Leaf vapour conductivity, [mol m-2 s-1]
-    """
-    return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
+
+# def calculate_leaf_air_heat_conductivity(
+#     temperature: NDArray[np.float32],
+#     wind_speed: NDArray[np.float32],
+#     characteristic_dimension_leaf: float | NDArray[np.float32],
+#     temperature_difference: NDArray[np.float32],
+#     molar_density_air: NDArray[np.float32],
+#     kinematic_viscosity_parameters: list[float],
+#     thermal_diffusivity_parameters: list[float],
+#     grashof_parameter: float,
+#     forced_conductance_parameter: float,
+#     positive_free_conductance_parameter: float,
+#     negative_free_conductance_parameter: float,
+# ) -> NDArray[np.float32]:
+#   r"""Calculate forced or free laminer conductance between leaf and air,[mol m-2 s-1].
+
+#     When wind speeds are moderate to high, conduction between the leaf and air
+#     :math:`g_{Ha}` is predominantly under laminar forced convection and from e.g.
+#     :cite:t:`campbell_introduction_2012` is given by
+
+#     .. math:: g_{Ha} = \frac {0.664 \hat{\rho} D_{H} R_{e}^{0.5} P_{r}^{0.5}}{x_{d}}
+
+#     where :math:`D_{H}` is thermal diffusivity, :math:`x_{d}` is the characteristic
+#     dimension of the leaf, :math:`\hat{\rho}` is the molar density of air,
+#     :math:`R_{e}` is the Reynolds number, and :math:`P_{r}` is the Prandtl number.
+
+#     When wind speeds are low, an expression that is adequate for leaves is given by
+#     (Campbell and Norman, 2012)
+
+#     .. math:: g_{Ha} = \frac{0.54 \hat{\rho} D_{H} (G_{r}P_{r})^{0.25}}{x_{d}}
+
+#   where :math:`G_{r}` is the Grashof number. When the leaf is cooler than the air, the
+#     heat transfer is only half as efficient so the constant 0.54 becomes 0.26.
+
+#     TODO better tests for different conditions
+
+#     Args:
+#         temperature: Temperature, [C]
+#         wind_speed: Wind speed, [m s-1]
+#        characteristic_dimension_leaf: Chacteristic dimension of leaf, typically around
+#             0.7 * leaf width, [m]. This parameter can be a float, a 2D-array with one
+#             value per grid cell, or a 3D-array with one value for each layer.
+#        temperature_difference: Estimate of temperature differences of surface and air,
+#           e.g. from previous time step, see notes in :cite:t:`maclean_microclimc_2021`
+#        molar_density_air: Molar density of air, [mol m-3]
+#       kinematic_viscosity_parameters: Parameters in calculation of kinematic viscosity
+#       thermal_diffusivity_parameters: Parameters in calculation of thermal diffusivity
+#         grashof_parameter: Parameter in calculation of Grashof number
+#         forced_conductance_parameter: Parameter in calculation of forced conductance
+#         positive_free_conductance_parameter: Parameter in calculation of free
+#             conductance for positive temperature difference
+#         negative_free_conductance_parameter: Parameter in calculation of free
+#             conductance for negative temperature difference
+
+#     Returns:
+#         Leaf air heat conductance, [mol m-2 s-1]
+#     """
+
+#     temperature_k = temperature + 273.15
+#     kinematic_viscosity = (
+#         kinematic_viscosity_parameters[0] * temperature_k
+#         - kinematic_viscosity_parameters[1]
+#     ) / 10**6
+#     thermal_diffusivity = (
+#         thermal_diffusivity_parameters[0] * temperature_k
+#         - thermal_diffusivity_parameters[1]
+#     ) / 10**6
+#     grashof_number = (
+#         grashof_parameter
+#         * characteristic_dimension_leaf**3
+#         * np.abs(temperature_difference)
+#     ) / (temperature_k * kinematic_viscosity**2)
+#     reyolds_number = wind_speed * characteristic_dimension_leaf / kinematic_viscosity
+#     prandtl_number = kinematic_viscosity / thermal_diffusivity
+
+#     # Forced conductance
+#     forced_conductance = (
+#         forced_conductance_parameter
+#         * thermal_diffusivity
+#         * molar_density_air
+#         * reyolds_number**0.5
+#         * prandtl_number ** (1 / 3)
+#     ) / characteristic_dimension_leaf
+
+#     # Free conductance
+#     m = np.where(
+#         temperature_difference > 0,
+#         positive_free_conductance_parameter,
+#         negative_free_conductance_parameter,
+#     )
+#     free_conductance = (
+#         m
+#         * molar_density_air
+#         * thermal_diffusivity
+#         * (grashof_number * prandtl_number) ** (1 / 4)
+#     ) / characteristic_dimension_leaf
+
+#     # Set to whichever is higher
+#     conductance = np.where(
+#         forced_conductance > free_conductance, forced_conductance, free_conductance
+#     )
+
+#     return conductance
+
+
+# def calculate_leaf_vapour_conductivity(
+#     leaf_air_conductivity: NDArray[np.float32],
+#     stomatal_conductance: float | NDArray[np.float32],
+# ) -> NDArray[np.float32]:
+#     r"""Calculate leaf air conductivity for vapour, [mol m-2 s-1].
+
+#     The conductance for vapour loss from leaves :math:`g_{v}` depends on stomatal
+#   conductance :math:`g_{c}` and heat conductivity between air and leaf :math:`g_{Ha}`:
+
+#     .. math:: g_{v} = \frac{1}{(\frac{1}{g_{Ha}} + \frac{1}{g_{c}})
+
+#     :cite:p:`maclean_microclimc_2021`.
+
+#     Args:
+#         leaf_air_conductivity: Heat conductivity between air and leaf, [mol m-2 s-1]
+#         stomatal_conductance: Stomatal conductance, [mol m-2 s-1]
+
+#     Returns:
+#         Leaf vapour conductivity, [mol m-2 s-1]
+#     """
+#     return 1 / ((1 / leaf_air_conductivity) + (1 / stomatal_conductance))
 
 
 # def calculate_current_conductivities(

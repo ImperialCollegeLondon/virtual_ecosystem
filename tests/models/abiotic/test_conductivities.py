@@ -1,6 +1,9 @@
 """Test module for abiotic.conductivities.py."""
 
 import numpy as np
+import pytest
+
+from virtual_ecosystem.core.constants import CoreConsts
 
 
 def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
@@ -115,32 +118,76 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
     )
 
 
-# def test_calculate_air_heat_conductivity_above(dummy_climate_data):
-#     """Test heat conductivity above canopy."""
+def test_calculate_air_heat_conductivity_above(dummy_climate_data):
+    """Test heat conductivity above canopy."""
 
-#     from virtual_ecosystem.models.abiotic.conductivities import (
-#         calculate_air_heat_conductivity_above,
-#     )
+    from virtual_ecosystem.models.abiotic.conductivities import (
+        calculate_air_heat_conductivity_above,
+    )
 
-#     result = calculate_air_heat_conductivity_above(
-#         height_above_canopy=dummy_climate_data["layer_heights"][0],
-#         zero_displacement_height=(
-#             dummy_climate_data["zero_displacement_height"].to_numpy()
-#         ),
-#         canopy_height=dummy_climate_data["layer_heights"][1],
-#         friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),
-#         molar_density_air=dummy_climate_data["molar_density_air"][0].to_numpy(),
-#         diabatic_correction_heat=(
-#             dummy_climate_data["diabatic_correction_heat_above"].to_numpy()
-#         ),
-#         von_karmans_constant=CoreConsts.von_karmans_constant,
-#     )
-#     np.testing.assert_allclose(
-#         result,
-#         np.array([523.39996, 218.083317, 87.233327, 87.233327]),
-#         rtol=1e-04,
-#         atol=1e-04,
-#     )
+    result = calculate_air_heat_conductivity_above(
+        height_above_canopy=dummy_climate_data["layer_heights"][0],
+        zero_displacement_height=(
+            dummy_climate_data["zero_displacement_height"].to_numpy()
+        ),
+        canopy_height=dummy_climate_data["layer_heights"][1],
+        friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),
+        molar_density_air=dummy_climate_data["molar_density_air"][0].to_numpy(),
+        diabatic_correction_heat=(
+            dummy_climate_data["diabatic_correction_heat_above"].to_numpy()
+        ),
+        von_karmans_constant=CoreConsts.von_karmans_constant,
+    )
+    np.testing.assert_allclose(
+        result,
+        np.array([523.39996, 218.083317, 87.233327, 87.233327]),
+        rtol=1e-04,
+        atol=1e-04,
+    )
+
+
+@pytest.mark.parametrize(
+    "leaf_dimension, sensible_heat_flux, expected_gha",
+    [
+        (0.05, np.repeat(100.0, 3), np.repeat(0.168252, 3)),  # Typical case
+        (0.01, np.repeat(50.0, 3), np.repeat(0.202092, 3)),  # Smaller leaf, lower flux
+        (0.1, np.repeat(200.0, 3), np.repeat(0.168252, 3)),  # Larger leaf, higher flux
+    ],
+)
+def test_calculate_free_convection(leaf_dimension, sensible_heat_flux, expected_gha):
+    """Test calculation of free convection gha."""
+    from virtual_ecosystem.models.abiotic.conductivities import (
+        calculate_free_convection,
+    )
+
+    result = calculate_free_convection(
+        leaf_dimension=leaf_dimension, sensible_heat_flux=sensible_heat_flux
+    )
+    np.testing.assert_allclose(result, expected_gha, atol=1e-6)
+
+
+def test_calculate_stomatal_conductance():
+    """Test calculation of stomatal conductance."""
+
+    from virtual_ecosystem.models.abiotic.conductivities import (
+        calculate_stomatal_conductance,
+    )
+
+    # Define test input values
+    shortwave_radiation = np.array([1000.0, 500.0, 0.0])
+    maximum_stomatal_conductance = 0.3
+    half_saturation_stomatal_conductance = 100.0
+
+    # Expected stomatal conductance value
+    expected_conductance = np.array([0.293617, 0.2875, 0.0])
+
+    actual_conductance = calculate_stomatal_conductance(
+        shortwave_radiation=shortwave_radiation,
+        maximum_stomatal_conductance=maximum_stomatal_conductance,
+        half_saturation_stomatal_conductance=half_saturation_stomatal_conductance,
+    )
+
+    np.testing.assert_allclose(actual_conductance, expected_conductance, rtol=1e-4)
 
 
 # def test_calculate_air_heat_conductivity_canopy(dummy_climate_data):
