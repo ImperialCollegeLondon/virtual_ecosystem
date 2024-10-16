@@ -143,13 +143,13 @@ def calculate_monin_obukov_length(
     data and exclude low ustar values (ustar < ~0.2) beforehand.
 
     Args:
-        air_temperature: Air temperature, {c}
+        air_temperature: Air temperature, [C]
         friction_velocity: Friction velocity, [m s-1]
         sensible_heat_flux: Sensible heat flux, [W m-2]
         specific_heat_air: Specific heat of air, [J K-1 kg-1]
         density_air: Sensity of air, [kg m-3]
         zero_degree: Celsius to Kelvin conversion
-        von_karman_constant: Von karman constant, []
+        von_karman_constant: Von Karman constant, dimensionless
         gravity: Gravitational acceleration, [m s-2]
 
     Returns:

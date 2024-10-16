@@ -1,4 +1,11 @@
-"""The radiation model."""
+"""The radiation model calculates the radiation balance of the Virtual Ecosystem. This
+incluses direct and diffuse radiation components, shortwave and longwave radiation
+within the canopy and at the surface. The implementation is based on the 'micropoint'
+package, see https://github.com/ilyamaclean/micropoint.
+
+Part of this module will likely be replaced by pyrealm functions in the future to better
+integrate with the plant component.
+"""  # noqa: D205
 
 import numpy as np
 from numpy.typing import NDArray
@@ -6,8 +13,6 @@ from numpy.typing import NDArray
 
 def calculate_julian_day(year: int, month: int, day: int) -> int:
     """Calculate Astronomical Julian day.
-
-    Can be replaced by pyrealm version when available.
 
     Args:
         year: Year
@@ -281,7 +286,7 @@ def calculate_canopy_extinction_coefficients(
         ),
     )
 
-    # Cap extinction coefficient k at 6000
+    # Cap extinction coefficient k
     extinction_coefficient_k = np.where(
         extinction_coefficient_k > 6000.0, 6000.0, extinction_coefficient_k
     )
@@ -320,7 +325,7 @@ def calculate_diffuse_radiation_parameters(
     scatter_absorption_coefficient: float,
     backward_scattering_coefficient: float,
     diffuse_scattering_coefficient: float,
-    ground_reflectance: float,  # gref
+    ground_reflectance: float,  # gref TODO could be array with variable soil types
 ) -> list[float]:
     """Calculates parameters for diffuse radiation using two-stream model.
 
@@ -396,8 +401,6 @@ def calculate_direct_radiation_parameters(
 ) -> list[float | NDArray[np.float64]]:
     """Calculates parameters for direct radiation using two-stream model.
 
-    TODO this needs to be more readable and with more unit tests.
-
     Args:
         adjusted_plant_area_index: Plant area index adjusted by clumping factor
             # reference: pait, with(vegp,(pai/(1-clump)))
@@ -462,6 +465,7 @@ def calculate_direct_radiation_parameters(
     d2 = (u2 + diffuse_scattering_coefficient) * 1 / leaf_extinction_factor_1 - (
         u2 - diffuse_scattering_coefficient
     ) * leaf_extinction_factor_1
+
     parameter_5 = (
         -ss
         * (
@@ -488,6 +492,7 @@ def calculate_direct_radiation_parameters(
         - backward_scattering_coefficient
         - (parameter_5 / sigma) * (u1 + extinction_coefficient_kd)
     )
+
     parameter_6 = (1 / d1) * (
         (v1 / leaf_extinction_factor_1) * (u1 - diffuse_scattering_coefficient)
         - (
@@ -498,6 +503,7 @@ def calculate_direct_radiation_parameters(
         * leaf_extinction_factor_2
         * v2
     )
+
     parameter_7 = (-1 / d1) * (
         (v1 * leaf_extinction_factor_1) * (u1 + diffuse_scattering_coefficient)
         - (
@@ -508,6 +514,7 @@ def calculate_direct_radiation_parameters(
         * leaf_extinction_factor_2
         * v2
     )
+
     parameter_8 = (
         sstr
         * (
@@ -522,11 +529,13 @@ def calculate_direct_radiation_parameters(
         + backward_scattering_coefficient * ground_reflectance
         - (parameter_8 / sigma) * (u2 - extinction_coefficient_kd)
     ) * leaf_extinction_factor_2
+
     parameter_9 = (-1 / d2) * (
         (parameter_8 / (sigma * leaf_extinction_factor_1))
         * (u2 + diffuse_scattering_coefficient)
         + v3
     )
+
     parameter_10 = (1 / d2) * (
         ((parameter_8 * leaf_extinction_factor_1) / sigma)
         * (u2 - diffuse_scattering_coefficient)
@@ -567,8 +576,6 @@ def calculate_absorbed_shortwave_radiation(
     The initial model (micropoint, Maclean) is for a time series and includes a loop.
     Here, only for one time step at the moement.
 
-    TODO The ground absorption has an additional dimension, needs fixing.
-
     Args:
         plant_area_index_sum: Plant area index vertically summed, [m2 m-2]
         leaf_orientation_coefficient: Coefficient that represents how vertically or
@@ -597,6 +604,7 @@ def calculate_absorbed_shortwave_radiation(
     """
 
     absorbed_shortwave_radiation = {}
+
     # Calculate time-invariant variables
     adjusted_plant_area_index = plant_area_index_sum / (1 - clumping_factor)
 
@@ -618,6 +626,7 @@ def calculate_absorbed_shortwave_radiation(
     # Calculate inclination distribution
     inclination_distribution = np.cos(mean_inclination_angle) ** 2
 
+    # Calculate scattering coefficients
     backward_scattering_coefficient = 0.5 * (
         scattering_albedo + inclination_distribution * delta_reflectance_transmittance
     )
@@ -710,6 +719,7 @@ def calculate_absorbed_shortwave_radiation(
     beam_radiation = (
         topofcanopy_shortwave_radiation - topofcanopy_diffuse_radiation
     ) / np.cos(zenith * np.pi / 180)
+
     # Contribution of direct to downward diffuse stream
     diffuse_beam_radiation = (1 - clumping_factor_beam) * (
         (p8 / sigma) * np.exp(-kd * adjusted_plant_area_index)

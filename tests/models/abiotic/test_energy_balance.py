@@ -110,8 +110,8 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         result["canopy_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
-        np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 4)))
-        np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros(4))
+        np.testing.assert_allclose(result[var][1:4].to_numpy(), np.full((3, 4), 0.001))
+        np.testing.assert_allclose(result[var][12].to_numpy(), np.repeat(0.001, 4))
 
 
 def test_calculate_longwave_emission():

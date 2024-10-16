@@ -193,8 +193,8 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="sensible_heat_flux",
     )
-    sensible_heat_flux[layer_structure.index_filled_canopy] = 0
-    sensible_heat_flux[layer_structure.index_topsoil] = 0
+    sensible_heat_flux[layer_structure.index_filled_canopy] = 0.001
+    sensible_heat_flux[layer_structure.index_topsoil] = 0.001
     output["sensible_heat_flux"] = sensible_heat_flux
 
     # Initialise latent heat flux with zeros and write in output dict
@@ -207,7 +207,7 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="ground_heat_flux",
     )
-    ground_heat_flux[layer_structure.index_topsoil] = 0
+    ground_heat_flux[layer_structure.index_topsoil] = 0.001
     output["ground_heat_flux"] = ground_heat_flux
 
     return output
