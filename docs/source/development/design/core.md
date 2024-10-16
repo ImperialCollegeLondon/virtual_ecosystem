@@ -1,14 +1,26 @@
 ---
-jupyter:
-  jupytext:
-    cell_metadata_filter: all,-trusted
-    main_language: python
-    notebook_metadata_filter: settings,mystnb,language_info
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.16.4
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # Design notes for the `core` module
@@ -194,7 +206,7 @@ present.
 <!-- markdownlint-disable MD012 # jupytext adds a line that markdownlint dislikes -->
 
 
-```{code-cell} ipython3
+```{code-block} ipython3
 class DataGenerator:
 
     def __init__(
@@ -219,7 +231,7 @@ A user could provide a scalar (so a global value) or an array (matching a spatia
 or mapping) that stipulates a method and keyword arguments. So here a DataGenerator
 might be:
 
-```{code-cell} ipython3
+```{code-block} ipython3
 # Global value varying as a normal distribution around 5
 ex1 = DataGenerator(loc=5, scale=2, distribution="normal")
 # A 2x2 grid with lognormal values with mean varying by cell, but constant variation.
@@ -231,7 +243,7 @@ need a time axis giving the temporal location of the sampling points, which coul
 interpolated if necessary. So for example, a 2 x 2 grid with normally distributed values
 that increase in location and scale over a year.
 
-```{code-cell} ipython3
+```{code-block} ipython3
 loc = [[[1, 2], [3, 4]], [[2, 3], [4, 5]]]
 
 scale = [[[1, 1], [1, 1]], [[1.2, 1.2], [1.2, 1.2]]]

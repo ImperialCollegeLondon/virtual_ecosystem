@@ -184,15 +184,11 @@ The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init` 
 new instance of the model. Each entry should provide a variable name and then another
 tuple that sets any required axes for the variable. For example:
 
-```{code-cell} ipython3
-:lines_to_next_cell: 2
-
+```{code-block} ipython3
 ()  # no required variables
 (("temperature", ()),)  # temperature must be present, no core axes
 (("temperature", ("spatial",)),)  # temperature must be present and on the spatial axis
 ```
-
-+++ {"lines_to_next_cell": 2}
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute : This
 is a tuple that provides information about which data object variables are updated by
@@ -213,8 +209,7 @@ into a time period
 These values are set as class attributes by providing them as arguments to the class
 signature. You will end up with something like the following:
 
-```{code-cell} ipython3
-:lines_to_next_cell: 2
+```{code-block} ipython3
 
 class FreshWaterModel(
     BaseModel,
@@ -230,8 +225,6 @@ class FreshWaterModel(
     """
 ```
 
-+++ {"lines_to_next_cell": 2}
-
 ### Defining the model `__init__` method
 
 The next step is to define the `__init__` method for the class. This needs to do a few
@@ -246,9 +239,9 @@ things.
    method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
    also known as the superclass:
 
-   ```{code-cell} ipython3
-   super().__init__(data, update_interval, **kwargs)
-   ```
+```{code-block} ipython3
+super().__init__(data, update_interval, **kwargs)
+```
 
    Calling this method runs all of the shared functionality across models, such as
    setting the update intervals and validating the input data.
@@ -263,7 +256,7 @@ things.
 
 You should end up with something like this:
 
-```{code-cell} ipython3
+```{code-block} ipython3
 def __init__(
     self,
     data: Data,
@@ -427,13 +420,9 @@ configuration process but also provides a dictionary interface to the configurat
 data. So, the example above might result in a `Config` object with the following model
 specific data.
 
-```{code-cell} ipython3
-:lines_to_next_cell: 2
-
+```{code-block} ipython3
 {"freshwater": {"update_interval": "1 month", "no_of_ponds": 3}}
 ```
-
-+++ {"lines_to_next_cell": 2}
 
 The job of the `from_config` method for a model is to take that configuration, along
 with the shared `data` and `start_time` inputs, and then do any processing and
@@ -453,9 +442,7 @@ the config.
 
 As an example:
 
-```{code-cell} ipython3
-:lines_to_next_cell: 2
-
+```{code-block} ipython3
 @classmethod
 def from_config(
     cls, data: Data, config: Config, update_interval: Quantity
@@ -484,8 +471,6 @@ def from_config(
     return cls(data, update_interval, no_pools, constants)
 ```
 
-+++ {"lines_to_next_cell": 2}
-
 ## Other model steps
 
 There are four functions that must be included as part of the model class. The names and
@@ -495,9 +480,7 @@ that kind of API change is something that would require significant discussion. 
 there's no need to include any particular content within them (i.e. they can just be
 function definitions with docstrings).
 
-```{code-cell} ipython3
-:lines_to_next_cell: 2
-
+```{code-block} ipython3
 def setup(self) -> None:
     """Placeholder function to set up the freshwater model."""
 

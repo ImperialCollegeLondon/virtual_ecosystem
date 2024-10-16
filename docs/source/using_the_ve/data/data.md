@@ -109,8 +109,8 @@ two methods:
    a DataArray from supported file formats. This can then be added directly to a Data
    instance:
 
-```{code-cell} ipython3
-data["var_name"] = load_to_dataarray("path/to/file.nc", var="temperature")
+```{code-block} ipython3
+data["var_name"] = load_to_dataarray("path/to/file.nc", var_name="temperature")
 ```
 
 1. The  {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method takes a
@@ -245,14 +245,17 @@ data
 The entire contents of the `Data` object can be output using the
 {meth}`~virtual_ecosystem.core.data.Data.save_to_netcdf` method:
 
-```{code-cell} ipython3
-data.save_to_netcdf(output_file_path)
+```{code-block} ipython3
+data.save_to_netcdf(output_file_path=output_file_path)
 ```
 
 Alternatively, a smaller netCDF can be output containing only variables of interest.
 This is done by providing a list specifying what those variables are to the function.
 
-```{code-cell} ipython3
+```{code-block} ipython3
 variables_to_save = ["variable_a", "variable_b"]
-data.save_to_netcdf(output_file_path, variables_to_save)
+data.save_to_netcdf(
+    output_file_path=output_file_path,
+    variables_to_save=variables_to_save
+)
 ```
