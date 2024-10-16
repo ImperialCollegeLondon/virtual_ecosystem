@@ -12,10 +12,11 @@ subtrees:
               - file: virtual_ecosystem/theory/microclimate_theory
               - file: virtual_ecosystem/theory/hydrology_theory
           - file: virtual_ecosystem/theory/plant_theory
-          - file: virtual_ecosystem/theory/decay/decay_theory
+          - file: virtual_ecosystem/theory/soil/summary
             entries:
-              - file: virtual_ecosystem/theory/decay/soil_theory
-              - file: virtual_ecosystem/theory/decay/litter_theory
+              - file: virtual_ecosystem/theory/soil/soil_theory
+              - file: virtual_ecosystem/theory/soil/litter_theory
+              - file: virtual_ecosystem/theory/soil/environmental_links
           - file: virtual_ecosystem/theory/animals/animal_theory
             entries:
               - file: virtual_ecosystem/theory/animals/carcasses_and_excrement

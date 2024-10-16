@@ -184,7 +184,7 @@ occluded phosphorus which is irrecoverably bound within a mineral structure.
 ### Further details
 
 Further theoretical background for the Soil Model can be found
-[here](../theory/decay/decay_theory.md).
+[here](../theory/soil/summary.md).
 
 ## Animal Model
 

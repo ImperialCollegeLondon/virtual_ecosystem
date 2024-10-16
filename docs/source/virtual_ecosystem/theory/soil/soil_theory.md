@@ -1,4 +1,4 @@
-# Theory of the soil
+# Theory of the soil model
 
 This page provides general details of the theory underlying the soil module, it is
 currently a bit of a work in progress as the soil model is being actively extended at
