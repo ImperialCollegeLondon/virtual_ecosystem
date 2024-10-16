@@ -258,7 +258,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     lmwc=DataArray(
-                        [0.05110324, 0.0229453, 0.09239938, 0.01485271], dims="cell_id"
+                        [0.05110474, 0.02294602, 0.0923997, 0.01485682], dims="cell_id"
                     ),
                     maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
@@ -268,7 +268,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         dims="cell_id",
                     ),
                     pom=DataArray(
-                        [0.10088985, 0.99607906, 0.69401895, 0.35272921], dims="cell_id"
+                        [0.10088826, 0.99607827, 0.69401858, 0.35272508], dims="cell_id"
                     ),
                     necromass=DataArray(
                         [0.05840539, 0.01865113, 0.10632815, 0.06904724], dims="cell_id"
@@ -398,10 +398,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
 
     delta_pools = [
-        0.0022585928,
-        0.0060483065,
-        -0.019175058,
-        0.024247214,
+        0.00226177439,
+        0.006049897295,
+        -0.019174323,
+        0.024255464,
         0.038767651,
         0.00829848,
         0.05982197,
@@ -410,10 +410,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -0.02020101,
         -0.10280967,
         -0.00719517,
-        0.00178122,
-        -0.00785937,
-        -0.01201551,
-        0.00545857,
+        0.00177803841,
+        -0.007860960795,
+        -0.012016245,
+        0.00545032,
         0.001137474,
         0.009172067,
         0.033573266,

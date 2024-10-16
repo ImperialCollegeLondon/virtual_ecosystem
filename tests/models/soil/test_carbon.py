@@ -15,10 +15,10 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
     from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.0022585928, 0.0060483065, -0.019175058, 0.024247214],
+        "soil_c_pool_lmwc": [0.00226177439, 0.006049897295, -0.019174323, 0.024255464],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
         "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
-        "soil_c_pool_pom": [0.00178122, -0.00785937, -0.01201551, 0.00545857],
+        "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],

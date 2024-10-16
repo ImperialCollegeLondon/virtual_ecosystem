@@ -176,11 +176,17 @@ def calculate_soil_carbon_updates(
         sorption_rate_constant=model_constants.lmwc_sorption_rate,
     )
 
-    # TODO - Add mineralisation to lmwc flow
+    # Calculate the split of the mineralisation flux between dissolved and particulate
+    # forms
+    mineralisation_fluxes = calculate_mineralisation_split(
+        mineralisation_rate=mineralisation_rate,
+        litter_leaching_coefficient=model_constants.litter_leaching_fraction_carbon,
+    )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        enzyme_mediated.pom_to_lmwc
+        mineralisation_fluxes["dissolved"]
+        + enzyme_mediated.pom_to_lmwc
         + enzyme_mediated.maom_to_lmwc
         + maom_desorption_to_lmwc
         + necromass_decay_to_lmwc
@@ -196,7 +202,7 @@ def calculate_soil_carbon_updates(
     )
     delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_rate - enzyme_mediated.pom_to_lmwc
+        mineralisation_fluxes["particulate"] - enzyme_mediated.pom_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
         microbial_changes.necromass_generation
