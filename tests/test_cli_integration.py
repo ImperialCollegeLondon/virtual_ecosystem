@@ -67,4 +67,4 @@ def test_ve_run(capsys, mocker):
             # logging rather than leaving all other tests logging to the file and then
             # fail the test.
             remove_file_logger()
-            pytest.fail(msg=str(excep))
+            pytest.fail(reason=str(excep))
