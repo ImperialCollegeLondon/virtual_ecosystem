@@ -1,3 +1,28 @@
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+---
+
 # Hydrology
 
 This page provides an overview of the [key factors](#factors-affecting-hydrology)
@@ -126,7 +151,7 @@ loss.
 Infiltration rates depend on soil type, soil moisture, land cover, and land management
 practices. Enhanced infiltration reduces surface runoff and recharges groundwater.
 * **Bypass flow**: Some of the water that infiltarted into the soil bypasses the soil
-matrix and drains directly to the groundwater, for example through soil pipes.  
+matrix and drains directly to the groundwater, for example through soil pipes.
 * **Groundwater flow**: Water that infiltrates the soil can percolate down to recharge
 groundwater aquifers. Groundwater flow contributes to maintaining base flow in rivers
 and streams during dry periods. The rate of groundwater flow is determined by the

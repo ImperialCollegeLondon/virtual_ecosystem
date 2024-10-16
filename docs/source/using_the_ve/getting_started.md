@@ -1,3 +1,28 @@
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+---
+
 # Getting started
 
 ## Installing the Virtual Ecosystem model
@@ -34,8 +59,8 @@ ve_run --install-example /path/
 You can then run the model itself:
 
 ```shell
-ve_run /path/ve_example/config \ 
-    --outpath /path/ve_example/config/out \ 
+ve_run /path/ve_example/config \
+    --outpath /path/ve_example/config/out \
     --logfile /path/ve_example/out/ve_example.log
 ```
 

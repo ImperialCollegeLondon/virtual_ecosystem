@@ -5,11 +5,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # Creating new Virtual Ecosystem models
@@ -103,7 +113,7 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 @dataclass(frozen=True)
 class FreshwaterConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `example_model` model."""
-    
+
     # Constants must be typed, to make them configurable instance attributes.
     example_constant_1: float = -1.27
     """Details of source of constant and its units."""
@@ -125,14 +135,14 @@ subclass.
 
 ```{code-block} python
 
-# The BaseModel.from_config factory method returns an instance of the class, and 
+# The BaseModel.from_config factory method returns an instance of the class, and
 # annotations is required to allow typing to understand this return value.
 from __future__ import annotations
 
 # To support the kwargs argument to BaseModel.__init__
 from typing import Any
 
-# Data in the Virtual Ecosystem is stored as xarray.DataArrays and array calculations 
+# Data in the Virtual Ecosystem is stored as xarray.DataArrays and array calculations
 # typically use numpy.
 import numpy as np
 import xarray
@@ -152,7 +162,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 
-# You will likely also have a set of imports of model specific code such as constants 
+# You will likely also have a set of imports of model specific code such as constants
 # classes and other classes and functions. For example:
 from virtual_ecosystem.models.freshwater.constants import FreshwaterConsts
 from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
@@ -174,10 +184,10 @@ The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_required_for_init` 
 new instance of the model. Each entry should provide a variable name and then another
 tuple that sets any required axes for the variable. For example:
 
-```python
+```{code-block} ipython3
 ()  # no required variables
-(('temperature', ()),) # temperature must be present, no core axes
-(('temperature', ('spatial',)),) # temperature must be present and on the spatial axis
+(("temperature", ()),)  # temperature must be present, no core axes
+(("temperature", ("spatial",)),)  # temperature must be present and on the spatial axis
 ```
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.vars_updated` attribute : This
@@ -199,13 +209,14 @@ into a time period
 These values are set as class attributes by providing them as arguments to the class
 signature. You will end up with something like the following:
 
-```python
+```{code-block} ipython3
+
 class FreshWaterModel(
-    BaseModel, 
-    model_name = "freshwater",
-    model_update_bounds = ("1 day", "1 month"),
-    vars_required_for_init = (('temperature', ('spatial', )), ),
-    vars_updated = ("average_P_concentration",),
+    BaseModel,
+    model_name="freshwater",
+    model_update_bounds=("1 day", "1 month"),
+    vars_required_for_init=(("temperature", ("spatial",)),),
+    vars_updated=("average_P_concentration",),
 ):
     """Docstring describing model.
 
@@ -228,9 +239,9 @@ things.
    method of the {meth}`~virtual_ecosystem.core.base_model.BaseModel` parent class,
    also known as the superclass:
 
-   ```python
-   super().__init__(data, update_interval, **kwargs)
-   ```
+```{code-block} ipython3
+super().__init__(data, update_interval, **kwargs)
+```
 
    Calling this method runs all of the shared functionality across models, such as
    setting the update intervals and validating the input data.
@@ -245,7 +256,7 @@ things.
 
 You should end up with something like this:
 
-```python
+```{code-block} ipython3
 def __init__(
     self,
     data: Data,
@@ -254,21 +265,21 @@ def __init__(
     constants: FreshwaterConsts,
     **kwargs: Any,
 ):
-        
+
     # Sanity checking of input variables goes here
     if no_of_ponds < 0:
         to_raise = InitialisationError(
-                "There has to be at least one pond in the freshwater model!"
-            )
+            "There has to be at least one pond in the freshwater model!"
+        )
         LOGGER.error(to_raise)
         raise to_raise
-        
+
     # Call the __init__() method of the base class
     super().__init__(data, update_interval, **kwargs)
 
     # Store model specific details as attributes.
     self.no_of_ponds = int(no_of_ponds)
-    
+
     # Store the constants relevant to the freshwater model
     self.constants = constants
 
@@ -409,8 +420,8 @@ configuration process but also provides a dictionary interface to the configurat
 data. So, the example above might result in a `Config` object with the following model
 specific data.
 
-```python
-{'freshwater': {'update_interval': "1 month",  "no_of_ponds": 3}}
+```{code-block} ipython3
+{"freshwater": {"update_interval": "1 month", "no_of_ponds": 3}}
 ```
 
 The job of the `from_config` method for a model is to take that configuration, along
@@ -431,7 +442,7 @@ the config.
 
 As an example:
 
-```python
+```{code-block} ipython3
 @classmethod
 def from_config(
     cls, data: Data, config: Config, update_interval: Quantity
@@ -447,7 +458,7 @@ def from_config(
         config: A validated Virtual Ecosystem model configuration object.
         update_interval: Frequency with which all models are updated
     """
-    
+
     # Non-timing details now extracted
     no_of_pools = config["freshwater"]["no_of_pools"]
 
@@ -458,7 +469,6 @@ def from_config(
         "Information required to initialise the soil model successfully extracted."
     )
     return cls(data, update_interval, no_pools, constants)
-
 ```
 
 ## Other model steps
@@ -470,12 +480,14 @@ that kind of API change is something that would require significant discussion. 
 there's no need to include any particular content within them (i.e. they can just be
 function definitions with docstrings).
 
-```python
+```{code-block} ipython3
 def setup(self) -> None:
     """Placeholder function to set up the freshwater model."""
 
+
 def spinup(self) -> None:
     """Placeholder function to spin up the freshwater model."""
+
 
 # While model updates have to take time_index as an argument, they do not necessarily
 # have to use it anywhere
@@ -487,6 +499,7 @@ def update(self, time_index: int) -> None:
     """
 
     # Model simulation + update steps go in here.
+
 
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
@@ -506,14 +519,14 @@ In the Virtual Ecosystem, we use the `__init__.py` file in model submodules to:
 The file will look something like:
 
 ```{code-block} python
-"""This is the freshwater model module. The module level docstring should contain a 
-short description of the overall model design and purpose, and link to key components 
+"""This is the freshwater model module. The module level docstring should contain a
+short description of the overall model design and purpose, and link to key components
 and how they interact.
 """  # noqa: D204, D415
 
 from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
     FreshwaterModel,
-)  
+)
 ```
 
 Under the hood, when a given model is used in a simulation, then the configuration
