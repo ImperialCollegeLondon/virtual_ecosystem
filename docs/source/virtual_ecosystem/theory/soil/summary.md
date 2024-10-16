@@ -26,10 +26,14 @@ detailed modelling effort soil processes than the litter model. The biggest obst
 this model faces is data limitation, as soils are generally poorly characterised
 compared to the other constituent parts of terrestrial ecosystems.
 
+Most processes in the soil are effected by both the environmental temperature and the
+soil moisture. The specific of how we have implemented these known effects are provided
+[here](./environmental_links.md).
+
 :::{admonition} Future directions :telescope:
 
 There are ecologically explicit extensions to the litter model - such as
-modelling of litter microbes and invertebrates - that could increase the realism of
+modelling of litter microbial communities - that could increase the realism of
 litter model, but the current model is expected to be sufficient in the short term.
 
 :::

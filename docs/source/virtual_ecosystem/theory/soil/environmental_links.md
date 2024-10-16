@@ -1,7 +1,7 @@
 # Environmental impacts on soil processes
 
-TODO - Link to this in the overall theory page
 TODO - Add intro
+TODO - Rephrase the below to make clear what is and isn't litter specific
 
 The decay rates of all classes of litter are effected by temperature. For the
 above-ground pools, this temperature is simply the air temperature just above the soil
