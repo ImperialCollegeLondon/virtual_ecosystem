@@ -123,24 +123,26 @@ def calculate_roughness_length_momentum(
 
 
 def calculate_monin_obukov_length(
-    air_temperature: NDArray[np.float64],
-    friction_velocity: NDArray[np.float64],
-    sensible_heat_flux: NDArray[np.float64],
-    specific_heat_air: NDArray[np.float64],
-    density_air: NDArray[np.float64],
+    air_temperature: NDArray[np.float32],
+    friction_velocity: NDArray[np.float32],
+    sensible_heat_flux: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    density_air: NDArray[np.float32],
     zero_degree: float,
     von_karman_constant: float,
     gravity: float,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float32]:
     r"""Calculate Monin-Obukov length.
 
-    The Monin-Obukhov length (L) is given by:
+    The Monin-Obukhov length (:math:`L`) is given by:
 
-    :math:`L = -(\rho \dot cp \dot ustar**3 \dot T_{air})/(k \dot g \dot H)`
+    :math:`L = -(\rho cp u_{*}^{3} T_{air})/(k g H)`
+
     Foken, T, 2008: Micrometeorology. Springer, Berlin, Germany.
-    Note that L gets very small for very low ustar values with implications
-    for subsequent functions using L as input. It is recommended to filter
-    data and exclude low ustar values (ustar < ~0.2) beforehand.
+
+    Note that :math:`L` gets very small for very low ustar values with implications
+    for subsequent functions using :math:`L` as input. It is recommended to filter
+    data and exclude low ustar values (:math:`u_{*}` < ~0.2) beforehand.
 
     Args:
         air_temperature: Air temperature, [C]
@@ -168,13 +170,14 @@ def calculate_monin_obukov_length(
 
 def calculate_stability_parameter(
     reference_height: float,
-    zero_plance_displacement: NDArray[np.float64],
-    monin_obukov_length: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    zero_plance_displacement: NDArray[np.float32],
+    monin_obukov_length: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate stability parameter zeta.
 
     Zeta is a parameter in Monin-Obukov Theory that characterizes stratification in
     the lower atmosphere:
+
     zeta = (reference_height - zero_plance_displacenemt)/ monin-obukov_length
 
     Args:
@@ -189,37 +192,49 @@ def calculate_stability_parameter(
 
 
 def calculate_diabatic_correction_factors(
-    stability_parameter: NDArray[np.float64],
+    stability_parameter: NDArray[np.float32],
     stability_formulation: str,
-) -> dict[str, NDArray[np.float64]]:
+) -> dict[str, NDArray[np.float32]]:
     r"""Integrated Stability Correction Functions for Heat and Momentum.
 
     Dimensionless stability functions needed to correct deviations from the exponential
     wind profile under non-neutral conditions. The functions give the integrated form of
     the universal functions. They depend on the value of the stability parameter
     :math:`\zeta`.
+
     The integration of the universal functions is:
-    :math:`psi = -x * \zeta`
+
+    :math:`\Psi = -x * \zeta`
+
     for stable atmospheric conditions (:math:`\zeta >= 0`), and
-    :math:`\psi = 2 * log( (1 + y) / 2)`
+
+    :math:`\Psi = 2 * log( (1 + y) / 2)`
+
     for unstable atmospheric conditions (:math:`\zeta < 0`).
+
     The different formulations differ in their value of x and y.
+
+    References:
     Dyer, A.J., 1974: A review of flux-profile relationships.
     Boundary-Layer Meteorology 7, 363-372.
+
     Dyer, A. J., Hicks, B.B., 1970: Flux-Gradient relationships in the
     constant flux layer. Quart. J. R. Meteorol. Soc. 96, 715-721.
+
     Businger, J.A., Wyngaard, J. C., Izumi, I., Bradley, E. F., 1971:
     Flux-Profile relationships in the atmospheric surface layer.
     J. Atmospheric Sci. 28, 181-189.
+
     Paulson, C.A., 1970: The mathematical representation of wind speed
     and temperature profiles in the unstable atmospheric surface layer.
     Journal of Applied Meteorology 9, 857-861.
+
     Foken, T, 2008: Micrometeorology. Springer, Berlin, Germany.
 
     Args:
         stability_parameter: Stability parameter zeta (-)
-        stability_formulation: Formulation for the stability function.
-        Either \code{"Dyer_1970"} or \code{"Businger_1971"}
+        stability_formulation: Formulation for the stability function. Either Dyer_1970
+            or Businger_1971
 
     Returns:
         psi_h, the value of the stability function for heat and water vapor (-), and
@@ -258,8 +273,8 @@ def calculate_diabatic_correction_factors(
 
 
 def calculate_diabatic_influence_heat(
-    stability_parameter: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    stability_parameter: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate the diabatic influencing factor for heat.
 
     Args:
@@ -591,14 +606,14 @@ def calculate_diabatic_influence_heat(
 
 
 def calculate_friction_velocity(
-    wind_speed_ref: NDArray[np.float64],
-    canopy_height: NDArray[np.float64],
-    zeroplane_displacement: NDArray[np.float64],
-    roughness_length_momentum: NDArray[np.float64],
-    diabatic_correction_momentum: float | NDArray[np.float64],
+    wind_speed_ref: NDArray[np.float32],
+    canopy_height: NDArray[np.float32],
+    zeroplane_displacement: NDArray[np.float32],
+    roughness_length_momentum: NDArray[np.float32],
+    diabatic_correction_momentum: float | NDArray[np.float32],
     von_karmans_constant: float,
     min_friction_velocity: float,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float32]:
     """Calculate friction velocity from wind speed at reference height, [m s-1].
 
     Args:
@@ -607,9 +622,7 @@ def calculate_friction_velocity(
         zeroplane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
         roughness_length_momentum: Momentum roughness length, [m]
-        diabatic_correction_momentum: Diabatic correction factor for momentum as
-            returned by
-            :func:`~virtual_ecosystem.models.abiotic.wind.calculate_diabatic_correction_above`
+        diabatic_correction_momentum: Diabatic correction factor for momentum
         von_karmans_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.

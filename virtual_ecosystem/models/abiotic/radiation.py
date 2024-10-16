@@ -40,7 +40,7 @@ def calculate_julian_day(year: int, month: int, day: int) -> int:
 
 
 def calculate_solar_time(
-    julian_day: int, local_time: float, longitude: NDArray[np.float64]
+    julian_day: int, local_time: float, longitude: NDArray[np.float32]
 ) -> float:
     """Calculate solar time.
 
@@ -67,13 +67,13 @@ def calculate_solar_time(
 
 
 def calculate_solar_position(
-    latitude: NDArray[np.float64],
-    longitude: NDArray[np.float64],
+    latitude: NDArray[np.float32],
+    longitude: NDArray[np.float32],
     year: int,
     month: int,
     day: int,
     local_time: float,
-) -> list[NDArray[np.float64]]:
+) -> list[NDArray[np.float32]]:
     """Calculate solar position.
 
     Args:
@@ -142,12 +142,12 @@ def calculate_solar_position(
 
 
 def calculate_solar_index(
-    slope: NDArray[np.float64],
-    aspect: NDArray[np.float64],
-    zenith: NDArray[np.float64],
-    azimuth: NDArray[np.float64],
+    slope: NDArray[np.float32],
+    aspect: NDArray[np.float32],
+    zenith: NDArray[np.float32],
+    azimuth: NDArray[np.float32],
     shadowmask=bool,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float32]:
     """Calculate the solar index.
 
     Parameters:
@@ -183,11 +183,11 @@ def calculate_solar_index(
 
 
 def calculate_clear_sky_radiation(
-    solar_zenith_angle: NDArray[np.float64],
-    temperature: NDArray[np.float64],
-    relative_humidity: NDArray[np.float64],
-    atmospheric_pressure: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    solar_zenith_angle: NDArray[np.float32],
+    temperature: NDArray[np.float32],
+    relative_humidity: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate the clear sky radiation for a given set of dates and locations.
 
     Parameters:
@@ -252,10 +252,10 @@ def calculate_clear_sky_radiation(
 
 
 def calculate_canopy_extinction_coefficients(
-    solar_zenith_angle: NDArray[np.float64],
+    solar_zenith_angle: NDArray[np.float32],
     leaf_inclination_angle_coefficient: float,
-    solar_index: NDArray[np.float64],
-) -> list[NDArray[np.float64]]:
+    solar_index: NDArray[np.float32],
+) -> list[NDArray[np.float32]]:
     """Calculate the canopy extinction coefficients for sloped ground surfaces.
 
     Parameters:
@@ -322,7 +322,7 @@ def calculate_canopy_extinction_coefficients(
 
 
 def calculate_diffuse_radiation_parameters(
-    adjusted_plant_area_index: NDArray[np.float64],
+    adjusted_plant_area_index: NDArray[np.float32],
     scatter_absorption_coefficient: float,
     backward_scattering_coefficient: float,
     diffuse_scattering_coefficient: float,
@@ -388,7 +388,7 @@ def calculate_diffuse_radiation_parameters(
 
 
 def calculate_direct_radiation_parameters(
-    adjusted_plant_area_index: NDArray[np.float64],
+    adjusted_plant_area_index: NDArray[np.float32],
     scattering_albedo: float,
     scatter_absorption_coefficient: float,
     backward_scattering_coefficient: float,
@@ -396,10 +396,10 @@ def calculate_direct_radiation_parameters(
     ground_reflectance: float,
     inclination_distribution: float,
     delta_reflectance_transmittance: float,
-    extinction_coefficient_k: NDArray[np.float64],
-    extinction_coefficient_kd: NDArray[np.float64],
+    extinction_coefficient_k: NDArray[np.float32],
+    extinction_coefficient_kd: NDArray[np.float32],
     sigma: float,
-) -> list[float | NDArray[np.float64]]:
+) -> list[float | NDArray[np.float32]]:
     """Calculates parameters for direct radiation using two-stream model.
 
     Args:
@@ -554,24 +554,24 @@ def calculate_direct_radiation_parameters(
 
 
 def calculate_absorbed_shortwave_radiation(
-    plant_area_index_sum: NDArray[np.float64],
-    leaf_orientation_coefficient: NDArray[np.float64],
+    plant_area_index_sum: NDArray[np.float32],
+    leaf_orientation_coefficient: NDArray[np.float32],
     leaf_reluctance_shortwave: float,
     leaf_transmittance_shortwave: float,
     clumping_factor: float,
     ground_reflectance: float,
-    slope: NDArray[np.float64],
-    aspect: NDArray[np.float64],
-    latitude: NDArray[np.float64],
-    longitude: NDArray[np.float64],
+    slope: NDArray[np.float32],
+    aspect: NDArray[np.float32],
+    latitude: NDArray[np.float32],
+    longitude: NDArray[np.float32],
     year: int,
     month: int,
     day: int,
     local_time: float,
-    topofcanopy_shortwave_radiation: NDArray[np.float64],
-    topofcanopy_diffuse_radiation: NDArray[np.float64],
+    topofcanopy_shortwave_radiation: NDArray[np.float32],
+    topofcanopy_diffuse_radiation: NDArray[np.float32],
     leaf_inclination_angle_coefficient: float,
-) -> dict[str, NDArray[np.float64]]:
+) -> dict[str, NDArray[np.float32]]:
     """Calculate absorbed shortwave radiation for ground and canopy.
 
     The initial model (micropoint, Maclean) is for a time series and includes a loop.
@@ -797,10 +797,10 @@ def calculate_absorbed_shortwave_radiation(
 # longwave radiation
 def calculate_canopy_longwave_emission(
     leaf_emissivity: float,
-    canopy_temperature: NDArray[np.float64],
+    canopy_temperature: NDArray[np.float32],
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float32]:
     """Calculate mean canopy longwave emission.
 
     Args:
@@ -822,10 +822,10 @@ def calculate_canopy_longwave_emission(
 
 def calculate_longwave_emission_ground(
     ground_emissivity: float,
-    radiation_transmission_coefficient: NDArray[np.float64],
-    longwave_downward_radiation_sky: NDArray[np.float64],
-    canopy_longwave_emission: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    radiation_transmission_coefficient: NDArray[np.float32],
+    longwave_downward_radiation_sky: NDArray[np.float32],
+    canopy_longwave_emission: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate longwave emission from ground surface.
 
     Args:

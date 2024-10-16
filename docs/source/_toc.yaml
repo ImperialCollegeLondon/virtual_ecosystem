@@ -119,6 +119,8 @@ subtrees:
                 title: The abiotic_constants submodule
               - file: api/models/abiotic/abiotic_tools
                 title: The abiotic_tools submodule
+              - file: api/models/abiotic/radiation
+                title: The radiation submodule
               - file: api/models/abiotic/conductivities
                 title: The conductivities submodule
               - file: api/models/abiotic/energy_balance
