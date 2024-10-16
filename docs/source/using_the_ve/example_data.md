@@ -1,3 +1,16 @@
+---
+jupyter:
+  jupytext:
+    cell_metadata_filter: all,-trusted
+    main_language: python
+    notebook_metadata_filter: settings,mystnb,language_info
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.16.4
+---
+
 # Virtual Ecosystem example data
 
 Example data is included with Virtual Ecosystem to provide an introduction to the file
@@ -220,39 +233,39 @@ The `example_soil_data.nc` file provides:
   - Unit
   - Dims
 * - pH
-  - `pH` 
+  - `pH`
   - unitless
   - XY
 * - Bulk soil density
-  - `bulk_density` 
+  - `bulk_density`
   - kg $\textrm{m}^{-3}$
   - XY
 * - Soil clay fraction
-  - `clay_fraction` 
+  - `clay_fraction`
   - unitless
   - XY
 * - Soil low molecular weight carbon pool
-  - `soil_c_pool_lmwc` 
+  - `soil_c_pool_lmwc`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil mineral associated organic matter carbon pool
-  - `soil_c_pool_maom` 
+  - `soil_c_pool_maom`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil microbial carbon pool
-  - `soil_c_pool_microbe` 
+  - `soil_c_pool_microbe`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil particulate organic matter carbon pool
-  - `soil_c_pool_pom` 
+  - `soil_c_pool_pom`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil particulate organic matter enzyme pool
-  - `soil_enzyme_pom` 
+  - `soil_enzyme_pom`
   - kg C $\textrm{m}^{-3}$
   - XY
 * - Soil mineral associated organic matter enzyme pool
-  - `soil_enzyme_maom` 
+  - `soil_enzyme_maom`
   - kg C $\textrm{m}^{-3}$
   - XY
 ```
@@ -279,23 +292,23 @@ The `example_litter_data.nc` file provides:
   - Dims
 * - above ground metabolic litter pools
   - `litter_pool_above_metabolic`
-  - kg C $\textrm{m}^{-2}$ 
+  - kg C $\textrm{m}^{-2}$
   - XY
 * - above ground structural litter pools
   - `litter_pool_above_structural`
-  - kg C $\textrm{m}^{-2}$ 
+  - kg C $\textrm{m}^{-2}$
   - XY
 * - woody litter pools
   - `litter_pool_woody`
-  - kg C $\textrm{m}^{-2}$ 
+  - kg C $\textrm{m}^{-2}$
   - XY
 * - below ground metabolic litter pools
   - `litter_pool_below_metabolic`
-  - kg C $\textrm{m}^{-2}$ 
+  - kg C $\textrm{m}^{-2}$
   - XY
 * - below ground structural litter pools
   - `litter_pool_below_structural`
-  - kg C $\textrm{m}^{-2}$ 
+  - kg C $\textrm{m}^{-2}$
   - XY
 * - lignin proportion of above ground structural litter
   - `lignin_above_structural`

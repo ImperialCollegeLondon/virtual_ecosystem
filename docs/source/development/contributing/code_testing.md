@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3
   language: python
@@ -35,7 +35,7 @@ Further future tests may include:
 existing implementations of some functionality, such as the `SPLASH` or `microclimc`
 packages
 * profiling
-  
+
 The test suite can be run from repository using:
 
 ```bash
@@ -57,7 +57,7 @@ We have configured `pytest` to automatically also run `doctest`, but you can man
 check the tests in files using, for example:
 
 ```bash
-poetry run python -m doctest virtual_ecosystem/core/constants.py 
+poetry run python -m doctest virtual_ecosystem/core/constants.py
 ```
 
 Normally, `doctest` is just used to test a return value: the value tested is the value

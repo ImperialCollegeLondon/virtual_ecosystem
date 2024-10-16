@@ -1,3 +1,16 @@
+---
+jupyter:
+  jupytext:
+    cell_metadata_filter: all,-trusted
+    main_language: python
+    notebook_metadata_filter: settings,mystnb,language_info
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.16.4
+---
+
 # Design notes for the `core` module
 
 ## Configuration
@@ -30,7 +43,7 @@ reasons make use of the `toml` file format for configuration of the Virtual Ecos
 The config system should provide a way to:
 
 - load a config file into a dictionary:
-  (config\['plant'\]\['functional_types'\]\['max_height'\]
+  config\['plant'\]\['functional_types'\]\['max_height'\]
 - or possibly something like a dataclass for dotted notation:
   (config.plant.functional_types.max_height)
 - validate the config against some kind of template
@@ -178,7 +191,10 @@ I think this can basically just use all the options of `numpy.random`, possibly 
 inclusion of interpolation along a time dimension at a given interval if a time axis is
 present.
 
-```python
+<!-- markdownlint-disable MD012 # jupytext adds a line that markdownlint dislikes -->
+
+
+```{code-cell} ipython3
 class DataGenerator:
 
     def __init__(
@@ -187,11 +203,14 @@ class DataGenerator:
         temporal_axis: str,
         temporal_interpolation: np.timedelta64,
         seed: Optional[int],
-        method: str, # one of the numpy.random.Generator methods
+        method: str,  # one of the numpy.random.Generator methods
         **kwargs
-        ) -> np.ndarray
+    ) -> np.ndarray:
 
+        pass
 ```
+
+<!-- markdownlint-enable MD012 -->
 
 The model I have in my head is based around the `numpy.random` methods
 [](https://numpy.org/doc/stable/reference/random/generator.html).
@@ -200,11 +219,11 @@ A user could provide a scalar (so a global value) or an array (matching a spatia
 or mapping) that stipulates a method and keyword arguments. So here a DataGenerator
 might be:
 
-```python
+```{code-cell} ipython3
 # Global value varying as a normal distribution around 5
-ex1 = DataGenerator(loc=5, scale=2, distribution='normal')
+ex1 = DataGenerator(loc=5, scale=2, distribution="normal")
 # A 2x2 grid with lognormal values with mean varying by cell, but constant variation.
- ex2 = DataGenerator(mean=[[5, 6], [7, 8]], sigma=2, distribution='lognormal')
+ex2 = DataGenerator(mean=[[5, 6], [7, 8]], sigma=2, distribution="lognormal")
 ```
 
 More advanced would be providing a time series of values with variation. Here, you'd
@@ -212,20 +231,14 @@ need a time axis giving the temporal location of the sampling points, which coul
 interpolated if necessary. So for example, a 2 x 2 grid with normally distributed values
 that increase in location and scale over a year.
 
-```python
-loc = [[[1, 2],
-        [3, 4]],
-       [[2, 3],
-        [4, 5]]]
+```{code-cell} ipython3
+loc = [[[1, 2], [3, 4]], [[2, 3], [4, 5]]]
 
-scale = [[[1, 1],
-          [1, 1]],
-         [[1.2, 1.2],
-          [1.2, 1.2]]]
+scale = [[[1, 1], [1, 1]], [[1.2, 1.2], [1.2, 1.2]]]
 
-time = ['2020-01-01', '2020-12-31']
+time = ["2020-01-01", "2020-12-31"]
 
-ex3 = DataGenerator(loc = loc, scale=scale, method='normal', time=time, time_axis=2)
+ex3 = DataGenerator(loc=loc, scale=scale, method="normal", time=time, time_axis=2)
 ```
 
 We could provide ways to provide sequences of generators to provide more complex

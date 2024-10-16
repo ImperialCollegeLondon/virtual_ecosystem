@@ -1,17 +1,26 @@
 ---
-jupyter:
-  jupytext:
-    text_representation:
-      extension: .md
-      format_name: pandoc
-      format_version: 3.2
-      jupytext_version: 1.16.2
-  kernelspec:
-    display_name: Python 3 (ipykernel)
-    language: python
-    name: python3
-  nbformat: 4
-  nbformat_minor: 5
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # The implementation of the Virtual Ecosystem
@@ -20,27 +29,27 @@ The main workflow of the Virtual Ecosystem ({numref}`fig_simulation_flow`) has t
 following steps:
 
 - Users provide a set of **configuration files** that define how a particular simulation
-  should run.
+    should run.
 - That configuration is validated and compiled into **configuration object** that is
-  shared across the rest of the simulation.
+    shared across the rest of the simulation.
 - The configuration is then used to create several **core components**: the spatial
-  grid, the core constants, the vertical layer structure and the model timing. These
-  components are also shared across the simulation.
+    grid, the core constants, the vertical layer structure and the model timing. These
+    components are also shared across the simulation.
 - The configuration also sets the locations of the **initial input data**. These
-  variables are then loaded into the core **data store**, with validation to check that
-  the data are compatible with the model configuration.
+    variables are then loaded into the core **data store**, with validation to check that
+    the data are compatible with the model configuration.
 - The configuration also defines a set of **science models** that should be used in the
-  simulation. These are now configured, checking that any configurations settings
-  specific to each science model are valid.
+    simulation. These are now configured, checking that any configurations settings
+    specific to each science model are valid.
 - The configured models are then **initialised**, checking that the data store contains
-  all required initial data for the model and carrying out any calculations for the
-  initial model state.
+    all required initial data for the model and carrying out any calculations for the
+    initial model state.
 - The system now iterates forward over the configured time steps. At each time step,
-  there is an **update** step for each science model. The model execution order is
-  defined by the set of variables required for each model, to ensure that all required
-  variables are updated before being used.
+    there is an **update** step for each science model. The model execution order is
+    defined by the set of variables required for each model, to ensure that all required
+    variables are updated before being used.
 
-:::{figure} ../../_static/images/simulation_flow.svg
+:::{figure} ../../\_static/images/simulation_flow.svg
 :name: fig_simulation_flow
 :alt: Simulation workflow
 :width: 650px
@@ -85,7 +94,7 @@ arrays (e.g. space and time), and the NetCDF format supports this kind of data,
 as providing critical metadata for data validation.
 
 <!-- TODO: fix this link to the variables.rst file
- when the variables system gets merged -->
+when the variables system gets merged -->
 
 The Virtual Ecosystem has a long list of the
 [variables](../../../../virtual_ecosystem/data_variables.toml) that are used to set up
@@ -113,3 +122,4 @@ The current suite of science models are:
 
 New models [can be added](../../development/design/defining_new_models.md) to the
 Virtual Ecosystem, although this requires reasonable programming expertise.
+:::

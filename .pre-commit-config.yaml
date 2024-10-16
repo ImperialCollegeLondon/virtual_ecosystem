@@ -25,6 +25,6 @@ repos:
     - id: jupytext
       args: [--pipe, black]
       files: docs/source
-      exclude: docs/source/conf.py
+      exclude: docs/source/conf.py|docs/source/genindex.md|docs/source/modindex.md
       additional_dependencies:
         - black==24.4.2 # Matches hook
