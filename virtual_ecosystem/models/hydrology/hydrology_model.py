@@ -135,67 +135,6 @@ class HydrologyModel(
             or out of [0, 1] bounds.
     """
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        initial_soil_moisture: float,
-        initial_groundwater_saturation: float,
-        model_constants: HydroConsts = HydroConsts(),
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        # Sanity checks for initial soil moisture and initial_groundwater_saturation
-        for attr, value in (
-            ("initial_soil_moisture", initial_soil_moisture),
-            ("initial_groundwater_saturation", initial_groundwater_saturation),
-        ):
-            if not isinstance(value, float | int):
-                to_raise = InitialisationError(f"The {attr} must be numeric!")
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            if value < 0 or value > 1:
-                to_raise = InitialisationError(f"The {attr} has to be between 0 and 1!")
-                LOGGER.error(to_raise)
-                raise to_raise
-
-        self.initial_soil_moisture: float = initial_soil_moisture
-        """Initial volumetric relative water content [unitless] for all layers and grid
-        cells identical."""
-        self.initial_groundwater_saturation: float = initial_groundwater_saturation
-        """Initial level of groundwater saturation for all layers identical."""
-        self.model_constants: HydroConsts = model_constants
-        """Set of constants for the hydrology model"""
-        self.core_constants = core_components.core_constants
-        """Set of core constants for the hydrology model"""
-        self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
-        """Set neighbours."""
-        self.drainage_map = above_ground.calculate_drainage_map(
-            grid=self.data.grid,
-            elevation=np.array(self.data["elevation"]),
-        )
-        """Upstream neighbours for the calculation of accumulated horizontal flow."""
-
-        # Calculate layer thickness for soil moisture unit conversion and set structures
-        # and tile across grid cells
-        self.soil_layer_thickness_mm = np.tile(
-            (
-                self.layer_structure.soil_layer_thickness
-                * self.core_constants.meters_to_mm
-            )[:, None],
-            self.grid.n_cells,
-        )
-        """Soil layer thickness in mm."""
-
-        # Select aboveground layer for surface evaporation calculation
-        # TODO this needs to be replaced with 2m above ground value
-        self.surface_layer_index: int = self.layer_structure.index_surface_scalar
-        """Surface layer index."""
-
-        self._setup()
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -220,6 +159,7 @@ class HydrologyModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "hydrology", "HydroConsts")
+        static = config["hydrology"]["static"]
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
@@ -228,6 +168,7 @@ class HydrologyModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             initial_soil_moisture=initial_soil_moisture,
             initial_groundwater_saturation=initial_groundwater_saturation,
             model_constants=model_constants,
@@ -239,7 +180,13 @@ class HydrologyModel(
         TODO: Remove when the base model is updated.
         """
 
-    def _setup(self) -> None:
+    def _setup(
+        self,
+        initial_soil_moisture: float,
+        initial_groundwater_saturation: float,
+        model_constants: HydroConsts = HydroConsts(),
+        **kwargs: Any,
+    ) -> None:
         """Function to set up the hydrology model.
 
         This function initializes variables that are required to run the
@@ -252,7 +199,63 @@ class HydrologyModel(
         For the hydrology across the grid, this function initialises the accumulated
         surface runoff variable and the subsurface accumulated flow variable. Both
         require a spinup which is currently not implemented.
+
+        Args:
+            initial_soil_moisture: The initial volumetric relative water content
+                [unitless] for all layers. This will be converted to soil moisture in
+                mm.
+            initial_groundwater_saturation: Initial level of groundwater saturation
+                (between 0 and 1) for all layers and grid cells identical. This will be
+                converted to groundwater storage in mm.
+            model_constants: Set of constants for the hydrology model.
+            **kwargs: Further arguments to the setup method.
         """
+
+        # Sanity checks for initial soil moisture and initial_groundwater_saturation
+        for attr, value in (
+            ("initial_soil_moisture", initial_soil_moisture),
+            ("initial_groundwater_saturation", initial_groundwater_saturation),
+        ):
+            if not isinstance(value, float | int):
+                to_raise = InitialisationError(f"The {attr} must be numeric!")
+                LOGGER.error(to_raise)
+                raise to_raise
+
+            if value < 0 or value > 1:
+                to_raise = InitialisationError(f"The {attr} has to be between 0 and 1!")
+                LOGGER.error(to_raise)
+                raise to_raise
+
+        self.initial_soil_moisture: float = initial_soil_moisture
+        """Initial volumetric relative water content [unitless] for all layers and grid
+        cells identical."""
+        self.initial_groundwater_saturation: float = initial_groundwater_saturation
+        """Initial level of groundwater saturation for all layers identical."""
+        self.model_constants: HydroConsts = model_constants
+        """Set of constants for the hydrology model"""
+        self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
+        """Set neighbours."""
+        self.drainage_map = above_ground.calculate_drainage_map(
+            grid=self.data.grid,
+            elevation=np.array(self.data["elevation"]),
+        )
+        """Upstream neighbours for the calculation of accumulated horizontal flow."""
+
+        # Calculate layer thickness for soil moisture unit conversion and set structures
+        # and tile across grid cells
+        self.soil_layer_thickness_mm = np.tile(
+            (
+                self.layer_structure.soil_layer_thickness
+                * self.core_constants.meters_to_mm
+            )[:, None],
+            self.grid.n_cells,
+        )
+        """Soil layer thickness in mm."""
+
+        # Select aboveground layer for surface evaporation calculation
+        # TODO this needs to be replaced with 2m above ground value
+        self.surface_layer_index: int = self.layer_structure.index_surface_scalar
+        """Surface layer index."""
 
         # Calculate initial soil moisture, [mm]
         self.data["soil_moisture"] = hydrology_tools.initialise_soil_moisture_mm(
@@ -319,7 +322,7 @@ class HydrologyModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         r"""Function to update the hydrology model.
 
         This function calculates the main hydrological components of the Virtual

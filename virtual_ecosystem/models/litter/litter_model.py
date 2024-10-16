@@ -160,14 +160,54 @@ class LitterModel(
         model_constants: Set of constants for the litter model.
     """
 
-    def __init__(
+    @classmethod
+    def from_config(
+        cls, data: Data, core_components: CoreComponents, config: Config
+    ) -> LitterModel:
+        """Factory function to initialise the litter model from configuration.
+
+        This function unpacks the relevant information from the configuration file, and
+        then uses it to initialise the model. If any information from the config is
+        invalid rather than returning an initialised model instance an error is raised.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            core_components: The core components used across models.
+            config: A validated Virtual Ecosystem model configuration object.
+        """
+
+        # Load in the relevant constants
+        model_constants = load_constants(config, "litter", "LitterConsts")
+        static = config["litter"]["static"]
+
+        LOGGER.info(
+            "Information required to initialise the litter model successfully "
+            "extracted."
+        )
+        return cls(
+            data=data,
+            core_components=core_components,
+            static=static,
+            model_constants=model_constants,
+        )
+
+    def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(
         self,
-        data: Data,
-        core_components: CoreComponents,
         model_constants: LitterConsts = LitterConsts(),
         **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
+    ) -> None:
+        """Method to setup the litter model specific data variables.
+
+        Args:
+            model_constants: Set of constants for the litter model.
+            **kwargs: Further arguments to the setup method.
+        """
 
         # Check that no litter pool is negative
         all_pools = [
@@ -179,7 +219,7 @@ class LitterModel(
         ]
         negative_pools = []
         for pool in all_pools:
-            if np.any(data[pool] < 0):
+            if np.any(self.data[pool] < 0):
                 negative_pools.append(pool)
 
         if negative_pools:
@@ -197,7 +237,7 @@ class LitterModel(
         ]
         bad_proportions = []
         for lignin_prop in lignin_proportions:
-            if np.any(data[lignin_prop] < 0) or np.any(data[lignin_prop] > 1):
+            if np.any(self.data[lignin_prop] < 0) or np.any(self.data[lignin_prop] > 1):
                 bad_proportions.append(lignin_prop)
 
         if bad_proportions:
@@ -223,7 +263,7 @@ class LitterModel(
         ]
         negative_ratios = []
         for ratio in nutrient_ratios:
-            if np.any(data[ratio] < 0):
+            if np.any(self.data[ratio] < 0):
                 negative_ratios.append(ratio)
 
         if negative_ratios:
@@ -233,48 +273,16 @@ class LitterModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.litter_chemistry = LitterChemistry(data, constants=model_constants)
+        self.litter_chemistry = LitterChemistry(self.data, constants=model_constants)
         """Litter chemistry object for tracking of litter pool chemistries."""
 
         self.model_constants = model_constants
         """Set of constants for the litter model."""
 
-    @classmethod
-    def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
-    ) -> LitterModel:
-        """Factory function to initialise the litter model from configuration.
-
-        This function unpacks the relevant information from the configuration file, and
-        then uses it to initialise the model. If any information from the config is
-        invalid rather than returning an initialised model instance an error is raised.
-
-        Args:
-            data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-            core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
-        """
-
-        # Load in the relevant constants
-        model_constants = load_constants(config, "litter", "LitterConsts")
-
-        LOGGER.info(
-            "Information required to initialise the litter model successfully "
-            "extracted."
-        )
-        return cls(
-            data=data,
-            core_components=core_components,
-            model_constants=model_constants,
-        )
-
-    def setup(self) -> None:
-        """Placeholder function to setup up the litter model."""
-
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Calculate changes in the litter pools and use them to update the pools.
 
         This function first calculates the decay rates for each litter pool, as well as

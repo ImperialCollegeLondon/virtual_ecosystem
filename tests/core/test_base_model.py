@@ -522,13 +522,13 @@ def test_check_update_speed(
         vars_populated_by_init=tuple(),
         vars_populated_by_first_update=tuple(),
     ):
-        def setup(self) -> None:
+        def _setup(self) -> None:
             pass
 
         def spinup(self) -> None:
             pass
 
-        def update(self, time_index: int, **kwargs: Any) -> None:
+        def _update(self, time_index: int, **kwargs: Any) -> None:
             pass
 
         def cleanup(self) -> None:
