@@ -33,6 +33,14 @@ of each litter pool. Processes that take place underground are also affected by 
 moisture. For the soil moisture response, an empirical relationship is used for both
 litter decay and soil organic matter breakdown.
 
+:::{admonition} In progress 🛠️
+
+The representation of soil microbial communities has still not been finalised. Once this
+has happened this section of the documentation will be extended to detail the relevant
+thermal responses.
+
+:::
+
 ## Soil moisture response
 
 Breakdown rates for soil organic matter and breakdown rates for the below-ground litter

@@ -32,6 +32,14 @@ present. This page provides a description of the soil [carbon](#soil-carbon-pool
 model is constructed from. It also provides a brief outline of our [approach to
 representing soil microbes](#microbial-representation).
 
+:::{admonition} In progress 🛠️
+
+The theory for soil nitrogen, phosphorus and microbial communities is not yet final. As
+such, these sections are currently relatively short and will be expanded significantly in
+future.
+
+:::
+
 ## Soil carbon pools
 
 The fundamental basis of this module are carbon pools. Historically, the predominant

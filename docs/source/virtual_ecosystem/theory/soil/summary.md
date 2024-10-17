@@ -55,7 +55,7 @@ Most processes in the soil are effected by both the environmental temperature an
 soil moisture. The specific of how we have implemented these known effects are provided
 [here](./environmental_links.md).
 
-:::{admonition} Future directions :telescope:
+:::{admonition} Future directions 🔭
 
 There are ecologically explicit extensions to the litter model - such as
 modelling of litter microbial communities - that could increase the realism of

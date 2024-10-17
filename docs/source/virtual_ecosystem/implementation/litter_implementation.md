@@ -69,7 +69,7 @@ The litter model uses the following sequence:
    function](virtual_ecosystem.models.litter.carbon.calculate_total_C_mineralised)) and
    also nitrogen and phosphorus (using `LitterChemistry` class methods).
 
-:::{admonition} Future directions :telescope:
+:::{admonition} Future directions 🔭
 
 However, there is an issue with this approach in that it gives animals preferential
 access to litter over microbes (which drive the decay processes). This is something we

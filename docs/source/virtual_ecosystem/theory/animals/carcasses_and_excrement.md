@@ -47,7 +47,7 @@ $$f_c = d / (s + d),$$
 where $d$ is the rate at which the resource decays due to microbial activity and $s$ is
 the rate at which animals discover and remove the resource.
 
-:::{admonition} Future directions :telescope:
+:::{admonition} Future directions 🔭
 
 * We currently only have one class of carcasses, but this may well be split into
   separate size classes at some point in the future.
