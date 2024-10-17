@@ -13,8 +13,8 @@ slow decaying litter pools. This indirectly captures the impact of nitrogen and
 phosphorus chemistry on litter decay.
 
 The rest of this page gives provides details on the specific litter pools, the
-partitioning of organic matter input between them, and the environmental factors that
-effect decay rates.
+partitioning of organic matter input between them, the tracking of litter chemistry and
+the impacts animals have on litter accumulation and decay.
 
 ## Litter pools
 
