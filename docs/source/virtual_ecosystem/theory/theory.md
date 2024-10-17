@@ -26,9 +26,9 @@ language_info:
 # The theory of the Virtual Ecosystem
 
 Ecosystems are complex systems that arise from the interplay between
-[animals](./animal_theory.md),
+[animals](./animals/animal_theory.md),
 [plants](./plant_theory.md),
-and [soil microbes](./soil_theory.md) with their
+and [soil microbes](./soil/summary.md) with their
 [abiotic environment](./abiotic_theory.md). Many of these interactions are
 non-linear and happen across a wide range of spatial and temporal scales which makes
 ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
@@ -47,7 +47,7 @@ diversity of users that might benefit from such models.
 The general approach of the **Virtual Ecosystem** is to build on these model frameworks,
 and to connect this prior work into a single modelling framework
 that provides a fully mechanistic, fully integrated representation of key abiotic and
-biotic processes that govern three key emergent properties of terrestrical ecosystems:
+biotic processes that govern three key emergent properties of terrestrial ecosystems:
 their stability, resilience, and sustainability.
 
 We think we can replicate complex
