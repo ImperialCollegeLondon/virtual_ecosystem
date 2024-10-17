@@ -316,6 +316,9 @@ def dummy_climate_data(fixture_core_components):
         "atmospheric_co2_ref": 400.0,
         "precipitation": 200.0,
         "topofcanopy_radiation": 100.0,
+        "shortwave_radiation_down": 300.0,
+        "diffuse_radiation_down": 100.0,
+        "longwave_radiation_down": 30.0,
     }
 
     for var, value in ref_values.items():

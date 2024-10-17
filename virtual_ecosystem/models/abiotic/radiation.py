@@ -555,7 +555,7 @@ def calculate_direct_radiation_parameters(
 
 def calculate_absorbed_shortwave_radiation(
     plant_area_index_sum: NDArray[np.float32],
-    leaf_orientation_coefficient: NDArray[np.float32],
+    leaf_orientation_coefficient: float,
     leaf_reluctance_shortwave: float,
     leaf_transmittance_shortwave: float,
     clumping_factor: float,
@@ -816,7 +816,7 @@ def calculate_canopy_longwave_emission(
     return (
         leaf_emissivity
         * stefan_boltzmann_constant
-        * (np.mean(canopy_temperature, axis=1) + zero_Celsius) ** 4
+        * (canopy_temperature + zero_Celsius) ** 4
     )
 
 

@@ -5,8 +5,6 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 
-from virtual_ecosystem.core.constants import CoreConsts
-
 
 def test_calculate_zero_plane_displacement(dummy_climate_data):
     """Test if calculated correctly and set to zero without vegetation."""
@@ -31,18 +29,17 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
 
     result = calculate_roughness_length_momentum(
         canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
+        plant_area_index=np.array([np.nan, 0.0, 7, 7]),
         zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
+        diabatic_correction_heat=np.array([0.0, 0.0, 0.0, 0.0]),
         substrate_surface_drag_coefficient=0.003,
-        roughness_element_drag_coefficient=0.3,
-        roughness_sublayer_depth_parameter=0.193,
-        max_ratio_wind_to_friction_velocity=0.3,
+        drag_coefficient=0.2,
+        von_karman_constant=0.4,
         min_roughness_length=0.01,
-        von_karman_constant=CoreConsts.von_karmans_constant,
     )
 
     np.testing.assert_allclose(
-        result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.020206, 1.497673, 1.497673]), rtol=1e-3, atol=1e-3
     )
 
 

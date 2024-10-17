@@ -273,7 +273,7 @@ def calculate_slope_of_saturated_pressure_curve(
 
 
 def calculate_surface_temperature(
-    absorbed_shortwave_radiation: NDArray[np.float32],
+    total_absorbed_radiation: NDArray[np.float32],
     heat_conductivity: NDArray[np.float32],
     vapour_conductivity: NDArray[np.float32],
     surface_temperature: NDArray[np.float32],
@@ -293,7 +293,7 @@ def calculate_surface_temperature(
     """Calculate soil or canopy temperature with Penman-Montheith equation.
 
     Args:
-        absorbed_shortwave_radiation: Absorbed shortwave radiation, [W m-2]
+        total_absorbed_radiation: Absorbed shortwave and longwave radiation, [W m-2]
         heat_conductivity: Heat conductivity of surface
         vapour_conductivity: Vapour conductivity of surface
         surface_temperature: Surface temperature, [C]
@@ -359,7 +359,7 @@ def calculate_surface_temperature(
     )
     new_surface_temperature = surface_temperature + (
         (
-            absorbed_shortwave_radiation
+            total_absorbed_radiation
             - emitted_radiation
             - latent_heat_vapourization
             * (vapour_conductivity / atmospheric_pressure)

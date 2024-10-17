@@ -142,51 +142,97 @@ def initialise_conductivities(
     return output
 
 
-def calculate_air_heat_conductivity_above(
-    height_above_canopy: NDArray[np.float32],
-    zero_displacement_height: NDArray[np.float32],
-    canopy_height: NDArray[np.float32],
+# def calculate_air_heat_conductivity_above(
+#     height_above_canopy: NDArray[np.float32],
+#     zero_displacement_height: NDArray[np.float32],
+#     canopy_height: NDArray[np.float32],
+#     friction_velocity: NDArray[np.float32],
+#     molar_density_air: NDArray[np.float32],
+#     diabatic_correction_heat: NDArray[np.float32],
+#     von_karmans_constant: float,
+# ) -> NDArray[np.float32]:
+#     r"""Calculate air heat conductivity by turbulent convection above canopy.
+
+#     Heat conductance, :math:`g_{t}` between any two heights :math:`z_{1}` and
+#     :math:`z_{0}` above-canopy is given by
+
+#     .. math::
+#       g_{t} = \frac {0.4 \hat{\rho} u^{*}}{ln(\frac{z_{1} - d}{z_{0} - d}) + \Psi_{H}}
+
+#    where :math:`\hat{\rho}` is the molar density or air, :math:`u^{*}` is the friction
+#     velocity, :math:`d` is the zero displacement height, and :math:`\Psi_{H}` is the
+#     diabatic correction factor for heat.
+
+#     Args:
+#         height_above_canopy: Height above canopy, [m]
+#         zero_displacement_height: Zero displacement height, [m]
+#         canopy_height: Canopy height, [m]
+#         friction_velocity: Friction velocity, dimensionless
+#         molar_density_air: Molar density of air, [mole m-3]
+#         diabatic_correction_heat: Diabatic correction factor for heat, dimensionless
+#         von_karmans_constant: Von Karman constant, unitless
+
+#     Returns:
+#         Air heat conductivity by turbulent convection above canopy, [mol m-2 s-1]
+#     """
+
+#     return (von_karmans_constant * molar_density_air * friction_velocity) / (
+#         np.log(height_above_canopy - zero_displacement_height)
+#         / (canopy_height - zero_displacement_height)
+#         + diabatic_correction_heat
+#     )
+
+
+def calculate_molar_conductance_above_canopy(
     friction_velocity: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+    roughness_length_momentum: NDArray[np.float32],
+    reference_height: NDArray[np.float32],
     molar_density_air: NDArray[np.float32],
     diabatic_correction_heat: NDArray[np.float32],
+    minimum_conductance: float,
     von_karmans_constant: float,
 ) -> NDArray[np.float32]:
-    r"""Calculate air heat conductivity by turbulent convection above canopy.
+    r"""Calculate molar conductance above canopy, gt.
 
     Heat conductance, :math:`g_{t}` between any two heights :math:`z_{1}` and
     :math:`z_{0}` above-canopy is given by
-
     .. math::
         g_{t} = \frac {0.4 \hat{\rho} u^{*}}{ln(\frac{z_{1} - d}{z_{0} - d}) + \Psi_{H}}
-
     where :math:`\hat{\rho}` is the molar density or air, :math:`u^{*}` is the friction
     velocity, :math:`d` is the zero displacement height, and :math:`\Psi_{H}` is the
     diabatic correction factor for heat.
 
     Args:
-        height_above_canopy: Height above canopy, [m]
-        zero_displacement_height: Zero displacement height, [m]
-        canopy_height: Canopy height, [m]
-        friction_velocity: Friction velocity, dimensionless
-        molar_density_air: Molar density of air, [mole m-3]
-        diabatic_correction_heat: Diabatic correction factor for heat, dimensionless
+        friction_velocity: Friction velocity[m s-1]
+        zero_plane_displacement: Zero-plane displacement height, [m]
+        roughness_length_momentum: Roughness length momenturm, [m]
+        reference_height: Reference height, [m]
+        molar_density_air: Molar density of air
+        diabatic_correction_heat: Stability correction factor for heat, []
+        minimum_conductance: Minimum conductance, [m s-1]
         von_karmans_constant: Von Karman constant, unitless
 
     Returns:
-        Air heat conductivity by turbulent convection above canopy, [mol m-2 s-1]
+        molar conductance above canopy, [m s-1]
     """
-
-    return (von_karmans_constant * molar_density_air * friction_velocity) / (
-        np.log(height_above_canopy - zero_displacement_height)
-        / (canopy_height - zero_displacement_height)
-        + diabatic_correction_heat
+    # Heat exchange surface height
+    z0 = 0.2 * roughness_length_momentum + zero_plane_displacement
+    ln = np.log(
+        (reference_height - zero_plane_displacement) / (z0 - zero_plane_displacement)
     )
+    molar_conductance = (
+        von_karmans_constant * molar_density_air * friction_velocity
+    ) / (ln + diabatic_correction_heat)
+
+    # Ensure conductance is not less than minimum_conductance
+    return np.maximum(molar_conductance, minimum_conductance)
 
 
 def calculate_free_convection(
     leaf_dimension: float,
-    sensible_heat_flux: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    sensible_heat_flux: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate free convection, gha.
 
     Args:
@@ -205,10 +251,10 @@ def calculate_free_convection(
 
 
 def calculate_stomatal_conductance(
-    shortwave_radiation: NDArray[np.float64],
+    shortwave_radiation: NDArray[np.float32],
     maximum_stomatal_conductance: float,
     half_saturation_stomatal_conductance: float,
-) -> NDArray[np.float64]:
+) -> NDArray[np.float32]:
     """Calculate the stomatal conductance.
 
     Args:

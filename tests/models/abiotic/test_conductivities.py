@@ -3,8 +3,6 @@
 import numpy as np
 import pytest
 
-from virtual_ecosystem.core.constants import CoreConsts
-
 
 def test_initialise_conductivities(dummy_climate_data, fixture_core_components):
     """Test conductivities are initialised correctly."""
@@ -118,32 +116,94 @@ def test_interpolate_along_heights_arrays(fixture_core_components, dummy_climate
     )
 
 
-def test_calculate_air_heat_conductivity_above(dummy_climate_data):
-    """Test heat conductivity above canopy."""
+# def test_calculate_air_heat_conductivity_above(dummy_climate_data):
+#     """Test heat conductivity above canopy."""
 
+#     from virtual_ecosystem.models.abiotic.conductivities import (
+#         calculate_air_heat_conductivity_above,
+#     )
+
+#     result = calculate_air_heat_conductivity_above(
+#         height_above_canopy=dummy_climate_data["layer_heights"][0],
+#         zero_displacement_height=(
+#             dummy_climate_data["zero_displacement_height"].to_numpy()
+#         ),
+#         canopy_height=dummy_climate_data["layer_heights"][1],
+#         friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),
+#         molar_density_air=dummy_climate_data["molar_density_air"][0].to_numpy(),
+#         diabatic_correction_heat=(
+#             dummy_climate_data["diabatic_correction_heat_above"].to_numpy()
+#         ),
+#         von_karmans_constant=CoreConsts.von_karmans_constant,
+#     )
+#     np.testing.assert_allclose(
+#         result,
+#         np.array([523.39996, 218.083317, 87.233327, 87.233327]),
+#         rtol=1e-04,
+#         atol=1e-04,
+#     )
+
+
+@pytest.mark.parametrize(
+    "ustar, d, zm, ph, psih, gmin, expected_conductance",
+    [
+        (
+            np.repeat(0.3, 3),
+            np.repeat(2, 3),
+            np.repeat(0.1, 3),
+            np.repeat(1.0, 3),
+            np.repeat(0.1, 3),
+            np.repeat(0.05, 3),
+            np.repeat(0.05, 3),
+        ),  # Typical case
+        (
+            np.repeat(0.2, 3),
+            np.repeat(1.5, 3),
+            np.repeat(0.05, 3),
+            np.repeat(0.9, 3),
+            np.repeat(0.05, 3),
+            np.repeat(0.04, 3),
+            np.repeat(0.04, 3),
+        ),  # Low friction velocity, height
+        (
+            np.repeat(0.4, 3),
+            np.repeat(2.5, 3),
+            np.repeat(0.15, 3),
+            np.repeat(1.2, 3),
+            np.repeat(0.2, 3),
+            np.repeat(0.06, 3),
+            np.repeat(0.06, 3),
+        ),  # High friction velocity and height
+        (
+            np.repeat(0.1, 3),
+            np.repeat(1.0, 3),
+            np.repeat(0.05, 3),
+            np.repeat(0.8, 3),
+            np.repeat(0.02, 3),
+            np.repeat(0.1, 3),
+            np.repeat(0.1, 3),
+        ),  # Edge case to ensure conductance is not less than gmin
+    ],
+)
+def test_calculate_molar_conductance_above_canopy(
+    ustar, d, zm, ph, psih, gmin, expected_conductance
+):
+    """Test calculation of molar conductance above canopy."""
     from virtual_ecosystem.models.abiotic.conductivities import (
-        calculate_air_heat_conductivity_above,
+        calculate_molar_conductance_above_canopy,
     )
 
-    result = calculate_air_heat_conductivity_above(
-        height_above_canopy=dummy_climate_data["layer_heights"][0],
-        zero_displacement_height=(
-            dummy_climate_data["zero_displacement_height"].to_numpy()
-        ),
-        canopy_height=dummy_climate_data["layer_heights"][1],
-        friction_velocity=dummy_climate_data["friction_velocity"].to_numpy(),
-        molar_density_air=dummy_climate_data["molar_density_air"][0].to_numpy(),
-        diabatic_correction_heat=(
-            dummy_climate_data["diabatic_correction_heat_above"].to_numpy()
-        ),
-        von_karmans_constant=CoreConsts.von_karmans_constant,
+    result = calculate_molar_conductance_above_canopy(
+        friction_velocity=ustar,
+        zero_plane_displacement=d,
+        roughness_length_momentum=zm,
+        reference_height=np.repeat(10.0, 3),
+        molar_density_air=ph,
+        diabatic_correction_heat=psih,
+        minimum_conductance=gmin,
+        von_karmans_constant=0.4,
     )
-    np.testing.assert_allclose(
-        result,
-        np.array([523.39996, 218.083317, 87.233327, 87.233327]),
-        rtol=1e-04,
-        atol=1e-04,
-    )
+    np.testing.assert_allclose(result, expected_conductance, atol=1e-6)
 
 
 @pytest.mark.parametrize(

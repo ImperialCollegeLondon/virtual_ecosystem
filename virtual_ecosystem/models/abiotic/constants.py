@@ -40,6 +40,8 @@ class AbioticConsts(ConstantsDataclass):
 
     ground_reflectance: float = 0.2
     """Ground reflectance."""
+    ground_emissivity: float = 0.8
+    """Ground emissivity."""
     bulk_density_soil: float = 1.5
     """Bulk density of soil."""
     volumetric_mineral_content: float = 0.5
@@ -81,15 +83,15 @@ class AbioticConsts(ConstantsDataclass):
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
     :cite:t:`raupach_simplified_1994`."""
 
-    # substrate_surface_drag_coefficient: float = 0.003
-    # """Substrate-surface drag coefficient, dimensionless.
+    substrate_surface_drag_coefficient: float = 0.003
+    """Substrate-surface drag coefficient, dimensionless.
 
-    # The substrate-surface drag coefficient represents the resistance encountered by an
-    # object moving on or through a surface and varies based on the nature of the
-    # surface
-    # and the object's properties. Here, it affects how wind speed is altered by a
-    # surface
-    # . Implementation and value from :cite:t:`maclean_microclimc_2021`."""
+    The substrate-surface drag coefficient represents the resistance encountered by an
+    object moving on or through a surface and varies based on the nature of the
+    surface
+    and the object's properties. Here, it affects how wind speed is altered by a
+    surface
+    . Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     # roughness_element_drag_coefficient: float = 0.3
     # """Roughness-element drag coefficient, dimensionless.
@@ -176,11 +178,11 @@ class AbioticConsts(ConstantsDataclass):
     # min_windspeed_below_canopy: float = 0.001
     # """Minimum wind speed below the canopy or in absence of vegetation, [m s-1]."""
 
-    # min_friction_velocity: float = 0.001
-    # """Minimum friction velocity, [m s-1]."""
+    min_friction_velocity: float = 0.001
+    """Minimum friction velocity, [m s-1]."""
 
-    # min_roughness_length: float = 0.01
-    # """Minimum roughness length, [m].
+    min_roughness_length: float = 0.01
+    """Minimum roughness length, [m].
 
     # The minimum roughness length represents the lowest height at which the surface
     # roughness significantly affects the wind flow over a particular terrain or

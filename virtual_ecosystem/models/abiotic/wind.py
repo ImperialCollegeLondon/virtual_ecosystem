@@ -52,12 +52,11 @@ def calculate_zero_plane_displacement(
 
 def calculate_roughness_length_momentum(
     canopy_height: NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
+    plant_area_index: NDArray[np.float32],
     zero_plane_displacement: NDArray[np.float32],
+    diabatic_correction_heat: NDArray[np.float32],
     substrate_surface_drag_coefficient: float,
-    roughness_element_drag_coefficient: float,
-    roughness_sublayer_depth_parameter: float,
-    max_ratio_wind_to_friction_velocity: float,
+    drag_coefficient: float,
     min_roughness_length: float,
     von_karman_constant: float,
 ) -> NDArray[np.float32]:
@@ -70,16 +69,13 @@ def calculate_roughness_length_momentum(
 
     Args:
         canopy_height: Canopy height, [m]
-        leaf_area_index: Total leaf area index, [m m-1]
+        plant_area_index: Total plant area index, [m m-1]
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
+        diabatic_correction_heat: Diabatic correction factor for heat
         substrate_surface_drag_coefficient: Substrate-surface drag coefficient,
             dimensionless
-        roughness_element_drag_coefficient: Roughness-element drag coefficient
-        roughness_sublayer_depth_parameter: Parameter that characterizes the roughness
-            sublayer depth, dimensionless
-        max_ratio_wind_to_friction_velocity: Maximum ratio of wind velocity to friction
-            velocity, dimensionless
+        drag_coefficient: drag coefficient
         min_roughness_length: Minimum roughness length, [m]
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
@@ -91,22 +87,14 @@ def calculate_roughness_length_momentum(
 
     # Calculate ratio of wind velocity to friction velocity
     ratio_wind_to_friction_velocity = np.sqrt(
-        substrate_surface_drag_coefficient
-        + (roughness_element_drag_coefficient * leaf_area_index) / 2
+        substrate_surface_drag_coefficient + (drag_coefficient * plant_area_index) / 2
     )
 
-    # If the ratio of wind velocity to friction velocity is larger than the set maximum,
-    # set the value to set maximum
-    set_maximum_ratio = np.where(
-        ratio_wind_to_friction_velocity > max_ratio_wind_to_friction_velocity,
-        max_ratio_wind_to_friction_velocity,
-        ratio_wind_to_friction_velocity,
-    )
-
-    # Calculate initial roughness length
-    initial_roughness_length = (canopy_height - zero_plane_displacement) * np.exp(
-        -von_karman_constant * (1 / set_maximum_ratio)
-        - roughness_sublayer_depth_parameter
+    # calculate initial roughness length
+    initial_roughness_length = (
+        (canopy_height - zero_plane_displacement)
+        * np.exp(-von_karman_constant / ratio_wind_to_friction_velocity)
+        * np.exp(diabatic_correction_heat)
     )
 
     # If roughness smaller than the substrate surface drag coefficient, set to value to
@@ -116,7 +104,6 @@ def calculate_roughness_length_momentum(
         substrate_surface_drag_coefficient,
         initial_roughness_length,
     )
-
     # If roughness length in nan, zero or below sero, set to minimum value
     roughness_length = np.nan_to_num(roughness_length, nan=min_roughness_length)
     return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
@@ -169,7 +156,7 @@ def calculate_monin_obukov_length(
 
 
 def calculate_stability_parameter(
-    reference_height: float,
+    reference_height: NDArray[np.float32],
     zero_plance_displacement: NDArray[np.float32],
     monin_obukov_length: NDArray[np.float32],
 ) -> NDArray[np.float32]:

@@ -140,7 +140,7 @@ def test_calculate_surface_temperature():
     abiotic_consts = AbioticConsts()
 
     result = calculate_surface_temperature(
-        absorbed_shortwave_radiation=np.repeat(400, 3),
+        total_absorbed_radiation=np.repeat(400, 3),
         heat_conductivity=np.repeat(0.2, 3),
         vapour_conductivity=np.repeat(0.01, 3),
         surface_temperature=np.repeat(25.0, 3),

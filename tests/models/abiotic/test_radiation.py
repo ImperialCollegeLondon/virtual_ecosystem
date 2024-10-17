@@ -389,7 +389,7 @@ def test_calculate_absorbed_shortwave_radiation():
 
     # Define input parameters
     plant_area_index_sum = np.repeat(2.0, 3)
-    leaf_orientation_coefficient = np.repeat(0.5, 3)
+    leaf_orientation_coefficient = 0.5
     leaf_reluctance_shortwave = 0.15
     leaf_transmittance_shortwave = 0.05
     clumping_factor = 0.9
@@ -457,7 +457,9 @@ def test_calculate_canopy_longwave_emission():
         calculate_canopy_longwave_emission,
     )
 
-    expected_emission = np.array([431.38266876, 454.92201537])
+    expected_emission = np.array(
+        [[425.643415, 437.179768, 431.382669], [454.922015, 460.954381, 448.949052]]
+    )
 
     # Calculate the actual emission
     result = calculate_canopy_longwave_emission(

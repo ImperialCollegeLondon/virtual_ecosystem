@@ -129,6 +129,8 @@ subtrees:
                 title: The soil_energy_balance submodule
               - file: api/models/abiotic/wind
                 title: The wind submodule
+              - file: api/models/abiotic/bigleaf
+                title: The bigleaf submodule
           - file: api/models/abiotic_simple
             title: The abiotic_simple model
             entries:
