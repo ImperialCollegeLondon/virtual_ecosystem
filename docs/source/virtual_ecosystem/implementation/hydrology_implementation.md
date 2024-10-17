@@ -5,11 +5,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # The hydrology model implementation
@@ -49,20 +59,18 @@ and then update it at each time step.
 
 ```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
 from IPython.display import display_markdown
 from var_generator import generate_variable_table
 
 display_markdown(
     generate_variable_table(
-        'HydrologyModel', 
-        ['vars_required_for_init', 'vars_required_for_update']
-    ), 
-    raw=True
+        "HydrologyModel", ["vars_required_for_init", "vars_required_for_update"]
+    ),
+    raw=True,
 )
 ```
 
@@ -299,7 +307,7 @@ from xarray import DataArray
 
 input_file = "../../../../virtual_ecosystem/example_data/data/example_elevation_data.nc"
 digital_elevation_model = xr.open_dataset(input_file)
-elevation = digital_elevation_model['elevation']
+elevation = digital_elevation_model["elevation"]
 ```
 
 ```{code-cell} ipython3
@@ -308,10 +316,10 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 
 plt.figure(figsize=(10, 6))
-elevation.plot(cmap='terrain')
-plt.title('Elevation, m')
-plt.xlabel('x')
-plt.ylabel('y')
+elevation.plot(cmap="terrain")
+plt.title("Elevation, m")
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
 ```
 
@@ -320,9 +328,11 @@ plt.show()
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.data import Data
 
-grid = Grid(grid_type="square", cell_area=8100, cell_nx=9, cell_ny=9, xoff=-45, yoff=-45)
+grid = Grid(
+    grid_type="square", cell_area=8100, cell_nx=9, cell_ny=9, xoff=-45, yoff=-45
+)
 data = Data(grid=grid)
-data['elevation'] = elevation
+data["elevation"] = elevation
 ```
 
 The initialisation step of the hydrology model finds all the neighbours for each grid
@@ -343,8 +353,8 @@ with the indices `[47, 56, 57, 65]`.
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
 
 drainage_map = calculate_drainage_map(
-  grid=grid,
-  elevation=np.array(data["elevation"]),
+    grid=grid,
+    elevation=np.array(data["elevation"]),
 )
 ```
 
@@ -354,22 +364,22 @@ runoff and the runoff from upstream cells at the previous time step.
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import accumulate_horizontal_flow
 
-previous_accumulated_runoff = DataArray(np.full(81, 10), dims='cell_id')
-surface_runoff = DataArray(np.full(81, 1), dims='cell_id')
+previous_accumulated_runoff = DataArray(np.full(81, 10), dims="cell_id")
+surface_runoff = DataArray(np.full(81, 1), dims="cell_id")
 
 accumulated_runoff = accumulate_horizontal_flow(
-  drainage_map=drainage_map,
-  current_flow=surface_runoff,
-  previous_accumulated_flow=previous_accumulated_runoff,
+    drainage_map=drainage_map,
+    current_flow=surface_runoff,
+    previous_accumulated_flow=previous_accumulated_runoff,
 )
 
 # Plot accumulated runoff map
-reshaped_data = DataArray(accumulated_runoff.to_numpy().reshape(9,9))
+reshaped_data = DataArray(accumulated_runoff.to_numpy().reshape(9, 9))
 plt.figure(figsize=(10, 6))
-reshaped_data.plot(cmap='Blues')
-plt.title('Accumulated runoff, mm')
-plt.xlabel('x')
-plt.ylabel('y')
+reshaped_data.plot(cmap="Blues")
+plt.title("Accumulated runoff, mm")
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
 ```
 
@@ -392,17 +402,15 @@ variables. When the model first updates, it then sets further variables.
 
 ```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
 display_markdown(
     generate_variable_table(
-        'HydrologyModel', 
-        ['vars_populated_by_init', 'vars_populated_by_first_update']
-    ), 
-    raw=True
+        "HydrologyModel", ["vars_populated_by_init", "vars_populated_by_first_update"]
+    ),
+    raw=True,
 )
 ```
 
@@ -413,16 +421,9 @@ step.
 
 ```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
-display_markdown(
-    generate_variable_table(
-        'HydrologyModel', 
-        ['vars_updated']
-    ), 
-    raw=True
-)
+display_markdown(generate_variable_table("HydrologyModel", ["vars_updated"]), raw=True)
 ```

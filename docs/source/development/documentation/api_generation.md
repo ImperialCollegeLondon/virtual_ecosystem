@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.16.4
 ---
 
 # Generating API documentation from docstrings
@@ -30,7 +30,7 @@ The docstring Markdown file has three components:
 
 * The file will start with the `jupytext` YAML metadata, which just sets the Markdown
   format used in the file.
-  
+
 * A markdown header (`# A header`), which is shown as the page title. It is also used as
   the text for links to this page from the table of contents, unless a shorter name is
   provided in the `index.md` file. Typically, this header is the only markdown content
@@ -64,7 +64,7 @@ Note that we **should not** include `:special-members: __init__` in the `automod
 options: creating a class instance is documented by the class docstring.
 
 ````{admonition} Rendered content
-All of the content below this box is rendered from the example docstring code. 
+All of the content below this box is rendered from the example docstring code.
 ````
 
 ```{eval-rst}

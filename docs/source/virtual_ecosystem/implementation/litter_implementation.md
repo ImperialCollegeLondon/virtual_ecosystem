@@ -1,15 +1,26 @@
 ---
 jupytext:
   formats: md:myst
+  main_language: python
   text_representation:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # The Litter Model implementation
@@ -28,14 +39,14 @@ The litter model uses the following sequence:
    [calculate_decay_rates
    function](virtual_ecosystem.models.litter.carbon.calculate_decay_rates).
 
-3. Plant inputs are considered from two sources, which have different stochiometric
+3. Plant inputs are considered from two sources, which have different stoichiometric
    properties.
 
     * Inputs from tissue senescence and turnover directly from plant communities
       typically have reduced nutrient concentrations through translocation.
 
     * Plant inputs generated during herbivory, where animals drop unconsumed biomass,
-      are not depleted in nutrients and heribvores may be actively selecting plant
+      are not depleted in nutrients and herbivores may be actively selecting plant
       matter rich in limiting nutrients.
 
     The [LitterInputs class](virtual_ecosystem.models.litter.inputs.LitterInputs)
@@ -74,22 +85,20 @@ litter available for animal consumption.
 The tables below show the variables that are required to initialise the litter model and
 then update it at each time step.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
 from IPython.display import display_markdown
 from var_generator import generate_variable_table
 
 display_markdown(
     generate_variable_table(
-        'LitterModel', 
-        ['vars_required_for_init', 'vars_required_for_update']
-    ), 
-    raw=True
+        "LitterModel", ["vars_required_for_init", "vars_required_for_update"]
+    ),
+    raw=True,
 )
 ```
 
@@ -98,19 +107,14 @@ display_markdown(
 The first update of the litter model adds the following variables to the data
 environment of the Virtual Ecosystem:
 
-```{code-cell}
+```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
 display_markdown(
-    generate_variable_table(
-        'LitterModel', 
-        ['vars_populated_by_first_update']
-    ), 
-    raw=True
+    generate_variable_table("LitterModel", ["vars_populated_by_first_update"]), raw=True
 )
 ```
 
@@ -118,18 +122,11 @@ display_markdown(
 
 At each model step, the following variables are then updated.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
-display_markdown(
-    generate_variable_table(
-        'LitterModel', 
-        ['vars_updated']
-    ), 
-    raw=True
-)
+display_markdown(generate_variable_table("LitterModel", ["vars_updated"]), raw=True)
 ```
