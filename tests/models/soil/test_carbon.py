@@ -22,6 +22,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
+        "soil_n_pool_don": [5.30265e-8, 1.06053e-7, 2.745e-7, 2.449995e-8],
     }
 
     # Make order of pools object
@@ -37,6 +38,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
         soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"].to_numpy(),
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"].to_numpy(),
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"].to_numpy(),
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"].to_numpy(),
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
         soil_moisture=dummy_carbon_data["soil_moisture"][
@@ -50,7 +52,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         clay_fraction=dummy_carbon_data["clay_fraction"],
-        mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
+        C_mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
+        N_mineralisation_rate=dummy_carbon_data["litter_N_mineralisation_rate"],
         delta_pools_ordered=pool_order,
         model_constants=SoilConsts,
         core_constants=CoreConsts,

@@ -50,9 +50,10 @@ class SoilModel(
         "soil_c_pool_lmwc",
         "soil_c_pool_microbe",
         "soil_c_pool_pom",
+        "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
-        "soil_c_pool_necromass",
+        "soil_n_pool_don",
         "pH",
         "bulk_density",
         "clay_fraction",
@@ -66,6 +67,7 @@ class SoilModel(
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
+        "soil_n_pool_don",
         "matric_potential",
     ),
     vars_updated=(
@@ -76,6 +78,7 @@ class SoilModel(
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
+        "soil_n_pool_don",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -112,6 +115,7 @@ class SoilModel(
             or np.any(data["soil_enzyme_pom"] < 0.0)
             or np.any(data["soil_enzyme_maom"] < 0.0)
             or np.any(data["soil_c_pool_necromass"] < 0.0)
+            or np.any(data["soil_n_pool_don"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
@@ -208,7 +212,9 @@ class SoilModel(
             [
                 self.data[name].to_numpy()
                 for name in map(str, self.data.data.keys())
-                if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
+                if name.startswith("soil_c_pool_")
+                or name.startswith("soil_enzyme_")
+                or str(name).startswith("soil_n_pool_")
             ]
         )
 
@@ -216,7 +222,9 @@ class SoilModel(
         delta_pools_ordered = {
             name: np.array([])
             for name in map(str, self.data.data.keys())
-            if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
+            if name.startswith("soil_c_pool_")
+            or name.startswith("soil_enzyme_")
+            or str(name).startswith("soil_n_pool_")
         }
 
         # Carry out simulation
@@ -301,7 +309,8 @@ def construct_full_soil_model(
         vertical_flow_rate=data["vertical_flow"].to_numpy(),
         soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
         clay_fraction=data["clay_fraction"].to_numpy(),
-        mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
+        C_mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
+        N_mineralisation_rate=data["litter_N_mineralisation_rate"].to_numpy(),
         delta_pools_ordered=delta_pools_ordered,
         model_constants=model_constants,
         core_constants=core_constants,

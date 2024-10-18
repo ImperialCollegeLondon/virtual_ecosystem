@@ -75,6 +75,7 @@ def calculate_soil_carbon_updates(
     soil_c_pool_microbe: NDArray[np.float32],
     soil_c_pool_pom: NDArray[np.float32],
     soil_c_pool_necromass: NDArray[np.float32],
+    soil_n_pool_don: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
@@ -84,7 +85,8 @@ def calculate_soil_carbon_updates(
     vertical_flow_rate: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     clay_fraction: NDArray[np.float32],
-    mineralisation_rate: NDArray[np.float32],
+    C_mineralisation_rate: NDArray[np.float32],
+    N_mineralisation_rate: NDArray[np.float32],
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     core_constants: CoreConsts,
     model_constants: SoilConsts,
@@ -101,6 +103,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
         soil_c_pool_necromass: Microbial necromass pool [kg C m^-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
         soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
@@ -112,8 +115,10 @@ def calculate_soil_carbon_updates(
         vertical_flow_rate: The vertical flow rate [TODO]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         clay_fraction: The clay fraction for each soil grid cell [unitless]
-        mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3
-            day^-1]
+        C_mineralisation_rate: Amount of carbon mineralised from litter [kg C m^-3
+           day^-1]
+        N_mineralisation_rate: Amount of nitrogen mineralised from litter [kg C m^-3
+           day^-1]
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         core_constants: Set of constants shared between models.
@@ -178,14 +183,18 @@ def calculate_soil_carbon_updates(
 
     # Calculate the split of the mineralisation flux between dissolved and particulate
     # forms
-    mineralisation_fluxes = calculate_mineralisation_split(
-        mineralisation_rate=mineralisation_rate,
+    mineralisation_fluxes_C = calculate_mineralisation_split(
+        mineralisation_rate=C_mineralisation_rate,
         litter_leaching_coefficient=model_constants.litter_leaching_fraction_carbon,
+    )
+    mineralisation_fluxes_N = calculate_mineralisation_split(
+        mineralisation_rate=N_mineralisation_rate,
+        litter_leaching_coefficient=model_constants.litter_leaching_fraction_nitrogen,
     )
 
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        mineralisation_fluxes["dissolved"]
+        mineralisation_fluxes_C["dissolved"]
         + enzyme_mediated.pom_to_lmwc
         + enzyme_mediated.maom_to_lmwc
         + maom_desorption_to_lmwc
@@ -202,13 +211,14 @@ def calculate_soil_carbon_updates(
     )
     delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_fluxes["particulate"] - enzyme_mediated.pom_to_lmwc
+        mineralisation_fluxes_C["particulate"] - enzyme_mediated.pom_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
         microbial_changes.necromass_generation
         - necromass_decay_to_lmwc
         - necromass_sorption_to_maom
     )
+    delta_pools_ordered["soil_n_pool_don"] = mineralisation_fluxes_N["dissolved"]
     delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
     delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 

@@ -65,6 +65,9 @@ var_name = "soil_enzyme_pom"
 [[core.data.variable]]
 file = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_maom"
+[[core.data.variable]]
+file = "../data/example_soil_data.nc"
+var_name = "soil_n_pool_don"
 
 # Litter 
 [[core.data.variable]]

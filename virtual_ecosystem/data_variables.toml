@@ -541,42 +541,49 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Soil low molecular weight carbon pool"
 name = "soil_c_pool_lmwc"
-unit = "kg C m-3"
+unit = "kg C m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Soil mineral associated organic matter pool "
 name = "soil_c_pool_maom"
-unit = "kg C m-3"
+unit = "kg C m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Soil microbial biomass (carbon) pool"
 name = "soil_c_pool_microbe"
-unit = "kg C m-3"
+unit = "kg C m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Particulate organic matter pool"
 name = "soil_c_pool_pom"
-unit = "kg C m-3"
+unit = "kg C m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Necrotic organic matter pool"
 name = "soil_c_pool_necromass"
-unit = "kg C m-3"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Dissolved organic nitrogen pool"
+name = "soil_n_pool_don"
+unit = "kg N m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Bulk density of soil"
 name = "bulk_density"
-unit = "kg m-3"
+unit = "kg m^-3"
 variable_type = "float"
 
 [[variable]]

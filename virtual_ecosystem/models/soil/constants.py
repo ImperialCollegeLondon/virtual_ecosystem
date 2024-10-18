@@ -290,5 +290,13 @@ class SoilConsts(ConstantsDataclass):
     litter_leaching_fraction_carbon = 0.0015
     """Fraction of carbon mineralisation from litter that occurs by leaching [unitless].
     
-    The remainder of the mineralisation consists of particulates.
+    The remainder of the mineralisation consists of particulates. Value is an order of
+    magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    litter_leaching_fraction_nitrogen = 0.0015
+    """Fraction of nitrogen mineralisation from litter that occurs by leaching.
+    
+    [unitless]. The remainder of the mineralisation consists of particulates. Value is
+    an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
