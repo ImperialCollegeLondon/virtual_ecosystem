@@ -35,7 +35,12 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import DevelopmentType, DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
-from virtual_ecosystem.models.animal.decay import CarcassPool, ExcrementPool, LitterPool
+from virtual_ecosystem.models.animal.decay import (
+    CarcassPool,
+    ExcrementPool,
+    HerbivoryWaste,
+    LitterPool,
+)
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
@@ -75,6 +80,10 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
+        "herbivory_waste_leaf_carbon",
+        "herbivory_waste_leaf_nitrogen",
+        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_lignin",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
         "litter_consumption_woody",
@@ -88,6 +97,10 @@ class AnimalModel(
         "decomposed_carcasses_carbon",
         "decomposed_carcasses_nitrogen",
         "decomposed_carcasses_phosphorus",
+        "herbivory_waste_leaf_carbon",
+        "herbivory_waste_leaf_nitrogen",
+        "herbivory_waste_leaf_phosphorus",
+        "herbivory_waste_leaf_lignin",
         "total_animal_respiration",
         "litter_consumption_above_metabolic",
         "litter_consumption_above_structural",
@@ -172,7 +185,11 @@ class AnimalModel(
             for cell_id in self.data.grid.cell_id
         }
         """The carcass pools in the model with associated grid cell ids."""
-
+        self.leaf_waste_pools: dict[int, HerbivoryWaste] = {
+            cell_id: HerbivoryWaste(plant_matter_type="leaf")
+            for cell_id in self.data.grid.cell_id
+        }
+        """A pool for leaves removed by herbivory but not actually consumed."""
         self.cohorts: dict[UUID, AnimalCohort] = {}
         """A dictionary of all animal cohorts and their unique ids."""
         self.communities: dict[int, list[AnimalCohort]] = {
@@ -350,11 +367,11 @@ class AnimalModel(
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
         litter_consumption = self.calculate_total_litter_consumption(litter_pools)
-        # litter_additions = self.calculate_litter_additions_from_herbivory()
+        litter_additions = self.calculate_litter_additions_from_herbivory()
 
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(
-            additions_to_soil | litter_consumption  # | litter_additions
+            additions_to_soil | litter_consumption | litter_additions
         )  # TODO - TEST THIS!
 
         # Update population densities
@@ -366,7 +383,16 @@ class AnimalModel(
     def populate_litter_pools(self) -> dict[str, LitterPool]:
         """Populate the litter pools that animals can consume from.
 
-        TODO: rework for merge
+        Returns:
+            dict[str, LitterPool]: A dictionary where keys represent the pool types and
+            values are the corresponding `LitterPool` objects. The following pools are
+            included:
+
+            - "above_metabolic": Litter pool for above-ground metabolic organic matter
+            - "above_structural": Litter pool for above-ground structural organic matter
+            - "woody": Litter pool for woody biomass
+            - "below_metabolic": Litter pool for below-ground metabolic organic matter
+            - "below_structural": Litter pool for below-ground structural organic matter
 
         """
 
@@ -424,6 +450,56 @@ class AnimalModel(
                 array(total_consumption[pool_name]), dims="cell_id"
             )
             for pool_name in litter_pools.keys()
+        }
+
+    def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
+        """Calculate additions to litter due to herbivory mechanical inefficiencies.
+
+        TODO - At present the only type of herbivory this works for is leaf herbivory,
+        that should be changed once herbivory as a whole is fleshed out.
+        TODO: rework for merge
+
+        Returns:
+            A dictionary containing details of the leaf litter addition due to herbivory
+            this comprises of the mass added in carbon terms [kg C m^-2], ratio of
+            carbon to nitrogen [unitless], ratio of carbon to phosphorus [unitless], and
+            the proportion of input carbon that is lignin [unitless].
+        """
+
+        # Find the size of the leaf waste pool (in carbon terms)
+        leaf_addition = [
+            self.leaf_waste_pools[cell_id].mass_current / self.data.grid.cell_area
+            for cell_id in self.data.grid.cell_id
+        ]
+        # Find the chemistry of the pools as well
+        leaf_c_n = [
+            self.leaf_waste_pools[cell_id].c_n_ratio
+            for cell_id in self.data.grid.cell_id
+        ]
+        leaf_c_p = [
+            self.leaf_waste_pools[cell_id].c_p_ratio
+            for cell_id in self.data.grid.cell_id
+        ]
+        leaf_lignin = [
+            self.leaf_waste_pools[cell_id].lignin_proportion
+            for cell_id in self.data.grid.cell_id
+        ]
+
+        # Reset all of the herbivory waste pools to zero
+        for waste in self.leaf_waste_pools.values():
+            waste.mass_current = 0.0
+
+        return {
+            "herbivory_waste_leaf_carbon": DataArray(
+                array(leaf_addition), dims="cell_id"
+            ),
+            "herbivory_waste_leaf_nitrogen": DataArray(array(leaf_c_n), dims="cell_id"),
+            "herbivory_waste_leaf_phosphorus": DataArray(
+                array(leaf_c_p), dims="cell_id"
+            ),
+            "herbivory_waste_leaf_lignin": DataArray(
+                array(leaf_lignin), dims="cell_id"
+            ),
         }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:
