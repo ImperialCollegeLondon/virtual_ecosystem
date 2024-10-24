@@ -6,11 +6,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # The `core.grid` module
@@ -18,7 +28,7 @@ kernelspec:
 This module is used to define the grid of cells used in a `virtual_ecosystem`
 simulation. Square and hexagon grids are currently supported.
 
-```{code-cell}
+```{code-cell} ipython3
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -30,7 +40,7 @@ from virtual_ecosystem.core.grid import Grid
 A square grid is defined using the cell area, and the number of cells in the X and Y
 directions to include in the simulation.
 
-```{code-cell}
+```{code-cell} ipython3
 square_grid = Grid(grid_type="square", cell_area=100, cell_nx=10, cell_ny=10)
 square_grid
 ```
@@ -40,7 +50,7 @@ square_grid
 A hexagon grid is defined in a very similar way - alternate rows of hexagons are offset
 to correctly tesselate the individual cells.
 
-```{code-cell}
+```{code-cell} ipython3
 hex_grid = Grid(grid_type="hexagon", cell_area=100, cell_nx=9, cell_ny=11)
 hex_grid
 ```
@@ -58,7 +68,7 @@ stored within a `Grid` instance:
 These `Grid` attributes are used in the code below to show the default cell ID numbering
 scheme.
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [hide-input]
 
 # Side by side plots of the two grid systems
@@ -91,7 +101,7 @@ for this_ax, this_grid in zip(axes, [square_grid, hex_grid]):
 The centroids of the grid cell polygons are available via the `centroids` attribute as a
 `numpy` array of ($x$, $y$) pairs: these can be indexed by cell id:
 
-```{code-cell}
+```{code-cell} ipython3
 square_grid.centroids[0:5]
 ```
 
@@ -102,7 +112,7 @@ the grid. This can be useful for aligning a simulation grid with data in real pr
 coordinate systems, rather than having to move the origin in multiple existing data
 files.
 
-```{code-cell}
+```{code-cell} ipython3
 offset_grid = Grid(
     grid_type="square", cell_area=1000000, cell_nx=9, cell_ny=9, xoff=-4500, yoff=-4500
 )
@@ -110,7 +120,7 @@ offset_grid = Grid(
 offset_grid
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [hide-input]
 
 # Plot of the an offset grid
@@ -143,12 +153,12 @@ contains a list of the same length as `cell_id`, containing arrays of the cell i
 neighbouring cells. At present, only a distance-based neighbourhood calculation is used.
 The neighbours of a specific cell can then be retrieved using its cell id as an index.
 
-```{code-cell}
+```{code-cell} ipython3
 square_grid.set_neighbours(distance=10)
 square_grid.neighbours[45]
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 hex_grid.set_neighbours(distance=15)
 hex_grid.neighbours[40]
 ```
@@ -158,11 +168,11 @@ hex_grid.neighbours[40]
 The `get_distance` method can be used to calculate pairwise distances between lists of
 cell ids. A single cell id can also be used.
 
-```{code-cell}
+```{code-cell} ipython3
 square_grid.get_distances(45, square_grid.neighbours[45])
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 hex_grid.get_distances([1, 40], hex_grid.neighbours[40])
 ```
 
@@ -171,7 +181,7 @@ complete pairwise distance matrix scales as the square of the grid size. However
 `populate_distances` method can be used to populate that matrix, and it is then used by
 `get_distance` for faster lookup of distances.
 
-```{code-cell}
+```{code-cell} ipython3
 square_grid.populate_distances()
 square_grid.get_distances(45, square_grid.neighbours[45])
 ```
@@ -188,7 +198,7 @@ cell boundaries will intersect **all** of the cells sharing a boundary.
 
 The method returns a list of lists, giving the cell_ids for each pair of points in turn.
 
-```{code-cell}
+```{code-cell} ipython3
 # A simple small grid
 simple = Grid("square", cell_nx=2, cell_ny=2, cell_area=1, xoff=1, yoff=1)
 
@@ -197,7 +207,7 @@ points_x = np.array([0.75, 1.25, 1.5, 2, 2.25, 3.25])
 points_y = np.array([0.75, 1.25, 2, 2, 2.25, 3.25])
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [hide-input]
 
 # Plot the data
@@ -222,7 +232,7 @@ plt.plot(points_x, points_y, "rx")
 plt.gca().set_aspect("equal")
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 # Recover the cells under each pair of points.
 simple.map_xy_to_cell_id(points_x, points_y)
 ```
@@ -244,7 +254,7 @@ from the original X and Y axes that map the 2 dimensional data onto a one dimens
 cell id axis in the correct order. This is primarily used in loading and validating a
 dataset and then coercing it into the standard internal representation.
 
-```{code-cell}
+```{code-cell} ipython3
 # A small dataset with coordinates that covers the grid
 data = np.array([[23, 33], [22, 32]])
 cx = np.array([2.5, 1.5])
@@ -262,11 +272,11 @@ dx, dy = simple.map_xy_to_cell_indexing(points_x, points_y, idx_xf, idx_yf)
 print(dx, dy)
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 data[dx, dy]
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 # A set of points that extend beyond the grid
 data = np.array(
     [[14, 24, 34, 44], [13, 23, 33, 43], [12, 22, 32, 42], [11, 21, 31, 41]]
@@ -282,7 +292,7 @@ points_x = cx[idx_xf]
 points_y = cy[idx_yf]
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [raises-exception]
 
 # Fails because points extend outside the grid
@@ -293,7 +303,7 @@ simple.map_xy_to_cell_indexing(points_x, points_y, idx_xf, idx_yf)
 
 A created grid can also be exported as GeoJSON using the `dumps` and `dump` methods:
 
-```{code-cell}
+```{code-cell} ipython3
 simple = Grid("square", cell_nx=2, cell_ny=2, cell_area=1)
 
 simple.dumps()
