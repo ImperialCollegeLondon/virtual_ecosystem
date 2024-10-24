@@ -581,6 +581,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Particulate organic nitrogen pool"
+name = "soil_n_pool_particulate"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Bulk density of soil"
 name = "bulk_density"
 unit = "kg m^-3"

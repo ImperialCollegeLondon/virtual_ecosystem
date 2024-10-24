@@ -23,6 +23,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
         "soil_n_pool_don": [-1.9262695e-7, -3.5218340e-6, -2.5583461e-6, -6.0040799e-5],
+        "soil_n_pool_particulate": [3.529797e-5, 7.0595947e-5, 0.00018273, 1.63088e-5],
     }
 
     # Make order of pools object
@@ -39,6 +40,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"].to_numpy(),
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"].to_numpy(),
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"].to_numpy(),
+        soil_n_pool_particulate=dummy_carbon_data["soil_n_pool_particulate"].to_numpy(),
         pH=dummy_carbon_data["pH"],
         bulk_density=dummy_carbon_data["bulk_density"],
         soil_moisture=dummy_carbon_data["soil_moisture"][

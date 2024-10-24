@@ -21,6 +21,9 @@ from virtual_ecosystem.models.soil.env_factors import (
 # TODO - For now I'm shoving every function in this module, once more has been written
 # hopefully a sensible split should be obvious
 
+# TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
+# think about adding these in future
+
 
 @dataclass
 class MicrobialChanges:
@@ -76,6 +79,7 @@ def calculate_soil_carbon_updates(
     soil_c_pool_pom: NDArray[np.float32],
     soil_c_pool_necromass: NDArray[np.float32],
     soil_n_pool_don: NDArray[np.float32],
+    soil_n_pool_particulate: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
     pH: NDArray[np.float32],
@@ -104,6 +108,7 @@ def calculate_soil_carbon_updates(
         soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
         soil_c_pool_necromass: Microbial necromass pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
+        soil_n_pool_particulate: Particulate organic nitrogen pool [kg N m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
         soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
@@ -227,6 +232,9 @@ def calculate_soil_carbon_updates(
     delta_pools_ordered["soil_n_pool_don"] = (
         mineralisation_fluxes_N["dissolved"] - don_leaching
     )
+    delta_pools_ordered["soil_n_pool_particulate"] = mineralisation_fluxes_N[
+        "particulate"
+    ]
     delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
     delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 

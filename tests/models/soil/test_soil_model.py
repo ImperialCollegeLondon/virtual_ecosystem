@@ -22,6 +22,7 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
@@ -283,6 +284,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     soil_n_pool_don=DataArray(
                         [0.00057133, 0.00142681, 0.00014158, 0.00282728], dims="cell_id"
                     ),
+                    soil_n_pool_particulate=DataArray(
+                        [0.0071605, 0.00074955, 0.0029485, 0.01429386], dims="cell_id"
+                    ),
                 )
             ),
             (),
@@ -435,6 +439,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -3.5218340e-6,
         -2.5583461e-6,
         -6.0040799e-5,
+        3.529797e-5,
+        7.0595947e-5,
+        0.00018273,
+        1.63088e-5,
     ]
 
     # make pools

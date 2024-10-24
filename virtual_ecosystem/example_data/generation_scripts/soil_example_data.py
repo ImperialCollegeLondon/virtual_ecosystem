@@ -48,6 +48,10 @@ maom_enzyme_values = 0.01 + 0.49 * gradient / 64.0
 # Generate a range of plausible values (2.5e-4 - 5.0e-4) for the DON pool [kg N m^-3]
 don_values = 2.5e-4 + 2.5e-4 * gradient / 64.0
 
+# Generate a range of plausible values (7.5e-4 - 1.5e-3) for the particulate N pool [kg
+# N m^-3]
+particulate_n_values = 7.5e-4 + 7.5e-4 * gradient / 64.0
+
 # Make example soil dataset
 example_soil_data = Dataset(
     data_vars=dict(
@@ -62,6 +66,7 @@ example_soil_data = Dataset(
         soil_enzyme_pom=(["x", "y"], pom_enzyme_values),
         soil_enzyme_maom=(["x", "y"], maom_enzyme_values),
         soil_n_pool_don=(["x", "y"], don_values),
+        soil_n_pool_particulate=(["x", "y"], particulate_n_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),
