@@ -1,6 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
 
 from logging import DEBUG
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -562,3 +563,17 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     return dummy_climate_data
+
+
+def patch_run_update(model: str):
+    """Patch the run_update_check udring the init of the model."""
+    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
+    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
+    return patch(f"{object_to_patch}._run_update_due_to_static_configuration")
+
+
+def patch_bypass_setup(model: str):
+    """Patch the run_update_check udring the init of the model."""
+    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
+    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
+    return patch(f"{object_to_patch}._bypass_setup_due_to_static_configuration")

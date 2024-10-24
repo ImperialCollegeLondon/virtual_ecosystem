@@ -522,13 +522,13 @@ def test_check_update_speed(
         vars_populated_by_init=tuple(),
         vars_populated_by_first_update=tuple(),
     ):
-        def setup(self) -> None:
+        def _setup(self) -> None:
             pass
 
         def spinup(self) -> None:
             pass
 
-        def update(self, time_index: int, **kwargs: Any) -> None:
+        def _update(self, time_index: int, **kwargs: Any) -> None:
             pass
 
         def cleanup(self) -> None:
@@ -557,3 +557,256 @@ def test_check_update_speed(
         )
 
     log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    "static, vars_populated_by_init, data_vars, expected_result, expected_exception, "
+    "expected_message",
+    [
+        # Test case where model is static and all variables are present
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            {"var1": 1, "var2": 2},
+            True,
+            does_not_raise(),
+            None,
+            id="static_all_vars_present",
+        ),
+        # Test case where model is static and no variables are present
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            {},
+            True,
+            does_not_raise(),
+            None,
+            id="static_no_vars_present",
+        ),
+        # Test case where model is static and some variables are present
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            {"var1": 1},
+            None,
+            pytest.raises(ConfigurationError),
+            "Static model test_model requires to either all variables in "
+            "vars_populated_by_init to be present in the data object or all to be "
+            "absent. 1 out of 2 found: ['var1'].",
+            id="static_some_vars_present",
+        ),
+        # Test case where model is not static and no variables are present
+        pytest.param(
+            False,
+            ("var1", "var2"),
+            {},
+            False,
+            does_not_raise(),
+            None,
+            id="non_static_no_vars_present",
+        ),
+        # Test case where model is not static and some variables are present
+        pytest.param(
+            False,
+            ("var1", "var2"),
+            {"var1": 1},
+            None,
+            pytest.raises(ConfigurationError),
+            "Non-static model test_model requires none of the variables in "
+            "vars_populated_by_init to be present in the data object. "
+            "Present variables: ['var1']",
+            id="non_static_some_vars_present",
+        ),
+    ],
+)
+def test_bypass_setup_due_to_static_configuration(
+    static,
+    vars_populated_by_init,
+    data_vars,
+    expected_result,
+    expected_exception,
+    expected_message,
+    fixture_data,
+    fixture_config,
+):
+    """Test the _bypass_setup_due_to_static_configuration method."""
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import (
+        CoreComponents,
+    )
+    from virtual_ecosystem.core.data import Data
+
+    class TestModel(
+        BaseModel,
+        model_name="test_model",
+        model_update_bounds=("1 day", "1 month"),
+        vars_required_for_init=(),
+        vars_updated=(),
+        vars_required_for_update=(),
+        vars_populated_by_init=vars_populated_by_init,
+        vars_populated_by_first_update=(),
+    ):
+        def _setup(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def spinup(self) -> None:
+            pass
+
+        def _update(self, time_index: int, **kwargs: Any) -> None:
+            pass
+
+        def cleanup(self) -> None:
+            pass
+
+        @classmethod
+        def from_config(
+            cls, data: Data, core_components: CoreComponents, config: Config
+        ) -> BaseModel:
+            return super().from_config(
+                data=data, core_components=core_components, config=config
+            )
+
+    for var in data_vars.keys():
+        fixture_data[var] = fixture_data["existing_var"].copy()
+
+    core_components = CoreComponents(config=fixture_config)
+
+    with expected_exception as exc:
+        model = TestModel(
+            data=fixture_data, core_components=core_components, static=static
+        )
+        result = model._bypass_setup_due_to_static_configuration()
+        assert result == expected_result
+
+    if expected_message:
+        assert str(exc.value) == expected_message
+
+
+@pytest.mark.parametrize(
+    "static, vars_populated_by_first_update, vars_updated, data_vars, expected_result,"
+    " expected_exception, expected_message",
+    [
+        # Test case where model is static and all variables are present
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            ("var3",),
+            {"var1": 1, "var2": 2, "var3": 3},
+            False,
+            does_not_raise(),
+            None,
+            id="static_all_vars_present",
+        ),
+        # Test case where model is static and no variables are present
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            ("var3",),
+            {},
+            True,
+            does_not_raise(),
+            None,
+            id="static_no_vars_present",
+        ),
+        # Test case where model is static and some variables are present
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            ("var3",),
+            {"var1": 1},
+            None,
+            pytest.raises(ConfigurationError),
+            "Static model test_model requires to either all variables in "
+            "vars_populated_by_first_update and vars_updated to be present "
+            "in the data object or all to be absent. 1 out of 3 found: ['var1'].",
+            id="static_some_vars_present",
+        ),
+        # Test case where model is not static and no variables are present
+        pytest.param(
+            False,
+            ("var1", "var2"),
+            ("var3",),
+            {},
+            True,
+            does_not_raise(),
+            None,
+            id="non_static_no_vars_present",
+        ),
+        # Test case where model is not static and some variables are present
+        pytest.param(
+            False,
+            ("var1", "var2"),
+            ("var3",),
+            {"var1": 1},
+            None,
+            pytest.raises(ConfigurationError),
+            "Non-static model test_model requires none of the variables in "
+            "vars_populated_by_first_update or vars_updated to be present in the "
+            "data object. Present variables: ['var1']",
+            id="non_static_some_vars_present",
+        ),
+    ],
+)
+def test_run_update_due_to_static_configuration(
+    static,
+    vars_populated_by_first_update,
+    vars_updated,
+    data_vars,
+    expected_result,
+    expected_exception,
+    expected_message,
+    fixture_data,
+    fixture_config,
+):
+    """Test the _run_update_due_to_static_configuration method."""
+
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.data import Data
+
+    class TestModel(
+        BaseModel,
+        model_name="test_model",
+        model_update_bounds=("1 day", "1 month"),
+        vars_required_for_init=(),
+        vars_updated=vars_updated,
+        vars_required_for_update=(),
+        vars_populated_by_init=(),
+        vars_populated_by_first_update=vars_populated_by_first_update,
+    ):
+        def _setup(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def spinup(self) -> None:
+            pass
+
+        def _update(self, time_index: int, **kwargs: Any) -> None:
+            pass
+
+        def cleanup(self) -> None:
+            pass
+
+        @classmethod
+        def from_config(
+            cls, data: Data, core_components: CoreComponents, config: Config
+        ) -> BaseModel:
+            return super().from_config(
+                data=data, core_components=core_components, config=config
+            )
+
+    for var in data_vars.keys():
+        fixture_data[var] = fixture_data["existing_var"].copy()
+
+    core_components = CoreComponents(config=fixture_config)
+
+    with expected_exception as exc:
+        model = TestModel(
+            data=fixture_data, core_components=core_components, static=static
+        )
+        result = model._run_update_due_to_static_configuration()
+        assert result == expected_result
+
+    if expected_message:
+        assert str(exc.value) == expected_message

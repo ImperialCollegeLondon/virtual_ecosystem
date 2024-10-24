@@ -71,21 +71,10 @@ class AbioticSimpleModel(
         model_constants: Set of constants for the abiotic_simple model.
     """
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        model_constants: AbioticSimpleConsts = AbioticSimpleConsts(),
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        self.model_constants = model_constants
-        """Set of constants for the abiotic simple model"""
-        self.bounds = AbioticSimpleBounds()
-        """Upper and lower bounds for abiotic variables."""
-
-        self._setup()
+    model_constants: AbioticSimpleConsts
+    """Set of constants for the abiotic simple model"""
+    bounds: AbioticSimpleBounds
+    """Upper and lower bounds for abiotic variables."""
 
     @classmethod
     def from_config(
@@ -107,6 +96,7 @@ class AbioticSimpleModel(
         model_constants = load_constants(
             config, "abiotic_simple", "AbioticSimpleConsts"
         )
+        static = config["abiotic_simple"]["static"]
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
@@ -115,6 +105,7 @@ class AbioticSimpleModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 
@@ -124,13 +115,19 @@ class AbioticSimpleModel(
         TODO: Remove when the base model is updated.
         """
 
-    def _setup(self) -> None:
+    def _setup(self, model_constants: AbioticSimpleConsts, **kwargs) -> None:
         """Function to set up the abiotic simple model.
 
         This function initializes soil temperature for all soil layers and calculates
         the reference vapour pressure deficit for all time steps. Both variables are
         added directly to the self.data object.
+
+        Args:
+            model_constants: Set of constants for the abiotic simple model.
+            **kwargs: Further arguments to the setup method.
         """
+        self.model_constants = model_constants
+        self.bounds = AbioticSimpleBounds()
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
@@ -153,7 +150,7 @@ class AbioticSimpleModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the abiotic simple model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the abiotic simple model.
 
         Args:

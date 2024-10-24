@@ -9,7 +9,7 @@ import pint
 import pytest
 from xarray import DataArray
 
-from tests.conftest import log_check
+from tests.conftest import log_check, patch_bypass_setup, patch_run_update
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 # Global set of messages from model required var checks
@@ -26,7 +26,7 @@ MODEL_VAR_CHECK_LOG = [
             0.5,
             0.9,
             does_not_raise(),
-            tuple(MODEL_VAR_CHECK_LOG),
+            None,
             id="succeeds",
         ),
         pytest.param(
@@ -85,9 +85,14 @@ def test_hydrology_model_initialization(
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # We patch the _setup step as it is tested separately
-    with patch(
-        "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
-    ) as mock_setup:
+    with (
+        patch_run_update("hydrology"),
+        patch_bypass_setup("hydrology") as mock_bypass_setup,
+    ):
+        # with patch(
+        #     "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
+        # ) as mock_setup:
+        mock_bypass_setup.return_value = False
         with raises:
             # Initialize model
             model = HydrologyModel(
@@ -106,10 +111,11 @@ def test_hydrology_model_initialization(
             assert model.initial_groundwater_saturation == ini_groundwater_sat
             # TODO: not sure on the value below, test with more expansive drainage maps
             assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
-            mock_setup.assert_called_once()
+            # mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    if expected_log_entries:
+        log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
@@ -182,6 +188,7 @@ def test_generate_hydrology_model(
 
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Build the config object and core components
@@ -191,17 +198,28 @@ def test_generate_hydrology_model(
 
     # Check whether model is initialised (or not) as expected
     # We patch the _setup step as it is tested separately
-    with patch(
-        "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
-    ) as mock_setup:
-        with raises:
-            model = HydrologyModel.from_config(
-                data=dummy_climate_data,
-                core_components=core_components,
-                config=config,
-            )
-            assert model.model_constants.soil_moisture_capacity == sm_capacity
-            mock_setup.assert_called_once()
+    expected_const = HydroConsts(soil_moisture_capacity=sm_capacity)
+    with (
+        patch_run_update("hydrology"),
+        patch_bypass_setup("hydrology") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with patch(
+            "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
+        ) as mock_setup:
+            with raises:
+                HydrologyModel.from_config(
+                    data=dummy_climate_data,
+                    core_components=core_components,
+                    config=config,
+                )
+                mock_setup.assert_called_once_with(
+                    initial_soil_moisture=config["hydrology"]["initial_soil_moisture"],
+                    initial_groundwater_saturation=config["hydrology"][
+                        "initial_groundwater_saturation"
+                    ],
+                    model_constants=expected_const,
+                )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -238,78 +256,83 @@ def test_setup(
     core_components = CoreComponents(fixture_config)
     lyr_strct = core_components.layer_structure
 
-    with raises:
-        # initialise model. The setup is run as part of the initialisation
-        model = HydrologyModel.from_config(
-            data=dummy_climate_data,
-            core_components=core_components,
-            config=fixture_config,
-        )
-
-        # Test soil moisture
-
-        exp_soilm_setup = lyr_strct.from_template()
-        soil_indices = lyr_strct.index_all_soil
-        exp_soilm_setup[soil_indices] = np.array([[250], [250]])
-
-        np.testing.assert_allclose(
-            model.data["soil_moisture"],
-            exp_soilm_setup,
-            rtol=1e-3,
-            atol=1e-3,
-        )
-
-        # Test groundwater storage
-        exp_groundwater = DataArray(
-            np.full((2, fixture_core_components.grid.n_cells), 450.0),
-            dims=("groundwater_layers", "cell_id"),
-        )
-        np.testing.assert_allclose(
-            model.data["groundwater_storage"],
-            exp_groundwater,
-            rtol=1e-3,
-            atol=1e-3,
-        )
-
-        # Run the update step
-        model.update(time_index=1, seed=42)
-
-        # Test 2d variables
-        expected_2d = {
-            "soil_moisture": [
-                [67.0621, 67.0829, 67.05435, 67.04017],
-                [209.8470, 209.8500, 209.8491, 209.8467],
-            ],
-            "matric_potential": [
-                [-1.532961e07, -1.536408e07, -1.528976e07, -1.53231e07],
-                [-1.250262e03, -1.250131e03, -1.250172e03, -1.250276e3],
-            ],
-        }
-
-        for var_name, expected_vals in expected_2d.items():
-            exp_var = lyr_strct.from_template()
-            exp_var[soil_indices] = expected_vals
-
-            np.testing.assert_allclose(
-                model.data[var_name],
-                exp_var,
-                rtol=1e-4,
-                atol=1e-4,
+    with (
+        patch_run_update("hydrology"),
+        patch_bypass_setup("hydrology") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with raises:
+            # initialise model. The setup is run as part of the initialisation
+            model = HydrologyModel.from_config(
+                data=dummy_climate_data,
+                core_components=core_components,
+                config=fixture_config,
             )
 
-        # Test one dimensional variables
-        expected_1d = {
-            "vertical_flow": [0.69471, 0.695691, 0.695682, 0.694436],
-            "total_river_discharge": [0, 0, 63361, 20925],
-            "surface_runoff": [0, 0, 0, 0],
-            "surface_runoff_accumulated": [0, 0, 0, 0],
-            "soil_evaporation": [345.1148, 344.759928, 345.15422, 344.90802],
-        }
+            # Test soil moisture
 
-        for var_name, expected_vals in expected_1d.items():
+            exp_soilm_setup = lyr_strct.from_template()
+            soil_indices = lyr_strct.index_all_soil
+            exp_soilm_setup[soil_indices] = np.array([[250], [250]])
+
             np.testing.assert_allclose(
-                model.data[var_name],
-                expected_vals,
-                rtol=1e-4,
-                atol=1e-4,
+                model.data["soil_moisture"],
+                exp_soilm_setup,
+                rtol=1e-3,
+                atol=1e-3,
             )
+
+            # Test groundwater storage
+            exp_groundwater = DataArray(
+                np.full((2, fixture_core_components.grid.n_cells), 450.0),
+                dims=("groundwater_layers", "cell_id"),
+            )
+            np.testing.assert_allclose(
+                model.data["groundwater_storage"],
+                exp_groundwater,
+                rtol=1e-3,
+                atol=1e-3,
+            )
+
+            # Run the update step
+            model.update(time_index=1, seed=42)
+
+            # Test 2d variables
+            expected_2d = {
+                "soil_moisture": [
+                    [67.0621, 67.0829, 67.05435, 67.04017],
+                    [209.8470, 209.8500, 209.8491, 209.8467],
+                ],
+                "matric_potential": [
+                    [-1.532961e07, -1.536408e07, -1.528976e07, -1.53231e07],
+                    [-1.250262e03, -1.250131e03, -1.250172e03, -1.250276e3],
+                ],
+            }
+
+            for var_name, expected_vals in expected_2d.items():
+                exp_var = lyr_strct.from_template()
+                exp_var[soil_indices] = expected_vals
+
+                np.testing.assert_allclose(
+                    model.data[var_name],
+                    exp_var,
+                    rtol=1e-4,
+                    atol=1e-4,
+                )
+
+            # Test one dimensional variables
+            expected_1d = {
+                "vertical_flow": [0.69471, 0.695691, 0.695682, 0.694436],
+                "total_river_discharge": [0, 0, 63361, 20925],
+                "surface_runoff": [0, 0, 0, 0],
+                "surface_runoff_accumulated": [0, 0, 0, 0],
+                "soil_evaporation": [345.1148, 344.759928, 345.15422, 344.90802],
+            }
+
+            for var_name, expected_vals in expected_1d.items():
+                np.testing.assert_allclose(
+                    model.data[var_name],
+                    expected_vals,
+                    rtol=1e-4,
+                    atol=1e-4,
+                )

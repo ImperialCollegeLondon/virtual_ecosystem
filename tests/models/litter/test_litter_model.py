@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from xarray import DataArray
 
-from tests.conftest import log_check
+from tests.conftest import log_check, patch_bypass_setup, patch_run_update
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 
@@ -20,11 +20,16 @@ def test_litter_model_initialization(
     from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    model = LitterModel(
-        data=dummy_litter_data,
-        core_components=fixture_core_components,
-        model_constants=LitterConsts(),
-    )
+    with (
+        patch_run_update("litter"),
+        patch_bypass_setup("litter") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        model = LitterModel(
+            data=dummy_litter_data,
+            core_components=fixture_core_components,
+            model_constants=LitterConsts(),
+        )
 
     # In cases where it passes then checks that the object has the right properties
     assert isinstance(model, BaseModel)
@@ -180,17 +185,22 @@ def test_litter_model_initialization_bad_pool_bounds(
     from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    with pytest.raises(InitialisationError):
-        # Put incorrect data in for lmwc
-        dummy_litter_data["litter_pool_above_metabolic"] = DataArray(
-            [0.05, 0.02, -0.1, -0.1], dims=["cell_id"]
-        )
+    with (
+        patch_run_update("litter"),
+        patch_bypass_setup("litter") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with pytest.raises(InitialisationError):
+            # Put incorrect data in for lmwc
+            dummy_litter_data["litter_pool_above_metabolic"] = DataArray(
+                [0.05, 0.02, -0.1, -0.1], dims=["cell_id"]
+            )
 
-        LitterModel(
-            data=dummy_litter_data,
-            core_components=fixture_core_components,
-            model_constants=LitterConsts,
-        )
+            LitterModel(
+                data=dummy_litter_data,
+                core_components=fixture_core_components,
+                model_constants=LitterConsts,
+            )
 
     # Final check that the last log entry is as expected
     log_check(
@@ -207,17 +217,24 @@ def test_litter_model_initialization_bad_lignin_bounds(
     from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    with pytest.raises(InitialisationError):
-        # Make four cell grid
-        litter_data = deepcopy(dummy_litter_data)
-        # Put incorrect data in for woody lignin
-        litter_data["lignin_woody"] = DataArray([0.5, 0.4, 1.1, 1.1], dims=["cell_id"])
+    with (
+        patch_run_update("litter"),
+        patch_bypass_setup("litter") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with pytest.raises(InitialisationError):
+            # Make four cell grid
+            litter_data = deepcopy(dummy_litter_data)
+            # Put incorrect data in for woody lignin
+            litter_data["lignin_woody"] = DataArray(
+                [0.5, 0.4, 1.1, 1.1], dims=["cell_id"]
+            )
 
-        LitterModel(
-            data=litter_data,
-            core_components=fixture_core_components,
-            model_constants=LitterConsts,
-        )
+            LitterModel(
+                data=litter_data,
+                core_components=fixture_core_components,
+                model_constants=LitterConsts,
+            )
 
     # Final check that expected logging entries are produced
     log_check(
@@ -234,19 +251,24 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
     from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
-    with pytest.raises(InitialisationError):
-        # Make four cell grid
-        litter_data = deepcopy(dummy_litter_data)
-        # Put incorrect data in for woody lignin
-        litter_data["c_n_ratio_woody"] = DataArray(
-            [23.3, 45.6, -23.4, -11.1], dims=["cell_id"]
-        )
+    with (
+        patch_run_update("litter"),
+        patch_bypass_setup("litter") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with pytest.raises(InitialisationError):
+            # Make four cell grid
+            litter_data = deepcopy(dummy_litter_data)
+            # Put incorrect data in for woody lignin
+            litter_data["c_n_ratio_woody"] = DataArray(
+                [23.3, 45.6, -23.4, -11.1], dims=["cell_id"]
+            )
 
-        LitterModel(
-            data=litter_data,
-            core_components=fixture_core_components,
-            model_constants=LitterConsts,
-        )
+            LitterModel(
+                data=litter_data,
+                core_components=fixture_core_components,
+                model_constants=LitterConsts,
+            )
 
     # Final check that expected logging entries are produced
     log_check(
@@ -442,13 +464,18 @@ def test_generate_litter_model(
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
-    with raises:
-        model = LitterModel.from_config(
-            data=dummy_litter_data,
-            core_components=core_components,
-            config=config,
-        )
-        assert model.model_constants.litter_decomp_temp_response == temp_response
+    with (
+        patch_run_update("litter"),
+        patch_bypass_setup("litter") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with raises:
+            model = LitterModel.from_config(
+                data=dummy_litter_data,
+                core_components=core_components,
+                config=config,
+            )
+            assert model.model_constants.litter_decomp_temp_response == temp_response
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

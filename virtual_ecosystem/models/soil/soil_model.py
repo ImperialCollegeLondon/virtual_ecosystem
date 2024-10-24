@@ -94,36 +94,6 @@ class SoilModel(
         constants: Set of constants for the soil model.
     """
 
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        model_constants: SoilConsts,
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        # Check that soil pool data is appropriately bounded
-        if (
-            np.any(data["soil_c_pool_maom"] < 0.0)
-            or np.any(data["soil_c_pool_lmwc"] < 0.0)
-            or np.any(data["soil_c_pool_microbe"] < 0.0)
-            or np.any(data["soil_c_pool_pom"] < 0.0)
-            or np.any(data["soil_enzyme_pom"] < 0.0)
-            or np.any(data["soil_enzyme_maom"] < 0.0)
-            or np.any(data["soil_c_pool_necromass"] < 0.0)
-        ):
-            to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
-        self.model_constants: SoilConsts = model_constants
-        """Set of constants for the soil model."""
-
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -142,6 +112,7 @@ class SoilModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
+        static = config["soil"]["static"]
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
@@ -151,16 +122,48 @@ class SoilModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(
+        self,
+        model_constants: SoilConsts,
+        **kwargs: Any,
+    ) -> None:
         """Placeholder function to setup up the soil model."""
+
+        # Check that soil pool data is appropriately bounded
+        if (
+            np.any(self.data["soil_c_pool_maom"] < 0.0)
+            or np.any(self.data["soil_c_pool_lmwc"] < 0.0)
+            or np.any(self.data["soil_c_pool_microbe"] < 0.0)
+            or np.any(self.data["soil_c_pool_pom"] < 0.0)
+            or np.any(self.data["soil_enzyme_pom"] < 0.0)
+            or np.any(self.data["soil_enzyme_maom"] < 0.0)
+            or np.any(self.data["soil_c_pool_necromass"] < 0.0)
+        ):
+            to_raise = InitialisationError(
+                "Initial carbon pools contain at least one negative value!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        self.model_constants: SoilConsts = model_constants
+        """Set of constants for the soil model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the soil model by integrating.
 
         Args:

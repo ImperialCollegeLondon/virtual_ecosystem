@@ -12,7 +12,7 @@ import pytest
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.main import ve_run
 
-from .conftest import log_check
+from .conftest import log_check, patch_bypass_setup, patch_run_update
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: soil"),
@@ -100,18 +100,23 @@ def test_initialise_models(
     core_components = CoreComponents(config)
     caplog.clear()
 
-    with raises:
-        models = initialise_models(
-            config=config,
-            data=dummy_carbon_data,
-            core_components=core_components,
-            models=config.model_classes,
-        )
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with raises:
+            models = initialise_models(
+                config=config,
+                data=dummy_carbon_data,
+                core_components=core_components,
+                models=config.model_classes,
+            )
 
-        if output is None:
-            assert models == [None]
-        else:
-            assert repr(models["soil"]) == output
+            if output is None:
+                assert models == [None]
+            else:
+                assert repr(models["soil"]) == output
 
     log_check(caplog, expected_log_entries)
 
