@@ -194,18 +194,25 @@ def calculate_soil_carbon_updates(
 
     # Calculate the split of the mineralisation flux between dissolved and particulate
     # forms
-    mineralisation_fluxes_C = calculate_mineralisation_split(
+    litter_mineralisation_fluxes_C = calculate_litter_mineralisation_split(
         mineralisation_rate=C_mineralisation_rate,
         litter_leaching_coefficient=model_constants.litter_leaching_fraction_carbon,
     )
-    mineralisation_fluxes_N = calculate_mineralisation_split(
+    litter_mineralisation_fluxes_N = calculate_litter_mineralisation_split(
         mineralisation_rate=N_mineralisation_rate,
         litter_leaching_coefficient=model_constants.litter_leaching_fraction_nitrogen,
     )
 
+    # Find mineralisation rate from POM
+    pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
+        pool_carbon=soil_c_pool_pom,
+        pool_nutrient=soil_n_pool_particulate,
+        breakdown_rate=enzyme_mediated.pom_to_lmwc,
+    )
+
     # Determine net changes to the pools
     delta_pools_ordered["soil_c_pool_lmwc"] = (
-        mineralisation_fluxes_C["dissolved"]
+        litter_mineralisation_fluxes_C["dissolved"]
         + enzyme_mediated.pom_to_lmwc
         + enzyme_mediated.maom_to_lmwc
         + maom_desorption_to_lmwc
@@ -222,7 +229,7 @@ def calculate_soil_carbon_updates(
     )
     delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
     delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_fluxes_C["particulate"] - enzyme_mediated.pom_to_lmwc
+        litter_mineralisation_fluxes_C["particulate"] - enzyme_mediated.pom_to_lmwc
     )
     delta_pools_ordered["soil_c_pool_necromass"] = (
         microbial_changes.necromass_generation
@@ -230,11 +237,13 @@ def calculate_soil_carbon_updates(
         - necromass_sorption_to_maom
     )
     delta_pools_ordered["soil_n_pool_don"] = (
-        mineralisation_fluxes_N["dissolved"] - don_leaching
+        litter_mineralisation_fluxes_N["dissolved"]
+        + pom_n_mineralisation
+        - don_leaching
     )
-    delta_pools_ordered["soil_n_pool_particulate"] = mineralisation_fluxes_N[
-        "particulate"
-    ]
+    delta_pools_ordered["soil_n_pool_particulate"] = (
+        litter_mineralisation_fluxes_N["particulate"] - pom_n_mineralisation
+    )
     delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
     delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 
@@ -690,7 +699,7 @@ def calculate_necromass_breakdown(
     return necromass_decay_rate * soil_c_pool_necromass
 
 
-def calculate_mineralisation_split(
+def calculate_litter_mineralisation_split(
     mineralisation_rate: NDArray[np.float32], litter_leaching_coefficient: float
 ) -> dict[str, NDArray[np.float32]]:
     """Determine how nutrients from litter mineralisation get split between soil pools.
@@ -715,3 +724,31 @@ def calculate_mineralisation_split(
         "particulate": (1 - litter_leaching_coefficient) * mineralisation_rate,
         "dissolved": litter_leaching_coefficient * mineralisation_rate,
     }
+
+
+def calculate_soil_nutrient_mineralisation(
+    pool_carbon: NDArray[np.float32],
+    pool_nutrient: NDArray[np.float32],
+    breakdown_rate: NDArray[np.float32],
+):
+    """Calculate mineralisation rate from soil organic matter for a specific nutrient.
+
+    This function assumes that nutrients are mineralised in direct proportion to their
+    ratio to carbon in the decaying organic matter. This function is therefore does not
+    capture mechanisms that exist to actively release nutrients from organic matter
+    (e.g. phosphatase enzymes).
+
+    Args:
+        pool_carbon: The carbon content of the organic matter pool [kg C m^-3]
+        pool_nutrient: The nutrient content of the organic matter pool [kg nutrient
+            m^-3]
+        breakdown_rate: The rate at which the pool is being broken down (expressed in
+            carbon terms) [kg C m^-3 day^-1]
+
+    Returns:
+        The rate at which the nutrient in question is mineralised due to organic matter
+        breakdown [kg nutrient m^-3 day^-1]
+    """
+
+    carbon_nutrient_ratio = pool_carbon / pool_nutrient
+    return breakdown_rate / carbon_nutrient_ratio

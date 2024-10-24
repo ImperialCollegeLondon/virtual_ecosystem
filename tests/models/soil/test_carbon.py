@@ -22,8 +22,8 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [-1.9262695e-7, -3.5218340e-6, -2.5583461e-6, -6.0040799e-5],
-        "soil_n_pool_particulate": [3.529797e-5, 7.0595947e-5, 0.00018273, 1.63088e-5],
+        "soil_n_pool_don": [2.4081961e-5, 2.84920682e-6, 4.84845086e-5, -5.83499913e-5],
+        "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
     }
 
     # Make order of pools object
@@ -327,16 +327,18 @@ def test_calculate_necromass_breakdown(dummy_carbon_data):
     assert np.allclose(actual_breakdown, expected_breakdown)
 
 
-def test_calculate_mineralisation_split(dummy_carbon_data):
+def test_calculate_litter_mineralisation_split(dummy_carbon_data):
     """Test that the calculation of the mineralisation split works as expected."""
-    from virtual_ecosystem.models.soil.carbon import calculate_mineralisation_split
+    from virtual_ecosystem.models.soil.carbon import (
+        calculate_litter_mineralisation_split,
+    )
 
     expected_split = {
         "dissolved": [3.18159e-6, 1.590795e-6, 7.35e-7, 8.25e-6],
         "particulate": [0.00211787841, 0.001058939205, 0.000489265, 0.00549175],
     }
 
-    actual_split = calculate_mineralisation_split(
+    actual_split = calculate_litter_mineralisation_split(
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
         litter_leaching_coefficient=SoilConsts.litter_leaching_fraction_carbon,
     )
@@ -345,3 +347,22 @@ def test_calculate_mineralisation_split(dummy_carbon_data):
 
     for key in actual_split.keys():
         assert np.allclose(actual_split[key], expected_split[key])
+
+
+def test_calculate_soil_nutrient_mineralisation(
+    dummy_carbon_data, enzyme_mediated_rates
+):
+    """Test that function to calculate soil nutrient mineralisation works properly."""
+    from virtual_ecosystem.models.soil.carbon import (
+        calculate_soil_nutrient_mineralisation,
+    )
+
+    expected_rate = [2.42745875e-5, 6.371041e-6, 5.104285e-5, 1.690808e-6]
+
+    actual_rate = calculate_soil_nutrient_mineralisation(
+        pool_carbon=dummy_carbon_data["soil_c_pool_pom"],
+        pool_nutrient=dummy_carbon_data["soil_n_pool_particulate"],
+        breakdown_rate=enzyme_mediated_rates.pom_to_lmwc,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
