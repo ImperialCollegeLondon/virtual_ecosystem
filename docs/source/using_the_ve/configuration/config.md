@@ -191,3 +191,22 @@ formatted the configuration process will critically fail.
 
 In addition to saving the configuration as an output file, it is also returned so that
 downstream functions can make use of it. This is as a simple nested dictionary.
+
+## Static models
+
+All models (except `core`) accept a boolean configuration option, `static`, that
+indicates if such a model should be updated every iteration (`static=false`, the
+default behaviour) or not.
+
+If `static=true`, there are several possibilities depending on the data
+variables available in the [`Data` object](../data/data.md):
+
+- For the initialisation, if the variables that are populated are:
+  - **All present**: The model initialisation process is bypassed.
+  - **None present**: The model initialisation process runs normally.
+- For the update, if the variables that are populated are:
+  - **All present**: Then the update process is bypassed.
+  - **None present**: The update *is run just once*, keeping the same values for those
+  variables throughout the simulation.
+
+Providing some but not all of the variables case will result in an error in all cases.
