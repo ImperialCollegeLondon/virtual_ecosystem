@@ -258,30 +258,30 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             does_not_raise(),
             Dataset(
                 data_vars=dict(
-                    lmwc=DataArray(
+                    soil_c_pool_lmwc=DataArray(
                         [0.05110474, 0.02294602, 0.0923997, 0.01485682], dims="cell_id"
                     ),
-                    maom=DataArray(
+                    soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
                     ),
-                    microbe=DataArray(
+                    soil_c_pool_microbe=DataArray(
                         [5.7752035, 2.29002929, 11.24843316, 0.99642482],
                         dims="cell_id",
                     ),
-                    pom=DataArray(
+                    soil_c_pool_pom=DataArray(
                         [0.10088826, 0.99607827, 0.69401858, 0.35272508], dims="cell_id"
                     ),
-                    necromass=DataArray(
+                    soil_c_pool_necromass=DataArray(
                         [0.05840539, 0.01865113, 0.10632815, 0.06904724], dims="cell_id"
                     ),
-                    enzyme_pom=DataArray(
+                    soil_enzyme_pom=DataArray(
                         [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
                     ),
-                    enzyme_maom=DataArray(
+                    soil_enzyme_maom=DataArray(
                         [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
                     ),
-                    don=DataArray(
-                        [0.00057145, 0.00142862, 0.00014299, 0.00285715], dims="cell_id"
+                    soil_n_pool_don=DataArray(
+                        [0.00057133, 0.00142681, 0.00014158, 0.00282728], dims="cell_id"
                     ),
                 )
             ),
@@ -316,15 +316,12 @@ def test_integrate_soil_model(
 
     with raises:
         new_pools = fixture_soil_model.integrate()
+
         # Check returned pools matched (mocked) integrator output
-        assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
-        assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
-        assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
-        assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
-        assert np.allclose(new_pools["soil_c_pool_necromass"], final_pools["necromass"])
-        assert np.allclose(new_pools["soil_enzyme_pom"], final_pools["enzyme_pom"])
-        assert np.allclose(new_pools["soil_enzyme_maom"], final_pools["enzyme_maom"])
-        assert np.allclose(new_pools["soil_n_pool_don"], final_pools["don"])
+        assert set(new_pools.keys()) == set(final_pools.keys())
+
+        for key in new_pools.keys():
+            assert np.allclose(new_pools[key], final_pools[key])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -434,10 +431,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -5.09593e-5,
         0.0005990658,
         -3.72112e-5,
-        5.30265e-8,
-        1.06053e-7,
-        2.745e-7,
-        2.449995e-8,
+        -1.9262695e-7,
+        -3.5218340e-6,
+        -2.5583461e-6,
+        -6.0040799e-5,
     ]
 
     # make pools

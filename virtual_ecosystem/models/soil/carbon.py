@@ -162,6 +162,12 @@ def calculate_soil_carbon_updates(
         soil_moisture=soil_moisture,
         solubility_coefficient=model_constants.solubility_coefficient_lmwc,
     )
+    don_leaching = calculate_leaching_rate(
+        solute_density=soil_n_pool_don,
+        vertical_flow_rate=vertical_flow_rate,
+        soil_moisture=soil_moisture,
+        solubility_coefficient=model_constants.solubility_coefficient_don,
+    )
 
     # Calculate transfers between the lmwc, necromass and maom pools
     maom_desorption_to_lmwc = calculate_maom_desorption(
@@ -218,7 +224,9 @@ def calculate_soil_carbon_updates(
         - necromass_decay_to_lmwc
         - necromass_sorption_to_maom
     )
-    delta_pools_ordered["soil_n_pool_don"] = mineralisation_fluxes_N["dissolved"]
+    delta_pools_ordered["soil_n_pool_don"] = (
+        mineralisation_fluxes_N["dissolved"] - don_leaching
+    )
     delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
     delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 

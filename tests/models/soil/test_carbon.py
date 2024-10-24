@@ -22,7 +22,7 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [5.30265e-8, 1.06053e-7, 2.745e-7, 2.449995e-8],
+        "soil_n_pool_don": [-1.9262695e-7, -3.5218340e-6, -2.5583461e-6, -6.0040799e-5],
     }
 
     # Make order of pools object
