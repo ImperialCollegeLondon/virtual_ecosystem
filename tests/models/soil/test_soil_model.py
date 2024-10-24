@@ -8,7 +8,7 @@ import pytest
 from scipy.optimize import OptimizeResult  # type: ignore
 from xarray import DataArray, Dataset
 
-from tests.conftest import log_check
+from tests.conftest import log_check, patch_bypass_setup, patch_run_update
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.models.soil.soil_model import IntegrationError
 
@@ -35,11 +35,16 @@ def test_soil_model_initialization(
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
-    model = SoilModel(
-        data=dummy_carbon_data,
-        core_components=fixture_soil_core_components,
-        model_constants=SoilConsts(),
-    )
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        model = SoilModel(
+            data=dummy_carbon_data,
+            core_components=fixture_soil_core_components,
+            model_constants=SoilConsts(),
+        )
 
     # In cases where it passes then checks that the object has the right properties
     assert isinstance(model, BaseModel)
@@ -106,18 +111,23 @@ def test_soil_model_initialization_bounds_error(
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
-    with pytest.raises(InitialisationError):
-        # Put incorrect data in for lmwc
-        dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
-            [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
-        )
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with pytest.raises(InitialisationError):
+            # Put incorrect data in for lmwc
+            dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+                [0.05, 0.02, 0.1, -0.005], dims=["cell_id"]
+            )
 
-        # Initialise model with bad data object
-        _ = SoilModel(
-            data=dummy_carbon_data,
-            core_components=fixture_core_components,
-            model_constants=SoilConsts(),
-        )
+            # Initialise model with bad data object
+            _ = SoilModel(
+                data=dummy_carbon_data,
+                core_components=fixture_core_components,
+                model_constants=SoilConsts(),
+            )
 
     # Final check that expected logging entries are produced
     log_check(
@@ -202,13 +212,18 @@ def test_generate_soil_model(
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
-    with raises:
-        model = SoilModel.from_config(
-            data=dummy_carbon_data,
-            core_components=core_components,
-            config=config,
-        )
-        assert model.model_constants.max_decomp_rate_pom == max_decomp
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with raises:
+            model = SoilModel.from_config(
+                data=dummy_carbon_data,
+                core_components=core_components,
+                config=config,
+            )
+            assert model.model_constants.max_decomp_rate_pom == max_decomp
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -376,11 +391,16 @@ def test_order_independance(
         new_data[pool_name] = dummy_carbon_data[pool_name]
 
     # Use this new data to make a new soil model object
-    new_soil_model = SoilModel.from_config(
-        data=new_data,
-        core_components=fixture_soil_core_components,
-        config=fixture_soil_config,
-    )
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        new_soil_model = SoilModel.from_config(
+            data=new_data,
+            core_components=fixture_soil_core_components,
+            config=fixture_soil_config,
+        )
 
     # Integrate using both data objects
     output = fixture_soil_model.integrate()

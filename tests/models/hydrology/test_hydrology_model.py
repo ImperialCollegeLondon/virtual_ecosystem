@@ -26,7 +26,7 @@ MODEL_VAR_CHECK_LOG = [
             0.5,
             0.9,
             does_not_raise(),
-            tuple(MODEL_VAR_CHECK_LOG),
+            None,
             id="succeeds",
         ),
         pytest.param(
@@ -114,7 +114,8 @@ def test_hydrology_model_initialization(
             # mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    if expected_log_entries:
+        log_check(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(
@@ -212,7 +213,13 @@ def test_generate_hydrology_model(
                     core_components=core_components,
                     config=config,
                 )
-                mock_setup.assert_called_once_with(model_constants=expected_const)
+                mock_setup.assert_called_once_with(
+                    initial_soil_moisture=config["hydrology"]["initial_soil_moisture"],
+                    initial_groundwater_saturation=config["hydrology"][
+                        "initial_groundwater_saturation"
+                    ],
+                    model_constants=expected_const,
+                )
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

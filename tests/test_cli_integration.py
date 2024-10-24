@@ -26,45 +26,55 @@ def test_ve_run(capsys, mocker):
     """
 
     # import virtual_ecosystem.core  #F401
+    from tests.conftest import patch_bypass_setup, patch_run_update
     from virtual_ecosystem.core.logger import remove_file_logger
     from virtual_ecosystem.entry_points import ve_run_cli
 
-    with TemporaryDirectory() as tempdir:
-        try:
-            # Install the example directory to run it - tested above - and consume the
-            # resulting stdout
-            ve_run_cli(args_list=["--install-example", tempdir])
-            _ = capsys.readouterr()
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup_soil,
+        patch_run_update("litter"),
+        patch_bypass_setup("litter") as mock_bypass_setup_litter,
+    ):
+        mock_bypass_setup_soil.return_value = False
+        mock_bypass_setup_litter.return_value = False
 
-            example_dir = Path(tempdir) / "ve_example"
-            configs = example_dir / "config"
-            outdir = example_dir / "out"
-            logfile = outdir / "ve_example.log"
-            ve_run_cli(
-                args_list=[
-                    str(configs),
-                    "--outpath",
-                    str(outdir),
-                    "--logfile",
-                    str(logfile),
-                    "--progress",
-                ]
-            )
+        with TemporaryDirectory() as tempdir:
+            try:
+                # Install the example directory to run it - tested above - and consume
+                # the resulting stdout
+                ve_run_cli(args_list=["--install-example", tempdir])
+                _ = capsys.readouterr()
 
-            # Test the requested --progress output ends as expected
-            captured = capsys.readouterr()
-            expected = "Virtual Ecosystem run complete.\n"
-            assert captured.out.endswith(expected)
+                example_dir = Path(tempdir) / "ve_example"
+                configs = example_dir / "config"
+                outdir = example_dir / "out"
+                logfile = outdir / "ve_example.log"
+                ve_run_cli(
+                    args_list=[
+                        str(configs),
+                        "--outpath",
+                        str(outdir),
+                        "--logfile",
+                        str(logfile),
+                        "--progress",
+                    ]
+                )
 
-            # Check the logfile has been populated as expected
-            assert logfile.exists()
-            with open(logfile) as logfile_io:
-                contents = logfile_io.readlines()
-                assert "Virtual Ecosystem model run completed!" in contents[-1]
+                # Test the requested --progress output ends as expected
+                captured = capsys.readouterr()
+                expected = "Virtual Ecosystem run complete.\n"
+                assert captured.out.endswith(expected)
 
-        except Exception as excep:
-            # If the code above fails then tidy up the logger to restore normal stream
-            # logging rather than leaving all other tests logging to the file and then
-            # fail the test.
-            remove_file_logger()
-            pytest.fail(reason=str(excep))
+                # Check the logfile has been populated as expected
+                assert logfile.exists()
+                with open(logfile) as logfile_io:
+                    contents = logfile_io.readlines()
+                    assert "Virtual Ecosystem model run completed!" in contents[-1]
+
+            except Exception as excep:
+                # If the code above fails then tidy up the logger to restore normal
+                # stream logging rather than leaving all other tests logging to the file
+                # and then fail the test.
+                remove_file_logger()
+                pytest.fail(reason=str(excep))
