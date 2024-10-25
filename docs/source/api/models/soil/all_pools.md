@@ -14,10 +14,10 @@ kernelspec:
   name: python3
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.models.soil.carbon` module
+# API documentation for the {mod}`~virtual_ecosystem.models.soil.all_pools` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.soil.carbon
+.. automodule:: virtual_ecosystem.models.soil.all_pools
     :autosummary:
     :members:
 ```

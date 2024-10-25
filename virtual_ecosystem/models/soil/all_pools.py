@@ -1,8 +1,10 @@
-"""The ``models.soil.carbon`` module  simulates the soil carbon cycle for the Virtual
-Ecosystem. At the moment five pools are modelled, these are low molecular weight carbon
+"""The ``models.soil.all_pools`` module simulates all soil pools for the Virtual
+Ecosystem. At the moment four carbon pools are modelled (low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
-matter (POM), and POM degrading enzymes.
+matter (POM)), as well as two enzyme pools (POM and MAOM) degrading enzymes, and two
+nitrogen pools (dissolved organic nitrogen and particulate organic nitrogen).
 """  # noqa: D205
+# TODO - This docstring probably needs to change when this submodule gets split up
 
 from dataclasses import dataclass
 
@@ -18,11 +20,11 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_temperature_effect_on_microbes,
 )
 
-# TODO - For now I'm shoving every function in this module, once more has been written
-# hopefully a sensible split should be obvious
-
 # TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
 # think about adding these in future
+
+# TODO - Make calculate_soil_carbon_updates some kind of class
+# TODO - Split functionality into new submodules
 
 
 @dataclass
@@ -70,8 +72,6 @@ class EnzymeMediatedRates:
     """
 
 
-# TODO - This function should probably be shortened. I've done some work on this
-# already, but I need to keep an eye on it as new pools are added.
 def calculate_soil_carbon_updates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_maom: NDArray[np.float32],

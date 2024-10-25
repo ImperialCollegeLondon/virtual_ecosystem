@@ -190,8 +190,8 @@ subtrees:
           - file: api/models/soil
             title: The soil model
             entries:
-              - file: api/models/soil/carbon
-                title: The carbon submodule
+              - file: api/models/soil/all_pools
+                title: The all_pools submodule
               - file: api/models/soil/constants
                 title: The constants submodule
               - file: api/models/soil/env_factors

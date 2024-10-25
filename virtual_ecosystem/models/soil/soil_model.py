@@ -33,7 +33,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
+from virtual_ecosystem.models.soil.all_pools import calculate_soil_carbon_updates
 from virtual_ecosystem.models.soil.constants import SoilConsts
 
 

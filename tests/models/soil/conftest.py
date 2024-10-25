@@ -82,7 +82,7 @@ def enzyme_mediated_rates(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Enzyme mediated rates based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_mediated_rates
+    from virtual_ecosystem.models.soil.all_pools import calculate_enzyme_mediated_rates
     from virtual_ecosystem.models.soil.constants import SoilConsts
 
     return calculate_enzyme_mediated_rates(

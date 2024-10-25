@@ -1,4 +1,4 @@
-"""Test module for soil.carbon.py.
+"""Test module for soil.all_pools.py.
 
 This module tests the functionality of the soil carbon module
 """
@@ -12,7 +12,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
+    from virtual_ecosystem.models.soil.all_pools import calculate_soil_carbon_updates
 
     change_in_pools = {
         "soil_c_pool_lmwc": [0.00226177439, 0.006049897295, -0.019174323, 0.024255464],
@@ -72,7 +72,7 @@ def test_calculate_microbial_changes(
 ):
     """Check that calculation of microbe related changes works correctly."""
 
-    from virtual_ecosystem.models.soil.carbon import calculate_microbial_changes
+    from virtual_ecosystem.models.soil.all_pools import calculate_microbial_changes
 
     expected_lmwc_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
     expected_microbe = [-0.04978105, -0.02020101, -0.10280967, -0.00719517]
@@ -105,7 +105,7 @@ def test_calculate_enzyme_mediated_rates(
 ):
     """Check that calculation of enzyme mediated rates works as expected."""
 
-    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_mediated_rates
+    from virtual_ecosystem.models.soil.all_pools import calculate_enzyme_mediated_rates
 
     expected_pom_to_lmwc = [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5]
     expected_maom_to_lmwc = [1.45988485e-3, 2.10172756e-3, 4.69571604e-3, 8.62951373e-6]
@@ -129,7 +129,7 @@ def test_calculate_enzyme_mediated_rates(
 def test_calculate_enzyme_changes(dummy_carbon_data):
     """Check that the determination of enzyme pool changes works correctly."""
 
-    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_changes
+    from virtual_ecosystem.models.soil.all_pools import calculate_enzyme_changes
 
     biomass_loss = np.array([0.05443078, 0.02298407, 0.12012258, 0.00722288])
 
@@ -153,7 +153,7 @@ def test_calculate_maintenance_biomass_synthesis(
     dummy_carbon_data, fixture_core_components
 ):
     """Check maintenance respiration cost calculates correctly."""
-    from virtual_ecosystem.models.soil.carbon import (
+    from virtual_ecosystem.models.soil.all_pools import (
         calculate_maintenance_biomass_synthesis,
     )
 
@@ -172,7 +172,7 @@ def test_calculate_maintenance_biomass_synthesis(
 
 def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_components):
     """Check carbon use efficiency calculates correctly."""
-    from virtual_ecosystem.models.soil.carbon import calculate_carbon_use_efficiency
+    from virtual_ecosystem.models.soil.all_pools import calculate_carbon_use_efficiency
 
     expected_cues = [0.36, 0.33, 0.3, 0.48]
 
@@ -207,7 +207,7 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_compone
 )
 def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     """Check that enzyme turnover rates are calculated correctly."""
-    from virtual_ecosystem.models.soil.carbon import calculate_enzyme_turnover
+    from virtual_ecosystem.models.soil.all_pools import calculate_enzyme_turnover
 
     actual_decay = calculate_enzyme_turnover(
         enzyme_pool=dummy_carbon_data["soil_enzyme_pom"], turnover_rate=turnover
@@ -220,7 +220,9 @@ def test_calculate_microbial_carbon_uptake(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
-    from virtual_ecosystem.models.soil.carbon import calculate_microbial_carbon_uptake
+    from virtual_ecosystem.models.soil.all_pools import (
+        calculate_microbial_carbon_uptake,
+    )
 
     expected_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
     expected_assimilation = [4.64972597e-3, 2.78306303e-3, 1.73129097e-2, 2.77134508e-5]
@@ -244,7 +246,7 @@ def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
-    from virtual_ecosystem.models.soil.carbon import (
+    from virtual_ecosystem.models.soil.all_pools import (
         calculate_enzyme_mediated_decomposition,
     )
 
@@ -270,7 +272,7 @@ def test_calculate_enzyme_mediated_decomposition(
 def test_calculate_maom_desorption(dummy_carbon_data):
     """Check that mineral associated matter desorption is calculated correctly."""
 
-    from virtual_ecosystem.models.soil.carbon import calculate_maom_desorption
+    from virtual_ecosystem.models.soil.all_pools import calculate_maom_desorption
 
     expected_desorption = [2.5e-5, 1.7e-5, 4.5e-5, 5.0e-6]
 
@@ -302,7 +304,7 @@ def test_calculate_sorption_to_maom(
 ):
     """Check that sorption to mineral associated matter is calculated correctly."""
 
-    from virtual_ecosystem.models.soil.carbon import calculate_sorption_to_maom
+    from virtual_ecosystem.models.soil.all_pools import calculate_sorption_to_maom
 
     actual_sorption = calculate_sorption_to_maom(
         soil_c_pool=dummy_carbon_data[pool_name],
@@ -315,7 +317,7 @@ def test_calculate_sorption_to_maom(
 def test_calculate_necromass_breakdown(dummy_carbon_data):
     """Check that necromass breakdown to lmwc is calculated correctly."""
 
-    from virtual_ecosystem.models.soil.carbon import calculate_necromass_breakdown
+    from virtual_ecosystem.models.soil.all_pools import calculate_necromass_breakdown
 
     expected_breakdown = [0.0134008455, 0.0034657359, 0.0214875626, 0.0242601513]
 
@@ -329,7 +331,7 @@ def test_calculate_necromass_breakdown(dummy_carbon_data):
 
 def test_calculate_litter_mineralisation_split(dummy_carbon_data):
     """Test that the calculation of the mineralisation split works as expected."""
-    from virtual_ecosystem.models.soil.carbon import (
+    from virtual_ecosystem.models.soil.all_pools import (
         calculate_litter_mineralisation_split,
     )
 
@@ -353,7 +355,7 @@ def test_calculate_soil_nutrient_mineralisation(
     dummy_carbon_data, enzyme_mediated_rates
 ):
     """Test that function to calculate soil nutrient mineralisation works properly."""
-    from virtual_ecosystem.models.soil.carbon import (
+    from virtual_ecosystem.models.soil.all_pools import (
         calculate_soil_nutrient_mineralisation,
     )
 
