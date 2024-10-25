@@ -9,10 +9,35 @@ import pytest
 from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
-def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_components):
+def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.soil.all_pools import calculate_soil_carbon_updates
+    from virtual_ecosystem.models.soil.all_pools import SoilPools
+    from virtual_ecosystem.models.soil.soil_model import make_slices
+
+    # Find and store order of pools (this requires loads of steps because it needs to
+    # work with the integrator)
+    y0 = np.concatenate(
+        [
+            dummy_carbon_data[name].to_numpy()
+            for name in map(str, dummy_carbon_data.data.keys())
+            if name.startswith("soil_c_pool_")
+            or name.startswith("soil_enzyme_")
+            or str(name).startswith("soil_n_pool_")
+        ]
+    )
+    delta_pools_ordered = {
+        name: np.array([])
+        for name in map(str, dummy_carbon_data.data.keys())
+        if name.startswith("soil_c_pool_")
+        or name.startswith("soil_enzyme_")
+        or str(name).startswith("soil_n_pool_")
+    }
+    no_cells = 4
+    slices = make_slices(no_cells, len(delta_pools_ordered))
+    pools = {
+        str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
+    }
+    soil_pools = SoilPools(data=dummy_carbon_data, pools=pools, constants=SoilConsts)
 
     change_in_pools = {
         "soil_c_pool_lmwc": [0.00226177439, 0.006049897295, -0.019174323, 0.024255464],
@@ -31,34 +56,9 @@ def test_calculate_soil_carbon_updates(dummy_carbon_data, fixture_core_component
     for pool in change_in_pools.keys():
         pool_order[pool] = np.array([])
 
-    delta_pools = calculate_soil_carbon_updates(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"].to_numpy(),
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"].to_numpy(),
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"].to_numpy(),
-        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"].to_numpy(),
-        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"].to_numpy(),
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"].to_numpy(),
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"].to_numpy(),
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"].to_numpy(),
-        soil_n_pool_particulate=dummy_carbon_data["soil_n_pool_particulate"].to_numpy(),
-        pH=dummy_carbon_data["pH"],
-        bulk_density=dummy_carbon_data["bulk_density"],
-        soil_moisture=dummy_carbon_data["soil_moisture"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        soil_water_potential=dummy_carbon_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        clay_fraction=dummy_carbon_data["clay_fraction"],
-        C_mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
-        N_mineralisation_rate=dummy_carbon_data["litter_N_mineralisation_rate"],
+    delta_pools = soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=pool_order,
-        model_constants=SoilConsts,
-        core_constants=CoreConsts,
+        top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
     )
 
     # Check that the updates are correctly calculated. Using a loop here implicitly

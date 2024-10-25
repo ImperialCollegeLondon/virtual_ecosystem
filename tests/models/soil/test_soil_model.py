@@ -402,7 +402,6 @@ def test_order_independance(
 
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
 
@@ -473,7 +472,6 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
-        core_constants=CoreConsts,
     )
 
     assert np.allclose(delta_pools, rate_of_change)
