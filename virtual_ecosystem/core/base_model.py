@@ -314,7 +314,9 @@ class BaseModel(ABC):
             True if the model is static and the update method needs to run once. False
             otherwise.
         """
-        required = set(self.vars_populated_by_first_update + self.vars_updated)
+        required = set(self.vars_populated_by_first_update + self.vars_updated) - set(
+            self.vars_required_for_init
+        )
         present = [var for var in required if var in self.data]
         found = len(present)
         expected = len(required)
