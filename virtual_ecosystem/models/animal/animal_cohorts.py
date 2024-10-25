@@ -15,6 +15,7 @@ from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
+    HerbivoryWaste,
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
@@ -820,15 +821,21 @@ class AnimalCohort:
         self,
         plant_list: list[Resource],
         excrement_pools: list[ExcrementPool],
+        herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> float:
         """This method handles mass assimilation from herbivory.
 
         TODO: rethink defecate location
+        TODO: At present this just takes a single herbivory waste pool (for leaves),
+        this probably should change to be a list of waste pools once herbivory for other
+        plant tissues is added.
         TODO: update name
 
         Args:
             plant_list: A list of plant resources available for herbivory.
             excrement_pools: The pools representing the excrement in the territory.
+            herbivory_waste_pools: Waste pools for plant biomass (at this point just
+              leaves) that gets removed as part of herbivory but not actually consumed.
 
         Returns:
             A float of the total plant mass consumed by the animal cohort in g.
@@ -840,9 +847,10 @@ class AnimalCohort:
             # Calculate the mass to be consumed from this plant
             consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
             # Update the plant resource's state based on consumed mass
-            actual_consumed_mass = plant.get_eaten(consumed_mass, self, excrement_pools)
+            actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
+            herbivory_waste_pools[plant.cell_id].mass_current += excess_mass
 
         # Process waste generated from predation, separate from predation b/c diff waste
         self.defecate(excrement_pools, total_consumed_mass)
@@ -855,6 +863,7 @@ class AnimalCohort:
         animal_list: list[AnimalCohort],
         excrement_pools: list[ExcrementPool],
         carcass_pools: dict[int, list[CarcassPool]],
+        herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 
@@ -863,6 +872,8 @@ class AnimalCohort:
             animal_list: A list of animal cohorts available for predation.
             excrement_pools: The pools representing the excrement in the grid cell.
             carcass_pools: The pools to which animal carcasses are delivered.
+            herbivory_waste_pools: A dict of pools representing waste caused by
+                herbivory.
 
         Return:
             A float value of the net change in consumer mass due to foraging.
@@ -878,7 +889,7 @@ class AnimalCohort:
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
-                plant_list, excrement_pools
+                plant_list, excrement_pools, herbivory_waste_pools
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 
@@ -1146,6 +1157,31 @@ class AnimalCohort:
                 excrement_pools_in_territory.extend(excrement_pools[cell_id])
 
         return excrement_pools_in_territory
+
+    def get_herbivory_waste_pools(
+        self, plant_waste: dict[int, HerbivoryWaste]
+    ) -> list[HerbivoryWaste]:
+        """Returns a list of herbivory waste pools in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the herbivory waste pools available in those grid cells.
+
+        Args:
+            plant_waste: A dictionary of herbivory waste pools where keys are grid
+            cell IDs.
+
+        Returns:
+            A list of HerbivoryWaste objects in this territory.
+        """
+        plant_waste_pools_in_territory: list[HerbivoryWaste] = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided herbivory waste pools
+            if cell_id in plant_waste:
+                plant_waste_pools_in_territory.append(plant_waste[cell_id])
+
+        return plant_waste_pools_in_territory
 
     def get_carcass_pools(
         self, carcass_pools: dict[int, list[CarcassPool]]

@@ -851,6 +851,9 @@ class AnimalModel(
             plant_list = []
             prey_list = []
             excrement_list = consumer_cohort.get_excrement_pools(self.excrement_pools)
+            """plant_waste_list = consumer_cohort.get_plant_waste_pools(
+                self.leaf_waste_pools
+            )"""
 
             # Check the diet of the cohort and get appropriate resources
             if consumer_cohort.functional_group.diet == DietType.HERBIVORE:
@@ -865,6 +868,7 @@ class AnimalModel(
                 animal_list=prey_list,
                 excrement_pools=excrement_list,
                 carcass_pools=self.carcass_pools,  # the full list of carcass pools
+                herbivory_waste_pools=self.leaf_waste_pools,  # full list of leaf waste
             )
 
             # Temporary solution to remove dead cohorts

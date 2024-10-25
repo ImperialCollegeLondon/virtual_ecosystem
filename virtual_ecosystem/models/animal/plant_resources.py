@@ -4,13 +4,11 @@ required for setting up and testing the early stages of the animal module.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 
 # from virtual_ecosystem.models.animal.decay import ExcrementPool
-from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
+from virtual_ecosystem.models.animal.protocols import Consumer
 
 
 class PlantResources:
@@ -37,7 +35,9 @@ class PlantResources:
         """A reference to the core data object."""
         self.cell_id = cell_id
         """The community cell containing the plant resources."""
-        self.mass_current = 100000.0
+        self.mass_current: float = (
+            data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
+        )
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animal constants, including energy density."""
@@ -45,24 +45,22 @@ class PlantResources:
         """Indicating whether the plant cohort is alive [True] or dead [False]."""
 
     def get_eaten(
-        self,
-        consumed_mass: float,
-        herbivore: Consumer,
-        excrement_pools: Sequence[DecayPool],
-    ) -> float:
-        """Handles herbivory on PlantResources, transfers excess to excrement pools.
+        self, consumed_mass: float, herbivore: Consumer
+    ) -> tuple[float, float]:
+        """This function handles herbivory on PlantResources.
+
+        TODO: the plant waste here is specifically leaf litter, alternative functions
+        (or classes) will need to be written for consumption of roots and reproductive
+        tissues (fruits and flowers).
 
         Args:
-            consumed_mass: The amount of mass consumed by the herbivore [kg].
-            herbivore: The herbivore consuming the plant resource, used to access its
-                functional group properties such as mechanical efficiency and
-                conversion efficiency.
-            excrement_pools: A sequence of excrement pools to which excess mass (carbon)
-            will be added.
+            consumed_mass: The mass intended to be consumed by the herbivore.
+            herbivore: The Consumer (AnimalCohort) consuming the PlantResources.
 
         Returns:
-            The net mass gain of the herbivore after considering mechanical and
-            digestive efficiencies [kg].
+            A tuple consisting of the actual mass consumed by the herbivore (adjusted
+            for efficiencies), and the mass removed from the plants by herbivory that
+            isn't consumed and instead becomes litter.
         """
         # Check if the requested consumed mass is more than the available mass
         actual_consumed_mass = min(self.mass_current, consumed_mass)
@@ -70,26 +68,22 @@ class PlantResources:
         # Update the plant mass to reflect the mass consumed
         self.mass_current -= actual_consumed_mass
 
-        # Calculate the mass value of the consumed plants after mechanical efficiency
+        # Calculate the energy value of the consumed plants after mechanical efficiency
         effective_mass_for_herbivore = (
             actual_consumed_mass * herbivore.functional_group.mechanical_efficiency
         )
 
-        # Excess mass goes to the excrement pool
+        # Excess mass goes to the excrement pool, considering only the part not
+        # converted by mechanical efficiency
         excess_mass = actual_consumed_mass * (
             1 - herbivore.functional_group.mechanical_efficiency
         )
 
-        # Distribute the excess mass as carbon across the excrement pools
-        excreta_mass_per_pool = excess_mass / len(excrement_pools)
-        for excrement_pool in excrement_pools:
-            excrement_pool.decomposed_carbon += excreta_mass_per_pool
-
         # Return the net mass gain of herbivory, considering both mechanical and
-        #  digestive efficiencies
+        # digestive efficiencies
         net_mass_gain = (
             effective_mass_for_herbivore
             * herbivore.functional_group.conversion_efficiency
         )
 
-        return net_mass_gain
+        return net_mass_gain, excess_mass

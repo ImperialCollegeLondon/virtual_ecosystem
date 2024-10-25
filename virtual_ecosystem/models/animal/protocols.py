@@ -3,7 +3,6 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
-from collections.abc import Sequence
 from typing import Protocol
 
 # from virtual_ecosystem.models.animal.decay import ExcrementPool
@@ -43,9 +42,12 @@ class Resource(Protocol):
     """This is the protocol for defining what classes work as trophic resources."""
 
     mass_current: float
+    cell_id: int
 
     def get_eaten(
-        self, consumed_mass: float, herbivore: Consumer, pool: Sequence[DecayPool]
-    ) -> float:
+        self,
+        consumed_mass: float,
+        herbivore: Consumer,
+    ) -> tuple[float, float]:
         """The get_eaten method defines a resource."""
         ...
