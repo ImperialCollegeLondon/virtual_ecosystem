@@ -89,9 +89,6 @@ def test_hydrology_model_initialization(
         patch_run_update("hydrology"),
         patch_bypass_setup("hydrology") as mock_bypass_setup,
     ):
-        # with patch(
-        #     "virtual_ecosystem.models.hydrology.hydrology_model.HydrologyModel._setup"
-        # ) as mock_setup:
         mock_bypass_setup.return_value = False
         with raises:
             # Initialize model
@@ -111,7 +108,6 @@ def test_hydrology_model_initialization(
             assert model.initial_groundwater_saturation == ini_groundwater_sat
             # TODO: not sure on the value below, test with more expansive drainage maps
             assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
-            # mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
     if expected_log_entries:
