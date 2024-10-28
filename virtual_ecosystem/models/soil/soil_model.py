@@ -71,9 +71,11 @@ class SoilModel(
         "soil_n_pool_particulate",
         "matric_potential",
         "vertical_flow",
+        "soil_temperature",
+        "soil_moisture",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
-    ),  # MISSING SOIL MOISTURE AND SOIL TEMP (I THINK)
+    ),
     vars_updated=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
