@@ -1,11 +1,25 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: all,-trusted
+#     notebook_metadata_filter: settings,mystnb,language_info
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.5'
+#       jupytext_version: 1.16.4
+# ---
+
 """Utility functions to generate model variable listings."""
 
 from dataclasses import fields
 
 from virtual_ecosystem.core import variables
 
+# + [markdown]
 # TODO - merge these into a single generate_model_variable_markdown and probably move it
 #        inside the variables submodule.
+# -
 
 
 def generate_variable_listing(model_name: str, var_attributes: list[str]) -> str:

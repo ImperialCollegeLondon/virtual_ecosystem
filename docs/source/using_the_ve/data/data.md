@@ -6,11 +6,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # Adding and using data with the Virtual Ecosystem
@@ -67,7 +77,7 @@ A  {class}`~virtual_ecosystem.core.data.Data` instance is created using informat
 that provides information on the core configuration of the simulation. At present, this
 is just the spatial grid being used.
 
-```{code-cell}
+```{code-cell} ipython3
 from pathlib import Path
 
 import numpy as np
@@ -80,7 +90,7 @@ from virtual_ecosystem.core.axes import *
 from virtual_ecosystem.core.readers import load_to_dataarray
 
 # Create a grid with square 100m2 cells in a 10 by 10 lattice and a Data instance
-grid = Grid(grid_type='square', cell_area=100, cell_nx=10, cell_ny=10)
+grid = Grid(grid_type="square", cell_area=100, cell_nx=10, cell_ny=10)
 data = Data(grid=grid)
 
 data
@@ -99,8 +109,8 @@ two methods:
    a DataArray from supported file formats. This can then be added directly to a Data
    instance:
 
-```python
-data['var_name'] = load_to_dataarray('path/to/file.nc', var='temperature')
+```{code-block} ipython3
+data["var_name"] = load_to_dataarray("path/to/file.nc", var_name="temperature")
 ```
 
 1. The  {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method takes a
@@ -114,33 +124,33 @@ Adding a  DataArray to a {class}`~virtual_ecosystem.core.data.Data` method takes
 existing DataArray object and then uses the built in validation to match the data onto
 core axes. So, for example, the grid used above has a spatial resolution and size:
 
-```{code-cell}
+```{code-cell} ipython3
 grid
 ```
 
 One of the validation routines for the core spatial axis takes a DataArray with `x` and
 `y` coordinates and checks that the data covers all the cells in a square grid:
 
-```{code-cell}
+```{code-cell} ipython3
 temperature_data = DataArray(
     np.random.normal(loc=20.0, size=(10, 10)),
     name="temperature",
     coords={"y": np.arange(5, 100, 10), "x": np.arange(5, 100, 10)},
 )
 
-temperature_data.plot();
+temperature_data.plot()
 ```
 
 That data array can then be added to the  loaded and validated:
 
-```{code-cell}
+```{code-cell} ipython3
 data["temperature"] = temperature_data
 ```
 
 The representation of the {class}`virtual_ecosystem.core.data.Data` instance now shows
 the loaded variables:
 
-```{code-cell}
+```{code-cell} ipython3
 data
 ```
 
@@ -151,7 +161,7 @@ Note that the `x` and `y` coordinates have been mapped onto the internal `cell_i
 dimension used to label the different grid cells (see the
 [Grid](../configuration/grid.md) documentation for details).
 
-```{code-cell}
+```{code-cell} ipython3
 # Get the temperature data
 loaded_temp = data["temperature"]
 
@@ -161,7 +171,7 @@ print(loaded_temp)
 You can check whether a particular variable has been validated on a given core axis
 using the {meth}`~virtual_ecosystem.core.data.Data.on_core_axis` method:
 
-```{code-cell}
+```{code-cell} ipython3
 data.on_core_axis("temperature", "spatial")
 ```
 
@@ -173,17 +183,17 @@ NetCDF file contains a variable `temp` with dimensions `x` and `y`, both of whic
 are of length 10: it contains a 10 by 10 grid that maps onto the shape of the
 configured grid.
 
-```{code-cell}
+```{code-cell} ipython3
 # Load data from a file
 file_path = Path("../../data/xy_dim.nc")
-data['temp'] = load_to_dataarray(file_path, var_name="temp")
+data["temp"] = load_to_dataarray(file_path, var_name="temp")
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 data
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 data.on_core_axis("temp", "spatial")
 ```
 
@@ -211,22 +221,22 @@ to pass one or more TOML formatted configuration files to create a
 containing TOML formatted text or a list of TOML strings to create a configuration
 object:
 
-```{code-cell}
-data_toml = '''[[core.data.variable]]
+```{code-cell} ipython3
+data_toml = """[[core.data.variable]]
 file="../../data/xy_dim.nc"
 var_name="temp"
-'''
+"""
 
 config = Config(cfg_strings=data_toml)
 ```
 
 The `Config` object can then be passed to the `load_data_config` method:
 
-```{code-cell}
+```{code-cell} ipython3
 data.load_data_config(config)
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 data
 ```
 
@@ -235,14 +245,17 @@ data
 The entire contents of the `Data` object can be output using the
 {meth}`~virtual_ecosystem.core.data.Data.save_to_netcdf` method:
 
-```python
-data.save_to_netcdf(output_file_path)
+```{code-block} ipython3
+data.save_to_netcdf(output_file_path=output_file_path)
 ```
 
 Alternatively, a smaller netCDF can be output containing only variables of interest.
 This is done by providing a list specifying what those variables are to the function.
 
-```python
+```{code-block} ipython3
 variables_to_save = ["variable_a", "variable_b"]
-data.save_to_netcdf(output_file_path, variables_to_save)
+data.save_to_netcdf(
+    output_file_path=output_file_path,
+    variables_to_save=variables_to_save
+)
 ```
