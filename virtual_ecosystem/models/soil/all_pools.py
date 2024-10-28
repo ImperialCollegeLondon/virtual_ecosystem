@@ -4,7 +4,6 @@ Ecosystem. At the moment four carbon pools are modelled (low molecular weight ca
 matter (POM)), as well as two enzyme pools (POM and MAOM) degrading enzymes, and two
 nitrogen pools (dissolved organic nitrogen and particulate organic nitrogen).
 """  # noqa: D205
-# TODO - This docstring probably needs to change when this submodule gets split up
 
 from dataclasses import dataclass
 
@@ -22,8 +21,6 @@ from virtual_ecosystem.models.soil.env_factors import (
 
 # TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
 # think about adding these in future
-
-# TODO - Split functionality into new submodules
 
 
 @dataclass
