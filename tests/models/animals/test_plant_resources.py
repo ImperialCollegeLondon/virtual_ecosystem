@@ -1,22 +1,19 @@
 """Test module for plant_resources.py."""
 
+import pytest
+
 
 class TestPlantResources:
     """Test Plant class."""
 
-    def test_get_eaten(
-        self, plant_instance, herbivore_cohort_instance, excrement_pool_instance
-    ):
+    def test_get_eaten(self, plant_instance, herbivore_cohort_instance):
         """Test the get_eaten method for PlantResources."""
-        import pytest
-
         consumed_mass = 50.0  # Define a mass to be consumed for the test
         initial_mass_current = plant_instance.mass_current
-        initial_excrement_carbon = excrement_pool_instance.decomposed_carbon
 
         # Call the method
-        actual_mass_gain = plant_instance.get_eaten(
-            consumed_mass, herbivore_cohort_instance, [excrement_pool_instance]
+        actual_mass_gain, excess_mass = plant_instance.get_eaten(
+            consumed_mass, herbivore_cohort_instance
         )
 
         # Check if the plant mass has been correctly reduced
@@ -35,13 +32,10 @@ class TestPlantResources:
             expected_mass_gain
         ), "Actual mass gain should match expected value after efficiency adjustments."
 
-        # Check if the excess mass has been correctly added to the excrement pool
-        excess_mass = consumed_mass * (
+        # Check if the excess mass has been calculated correctly
+        expected_excess_mass = consumed_mass * (
             1 - herbivore_cohort_instance.functional_group.mechanical_efficiency
         )
-        expected_excrement_carbon_increase = excess_mass / len(
-            [excrement_pool_instance]
-        )
-        assert excrement_pool_instance.decomposed_carbon == pytest.approx(
-            initial_excrement_carbon + expected_excrement_carbon_increase
-        ), "Excrement pool carbon should increase by the mass of the excess carbon."
+        assert excess_mass == pytest.approx(
+            expected_excess_mass
+        ), "Excess mass should match the expected value based on mechanical efficiency."
