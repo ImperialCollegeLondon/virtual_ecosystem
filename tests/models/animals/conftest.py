@@ -820,3 +820,22 @@ def litter_pool_instance(litter_data_instance):
         data=litter_data_instance,
         cell_area=10000,
     )
+
+
+@pytest.fixture
+def herbivory_waste_pool_instance():
+    """Fixture for a herbivory waste pool class to be used in tests."""
+    from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+
+    # Create an instance of HerbivoryWaste with the valid plant_matter_type
+    herbivory_waste = HerbivoryWaste(plant_matter_type="leaf")
+
+    # Manually set the additional attributes
+    herbivory_waste.mass_current = 0.5  # Initial mass in kg
+    herbivory_waste.c_n_ratio = 20.0  # Carbon to Nitrogen ratio [unitless]
+    herbivory_waste.c_p_ratio = 150.0  # Carbon to Phosphorus ratio [unitless]
+    herbivory_waste.lignin_proportion = (
+        0.25  # Proportion of lignin in the mass [unitless]
+    )
+
+    return herbivory_waste

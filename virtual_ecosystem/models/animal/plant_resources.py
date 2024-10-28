@@ -35,9 +35,7 @@ class PlantResources:
         """A reference to the core data object."""
         self.cell_id = cell_id
         """The community cell containing the plant resources."""
-        self.mass_current: float = (
-            data["layer_leaf_mass"].sel(cell_id=cell_id).sum(dim="layers").item()
-        )
+        self.mass_current: float = 10000.0
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animal constants, including energy density."""

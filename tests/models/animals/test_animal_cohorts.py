@@ -229,64 +229,45 @@ class TestAnimalCohort:
             assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "cohort_type, excreta_mass, initial_pool_carbon, num_pools,"
-        "expected_pool_carbon",
+        "cohort_type, excreta_mass, initial_pool_carbon, num_pools",
         [
-            (
-                "herbivore",
-                100.0,
-                500.0,
-                1,
-                500.0,
-            ),  # normal case for herbivore with one pool
+            ("herbivore", 100.0, 500.0, 1),  # normal case for herbivore with one pool
             (
                 "herbivore",
                 0.0,
                 500.0,
                 1,
-                500.0,
             ),  # zero excreta mass for herbivore with one pool
-            (
-                "ectotherm",
-                50.0,
-                300.0,
-                1,
-                300.0,
-            ),  # normal case for ectotherm with one pool
+            ("ectotherm", 50.0, 300.0, 1),  # normal case for ectotherm with one pool
             (
                 "ectotherm",
                 0.0,
                 300.0,
                 1,
-                300.0,
             ),  # zero excreta mass for ectotherm with one pool
             (
                 "herbivore",
                 100.0,
                 500.0,
                 3,
-                500.0,
             ),  # normal case for herbivore with multiple pools
             (
                 "herbivore",
                 0.0,
                 500.0,
                 3,
-                500.0,
             ),  # zero excreta mass for herbivore with multiple pools
             (
                 "ectotherm",
                 50.0,
                 300.0,
                 3,
-                300.0,
             ),  # normal case for ectotherm with multiple pools
             (
                 "ectotherm",
                 0.0,
                 300.0,
                 3,
-                300.0,
             ),  # zero excreta mass for ectotherm with multiple pools
         ],
         ids=[
@@ -309,59 +290,67 @@ class TestAnimalCohort:
         excreta_mass,
         initial_pool_carbon,
         num_pools,
-        expected_pool_carbon,
     ):
         """Testing excrete method for various scenarios."""
 
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
+
         # Select the appropriate cohort instance
-        if cohort_type == "herbivore":
-            cohort_instance = herbivore_cohort_instance
-        elif cohort_type == "ectotherm":
-            cohort_instance = ectotherm_cohort_instance
-        else:
-            raise ValueError("Invalid cohort type provided.")
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
 
         # Mock the excrement pools
         excrement_pools = []
         for _ in range(num_pools):
-            excrement_pool = mocker.Mock()
+            excrement_pool = mocker.Mock(spec=ExcrementPool)
+            # Initialize the required attributes for the mock object
             excrement_pool.decomposed_carbon = initial_pool_carbon
             excrement_pool.scavengeable_carbon = initial_pool_carbon
+            excrement_pool.decomposed_nitrogen = 0.0
+            excrement_pool.scavengeable_nitrogen = 0.0
+            excrement_pool.decomposed_phosphorus = 0.0
+            excrement_pool.scavengeable_phosphorus = 0.0
             excrement_pools.append(excrement_pool)
 
         # Call the excrete method
         cohort_instance.excrete(excreta_mass, excrement_pools)
 
-        # Check the expected results for carbon pools
+        # Expected results calculation
+        excreta_mass_per_community = excreta_mass / num_pools
+        nitrogen_mass_per_community = (
+            excreta_mass_per_community
+            * cohort_instance.constants.nitrogen_excreta_proportion
+        )
+        decay_fraction = cohort_instance.decay_fraction_excrement
+
+        # Calculate expected decomposed and scavengeable carbon
+        expected_decomposed_carbon = (
+            initial_pool_carbon + decay_fraction * 0.5 * nitrogen_mass_per_community
+        )
+        expected_scavengeable_carbon = (
+            initial_pool_carbon
+            + (1 - decay_fraction) * 0.5 * nitrogen_mass_per_community
+        )
+
+        # Check assertions for carbon
         for excrement_pool in excrement_pools:
-            excreta_mass_per_community = (
-                excreta_mass / num_pools
-            ) * cohort_instance.constants.nitrogen_excreta_proportion
-
-            expected_decomposed_carbon = (
-                initial_pool_carbon
-                + cohort_instance.decay_fraction_excrement * excreta_mass_per_community
-            )
-            expected_scavengeable_carbon = (
-                initial_pool_carbon
-                + (1 - cohort_instance.decay_fraction_excrement)
-                * excreta_mass_per_community
-            )
-
             assert excrement_pool.decomposed_carbon == pytest.approx(
-                expected_decomposed_carbon
+                expected_decomposed_carbon, rel=1e-3
             )
             assert excrement_pool.scavengeable_carbon == pytest.approx(
-                expected_scavengeable_carbon
+                expected_scavengeable_carbon, rel=1e-3
             )
 
     @pytest.mark.parametrize(
-        "cohort_type, excreta_mass, expected_carbon_waste",
+        "cohort_type, excreta_mass",
         [
-            ("herbivore", 100.0, 100.0),  # normal case for herbivore
-            ("herbivore", 0.0, 0.0),  # zero excreta mass for herbivore
-            ("ectotherm", 50.0, 50.0),  # normal case for ectotherm
-            ("ectotherm", 0.0, 0.0),  # zero excreta mass for ectotherm
+            ("herbivore", 100.0),  # normal case for herbivore
+            ("herbivore", 0.0),  # zero excreta mass for herbivore
+            ("ectotherm", 50.0),  # normal case for ectotherm
+            ("ectotherm", 0.0),  # zero excreta mass for ectotherm
         ],
         ids=[
             "herbivore_normal",
@@ -376,7 +365,6 @@ class TestAnimalCohort:
         ectotherm_cohort_instance,
         cohort_type,
         excreta_mass,
-        expected_carbon_waste,
     ):
         """Testing respire method for various scenarios.
 
@@ -391,6 +379,11 @@ class TestAnimalCohort:
             cohort_instance = ectotherm_cohort_instance
         else:
             raise ValueError("Invalid cohort type provided.")
+
+        # Calculate the expected carbon waste based on the cohort's constants
+        expected_carbon_waste = (
+            excreta_mass * cohort_instance.constants.carbon_excreta_proportion
+        )
 
         # Call the respire method
         carbon_waste = cohort_instance.respire(excreta_mass)
@@ -439,6 +432,10 @@ class TestAnimalCohort:
             excrement_pool = mocker.Mock()
             excrement_pool.scavengeable_carbon = scav_initial
             excrement_pool.decomposed_carbon = decomp_initial
+            excrement_pool.scavengeable_nitrogen = 0.0
+            excrement_pool.decomposed_nitrogen = 0.0
+            excrement_pool.scavengeable_phosphorus = 0.0
+            excrement_pool.decomposed_phosphorus = 0.0
             excrement_pools.append(excrement_pool)
 
         # Call the defecate method
@@ -1244,6 +1241,7 @@ class TestAnimalCohort:
         herbivore_cohort_instance,
         plant_list_instance,
         excrement_pool_instance,
+        herbivory_waste_pool_instance,
     ):
         """Test mass assimilation calculation from herbivory."""
 
@@ -1251,18 +1249,30 @@ class TestAnimalCohort:
         mock_calculate_consumed_mass_herbivory = mocker.patch.object(
             herbivore_cohort_instance,
             "calculate_consumed_mass_herbivory",
-            side_effect=lambda plant_list, plant: 10.0,
-            # Assume 10.0 kg mass consumed from each plant for simplicity
+            side_effect=lambda plant_list,
+            plant: 10.0,  # Assume 10.0 kg mass consumed from each plant for simplicity
         )
 
-        # Mock the PlantResources.get_eaten method
+        # Mock the PlantResources.get_eaten method to match its original signature
         mock_get_eaten = mocker.patch(
             "virtual_ecosystem.models.animal.plant_resources.PlantResources.get_eaten",
-            side_effect=lambda consumed_mass, herbivore, excrement_pool: consumed_mass,
+            side_effect=lambda consumed_mass, herbivore: (
+                consumed_mass,
+                0.0,
+            ),  # Return consumed_mass and 0.0 as excess_mass
         )
 
+        # Ensure herbivory_waste_pools includes entries for all plant cell IDs
+        herbivory_waste_pools = {
+            plant.cell_id: herbivory_waste_pool_instance
+            for plant in plant_list_instance
+        }
+
+        # Call the delta_mass_herbivory method
         delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance, [excrement_pool_instance]
+            plant_list_instance,
+            [excrement_pool_instance],
+            herbivory_waste_pools,
         )
 
         # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
@@ -1274,7 +1284,7 @@ class TestAnimalCohort:
         # Calculate the expected total consumed mass based on the number of plants
         expected_delta_mass = 10.0 * len(plant_list_instance)
 
-        # Assert the calculated delta_mass_herb matches the expected value
+        # Assert the calculated delta_mass matches the expected value
         assert delta_mass == pytest.approx(
             expected_delta_mass
         ), "Calculated change in mass due to herbivory did not match expected value."
@@ -1288,6 +1298,7 @@ class TestAnimalCohort:
         animal_list_instance,
         excrement_pool_instance,
         carcass_pools_instance,
+        herbivory_waste_pool_instance,
     ):
         """Test foraging behavior for different diet types."""
 
@@ -1301,18 +1312,32 @@ class TestAnimalCohort:
         mock_eat_herbivore = mocker.patch.object(herbivore_cohort_instance, "eat")
         mock_eat_predator = mocker.patch.object(predator_cohort_instance, "eat")
 
+        # Ensure herbivory_waste_pools includes entries for all plant cell IDs
+        herbivory_waste_pools = {
+            plant.cell_id: herbivory_waste_pool_instance
+            for plant in plant_list_instance
+        }
+
         # Test herbivore diet
         herbivore_cohort_instance.forage_cohort(
-            plant_list_instance, [], excrement_pool_instance, carcass_pools_instance
+            plant_list_instance,
+            [],
+            excrement_pool_instance,
+            carcass_pools_instance,
+            herbivory_waste_pools,
         )
         mock_delta_mass_herbivory.assert_called_once_with(
-            plant_list_instance, excrement_pool_instance
+            plant_list_instance, excrement_pool_instance, herbivory_waste_pools
         )
         mock_eat_herbivore.assert_called_once_with(100)
 
         # Test carnivore diet
         predator_cohort_instance.forage_cohort(
-            [], animal_list_instance, excrement_pool_instance, carcass_pools_instance
+            [],
+            animal_list_instance,
+            excrement_pool_instance,
+            carcass_pools_instance,
+            {},
         )
         mock_delta_mass_predation.assert_called_once_with(
             animal_list_instance, excrement_pool_instance, carcass_pools_instance

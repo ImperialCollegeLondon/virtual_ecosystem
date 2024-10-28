@@ -1024,6 +1024,7 @@ class TestAnimalModel:
             animal_list=[],
             excrement_pools=["excrement_pools_herbivore"],
             carcass_pools=animal_model_instance.carcass_pools,
+            herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
         )
 
         # Verify that predators forage prey and not plant resources
@@ -1034,6 +1035,7 @@ class TestAnimalModel:
             animal_list=["prey"],
             excrement_pools=["excrement_pools_predator"],
             carcass_pools=animal_model_instance.carcass_pools,
+            herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
         )
 
     def test_metabolize_community(
