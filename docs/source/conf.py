@@ -100,6 +100,7 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx_external_toc",
     "sphinx_design",
+    "hoverxref.extension",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
