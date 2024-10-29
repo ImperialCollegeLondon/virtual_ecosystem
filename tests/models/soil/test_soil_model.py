@@ -373,11 +373,11 @@ def test_order_independance(
 
     # Then extract soil carbon pool names from the fixture (in order)
     pool_names = [
-        str(name)
+        name
         for name in dummy_carbon_data.data.keys()
-        if str(name).startswith("soil_c_pool_")
-        or str(name).startswith("soil_enzyme_")
-        or str(name).startswith("soil_n_pool_")
+        if name.startswith("soil_c_pool_")
+        or name.startswith("soil_enzyme_")
+        or name.startswith("soil_n_pool_")
     ]
 
     # Add pool values from object in reversed order
@@ -447,21 +447,21 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     # make pools
     pools = np.concatenate(
         [
-            dummy_carbon_data[str(name)].to_numpy()
+            dummy_carbon_data[name].to_numpy()
             for name in dummy_carbon_data.data.keys()
-            if str(name).startswith("soil_c_pool_")
-            or str(name).startswith("soil_enzyme_")
-            or str(name).startswith("soil_n_pool_")
+            if name.startswith("soil_c_pool_")
+            or name.startswith("soil_enzyme_")
+            or name.startswith("soil_n_pool_")
         ]
     )
 
     # Find and store order of pools
     delta_pools_ordered = {
-        str(name): np.array([])
+        name: np.array([])
         for name in dummy_carbon_data.data.keys()
-        if str(name).startswith("soil_c_pool_")
-        or str(name).startswith("soil_enzyme_")
-        or str(name).startswith("soil_n_pool_")
+        if name.startswith("soil_c_pool_")
+        or name.startswith("soil_enzyme_")
+        or name.startswith("soil_n_pool_")
     }
 
     rate_of_change = construct_full_soil_model(

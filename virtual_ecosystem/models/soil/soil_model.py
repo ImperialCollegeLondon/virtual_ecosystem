@@ -222,7 +222,7 @@ class SoilModel(
                 for name in map(str, self.data.data.keys())
                 if name.startswith("soil_c_pool_")
                 or name.startswith("soil_enzyme_")
-                or str(name).startswith("soil_n_pool_")
+                or name.startswith("soil_n_pool_")
             ]
         )
 
@@ -232,7 +232,7 @@ class SoilModel(
             for name in map(str, self.data.data.keys())
             if name.startswith("soil_c_pool_")
             or name.startswith("soil_enzyme_")
-            or str(name).startswith("soil_n_pool_")
+            or name.startswith("soil_n_pool_")
         }
 
         # Carry out simulation

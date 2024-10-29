@@ -22,7 +22,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
             for name in map(str, dummy_carbon_data.data.keys())
             if name.startswith("soil_c_pool_")
             or name.startswith("soil_enzyme_")
-            or str(name).startswith("soil_n_pool_")
+            or name.startswith("soil_n_pool_")
         ]
     )
     delta_pools_ordered = {
@@ -30,7 +30,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         for name in map(str, dummy_carbon_data.data.keys())
         if name.startswith("soil_c_pool_")
         or name.startswith("soil_enzyme_")
-        or str(name).startswith("soil_n_pool_")
+        or name.startswith("soil_n_pool_")
     }
     no_cells = 4
     slices = make_slices(no_cells, len(delta_pools_ordered))
