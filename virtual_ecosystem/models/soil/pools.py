@@ -1,4 +1,4 @@
-"""The ``models.soil.all_pools`` module simulates all soil pools for the Virtual
+"""The ``models.soil.pools`` module simulates all soil pools for the Virtual
 Ecosystem. At the moment four carbon pools are modelled (low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
 matter (POM)), as well as two enzyme pools (POM and MAOM) degrading enzymes, and two
