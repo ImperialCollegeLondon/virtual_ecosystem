@@ -5,11 +5,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # Using the Virtual Ecosystem
@@ -33,15 +43,24 @@ import numpy as np
 import xarray
 ```
 
-```{code-cell} ipython3
-:tags: [remove-cell]
+If you have previously attempted to run this example it is probably a good idea to
+delete the existing virtual ecosystem example directory, as previously generated files
+can prevent the example simulation from running successfully. That can be done as
+follows.
 
+```{code-cell} ipython3
 %%bash
 # Remove any existing VE data directory in the /tmp/ directory
 if [ -d /tmp/ve_example ]; then
   rm -r /tmp/ve_example
 fi
 ```
+
+It should be noted that this is a nuclear option, which is only really appropriate for a
+tutorial like this. In general, you can prevent errors due to output files already
+existing by either moving or deleting the contents of the `ve_example/out` folder. With
+leftover example data directories now removed, a fresh example data directory can then
+be installed.
 
 ```{code-cell} ipython3
 %%bash
@@ -145,7 +164,7 @@ im2 = ax2.imshow(initial_state["pH"].to_numpy().reshape((9, 9)), extent=extent)
 ax2.set_title("Soil pH (-)")
 fig.colorbar(im2, ax=ax2, shrink=0.7)
 
-plt.tight_layout();
+plt.tight_layout()
 ```
 
 For some variables, it may be useful to visualise spatial structure in 3 dimensions.
@@ -171,7 +190,7 @@ ax.set_title("Elevation (m)")
 
 cell_bounds = range(0, 811, 90)
 ax.set_xticks(cell_bounds)
-ax.set_yticks(cell_bounds);
+ax.set_yticks(cell_bounds)
 ```
 
 For other variables, such as air temperature and precipitation, the initial data
@@ -196,7 +215,7 @@ ax1.set_xlabel("Time step (months)")
 ax2.plot(initial_state["time_index"], initial_state["precipitation"])
 ax2.set_title("Precipitation forcing across grid cells")
 ax2.set_ylabel("Total monthly precipitation (mm)")
-ax2.set_xlabel("Time step (months)");
+ax2.set_xlabel("Time step (months)")
 ```
 
 ### Model outputs
@@ -229,7 +248,7 @@ for idx, ax in zip([0, 10, 23], axes):
     ax.set_title(f"Time step: {idx}")
 
 fig.colorbar(im, ax=axes, orientation="vertical", shrink=0.5)
-plt.suptitle("Soil carbon: mineral-associated organic matter", y=0.78, x=0.45);
+plt.suptitle("Soil carbon: mineral-associated organic matter", y=0.78, x=0.45)
 ```
 
 #### Temporal data
@@ -240,7 +259,7 @@ showing the values in each cell across time.
 ```{code-cell} ipython3
 plt.plot(continuous_data["time_index"], continuous_data["soil_c_pool_maom"])
 plt.xlabel("Time step")
-plt.ylabel("Soil carbon as MAOM");
+plt.ylabel("Soil carbon as MAOM")
 ```
 
 #### Vertical structure
@@ -295,5 +314,5 @@ ax.set_ylabel("Northing (m)")
 ax.set_zlabel("Layer height (m)")
 
 ax.set_xticks(cell_bounds)
-ax.set_yticks(cell_bounds);
+ax.set_yticks(cell_bounds)
 ```

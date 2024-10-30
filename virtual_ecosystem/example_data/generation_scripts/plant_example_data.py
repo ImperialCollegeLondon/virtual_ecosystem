@@ -47,4 +47,4 @@ data["photosynthetic_photon_flux_density"] = DataArray(
 
 data["time"] = DataArray(time, coords={"time_index": time_index})
 
-data.to_netcdf("../data/example_plant_data.nc", format="NETCDF3_64BIT")
+data.to_netcdf("../data/example_plant_data.nc")

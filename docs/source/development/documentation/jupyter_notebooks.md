@@ -7,7 +7,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.13.8
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # Dynamic content using `jupyter` notebooks
@@ -35,7 +49,7 @@ the Jupyter extension within VS Code. For this option, you will need to make sur
 VS Code is using the right python environment. The information you will need is
 produced from `poetry`:
 
-```zsh
+```sh
 % poetry env list --full-path
 /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.10
 /Users/dorme/Library/Caches/pypoetry/virtualenvs/virtual-ecosystem-Laomc1u4-py3.9 (Activated)
@@ -69,7 +83,7 @@ check this by running the following, which shows the `python3` kernel pointing t
 `python3` kernel Virtual Ecosystem virtual environment: that path will vary between
 machines but `poetry` will ensure that the link is set correctly.
 
-```zsh
+```sh
 % poetry run jupyter kernelspec list
 Available kernels:
   ir                 ../Jupyter/kernels/ir
@@ -126,13 +140,24 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 ```
 
 If you already have a simple Markdown file then the commands below will insert this YAML
-header:
+header, but at present the `language_info` section either needs to be added manually or
+by opening and saving the file in `jupyter`.
 
-```zsh
+```sh
 % jupytext --set-format md:myst simple.md
 % jupytext --set-kernel python3  simple.md
 ```
@@ -170,7 +195,7 @@ tools may be useful:
 Although `jupytext` does not do Markdown validation, it does allow `black` to be run on
 the code cells, so that the format of code in notebooks can be automatically formatted.
 
-```zsh
+```sh
 jupytext --pipe black my_markdown.md
 ```
 

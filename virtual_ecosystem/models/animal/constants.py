@@ -92,8 +92,6 @@ class AnimalConsts(ConstantsDataclass):
     )
     dispersal_mass_threshold: float = 0.8  # Threshold for dispersal
     energy_percentile_threshold: float = 0.5  # Threshold for initiating migration
-    decay_fraction_excrement: float = 0.5  # Decay fraction for excrement
-    decay_fraction_carcasses: float = 0.2  # Decay fraction for carcasses
 
     # Madingley Foraging Parameters
 

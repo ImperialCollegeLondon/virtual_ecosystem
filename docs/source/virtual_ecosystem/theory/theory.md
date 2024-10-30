@@ -1,9 +1,34 @@
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+---
+
 # The theory of the Virtual Ecosystem
 
 Ecosystems are complex systems that arise from the interplay between
-[animals](./animal_theory.md),
+[animals](./animals/animal_theory.md),
 [plants](./plant_theory.md),
-and [soil microbes](./soil_theory.md) with their
+and [soil microbes](./soil/summary.md) with their
 [abiotic environment](./abiotic_theory.md). Many of these interactions are
 non-linear and happen across a wide range of spatial and temporal scales which makes
 ecosystem dynamics and emergent phenomena such as resilience to environmental stressors
@@ -22,7 +47,7 @@ diversity of users that might benefit from such models.
 The general approach of the **Virtual Ecosystem** is to build on these model frameworks,
 and to connect this prior work into a single modelling framework
 that provides a fully mechanistic, fully integrated representation of key abiotic and
-biotic processes that govern three key emergent properties of terrestrical ecosystems:
+biotic processes that govern three key emergent properties of terrestrial ecosystems:
 their stability, resilience, and sustainability.
 
 We think we can replicate complex

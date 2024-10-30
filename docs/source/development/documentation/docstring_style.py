@@ -1,3 +1,15 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: all,-trusted
+#     notebook_metadata_filter: settings,mystnb,language_info
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.5'
+#       jupytext_version: 1.16.4
+# ---
+
 """This is the documentation for the module. It does not start with a header line
 because a header is required at the top of the markdown source page where the API docs
 will be inserted using the ``automodule`` declaration, so we do not repeat it here.

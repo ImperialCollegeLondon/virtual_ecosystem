@@ -5,7 +5,6 @@ model.
 
 import os
 from collections.abc import Sequence
-from graphlib import CycleError, TopologicalSorter
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -60,82 +59,6 @@ def initialise_models(
         raise to_raise
 
     return models_cfd
-
-
-def _get_model_sequence(
-    config: Config, models: dict[str, Any], method: str
-) -> dict[str, Any]:  # FIXME dict[str, Any]-> dict[str, Type[BaseModel]]
-    """Get a tuple of the model execution sequence for a given model stage.
-
-    This function uses the ``depends`` sections in model configurations to establish an
-    execution sequence for a given model method (currently, one of ``init`` or
-    ``update``). For example, the configuration:
-
-    .. code-block:: toml
-        [plants.depends]
-        init = ['abiotic']
-        update = ['abiotic']
-
-    would set that the ``plants`` model depends on the ``abiotic`` model being both
-    initialised and updated before the ``plants`` model.
-
-    This function adds a warning to the logging output if the configured dependencies
-    include a model that is not being used in a simulation.
-
-    Args:
-        config: A validated configuration object.
-        models: A dictionary of model subclasses or instances.
-        method: The :class:`~virtual_ecosystem.core.base_model.BaseModel` method to use
-            to define the model execution sequence.
-
-    Returns:
-        The function returns a dictionary, keyed by model name, of model classes or
-        instances in the requested execution order.
-
-    Raises:
-        ConfigurationError: if a model depends on itself or if the configured
-            dependencies are cyclic.
-    """
-
-    # Extract depends information for the models for the given step, checking that the
-    # entries are sane
-    depends: dict[str, list[str]] = {}
-    for model_name in models:
-        model_depends = set(config[model_name]["depends"][method])
-
-        # Check the model doesn't have depends over itself
-        if model_name in model_depends:
-            to_raise = f"Model {method} dependencies for {model_name} includes itself"
-            LOGGER.critical(to_raise)
-            raise ConfigurationError(to_raise)
-
-        # Check for model names listed in dependencies but not included in configuration
-        # and warn about these. Then drop them from the dependency list or they get
-        # added to the running order by TopologicalSorter.
-        unconfigured_dependencies = model_depends.difference(models.keys())
-        if unconfigured_dependencies:
-            LOGGER.warning(
-                f"Configuration does not include all of the models listed in {method} "
-                f"dependencies for {model_name}: {','.join(unconfigured_dependencies)}"
-            )
-            model_depends -= unconfigured_dependencies
-
-        depends[model_name] = list(model_depends)
-
-    # Find a resolved running order for those dependencies
-    sorter = TopologicalSorter(depends)
-
-    # Find a resolved execution order, checking for cyclic dependencies.
-    try:
-        resolved_order: list[str] = list(sorter.static_order())
-    except CycleError as excep:
-        to_raise = f"Model {method} dependencies are cyclic: {', '.join(excep.args[1])}"
-        LOGGER.critical(to_raise)
-        raise ConfigurationError(to_raise)
-
-    # Return a dictionary of models in execution order
-    LOGGER.info(f"Model {method} execution order set: {', '.join(resolved_order)}")
-    return {model_name: models[model_name] for model_name in resolved_order}
 
 
 def ve_run(
@@ -209,9 +132,11 @@ def ve_run(
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     # Get the model initialisation sequence and initialise
-    init_sequence = _get_model_sequence(
-        config=config, models=config.model_classes, method="init"
-    )
+    init_sequence = {
+        model_name: config.model_classes[model_name]
+        for model_name in variables.get_model_order("init")
+    }
+
     models_init = initialise_models(
         config=config,
         data=data,
@@ -257,9 +182,10 @@ def ve_run(
 
     # Take the models in their current execution sequence and change to the model update
     # sequence
-    models_update = _get_model_sequence(
-        config=config, models=models_init, method="update"
-    )
+    models_update = {
+        model_name: models_init[model_name]
+        for model_name in variables.get_model_order("update")
+    }
     if progress:
         print("* Starting simulation")
 

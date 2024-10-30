@@ -5,11 +5,21 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.2
+    jupytext_version: 1.16.4
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
 ---
 
 # The Plants Model implementation
@@ -19,22 +29,20 @@ kernelspec:
 The tables below show the variables that are required to initialise the plants model and
 then update it at each time step.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
 from IPython.display import display_markdown
 from var_generator import generate_variable_table
 
 display_markdown(
     generate_variable_table(
-        'PlantsModel', 
-        ['vars_required_for_init', 'vars_required_for_update']
-    ), 
-    raw=True
+        "PlantsModel", ["vars_required_for_init", "vars_required_for_update"]
+    ),
+    raw=True,
 )
 ```
 
@@ -89,19 +97,17 @@ Mortality and reproduction have not yet been implemented.
 The calculations described above result in the following variables being calculated and
 saved within the model data store, and then updated
 
-```{code-cell}
+```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
 display_markdown(
     generate_variable_table(
-        'PlantsModel', 
-        ['vars_populated_by_init', 'vars_populated_by_first_update']
-    ), 
-    raw=True
+        "PlantsModel", ["vars_populated_by_init", "vars_populated_by_first_update"]
+    ),
+    raw=True,
 )
 ```
 
@@ -110,18 +116,11 @@ display_markdown(
 The table below shows the complete set of model variables that are updated at each model
 step.
 
-```{code-cell}
+```{code-cell} ipython3
 ---
-tags: [remove-input]
 mystnb:
   markdown_format: myst
+tags: [remove-input]
 ---
-
-display_markdown(
-    generate_variable_table(
-        'PlantsModel', 
-        ['vars_updated']
-    ), 
-    raw=True
-)
+display_markdown(generate_variable_table("PlantsModel", ["vars_updated"]), raw=True)
 ```

@@ -47,7 +47,7 @@ class Resource(Protocol):
     def get_eaten(
         self,
         consumed_mass: float,
-        herbivore: Consumer,
+        consumer: Consumer,
     ) -> tuple[float, float]:
         """The get_eaten method defines a resource."""
         ...
