@@ -373,11 +373,7 @@ def test_order_independance(
 
     # Then extract soil carbon pool names from the fixture (in order)
     pool_names = [
-        name
-        for name in dummy_carbon_data.data.keys()
-        if name.startswith("soil_c_pool_")
-        or name.startswith("soil_enzyme_")
-        or name.startswith("soil_n_pool_")
+        name for name in dummy_carbon_data.data.keys() if name in SoilModel.vars_updated
     ]
 
     # Add pool values from object in reversed order
@@ -403,7 +399,10 @@ def test_order_independance(
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
+    from virtual_ecosystem.models.soil.soil_model import (
+        SoilModel,
+        construct_full_soil_model,
+    )
 
     delta_pools = [
         0.00226177439,
@@ -449,9 +448,7 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         [
             dummy_carbon_data[name].to_numpy()
             for name in dummy_carbon_data.data.keys()
-            if name.startswith("soil_c_pool_")
-            or name.startswith("soil_enzyme_")
-            or name.startswith("soil_n_pool_")
+            if name in SoilModel.vars_updated
         ]
     )
 
@@ -459,9 +456,7 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     delta_pools_ordered = {
         name: np.array([])
         for name in dummy_carbon_data.data.keys()
-        if name.startswith("soil_c_pool_")
-        or name.startswith("soil_enzyme_")
-        or name.startswith("soil_n_pool_")
+        if name in SoilModel.vars_updated
     }
 
     rate_of_change = construct_full_soil_model(

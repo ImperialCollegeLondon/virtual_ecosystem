@@ -12,7 +12,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.models.soil.pools import SoilPools
-    from virtual_ecosystem.models.soil.soil_model import make_slices
+    from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
 
     # Find and store order of pools (this requires loads of steps because it needs to
     # work with the integrator)
@@ -20,17 +20,13 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         [
             dummy_carbon_data[name].to_numpy()
             for name in map(str, dummy_carbon_data.data.keys())
-            if name.startswith("soil_c_pool_")
-            or name.startswith("soil_enzyme_")
-            or name.startswith("soil_n_pool_")
+            if name in SoilModel.vars_updated
         ]
     )
     delta_pools_ordered = {
         name: np.array([])
         for name in map(str, dummy_carbon_data.data.keys())
-        if name.startswith("soil_c_pool_")
-        or name.startswith("soil_enzyme_")
-        or name.startswith("soil_n_pool_")
+        if name in SoilModel.vars_updated
     }
     no_cells = 4
     slices = make_slices(no_cells, len(delta_pools_ordered))

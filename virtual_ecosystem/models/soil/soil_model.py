@@ -220,9 +220,7 @@ class SoilModel(
             [
                 self.data[name].to_numpy()
                 for name in map(str, self.data.data.keys())
-                if name.startswith("soil_c_pool_")
-                or name.startswith("soil_enzyme_")
-                or name.startswith("soil_n_pool_")
+                if name in self.vars_updated
             ]
         )
 
@@ -230,9 +228,7 @@ class SoilModel(
         delta_pools_ordered = {
             name: np.array([])
             for name in map(str, self.data.data.keys())
-            if name.startswith("soil_c_pool_")
-            or name.startswith("soil_enzyme_")
-            or name.startswith("soil_n_pool_")
+            if name in self.vars_updated
         }
 
         # Carry out simulation
