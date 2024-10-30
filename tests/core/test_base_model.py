@@ -592,7 +592,7 @@ def test_check_update_speed(
             pytest.raises(ConfigurationError),
             "Static model test_model requires to either all variables in "
             "vars_populated_by_init to be present in the data object or all to be "
-            "absent. 1 out of 2 found: ['var1'].",
+            "absent. 1 out of 2 found: var1.",
             id="static_some_vars_present",
         ),
         # Test case where model is not static and no variables are present
@@ -614,7 +614,7 @@ def test_check_update_speed(
             pytest.raises(ConfigurationError),
             "Non-static model test_model requires none of the variables in "
             "vars_populated_by_init to be present in the data object. "
-            "Present variables: ['var1']",
+            "Present variables: var1",
             id="non_static_some_vars_present",
         ),
     ],
@@ -719,7 +719,7 @@ def test_bypass_setup_due_to_static_configuration(
             pytest.raises(ConfigurationError),
             "Static model test_model requires to either all variables in "
             "vars_populated_by_first_update and vars_updated to be present "
-            "in the data object or all to be absent. 1 out of 3 found: ['var1'].",
+            "in the data object or all to be absent. 1 out of 3 found: var1.",
             id="static_some_vars_present",
         ),
         # Test case where model is not static and no variables are present
@@ -743,7 +743,7 @@ def test_bypass_setup_due_to_static_configuration(
             pytest.raises(ConfigurationError),
             "Non-static model test_model requires none of the variables in "
             "vars_populated_by_first_update or vars_updated to be present in the "
-            "data object. Present variables: ['var1']",
+            "data object. Present variables: var1",
             id="non_static_some_vars_present",
         ),
     ],
