@@ -18,10 +18,10 @@ by downstream functions so that all model configuration failures can be reported
 
 from __future__ import annotations
 
+import uuid
 from math import ceil, sqrt
 from random import choice, random
 from typing import Any
-from uuid import UUID
 
 from numpy import array, timedelta64, zeros
 from xarray import DataArray
@@ -190,7 +190,7 @@ class AnimalModel(
             for cell_id in self.data.grid.cell_id
         }
         """A pool for leaves removed by herbivory but not actually consumed."""
-        self.cohorts: dict[UUID, AnimalCohort] = {}
+        self.cohorts: dict[uuid.UUID, AnimalCohort] = {}
         """A dictionary of all animal cohorts and their unique ids."""
         self.communities: dict[int, list[AnimalCohort]] = {
             cell_id: list() for cell_id in self.data.grid.cell_id

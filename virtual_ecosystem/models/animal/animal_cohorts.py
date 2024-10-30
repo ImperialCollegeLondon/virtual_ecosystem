@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
 from math import ceil, exp, sqrt
-from uuid import UUID, uuid4
 
 from numpy import timedelta64
 
@@ -60,7 +60,7 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
-        self.id: UUID = uuid4()
+        self.id: uuid.UUID = uuid.uuid4()
         """A unique identifier for the cohort."""
         self.damuth_density: int = sf.damuths_law(
             self.functional_group.adult_mass, self.functional_group.damuths_law_terms

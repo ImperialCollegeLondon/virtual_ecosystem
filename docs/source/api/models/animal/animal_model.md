@@ -30,5 +30,5 @@ language_info:
 .. automodule:: virtual_ecosystem.models.animal.animal_model
     :autosummary:
     :members:
-    :exclude-members: model_name
+    :exclude-members: model_name, random
 ```
