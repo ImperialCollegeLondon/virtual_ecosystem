@@ -280,8 +280,8 @@ class BaseModel(ABC):
         if not self._static and present:
             raise ConfigurationError(
                 f"Non-static model {self.model_name} requires none of the variables in "
-                f"vars_populated_by_init to be present in the data object. "
-                f"Present variables: {present}"
+                "vars_populated_by_init to be present in the data object. "
+                f"Present variables: {', '.join(present)}"
             )
 
         elif self._static:
@@ -289,7 +289,7 @@ class BaseModel(ABC):
                 raise ConfigurationError(
                     f"Static model {self.model_name} requires to either all variables "
                     "in vars_populated_by_init to be present in the data object or "
-                    f"all to be absent. {found} out of {expected} found: {present}."
+                    f"all to be absent. {found} out of {expected} found: {', '.join(present)}."
                 )
             else:
                 return True
@@ -324,8 +324,8 @@ class BaseModel(ABC):
         if not self._static and present:
             raise ConfigurationError(
                 f"Non-static model {self.model_name} requires none of the variables in "
-                f"vars_populated_by_first_update or vars_updated to be present in the "
-                f"data object. Present variables: {present}"
+                "vars_populated_by_first_update or vars_updated to be present in the "
+                f"data object. Present variables: {', '.join(present)}"
             )
 
         elif self._static:
@@ -338,7 +338,7 @@ class BaseModel(ABC):
                     f"Static model {self.model_name} requires to either all variables "
                     "in vars_populated_by_first_update and vars_updated to be present "
                     f"in the data object or all to be absent. {found} out of {expected}"
-                    f" found: {present}."
+                    f" found: {', '.join(present)}."
                 )
 
         return True

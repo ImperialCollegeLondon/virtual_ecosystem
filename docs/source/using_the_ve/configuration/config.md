@@ -209,4 +209,4 @@ variables available in the [`Data` object](../data/data.md):
   - **None present**: The update *is run just once*, keeping the same values for those
   variables throughout the simulation.
 
-Providing some but not all of the variables case will result in an error in all cases.
+Providing some but not all of the variables will result in an error in all cases.
