@@ -41,9 +41,12 @@ class Resource(Protocol):
     """This is the protocol for defining what classes work as trophic resources."""
 
     mass_current: float
+    cell_id: int
 
     def get_eaten(
-        self, consumed_mass: float, consumer: Consumer, pool: DecayPool
-    ) -> float:
+        self,
+        consumed_mass: float,
+        consumer: Consumer,
+    ) -> tuple[float, float]:
         """The get_eaten method defines a resource."""
         ...

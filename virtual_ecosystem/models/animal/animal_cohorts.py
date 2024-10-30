@@ -1,30 +1,25 @@
-"""The ''animal'' module provides animal module functionality.
-
-Notes:
-- assume each grid = 1 km2
-- assume each tick = 1 day (28800s)
-- damuth ~ 4.23*mass**(-3/4) indiv / km2
-"""
+"""The ''animal'' module provides animal module functionality."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from math import ceil, exp, sqrt
+from uuid import uuid4
 
 from numpy import timedelta64
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import DietType
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
+    ExcrementPool,
     HerbivoryWaste,
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
-from virtual_ecosystem.models.animal.plant_resources import PlantResources
-from virtual_ecosystem.models.animal.protocols import Consumer, DecayPool
+from virtual_ecosystem.models.animal.protocols import Resource
 
 
 class AnimalCohort:
@@ -36,6 +31,8 @@ class AnimalCohort:
         mass: float,
         age: float,
         individuals: int,
+        centroid_key: int,
+        grid: Grid,
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         if age < 0:
@@ -57,8 +54,14 @@ class AnimalCohort:
         """The age of the animal cohort [days]."""
         self.individuals = individuals
         """The number of individuals in this cohort."""
+        self.centroid_key = centroid_key
+        """The centroid key of the cohort's territory."""
+        self.grid = grid
+        """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.id = uuid4()
+        """A unique identifier for the cohort."""
         self.damuth_density: int = sf.damuths_law(
             self.functional_group.adult_mass, self.functional_group.damuths_law_terms
         )
@@ -73,12 +76,22 @@ class AnimalCohort:
         """The amount of time [days] since reaching adult body-mass."""
         self.reproductive_mass: float = 0.0
         """The pool of biomass from which the material of reproduction is drawn."""
-        self.prey_groups = sf.prey_group_selection(
+        self.prey_groups: dict[str, tuple[float, float]] = sf.prey_group_selection(
             self.functional_group.diet,
             self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
         )
         """The identification of useable food resources."""
+        self.territory_size = sf.territory_size(self.functional_group.adult_mass)
+        """The size in hectares of the animal cohorts territory."""
+        self.occupancy_proportion: float = 1.0 / self.territory_size
+        """The proportion of the cohort that is within a territorial given grid cell."""
+        self._initialize_territory(centroid_key)
+        """Initialize the territory using the centroid grid key."""
+        self.territory: list[int]
+        """The list of grid cells currently occupied by the cohort."""
+        # TODO - In future this should be parameterised using a constants dataclass, but
+        # this hasn't yet been implemented for the animal model
         self.decay_fraction_excrement: float = find_decay_consumed_split(
             microbial_decay_rate=self.constants.decay_rate_excrement,
             animal_scavenging_rate=self.constants.scavenging_rate_excrement,
@@ -89,6 +102,54 @@ class AnimalCohort:
             animal_scavenging_rate=self.constants.scavenging_rate_carcasses,
         )
         """The fraction of carcass biomass which decays before it gets consumed."""
+
+    def get_territory_cells(self, centroid_key: int) -> list[int]:
+        """This calls bfs_territory to determine the scope of the territory.
+
+        TODO: local import of bfs_territory is temporary while deciding whether to keep
+        animal_territory.py
+
+        Args:
+            centroid_key: The central grid cell key of the territory.
+
+        """
+        # Each grid cell is 1 hectare, territory size in grids is the same as hectares
+        target_cell_number = int(self.territory_size)
+
+        # Perform BFS to determine the territory cells
+        territory_cells = sf.bfs_territory(
+            centroid_key,
+            target_cell_number,
+            self.grid.cell_nx,
+            self.grid.cell_ny,
+        )
+
+        return territory_cells
+
+    def _initialize_territory(
+        self,
+        centroid_key: int,
+    ) -> None:
+        """This initializes the territory occupied by the cohort.
+
+        TODO: local import of AnimalTerritory is temporary while deciding whether to
+        keep the class
+
+        Args:
+            centroid_key: The grid cell key anchoring the territory.
+        """
+
+        self.territory = self.get_territory_cells(centroid_key)
+
+    def update_territory(self, new_grid_cell_keys: list[int]) -> None:
+        """Update territory details at initialization and after migration.
+
+        Args:
+            new_grid_cell_keys: The new list of grid cell keys the territory occupies.
+
+        """
+
+        self.territory = new_grid_cell_keys
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce body mass through metabolism.
@@ -132,33 +193,53 @@ class AnimalCohort:
         # in data object
         return actual_mass_metabolized * self.individuals
 
-    def excrete(self, excreta_mass: float, excrement_pool: DecayPool) -> None:
-        """Transfers nitrogenous metabolic wastes to the excrement pool.
+    def excrete(
+        self, excreta_mass: float, excrement_pools: list[ExcrementPool]
+    ) -> None:
+        """Transfers metabolic wastes to the excrement pool.
 
-        This method will not be fully implemented until the stoichiometric rework. All
-        current metabolic wastes are carbonaceous and so all this does is provide a link
-        joining metabolism to a soil pool for later use.
-
-        TODO: Update with sensible (rather than hardcoded) stoichiometry
+        This method handles nitrogenous and carbonaceous wastes, split between
+        scavengeable and decomposed pools. Pending rework of stoichiometric
+        calculations.
 
         Args:
-            excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
-            excrement_pool: The pool of wastes to which the excreted nitrogenous wastes
-                flow.
-
+            excreta_mass: The total mass of wastes excreted by the cohort.
+            excrement_pools: The pools of waste to which the excreted wastes flow.
         """
-        excrement_pool.decomposed_nitrogen += (
-            excreta_mass * self.constants.nitrogen_excreta_proportion
+        number_communities = len(excrement_pools)
+
+        # Calculate excreta mass per community and proportionate nitrogen flow
+        excreta_mass_per_community = excreta_mass / number_communities
+        nitrogen_mass_per_community = (
+            excreta_mass_per_community * self.constants.nitrogen_excreta_proportion
         )
-        # TODO - Carbon and phosphorus flows are just hardcoded fractions of the
-        # nitrogen flow. This needs to be changed when proper animal stoichiometry is
-        # done.
-        excrement_pool.decomposed_carbon += (
-            0.5 * excreta_mass * self.constants.nitrogen_excreta_proportion
+
+        # Calculate scavengeable and decomposed nitrogen
+        scavengeable_nitrogen_per_community = (
+            1 - self.decay_fraction_excrement
+        ) * nitrogen_mass_per_community
+        decomposed_nitrogen_per_community = (
+            self.decay_fraction_excrement * nitrogen_mass_per_community
         )
-        excrement_pool.decomposed_phosphorus += (
-            0.01 * excreta_mass * self.constants.nitrogen_excreta_proportion
+
+        # Carbon and phosphorus are fractions of nitrogen per community
+        scavengeable_carbon_per_community = 0.5 * scavengeable_nitrogen_per_community
+        decomposed_carbon_per_community = 0.5 * decomposed_nitrogen_per_community
+        scavengeable_phosphorus_per_community = (
+            0.01 * scavengeable_nitrogen_per_community
         )
+        decomposed_phosphorus_per_community = 0.01 * decomposed_nitrogen_per_community
+
+        for excrement_pool in excrement_pools:
+            # Assign calculated nitrogen, carbon, and phosphorus to the pool
+            excrement_pool.scavengeable_nitrogen += scavengeable_nitrogen_per_community
+            excrement_pool.decomposed_nitrogen += decomposed_nitrogen_per_community
+            excrement_pool.scavengeable_carbon += scavengeable_carbon_per_community
+            excrement_pool.decomposed_carbon += decomposed_carbon_per_community
+            excrement_pool.scavengeable_phosphorus += (
+                scavengeable_phosphorus_per_community
+            )
+            excrement_pool.decomposed_phosphorus += decomposed_phosphorus_per_community
 
     def respire(self, excreta_mass: float) -> float:
         """Transfers carbonaceous metabolic wastes to the atmosphere.
@@ -181,53 +262,80 @@ class AnimalCohort:
 
     def defecate(
         self,
-        excrement_pool: DecayPool,
+        excrement_pools: list[ExcrementPool],
         mass_consumed: float,
     ) -> None:
-        """Transfer waste mass from an animal cohort to the excrement pool.
+        """Transfer waste mass from an animal cohort to the excrement pools.
 
-        Waste mass is transferred to the excrement pool, split between a decomposed and
-        a scavengable compartment. Carbon, nitrogen and phosphorus are all transferred.
-        An assumption here is that the stoichiometric ratios of the flows to each
-        compartment are equal, i.e. the nutrient split between compartments is
-        calculated identically to the carbon split.
+        Waste mass is transferred to the excrement pool(s), split between decomposed and
+        scavengable compartments. Carbon, nitrogen, and phosphorus are transferred
+        according to stoichiometric ratios. Mass is distributed over multiple excrement
+        pools if provided.
 
         TODO: Needs to be reworked to use carbon mass rather than total mass.
-        TODO: update for current conversion efficiency
-        TODO: Update with stoichiometry
+        TODO: Update with current conversion efficiency and stoichiometry.
 
         Args:
-            excrement_pool: The local ExcrementSoil pool in which waste is deposited.
+            excrement_pools: The ExcrementPool objects in the cohort's territory in
+                which waste is deposited.
             mass_consumed: The amount of mass flowing through cohort digestion.
         """
-        # Find total waste mass, the total amount of waste is then found by the
-        # average cohort member * number individuals.
-        waste_carbon = mass_consumed * self.functional_group.conversion_efficiency
-        # TODO - replace this with sensible stoichiometry
-        waste_nitrogen = 0.1 * waste_carbon
-        waste_phosphorus = 0.01 * waste_carbon
+        number_communities = len(excrement_pools)
 
-        # This total waste is then split between decay and scavengeable excrement
-        excrement_pool.scavengeable_carbon += (
-            (1 - self.decay_fraction_excrement) * waste_carbon * self.individuals
+        # Calculate the total waste mass, which is the mass consumed times conversion
+        # efficiency
+        total_waste_mass = (
+            mass_consumed
+            * self.functional_group.conversion_efficiency
+            * self.individuals
         )
-        excrement_pool.decomposed_carbon += (
-            self.decay_fraction_excrement * waste_carbon * self.individuals
+
+        # Split the waste mass proportionally among communities
+        waste_mass_per_community = total_waste_mass / number_communities
+
+        # Calculate waste for carbon, nitrogen, and phosphorus using current
+        # stoichiometry
+        waste_carbon_per_community = waste_mass_per_community
+        waste_nitrogen_per_community = 0.1 * waste_carbon_per_community
+        waste_phosphorus_per_community = 0.01 * waste_carbon_per_community
+
+        # Pre-calculate the scavengeable and decomposed fractions for each nutrient
+        scavengeable_carbon_per_community = (
+            1 - self.decay_fraction_excrement
+        ) * waste_carbon_per_community
+        decomposed_carbon_per_community = (
+            self.decay_fraction_excrement * waste_carbon_per_community
         )
-        # Key assumption here is that the split between scavengable and decomposed pools
-        # has equal stochiometries
-        excrement_pool.scavengeable_nitrogen += (
-            (1 - self.decay_fraction_excrement) * waste_nitrogen * self.individuals
+
+        scavengeable_nitrogen_per_community = (
+            1 - self.decay_fraction_excrement
+        ) * waste_nitrogen_per_community
+        decomposed_nitrogen_per_community = (
+            self.decay_fraction_excrement * waste_nitrogen_per_community
         )
-        excrement_pool.decomposed_nitrogen += (
-            self.decay_fraction_excrement * waste_nitrogen * self.individuals
+
+        scavengeable_phosphorus_per_community = (
+            1 - self.decay_fraction_excrement
+        ) * waste_phosphorus_per_community
+        decomposed_phosphorus_per_community = (
+            self.decay_fraction_excrement * waste_phosphorus_per_community
         )
-        excrement_pool.scavengeable_phosphorus += (
-            (1 - self.decay_fraction_excrement) * waste_phosphorus * self.individuals
-        )
-        excrement_pool.decomposed_phosphorus += (
-            self.decay_fraction_excrement * waste_phosphorus * self.individuals
-        )
+
+        # Distribute waste across each excrement pool
+        for excrement_pool in excrement_pools:
+            # Update carbon pools
+            excrement_pool.scavengeable_carbon += scavengeable_carbon_per_community
+            excrement_pool.decomposed_carbon += decomposed_carbon_per_community
+
+            # Update nitrogen pools
+            excrement_pool.scavengeable_nitrogen += scavengeable_nitrogen_per_community
+            excrement_pool.decomposed_nitrogen += decomposed_nitrogen_per_community
+
+            # Update phosphorus pools
+            excrement_pool.scavengeable_phosphorus += (
+                scavengeable_phosphorus_per_community
+            )
+            excrement_pool.decomposed_phosphorus += decomposed_phosphorus_per_community
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes and flag maturity.
@@ -250,7 +358,9 @@ class AnimalCohort:
             self.is_mature = True
             self.time_to_maturity = self.age
 
-    def die_individual(self, number_dead: int, carcass_pool: CarcassPool) -> None:
+    def die_individual(
+        self, number_dead: int, carcass_pools: list[CarcassPool]
+    ) -> None:
         """The function to reduce the number of individuals in the cohort through death.
 
         Currently, all cohorts are crafted as single km2 grid cohorts. This means that
@@ -258,108 +368,106 @@ class AnimalCohort:
         are made to capture large body size and multi-grid occupancy, this will be
         updated.
 
-        Mass of dead individuals is transferred to the carcass pool, split between a
-        decomposed and a scavengable compartment. Carbon, nitrogen and phosphorus are
-        all transferred. An assumption here is that the stoichiometric ratios of the
-        flows to each compartment are equal, i.e. the nutrient split between
-        compartments is calculated identically to the carbon split.
+        Currently, this function is in an inbetween state where mass is removed from
+        the animal cohort but it is recieved by the litter pool as energy. This will be
+        fixed once the litter pools are updated for mass.
 
-        TODO: This needs to take in carbon mass not total mass
-        TODO: This needs to use proper stochiometry
+        TODO: Rework after update litter pools for mass
 
         Args:
             number_dead: The number of individuals by which to decrease the population
                 count.
-            carcass_pool: The resident pool of animal carcasses to which the dead
+            carcass_pools: The resident pool of animal carcasses to which the dead
                 individuals are delivered.
 
         """
         self.individuals -= number_dead
 
         # Find total mass contained in the carcasses
-        # TODO - This mass needs to be total mass not carbon mass
         carcass_mass = number_dead * self.mass_current
 
-        # TODO - Carcass stochiometries are found using a hard coded ratio, this needs
-        # to go once stoichiometry is properly implemented
-        carcass_mass_nitrogen = 0.1 * carcass_mass
-        carcass_mass_phosphorus = 0.01 * carcass_mass
+        self.update_carcass_pool(carcass_mass, carcass_pools)
 
-        # Split this mass between carcass decay, and scavengeable carcasses
-        carcass_pool.scavengeable_carbon += (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass
-        carcass_pool.decomposed_carbon += self.decay_fraction_carcasses * carcass_mass
-        carcass_pool.scavengeable_nitrogen += (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass_nitrogen
-        carcass_pool.decomposed_nitrogen += (
-            self.decay_fraction_carcasses * carcass_mass_nitrogen
-        )
-        carcass_pool.scavengeable_phosphorus += (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass_phosphorus
-        carcass_pool.decomposed_phosphorus += (
-            self.decay_fraction_carcasses * carcass_mass_phosphorus
-        )
+    def update_carcass_pool(
+        self, carcass_mass: float, carcass_pools: list[CarcassPool]
+    ) -> None:
+        """Updates the carcass pools after deaths.
 
-    def update_carcass_pool(self, carcass_mass: float, carcass_pool: DecayPool) -> None:
-        """Updates the carcass pool based on consumed mass and predator's efficiency.
+        Carcass mass is transferred to the carcass pools, split between a decomposed and
+        a scavengeable compartment. Carbon, nitrogen, and phosphorus are all transferred
+        according to stoichiometric ratios.
 
-        Mass of dead individuals is transferred to the carcass pool, split between a
-        decomposed and a scavengable compartment. Carbon, nitrogen and phosphorus are
-        all transferred. An assumption here is that the stoichiometric ratios of the
-        flows to each compartment are equal, i.e. the nutrient split between
-        compartments is calculated identically to the carbon split.
-
-        TODO: This needs to take in carbon mass not total mass
-        TODO: This needs to use proper stochiometry
+        TODO: Update to handle proper carbon mass rather than total mass.
+        TODO: Use dynamic stoichiometry once implemented.
 
         Args:
             carcass_mass: The total mass consumed from the prey cohort.
-            carcass_pool: The pool to which remains of eaten individuals are delivered.
+            carcass_pools: The pools to which remains of eaten individuals are
+             delivered.
         """
+        number_carcass_pools = len(carcass_pools)
 
-        # TODO - Carcass stochiometries are found using a hard coded ratio, this needs
-        # to go once stoichiometry is properly implemented
-        carcass_mass_nitrogen = 0.1 * carcass_mass
-        carcass_mass_phosphorus = 0.01 * carcass_mass
+        # Split carcass mass per pool
+        carcass_mass_per_pool = carcass_mass / number_carcass_pools
 
-        # TODO - This also needs to be updated to carbon mass rather than total mass
-        # terms
-        # Update the carcass pool with the remainder
-        carcass_pool.scavengeable_carbon += (
+        # Calculate stoichiometric proportions for nitrogen and phosphorus
+        carcass_mass_nitrogen_per_pool = 0.1 * carcass_mass_per_pool
+        carcass_mass_phosphorus_per_pool = 0.01 * carcass_mass_per_pool
+
+        # Pre-calculate scavengeable and decomposed fractions for carbon, nitrogen,
+        # and phosphorus
+        scavengeable_carbon_per_pool = (
             1 - self.decay_fraction_carcasses
-        ) * carcass_mass
-        carcass_pool.decomposed_carbon += self.decay_fraction_carcasses * carcass_mass
-        carcass_pool.scavengeable_nitrogen += (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass_nitrogen
-        carcass_pool.decomposed_nitrogen += (
-            self.decay_fraction_carcasses * carcass_mass_nitrogen
+        ) * carcass_mass_per_pool
+        decomposed_carbon_per_pool = (
+            self.decay_fraction_carcasses * carcass_mass_per_pool
         )
-        carcass_pool.scavengeable_phosphorus += (
+
+        scavengeable_nitrogen_per_pool = (
             1 - self.decay_fraction_carcasses
-        ) * carcass_mass_phosphorus
-        carcass_pool.decomposed_phosphorus += (
-            self.decay_fraction_carcasses * carcass_mass_phosphorus
+        ) * carcass_mass_nitrogen_per_pool
+        decomposed_nitrogen_per_pool = (
+            self.decay_fraction_carcasses * carcass_mass_nitrogen_per_pool
         )
+
+        scavengeable_phosphorus_per_pool = (
+            1 - self.decay_fraction_carcasses
+        ) * carcass_mass_phosphorus_per_pool
+        decomposed_phosphorus_per_pool = (
+            self.decay_fraction_carcasses * carcass_mass_phosphorus_per_pool
+        )
+
+        # Distribute carcass mass across the carcass pools
+        for carcass_pool in carcass_pools:
+            # Update carbon pools
+            carcass_pool.scavengeable_carbon += scavengeable_carbon_per_pool
+            carcass_pool.decomposed_carbon += decomposed_carbon_per_pool
+
+            # Update nitrogen pools
+            carcass_pool.scavengeable_nitrogen += scavengeable_nitrogen_per_pool
+            carcass_pool.decomposed_nitrogen += decomposed_nitrogen_per_pool
+
+            # Update phosphorus pools
+            carcass_pool.scavengeable_phosphorus += scavengeable_phosphorus_per_pool
+            carcass_pool.decomposed_phosphorus += decomposed_phosphorus_per_pool
 
     def get_eaten(
         self,
         potential_consumed_mass: float,
-        predator: Consumer,
-        carcass_pool: DecayPool,
+        predator: AnimalCohort,
+        carcass_pools: dict[int, list[CarcassPool]],
     ) -> float:
         """Removes individuals according to mass demands of a predation event.
 
         It finds the smallest whole number of prey required to satisfy the predators
         mass demands and caps at then caps it at the available population.
 
+
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
             predator: The predator consuming the cohort.
-            carcass_pool: The pool to which remains of eaten individuals are delivered.
+            carcass_pools: The pools to which remains of eaten individuals are
+              delivered.
 
         Returns:
             The actual mass consumed by the predator, closely matching consumed_mass.
@@ -385,8 +493,17 @@ class AnimalCohort:
         # Update the number of individuals in the prey cohort
         self.individuals -= actual_individuals_killed
 
+        # set cohort to not alive if all the individuals are dead
+        if self.individuals <= 0:
+            self.is_alive = False
+
+        # Find the intersection of prey and predator territories
+        intersection_carcass_pools = self.find_intersecting_carcass_pools(
+            predator.territory, carcass_pools
+        )
+
         # Update the carcass pool with carcass mass
-        self.update_carcass_pool(carcass_mass, carcass_pool)
+        self.update_carcass_pool(carcass_mass, intersection_carcass_pools)
 
         return actual_mass_consumed
 
@@ -406,7 +523,7 @@ class AnimalCohort:
         return sf.alpha_i_k(self.constants.alpha_0_herb, self.mass_current)
 
     def calculate_potential_consumed_biomass(
-        self, target_plant: PlantResources, alpha: float
+        self, target_plant: Resource, alpha: float
     ) -> float:
         """Calculate potential consumed biomass for the target plant.
 
@@ -430,7 +547,7 @@ class AnimalCohort:
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
-        self, plant_list: Sequence[PlantResources], alpha: float
+        self, plant_list: list[Resource], alpha: float
     ) -> float:
         """Calculate total handling time across all plant resources.
 
@@ -439,9 +556,10 @@ class AnimalCohort:
         the total handling time required by the cohort.
 
         TODO: give A_cell a grid size reference.
+        TODO: MGO - rework for territories
 
         Args:
-            plant_list: A sequence of plant resources available for consumption by the
+            plant_list: A list of plant resources available for consumption by the
             cohort.
             alpha: The search efficiency rate of the herbivore cohort.
 
@@ -463,9 +581,7 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(
-        self, plant_list: Sequence[PlantResources], target_plant: PlantResources
-    ) -> float:
+    def F_i_k(self, plant_list: list[Resource], target_plant: Resource) -> float:
         """Method to determine instantaneous herbivory rate on plant k.
 
         This method integrates the calculated search efficiency, potential consumed
@@ -476,7 +592,7 @@ class AnimalCohort:
         TODO: update name
 
         Args:
-            plant_list: A sequence of plant resources available for consumption by the
+            plant_list: A list of plant resources available for consumption by the
                  cohort.
             target_plant: The specific plant resource being targeted by the herbivore
                  cohort for consumption.
@@ -547,6 +663,7 @@ class AnimalCohort:
         """Calculate the potential number of prey consumed.
 
         TODO: give A_cell a grid size reference
+        TODO: MGO - rework for territories
 
         Args:
             alpha: the predation search rate
@@ -575,12 +692,12 @@ class AnimalCohort:
         )
 
     def F_i_j_individual(
-        self, animal_list: Sequence[AnimalCohort], target_cohort: AnimalCohort
+        self, animal_list: list[AnimalCohort], target_cohort: AnimalCohort
     ) -> float:
         """Method to determine instantaneous predation rate on cohort j.
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                 predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
@@ -600,7 +717,7 @@ class AnimalCohort:
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
-        self, animal_list: Sequence[AnimalCohort], target_cohort: AnimalCohort
+        self, animal_list: list[AnimalCohort], target_cohort: AnimalCohort
     ) -> float:
         """Calculates the mass to be consumed from a prey cohort by the predator.
 
@@ -611,7 +728,7 @@ class AnimalCohort:
         TODO: Replace delta_t with time step reference
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                 predator.
             target_cohort: The prey cohort from which mass will be consumed.
 
@@ -635,19 +752,21 @@ class AnimalCohort:
 
     def delta_mass_predation(
         self,
-        animal_list: Sequence[AnimalCohort],
-        excrement_pool: DecayPool,
-        carcass_pool: CarcassPool,
+        animal_list: list[AnimalCohort],
+        excrement_pools: list[ExcrementPool],
+        carcass_pools: dict[int, list[CarcassPool]],
     ) -> float:
         """This method handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation
 
+        TODO: rethink defecate location
+
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                          predator.
-            excrement_pool: A pool representing the excrement in the grid cell.
-            carcass_pool: A pool representing the animal carcasses in the grid cell.
+            excrement_pools: The pools representing the excrement in the territory.
+            carcass_pools: The pools to which animal carcasses are delivered.
 
         Returns:
             The change in mass experienced by the predator.
@@ -655,20 +774,24 @@ class AnimalCohort:
 
         total_consumed_mass = 0.0  # Initialize the total consumed mass
 
-        for cohort in animal_list:
+        for prey_cohort in animal_list:
             # Calculate the mass to be consumed from this cohort
-            consumed_mass = self.calculate_consumed_mass_predation(animal_list, cohort)
+            consumed_mass = self.calculate_consumed_mass_predation(
+                animal_list, prey_cohort
+            )
             # Call get_eaten on the prey cohort to update its mass and individuals
-            actual_consumed_mass = cohort.get_eaten(consumed_mass, self, carcass_pool)
+            actual_consumed_mass = prey_cohort.get_eaten(
+                consumed_mass, self, carcass_pools
+            )
             # Update total mass gained by the predator
             total_consumed_mass += actual_consumed_mass
 
         # Process waste generated from predation, separate from herbivory b/c diff waste
-        self.defecate(excrement_pool, total_consumed_mass)
+        self.defecate(excrement_pools, total_consumed_mass)
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
-        self, plant_list: Sequence[PlantResources], target_plant: PlantResources
+        self, plant_list: list[Resource], target_plant: Resource
     ) -> float:
         """Calculates the mass to be consumed from a plant resource by the herbivore.
 
@@ -679,7 +802,7 @@ class AnimalCohort:
         TODO: Replace delta_t with actual time step reference
 
         Args:
-            plant_list: A sequence of plant resources that can be consumed by the
+            plant_list: A list of plant resources that can be consumed by the
                 herbivore.
             target_plant: The plant resource from which mass will be consumed.
 
@@ -696,25 +819,26 @@ class AnimalCohort:
 
     def delta_mass_herbivory(
         self,
-        plant_list: Sequence[PlantResources],
-        excrement_pool: DecayPool,
-        plant_waste_pool: HerbivoryWaste,
+        plant_list: list[Resource],
+        excrement_pools: list[ExcrementPool],
+        herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> float:
         """This method handles mass assimilation from herbivory.
 
-        TODO: update name
+        TODO: rethink defecate location
         TODO: At present this just takes a single herbivory waste pool (for leaves),
         this probably should change to be a list of waste pools once herbivory for other
         plant tissues is added.
+        TODO: update name
 
         Args:
-            plant_list: A sequence of plant resources available for herbivory.
-            excrement_pool: A pool representing the excrement in the grid cell.
-            plant_waste_pool: Waste pool for plant biomass (at this point just leaves)
-                that gets removed as part of herbivory but not actually consumed.
+            plant_list: A list of plant resources available for herbivory.
+            excrement_pools: The pools representing the excrement in the territory.
+            herbivory_waste_pools: Waste pools for plant biomass (at this point just
+              leaves) that gets removed as part of herbivory but not actually consumed.
 
         Returns:
-            The total plant mass consumed by the animal cohort in g.
+            A float of the total plant mass consumed by the animal cohort in g.
 
         """
         total_consumed_mass = 0.0  # Initialize the total consumed mass
@@ -726,28 +850,30 @@ class AnimalCohort:
             actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
             total_consumed_mass += actual_consumed_mass
-            plant_waste_pool.mass_current += excess_mass
+            herbivory_waste_pools[plant.cell_id].mass_current += excess_mass
 
-        # Process waste generated from predation, separate from carnivory b/c diff waste
-        self.defecate(excrement_pool, total_consumed_mass)
+        # Process waste generated from predation, separate from predation b/c diff waste
+        self.defecate(excrement_pools, total_consumed_mass)
+
         return total_consumed_mass
 
     def forage_cohort(
         self,
-        plant_list: Sequence[PlantResources],
-        animal_list: Sequence[AnimalCohort],
-        excrement_pool: DecayPool,
-        carcass_pool: CarcassPool,
-        herbivory_waste_pool: HerbivoryWaste,
+        plant_list: list[Resource],
+        animal_list: list[AnimalCohort],
+        excrement_pools: list[ExcrementPool],
+        carcass_pools: dict[int, list[CarcassPool]],
+        herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 
         Args:
-            plant_list: A sequence of plant resources available for herbivory.
-            animal_list: A sequence of animal cohorts available for predation.
-            excrement_pool: A pool representing the excrement in the grid cell.
-            carcass_pool: A pool representing the carcasses in the grid cell.
-            herbivory_waste_pool: A pool representing waste caused by herbivory.
+            plant_list: A list of plant resources available for herbivory.
+            animal_list: A list of animal cohorts available for predation.
+            excrement_pools: The pools representing the excrement in the grid cell.
+            carcass_pools: The pools to which animal carcasses are delivered.
+            herbivory_waste_pools: A dict of pools representing waste caused by
+                herbivory.
 
         Return:
             A float value of the net change in consumer mass due to foraging.
@@ -756,10 +882,14 @@ class AnimalCohort:
             LOGGER.warning("No individuals in cohort to forage.")
             return
 
+        if self.mass_current == 0:
+            LOGGER.warning("No mass left in cohort to forage.")
+            return
+
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
-                plant_list, excrement_pool, herbivory_waste_pool
+                plant_list, excrement_pools, herbivory_waste_pools
             )  # Directly modifies the plant mass
             self.eat(consumed_mass)  # Accumulate net mass gain from each plant
 
@@ -767,12 +897,12 @@ class AnimalCohort:
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
             # Calculate the mass gained from predation
             consumed_mass = self.delta_mass_predation(
-                animal_list, excrement_pool, carcass_pool
+                animal_list, excrement_pools, carcass_pools
             )
             # Update the predator's mass with the total gained mass
             self.eat(consumed_mass)
 
-    def theta_i_j(self, animal_list: Sequence[AnimalCohort]) -> float:
+    def theta_i_j(self, animal_list: list[AnimalCohort]) -> float:
         """Cumulative density method for delta_mass_predation.
 
         The cumulative density of organisms with a mass lying within the same predator
@@ -780,12 +910,12 @@ class AnimalCohort:
 
         Madingley
 
-        TODO: current format makes no sense, dig up the details in the supp
-        TODO: update A_cell with real reference to grid zie
+        TODO: current mass bin format makes no sense, dig up the details in the supp
+        TODO: update A_cell with real reference to grid size
         TODO: update name
 
         Args:
-            animal_list: A sequence of animal cohorts that can be consumed by the
+            animal_list: A list of animal cohorts that can be consumed by the
                          predator.
 
         Returns:
@@ -889,7 +1019,7 @@ class AnimalCohort:
         return min(1.0, probability_of_dispersal)
 
     def inflict_non_predation_mortality(
-        self, dt: float, carcass_pool: CarcassPool
+        self, dt: float, carcass_pools: list[CarcassPool]
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
@@ -898,7 +1028,7 @@ class AnimalCohort:
 
         Args:
             dt: The time passed in the timestep (days).
-            carcass_pool: The local carcass pool to which dead individuals go.
+            carcass_pools: The local carcass pool to which dead individuals go.
 
         """
 
@@ -935,4 +1065,165 @@ class AnimalCohort:
         number_dead = ceil(pop_size * (1 - exp(-u_t * dt)))
 
         # Remove the dead individuals from the cohort
-        self.die_individual(number_dead, carcass_pool)
+        self.die_individual(number_dead, carcass_pools)
+
+    def get_prey(
+        self,
+        communities: dict[int, list[AnimalCohort]],
+    ) -> list[AnimalCohort]:
+        """Collect suitable prey for a given consumer cohort.
+
+        This method filters suitable prey from the list of animal cohorts across the
+        territory defined by the cohort's grid cells.
+
+        Args:
+            communities: A dictionary mapping cell IDs to sets of Consumers
+            (animal cohorts).
+            consumer_cohort: The Consumer for which a prey list is being collected.
+
+        Returns:
+            A sequence of Consumers that can be preyed upon.
+        """
+        prey_list: list = []
+
+        # Iterate over the grid cells in the consumer cohort's territory
+        for cell_id in self.territory:
+            potential_prey_cohorts = communities[cell_id]
+
+            # Iterate over each Consumer (potential prey) in the current community
+            for prey_cohort in potential_prey_cohorts:
+                # Skip if this cohort is not a prey of the current predator
+                if prey_cohort.functional_group not in self.prey_groups:
+                    continue
+
+                # Get the size range of the prey this predator eats
+                min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
+
+                # Filter the potential prey cohorts based on their size
+                if (
+                    min_size <= prey_cohort.mass_current <= max_size
+                    and prey_cohort.individuals != 0
+                    and prey_cohort is not self
+                ):
+                    prey_list.append(prey_cohort)
+
+        return prey_list
+
+    def get_plant_resources(
+        self, plant_resources: dict[int, list[Resource]]
+    ) -> list[Resource]:
+        """Returns a list of plant resources in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the plant resources available in those grid cells.
+
+        Args:
+            plant_resources: A dictionary of plants where keys are grid cell IDs.
+
+        Returns:
+            A list of Resource objects in this territory.
+        """
+        plant_resources_in_territory: list = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided plant resources
+            if cell_id in plant_resources:
+                plant_resources_in_territory.extend(plant_resources[cell_id])
+
+        return plant_resources_in_territory
+
+    def get_excrement_pools(
+        self, excrement_pools: dict[int, list[ExcrementPool]]
+    ) -> list[ExcrementPool]:
+        """Returns a list of excrement pools in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the excrement pools available in those grid cells.
+
+        Args:
+            excrement_pools: A dictionary of excrement pools where keys are grid
+            cell IDs.
+
+        Returns:
+            A list of ExcrementPool objects in this territory.
+        """
+        excrement_pools_in_territory: list[ExcrementPool] = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided excrement pools
+            if cell_id in excrement_pools:
+                excrement_pools_in_territory.extend(excrement_pools[cell_id])
+
+        return excrement_pools_in_territory
+
+    def get_herbivory_waste_pools(
+        self, plant_waste: dict[int, HerbivoryWaste]
+    ) -> list[HerbivoryWaste]:
+        """Returns a list of herbivory waste pools in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the herbivory waste pools available in those grid cells.
+
+        Args:
+            plant_waste: A dictionary of herbivory waste pools where keys are grid
+            cell IDs.
+
+        Returns:
+            A list of HerbivoryWaste objects in this territory.
+        """
+        plant_waste_pools_in_territory: list[HerbivoryWaste] = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided herbivory waste pools
+            if cell_id in plant_waste:
+                plant_waste_pools_in_territory.append(plant_waste[cell_id])
+
+        return plant_waste_pools_in_territory
+
+    def get_carcass_pools(
+        self, carcass_pools: dict[int, list[CarcassPool]]
+    ) -> list[CarcassPool]:
+        """Returns a list of carcass pools in this territory.
+
+        This method checks which grid cells are within this territory
+        and returns a list of the carcass pools available in those grid cells.
+
+        Args:
+            carcass_pools: A dictionary of carcass pools where keys are grid
+            cell IDs.
+
+        Returns:
+            A list of CarcassPool objects in this territory.
+        """
+        carcass_pools_in_territory: list[CarcassPool] = []
+
+        # Iterate over all grid cell keys in this territory
+        for cell_id in self.territory:
+            # Check if the cell_id is within the provided carcass pools
+            if cell_id in carcass_pools:
+                carcass_pools_in_territory.extend(carcass_pools[cell_id])
+
+        return carcass_pools_in_territory
+
+    def find_intersecting_carcass_pools(
+        self,
+        prey_territory: list[int],
+        carcass_pools: dict[int, list[CarcassPool]],
+    ) -> list[CarcassPool]:
+        """Find the carcass pools of the intersection of two territories.
+
+        Args:
+            prey_territory: Another AnimalTerritory to find the intersection with.
+            carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
+
+        Returns:
+            A list of CarcassPools in the intersecting grid cells.
+        """
+        intersecting_keys = set(self.territory) & set(prey_territory)
+        intersecting_carcass_pools: list[CarcassPool] = []
+        for cell_id in intersecting_keys:
+            intersecting_carcass_pools.extend(carcass_pools[cell_id])
+        return intersecting_carcass_pools
