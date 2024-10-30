@@ -243,7 +243,7 @@ class BaseModel(ABC):
         """A list of attributes to be included in the class __repr__ output"""
         self._static = static
         """Flag indicating if the model is static, i.e. does not change with time."""
-        self._run_update = self._run_update_due_to_static_configuration()
+        self._run_initial_static_update = self._run_update_due_to_static_configuration()
         """Flag indicating if the update method should be run once.
         
         This is ignored if the model is not static."""
@@ -261,13 +261,13 @@ class BaseModel(ABC):
 
         In particular, it checks that the appropriate variables populated by init are
         present or not in the data object. Based on this, an exception is raised is
-        there is a problem or a decission is made on whether or not bypass the setup.
+        there is a problem or a decision is made on whether or not bypass the setup.
 
         Raises:
             ConfigurationError: If the model is static and some but not all the
-            variables or None in vars_populated_by_init are present in the data object
-            or if the model is not static and some of the variables in
-            vars_populated_by_init are not present in the data object.
+                variables or None in vars_populated_by_init are present in the data
+                object or if the model is not static and some of the variables in
+                vars_populated_by_init are not present in the data object.
 
         Returns:
             True if the model is static and all variables are present, such that the
@@ -289,7 +289,8 @@ class BaseModel(ABC):
                 raise ConfigurationError(
                     f"Static model {self.model_name} requires to either all variables "
                     "in vars_populated_by_init to be present in the data object or "
-                    f"all to be absent. {found} out of {expected} found: {', '.join(present)}."
+                    f"all to be absent. {found} out of {expected} found: "
+                    f"{', '.join(present)}."
                 )
             else:
                 return True
@@ -306,9 +307,9 @@ class BaseModel(ABC):
 
         Raises:
             ConfigurationError: If the model is static and some but not all the
-            variables or None in vars_populated_by_first_update or vars_updated are
-            present in the data object or if the model is not static and some of the
-            variables in vars_populated_by_init are not present in the data object.
+                variables or None in vars_populated_by_first_update or vars_updated are
+                present in the data object or if the model is not static and some of the
+                variables in vars_populated_by_init are not present in the data object.
 
         Returns:
             True if the model is static and the update method needs to run once. False
@@ -368,10 +369,10 @@ class BaseModel(ABC):
             **kwargs: Further arguments to the update method.
         """
         if self._static:
-            if not self._run_update:
+            if not self._run_initial_static_update:
                 return
             else:
-                self._run_update = False
+                self._run_initial_static_update = False
 
         self._update(time_index, **kwargs)
 
