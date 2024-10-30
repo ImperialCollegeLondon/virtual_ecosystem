@@ -560,7 +560,7 @@ class AnimalCohort:
 
         Args:
             plant_list: A list of plant resources available for consumption by the
-            cohort.
+                cohort.
             alpha: The search efficiency rate of the herbivore cohort.
 
         Returns:
@@ -593,9 +593,9 @@ class AnimalCohort:
 
         Args:
             plant_list: A list of plant resources available for consumption by the
-                 cohort.
+                cohort.
             target_plant: The specific plant resource being targeted by the herbivore
-                 cohort for consumption.
+                cohort for consumption.
 
         Returns:
             The instantaneous consumption rate [g/day] of the target plant resource by
@@ -1078,7 +1078,7 @@ class AnimalCohort:
 
         Args:
             communities: A dictionary mapping cell IDs to sets of Consumers
-            (animal cohorts).
+                (animal cohorts).
             consumer_cohort: The Consumer for which a prey list is being collected.
 
         Returns:
@@ -1143,7 +1143,7 @@ class AnimalCohort:
 
         Args:
             excrement_pools: A dictionary of excrement pools where keys are grid
-            cell IDs.
+                cell IDs.
 
         Returns:
             A list of ExcrementPool objects in this territory.
@@ -1168,7 +1168,7 @@ class AnimalCohort:
 
         Args:
             plant_waste: A dictionary of herbivory waste pools where keys are grid
-            cell IDs.
+                cell IDs.
 
         Returns:
             A list of HerbivoryWaste objects in this territory.
@@ -1193,7 +1193,7 @@ class AnimalCohort:
 
         Args:
             carcass_pools: A dictionary of carcass pools where keys are grid
-            cell IDs.
+                cell IDs.
 
         Returns:
             A list of CarcassPool objects in this territory.
