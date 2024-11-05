@@ -102,6 +102,16 @@ class SoilPools:
         pools. When all transfers have been calculated the net transfer is used to
         calculate the net change for each pool.
 
+        The data that this function uses (which comes from the `data` object) is stored
+        in a dictionary form. This becomes an issue as the `scipy` integrator used to
+        integrate this function expects a `numpy` array, and if the order of variables
+        changes in this array the integrator will generate nonsensical results. To
+        prevent this from happening a dictionary (`delta_pools_ordered`) is supplied
+        that contains all the variables that get integrated, this dictionary sets the
+        order of variables in the output `numpy` array. As this dictionary is passed
+        from :func:`~virtual_ecosystem.models.soil.soil_model.SoilModel.integrate` this
+        ensures that the order is the same for the entire integration.
+
         Args:
             delta_pools_ordered: Dictionary to store pool changes in the order that
                 pools are stored in the initial condition vector.
