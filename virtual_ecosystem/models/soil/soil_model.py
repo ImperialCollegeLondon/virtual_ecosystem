@@ -151,15 +151,15 @@ class SoilModel(
 
         # Check that soil pool data is appropriately bounded
         if (
-            np.any(data["soil_c_pool_maom"] < 0.0)
-            or np.any(data["soil_c_pool_lmwc"] < 0.0)
-            or np.any(data["soil_c_pool_microbe"] < 0.0)
-            or np.any(data["soil_c_pool_pom"] < 0.0)
-            or np.any(data["soil_enzyme_pom"] < 0.0)
-            or np.any(data["soil_enzyme_maom"] < 0.0)
-            or np.any(data["soil_c_pool_necromass"] < 0.0)
-            or np.any(data["soil_n_pool_don"] < 0.0)
-            or np.any(data["soil_n_pool_particulate"] < 0.0)
+            np.any(self.data["soil_c_pool_maom"] < 0.0)
+            or np.any(self.data["soil_c_pool_lmwc"] < 0.0)
+            or np.any(self.data["soil_c_pool_microbe"] < 0.0)
+            or np.any(self.data["soil_c_pool_pom"] < 0.0)
+            or np.any(self.data["soil_enzyme_pom"] < 0.0)
+            or np.any(self.data["soil_enzyme_maom"] < 0.0)
+            or np.any(self.data["soil_c_pool_necromass"] < 0.0)
+            or np.any(self.data["soil_n_pool_don"] < 0.0)
+            or np.any(self.data["soil_n_pool_particulate"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
