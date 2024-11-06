@@ -197,7 +197,7 @@ subtrees:
             title: The soil model
             entries:
               - file: api/models/soil/pools
-                title: The all_pools submodule
+                title: The pools submodule
               - file: api/models/soil/constants
                 title: The constants submodule
               - file: api/models/soil/env_factors
