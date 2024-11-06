@@ -24,10 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.models.soil.carbon` module
+# API documentation for the {mod}`~virtual_ecosystem.models.soil.pools` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.soil.carbon
+.. automodule:: virtual_ecosystem.models.soil.pools
     :autosummary:
     :members:
 ```

@@ -9,8 +9,6 @@ import numpy as np
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
-# TODO - Once lignin is tracked a large number of constants will have to be duplicated
-
 
 @dataclass(frozen=True)
 class SoilConsts(ConstantsDataclass):
@@ -256,6 +254,13 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
+    solubility_coefficient_don: float = 1.0
+    """Solubility coefficient for dissolved organic nitrogen [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
+    """
+
     necromass_decay_rate: float = (1 / 3) * np.log(2)
     """Rate at which microbial necromass decays to low molecular weight carbon [day^-1]
 
@@ -287,4 +292,18 @@ class SoilConsts(ConstantsDataclass):
     :attr:`necromass_decay_rate`, this means that 75% of necromass becomes MAOM with the
     remainder becoming LMWC. Replacing this with a function that depends on
     environmental conditions is a post release goal.
+    """
+
+    litter_leaching_fraction_carbon = 0.0015
+    """Fraction of carbon mineralisation from litter that occurs by leaching [unitless].
+    
+    The remainder of the mineralisation consists of particulates. Value is an order of
+    magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    litter_leaching_fraction_nitrogen = 0.0015
+    """Fraction of nitrogen mineralisation from litter that occurs by leaching.
+    
+    [unitless]. The remainder of the mineralisation consists of particulates. Value is
+    an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
