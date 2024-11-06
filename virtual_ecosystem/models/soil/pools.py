@@ -1,7 +1,9 @@
-"""The ``models.soil.carbon`` module  simulates the soil carbon cycle for the Virtual
-Ecosystem. At the moment five pools are modelled, these are low molecular weight carbon
+"""The ``models.soil.pools`` module simulates all soil pools for the Virtual
+Ecosystem. At the moment four carbon pools are modelled (low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
-matter (POM), and POM degrading enzymes.
+matter (POM)), as well as two enzyme pools (POM and MAOM) degrading enzymes, and two
+nitrogen pools (dissolved organic nitrogen (DON) and particulate organic nitrogen
+(PON)).
 """  # noqa: D205
 
 from dataclasses import dataclass
@@ -9,7 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
@@ -17,6 +19,9 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_leaching_rate,
     calculate_temperature_effect_on_microbes,
 )
+
+# TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
+# think about adding these in future
 
 
 @dataclass
@@ -64,145 +69,189 @@ class EnzymeMediatedRates:
     """
 
 
-# TODO - This function should probably be shortened. I've done some work on this
-# already, but I need to keep an eye on it as new pools are added.
-def calculate_soil_carbon_updates(
-    soil_c_pool_lmwc: NDArray[np.float32],
-    soil_c_pool_maom: NDArray[np.float32],
-    soil_c_pool_microbe: NDArray[np.float32],
-    soil_c_pool_pom: NDArray[np.float32],
-    soil_c_pool_necromass: NDArray[np.float32],
-    soil_enzyme_pom: NDArray[np.float32],
-    soil_enzyme_maom: NDArray[np.float32],
-    pH: NDArray[np.float32],
-    bulk_density: NDArray[np.float32],
-    soil_moisture: NDArray[np.float32],
-    soil_water_potential: NDArray[np.float32],
-    vertical_flow_rate: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
-    clay_fraction: NDArray[np.float32],
-    mineralisation_rate: NDArray[np.float32],
-    delta_pools_ordered: dict[str, NDArray[np.float32]],
-    core_constants: CoreConsts,
-    model_constants: SoilConsts,
-) -> NDArray[np.float32]:
-    """Calculate net change for each carbon pool.
+class SoilPools:
+    """This class collects all the various soil pools so that they can be updated.
 
-    This function calls lower level functions which calculate the transfers between
-    pools. When all transfers have been calculated the net transfer is used to
-    calculate the net change for each pool.
-
-    Args:
-        soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
-        soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
-        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
-        soil_c_pool_necromass: Microbial necromass pool [kg C m^-3]
-        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
-            matter [kg C m^-3]
-        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
-            organic matter [kg C m^-3]
-        pH: pH values for each soil grid cell [unitless]
-        bulk_density: bulk density values for each soil grid cell [kg m^-3]
-        soil_moisture: amount of water contained by each soil layer [mm]
-        soil_water_potential: Soil water potential for each grid cell [kPa]
-        vertical_flow_rate: The vertical flow rate [TODO]
-        soil_temp: soil temperature for each soil grid cell [degrees C]
-        clay_fraction: The clay fraction for each soil grid cell [unitless]
-        mineralisation_rate: Amount of litter mineralised into POM pool [kg C m^-3
-            day^-1]
-        delta_pools_ordered: Dictionary to store pool changes in the order that pools
-            are stored in the initial condition vector.
-        core_constants: Set of constants shared between models.
-        model_constants: Set of constants for the soil model.
-
-    Returns:
-        A vector containing net changes to each pool. Order [lmwc, maom].
+    This class contains a method to update all soil pools. As well as taking in the data
+    object it also has to take in another dictionary containing the pools. This
+    dictionary is modifiable by the integration algorithm whereas the data object will
+    only be modified when the entire soil model simulation has finished.
     """
 
-    # Find environmental factors which impact biogeochemical soil processes
-    env_factors = calculate_environmental_effect_factors(
-        soil_water_potential=soil_water_potential,
-        pH=pH,
-        clay_fraction=clay_fraction,
-        constants=model_constants,
-    )
-    # find changes related to microbial uptake, growth and decay
-    microbial_changes = calculate_microbial_changes(
-        soil_c_pool_lmwc=soil_c_pool_lmwc,
-        soil_c_pool_microbe=soil_c_pool_microbe,
-        soil_enzyme_pom=soil_enzyme_pom,
-        soil_enzyme_maom=soil_enzyme_maom,
-        soil_temp=soil_temp,
-        env_factors=env_factors,
-        constants=model_constants,
-    )
-    # find changes driven by the enzyme pools
-    enzyme_mediated = calculate_enzyme_mediated_rates(
-        soil_enzyme_pom=soil_enzyme_pom,
-        soil_enzyme_maom=soil_enzyme_maom,
-        soil_c_pool_pom=soil_c_pool_pom,
-        soil_c_pool_maom=soil_c_pool_maom,
-        soil_temp=soil_temp,
-        env_factors=env_factors,
-        constants=model_constants,
-    )
+    def __init__(
+        self, data: Data, pools: dict[str, NDArray[np.float32]], constants: SoilConsts
+    ):
+        self.data = data
+        """The data object for the Virtual Ecosystem simulation."""
+        self.pools = pools
+        """Pools which can change during the soil model update.
+        
+        These pools need to be added outside the data object otherwise the integrator
+        cannot update them and the integration will fail.
+        """
+        self.constants = constants
 
-    labile_carbon_leaching = calculate_leaching_rate(
-        solute_density=soil_c_pool_lmwc,
-        vertical_flow_rate=vertical_flow_rate,
-        soil_moisture=soil_moisture,
-        solubility_coefficient=model_constants.solubility_coefficient_lmwc,
-    )
+    def calculate_all_pool_updates(
+        self,
+        delta_pools_ordered: dict[str, NDArray[np.float32]],
+        top_soil_layer_index: int,
+    ) -> NDArray[np.float32]:
+        """Calculate net change for all soil pools.
 
-    # Calculate transfers between the lmwc, necromass and maom pools
-    maom_desorption_to_lmwc = calculate_maom_desorption(
-        soil_c_pool_maom=soil_c_pool_maom,
-        desorption_rate_constant=model_constants.maom_desorption_rate,
-    )
-    necromass_decay_to_lmwc = calculate_necromass_breakdown(
-        soil_c_pool_necromass=soil_c_pool_necromass,
-        necromass_decay_rate=model_constants.necromass_decay_rate,
-    )
-    necromass_sorption_to_maom = calculate_sorption_to_maom(
-        soil_c_pool=soil_c_pool_necromass,
-        sorption_rate_constant=model_constants.necromass_sorption_rate,
-    )
-    lmwc_sorption_to_maom = calculate_sorption_to_maom(
-        soil_c_pool=soil_c_pool_lmwc,
-        sorption_rate_constant=model_constants.lmwc_sorption_rate,
-    )
+        This function calls lower level functions which calculate the transfers between
+        pools. When all transfers have been calculated the net transfer is used to
+        calculate the net change for each pool.
 
-    # Determine net changes to the pools
-    delta_pools_ordered["soil_c_pool_lmwc"] = (
-        enzyme_mediated.pom_to_lmwc
-        + enzyme_mediated.maom_to_lmwc
-        + maom_desorption_to_lmwc
-        + necromass_decay_to_lmwc
-        - microbial_changes.lmwc_uptake
-        - lmwc_sorption_to_maom
-        - labile_carbon_leaching
-    )
-    delta_pools_ordered["soil_c_pool_maom"] = (
-        necromass_sorption_to_maom
-        + lmwc_sorption_to_maom
-        - enzyme_mediated.maom_to_lmwc
-        - maom_desorption_to_lmwc
-    )
-    delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
-    delta_pools_ordered["soil_c_pool_pom"] = (
-        mineralisation_rate - enzyme_mediated.pom_to_lmwc
-    )
-    delta_pools_ordered["soil_c_pool_necromass"] = (
-        microbial_changes.necromass_generation
-        - necromass_decay_to_lmwc
-        - necromass_sorption_to_maom
-    )
-    delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
-    delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
+        The data that this function uses (which comes from the `data` object) is stored
+        in a dictionary form. This becomes an issue as the `scipy` integrator used to
+        integrate this function expects a `numpy` array, and if the order of variables
+        changes in this array the integrator will generate nonsensical results. To
+        prevent this from happening a dictionary (`delta_pools_ordered`) is supplied
+        that contains all the variables that get integrated, this dictionary sets the
+        order of variables in the output `numpy` array. As this dictionary is passed
+        from :func:`~virtual_ecosystem.models.soil.soil_model.SoilModel.integrate` this
+        ensures that the order is the same for the entire integration.
 
-    # Create output array of pools in desired order
-    return np.concatenate(list(delta_pools_ordered.values()))
+        Args:
+            delta_pools_ordered: Dictionary to store pool changes in the order that
+                pools are stored in the initial condition vector.
+            top_soil_layer_index: Index for layer in data object representing top soil
+                layer
+
+        Returns:
+            A vector containing net changes to each pool. Order [lmwc, maom].
+        """
+
+        # Find temperature and soil moisture values for the topsoil layer
+        soil_water_potential = self.data["matric_potential"][
+            top_soil_layer_index
+        ].to_numpy()
+        soil_temperature = self.data["soil_temperature"][
+            top_soil_layer_index
+        ].to_numpy()
+        soil_moisture = self.data["soil_moisture"][top_soil_layer_index].to_numpy()
+
+        # Find environmental factors which impact biogeochemical soil processes
+        env_factors = calculate_environmental_effect_factors(
+            soil_water_potential=soil_water_potential,
+            pH=self.data["pH"].to_numpy(),
+            clay_fraction=self.data["clay_fraction"].to_numpy(),
+            constants=self.constants,
+        )
+        # find changes related to microbial uptake, growth and decay
+        microbial_changes = calculate_microbial_changes(
+            soil_c_pool_lmwc=self.pools["soil_c_pool_lmwc"],
+            soil_c_pool_microbe=self.pools["soil_c_pool_microbe"],
+            soil_enzyme_pom=self.pools["soil_enzyme_pom"],
+            soil_enzyme_maom=self.pools["soil_enzyme_maom"],
+            soil_temp=soil_temperature,
+            env_factors=env_factors,
+            constants=self.constants,
+        )
+        # find changes driven by the enzyme pools
+        enzyme_mediated = calculate_enzyme_mediated_rates(
+            soil_enzyme_pom=self.pools["soil_enzyme_pom"],
+            soil_enzyme_maom=self.pools["soil_enzyme_maom"],
+            soil_c_pool_pom=self.pools["soil_c_pool_pom"],
+            soil_c_pool_maom=self.pools["soil_c_pool_maom"],
+            soil_temp=soil_temperature,
+            env_factors=env_factors,
+            constants=self.constants,
+        )
+
+        labile_carbon_leaching = calculate_leaching_rate(
+            solute_density=self.pools["soil_c_pool_lmwc"],
+            vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
+            soil_moisture=soil_moisture,
+            solubility_coefficient=self.constants.solubility_coefficient_lmwc,
+        )
+        don_leaching = calculate_leaching_rate(
+            solute_density=self.pools["soil_n_pool_don"],
+            vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
+            soil_moisture=soil_moisture,
+            solubility_coefficient=self.constants.solubility_coefficient_don,
+        )
+
+        # Calculate transfers between the lmwc, necromass and maom pools
+        maom_desorption_to_lmwc = calculate_maom_desorption(
+            soil_c_pool_maom=self.pools["soil_c_pool_maom"],
+            desorption_rate_constant=self.constants.maom_desorption_rate,
+        )
+
+        necromass_decay_to_lmwc = calculate_necromass_breakdown(
+            soil_c_pool_necromass=self.pools["soil_c_pool_necromass"],
+            necromass_decay_rate=self.constants.necromass_decay_rate,
+        )
+
+        necromass_sorption_to_maom = calculate_sorption_to_maom(
+            soil_c_pool=self.pools["soil_c_pool_necromass"],
+            sorption_rate_constant=self.constants.necromass_sorption_rate,
+        )
+        lmwc_sorption_to_maom = calculate_sorption_to_maom(
+            soil_c_pool=self.pools["soil_c_pool_lmwc"],
+            sorption_rate_constant=self.constants.lmwc_sorption_rate,
+        )
+
+        # Calculate the split of the mineralisation flux between dissolved and
+        # particulate forms
+        litter_mineralisation_fluxes_C = calculate_litter_mineralisation_split(
+            mineralisation_rate=self.data["litter_C_mineralisation_rate"].to_numpy(),
+            litter_leaching_coefficient=self.constants.litter_leaching_fraction_carbon,
+        )
+        litter_mineralisation_fluxes_N = calculate_litter_mineralisation_split(
+            mineralisation_rate=self.data["litter_N_mineralisation_rate"].to_numpy(),
+            litter_leaching_coefficient=self.constants.litter_leaching_fraction_nitrogen,
+        )
+
+        # Find mineralisation rate from POM
+        pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
+            pool_carbon=self.pools["soil_c_pool_pom"],
+            pool_nutrient=self.pools["soil_n_pool_particulate"],
+            breakdown_rate=enzyme_mediated.pom_to_lmwc,
+        )
+
+        # Determine net changes to the pools
+        delta_pools_ordered["soil_c_pool_lmwc"] = (
+            litter_mineralisation_fluxes_C["dissolved"]
+            + enzyme_mediated.pom_to_lmwc
+            + enzyme_mediated.maom_to_lmwc
+            + maom_desorption_to_lmwc
+            + necromass_decay_to_lmwc
+            - microbial_changes.lmwc_uptake
+            - lmwc_sorption_to_maom
+            - labile_carbon_leaching
+        )
+
+        delta_pools_ordered["soil_c_pool_maom"] = (
+            necromass_sorption_to_maom
+            + lmwc_sorption_to_maom
+            - enzyme_mediated.maom_to_lmwc
+            - maom_desorption_to_lmwc
+        )
+
+        delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
+        delta_pools_ordered["soil_c_pool_pom"] = (
+            litter_mineralisation_fluxes_C["particulate"] - enzyme_mediated.pom_to_lmwc
+        )
+        delta_pools_ordered["soil_c_pool_necromass"] = (
+            microbial_changes.necromass_generation
+            - necromass_decay_to_lmwc
+            - necromass_sorption_to_maom
+        )
+        delta_pools_ordered["soil_n_pool_don"] = (
+            litter_mineralisation_fluxes_N["dissolved"]
+            + pom_n_mineralisation
+            - don_leaching
+        )
+
+        delta_pools_ordered["soil_n_pool_particulate"] = (
+            litter_mineralisation_fluxes_N["particulate"] - pom_n_mineralisation
+        )
+        delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
+        delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
+
+        # Create output array of pools in desired order
+        return np.concatenate(list(delta_pools_ordered.values()))
 
 
 def calculate_microbial_changes(
@@ -651,3 +700,58 @@ def calculate_necromass_breakdown(
     """
 
     return necromass_decay_rate * soil_c_pool_necromass
+
+
+def calculate_litter_mineralisation_split(
+    mineralisation_rate: NDArray[np.float32], litter_leaching_coefficient: float
+) -> dict[str, NDArray[np.float32]]:
+    """Determine how nutrients from litter mineralisation get split between soil pools.
+
+    All nutrients that we track (carbon, nitrogen and phosphorus) get divided between
+    the particulate organic matter pool and the dissolved pool for their respective
+    nutrient (for the carbon case this pool is termed low molecular weight carbon). This
+    split is calculated based on empirically derived litter leaching constants.
+
+    Args:
+        mineralisation_rate: The rate at which the nutrient is being mineralised for the
+            litter [kg C m^-3 day^-1]
+        litter_leaching_coefficient: Fraction of the litter mineralisation of the
+            nutrient that occurs via leaching rather than as particulates [unitless]
+
+    Returns:
+        A dictionary containing the rate at which the nutrient is added to the soil as
+        particulates and as dissolved matter [kg C m^-3 day^-1].
+    """
+
+    return {
+        "particulate": (1 - litter_leaching_coefficient) * mineralisation_rate,
+        "dissolved": litter_leaching_coefficient * mineralisation_rate,
+    }
+
+
+def calculate_soil_nutrient_mineralisation(
+    pool_carbon: NDArray[np.float32],
+    pool_nutrient: NDArray[np.float32],
+    breakdown_rate: NDArray[np.float32],
+):
+    """Calculate mineralisation rate from soil organic matter for a specific nutrient.
+
+    This function assumes that nutrients are mineralised in direct proportion to their
+    ratio to carbon in the decaying organic matter. This function is therefore does not
+    capture mechanisms that exist to actively release nutrients from organic matter
+    (e.g. phosphatase enzymes).
+
+    Args:
+        pool_carbon: The carbon content of the organic matter pool [kg C m^-3]
+        pool_nutrient: The nutrient content of the organic matter pool [kg nutrient
+            m^-3]
+        breakdown_rate: The rate at which the pool is being broken down (expressed in
+            carbon terms) [kg C m^-3 day^-1]
+
+    Returns:
+        The rate at which the nutrient in question is mineralised due to organic matter
+        breakdown [kg nutrient m^-3 day^-1]
+    """
+
+    carbon_nutrient_ratio = pool_carbon / pool_nutrient
+    return breakdown_rate / carbon_nutrient_ratio
