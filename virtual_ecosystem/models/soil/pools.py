@@ -543,12 +543,14 @@ def calculate_microbial_carbon_uptake(
     # in future
 
     # Calculate microbial carbon uptake rate
-    uptake_rate = calculate_maximum_nutrient_uptake(
+    uptake_rate = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_c_pool_lmwc,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
+        max_uptake_rate=constants.max_uptake_rate_labile_C,
+        half_saturation_constant=constants.half_sat_labile_C_uptake,
         constants=constants,
     )
 
@@ -557,16 +559,17 @@ def calculate_microbial_carbon_uptake(
     return uptake_rate, assimilation_rate
 
 
-# TODO - Need to rethink how constants are handled here
-def calculate_maximum_nutrient_uptake(
+def calculate_highest_achievable_nutrient_uptake(
     labile_nutrient_pool: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
+    max_uptake_rate: float,
+    half_saturation_constant: float,
     constants: SoilConsts,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
-    """Calculate uptake and assimilation of labile carbon by microbes.
+    """Calculate highest acheivable uptake rate for a specific nutrient.
 
     This function starts by calculating the impact that environmental factors have on
     the rate and saturation constants for microbial uptake. These constants are then
@@ -574,13 +577,17 @@ def calculate_maximum_nutrient_uptake(
 
     Args:
         labile_nutrient_pool: Mass of nutrient that is in a readily uptakeable (labile)
-            form [kg C m^-3]
+            form [kg nut m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
             [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
+        max_uptake_rate: Maximum possible uptake rate of the nutrient (at reference
+            temperature) [day^-1]
+        half_saturation_constant: Half saturation constant for nutrient uptake (at
+            reference temperature) [kg nut m^-3]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -596,15 +603,13 @@ def calculate_maximum_nutrient_uptake(
     )
     temp_factor_saturation = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_labile_C_saturation,
+        activation_energy=constants.activation_energy_uptake_saturation,
         reference_temperature=constants.arrhenius_reference_temp,
     )
-    # Then use to calculate rate constant and saturation constant (which also change
-    # with other environmental conditions)
-    rate_constant = (
-        constants.max_uptake_rate_labile_C * temp_factor_rate * water_factor * pH_factor
-    )
-    saturation_constant = constants.half_sat_labile_C_uptake * temp_factor_saturation
+    # Rate and saturation constants are then adjusted based on these environmental
+    # conditions
+    rate_constant = max_uptake_rate * temp_factor_rate * water_factor * pH_factor
+    saturation_constant = half_saturation_constant * temp_factor_saturation
 
     # Calculate both the rate of carbon uptake, and the rate at which this carbon is
     # assimilated into microbial biomass.

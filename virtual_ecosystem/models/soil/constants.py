@@ -70,11 +70,12 @@ class SoilConsts(ConstantsDataclass):
     """
 
     activation_energy_microbial_uptake: float = 47000
-    """Activation energy for microbial uptake of low molecular weight carbon [J K^-1].
+    """Activation energy for microbial nutrient uptake [J K^-1].
 
     Value taken from :cite:t:`wang_development_2013`. The maximum labile carbon uptake
     rate that this activation energy corresponds to is given by
-    :attr:`max_uptake_rate_labile_C`.
+    :attr:`max_uptake_rate_labile_C`. This activation energy is assumed to be the same
+    for the uptake of other nutrients as for carbon.
     """
 
     half_sat_labile_C_uptake: float = 0.364
@@ -87,10 +88,11 @@ class SoilConsts(ConstantsDataclass):
     :attr:`activation_energy_labile_C_saturation`.
     """
 
-    activation_energy_labile_C_saturation: float = 30000
-    """Activation energy for labile C uptake saturation constant [J K^-1].
+    activation_energy_uptake_saturation: float = 30000
+    """Activation energy for nutrient uptake saturation constants [J K^-1].
 
-    Taken from :cite:t:`wang_development_2013`.
+    Taken from :cite:t:`wang_development_2013`. This is assumed to be the same across
+    all nutrients.
     """
 
     half_sat_pom_decomposition: float = 70.0
