@@ -238,6 +238,28 @@ def test_calculate_microbial_carbon_uptake(
     assert np.allclose(actual_assimilation, expected_assimilation)
 
 
+def test_calculate_maximum_nutrient_uptake(
+    dummy_carbon_data, fixture_core_components, environmental_factors
+):
+    """Check function to calculate maximum possible uptake rates works as intended."""
+    from virtual_ecosystem.models.soil.pools import calculate_maximum_nutrient_uptake
+
+    expected_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
+
+    actual_uptake = calculate_maximum_nutrient_uptake(
+        labile_nutrient_pool=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_uptake, expected_uptake)
+
+
 def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):

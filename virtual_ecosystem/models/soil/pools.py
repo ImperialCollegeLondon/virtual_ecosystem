@@ -499,6 +499,7 @@ def calculate_enzyme_turnover(
     return turnover_rate * enzyme_pool
 
 
+# TODO - Rename this and change it to use nitrogen as well
 def calculate_microbial_carbon_uptake(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
@@ -507,13 +508,11 @@ def calculate_microbial_carbon_uptake(
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
-    """Calculate uptake and assimilation of labile carbon by microbes.
+    """Calculate the rate at which microbes uptake each nutrient.
 
-    This function starts by calculating the impact that environmental factors have on
-    the rate and saturation constants for microbial uptake. These constants are then
-    used to calculate the rate of uptake of labile carbon. Carbon use efficiency is then
-    calculated and used to find how much of this carbon ends up assimilated as biomass
-    (rather than respired).
+    TODO - Explain rate finding.
+    Carbon use efficiency is then calculated and used to find how much of this carbon
+    ends up assimilated as biomass (rather than respired).
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
@@ -538,6 +537,57 @@ def calculate_microbial_carbon_uptake(
         constants.cue_reference_temp,
         constants.cue_with_temperature,
     )
+
+    # TODO - the quantities calculated above can be used to calculate the carbon
+    # respired instead of being uptaken. This isn't currently of interest, but will be
+    # in future
+
+    # Calculate microbial carbon uptake rate
+    uptake_rate = calculate_maximum_nutrient_uptake(
+        labile_nutrient_pool=soil_c_pool_lmwc,
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        water_factor=water_factor,
+        pH_factor=pH_factor,
+        soil_temp=soil_temp,
+        constants=constants,
+    )
+
+    assimilation_rate = uptake_rate * carbon_use_efficency
+
+    return uptake_rate, assimilation_rate
+
+
+# TODO - Need to rethink how constants are handled here
+def calculate_maximum_nutrient_uptake(
+    labile_nutrient_pool: NDArray[np.float32],
+    soil_c_pool_microbe: NDArray[np.float32],
+    water_factor: NDArray[np.float32],
+    pH_factor: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    constants: SoilConsts,
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Calculate uptake and assimilation of labile carbon by microbes.
+
+    This function starts by calculating the impact that environmental factors have on
+    the rate and saturation constants for microbial uptake. These constants are then
+    used to calculate the maximum possible uptake rate for the nutrient in question.
+
+    Args:
+        labile_nutrient_pool: Mass of nutrient that is in a readily uptakeable (labile)
+            form [kg C m^-3]
+        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        water_factor: A factor capturing the impact of soil water potential on microbial
+            rates [unitless]
+        pH_factor: A factor capturing the impact of soil pH on microbial rates
+            [unitless]
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The maximum uptake rate by the soil microbial biomass for the nutrient in
+        question.
+    """
+
     # Calculate impact of temperature on the rate and saturation constants
     temp_factor_rate = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
@@ -559,16 +609,11 @@ def calculate_microbial_carbon_uptake(
     # Calculate both the rate of carbon uptake, and the rate at which this carbon is
     # assimilated into microbial biomass.
     uptake_rate = rate_constant * np.divide(
-        (soil_c_pool_lmwc * soil_c_pool_microbe),
-        (soil_c_pool_lmwc + saturation_constant),
+        (labile_nutrient_pool * soil_c_pool_microbe),
+        (labile_nutrient_pool + saturation_constant),
     )
-    assimilation_rate = uptake_rate * carbon_use_efficency
 
-    # TODO - the quantities calculated above can be used to calculate the carbon
-    # respired instead of being uptaken. This isn't currently of interest, but will be
-    # in future
-
-    return uptake_rate, assimilation_rate
+    return uptake_rate
 
 
 def calculate_enzyme_mediated_decomposition(
