@@ -30,6 +30,8 @@ INITIALISATION_LOG = [
     (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_maom' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),

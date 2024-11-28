@@ -23,6 +23,8 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_maom' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
@@ -260,7 +262,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.05655836, 0.02322536, 0.11935823, 0.01485682], dims="cell_id"
+                        [0.05655836, 0.02322584, 0.11935823, 0.01485682], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
@@ -282,10 +284,16 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.0005103, 0.00116151, 0.00012558, 0.00282273], dims="cell_id"
+                        [0.0005103, 0.00116154, 0.00012558, 0.00282273], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
                         [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
+                    ),
+                    soil_n_pool_necromass=DataArray(
+                        [0.00288462, 0.01788462, 0.02019231, 0.01115385], dims="cell_id"
+                    ),
+                    soil_n_pool_maom=DataArray(
+                        [0.86538462, 0.48076923, 0.32692308, 0.09615385], dims="cell_id"
                     ),
                 )
             ),
@@ -441,6 +449,14 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         6.422491e-5,
         0.000131687,
         1.461799e-5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
     ]
 
     # make pools

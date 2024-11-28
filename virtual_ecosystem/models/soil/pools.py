@@ -254,6 +254,13 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_particulate"] = (
             litter_mineralisation_fluxes_N["particulate"] - pom_n_mineralisation
         )
+        # TODO - Actually add changes in here
+        delta_pools_ordered["soil_n_pool_necromass"] = np.zeros_like(
+            litter_mineralisation_fluxes_N["particulate"]
+        )
+        delta_pools_ordered["soil_n_pool_maom"] = np.zeros_like(
+            litter_mineralisation_fluxes_N["particulate"]
+        )
         delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
         delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 

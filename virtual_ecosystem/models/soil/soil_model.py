@@ -54,6 +54,8 @@ class SoilModel(
         "soil_enzyme_maom",
         "soil_n_pool_don",
         "soil_n_pool_particulate",
+        "soil_n_pool_necromass",
+        "soil_n_pool_maom",
         "pH",
         "bulk_density",
         "clay_fraction",
@@ -69,6 +71,8 @@ class SoilModel(
         "soil_enzyme_maom",
         "soil_n_pool_don",
         "soil_n_pool_particulate",
+        "soil_n_pool_necromass",
+        "soil_n_pool_maom",
         "matric_potential",
         "vertical_flow",
         "soil_temperature",
@@ -86,6 +90,8 @@ class SoilModel(
         "soil_enzyme_maom",
         "soil_n_pool_don",
         "soil_n_pool_particulate",
+        "soil_n_pool_necromass",
+        "soil_n_pool_maom",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -124,6 +130,8 @@ class SoilModel(
             or np.any(data["soil_c_pool_necromass"] < 0.0)
             or np.any(data["soil_n_pool_don"] < 0.0)
             or np.any(data["soil_n_pool_particulate"] < 0.0)
+            or np.any(data["soil_n_pool_necromass"] < 0.0)
+            or np.any(data["soil_n_pool_maom"] < 0.0)
         ):
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
