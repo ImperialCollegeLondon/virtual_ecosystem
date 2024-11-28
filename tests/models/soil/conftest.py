@@ -96,3 +96,25 @@ def enzyme_mediated_rates(
         env_factors=environmental_factors,
         constants=SoilConsts,
     )
+
+
+@pytest.fixture
+def microbial_changes(
+    dummy_carbon_data, fixture_core_components, environmental_factors
+):
+    """Set of microbial changes based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
+
+    return calculate_microbial_changes(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        env_factors=environmental_factors,
+        constants=SoilConsts,
+    )

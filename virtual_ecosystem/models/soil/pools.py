@@ -216,6 +216,11 @@ class SoilPools:
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
+        # Find flow of nitrogen to necromass pool
+        necromass_n_flow = calculate_nutrient_flows_to_necromass(
+            microbial_changes=microbial_changes, constants=self.constants
+        )
+
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_fluxes_C["dissolved"]
@@ -255,9 +260,7 @@ class SoilPools:
             litter_mineralisation_fluxes_N["particulate"] - pom_n_mineralisation
         )
         # TODO - Actually add changes in here
-        delta_pools_ordered["soil_n_pool_necromass"] = np.zeros_like(
-            litter_mineralisation_fluxes_N["particulate"]
-        )
+        delta_pools_ordered["soil_n_pool_necromass"] = necromass_n_flow
         delta_pools_ordered["soil_n_pool_maom"] = np.zeros_like(
             litter_mineralisation_fluxes_N["particulate"]
         )
@@ -829,7 +832,7 @@ def calculate_soil_nutrient_mineralisation(
     pool_carbon: NDArray[np.float32],
     pool_nutrient: NDArray[np.float32],
     breakdown_rate: NDArray[np.float32],
-):
+) -> NDArray[np.float32]:
     """Calculate mineralisation rate from soil organic matter for a specific nutrient.
 
     This function assumes that nutrients are mineralised in direct proportion to their
@@ -851,3 +854,30 @@ def calculate_soil_nutrient_mineralisation(
 
     carbon_nutrient_ratio = pool_carbon / pool_nutrient
     return breakdown_rate / carbon_nutrient_ratio
+
+
+def calculate_nutrient_flows_to_necromass(
+    microbial_changes: MicrobialChanges, constants: SoilConsts
+) -> NDArray[np.float32]:
+    """Calculate the rate at which nutrients flow into the necromass pool.
+
+    These flows comprise of the nitrogen and phosphorus content of the dead cells and
+    denatured enzymes that flow into the necromass pool.
+
+    TODO - A core assumption here is that the stochiometry of the enzymes are identical
+    to the microbial cells. This assumption works for now but will have to be revisited
+    when fungi are added (as they have different stochiometric ratios but will
+    contribute to the same enzyme pools)
+
+    Args:
+        microbial_changes: Full set of changes to the microbial population due to
+            growth, death enzyme production, etc
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The rate at which nitrogen is added to the necromass pool [kg N m^-3 day^-1]
+    """
+
+    return np.divide(
+        microbial_changes.necromass_generation, constants.microbial_c_n_ratio
+    )

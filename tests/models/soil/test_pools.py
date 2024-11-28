@@ -45,6 +45,8 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
         "soil_n_pool_don": [-1.3107641e-4, -5.3235522e-4, -4.1290169e-5, -6.3679501e-5],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
+        "soil_n_pool_necromass": [0.01052709, 0.00442981, 0.02298529, 0.00139617],
+        "soil_n_pool_maom": [0.0, 0.0, 0.0, 0.0],
     }
 
     # Make order of pools object
@@ -398,3 +400,18 @@ def test_calculate_soil_nutrient_mineralisation(
     )
 
     assert np.allclose(actual_rate, expected_rate)
+
+
+def test_calculate_nutrient_flows_to_necromass(microbial_changes):
+    """Test that the function to calculate nutrient flows to necromass works."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_nutrient_flows_to_necromass,
+    )
+
+    expected_n_flow_to_necromass = [0.01052709, 0.00442981, 0.02298529, 0.00139617]
+
+    actual_n_flow_to_necromass = calculate_nutrient_flows_to_necromass(
+        microbial_changes=microbial_changes, constants=SoilConsts
+    )
+
+    assert np.allclose(actual_n_flow_to_necromass, expected_n_flow_to_necromass)
