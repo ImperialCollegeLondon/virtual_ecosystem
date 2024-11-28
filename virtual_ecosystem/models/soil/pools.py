@@ -33,6 +33,11 @@ class MicrobialChanges:
     
     Units of [kg C m^-3 day^-1]."""
 
+    don_uptake: NDArray[np.float32]
+    """Total rate of microbial uptake of dissolved organic nitrogen.
+    
+    Units of [kg N m^-3 day^-1]."""
+
     microbe_change: NDArray[np.float32]
     """Rate of change of microbial biomass pool [kg C m^-3 day^-1]."""
 
@@ -242,6 +247,7 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_fluxes_N["dissolved"]
             + pom_n_mineralisation
+            - microbial_changes.don_uptake
             - don_leaching
         )
 
@@ -291,14 +297,16 @@ def calculate_microbial_changes(
     """
 
     # Calculate uptake, growth rate, and loss rate
-    biomass_growth, microbial_uptake, _ = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=soil_c_pool_lmwc,
-        soil_n_pool_don=soil_n_pool_don,
-        soil_c_pool_microbe=soil_c_pool_microbe,
-        water_factor=env_factors.water,
-        pH_factor=env_factors.pH,
-        soil_temp=soil_temp,
-        constants=constants,
+    biomass_growth, microbial_C_uptake, microbial_N_uptake = (
+        calculate_nutrient_uptake_rates(
+            soil_c_pool_lmwc=soil_c_pool_lmwc,
+            soil_n_pool_don=soil_n_pool_don,
+            soil_c_pool_microbe=soil_c_pool_microbe,
+            water_factor=env_factors.water,
+            pH_factor=env_factors.pH,
+            soil_temp=soil_temp,
+            constants=constants,
+        )
     )
     biomass_loss = calculate_maintenance_biomass_synthesis(
         soil_c_pool_microbe=soil_c_pool_microbe,
@@ -321,7 +329,8 @@ def calculate_microbial_changes(
     ) * biomass_loss
 
     return MicrobialChanges(
-        lmwc_uptake=microbial_uptake,
+        lmwc_uptake=microbial_C_uptake,
+        don_uptake=microbial_N_uptake,
         microbe_change=biomass_growth - biomass_loss,
         pom_enzyme_change=pom_enzyme_net_change,
         maom_enzyme_change=maom_enzyme_net_change,

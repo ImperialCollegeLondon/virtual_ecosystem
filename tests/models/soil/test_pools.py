@@ -36,14 +36,14 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     soil_pools = SoilPools(data=dummy_carbon_data, pools=pools, constants=SoilConsts)
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.00226177439, 0.006049897295, -0.019174323, 0.024255464],
+        "soil_c_pool_lmwc": [0.0129365, 0.0060499, 0.03697928, 0.02425546],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
-        "soil_c_pool_microbe": [-0.04978105, -0.02020101, -0.10280967, -0.00719517],
+        "soil_c_pool_microbe": [-0.05362396, -0.02020101, -0.11965575, -0.00719517],
         "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [2.4081961e-5, 2.84920682e-6, 4.84845086e-5, -5.83499913e-5],
+        "soil_n_pool_don": [-1.3107641e-4, -5.3235522e-4, -4.1290169e-5, -6.3679501e-5],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
     }
 
@@ -70,8 +70,9 @@ def test_calculate_microbial_changes(
 
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
-    expected_lmwc_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
-    expected_microbe = [-0.04978105, -0.02020101, -0.10280967, -0.00719517]
+    expected_lmwc_uptake = [2.241176e-3, 8.433524e-3, 1.556094e-3, 5.7736357e-5]
+    expected_don_uptake = [1.5515837e-4, 5.3520443e-4, 8.97746776e-5, 5.3295099e-6]
+    expected_microbe = [-0.05362396, -0.02020101, -0.11965575, -0.00719517]
     expected_pom_enzyme = [1.17571917e-8, 1.67442231e-8, 1.83311362e-9, -1.11675865e-8]
     expected_maom_enzyme = [-3.1009224e-4, -5.0959256e-5, 5.9906583e-4, -3.7211168e-5]
     expected_necromass = [0.05474086, 0.02303502, 0.11952352, 0.00726011]
@@ -91,6 +92,7 @@ def test_calculate_microbial_changes(
 
     # Check that each rate matches expectation
     assert np.allclose(mic_changes.lmwc_uptake, expected_lmwc_uptake)
+    assert np.allclose(mic_changes.don_uptake, expected_don_uptake)
     assert np.allclose(mic_changes.microbe_change, expected_microbe)
     assert np.allclose(mic_changes.pom_enzyme_change, expected_pom_enzyme)
     assert np.allclose(mic_changes.maom_enzyme_change, expected_maom_enzyme)
