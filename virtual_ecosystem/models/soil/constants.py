@@ -85,7 +85,7 @@ class SoilConsts(ConstantsDataclass):
     :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
     The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
     corresponding activation energy is given by
-    :attr:`activation_energy_labile_C_saturation`.
+    :attr:`activation_energy_uptake_saturation`.
     """
 
     activation_energy_uptake_saturation: float = 30000
@@ -308,4 +308,34 @@ class SoilConsts(ConstantsDataclass):
     
     [unitless]. The remainder of the mineralisation consists of particulates. Value is
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    microbial_c_n_ratio = 5.2
+    """Ratio of carbon to nitrogen in microbial biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature. Here using specifically the bacterial value, once fungi are 
+    added this constant needs to be split.
+    """
+
+    max_uptake_rate_don = 0.0077
+    """Maximum rate at for dissolved organic nitrogen uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_don_uptake: float = 0.07
+    """Half saturation constant for uptake of dissolved organic nitrogen (DON).
+
+    [kg N m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
     """

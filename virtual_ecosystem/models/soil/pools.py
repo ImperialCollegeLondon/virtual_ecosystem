@@ -141,6 +141,7 @@ class SoilPools:
         # find changes related to microbial uptake, growth and decay
         microbial_changes = calculate_microbial_changes(
             soil_c_pool_lmwc=self.pools["soil_c_pool_lmwc"],
+            soil_n_pool_don=self.pools["soil_n_pool_don"],
             soil_c_pool_microbe=self.pools["soil_c_pool_microbe"],
             soil_enzyme_pom=self.pools["soil_enzyme_pom"],
             soil_enzyme_maom=self.pools["soil_enzyme_maom"],
@@ -256,6 +257,7 @@ class SoilPools:
 
 def calculate_microbial_changes(
     soil_c_pool_lmwc: NDArray[np.float32],
+    soil_n_pool_don: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
@@ -272,6 +274,7 @@ def calculate_microbial_changes(
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
@@ -288,8 +291,9 @@ def calculate_microbial_changes(
     """
 
     # Calculate uptake, growth rate, and loss rate
-    microbial_uptake, biomass_growth = calculate_microbial_carbon_uptake(
+    biomass_growth, microbial_uptake, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
+        soil_n_pool_don=soil_n_pool_don,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
@@ -499,23 +503,31 @@ def calculate_enzyme_turnover(
     return turnover_rate * enzyme_pool
 
 
-# TODO - Rename this and change it to use nitrogen as well
-def calculate_microbial_carbon_uptake(
+def calculate_nutrient_uptake_rates(
     soil_c_pool_lmwc: NDArray[np.float32],
+    soil_n_pool_don: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the rate at which microbes uptake each nutrient.
 
-    TODO - Explain rate finding.
-    Carbon use efficiency is then calculated and used to find how much of this carbon
-    ends up assimilated as biomass (rather than respired).
+    These rates are found based on the assumption that microbial stochiometry is
+    inflexible, i.e. assuming that the rate of uptake of all nutrients (carbon, nitrogen
+    and phosphorus) needed for growth will be set by the least available nutrient. The
+    carbon case is more complex as carbon gets used both for biomass synthesis and
+    respiration. In this case, we calculate the carbon use efficency and use this to
+    find the maximum amount of carbon avaliable for biomass sythesis. Once the most
+    limiting nutrient uptake stream is found it is straightforward to find the uptake
+    rates of the other nutrients. This is because the microbial biomass stochiometry can
+    only remain the same if nutrients are taken up following the same stochiometry (with
+    an adjustment made for carbon use efficency).
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
+        soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
@@ -525,9 +537,8 @@ def calculate_microbial_carbon_uptake(
         constants: Set of constants for the soil model.
 
     Returns:
-        A tuple containing the uptake rate of low molecular weight carbon (LMWC) by the
-        soil microbial biomass, and the rate at which this causes microbial biomass to
-        increase.
+        A tuple containing the rate at which microbial biomass increases due to nutrient
+        uptake, and the rate at which carbon and nitrogen get taken up.
     """
 
     # Calculate carbon use efficiency
@@ -538,12 +549,8 @@ def calculate_microbial_carbon_uptake(
         constants.cue_with_temperature,
     )
 
-    # TODO - the quantities calculated above can be used to calculate the carbon
-    # respired instead of being uptaken. This isn't currently of interest, but will be
-    # in future
-
-    # Calculate microbial carbon uptake rate
-    uptake_rate = calculate_highest_achievable_nutrient_uptake(
+    # Calculate highest possible microbial carbon and nitrogen uptake rates
+    carbon_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_c_pool_lmwc,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=water_factor,
@@ -553,10 +560,33 @@ def calculate_microbial_carbon_uptake(
         half_saturation_constant=constants.half_sat_labile_C_uptake,
         constants=constants,
     )
+    nitrogen_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
+        labile_nutrient_pool=soil_n_pool_don,
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        water_factor=water_factor,
+        pH_factor=pH_factor,
+        soil_temp=soil_temp,
+        max_uptake_rate=constants.max_uptake_rate_don,
+        half_saturation_constant=constants.half_sat_don_uptake,
+        constants=constants,
+    )
 
-    assimilation_rate = uptake_rate * carbon_use_efficency
+    # Use carbon use efficency to determine maximum possible rate of carbon gain
+    carbon_gain_max = carbon_uptake_rate_max * carbon_use_efficency
 
-    return uptake_rate, assimilation_rate
+    # Find actual rate of carbon gain based on most limiting uptake rate, then find
+    # nutrient gain and total carbon consumption based on this
+    actual_carbon_gain = np.minimum(
+        carbon_gain_max, constants.microbial_c_n_ratio * nitrogen_uptake_rate_max
+    )
+    nitrogen_consumption_rate = actual_carbon_gain / constants.microbial_c_n_ratio
+    carbon_consumption_rate = actual_carbon_gain / carbon_use_efficency
+
+    # TODO - the quantities calculated above can be used to calculate the carbon
+    # respired instead of being uptaken. This isn't currently of interest, but will be
+    # in future
+
+    return actual_carbon_gain, carbon_consumption_rate, nitrogen_consumption_rate
 
 
 def calculate_highest_achievable_nutrient_uptake(
@@ -568,7 +598,7 @@ def calculate_highest_achievable_nutrient_uptake(
     max_uptake_rate: float,
     half_saturation_constant: float,
     constants: SoilConsts,
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> NDArray[np.float32]:
     """Calculate highest acheivable uptake rate for a specific nutrient.
 
     This function starts by calculating the impact that environmental factors have on

@@ -78,6 +78,7 @@ def test_calculate_microbial_changes(
 
     mic_changes = calculate_microbial_changes(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
@@ -212,30 +213,35 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     assert np.allclose(actual_decay, expected_decay)
 
 
-def test_calculate_microbial_carbon_uptake(
+def test_calculate_nutrient_uptake_rates(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):
     """Check microbial carbon uptake calculates correctly."""
     from virtual_ecosystem.models.soil.pools import (
-        calculate_microbial_carbon_uptake,
+        calculate_nutrient_uptake_rates,
     )
 
-    expected_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
-    expected_assimilation = [4.64972597e-3, 2.78306303e-3, 1.73129097e-2, 2.77134508e-5]
+    expected_carbon_gain = [8.06823526e-4, 2.78306304e-3, 4.66828324e-4, 2.77134516e-5]
+    expected_nitrogen_gain = [1.5515837e-4, 5.3520443e-4, 8.97746776e-5, 5.3295099e-6]
+    expected_carbon_consumption = [2.241176e-3, 8.433524e-3, 1.556094e-3, 5.7736357e-5]
 
-    actual_uptake, actual_assimilation = calculate_microbial_carbon_uptake(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        constants=SoilConsts,
+    actual_carbon_gain, actual_carbon_consumption, actual_nitrogen_gain = (
+        calculate_nutrient_uptake_rates(
+            soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+            soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+            soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+            water_factor=environmental_factors.water,
+            pH_factor=environmental_factors.pH,
+            soil_temp=dummy_carbon_data["soil_temperature"][
+                fixture_core_components.layer_structure.index_topsoil_scalar
+            ].to_numpy(),
+            constants=SoilConsts,
+        )
     )
 
-    assert np.allclose(actual_uptake, expected_uptake)
-    assert np.allclose(actual_assimilation, expected_assimilation)
+    assert np.allclose(actual_carbon_gain, expected_carbon_gain)
+    assert np.allclose(actual_nitrogen_gain, expected_nitrogen_gain)
+    assert np.allclose(actual_carbon_consumption, expected_carbon_consumption)
 
 
 def test_calculate_highest_achievable_nutrient_uptake(
