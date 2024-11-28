@@ -220,6 +220,13 @@ class SoilPools:
         necromass_n_flow = calculate_nutrient_flows_to_necromass(
             microbial_changes=microbial_changes, constants=self.constants
         )
+        # Find nitrogen released by necromass breakdown/sorption
+        necromass_n_decay, necromass_n_sorption = find_necromass_nitrogen_outflows(
+            necromass_carbon=self.pools["soil_c_pool_necromass"],
+            necromass_nitrogen=self.pools["soil_n_pool_necromass"],
+            necromass_decay=necromass_decay_to_lmwc,
+            necromass_sorption=necromass_sorption_to_maom,
+        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -252,6 +259,7 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_fluxes_N["dissolved"]
             + pom_n_mineralisation
+            + necromass_n_decay
             - microbial_changes.don_uptake
             - don_leaching
         )
@@ -259,11 +267,11 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_particulate"] = (
             litter_mineralisation_fluxes_N["particulate"] - pom_n_mineralisation
         )
-        # TODO - Actually add changes in here
-        delta_pools_ordered["soil_n_pool_necromass"] = necromass_n_flow
-        delta_pools_ordered["soil_n_pool_maom"] = np.zeros_like(
-            litter_mineralisation_fluxes_N["particulate"]
+        delta_pools_ordered["soil_n_pool_necromass"] = (
+            necromass_n_flow - necromass_n_decay - necromass_n_sorption
         )
+        # TODO - Add in the maom loss (and gain) terms
+        delta_pools_ordered["soil_n_pool_maom"] = necromass_n_sorption
         delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
         delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 
@@ -881,3 +889,41 @@ def calculate_nutrient_flows_to_necromass(
     return np.divide(
         microbial_changes.necromass_generation, constants.microbial_c_n_ratio
     )
+
+
+def find_necromass_nitrogen_outflows(
+    necromass_carbon: NDArray[np.float32],
+    necromass_nitrogen: NDArray[np.float32],
+    necromass_decay: NDArray[np.float32],
+    necromass_sorption: NDArray[np.float32],
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Find the amount of nitrogen flowing out of the necromass pool.
+
+    There are two sources for this outflow. Firstly, the decay of necromass to dissolved
+    organic nitrogen. Secondly, the sorption of necromass to soil minerals to form
+    mineral associated organic matter. A key assumption here is that nitrogen flow
+    directly follows the carbon flow, i.e. it follows the same split between pathways as
+    the carbon does.
+
+    Args:
+        necromass_carbon: The amount of carbon stored as microbial necromass [kg C m^-3]
+        necromass_nitrogen: The amount of nitrogen stored as microbial necromass [kg N
+            m^-3]
+        necromass_decay: The rate at which necromass decays to form lmwc [kg C m^-3
+            day^-1]
+        necromass_sorption: The rate at which necromass gets sorbed to soil minerals to
+            form mineral associated organic matter [kg C m^-3 day^-1]
+
+    Returns:
+        A tuple containing the rate at which nitrogen contained in necromass is released
+        as dissolved organic nitrogen, and the rate at which it gets sorbed to soil
+        minerals to form soil associated organic matter [kg N m^-3 day^-1].
+    """
+
+    # Find carbon:nitrogen ratio of the necromass
+    c_n_ratio = necromass_carbon / necromass_nitrogen
+
+    decay_nitrogen = necromass_decay / c_n_ratio
+    sorption_nitrogen = necromass_sorption / c_n_ratio
+
+    return decay_nitrogen, sorption_nitrogen

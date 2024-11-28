@@ -118,3 +118,27 @@ def microbial_changes(
         env_factors=environmental_factors,
         constants=SoilConsts,
     )
+
+
+@pytest.fixture
+def necromass_breakdown(dummy_carbon_data):
+    """Necromass breakdown rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
+
+    return calculate_necromass_breakdown(
+        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],
+        necromass_decay_rate=SoilConsts.necromass_decay_rate,
+    )
+
+
+@pytest.fixture
+def necromass_sorption(dummy_carbon_data):
+    """Necromass sorption rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
+
+    return calculate_sorption_to_maom(
+        soil_c_pool=dummy_carbon_data["soil_c_pool_necromass"],
+        sorption_rate_constant=SoilConsts.necromass_sorption_rate,
+    )
