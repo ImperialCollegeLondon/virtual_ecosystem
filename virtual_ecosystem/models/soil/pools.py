@@ -227,6 +227,18 @@ class SoilPools:
             necromass_decay=necromass_decay_to_lmwc,
             necromass_sorption=necromass_sorption_to_maom,
         )
+        # Find net nitrogen transfer between maom and lmwc/don
+        nitrogen_transfer_maom_to_don = (
+            calculate_net_nitrogen_transfer_from_maom_to_don(
+                lmwc_carbon=self.pools["soil_c_pool_lmwc"],
+                lmwc_nitrogen=self.pools["soil_n_pool_don"],
+                maom_carbon=self.pools["soil_c_pool_maom"],
+                maom_nitrogen=self.pools["soil_n_pool_maom"],
+                maom_breakdown=enzyme_mediated.maom_to_lmwc,
+                maom_desorption=maom_desorption_to_lmwc,
+                lmwc_sorption=lmwc_sorption_to_maom,
+            )
+        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -260,6 +272,7 @@ class SoilPools:
             litter_mineralisation_fluxes_N["dissolved"]
             + pom_n_mineralisation
             + necromass_n_decay
+            + nitrogen_transfer_maom_to_don
             - microbial_changes.don_uptake
             - don_leaching
         )
@@ -270,8 +283,9 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_necromass"] = (
             necromass_n_flow - necromass_n_decay - necromass_n_sorption
         )
-        # TODO - Add in the maom loss (and gain) terms
-        delta_pools_ordered["soil_n_pool_maom"] = necromass_n_sorption
+        delta_pools_ordered["soil_n_pool_maom"] = (
+            necromass_n_sorption - nitrogen_transfer_maom_to_don
+        )
         delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
         delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 
@@ -927,3 +941,46 @@ def find_necromass_nitrogen_outflows(
     sorption_nitrogen = necromass_sorption / c_n_ratio
 
     return decay_nitrogen, sorption_nitrogen
+
+
+def calculate_net_nitrogen_transfer_from_maom_to_don(
+    lmwc_carbon: NDArray[np.float32],
+    lmwc_nitrogen: NDArray[np.float32],
+    maom_carbon: NDArray[np.float32],
+    maom_nitrogen: NDArray[np.float32],
+    maom_breakdown: NDArray[np.float32],
+    maom_desorption: NDArray[np.float32],
+    lmwc_sorption: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate the net rate of transfer of nitrogen between MAOM and LMWC/DON.
+
+    Args:
+        lmwc_carbon: The amount of carbon stored as low molecular weight carbon [kg C
+            m^-3]
+        lmwc_nitrogen: The amount of nitrogen stored as low molecular weight
+            carbon/dissolved organic nitrogen [kg N m^-3]
+        maom_carbon: The amount of carbon stored as mineral associated organic matter
+            [kg C m^-3]
+        maom_nitrogen: The amount of nitrogen stored as mineral associated organic
+            matter [kg N m^-3]
+        maom_breakdown: The rate at which the mineral associated organic matter pool is
+            being broken down by enzymes (expressed in carbon terms) [kg C m^-3 day^-1]
+        maom_desorption: The rate at which the mineral associated organic matter pool is
+            spontaneouly desorbing [kg C m^-3 day^-1]
+        lmwc_sorption: The rate at which the low molecular weight carbon pool is sorbing
+            to minerals to form mineral associated organic matter [kg C m^-3 day^-1]
+
+    Returns:
+        The net rate of transfer from nitrogen contained in mineral associated
+        organic matter and nitrogen existing as dissolved organic nitrogen [kg N m^-3
+        day^-1]
+    """
+
+    # Find carbon:nitrogen ratio of the lwmc and maom
+    c_n_ratio_lmwc = lmwc_carbon / lmwc_nitrogen
+    c_n_ratio_maom = maom_carbon / maom_nitrogen
+
+    maom_nitrogen_gain = lmwc_sorption / c_n_ratio_lmwc
+    maom_nitrogen_loss = (maom_breakdown + maom_desorption) / c_n_ratio_maom
+
+    return maom_nitrogen_loss - maom_nitrogen_gain

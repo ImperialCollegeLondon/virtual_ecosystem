@@ -142,3 +142,27 @@ def necromass_sorption(dummy_carbon_data):
         soil_c_pool=dummy_carbon_data["soil_c_pool_necromass"],
         sorption_rate_constant=SoilConsts.necromass_sorption_rate,
     )
+
+
+@pytest.fixture
+def lmwc_sorption(dummy_carbon_data):
+    """Low molecular weight carbon sorption rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
+
+    return calculate_sorption_to_maom(
+        soil_c_pool=dummy_carbon_data["soil_c_pool_lmwc"],
+        sorption_rate_constant=SoilConsts.lmwc_sorption_rate,
+    )
+
+
+@pytest.fixture
+def maom_desorption(dummy_carbon_data):
+    """MAOM desorption rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
+
+    return calculate_maom_desorption(
+        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        desorption_rate_constant=SoilConsts.maom_desorption_rate,
+    )

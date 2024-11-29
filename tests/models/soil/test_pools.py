@@ -43,10 +43,10 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [0.00053541, 0.00359987, 0.00462412, 0.00251341],
+        "soil_n_pool_don": [0.00104884, 0.00419763, 0.00496839, 0.00251317],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
-        "soil_n_pool_maom": [0.00199947, 0.01239667, 0.01399624, 0.00773126],
+        "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
     }
 
     # Make order of pools object
@@ -435,3 +435,26 @@ def test_find_necromass_nitrogen_outflows(
 
     assert np.allclose(actual_decay, expected_decay)
     assert np.allclose(actual_sorption, expected_sorption)
+
+
+def test_calculate_net_nitrogen_transfer_from_maom_to_don(
+    dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
+):
+    """Test function to find net exchange of nitrogen between maom and don."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_net_nitrogen_transfer_from_maom_to_don,
+    )
+
+    expected_transfer = [5.13427177e-4, 5.97759087e-4, 3.44268148e-4, -2.36081562e-7]
+
+    actual_transfer = calculate_net_nitrogen_transfer_from_maom_to_don(
+        lmwc_carbon=dummy_carbon_data["soil_c_pool_lmwc"],
+        lmwc_nitrogen=dummy_carbon_data["soil_n_pool_don"],
+        maom_carbon=dummy_carbon_data["soil_c_pool_maom"],
+        maom_nitrogen=dummy_carbon_data["soil_n_pool_maom"],
+        maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
+        maom_desorption=maom_desorption,
+        lmwc_sorption=lmwc_sorption,
+    )
+
+    assert np.allclose(actual_transfer, expected_transfer)
