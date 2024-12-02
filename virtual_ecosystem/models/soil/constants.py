@@ -35,19 +35,19 @@ class SoilConsts(ConstantsDataclass):
     soil_microbe_water_potential_optimum: float = -3.0
     """The water potential at which soil microbial rates are maximised [kPa].
 
-    Value is taken from :cite:t`moyano_responses_2013`.
+    Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
     soil_microbe_water_potential_halt: float = -15800.0
     """The water potential at which soil microbial activity stops entirely [kPa].
 
-    Value is taken from :cite:t`moyano_responses_2013`.
+    Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
     microbial_water_response_curvature: float = 1.47
     """Curvature of function for response of soil microbial rates to water potential.
 
-    [unitless]. Value is taken from :cite:t`moyano_responses_2013`.
+    [unitless]. Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
     arrhenius_reference_temp: float = 12.0
