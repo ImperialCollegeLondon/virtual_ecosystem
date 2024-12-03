@@ -684,9 +684,9 @@ def calculate_highest_achievable_nutrient_uptake(
 
     # Calculate both the rate of carbon uptake, and the rate at which this carbon is
     # assimilated into microbial biomass.
-    uptake_rate = rate_constant * np.divide(
-        (labile_nutrient_pool * soil_c_pool_microbe),
-        (labile_nutrient_pool + saturation_constant),
+    uptake_rate = rate_constant * (
+        (labile_nutrient_pool * soil_c_pool_microbe)
+        / (labile_nutrient_pool + saturation_constant)
     )
 
     return uptake_rate
@@ -900,9 +900,7 @@ def calculate_nutrient_flows_to_necromass(
         The rate at which nitrogen is added to the necromass pool [kg N m^-3 day^-1]
     """
 
-    return np.divide(
-        microbial_changes.necromass_generation, constants.microbial_c_n_ratio
-    )
+    return microbial_changes.necromass_generation / constants.microbial_c_n_ratio
 
 
 def find_necromass_nitrogen_outflows(
