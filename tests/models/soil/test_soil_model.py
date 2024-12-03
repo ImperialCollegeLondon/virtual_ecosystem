@@ -134,6 +134,29 @@ def test_soil_model_initialization_bounds_error(
     )
 
 
+def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_components):
+    """Test `SoilModel` initialization."""
+
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
+
+    # Initialise model with bad data object
+    soil_model = SoilModel(
+        data=dummy_carbon_data,
+        core_components=fixture_core_components,
+        model_constants=SoilConsts(),
+    )
+
+    assert soil_model._all_pools_positive()
+
+    # Change data to be incorrect for necromass
+    dummy_carbon_data["soil_c_pool_necromass"] = DataArray(
+        [0.05, -0.02, 0.1, 0.005], dims=["cell_id"]
+    )
+
+    assert not soil_model._all_pools_positive()
+
+
 @pytest.mark.parametrize(
     "cfg_string,max_decomp,raises,expected_log_entries",
     [

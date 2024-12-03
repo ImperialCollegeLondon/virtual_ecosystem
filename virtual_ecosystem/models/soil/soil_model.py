@@ -120,19 +120,7 @@ class SoilModel(
         super().__init__(data=data, core_components=core_components, **kwargs)
 
         # Check that soil pool data is appropriately bounded
-        if (
-            np.any(data["soil_c_pool_maom"] < 0.0)
-            or np.any(data["soil_c_pool_lmwc"] < 0.0)
-            or np.any(data["soil_c_pool_microbe"] < 0.0)
-            or np.any(data["soil_c_pool_pom"] < 0.0)
-            or np.any(data["soil_enzyme_pom"] < 0.0)
-            or np.any(data["soil_enzyme_maom"] < 0.0)
-            or np.any(data["soil_c_pool_necromass"] < 0.0)
-            or np.any(data["soil_n_pool_don"] < 0.0)
-            or np.any(data["soil_n_pool_particulate"] < 0.0)
-            or np.any(data["soil_n_pool_necromass"] < 0.0)
-            or np.any(data["soil_n_pool_maom"] < 0.0)
-        ):
+        if not self._all_pools_positive():
             to_raise = InitialisationError(
                 "Initial carbon pools contain at least one negative value!"
             )
@@ -197,6 +185,22 @@ class SoilModel(
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
+
+    def _all_pools_positive(self) -> bool:
+        """Checks if all soil pools values greater than or equal to zero.
+
+        Returns:
+            A bool specificing whether all pools updated by the model are postive or
+            not.
+        """
+
+        all_positive = True
+
+        for var in self.vars_updated:
+            if np.any(self.data[var] < 0.0):
+                all_positive = False
+
+        return all_positive
 
     def integrate(self) -> dict[str, DataArray]:
         """Integrate the soil model.
