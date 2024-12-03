@@ -42,6 +42,28 @@ class TestCarcassPool:
         with pytest.raises(AttributeError):
             carcasses.decomposed_nutrient_per_area("molybdenum", 10000)
 
+    def test_reset(self):
+        """Test resetting of the carcass pool."""
+
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        carcasses = CarcassPool(
+            scavengeable_carbon=1.0007e-2,
+            decomposed_carbon=2.5e-5,
+            scavengeable_nitrogen=0.000133333332,
+            decomposed_nitrogen=3.3333333e-6,
+            scavengeable_phosphorus=1.33333332e-6,
+            decomposed_phosphorus=3.3333333e-8,
+        )
+        carcasses.reset()
+
+        assert pytest.approx(carcasses.scavengeable_carbon) == 1.0007e-2
+        assert pytest.approx(carcasses.scavengeable_nitrogen) == 0.000133333332
+        assert pytest.approx(carcasses.scavengeable_phosphorus) == 1.33333332e-6
+        assert pytest.approx(carcasses.decomposed_carbon) == 0.0
+        assert pytest.approx(carcasses.decomposed_nitrogen) == 0.0
+        assert pytest.approx(carcasses.decomposed_phosphorus) == 0.0
+
 
 class TestExcrementPool:
     """Test the ExcrementPool class."""
@@ -78,6 +100,28 @@ class TestExcrementPool:
         )
         with pytest.raises(AttributeError):
             poo.decomposed_nutrient_per_area("molybdenum", 10000)
+
+    def test_reset(self):
+        """Test resetting of the excrement pool."""
+
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
+
+        poo = ExcrementPool(
+            scavengeable_carbon=7.77e-5,
+            decomposed_carbon=2.5e-5,
+            scavengeable_nitrogen=1e-5,
+            decomposed_nitrogen=3.3333333e-6,
+            scavengeable_phosphorus=1e-7,
+            decomposed_phosphorus=3.3333333e-8,
+        )
+        poo.reset()
+
+        assert pytest.approx(poo.scavengeable_carbon) == 7.77e-5
+        assert pytest.approx(poo.scavengeable_nitrogen) == 1e-5
+        assert pytest.approx(poo.scavengeable_phosphorus) == 1e-7
+        assert pytest.approx(poo.decomposed_carbon) == 0.0
+        assert pytest.approx(poo.decomposed_nitrogen) == 0.0
+        assert pytest.approx(poo.decomposed_phosphorus) == 0.0
 
 
 @pytest.mark.parametrize(

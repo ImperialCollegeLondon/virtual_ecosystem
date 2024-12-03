@@ -533,15 +533,11 @@ class AnimalModel(
         # Reset all decomposed excrement pools to zero
         for excrement_pools in self.excrement_pools.values():
             for excrement_pool in excrement_pools:
-                excrement_pool.decomposed_carbon = 0.0
-                excrement_pool.decomposed_nitrogen = 0.0
-                excrement_pool.decomposed_phosphorus = 0.0
+                excrement_pool.reset()
 
         for carcass_pools in self.carcass_pools.values():
             for carcass_pool in carcass_pools:
-                carcass_pool.decomposed_carbon = 0.0
-                carcass_pool.decomposed_nitrogen = 0.0
-                carcass_pool.decomposed_phosphorus = 0.0
+                carcass_pool.reset()
 
         # Create the output DataArray for each nutrient
         return {
