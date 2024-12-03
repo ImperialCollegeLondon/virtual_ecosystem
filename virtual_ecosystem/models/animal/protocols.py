@@ -5,7 +5,6 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 
 from typing import Protocol
 
-# from virtual_ecosystem.models.animal.decay import ExcrementPool
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
