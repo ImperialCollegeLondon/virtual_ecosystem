@@ -974,6 +974,8 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_c_pool_necromass",
             "soil_enzyme_pom",
             "soil_enzyme_maom",
+            "soil_n_pool_don",
+            "soil_n_pool_particulate",
         ],
         time_index,
     )
