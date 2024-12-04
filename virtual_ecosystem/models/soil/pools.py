@@ -177,6 +177,12 @@ class SoilPools:
             soil_moisture=soil_moisture,
             solubility_coefficient=self.constants.solubility_coefficient_don,
         )
+        dop_leaching = calculate_leaching_rate(
+            solute_density=self.pools["soil_p_pool_dop"],
+            vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
+            soil_moisture=soil_moisture,
+            solubility_coefficient=self.constants.solubility_coefficient_dop,
+        )
 
         # Calculate transfers between the lmwc, necromass and maom pools
         maom_desorption_to_lmwc = calculate_maom_desorption(
@@ -291,9 +297,9 @@ class SoilPools:
             necromass_n_sorption - nitrogen_transfer_maom_to_don
         )
         # TODO - Fill the below in with real values
-        delta_pools_ordered["soil_p_pool_dop"] = litter_mineralisation_fluxes_P[
-            "dissolved"
-        ]
+        delta_pools_ordered["soil_p_pool_dop"] = (
+            litter_mineralisation_fluxes_P["dissolved"] - dop_leaching
+        )
         delta_pools_ordered["soil_p_pool_particulate"] = litter_mineralisation_fluxes_P[
             "particulate"
         ]
