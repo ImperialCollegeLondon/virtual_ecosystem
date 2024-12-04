@@ -286,6 +286,19 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_maom"] = (
             necromass_n_sorption - nitrogen_transfer_maom_to_don
         )
+        # TODO - Fill the below in with real values
+        delta_pools_ordered["soil_p_pool_dop"] = np.zeros_like(
+            delta_pools_ordered["soil_n_pool_maom"]
+        )
+        delta_pools_ordered["soil_p_pool_particulate"] = np.zeros_like(
+            delta_pools_ordered["soil_n_pool_maom"]
+        )
+        delta_pools_ordered["soil_p_pool_necromass"] = np.zeros_like(
+            delta_pools_ordered["soil_n_pool_maom"]
+        )
+        delta_pools_ordered["soil_p_pool_maom"] = np.zeros_like(
+            delta_pools_ordered["soil_n_pool_maom"]
+        )
         delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
         delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 

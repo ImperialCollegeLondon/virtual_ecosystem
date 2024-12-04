@@ -25,6 +25,10 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_dop' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_particulate' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_necromass' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_maom' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
@@ -318,6 +322,19 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     soil_n_pool_maom=DataArray(
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
+                    soil_p_pool_dop=DataArray(
+                        [5.714e-6, 2.2857120e-5, 5.7142800e-5, 1.1428568e-4],
+                        dims="cell_id",
+                    ),
+                    soil_p_pool_particulate=DataArray(
+                        [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4], dims="cell_id"
+                    ),
+                    soil_p_pool_necromass=DataArray(
+                        [0.00080769, 0.00011538, 0.00071538, 0.00044615], dims="cell_id"
+                    ),
+                    soil_p_pool_maom=DataArray(
+                        [0.01307692, 0.03461538, 0.01923077, 0.00384615], dims="cell_id"
+                    ),
                 )
             ),
             (),
@@ -480,6 +497,22 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.01179891,
         0.01365197,
         0.0077315,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
     ]
 
     # make pools
