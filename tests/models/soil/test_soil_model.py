@@ -327,7 +327,8 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         dims="cell_id",
                     ),
                     soil_p_pool_particulate=DataArray(
-                        [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4], dims="cell_id"
+                        [3.2229634e-5, 2.86420949e-4, 1.156995e-4, 5.71755033e-4],
+                        dims="cell_id",
                     ),
                     soil_p_pool_necromass=DataArray(
                         [0.00080769, 0.00011538, 0.00071538, 0.00044615], dims="cell_id"
@@ -415,6 +416,7 @@ def test_order_independance(
         "clay_fraction",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -497,14 +499,14 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.01179891,
         0.01365197,
         0.0077315,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
+        7.32e-10,
+        1.41404e-10,
+        2.82808e-10,
+        6.53332e-11,
+        7.31927e-6,
+        1.4139e-6,
+        2.8277972e-6,
+        6.5326667e-7,
         0.0,
         0.0,
         0.0,

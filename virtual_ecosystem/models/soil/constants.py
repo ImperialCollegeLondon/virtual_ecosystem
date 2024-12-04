@@ -310,6 +310,13 @@ class SoilConsts(ConstantsDataclass):
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
+    litter_leaching_fraction_phosphorus = 0.0001
+    """Fraction of phosphorus mineralisation from litter that occurs by leaching.
+    
+    [unitless]. The remainder of the mineralisation consists of particulates. Value is
+    an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
     microbial_c_n_ratio = 5.2
     """Ratio of carbon to nitrogen in microbial biomass [unitless].
     

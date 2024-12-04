@@ -208,6 +208,10 @@ class SoilPools:
             mineralisation_rate=self.data["litter_N_mineralisation_rate"].to_numpy(),
             litter_leaching_coefficient=self.constants.litter_leaching_fraction_nitrogen,
         )
+        litter_mineralisation_fluxes_P = calculate_litter_mineralisation_split(
+            mineralisation_rate=self.data["litter_P_mineralisation_rate"].to_numpy(),
+            litter_leaching_coefficient=self.constants.litter_leaching_fraction_phosphorus,
+        )
 
         # Find mineralisation rate from POM
         pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
@@ -287,12 +291,12 @@ class SoilPools:
             necromass_n_sorption - nitrogen_transfer_maom_to_don
         )
         # TODO - Fill the below in with real values
-        delta_pools_ordered["soil_p_pool_dop"] = np.zeros_like(
-            delta_pools_ordered["soil_n_pool_maom"]
-        )
-        delta_pools_ordered["soil_p_pool_particulate"] = np.zeros_like(
-            delta_pools_ordered["soil_n_pool_maom"]
-        )
+        delta_pools_ordered["soil_p_pool_dop"] = litter_mineralisation_fluxes_P[
+            "dissolved"
+        ]
+        delta_pools_ordered["soil_p_pool_particulate"] = litter_mineralisation_fluxes_P[
+            "particulate"
+        ]
         delta_pools_ordered["soil_p_pool_necromass"] = np.zeros_like(
             delta_pools_ordered["soil_n_pool_maom"]
         )

@@ -87,6 +87,7 @@ class SoilModel(
         "soil_moisture",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
     vars_updated=(
         "soil_c_pool_maom",
