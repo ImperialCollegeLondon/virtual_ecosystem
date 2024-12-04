@@ -219,10 +219,15 @@ class SoilPools:
             litter_leaching_coefficient=self.constants.litter_leaching_fraction_phosphorus,
         )
 
-        # Find mineralisation rate from POM
+        # Find mineralisation rates from POM
         pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
             pool_carbon=self.pools["soil_c_pool_pom"],
             pool_nutrient=self.pools["soil_n_pool_particulate"],
+            breakdown_rate=enzyme_mediated.pom_to_lmwc,
+        )
+        pom_p_mineralisation = calculate_soil_nutrient_mineralisation(
+            pool_carbon=self.pools["soil_c_pool_pom"],
+            pool_nutrient=self.pools["soil_p_pool_particulate"],
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
@@ -298,11 +303,13 @@ class SoilPools:
         )
         # TODO - Fill the below in with real values
         delta_pools_ordered["soil_p_pool_dop"] = (
-            litter_mineralisation_fluxes_P["dissolved"] - dop_leaching
+            litter_mineralisation_fluxes_P["dissolved"]
+            + pom_p_mineralisation
+            - dop_leaching
         )
-        delta_pools_ordered["soil_p_pool_particulate"] = litter_mineralisation_fluxes_P[
-            "particulate"
-        ]
+        delta_pools_ordered["soil_p_pool_particulate"] = (
+            litter_mineralisation_fluxes_P["particulate"] - pom_p_mineralisation
+        )
         delta_pools_ordered["soil_p_pool_necromass"] = np.zeros_like(
             delta_pools_ordered["soil_n_pool_maom"]
         )
