@@ -331,7 +331,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         dims="cell_id",
                     ),
                     soil_p_pool_necromass=DataArray(
-                        [0.00080769, 0.00011538, 0.00071538, 0.00044615], dims="cell_id"
+                        [0.00251446, 0.00083368, 0.00444109, 0.00067262], dims="cell_id"
                     ),
                     soil_p_pool_maom=DataArray(
                         [0.01307692, 0.03461538, 0.01923077, 0.00384615], dims="cell_id"
@@ -507,10 +507,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -1.13464e-6,
         7.86083e-7,
         5.85634364e-7,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
+        0.0034213,
+        0.00143969,
+        0.00747022,
+        0.00045376,
         0.0,
         0.0,
         0.0,

@@ -1,9 +1,9 @@
 """The ``models.soil.pools`` module simulates all soil pools for the Virtual
-Ecosystem. At the moment four carbon pools are modelled (low molecular weight carbon
+Ecosystem. At the moment five carbon pools are modelled (low molecular weight carbon
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
-matter (POM)), as well as two enzyme pools (POM and MAOM) degrading enzymes, and two
-nitrogen pools (dissolved organic nitrogen (DON) and particulate organic nitrogen
-(PON)).
+matter (POM), microbial necromass), as well as two enzyme pools (POM and MAOM) degrading
+enzymes. Pools that track the nitrogen and phosphorus pools associated with each of the
+carbon pools are also included.
 """  # noqa: D205
 
 from dataclasses import dataclass
@@ -144,6 +144,7 @@ class SoilPools:
             constants=self.constants,
         )
         # find changes related to microbial uptake, growth and decay
+        # TODO - Add phosphorus changes in here
         microbial_changes = calculate_microbial_changes(
             soil_c_pool_lmwc=self.pools["soil_c_pool_lmwc"],
             soil_n_pool_don=self.pools["soil_n_pool_don"],
@@ -232,7 +233,7 @@ class SoilPools:
         )
 
         # Find flow of nitrogen to necromass pool
-        necromass_n_flow = calculate_nutrient_flows_to_necromass(
+        necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
             microbial_changes=microbial_changes, constants=self.constants
         )
         # Find nitrogen released by necromass breakdown/sorption
@@ -301,7 +302,6 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_maom"] = (
             necromass_n_sorption - nitrogen_transfer_maom_to_don
         )
-        # TODO - Fill the below in with real values
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_fluxes_P["dissolved"]
             + pom_p_mineralisation
@@ -310,9 +310,7 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_particulate"] = (
             litter_mineralisation_fluxes_P["particulate"] - pom_p_mineralisation
         )
-        delta_pools_ordered["soil_p_pool_necromass"] = np.zeros_like(
-            delta_pools_ordered["soil_n_pool_maom"]
-        )
+        delta_pools_ordered["soil_p_pool_necromass"] = necromass_p_flow
         delta_pools_ordered["soil_p_pool_maom"] = np.zeros_like(
             delta_pools_ordered["soil_n_pool_maom"]
         )
@@ -910,7 +908,7 @@ def calculate_soil_nutrient_mineralisation(
 
 def calculate_nutrient_flows_to_necromass(
     microbial_changes: MicrobialChanges, constants: SoilConsts
-) -> NDArray[np.float32]:
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
     These flows comprise of the nitrogen and phosphorus content of the dead cells and
@@ -927,10 +925,14 @@ def calculate_nutrient_flows_to_necromass(
         constants: Set of constants for the soil model.
 
     Returns:
-        The rate at which nitrogen is added to the necromass pool [kg N m^-3 day^-1]
+        A tuple containing the rates at which nitrogen [kg N m^-3 day^-1] and phosphorus
+        [kg P m^-3 day^-1] are added to the soil necromass pool
     """
 
-    return microbial_changes.necromass_generation / constants.microbial_c_n_ratio
+    return (
+        microbial_changes.necromass_generation / constants.microbial_c_n_ratio,
+        microbial_changes.necromass_generation / constants.microbial_c_p_ratio,
+    )
 
 
 def find_necromass_nitrogen_outflows(

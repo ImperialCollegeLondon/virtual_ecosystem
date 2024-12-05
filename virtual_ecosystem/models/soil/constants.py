@@ -332,6 +332,14 @@ class SoilConsts(ConstantsDataclass):
     added this constant needs to be split.
     """
 
+    microbial_c_p_ratio = 16
+    """Ratio of carbon to phosphorus in microbial biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature. Here using specifically the bacterial value, once fungi are 
+    added this constant needs to be split.
+    """
+
     max_uptake_rate_don = 0.0077
     """Maximum rate at for dissolved organic nitrogen uptake [day^-1].
 

@@ -49,7 +49,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
         "soil_p_pool_dop": [9.53691781e-8, 2.49063642e-6, 9.08802987e-7, -2.3349143e-6],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
-        "soil_p_pool_necromass": [0.0, 0.0, 0.0, 0.0],
+        "soil_p_pool_necromass": [0.0034213, 0.00143969, 0.00747022, 0.00045376],
         "soil_p_pool_maom": [0.0, 0.0, 0.0, 0.0],
     }
 
@@ -413,12 +413,16 @@ def test_calculate_nutrient_flows_to_necromass(microbial_changes):
     )
 
     expected_n_flow_to_necromass = [0.01052709, 0.00442981, 0.02298529, 0.00139617]
+    expected_p_flow_to_necromass = [0.0034213, 0.00143969, 0.00747022, 0.00045376]
 
-    actual_n_flow_to_necromass = calculate_nutrient_flows_to_necromass(
-        microbial_changes=microbial_changes, constants=SoilConsts
+    actual_n_flow_to_necromass, actual_p_flow_to_necromass = (
+        calculate_nutrient_flows_to_necromass(
+            microbial_changes=microbial_changes, constants=SoilConsts
+        )
     )
 
     assert np.allclose(actual_n_flow_to_necromass, expected_n_flow_to_necromass)
+    assert np.allclose(actual_p_flow_to_necromass, expected_p_flow_to_necromass)
 
 
 def test_find_necromass_nitrogen_outflows(
