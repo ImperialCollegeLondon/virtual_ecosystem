@@ -341,7 +341,7 @@ class SoilConsts(ConstantsDataclass):
     """
 
     max_uptake_rate_don = 0.0077
-    """Maximum rate at for dissolved organic nitrogen uptake [day^-1].
+    """Maximum possible rate for dissolved organic nitrogen uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
     :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
@@ -355,6 +355,28 @@ class SoilConsts(ConstantsDataclass):
     """Half saturation constant for uptake of dissolved organic nitrogen (DON).
 
     [kg N m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    max_uptake_rate_dop = 0.0025
+    """Maximum possible rate for dissolved organic phosphorus uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_dop_uptake: float = 0.02275
+    """Half saturation constant for uptake of dissolved organic phosphorus (DOP).
+
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
     and the corresponding activation energy is given by
     :attr:`activation_energy_uptake_saturation`.
 
