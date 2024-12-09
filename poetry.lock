@@ -729,20 +729,20 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "dask"
-version = "2024.11.2"
+version = "2024.12.0"
 description = "Parallel PyData with Task Scheduling"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "dask-2024.11.2-py3-none-any.whl", hash = "sha256:6115c4b76015e8d9d9c2922b6a0a1c850e283fb7fee74eebbd2e28e9c117c30d"},
-    {file = "dask-2024.11.2.tar.gz", hash = "sha256:9a72bee3f149ff89bc492340d4bcba33d5dd3e3a9d471d2b4b3872f2d71ddaae"},
+    {file = "dask-2024.12.0-py3-none-any.whl", hash = "sha256:e038e87b9f06e7927b81ecde6cf2b49aa699bb902fec11abba5697cb48baeb8d"},
+    {file = "dask-2024.12.0.tar.gz", hash = "sha256:ffd02b06ac06b993df0b48e0ba4fe02abceb5c8b34b40bd91d63f33ec7a272a4"},
 ]
 
 [package.dependencies]
 click = ">=8.1"
 cloudpickle = ">=3.0.0"
 fsspec = ">=2021.09.0"
-importlib-metadata = {version = ">=4.13.0", markers = "python_version < \"3.12\""}
+importlib_metadata = {version = ">=4.13.0", markers = "python_version < \"3.12\""}
 packaging = ">=20.0"
 partd = ">=1.4.0"
 pyyaml = ">=5.3.1"
@@ -753,7 +753,7 @@ array = ["numpy (>=1.24)"]
 complete = ["dask[array,dataframe,diagnostics,distributed]", "lz4 (>=4.3.2)", "pyarrow (>=14.0.1)"]
 dataframe = ["dask-expr (>=1.1,<1.2)", "dask[array]", "pandas (>=2.0)"]
 diagnostics = ["bokeh (>=3.1.0)", "jinja2 (>=2.10.3)"]
-distributed = ["distributed (==2024.11.2)"]
+distributed = ["distributed (==2024.12.0)"]
 test = ["pandas[test]", "pre-commit", "pytest", "pytest-cov", "pytest-rerunfailures", "pytest-timeout", "pytest-xdist"]
 
 [[package]]
@@ -1179,13 +1179,13 @@ trio = ["trio (>=0.22.0,<1.0)"]
 
 [[package]]
 name = "httpx"
-version = "0.27.2"
+version = "0.28.1"
 description = "The next generation HTTP client."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "httpx-0.27.2-py3-none-any.whl", hash = "sha256:7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0"},
-    {file = "httpx-0.27.2.tar.gz", hash = "sha256:f7c2be1d2f3c3c3160d441802406b206c2b76f5947b11115e6df10c6c65e66c2"},
+    {file = "httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"},
+    {file = "httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc"},
 ]
 
 [package.dependencies]
@@ -1193,7 +1193,6 @@ anyio = "*"
 certifi = "*"
 httpcore = "==1.*"
 idna = "*"
-sniffio = "*"
 
 [package.extras]
 brotli = ["brotli", "brotlicffi"]
@@ -1204,13 +1203,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "hypothesis"
-version = "6.122.0"
+version = "6.122.1"
 description = "A library for property-based testing"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "hypothesis-6.122.0-py3-none-any.whl", hash = "sha256:523451a187cb0e861074bc560c2d27382b7872c28b57c6e14e98bb2152fe3a0e"},
-    {file = "hypothesis-6.122.0.tar.gz", hash = "sha256:8f1675a62f70e2821b347f550e6d3b5478ec25470b6e0281c974b57ab53f5dc7"},
+    {file = "hypothesis-6.122.1-py3-none-any.whl", hash = "sha256:59e52da0f2529b40f0b7bd0c3c61d8b3fe3337102800bf3534c53d4a8bdf8a6d"},
+    {file = "hypothesis-6.122.1.tar.gz", hash = "sha256:23280e802eef88316b02cb32205d74b5bf2e3de4a378e2579a8974117c512b83"},
 ]
 
 [package.dependencies]
@@ -1673,18 +1672,18 @@ test = ["jupyter-server (>=2.0.0)", "pytest (>=7.0)", "pytest-jupyter[server] (>
 
 [[package]]
 name = "jupyterlab"
-version = "4.3.1"
+version = "4.3.2"
 description = "JupyterLab computational environment"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jupyterlab-4.3.1-py3-none-any.whl", hash = "sha256:2d9a1c305bc748e277819a17a5d5e22452e533e835f4237b2f30f3b0e491e01f"},
-    {file = "jupyterlab-4.3.1.tar.gz", hash = "sha256:a4a338327556443521731d82f2a6ccf926df478914ca029616621704d47c3c65"},
+    {file = "jupyterlab-4.3.2-py3-none-any.whl", hash = "sha256:e87100cbab8b886ff7a4f325c856100ba6fdfe916162a85409daf0e707e19d1d"},
+    {file = "jupyterlab-4.3.2.tar.gz", hash = "sha256:3c0a6882dbddcc0a7bfdd5e2236f351b2b263e48780236e6996c2aca13ac5b22"},
 ]
 
 [package.dependencies]
 async-lru = ">=1.0.0"
-httpx = ">=0.25.0"
+httpx = ">=0.28.0,<0.29.0"
 ipykernel = ">=6.5.0"
 jinja2 = ">=3.0.3"
 jupyter-core = "*"
@@ -1693,7 +1692,7 @@ jupyter-server = ">=2.4.0,<3"
 jupyterlab-server = ">=2.27.1,<3"
 notebook-shim = ">=0.2"
 packaging = "*"
-setuptools = ">=40.1.0"
+setuptools = ">=40.8.0"
 tomli = {version = ">=1.2.2", markers = "python_version < \"3.11\""}
 tornado = ">=6.2.0"
 traitlets = "*"
@@ -2069,6 +2068,11 @@ files = [
     {file = "matplotlib-3.9.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:10d3e5c7a99bd28afb957e1ae661323b0800d75b419f24d041ed1cc5d844a764"},
     {file = "matplotlib-3.9.3-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:816a966d5d376bf24c92af8f379e78e67278833e4c7cbc9fa41872eec629a060"},
     {file = "matplotlib-3.9.3-cp39-cp39-win_amd64.whl", hash = "sha256:3fb0b37c896172899a4a93d9442ffdc6f870165f59e05ce2e07c6fded1c15749"},
+    {file = "matplotlib-3.9.3-pp39-pypy39_pp73-macosx_10_15_x86_64.whl", hash = "sha256:5f2a4ea08e6876206d511365b0bc234edc813d90b930be72c3011bbd7898796f"},
+    {file = "matplotlib-3.9.3-pp39-pypy39_pp73-macosx_11_0_arm64.whl", hash = "sha256:9b081dac96ab19c54fd8558fac17c9d2c9cb5cc4656e7ed3261ddc927ba3e2c5"},
+    {file = "matplotlib-3.9.3-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0a0a63cb8404d1d1f94968ef35738900038137dab8af836b6c21bb6f03d75465"},
+    {file = "matplotlib-3.9.3-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:896774766fd6be4571a43bc2fcbcb1dcca0807e53cab4a5bf88c4aa861a08e12"},
+    {file = "matplotlib-3.9.3.tar.gz", hash = "sha256:cd5dbbc8e25cad5f706845c4d100e2c8b34691b412b93717ce38d8ae803bcfa5"},
 ]
 
 [package.dependencies]
@@ -3056,13 +3060,13 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pytest"
-version = "8.3.3"
+version = "8.3.4"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytest-8.3.3-py3-none-any.whl", hash = "sha256:a6853c7375b2663155079443d2e45de913a911a11d669df02a50814944db57b2"},
-    {file = "pytest-8.3.3.tar.gz", hash = "sha256:70b98107bd648308a7952b06e6ca9a50bc660be218d53c257cc1fc94fda10181"},
+    {file = "pytest-8.3.4-py3-none-any.whl", hash = "sha256:50e16d954148559c9a74109af1eaf0c945ba2d8f30f0a3d3335edde19788b6f6"},
+    {file = "pytest-8.3.4.tar.gz", hash = "sha256:965370d062bce11e73868e0335abac31b4d3de0e82f4007408d242b4f8610761"},
 ]
 
 [package.dependencies]
@@ -4373,13 +4377,13 @@ files = [
 
 [[package]]
 name = "types-jsonschema"
-version = "4.23.0.20240813"
+version = "4.23.0.20241208"
 description = "Typing stubs for jsonschema"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-jsonschema-4.23.0.20240813.tar.gz", hash = "sha256:c93f48206f209a5bc4608d295ac39f172fb98b9e24159ce577dbd25ddb79a1c0"},
-    {file = "types_jsonschema-4.23.0.20240813-py3-none-any.whl", hash = "sha256:be283e23f0b87547316c2ee6b0fd36d95ea30e921db06478029e10b5b6aa6ac3"},
+    {file = "types_jsonschema-4.23.0.20241208-py3-none-any.whl", hash = "sha256:87934bd9231c99d8eff94cacfc06ba668f7973577a9bd9e1f9de957c5737313e"},
+    {file = "types_jsonschema-4.23.0.20241208.tar.gz", hash = "sha256:e8b15ad01f290ecf6aea53f93fbdf7d4730e4600313e89e8a7f95622f7e87b7c"},
 ]
 
 [package.dependencies]
