@@ -156,12 +156,11 @@ state variables that evolve through ecological processes:
   behavioral traits.
 - **Mass**: Represents the average body mass of individuals in the cohort (in kilograms),
   which changes dynamically as individuals grow or lose biomass.
-- **Age**: Tracks the cohort's age in days, ensuring that individuals in the same cohort
-  remain at the same life stage.
+- **Age**: Tracks the cohort's age in days.
 - **Number of Individuals**: The population size of the cohort.
 - **Reproductive Mass**: A dedicated biomass pool for reproduction, which accumulates as
   individuals allocate resources to reproductive efforts.
-- **Grid and Territory**: Cohorts occupy specific territories on the simulation grid,
+- **Location and Territory**: Cohorts occupy specific territories on the simulation grid,
   interacting with local resources and environmental conditions. Their **territory size**
   is determined by their functional group’s traits, such as adult body mass.
 - **Occupancy Proportion**: Tracks how much of a cohort occupies a specific grid cell
@@ -193,14 +192,14 @@ reproduction resulting in new cohorts.
 
 ### Mortality and Carcass Dynamics
 
-- **Mortality causes**: Includes predation, starvation, and old age.
+- **Mortality causes**: Includes predation, background mortality, starvation, and old age.
 - **Carcass generation**: Links the fate of animal biomass to scavenger activity,
 decomposition, and soil nutrient inputs.
 
 ### Migration and Movement
 
 - **Resource tracking**: Animals move across grid cells based on resource availability
-and environmental conditions.
+and reproductive events.
 - **Home range dynamics**: Simulates spatial patterns of movement and habitat use.
 
 ## Links to Ecosystem Dynamics
@@ -208,14 +207,12 @@ and environmental conditions.
 The animal model is tightly integrated with other modules in the Virtual Ecosystem
 platform:
 
-- **Vegetation**: Herbivores affect plant biomass and nutrient cycling through grazing
-and trampling.
-- **Litter**: Animals contribute to litter through unconsumed plant material and
-indirect interactions (e.g., breaking branches).
-- **Soil**: Excrement and carcasses provide nutrient inputs, while burrowing and
-trampling modify soil structure.
-- **Microclimate**: Animal behaviors (e.g., shading, burrowing) influence local
-microclimatic conditions.
+- **Vegetation**: Herbivores affect plant biomass directly through consumption and
+indirectly through nutrient cycling.
+- **Litter**: Animals contribute to litter through unconsumed plant material produced
+during foraging.
+- **Soil**: Animal wastes and carcasses feed into soil pools through decomposition.
+- **Microclimate**: Animal metabolic rates are influenced by local microclimates.
 
 ## Scaling and Challenges
 
