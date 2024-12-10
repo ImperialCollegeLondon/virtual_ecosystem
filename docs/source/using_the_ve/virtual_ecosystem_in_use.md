@@ -19,36 +19,28 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12.0rc3
 ---
 
-# Using the Virtual Ecosystem
++++ {"editable": true, "slideshow": {"slide_type": ""}, "tags": []}
 
-The code below is a brief demonstration of the Virtual Ecosystem model in operation.
-The workflow of the model is:
+# Exploring the Virtual Ecosystem outputs
 
-## Create the model configuration and initial data
+The code below provides a walkthrough of some basic plots for the input and output of the Virtual Ecosystem simulation.
 
-Here we are using the example data supplied with the `virtual_ecosystem`
-package, which supplies a set of example data files and a simple model configuration
-to run a simulation. The following command line arguments set up the example data
-directory in Linux, Mac or Windows Subsystem for Linux (WSL).
+## Run the simulation
 
-```{code-cell} ipython3
-import pathlib
+Before exploring the outputs you will need to run the simulation using the example data or your own input data. If you have already run the simulation and generated outtput data, you can skip to the [Initial state and input data](#initial-state-and-input-data) section below.
 
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
-import xarray
-```
-
-If you have previously attempted to run this example it is probably a good idea to
-delete the existing virtual ecosystem example directory, as previously generated files
-can prevent the example simulation from running successfully. That can be done as
-follows.
+The following commands allow you to run the simulation from a Jupyter Notebook. However, you can also run the script from the command line following the [Getting Started](getting_started.md) instructions.
 
 ```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
 %%bash
 # Remove any existing VE data directory in the /tmp/ directory
 if [ -d /tmp/ve_example ]; then
@@ -56,41 +48,25 @@ if [ -d /tmp/ve_example ]; then
 fi
 ```
 
-It should be noted that this is a nuclear option, which is only really appropriate for a
-tutorial like this. In general, you can prevent errors due to output files already
-existing by either moving or deleting the contents of the `ve_example/out` folder. With
-leftover example data directories now removed, a fresh example data directory can then
-be installed.
-
 ```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
 %%bash
 # Install the example data directory from the Virtual Ecosystem package
 ve_run --install-example /tmp/
 ```
 
-The `ve_example` directory contains the following files:
-
-* the `config` directory of TOML format configuration files,
-* the `data` and `source` directories of netCDF format data files,
-* the `generation_scripts` directory containing example recipes for generating files, and
-* the `out` directory, which will be used to store model outputs.
-
 ```{code-cell} ipython3
-# Get a generator of files in the example directory
-example_files = (p for p in pathlib.Path("/tmp/ve_example/").rglob("*") if p.is_file())
-
-# Print the relative paths of files
-for file in example_files:
-    print(file.relative_to("/tmp/ve_example"))
-```
-
-## Run the Virtual Ecosystem model
-
-Now the example data and configuration have been set up, the `ve_run` command can be
-used to execute a Virtual Ecosystem simulation. The `progress` option shows the progress
-of the simulation through the various modelling stages.
-
-```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
 %%bash
 ve_run /tmp/ve_example/config \
     --out /tmp/ve_example/out \
@@ -98,26 +74,9 @@ ve_run /tmp/ve_example/config \
     --progress \
 ```
 
-The log file is very long and shows the process of running the model. The code below
-shows the start and end lines from the log to give and idea of what it contains.
+## Loading the data
 
-```{code-cell} ipython3
-# Open and read the log
-with open("/tmp/ve_example/out/logfile.log") as log:
-    log_entries = log.readlines()
-
-# Print the first lines
-for entry in log_entries[:6]:
-    print(entry.strip())
-
-print("...")
-
-# Print the last lines
-for entry in log_entries[-5:]:
-    print(entry.strip())
-```
-
-## Looking at the results
+Once the simulation is run you can load the data files into python.
 
 The Virtual Ecosystem writes out a number of data files:
 
@@ -129,11 +88,47 @@ The Virtual Ecosystem writes out a number of data files:
 These files are written to the standard NetCDF data file format.
 
 ```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
+# Dependencies for the data and graphing
+import pathlib
+
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import numpy as np
+import xarray
+```
+
+```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
 # Load the generated data files
 initial_state = xarray.load_dataset("/tmp/ve_example/out/initial_state.nc")
 continuous_data = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
 final_state = xarray.load_dataset("/tmp/ve_example/out/final_state.nc")
 ```
+
+```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
+# Print the name of each variable in the final state
+for key in list(final_state.keys()):
+    print(key)
+```
+
++++ {"editable": true, "slideshow": {"slide_type": ""}, "tags": []}
 
 ### Initial state and input data
 
@@ -165,6 +160,7 @@ ax2.set_title("Soil pH (-)")
 fig.colorbar(im2, ax=ax2, shrink=0.7)
 
 plt.tight_layout()
+plt.plot()
 ```
 
 For some variables, it may be useful to visualise spatial structure in 3 dimensions.
@@ -191,6 +187,8 @@ ax.set_title("Elevation (m)")
 cell_bounds = range(0, 811, 90)
 ax.set_xticks(cell_bounds)
 ax.set_yticks(cell_bounds)
+
+plt.show()
 ```
 
 For other variables, such as air temperature and precipitation, the initial data
@@ -202,6 +200,12 @@ initial_state
 ```
 
 ```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
 # Make two side by side plots
 fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 5))
 
@@ -216,6 +220,8 @@ ax2.plot(initial_state["time_index"], initial_state["precipitation"])
 ax2.set_title("Precipitation forcing across grid cells")
 ax2.set_ylabel("Total monthly precipitation (mm)")
 ax2.set_xlabel("Time step (months)")
+
+plt.plot()
 ```
 
 ### Model outputs
@@ -249,6 +255,8 @@ for idx, ax in zip([0, 10, 23], axes):
 
 fig.colorbar(im, ax=axes, orientation="vertical", shrink=0.5)
 plt.suptitle("Soil carbon: mineral-associated organic matter", y=0.78, x=0.45)
+
+plt.plot()
 ```
 
 #### Temporal data
@@ -260,6 +268,8 @@ showing the values in each cell across time.
 plt.plot(continuous_data["time_index"], continuous_data["soil_c_pool_maom"])
 plt.xlabel("Time step")
 plt.ylabel("Soil carbon as MAOM")
+
+plt.plot()
 ```
 
 #### Vertical structure
@@ -293,6 +303,12 @@ temp_vals = continuous_data["air_temperature"][time_index].to_numpy().flatten()
 ```
 
 ```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+tags: []
+---
 # Generate a 3 dimensional plot of layer heights showing temperature.
 
 fig = plt.figure(figsize=(10, 8))
@@ -313,6 +329,5 @@ ax.set_xlabel("Easting (m)")
 ax.set_ylabel("Northing (m)")
 ax.set_zlabel("Layer height (m)")
 
-ax.set_xticks(cell_bounds)
-ax.set_yticks(cell_bounds)
+plt.show(cell_bounds, cell_bounds)
 ```
