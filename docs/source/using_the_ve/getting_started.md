@@ -20,7 +20,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.11.9
+  version: 3.12.0rc3
 ---
 
 # Getting started
@@ -41,7 +41,7 @@ that the package is still being developed so these are currently early developme
 
 If you are more interested in playing around with the development of the model, then you
 will need to follow the [overview of the code contribution
-process]../development/contributing/overivew.md), which covers the installation of the
+process](../development/contributing/overivew.md), which covers the installation of the
 tools required for code development, testing and building documentation.
 
 ## Running an example Virtual Ecosystem simulation
@@ -64,6 +64,29 @@ ve_run /path/ve_example/config \
     --logfile /path/ve_example/out/ve_example.log
 ```
 
++++
+
+## Looking at the results
+
+The Virtual Ecosystem writes out a number of data files:
+
+* `initial_state.nc`: A single compiled file of the initial input data.
+* `all_continuous_data.nc`: An optional record of time series data of the variables
+  updated at each time step.
+* `final_state.nc`: The model data state at the end of the final step.
+
+These files are written to the standard NetCDF data file format.
+
+You can load the files in python with the commands:
+
+```python
+initial_state = xarray.load_dataset("/tmp/ve_example/out/initial_state.nc")
+continuous_data = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
+final_state = xarray.load_dataset("/tmp/ve_example/out/final_state.nc")
+```
+
++++
+
 The [Virtual Ecosystem in use](virtual_ecosystem_in_use.md) page provides a walkthrough
 of this process, showing the typical outputs of the model run process, and also provides
 some simple plots of model inputs and ouputs.
@@ -71,3 +94,7 @@ some simple plots of model inputs and ouputs.
 Once you want to start digging into the structure of the model and inputs, the [example
 data](./example_data.md) pages provides a detailed description of the  contents of the
 `ve_example` directory.
+
+```{code-cell} ipython3
+
+```
