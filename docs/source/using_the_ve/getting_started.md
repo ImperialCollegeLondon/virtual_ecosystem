@@ -81,4 +81,4 @@ These files are written to the standard NetCDF data file format.
 
 * To explore the simulation results further you can visit the [Visualising Virtual Ecosystem Output](virtual_ecosystem_in_use.md) tutorial, which walks you through basic graphs using model inputs and outputs.
 * The [Example Data](./example_data.md) pages provides a detailed description of the  contents of the `ve_example` directory. Here can dig into the strucutre of the models and inputs.
-* When you are ready to set up your own simulation, you can visit [Configuring your model](configuration/config.md) and [Adding data to the model](data/data.md). 
+* When you are ready to set up your own simulation, you can visit [Configuring your model](configuration/config.md) and [Adding data to the model](data/data.md).
