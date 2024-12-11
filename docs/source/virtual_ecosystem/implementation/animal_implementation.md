@@ -87,7 +87,7 @@ vegetation, litter, and soil.
 
 Key components:
 
-- **Initialization**: Sets up the grid, functional groups, and resource pools for
+- **Initialization**: Sets up the grid structure for animal movement, functional groups, and resource pools for
   excrement, carcasses, and leaf waste.
 - **Cohort-level methods**: Implements functions to handle cohort-specific processes
   (e.g., `birth`, `metamorphose`, `forage`).
