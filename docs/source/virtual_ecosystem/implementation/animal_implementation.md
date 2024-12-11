@@ -52,7 +52,7 @@ Key responsibilities:
 
 #### **2. AnimalCohort**
 
-The `AnimalCohort` class represents individual animal agents at the cohort level. Each
+The `AnimalCohort` class represents a group of identically sized individual animal agents from a single functional group: a cohort. Each
 cohort is age-specific, meaning all individuals in the cohort were produced in the same
 reproductive event and share the same age. The class tracks dynamic state variables such
 as mass, age, reproductive biomass, and territory occupancy.
