@@ -33,7 +33,7 @@ for each cohort and the links between animal processes and other ecosystem modul
 
 :::{admonition} In progress 🛠️
 
-Much of the Animal Model follows the logic of the Madingley Model (Harfoot et al,. 2014)
+Much of the Animal Model follows the logic of the Madingley Model {cite}`harfoot_madingley_2014`
 with modifications made for differences in spatial and temporal scale, trophic
 resolution, multi-grid cell occupancy, and ecological stoichiometry.
 

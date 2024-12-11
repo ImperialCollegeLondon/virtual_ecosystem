@@ -34,6 +34,13 @@ traits, and their interactions with the ecosystem. Together, these classes facil
 flexible and scalable approach to simulating complex animal processes across spatial
 grids.
 
+- [Functional Group](https://virtual-ecosystem.readthedocs.io/en/latest/api/models/animal/functional_group.html)
+  - the organismal type and its traits
+- [Animal Cohort](https://virtual-ecosystem.readthedocs.io/en/latest/api/models/animal/animal_cohorts.html)
+  - the agent, a group of identical individuals of the same functional group and age
+- [Animal Model](https://virtual-ecosystem.readthedocs.io/en/latest/api/models/animal/animal_model.html#virtual_ecosystem.models.animal.animal_model.AnimalModel)
+  - the structural class, orchestrating the interactions between cohorts and their environment.
+
 ### Core Classes
 
 #### **1. FunctionalGroup**
@@ -47,15 +54,17 @@ inheritance across simulations.
 Key responsibilities:
 
 - Encodes fixed traits shared by cohorts within the group.
-- Provides scaling parameters for processes like territory size and prey selection.
+- Provides scaling factors that scale processes like territory size and prey selection
+  to the mass of individuals within a cohort
 - Defines dietary and physiological constraints that influence cohort behavior.
 
 #### **2. AnimalCohort**
 
-The `AnimalCohort` class represents a group of identically sized individual animal agents from a single functional group: a cohort. Each
-cohort is age-specific, meaning all individuals in the cohort were produced in the same
-reproductive event and share the same age. The class tracks dynamic state variables such
-as mass, age, reproductive biomass, and territory occupancy.
+The `AnimalCohort` class represents a group of identically sized individual animal agents
+from a single functional group: a cohort. Each cohort is age-specific, meaning all
+individuals in the cohort were produced in the same reproductive event and share the same
+age. The class tracks dynamic state variables such as mass, age, reproductive biomass,
+ and territory occupancy.
 
 Key attributes:
 
@@ -67,9 +76,10 @@ Key attributes:
 #### **3. AnimalModel**
 
 The `AnimalModel` class orchestrates the animal community at the spatial grid level.
-It contains methods for initializion, setup, and updating of the animal model as well as
+It contains methods for initialization, setup, and updating of the animal model as well as
 communication with the core data object. The animal
-model provides methods that loop over all cohorts in the simulation to simulate community processes, along with methods to handle cohort movement, creation and death.
+model provides methods that loop over all cohorts in the simulation to simulate community
+processes, along with methods to handle cohort movement, creation and death.
 
 Key responsibilities:
 
@@ -86,8 +96,8 @@ vegetation, litter, and soil.
 
 Key components:
 
-- **Initialization**: Sets up the grid structure for animal movement, functional groups, and resource pools for
-  excrement, carcasses, and leaf waste.
+- **Initialization**: Sets up the grid structure for animal movement, functional groups,
+  and resource pools for excrement, carcasses, and leaf waste.
 - **Cohort-level methods**: Implements functions to handle cohort-specific processes
   (e.g., `birth`, `metamorphose`, `forage`).
 - **Community-level methods**: Manages collective processes for all cohorts in a grid cell
@@ -126,7 +136,7 @@ revised in the future.
 
 6. **Metabolism**
    Cohorts metabolize consumed resources, processing consumed matter into waste and
-   fueing internal processes. This is handled by the `metabolize_community` method,
+   fueling internal processes. This is handled by the `metabolize_community` method,
    which considers the update interval duration.
 
 7. **Mortality**
