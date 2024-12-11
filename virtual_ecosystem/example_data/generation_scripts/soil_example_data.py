@@ -52,6 +52,13 @@ don_values = 2.5e-4 + 2.5e-4 * gradient / 64.0
 # N m^-3]
 particulate_n_values = 7.5e-4 + 7.5e-4 * gradient / 64.0
 
+# Generate a range of plausible values (0.2-0.6) for the maom nitrogen pool [kg N m^-3].
+maom_n_values = 0.2 + 0.4 * gradient / 64.0
+
+# Generate a range of plausible values (3e-5-0.0001) for the microbial necromass
+# nitrogen pool [kg N m^-3].
+necromass_n_values = 3e-5 + 7e-5 * gradient / 64.0
+
 # Make example soil dataset
 example_soil_data = Dataset(
     data_vars=dict(
@@ -67,6 +74,8 @@ example_soil_data = Dataset(
         soil_enzyme_maom=(["x", "y"], maom_enzyme_values),
         soil_n_pool_don=(["x", "y"], don_values),
         soil_n_pool_particulate=(["x", "y"], particulate_n_values),
+        soil_n_pool_maom=(["x", "y"], maom_n_values),
+        soil_n_pool_necromass=(["x", "y"], necromass_n_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),

@@ -588,6 +588,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Amount of nitrogen contained in the necromass pool"
+name = "soil_n_pool_necromass"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen contained in the mineral associated organic matter pool"
+name = "soil_n_pool_maom"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Bulk density of soil"
 name = "bulk_density"
 unit = "kg m^-3"

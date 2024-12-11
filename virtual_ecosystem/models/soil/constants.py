@@ -35,19 +35,19 @@ class SoilConsts(ConstantsDataclass):
     soil_microbe_water_potential_optimum: float = -3.0
     """The water potential at which soil microbial rates are maximised [kPa].
 
-    Value is taken from :cite:t`moyano_responses_2013`.
+    Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
     soil_microbe_water_potential_halt: float = -15800.0
     """The water potential at which soil microbial activity stops entirely [kPa].
 
-    Value is taken from :cite:t`moyano_responses_2013`.
+    Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
     microbial_water_response_curvature: float = 1.47
     """Curvature of function for response of soil microbial rates to water potential.
 
-    [unitless]. Value is taken from :cite:t`moyano_responses_2013`.
+    [unitless]. Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
     arrhenius_reference_temp: float = 12.0
@@ -70,11 +70,12 @@ class SoilConsts(ConstantsDataclass):
     """
 
     activation_energy_microbial_uptake: float = 47000
-    """Activation energy for microbial uptake of low molecular weight carbon [J K^-1].
+    """Activation energy for microbial nutrient uptake [J K^-1].
 
     Value taken from :cite:t:`wang_development_2013`. The maximum labile carbon uptake
     rate that this activation energy corresponds to is given by
-    :attr:`max_uptake_rate_labile_C`.
+    :attr:`max_uptake_rate_labile_C`. This activation energy is assumed to be the same
+    for the uptake of other nutrients as for carbon.
     """
 
     half_sat_labile_C_uptake: float = 0.364
@@ -84,13 +85,14 @@ class SoilConsts(ConstantsDataclass):
     :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
     The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
     corresponding activation energy is given by
-    :attr:`activation_energy_labile_C_saturation`.
+    :attr:`activation_energy_uptake_saturation`.
     """
 
-    activation_energy_labile_C_saturation: float = 30000
-    """Activation energy for labile C uptake saturation constant [J K^-1].
+    activation_energy_uptake_saturation: float = 30000
+    """Activation energy for nutrient uptake saturation constants [J K^-1].
 
-    Taken from :cite:t:`wang_development_2013`.
+    Taken from :cite:t:`wang_development_2013`. This is assumed to be the same across
+    all nutrients.
     """
 
     half_sat_pom_decomposition: float = 70.0
@@ -306,4 +308,34 @@ class SoilConsts(ConstantsDataclass):
     
     [unitless]. The remainder of the mineralisation consists of particulates. Value is
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    microbial_c_n_ratio = 5.2
+    """Ratio of carbon to nitrogen in microbial biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature. Here using specifically the bacterial value, once fungi are 
+    added this constant needs to be split.
+    """
+
+    max_uptake_rate_don = 0.0077
+    """Maximum rate at for dissolved organic nitrogen uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_don_uptake: float = 0.07
+    """Half saturation constant for uptake of dissolved organic nitrogen (DON).
+
+    [kg N m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
     """

@@ -7,8 +7,6 @@ Each of the animal sub-modules has its own API reference page:
   AnimalModel class which consolidates the functionality of the animal module
   into a single class, which the high level functions of the Virtual Ecosystem
   can then make use of.
-* The :mod:`~virtual_ecosystem.models.animal.animal_communities` provides a class for
-  containing and managing all of the animal cohorts within a grid square.
 * The :mod:`~virtual_ecosystem.models.animal.animal_cohorts` provides a class for the
   individual animal cohorts, their attributes, and behaviors.
 * The :mod:`~virtual_ecosystem.models.animal.functional_group` provides a class for

@@ -102,3 +102,73 @@ def enzyme_mediated_rates(
         env_factors=environmental_factors,
         constants=SoilConsts,
     )
+
+
+@pytest.fixture
+def microbial_changes(
+    dummy_carbon_data, fixture_core_components, environmental_factors
+):
+    """Set of microbial changes based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
+
+    return calculate_microbial_changes(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        env_factors=environmental_factors,
+        constants=SoilConsts,
+    )
+
+
+@pytest.fixture
+def necromass_breakdown(dummy_carbon_data):
+    """Necromass breakdown rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_necromass_breakdown
+
+    return calculate_necromass_breakdown(
+        soil_c_pool_necromass=dummy_carbon_data["soil_c_pool_necromass"],
+        necromass_decay_rate=SoilConsts.necromass_decay_rate,
+    )
+
+
+@pytest.fixture
+def necromass_sorption(dummy_carbon_data):
+    """Necromass sorption rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
+
+    return calculate_sorption_to_maom(
+        soil_c_pool=dummy_carbon_data["soil_c_pool_necromass"],
+        sorption_rate_constant=SoilConsts.necromass_sorption_rate,
+    )
+
+
+@pytest.fixture
+def lmwc_sorption(dummy_carbon_data):
+    """Low molecular weight carbon sorption rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_sorption_to_maom
+
+    return calculate_sorption_to_maom(
+        soil_c_pool=dummy_carbon_data["soil_c_pool_lmwc"],
+        sorption_rate_constant=SoilConsts.lmwc_sorption_rate,
+    )
+
+
+@pytest.fixture
+def maom_desorption(dummy_carbon_data):
+    """MAOM desorption rate based on dummy carbon data."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_maom_desorption
+
+    return calculate_maom_desorption(
+        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        desorption_rate_constant=SoilConsts.maom_desorption_rate,
+    )
