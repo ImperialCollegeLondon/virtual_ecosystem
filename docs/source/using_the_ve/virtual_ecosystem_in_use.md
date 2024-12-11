@@ -22,17 +22,21 @@ language_info:
   version: 3.12.0rc3
 ---
 
-+++ {"editable": true, "slideshow": {"slide_type": ""}, "tags": []}
-
 # Exploring the Virtual Ecosystem outputs
 
-The code below provides a walkthrough of some basic plots for the input and output of the Virtual Ecosystem simulation.
+The code below provides a walkthrough of some basic plots for the input and output of
+the Virtual Ecosystem simulation.
 
 ## Run the simulation
 
-Before exploring the outputs you will need to run the simulation using the example data or your own input data. If you have already run the simulation and generated outtput data, you can skip to the [Initial state and input data](#initial-state-and-input-data) section below.
+Before exploring the outputs you will need to run the simulation using the example data
+or your own input data. If you have already run the simulation and generated outtput
+data, you can skip to the
+[Initial state and input data](#initial-state-and-input-data) section below.
 
-The following commands allow you to run the simulation from a Jupyter Notebook. However, you can also run the script from the command line following the [Getting Started](getting_started.md) instructions.
+The following commands allow you to run the simulation from a Jupyter Notebook.
+However, you can also run the script from the command line following the [Getting
+Started](getting_started.md) instructions.
 
 ```{code-cell} ipython3
 ---

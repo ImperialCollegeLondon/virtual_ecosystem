@@ -56,7 +56,9 @@ configuration and data files to run a model.
 ve_run --install-example /path/
 ```
 
-You can then run the model itself. If you have already run the simulation you will need to delete or rename the output files, as previously generated output can prevent the simulation from running.
+You can then run the model itself. If you have already run the simulation you will need
+to delete or rename the output files, as previously generated output can prevent the
+simulation from running.
 
 ```shell
 ve_run /path/ve_example/config \
@@ -79,6 +81,11 @@ These files are written to the standard NetCDF data file format.
 
 ## Next steps
 
-* To explore the simulation results further you can visit the [Visualising Virtual Ecosystem Output](virtual_ecosystem_in_use.md) tutorial, which walks you through basic graphs using model inputs and outputs.
-* The [Example Data](./example_data.md) pages provides a detailed description of the  contents of the `ve_example` directory. Here can dig into the strucutre of the models and inputs.
-* When you are ready to set up your own simulation, you can visit [Configuring your model](configuration/config.md) and [Adding data to the model](data/data.md). 
+* To explore the simulation results further you can visit the [Visualising Virtual
+Ecosystem Output](virtual_ecosystem_in_use.md) tutorial, which walks you through basic
+graphs using model inputs and outputs.
+* The [Example Data](./example_data.md) pages provides a detailed description of the
+contents of the `ve_example` directory. Here can dig into the strucutre of the models
+and inputs.
+* When you are ready to set up your own simulation, you can visit [Configuring your
+model](configuration/config.md) and [Adding data to the model](data/data.md).
