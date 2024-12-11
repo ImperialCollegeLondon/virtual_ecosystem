@@ -68,9 +68,8 @@ Key attributes:
 
 The `AnimalModel` class orchestrates the animal community at the spatial grid level.
 It contains methods for initializion, setup, and updating of the animal model as well as
-communication with the core data object. Cohort-facing methods found within the animal
-model are either community-level processes which loop over all cohorts in the simulation
-or are methods pertaining to the creation, destruction, or movement of animal chorts.
+communication with the core data object. The animal
+model provides methods that loop over all cohorts in the simulation to simulate community processes, along with methods to handle cohort movement, creation and death.
 
 Key responsibilities:
 
