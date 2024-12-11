@@ -25,7 +25,6 @@ def prepared_animal_model_instance(
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
     )
-    model.setup()  # Ensure setup is called
     return model
 
 
