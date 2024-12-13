@@ -25,7 +25,6 @@ def prepared_animal_model_instance(
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
     )
-    model.setup()  # Ensure setup is called
     return model
 
 
@@ -70,7 +69,7 @@ class TestAnimalModel:
                         "Information required to initialise the animal model"
                         " successfully extracted.",
                     ),
-                    (INFO, "Replacing data array for 'total_animal_respiration'"),
+                    (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Adding data array for 'decomposed_excrement_carbon'"),
                     (INFO, "Adding data array for 'decomposed_excrement_nitrogen'"),

@@ -31,8 +31,8 @@ def test_ve_run(capsys, mocker):
 
     with TemporaryDirectory() as tempdir:
         try:
-            # Install the example directory to run it - tested above - and consume the
-            # resulting stdout
+            # Install the example directory to run it - tested above - and consume
+            # the resulting stdout
             ve_run_cli(args_list=["--install-example", tempdir])
             _ = capsys.readouterr()
 
@@ -63,8 +63,8 @@ def test_ve_run(capsys, mocker):
                 assert "Virtual Ecosystem model run completed!" in contents[-1]
 
         except Exception as excep:
-            # If the code above fails then tidy up the logger to restore normal stream
-            # logging rather than leaving all other tests logging to the file and then
-            # fail the test.
+            # If the code above fails then tidy up the logger to restore normal
+            # stream logging rather than leaving all other tests logging to the file
+            # and then fail the test.
             remove_file_logger()
             pytest.fail(reason=str(excep))

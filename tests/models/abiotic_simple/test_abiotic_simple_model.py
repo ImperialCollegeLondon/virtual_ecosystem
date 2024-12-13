@@ -9,7 +9,7 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check
+from tests.conftest import log_check, patch_bypass_setup, patch_run_update
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Global set of messages from model required var checks
@@ -45,19 +45,25 @@ def test_abiotic_simple_model_initialization(
         AbioticSimpleConsts,
     )
 
-    with raises:
-        # Initialize model
-        model = AbioticSimpleModel(
-            data=dummy_climate_data_varying_canopy,
-            core_components=fixture_core_components,
-            constants=AbioticSimpleConsts(),
-        )
+    with (
+        patch_run_update("abiotic_simple"),
+        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        with raises:
+            # Initialize model
+            model = AbioticSimpleModel(
+                data=dummy_climate_data_varying_canopy,
+                core_components=fixture_core_components,
+                model_constants=AbioticSimpleConsts(),
+            )
 
-        # In cases where it passes then checks that the object has the right properties
-        assert isinstance(model, BaseModel)
-        assert model.model_name == "abiotic_simple"
-        assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
-        assert model.bounds == AbioticSimpleBounds()
+            # In cases where it passes then checks that the object has the right
+            # properties
+            assert isinstance(model, BaseModel)
+            assert model.model_name == "abiotic_simple"
+            assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
+            assert model.bounds == AbioticSimpleBounds()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -145,6 +151,7 @@ def test_generate_abiotic_simple_model(
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
+    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
@@ -152,17 +159,25 @@ def test_generate_abiotic_simple_model(
     caplog.clear()
 
     # We patch the _setup step as it is tested separately
-    module_name = "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
-    with patch(f"{module_name}.AbioticSimpleModel._setup") as mock_setup:
+    expected_const = AbioticSimpleConsts(saturation_vapour_pressure_factors=satvap1)
+    object_to_patch = (
+        "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
+        ".AbioticSimpleModel"
+    )
+    with (
+        patch_run_update("abiotic_simple"),
+        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
+        patch(f"{object_to_patch}._setup") as mock_setup,
+    ):
+        mock_bypass_setup.return_value = False
         # Check whether model is initialised (or not) as expected
         with raises:
-            model = AbioticSimpleModel.from_config(
+            AbioticSimpleModel.from_config(
                 data=dummy_climate_data_varying_canopy,
                 core_components=core_components,
                 config=config,
             )
-            assert model.model_constants.saturation_vapour_pressure_factors == satvap1
-            mock_setup.assert_called_once()
+            mock_setup.assert_called_once_with(model_constants=expected_const)
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -174,14 +189,21 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
+    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    model = AbioticSimpleModel(
-        data=dummy_climate_data_varying_canopy,
-        core_components=fixture_core_components,
-    )
+    with (
+        patch_run_update("abiotic_simple"),
+        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        model = AbioticSimpleModel(
+            data=dummy_climate_data_varying_canopy,
+            core_components=fixture_core_components,
+            model_constants=AbioticSimpleConsts(),
+        )
 
     exp_soil_temp = lyr_strct.from_template()
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)

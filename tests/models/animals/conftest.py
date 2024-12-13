@@ -445,16 +445,6 @@ def dummy_animal_data(animal_fixture_core_components):
     data["c_p_ratio_below_metabolic"] = litter_ratios
     data["c_p_ratio_below_structural"] = litter_ratios
 
-    # Initialize total_animal_respiration with zeros for each cell
-    total_animal_respiration = np.zeros(
-        len(animal_fixture_core_components.grid.cell_id)
-    )
-    data["total_animal_respiration"] = DataArray(
-        total_animal_respiration,
-        dims=["cell_id"],
-        coords={"cell_id": animal_fixture_core_components.grid.cell_id},
-    )
-
     return data
 
 
