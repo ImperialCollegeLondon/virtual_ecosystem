@@ -227,6 +227,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
     ]:
         assert var in model.data
 

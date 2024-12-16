@@ -55,6 +55,7 @@ class AbioticModel(
         "topofcanopy_radiation",
         "leaf_area_index",
         "layer_heights",
+        "wind_speed_ref",
     ),
     vars_updated=(
         "air_temperature",

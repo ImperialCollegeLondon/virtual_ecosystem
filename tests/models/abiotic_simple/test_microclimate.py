@@ -15,7 +15,6 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
 
     # temperature
     result = log_interpolation(
-        data=dummy_climate_data,
         reference_data=dummy_climate_data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=lyr_strct,
@@ -33,7 +32,6 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
 
     # relative humidity
     result_hum = log_interpolation(
-        data=dummy_climate_data,
         reference_data=dummy_climate_data["relative_humidity_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=lyr_strct,
@@ -63,7 +61,6 @@ def test_varying_canopy_log_interpolation(
 
     # temperature
     result = log_interpolation(
-        data=data,
         reference_data=data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=lyr_strct,
@@ -211,6 +208,12 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_pressure[lyr_strct.index_atmosphere] = 96
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
+    exp_wind = lyr_strct.from_template()
+    exp_wind[lyr_strct.index_filled_atmosphere] = np.array(
+        [5.955368, 0.734519, 0.001, 0.001, 0.187047]
+    )[:, None]
+    np.testing.assert_allclose(result["wind_speed"], exp_wind, rtol=1e-3, atol=1e-3)
+
 
 def test_run_microclimate_varying_canopy(
     dummy_climate_data_varying_canopy, fixture_core_components
@@ -280,3 +283,78 @@ def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_component
     exp_output[lyr_strct.index_all_soil] = np.array([20.505557, 20.0])[:, None]
 
     xr.testing.assert_allclose(result, exp_output)
+
+
+def test_calculate_zero_plane_displacement(dummy_climate_data):
+    """Test if calculated correctly and set to zero without vegetation."""
+
+    from virtual_ecosystem.models.abiotic_simple.microclimate import (
+        calculate_zero_plane_displacement,
+    )
+
+    result = calculate_zero_plane_displacement(
+        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
+        zero_plane_scaling_parameter=7.5,
+    )
+
+    np.testing.assert_allclose(result, np.array([0.0, 0.0, 25.86256, 25.86256]))
+
+
+def test_calculate_roughness_length_momentum(dummy_climate_data):
+    """Test roughness length governing momentum transfer."""
+
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.abiotic_simple.microclimate import (
+        calculate_roughness_length_momentum,
+    )
+
+    result = calculate_roughness_length_momentum(
+        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
+        zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
+        substrate_surface_drag_coefficient=0.003,
+        roughness_element_drag_coefficient=0.3,
+        roughness_sublayer_depth_parameter=0.193,
+        max_ratio_wind_to_friction_velocity=0.3,
+        min_roughness_length=0.01,
+        von_karman_constant=CoreConsts.von_karmans_constant,
+    )
+
+    np.testing.assert_allclose(
+        result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
+    )
+
+
+def test_calculate_wind_profile(dummy_climate_data, fixture_core_components):
+    """Test calculation of wind profile."""
+
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.microclimate import (
+        calculate_wind_profile,
+    )
+
+    data = dummy_climate_data
+    abiotic_simple_constants = AbioticSimpleConsts()
+    core_constants = CoreConsts()
+    lyr_strct = fixture_core_components.layer_structure
+
+    result = calculate_wind_profile(
+        data=data,
+        time_index=0,
+        layer_structure=lyr_strct,
+        abiotic_simple_constants=abiotic_simple_constants,
+        core_constants=core_constants,
+    )
+
+    expected_wind_profile = lyr_strct.from_template()
+    expected_wind_profile[lyr_strct.index_filled_atmosphere] = [
+        [5.955368, 5.955368, 5.955368, 5.955368],
+        [0.7345195, 0.7345195, 0.7345195, 0.7345195],
+        [0.001, 0.001, 0.001, 0.001],
+        [0.001, 0.001, 0.001, 0.001],
+        [0.187047, 0.187047, 0.187047, 0.187047],
+    ]
+
+    np.testing.assert_allclose(result, expected_wind_profile, rtol=1e-3, atol=1e-3)
