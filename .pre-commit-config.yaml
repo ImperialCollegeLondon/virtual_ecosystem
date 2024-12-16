@@ -20,7 +20,7 @@ repos:
     hooks:
     - id: markdownlint
   - repo: https://github.com/mwouts/jupytext
-    rev: v1.16.4b
+    rev: v1.16.5
     hooks:
     - id: jupytext
       args: [--pipe, black]
