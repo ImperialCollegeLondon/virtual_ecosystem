@@ -1,3 +1,28 @@
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.4
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+---
+
 # The configuration module
 
 This module is used to configure a `virtual_ecosystem` simulation run. This module
@@ -166,3 +191,22 @@ formatted the configuration process will critically fail.
 
 In addition to saving the configuration as an output file, it is also returned so that
 downstream functions can make use of it. This is as a simple nested dictionary.
+
+## Static models
+
+All models (except `core`) accept a boolean configuration option, `static`, that
+indicates if such a model should be updated every iteration (`static=false`, the
+default behaviour) or not.
+
+If `static=true`, there are several possibilities depending on the data
+variables available in the [`Data` object](../data/data.md):
+
+- For the initialisation, if the variables that are populated are:
+  - **All present**: The model initialisation process is bypassed.
+  - **None present**: The model initialisation process runs normally.
+- For the update, if the variables that are populated are:
+  - **All present**: Then the update process is bypassed.
+  - **None present**: The update *is run just once*, keeping the same values for those
+  variables throughout the simulation.
+
+Providing some but not all of the variables will result in an error in all cases.

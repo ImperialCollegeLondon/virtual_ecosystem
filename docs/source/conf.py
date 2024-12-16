@@ -1,3 +1,15 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: all,-trusted
+#     notebook_metadata_filter: settings,mystnb,language_info
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.5'
+#       jupytext_version: 1.16.4
+# ---
+
 """Configuration file for the Sphinx documentation builder.
 
 This file only contains a selection of the most common options. For a full
@@ -27,10 +39,12 @@ from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferen
 import virtual_ecosystem as ve
 from virtual_ecosystem.core import variables
 
+# +
 # Silence sphinx 8 warnings.
 warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
 
 
+# +
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
 # the virtual_ecosystem package itself do not needed to be included here, providing
@@ -38,18 +52,22 @@ warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
 # as this conf.py file, where we currently run it from the parent `docs` folder, so
 # adding an absolute path is more reliable.
 sys.path.append(str(Path(__file__).parent / "development/documentation"))
+# -
 
 
 version = ve.__version__
 release = version
 
+# +
 # Update the variables file
 varfile = Path(__file__).parent / "variables.rst"
 variables.output_known_variables(varfile)
+# -
 
 
 # -- Project information -----------------------------------------------------
 
+# +
 project = "Virtual Ecosystem"
 copyright = (
     "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
@@ -59,10 +77,12 @@ author = (
     "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
     "Taran Rallings, Vivienne Groner"
 )
+# -
 
 
 # -- General configuration ---------------------------------------------------
 
+# +
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -83,6 +103,7 @@ extensions = [
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
+# -
 
 
 # Set up the external table of contents file path and configure

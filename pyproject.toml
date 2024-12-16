@@ -52,7 +52,7 @@ types-tqdm = "^4.66.0.20240106"
 [tool.poetry.group.test.dependencies]
 hypothesis = "^6.54.2"
 pytest = ">=7.1.2,<9.0.0"
-pytest-cov = ">=3,<6"
+pytest-cov = ">=3,<7"
 pytest-datadir = "^1.4.1"
 pytest-mock = "^3.8.1"
 
@@ -133,4 +133,6 @@ plugins = "numpy.typing.mypy_plugin"
 
 [tool.jupytext]
 # Stop jupytext from removing mystnb and other settings in MyST Notebook YAML headers
-notebook_metadata_filter = "-jupytext.text_representation.jupytext_version,settings,mystnb"
+notebook_metadata_filter = "settings,mystnb,language_info"
+# Also stop it from stripping cell metadata.
+cell_metadata_filter = "all,-trusted"
