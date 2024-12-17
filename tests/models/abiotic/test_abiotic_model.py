@@ -18,6 +18,7 @@ REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
     (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic model: required var 'layer_heights' checked"),
+    (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
 )
 
 SETUP_MANIPULATIONS = (
@@ -27,6 +28,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'air_temperature'"),
     (INFO, "Replacing data array for 'relative_humidity'"),
     (INFO, "Adding data array for 'vapour_pressure_deficit'"),
+    (INFO, "Replacing data array for 'wind_speed'"),
     (INFO, "Replacing data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Replacing data array for 'soil_temperature'"),
@@ -119,6 +121,10 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
             (
                 ERROR,
                 "abiotic model: init data missing required var 'layer_heights'",
+            ),
+            (
+                ERROR,
+                "abiotic model: init data missing required var 'wind_speed_ref'",
             ),
             (ERROR, "abiotic model: error checking vars_required_for_init, see log."),
         ),

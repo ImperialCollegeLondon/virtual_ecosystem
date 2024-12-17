@@ -40,6 +40,7 @@ class AbioticSimpleModel(
         "soil_temperature",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -47,6 +48,7 @@ class AbioticSimpleModel(
         "vapour_pressure_deficit_ref",
         "atmospheric_pressure_ref",
         "atmospheric_co2_ref",
+        "wind_speed_ref",
         "leaf_area_index",
         "layer_heights",
     ),

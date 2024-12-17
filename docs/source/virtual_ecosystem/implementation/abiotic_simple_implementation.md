@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.4
+    jupytext_version: 1.16.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -56,7 +56,8 @@ display_markdown(
 
 The `abiotic_simple` model is a simple regression model that estimates microclimatic
 variables based on empirical relationships between leaf area index (LAI) and atmospheric
-temperature (T), relative humidity (RH), and vapour pressure deficit (VPD) to derive
+temperature (T), relative humidity (RH), vapour pressure deficit (VPD), and wind speed
+to derive
 logarithmic profiles of these variables from external climate data such as regional
 climate models or satellite observations. The model also provides information on
 atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths.
