@@ -46,7 +46,7 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import (
     calculate_latent_heat_vapourisation,
     calculate_specific_heat_air,
 )
-from virtual_ecosystem.models.abiotic_simple.microclimate import (
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_saturation_vapour_pressure,
 )
 

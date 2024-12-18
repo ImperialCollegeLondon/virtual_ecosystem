@@ -19,10 +19,13 @@ from virtual_ecosystem.models.abiotic import (
     energy_balance,
 )
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple import microclimate
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
+)
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
+    calculate_vapour_pressure_deficit,
+    run_simple_microclimate,
 )
 
 
@@ -39,16 +42,16 @@ class AbioticModel(
         "wind_speed_ref",
     ),
     vars_updated=(
-        # "air_temperature",
-        # "canopy_temperature",
-        # "soil_temperature",
-        # "vapour_pressure",
-        # "vapour_pressure_deficit",
+        "air_temperature",
+        "canopy_temperature",
+        "soil_temperature",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
         # "air_heat_conductivity",
         # "conductivity_from_ref_height",
         # "leaf_air_heat_conductivity",
         # "leaf_vapour_conductivity",
-        # "wind_speed",
+        "wind_speed",
         # "friction_velocity",
         # "zero_displacement_height",
         # "attenuation_coefficient",
@@ -58,30 +61,30 @@ class AbioticModel(
         # "diabatic_correction_momentum_above",
         # "diabatic_correction_heat_canopy",
         # "diabatic_correction_momentum_canopy",
-        # "sensible_heat_flux",
+        "sensible_heat_flux",
         # "sensible_heat_flux_soil",
-        # "latent_heat_flux",
+        "latent_heat_flux",
         # "latent_heat_flux_soil",
-        # "ground_heat_flux",
+        "ground_heat_flux",
         # "soil_absorption",
         # "longwave_emission_soil",
         # "molar_density_air",
         # "specific_heat_air",
     ),
     vars_required_for_update=(
-        # "air_temperature_ref",
-        # "relative_humidity_ref",
-        # "vapour_pressure_deficit_ref",
-        # "atmospheric_pressure_ref",
-        # "atmospheric_co2_ref",
-        # "wind_speed_ref",
-        # "leaf_area_index",
-        # "layer_heights",
-        # "topofcanopy_shortwave_radiation",
-        # "topofcanopy_diffuse_radiation",
-        # "topofcanopy_longwave_radiation",
-        # "stomatal_conductance",
-        # "canopy_absorption",
+        "air_temperature_ref",
+        "relative_humidity_ref",
+        "vapour_pressure_deficit_ref",
+        "atmospheric_pressure_ref",
+        "atmospheric_co2_ref",
+        "wind_speed_ref",
+        "leaf_area_index",
+        "layer_heights",
+        "topofcanopy_shortwave_radiation",
+        "topofcanopy_diffuse_radiation",
+        "topofcanopy_longwave_radiation",
+        "stomatal_conductance",
+        "canopy_absorption",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -97,9 +100,9 @@ class AbioticModel(
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "air_heat_conductivity",
-        "leaf_vapour_conductivity",
-        "leaf_air_heat_conductivity",
+        # "air_heat_conductivity",
+        # "leaf_vapour_conductivity",
+        # "leaf_air_heat_conductivity",
     ),
     vars_populated_by_first_update=(
         # "conductivity_from_ref_height",
@@ -191,7 +194,7 @@ class AbioticModel(
         self.data["soil_temperature"] = self.layer_structure.from_template()
 
         # Calculate vapour pressure deficit at reference height for all time steps
-        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
+        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
             saturation_vapour_pressure_factors=(
@@ -209,7 +212,7 @@ class AbioticModel(
         # Generate initial profiles of air temperature [C], relative humidity [-],
         # vapour pressure deficit [kPa], soil temperature [C], atmospheric pressure
         # [kPa], and atmospheric :math:`\ce{CO2}` [ppm]
-        initial_microclimate = microclimate.run_microclimate(
+        initial_microclimate = run_simple_microclimate(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=0,
