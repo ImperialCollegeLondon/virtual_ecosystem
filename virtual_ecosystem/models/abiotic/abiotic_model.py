@@ -14,10 +14,7 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic import (
-    conductivities,
-    energy_balance,
-)
+from virtual_ecosystem.models.abiotic import microclimate
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
@@ -80,9 +77,9 @@ class AbioticModel(
         "wind_speed_ref",
         "leaf_area_index",
         "layer_heights",
-        "topofcanopy_shortwave_radiation",
-        "topofcanopy_diffuse_radiation",
-        "topofcanopy_longwave_radiation",
+        # "topofcanopy_shortwave_radiation",
+        # "topofcanopy_diffuse_radiation",
+        # "topofcanopy_longwave_radiation",
         "stomatal_conductance",
         "canopy_absorption",
     ),
@@ -222,7 +219,7 @@ class AbioticModel(
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy
-        initial_canopy_and_soil = energy_balance.initialise_canopy_and_soil_fluxes(
+        initial_canopy_and_soil = microclimate.initialise_canopy_and_soil_fluxes(
             air_temperature=initial_microclimate["air_temperature"],
             topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
             leaf_area_index=self.data["leaf_area_index"],
@@ -236,28 +233,10 @@ class AbioticModel(
             ),
         )
 
-        # Generate profile of heat and vapour conductivities
-        initial_conductivities = conductivities.initialise_conductivities(
-            layer_structure=self.layer_structure,
-            layer_heights=self.data["layer_heights"],
-            initial_air_conductivity=self.model_constants.initial_air_conductivity,
-            top_leaf_vapour_conductivity=(
-                self.model_constants.top_leaf_vapour_conductivity
-            ),
-            bottom_leaf_vapour_conductivity=(
-                self.model_constants.bottom_leaf_vapour_conductivity
-            ),
-            top_leaf_air_conductivity=self.model_constants.top_leaf_air_conductivity,
-            bottom_leaf_air_conductivity=(
-                self.model_constants.bottom_leaf_air_conductivity
-            ),
-        )
-
         # Update data object
         for output_dict in (
             initial_microclimate,
             initial_canopy_and_soil,
-            initial_conductivities,
         ):
             self.data.add_from_dict(output_dict=output_dict)
 

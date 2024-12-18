@@ -125,18 +125,8 @@ subtrees:
                 title: The abiotic_constants submodule
               - file: api/models/abiotic/abiotic_tools
                 title: The abiotic_tools submodule
-              - file: api/models/abiotic/radiation
-                title: The radiation submodule
-              - file: api/models/abiotic/conductivities
-                title: The conductivities submodule
-              - file: api/models/abiotic/energy_balance
-                title: The energy_balance submodule
-              - file: api/models/abiotic/soil_energy_balance
-                title: The soil_energy_balance submodule
-              - file: api/models/abiotic/wind
-                title: The wind submodule
-              - file: api/models/abiotic/bigleaf
-                title: The bigleaf submodule
+              - file: api/models/abiotic/microclimate
+                title: The microclimate submodule
           - file: api/models/abiotic_simple
             title: The abiotic_simple model
             entries:
@@ -144,8 +134,8 @@ subtrees:
                 title: The abiotic_simple_constants submodule
               - file: api/models/abiotic_simple/abiotic_simple_model
                 title: The abiotic_simple_model submodule
-              - file: api/models/abiotic_simple/microclimate
-                title: The microclimate submodule
+              - file: api/models/abiotic_simple/microclimate_simple
+                title: The simple microclimate submodule
           - file: api/models/animal
             title: The animal model
             entries:

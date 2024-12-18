@@ -37,9 +37,6 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'sensible_heat_flux'"),
     (INFO, "Replacing data array for 'latent_heat_flux'"),
     (INFO, "Adding data array for 'ground_heat_flux'"),
-    (INFO, "Adding data array for 'air_heat_conductivity'"),
-    (INFO, "Replacing data array for 'leaf_vapour_conductivity'"),
-    (INFO, "Replacing data array for 'leaf_air_heat_conductivity'"),
 )
 
 
@@ -342,9 +339,6 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         "latent_heat_flux",
         "ground_heat_flux",
         "canopy_absorption",
-        "air_heat_conductivity",
-        "leaf_vapour_conductivity",
-        "leaf_air_heat_conductivity",
     ]:
         assert var in model.data
 
