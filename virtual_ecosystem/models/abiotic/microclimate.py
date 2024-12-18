@@ -190,7 +190,7 @@ def calculate_slope_of_saturated_pressure_curve(
 
     Args:
         temperature: Temperature, [C]
-        saturated_pressure_slope_parameters: List of parameters to calcualte
+        saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
 
     Returns:
@@ -278,6 +278,203 @@ def calculate_sensible_heat_flux(
     ) * surface_temperature - air_temperature
 
 
+def calculate_zero_plane_displacement(
+    canopy_height: NDArray[np.float32],
+    leaf_area_index: NDArray[np.float32],
+    zero_plane_scaling_parameter: float,
+) -> NDArray[np.float32]:
+    """Calculate zero plane displacement height, [m].
+
+    The zero plane displacement height is a concept used in micrometeorology to describe
+    the flow of air near the ground or over surfaces like a forest canopy or crops. It
+    represents the height above the actual ground where the wind speed is theoretically
+    reduced to zero due to the obstruction caused by the roughness elements (like trees
+    or buildings). Implementation after :cite:t:`maclean_microclimc_2021`.
+
+    Args:
+        canopy_height: Canopy height, [m]
+        leaf_area_index: Total leaf area index, [m m-1]
+        zero_plane_scaling_parameter: Control parameter for scaling d/h, dimensionless
+            :cite:p:`raupach_simplified_1994`
+
+    Returns:
+        Zero plane displacement height, [m]
+    """
+
+    # Select grid cells where vegetation is present
+    displacement = np.where(leaf_area_index > 0, leaf_area_index, np.nan)
+
+    # Calculate zero displacement height
+    scale_displacement = np.sqrt(zero_plane_scaling_parameter * displacement)
+    zero_plane_displacement = (
+        (1 - (1 - np.exp(-scale_displacement)) / scale_displacement) * canopy_height,
+    )
+
+    # No displacement in absence of vegetation
+    return np.nan_to_num(zero_plane_displacement, nan=0.0).squeeze()
+
+
+def calculate_roughness_length_momentum(
+    canopy_height: NDArray[np.float32],
+    leaf_area_index: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+    substrate_surface_drag_coefficient: float,
+    roughness_element_drag_coefficient: float,
+    roughness_sublayer_depth_parameter: float,
+    max_ratio_wind_to_friction_velocity: float,
+    min_roughness_length: float,
+    von_karman_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate roughness length governing momentum transfer, [m].
+
+    Roughness length is defined as the height at which the mean velocity is zero due to
+    substrate roughness. Real surfaces such as the ground or vegetation are not smooth
+    and often have varying degrees of roughness. Roughness length accounts for that
+    effect. Implementation after :cite:t:`maclean_microclimc_2021`.
+
+    Args:
+        canopy_height: Canopy height, [m]
+        leaf_area_index: Total leaf area index, [m m-1]
+        zero_plane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+        substrate_surface_drag_coefficient: Substrate-surface drag coefficient,
+            dimensionless
+        roughness_element_drag_coefficient: Roughness-element drag coefficient
+        roughness_sublayer_depth_parameter: Parameter that characterizes the roughness
+            sublayer depth, dimensionless
+        max_ratio_wind_to_friction_velocity: Maximum ratio of wind velocity to friction
+            velocity, dimensionless
+        min_roughness_length: Minimum roughness length, [m]
+        von_karman_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        Momentum roughness length, [m]
+    """
+
+    # Calculate ratio of wind velocity to friction velocity
+    ratio_wind_to_friction_velocity = np.sqrt(
+        substrate_surface_drag_coefficient
+        + (roughness_element_drag_coefficient * leaf_area_index) / 2
+    )
+
+    # If the ratio of wind velocity to friction velocity is larger than the set maximum,
+    # set the value to set maximum
+    set_maximum_ratio = np.where(
+        ratio_wind_to_friction_velocity > max_ratio_wind_to_friction_velocity,
+        max_ratio_wind_to_friction_velocity,
+        ratio_wind_to_friction_velocity,
+    )
+
+    # Calculate initial roughness length
+    initial_roughness_length = (canopy_height - zero_plane_displacement) * np.exp(
+        -von_karman_constant * (1 / set_maximum_ratio)
+        - roughness_sublayer_depth_parameter
+    )
+
+    # If roughness smaller than the substrate surface drag coefficient, set to value to
+    # the substrate surface drag coefficient
+    roughness_length = np.where(
+        initial_roughness_length < substrate_surface_drag_coefficient,
+        substrate_surface_drag_coefficient,
+        initial_roughness_length,
+    )
+
+    # If roughness length in nan, zero or below sero, set to minimum value
+    roughness_length = np.nan_to_num(roughness_length, nan=min_roughness_length)
+    return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
+
+
+def calculate_wind_profile_below_canopy(
+    reference_wind_speed: NDArray[np.float32],
+    reference_height: float,
+    wind_heights: NDArray[np.float32],
+    roughness_length: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate wind speed profile, [m s-1].
+
+    Args:
+        reference_wind_speed: Reference wind speed above the canopy, [m s-1].
+        reference_height: Reference height above the canopy, [m].
+        wind_heights: Heights where wind speed is to be calculated, [m].
+        roughness_length: Momentum roughness length, [m]
+        zero_plane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+
+    Returns:
+        Wind speed, [m s-1]
+    """
+
+    # Ensure that heights are greater than roughness length and zero_plane_displacement
+    # to avoid division by zero or negative logarithm
+    heights = np.maximum(wind_heights, roughness_length + 1e-5)
+    heights = np.maximum(wind_heights, zero_plane_displacement + 1e-5)
+
+    return (
+        reference_wind_speed
+        * np.log((heights - zero_plane_displacement) / roughness_length)
+        / np.log((reference_height - zero_plane_displacement) / roughness_length)
+    )
+
+
+def calculate_friction_velocity(
+    reference_wind_speed: NDArray[np.float32],
+    reference_height: float,
+    roughness_length: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+    von_karman_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate friction velocity, [m s-1].
+
+    Args:
+        reference_wind_speed: Reference wind speed above the canopy [m s-1].
+        reference_height: Reference height above the canopy, [m].
+        roughness_length: Momentum roughness length, [m]
+        zero_plane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+        von_karman_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        Friction velocity, [m s-1].
+    """
+
+    return (von_karman_constant * reference_wind_speed) / np.log(
+        (reference_height - zero_plane_displacement) / roughness_length
+    )
+
+
+def calculate_aerodynamic_resistance(
+    wind_heights: NDArray[np.float32],
+    roughness_length: NDArray[np.float32],
+    zero_plane_displacement: NDArray[np.float32],
+    friction_velocity: NDArray[np.float32],
+    von_karman_constant: float,
+) -> NDArray[np.float32]:
+    """Calculate aerodynamic resistance, [s m-1].
+
+    Args:
+        wind_heights: Heights below the canopy where wind speed is to be calculated [m].
+        roughness_length: Momentum roughness length, [m]
+        zero_plane_displacement: Height above ground within the canopy where the wind
+            profile extrapolates to zero, [m]
+        friction_velocity: Friction velocity [m s-1]
+        von_karman_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        aerodynamic resistance, [s m-1]
+    """
+
+    return np.log((wind_heights - zero_plane_displacement) / roughness_length) / (
+        von_karman_constant * friction_velocity
+    )
+
+
 def run_microclimate(
     data: Data,
     time_index: int,
@@ -324,19 +521,82 @@ def run_microclimate(
         standard_pressure=core_constants.standard_pressure,
         celsius_to_kelvin=core_constants.zero_Celsius,
     )
+    output["molar_density_air"] = DataArray(molar_density_air, dims="cell_id")
     specific_heat_air = abiotic_tools.calculate_specific_heat_air(
         temperature=data["air_temperature"].mean(dim="layers").to_numpy(),
         molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
         specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
     )
+    output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")
 
-    # TODO Wind speed profile, [m s-1]
     #   Zero plane displacement, [m]
+    canopy_height = data["layer_heights"][1].to_numpy()
+    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers").to_numpy()
+    zero_plane_displacement = calculate_zero_plane_displacement(
+        canopy_height=canopy_height,
+        leaf_area_index=leaf_area_index_sum,
+        zero_plane_scaling_parameter=abiotic_constants.zero_plane_scaling_parameter,
+    )
+
     #   Roughness length, [m]
+    roughness_length = calculate_roughness_length_momentum(
+        canopy_height=canopy_height,
+        leaf_area_index=leaf_area_index_sum,
+        zero_plane_displacement=zero_plane_displacement,
+        substrate_surface_drag_coefficient=(
+            abiotic_constants.substrate_surface_drag_coefficient
+        ),
+        roughness_element_drag_coefficient=(
+            abiotic_constants.roughness_element_drag_coefficient
+        ),
+        roughness_sublayer_depth_parameter=(
+            abiotic_constants.roughness_sublayer_depth_parameter
+        ),
+        max_ratio_wind_to_friction_velocity=(
+            abiotic_constants.max_ratio_wind_to_friction_velocity
+        ),
+        min_roughness_length=abiotic_constants.min_roughness_length,
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
+
     #   Wind speed, [m s-1]
+    wind_profile = calculate_wind_profile_below_canopy(
+        reference_wind_speed=data["wind_speed_ref"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        reference_height=abiotic_constants.wind_reference_height,
+        wind_heights=data["layer_heights"][
+            layer_structure.index_filled_atmosphere
+        ].to_numpy(),
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+    )
+    wind_speed = layer_structure.from_template()
+    wind_speed[layer_structure.index_filled_atmosphere] = wind_profile
+    output["wind_speed"] = wind_speed
+
     #   Friction velocity, [m s-1]
-    #   Aerodynamic resistance: ra=ln((z-d)/z0)/karman *u(z)
+    # friction_velocity = calculate_friction_velocity(
+    #     reference_wind_speed=data["wind_speed_ref"]
+    #     .isel(time_index=time_index)
+    #     .to_numpy(),
+    #     reference_height=abiotic_constants.wind_reference_height,
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+
+    #   TODO Aerodynamic resistance canopy, [s m-1]
     aerodynamic_resistance_canopy = 100.0
+    # aerodynamic_resistance_canopy = calculate_aerodynamic_resistance(
+    #     wind_heights=data["layer_heights"].to_numpy(),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     friction_velocity=friction_velocity,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+
+    #   TODO  Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = 100.0
 
     # Longwave emission from canopy, [W m-2]
@@ -374,11 +634,12 @@ def run_microclimate(
     )
 
     # Net radiation topsoil, [W m-2]
+    absorbed_radiation_sum = np.nansum(data["absorbed_radiation"].to_numpy(), axis=0)
     net_radiation_soil = calculate_net_radiation(
         incoming_radiation=data["topofcanopy_radiation"]
         .isel(time_index=time_index)
         .to_numpy(),
-        absorbed_radiation=data["absorbed_radiation"].sum(dim="layers").to_numpy(),
+        absorbed_radiation=absorbed_radiation_sum,
         longwave_emission=longwave_emission_soil[layer_structure.index_topsoil_scalar],
         albedo=abiotic_constants.surface_albedo,
     )
@@ -420,9 +681,18 @@ def run_microclimate(
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
     output["sensible_heat_flux"] = sensible_heat_flux
 
-    # Latent heat flux
-    #   Latent heat vapourisation
-    #   Specific humidity
+    #   Latent heat of vapourisation, [kJ kg-1]
+    # latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
+    #     temperature=data["air_temperature"].to_numpy(),
+    #     celsius_to_kelvin=core_constants.zero_Celsius,
+    #     latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
+    # )
+
+    # Latent heat flux canopy, [W m-2]
+    # TODO cross-check with plant model
+
+    # Latent heat flux topsoil, [W m-2]
+    # TODO cross-check with hydrology model
 
     # Ground heat flux
 

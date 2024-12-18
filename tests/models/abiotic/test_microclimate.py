@@ -173,6 +173,50 @@ def test_calculate_net_radiation(
     np.testing.assert_allclose(result, expected, rtol=1e-5)
 
 
+def test_calculate_zero_plane_displacement(dummy_climate_data):
+    """Test if calculated correctly and set to zero without vegetation."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        calculate_zero_plane_displacement,
+    )
+
+    result = calculate_zero_plane_displacement(
+        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
+        zero_plane_scaling_parameter=7.5,
+    )
+
+    np.testing.assert_allclose(result, np.array([0.0, 0.0, 25.86256, 25.86256]))
+
+
+def test_calculate_roughness_length_momentum(dummy_climate_data):
+    """Test roughness length governing momentum transfer."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        calculate_roughness_length_momentum,
+    )
+
+    result = calculate_roughness_length_momentum(
+        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
+        zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
+        substrate_surface_drag_coefficient=0.003,
+        roughness_element_drag_coefficient=0.3,
+        roughness_sublayer_depth_parameter=0.193,
+        max_ratio_wind_to_friction_velocity=0.3,
+        von_karman_constant=0.4,
+        min_roughness_length=0.01,
+    )
+
+    np.testing.assert_allclose(
+        result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
+    )
+
+
+# TODO test wind_speed, friction velocity, aerodynamic resistance
+
+
+# Test integration (TODO add structural and value range check)
 def test_run_microclimate(dummy_climate_data, fixture_core_components):
     """Test microclimate function."""
 
