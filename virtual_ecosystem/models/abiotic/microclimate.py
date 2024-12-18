@@ -330,14 +330,23 @@ def run_microclimate(
         specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
     )
 
-    # Calculate longwave emission from canopy
+    # TODO Wind speed profile, [m s-1]
+    #   Zero plane displacement, [m]
+    #   Roughness length, [m]
+    #   Wind speed, [m s-1]
+    #   Friction velocity, [m s-1]
+    #   Aerodynamic resistance: ra=ln((z-d)/z0)/karman *u(z)
+    aerodynamic_resistance_canopy = 100.0
+    aerodynamic_resistance_soil = 100.0
+
+    # Longwave emission from canopy, [W m-2]
     longwave_emission_canopy = calculate_longwave_emission(
         temperature=data["canopy_temperature"].to_numpy() + core_constants.zero_Celsius,
         emissivity=abiotic_constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
-    # Calculate longwave emission from soil
+    # Longwave emission from soil, [W m-2]
     longwave_emission_soil = calculate_longwave_emission(
         temperature=data["soil_temperature"].to_numpy() + core_constants.zero_Celsius,
         emissivity=abiotic_constants.leaf_emissivity,
@@ -354,7 +363,7 @@ def run_microclimate(
     ]
     output["longwave_emission"] = longwave_emission
 
-    # Net radiation canopy
+    # Net radiation canopy, [W m-2]
     net_radiation_canopy = calculate_net_radiation(
         incoming_radiation=data["topofcanopy_radiation"]
         .isel(time_index=time_index)
@@ -363,7 +372,8 @@ def run_microclimate(
         longwave_emission=longwave_emission_canopy,
         albedo=abiotic_constants.leaf_albedo,
     )
-    # net radiation soil
+
+    # Net radiation topsoil, [W m-2]
     net_radiation_soil = calculate_net_radiation(
         incoming_radiation=data["topofcanopy_radiation"]
         .isel(time_index=time_index)
@@ -372,6 +382,7 @@ def run_microclimate(
         longwave_emission=longwave_emission_soil[layer_structure.index_topsoil_scalar],
         albedo=abiotic_constants.surface_albedo,
     )
+
     # Combine net radiation in one variable
     net_radiation = layer_structure.from_template()
     net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy[
@@ -379,10 +390,7 @@ def run_microclimate(
     ]
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
 
-    #  TODO ra=ln((z-d)/z0)/karman *u(z)
-    aerodynamic_resistance_canopy = 100.0
-    aerodynamic_resistance_soil = 100.0
-
+    #  Sensible heat flux from canopy layers, [W m-2]
     sensible_heat_flux_canopy = calculate_sensible_heat_flux(
         molar_density_air=molar_density_air,
         specific_heat_air=specific_heat_air,
@@ -391,6 +399,7 @@ def run_microclimate(
         aerodynamic_resistance=aerodynamic_resistance_canopy,
     )
 
+    #  Sensible heat flux from topsoil, [W m-2]
     sensible_heat_flux_soil = calculate_sensible_heat_flux(
         molar_density_air=molar_density_air,
         specific_heat_air=specific_heat_air,
@@ -411,14 +420,14 @@ def run_microclimate(
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
     output["sensible_heat_flux"] = sensible_heat_flux
 
-    #  TODO
-    # wind speed
-    # aerodynamic_resistance
-    # latent heat flux
-    #   latent heat vapourisation
-    #   specific humidity
-    #  Ground heat flux
-    #  Update air/canopy/soil temperatures
-    #  Update humidity/VPD
+    # Latent heat flux
+    #   Latent heat vapourisation
+    #   Specific humidity
+
+    # Ground heat flux
+
+    # Update air/canopy/soil temperatures
+
+    # Update humidity/VPD
 
     return output
