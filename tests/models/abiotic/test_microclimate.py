@@ -199,3 +199,13 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         rtol=1e-04,
         atol=1e-04,
     )
+    exp_sens_heat = lyr_str.from_template()
+    exp_sens_heat[lyr_str.index_flux_layers] = np.array(
+        [251.779542, 252.753367, 254.418132, 209.153685]
+    )[:, None]
+    np.testing.assert_allclose(
+        result["sensible_heat_flux"],
+        exp_sens_heat,
+        rtol=1e-04,
+        atol=1e-04,
+    )

@@ -9,6 +9,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
@@ -239,7 +240,7 @@ def calculate_net_radiation(
     longwave_emission: NDArray[np.float32],
     albedo: float,
 ) -> NDArray[np.float32]:
-    """Calcualte net radiation.
+    """Calculate net radiation, [W m-2].
 
     Args:
         incoming_radiation: Incoming radiation, [W m-2]
@@ -251,6 +252,30 @@ def calculate_net_radiation(
         net radiation, [W m-2]
     """
     return incoming_radiation * (1 - albedo) - absorbed_radiation - longwave_emission
+
+
+def calculate_sensible_heat_flux(
+    molar_density_air: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    surface_temperature: NDArray[np.float32],
+    aerodynamic_resistance: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate sensible heat flux, [W m-2].
+
+    Args:
+        molar_density_air: Molar density of air, [mole m-3]
+        specific_heat_air: Specific heat of air, [J kg-1 K-1]
+        air_temperature: Air temperature, [C]
+        surface_temperature: Surface temperature (canopy or soil), [C]
+        aerodynamic_resistance: Aerodynamic resistance, [-]
+
+    Returns:
+        sensible heat flux, [W m-2]
+    """
+    return (
+        molar_density_air * specific_heat_air / aerodynamic_resistance
+    ) * surface_temperature - air_temperature
 
 
 def run_microclimate(
@@ -288,6 +313,22 @@ def run_microclimate(
     output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
         "atmospheric_co2_ref"
     ].isel(time_index=time_index)
+
+    #  Calculate atmospheric background variables
+    molar_density_air = abiotic_tools.calculate_molar_density_air(
+        temperature=data["air_temperature"].mean(dim="layers").to_numpy(),
+        atmospheric_pressure=(
+            data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
+        ),
+        standard_mole=core_constants.standard_mole,
+        standard_pressure=core_constants.standard_pressure,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+    )
+    specific_heat_air = abiotic_tools.calculate_specific_heat_air(
+        temperature=data["air_temperature"].mean(dim="layers").to_numpy(),
+        molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
+        specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
+    )
 
     # Calculate longwave emission from canopy
     longwave_emission_canopy = calculate_longwave_emission(
@@ -338,12 +379,41 @@ def run_microclimate(
     ]
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
 
+    #  TODO ra=ln((z-d)/z0)/karman *u(z)
+    aerodynamic_resistance_canopy = 100.0
+    aerodynamic_resistance_soil = 100.0
+
+    sensible_heat_flux_canopy = calculate_sensible_heat_flux(
+        molar_density_air=molar_density_air,
+        specific_heat_air=specific_heat_air,
+        air_temperature=data["air_temperature"].to_numpy(),
+        surface_temperature=data["canopy_temperature"].to_numpy(),
+        aerodynamic_resistance=aerodynamic_resistance_canopy,
+    )
+
+    sensible_heat_flux_soil = calculate_sensible_heat_flux(
+        molar_density_air=molar_density_air,
+        specific_heat_air=specific_heat_air,
+        air_temperature=data["air_temperature"][
+            layer_structure.index_topsoil_scalar - 1
+        ].to_numpy(),
+        surface_temperature=data["soil_temperature"][
+            layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        aerodynamic_resistance=aerodynamic_resistance_soil,
+    )
+
+    # Combine sensible heat flux in one variable
+    sensible_heat_flux = layer_structure.from_template()
+    sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy[
+        layer_structure.index_filled_canopy
+    ]
+    sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
+    output["sensible_heat_flux"] = sensible_heat_flux
+
     #  TODO
     # wind speed
-    # sensible heat flux
-    #       molar_density_air
-    #       specific_heat_air
-    #       aerodynamic_resistance
+    # aerodynamic_resistance
     # latent heat flux
     #   latent heat vapourisation
     #   specific humidity
