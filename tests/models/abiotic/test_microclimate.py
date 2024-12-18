@@ -1,6 +1,7 @@
 """Test microclimate.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -129,6 +130,49 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
+@pytest.mark.parametrize(
+    "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
+    [
+        # Test case 1: Typical inputs
+        (
+            np.array([400.0, 500.0, 600.0], dtype=np.float32),
+            np.array([100.0, 150.0, 200.0], dtype=np.float32),
+            np.array([50.0, 75.0, 100.0], dtype=np.float32),
+            0.2,
+            np.array([170.0, 175.0, 180.0], dtype=np.float32),
+        ),
+        # Test case 2: Edge case with zero values
+        (
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            0.0,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+        ),
+        # Test case 3: Nighttime condition with negative incoming radiation
+        (
+            np.array([-200.0, -150.0, -100.0], dtype=np.float32),
+            np.array([50.0, 75.0, 100.0], dtype=np.float32),
+            np.array([20.0, 30.0, 40.0], dtype=np.float32),
+            0.1,
+            np.array([-250.0, -240.0, -230.0], dtype=np.float32),
+        ),
+    ],
+)
+def test_calculate_net_radiation(
+    incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected
+):
+    """Test net radiation."""
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        calculate_net_radiation,
+    )
+
+    result = calculate_net_radiation(
+        incoming_radiation, absorbed_radiation, longwave_emission, albedo
+    )
+    np.testing.assert_allclose(result, expected, rtol=1e-5)
+
+
 def test_run_microclimate(dummy_climate_data, fixture_core_components):
     """Test microclimate function."""
 
@@ -139,6 +183,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     lyr_str = fixture_core_components.layer_structure
     result = run_microclimate(
         data=dummy_climate_data,
+        time_index=0,
         layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
@@ -146,11 +191,11 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_longwave_emission = lyr_str.from_template()
     exp_longwave_emission[lyr_str.index_flux_layers] = np.array(
-        [358.460229, 358.460229, 358.460229, 335.012736]
+        [434.633028, 434.633028, 434.633028, 406.202942]
     )[:, None]
     np.testing.assert_allclose(
-        result["longwave_emission"][12],
-        exp_longwave_emission[12],
+        result["longwave_emission"],
+        exp_longwave_emission,
         rtol=1e-04,
         atol=1e-04,
     )

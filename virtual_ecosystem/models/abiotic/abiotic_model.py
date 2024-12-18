@@ -234,6 +234,7 @@ class AbioticModel(
         # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
+            time_index=time_index,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,

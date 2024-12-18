@@ -233,8 +233,29 @@ def calculate_longwave_emission(
     return emissivity * stefan_boltzmann * temperature**4
 
 
+def calculate_net_radiation(
+    incoming_radiation: NDArray[np.float32],
+    absorbed_radiation: NDArray[np.float32],
+    longwave_emission: NDArray[np.float32],
+    albedo: float,
+) -> NDArray[np.float32]:
+    """Calcualte net radiation.
+
+    Args:
+        incoming_radiation: Incoming radiation, [W m-2]
+        absorbed_radiation: Absorbed radiation, [W m-2]
+        longwave_emission: Longwave emission, [W m-2]
+        albedo: Albedo, [-]
+
+    Returns:
+        net radiation, [W m-2]
+    """
+    return incoming_radiation * (1 - albedo) - absorbed_radiation - longwave_emission
+
+
 def run_microclimate(
     data: Data,
+    time_index: int,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
     core_constants: CoreConsts,
@@ -243,6 +264,7 @@ def run_microclimate(
 
     Args:
         data: Data object
+        time_index: Time index
         layer_structure: layer structure object
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
@@ -252,6 +274,20 @@ def run_microclimate(
     """
 
     output = {}
+
+    # Mean atmospheric pressure profile, [kPa]
+    # TODO: this should only be filled for filled/true above ground layers
+    output["atmospheric_pressure"] = layer_structure.from_template()
+    output["atmospheric_pressure"][layer_structure.index_atmosphere] = data[
+        "atmospheric_pressure_ref"
+    ].isel(time_index=time_index)
+
+    # Mean atmospheric C02 profile, [ppm]
+    # TODO: this should only be filled for filled/true above ground layers
+    output["atmospheric_co2"] = layer_structure.from_template()
+    output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
+        "atmospheric_co2_ref"
+    ].isel(time_index=time_index)
 
     # Calculate longwave emission from canopy
     longwave_emission_canopy = calculate_longwave_emission(
@@ -267,7 +303,7 @@ def run_microclimate(
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
-    # Combine in one variable
+    # Combine longwave emission in one variable
     longwave_emission = layer_structure.from_template()
     longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy[
         layer_structure.index_filled_canopy
@@ -277,9 +313,32 @@ def run_microclimate(
     ]
     output["longwave_emission"] = longwave_emission
 
+    # Net radiation canopy
+    net_radiation_canopy = calculate_net_radiation(
+        incoming_radiation=data["topofcanopy_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        absorbed_radiation=data["absorbed_radiation"].to_numpy(),
+        longwave_emission=longwave_emission_canopy,
+        albedo=abiotic_constants.leaf_albedo,
+    )
+    # net radiation soil
+    net_radiation_soil = calculate_net_radiation(
+        incoming_radiation=data["topofcanopy_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        absorbed_radiation=data["absorbed_radiation"].sum(dim="layers").to_numpy(),
+        longwave_emission=longwave_emission_soil[layer_structure.index_topsoil_scalar],
+        albedo=abiotic_constants.surface_albedo,
+    )
+    # Combine net radiation in one variable
+    net_radiation = layer_structure.from_template()
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy[
+        layer_structure.index_filled_canopy
+    ]
+    net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
+
     #  TODO
-    # update pressure and CO2 profiles
-    # net radiation for canopy layers and soil
     # wind speed
     # sensible heat flux
     #       molar_density_air

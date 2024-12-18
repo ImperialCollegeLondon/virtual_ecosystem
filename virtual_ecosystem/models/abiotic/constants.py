@@ -16,7 +16,8 @@ class AbioticConsts(ConstantsDataclass):
 
     leaf_inclination_angle_coefficient: float = 1.0
     """Leaf inclination coefficient."""
-
+    leaf_albedo: float = 0.4
+    """Leaf albedo."""
     leaf_orientation_coefficient: float = 0.7
     """Leaf orientation coefficient."""
     clumping_factor: float = 0.1
