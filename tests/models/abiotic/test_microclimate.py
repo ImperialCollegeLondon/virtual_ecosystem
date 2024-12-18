@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
@@ -111,3 +112,45 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.full((3, 4), 0.001))
         np.testing.assert_allclose(result[var][12].to_numpy(), np.repeat(0.001, 4))
+
+
+def test_calculate_longwave_emission():
+    """Test that longwave radiation is calculated correctly."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        calculate_longwave_emission,
+    )
+
+    result = calculate_longwave_emission(
+        temperature=np.repeat(290.0, 3),
+        emissivity=AbioticConsts.soil_emissivity,
+        stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
+    )
+    np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
+
+
+def test_run_microclimate(dummy_climate_data, fixture_core_components):
+    """Test microclimate function."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        run_microclimate,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    result = run_microclimate(
+        data=dummy_climate_data,
+        layer_structure=lyr_str,
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
+    )
+
+    exp_longwave_emission = lyr_str.from_template()
+    exp_longwave_emission[lyr_str.index_flux_layers] = np.array(
+        [358.460229, 358.460229, 358.460229, 335.012736]
+    )[:, None]
+    np.testing.assert_allclose(
+        result["longwave_emission"][12],
+        exp_longwave_emission[12],
+        rtol=1e-04,
+        atol=1e-04,
+    )

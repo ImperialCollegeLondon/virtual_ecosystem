@@ -14,8 +14,11 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic import microclimate
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.microclimate import (
+    initialise_canopy_and_soil_fluxes,
+    run_microclimate,
+)
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
@@ -77,9 +80,7 @@ class AbioticModel(
         "wind_speed_ref",
         "leaf_area_index",
         "layer_heights",
-        # "topofcanopy_shortwave_radiation",
-        # "topofcanopy_diffuse_radiation",
-        # "topofcanopy_longwave_radiation",
+        "topofcanopy_radiation",
         "stomatal_conductance",
         "canopy_absorption",
     ),
@@ -97,30 +98,8 @@ class AbioticModel(
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        # "air_heat_conductivity",
-        # "leaf_vapour_conductivity",
-        # "leaf_air_heat_conductivity",
     ),
-    vars_populated_by_first_update=(
-        # "conductivity_from_ref_height",
-        # "vapour_pressure",
-        # "wind_speed",
-        # "friction_velocity",
-        # "zero_displacement_height",
-        # "attenuation_coefficient",
-        # "mean_mixing_length",
-        # "relative_turbulence_intensity",
-        # "diabatic_correction_heat_above",
-        # "diabatic_correction_momentum_above",
-        # "diabatic_correction_heat_canopy",
-        # "diabatic_correction_momentum_canopy",
-        # "sensible_heat_flux_soil",
-        # "latent_heat_flux_soil",
-        # "soil_absorption",
-        # "longwave_emission_soil",
-        # "molar_density_air",
-        # "specific_heat_air",
-    ),
+    vars_populated_by_first_update=("longwave_emission",),
 ):
     """A class describing the abiotic model.
 
@@ -219,7 +198,7 @@ class AbioticModel(
 
         # Generate initial profiles of canopy temperature and heat fluxes from soil and
         # canopy
-        initial_canopy_and_soil = microclimate.initialise_canopy_and_soil_fluxes(
+        initial_canopy_and_soil = initialise_canopy_and_soil_fluxes(
             air_temperature=initial_microclimate["air_temperature"],
             topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
             leaf_area_index=self.data["leaf_area_index"],
@@ -252,6 +231,15 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+        # Run microclimate model
+        update_dict = run_microclimate(
+            data=self.data,
+            layer_structure=self.layer_structure,
+            abiotic_constants=self.model_constants,
+            core_constants=self.core_constants,
+        )
+
+        self.data.add_from_dict(output_dict=update_dict)
 
         # # TODO This selection of layers should be included in LayerStructure at the
         # # start of the simulation and updated at each time step (except topsoil index)

@@ -1,4 +1,4 @@
-"""The microclimate module contains the euqations to solve the radiation and energy
+"""The microclimate module contains the equations to solve the radiation and energy
 balance in the Virtual Ecosystem.
 """  # noqa: D205
 
@@ -6,7 +6,10 @@ import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def initialise_absorbed_radiation(
@@ -205,3 +208,88 @@ def calculate_slope_of_saturated_pressure_curve(
         )
         / (temperature + saturated_pressure_slope_parameters[3]) ** 2
     )
+
+
+def calculate_longwave_emission(
+    temperature: NDArray[np.float32],
+    emissivity: float | NDArray[np.float32],
+    stefan_boltzmann: float,
+) -> NDArray[np.float32]:
+    """Calculate longwave emission using the Stefan Boltzmann law, [W m-2].
+
+    According to the Stefan Boltzmann law, the amount of radiation emitted per unit time
+    from the area of a black body at absolute temperature is directly proportional to
+    the fourth power of the temperature. Emissivity (which is equal to absorptive power)
+    lies between 0 to 1.
+
+    Args:
+        temperature: Temperature, [K]
+        emissivity: Emissivity, dimensionless
+        stefan_boltzmann: Stefan Boltzmann constant, [W m-2 K-4]
+
+    Returns:
+        Longwave emission, [W m-2]
+    """
+    return emissivity * stefan_boltzmann * temperature**4
+
+
+def run_microclimate(
+    data: Data,
+    layer_structure: LayerStructure,
+    abiotic_constants: AbioticConsts,
+    core_constants: CoreConsts,
+) -> dict[str, DataArray]:
+    """Run microclimate model.
+
+    Args:
+        data: Data object
+        layer_structure: layer structure object
+        abiotic_constants: Set of constants for abiotic model
+        core_constants: Set of constants that are shared across all models
+
+    Returns:
+        dictionary with updated microclimate variables
+    """
+
+    output = {}
+
+    # Calculate longwave emission from canopy
+    longwave_emission_canopy = calculate_longwave_emission(
+        temperature=data["canopy_temperature"].to_numpy() + core_constants.zero_Celsius,
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+
+    # Calculate longwave emission from soil
+    longwave_emission_soil = calculate_longwave_emission(
+        temperature=data["soil_temperature"].to_numpy() + core_constants.zero_Celsius,
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+
+    # Combine in one variable
+    longwave_emission = layer_structure.from_template()
+    longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy[
+        layer_structure.index_filled_canopy
+    ]
+    longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil[
+        layer_structure.index_topsoil_scalar
+    ]
+    output["longwave_emission"] = longwave_emission
+
+    #  TODO
+    # update pressure and CO2 profiles
+    # net radiation for canopy layers and soil
+    # wind speed
+    # sensible heat flux
+    #       molar_density_air
+    #       specific_heat_air
+    #       aerodynamic_resistance
+    # latent heat flux
+    #   latent heat vapourisation
+    #   specific humidity
+    #  Ground heat flux
+    #  Update air/canopy/soil temperatures
+    #  Update humidity/VPD
+
+    return output

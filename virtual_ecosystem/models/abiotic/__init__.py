@@ -20,7 +20,7 @@ Each of the abiotic sub-modules has its own API reference page:
   radiation and energy balance of the Virtual Ecosystem. The module returns vertical
   profiles of air temperature, relative humidity, vapour pressure deficit, soil
   temperature, and wind speed as well as the partitioned energy fluxes. The model also
-  provides vertical profiles of atmospheric pressure and CO2.
+  provides vertical profiles of atmospheric pressure and :math:`\ce{CO_{2}}`.
 """  # noqa: D205
 
 from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel  # noqa: F401

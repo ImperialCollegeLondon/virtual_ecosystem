@@ -65,7 +65,7 @@ The [abiotic_simple](../../api/models/abiotic_simple.md) model is a one-column m
 that operates on a grid cell basis and does not consider horizontal exchange of energy,
 atmospheric water, and momentum. The model uses linear regressions from
 {cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
-atmospheric temperature, relative humidity, eind speed, and vapour pressure deficit
+atmospheric temperature, relative humidity, wind speed, and vapour pressure deficit
 at ground level (1.5 m) given the above canopy conditions and leaf area index of
 intervening canopy. A vertical profile across all atmospheric layers is then
 interpolated using a logarithmic curve between the above canopy observation and ground
