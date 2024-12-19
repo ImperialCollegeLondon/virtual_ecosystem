@@ -213,7 +213,87 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
     )
 
 
-# TODO test wind_speed, friction velocity, aerodynamic resistance
+def test_calculate_wind_profile(dummy_climate_data, fixture_core_components):
+    """Test calculate wind profile."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import calculate_wind_profile
+
+    lyr_str = fixture_core_components.layer_structure
+
+    result = calculate_wind_profile(
+        reference_wind_speed=dummy_climate_data["wind_speed_ref"]
+        .isel(time_index=0)
+        .to_numpy(),
+        reference_height=dummy_climate_data["layer_heights"][0].to_numpy() + 10.0,
+        wind_heights=dummy_climate_data["layer_heights"][
+            lyr_str.index_filled_atmosphere
+        ].to_numpy(),
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0, 10, 25, 25]),
+        min_wind_speed=0.001,
+    )
+
+    exp_wind = np.array(
+        [
+            [0.944971, 0.919761, 0.780217, 0.780217],
+            [0.931911, 0.899351, 0.696874, 0.696874],
+            [0.84986, 0.750916, 0.001, 0.001],
+            [0.709594, 0.001, 0.001, 0.001],
+            [0.001, 0.001, 0.001, 0.001],
+        ]
+    )
+
+    np.testing.assert_allclose(result, exp_wind, rtol=1e-3, atol=1e-3)
+
+
+def test_calculate_friction_velocity(dummy_climate_data):
+    """Test calculating friction velocity."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        calculate_friction_velocity,
+    )
+
+    result = calculate_friction_velocity(
+        reference_wind_speed=dummy_climate_data["wind_speed_ref"]
+        .isel(time_index=0)
+        .to_numpy(),
+        reference_height=dummy_climate_data["layer_heights"][0].to_numpy() + 10.0,
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0, 10, 25, 25]),
+        von_karman_constant=0.4,
+    )
+    exp_friction_velocity = np.array([0.080945, 0.085658, 0.099079, 0.099079])
+    np.testing.assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
+
+
+def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_components):
+    """Test calculate aerodynamic resistance."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        calculate_aerodynamic_resistance,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+
+    result = calculate_aerodynamic_resistance(
+        wind_heights=dummy_climate_data["layer_heights"][
+            lyr_str.index_filled_atmosphere
+        ],
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0, 10, 25, 25]),
+        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
+        von_karman_constant=0.4,
+    )
+    exp_ra = np.array(
+        [
+            [144.126812, 124.855095, 79.542499, 79.542499],
+            [142.134882, 122.08445, 71.045725, 71.045725],
+            [129.620527, 101.934823, np.nan, np.nan],
+            [108.227096, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+        ]
+    )
+    np.testing.assert_allclose(result[4], exp_ra[4], rtol=1e-3, atol=1e-3)
 
 
 # Test integration (TODO add structural and value range check)
@@ -243,6 +323,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         rtol=1e-04,
         atol=1e-04,
     )
+
     exp_sens_heat = lyr_str.from_template()
     exp_sens_heat[lyr_str.index_flux_layers] = np.array(
         [251.779542, 252.753367, 254.418132, 209.153685]
@@ -250,6 +331,17 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     np.testing.assert_allclose(
         result["sensible_heat_flux"],
         exp_sens_heat,
+        rtol=1e-04,
+        atol=1e-04,
+    )
+
+    exp_wind = lyr_str.from_template()
+    exp_wind[lyr_str.index_filled_atmosphere] = np.array(
+        [0.694646, 0.587985, 0.001, 0.001, 0.001]
+    )[:, None]
+    np.testing.assert_allclose(
+        result["wind_speed"],
+        exp_wind,
         rtol=1e-04,
         atol=1e-04,
     )

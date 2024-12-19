@@ -386,12 +386,13 @@ def calculate_roughness_length_momentum(
     return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
 
 
-def calculate_wind_profile_below_canopy(
+def calculate_wind_profile(
     reference_wind_speed: NDArray[np.float32],
-    reference_height: float,
+    reference_height: float | NDArray[np.float32],
     wind_heights: NDArray[np.float32],
     roughness_length: NDArray[np.float32],
     zero_plane_displacement: NDArray[np.float32],
+    min_wind_speed: float,
 ) -> NDArray[np.float32]:
     """Calculate wind speed profile, [m s-1].
 
@@ -402,6 +403,7 @@ def calculate_wind_profile_below_canopy(
         roughness_length: Momentum roughness length, [m]
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
+        min_wind_speed: Minimum wind speed, [m s-1]
 
     Returns:
         Wind speed, [m s-1]
@@ -412,16 +414,17 @@ def calculate_wind_profile_below_canopy(
     heights = np.maximum(wind_heights, roughness_length + 1e-5)
     heights = np.maximum(wind_heights, zero_plane_displacement + 1e-5)
 
-    return (
+    wind_speed = (
         reference_wind_speed
         * np.log((heights - zero_plane_displacement) / roughness_length)
         / np.log((reference_height - zero_plane_displacement) / roughness_length)
     )
+    return np.where(wind_speed >= 0, wind_speed, min_wind_speed)
 
 
 def calculate_friction_velocity(
     reference_wind_speed: NDArray[np.float32],
-    reference_height: float,
+    reference_height: NDArray[np.float32],
     roughness_length: NDArray[np.float32],
     zero_plane_displacement: NDArray[np.float32],
     von_karman_constant: float,
@@ -470,8 +473,11 @@ def calculate_aerodynamic_resistance(
         aerodynamic resistance, [s m-1]
     """
 
-    return np.log((wind_heights - zero_plane_displacement) / roughness_length) / (
-        von_karman_constant * friction_velocity
+    aero_resistance = np.log(
+        (wind_heights - zero_plane_displacement) / roughness_length
+    ) / (von_karman_constant * friction_velocity)
+    return np.where(
+        np.isinf(aero_resistance) | (aero_resistance <= 0), np.nan, aero_resistance
     )
 
 
@@ -560,16 +566,20 @@ def run_microclimate(
     )
 
     #   Wind speed, [m s-1]
-    wind_profile = calculate_wind_profile_below_canopy(
+    wind_profile = calculate_wind_profile(
         reference_wind_speed=data["wind_speed_ref"]
         .isel(time_index=time_index)
         .to_numpy(),
-        reference_height=abiotic_constants.wind_reference_height,
+        reference_height=(
+            data["layer_heights"][0].to_numpy()
+            + abiotic_constants.wind_reference_height
+        ),
         wind_heights=data["layer_heights"][
             layer_structure.index_filled_atmosphere
         ].to_numpy(),
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
+        min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
     )
     wind_speed = layer_structure.from_template()
     wind_speed[layer_structure.index_filled_atmosphere] = wind_profile
@@ -580,7 +590,10 @@ def run_microclimate(
     #     reference_wind_speed=data["wind_speed_ref"]
     #     .isel(time_index=time_index)
     #     .to_numpy(),
-    #     reference_height=abiotic_constants.wind_reference_height,
+    #     reference_height=(
+    #         data["layer_heights"][0].to_numpy()
+    #         + abiotic_constants.wind_reference_height
+    #     ),
     #     roughness_length=roughness_length,
     #     zero_plane_displacement=zero_plane_displacement,
     #     von_karman_constant=core_constants.von_karmans_constant,
