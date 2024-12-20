@@ -8,6 +8,11 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
+
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
+    calculate_saturation_vapour_pressure,
+)
 
 
 def calculate_molar_density_air(
@@ -125,9 +130,9 @@ def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
 
 
 def calculate_dewpoint_temperature(
-    air_temperature: NDArray[np.float64],
-    effective_vapour_pressure_air: NDArray[np.float64],
-) -> NDArray[np.float64]:
+    air_temperature: NDArray[np.float32],
+    effective_vapour_pressure_air: NDArray[np.float32],
+) -> NDArray[np.float32]:
     """Calculate the dewpoint temperature.
 
     Args:
@@ -155,3 +160,56 @@ def calculate_dewpoint_temperature(
         1 / dewpoint_temperature_positive - 273.15,
         1 / dewpoint_temperature_negative - 273.15,
     )
+
+
+def calculate_slope_of_saturated_pressure_curve(
+    temperature: NDArray[np.float32],
+    saturated_pressure_slope_parameters: list[float],
+) -> NDArray[np.float32]:
+    r"""Calculate slope of the saturated pressure curve.
+
+    Args:
+        temperature: Temperature, [C]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+
+    Returns:
+        Slope of the saturated pressure curve, :math:`\Delta_{v}`
+    """
+
+    return (
+        saturated_pressure_slope_parameters[0]
+        * (
+            saturated_pressure_slope_parameters[1]
+            * np.exp(
+                saturated_pressure_slope_parameters[2]
+                * temperature
+                / (temperature + saturated_pressure_slope_parameters[3])
+            )
+        )
+        / (temperature + saturated_pressure_slope_parameters[3]) ** 2
+    )
+
+
+def calculate_effective_vapour_pressure(
+    air_temperature: DataArray,
+    relative_humidity: DataArray,
+    saturation_vapour_pressure_factors: list[float],
+) -> DataArray:
+    """Calculate effective vapour pressure, [kPa].
+
+    Args:
+        air_temperature: Air temperature, [C]
+        relative_humidity: Relative humidity, [-]
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
+
+    Returns:
+        effective vapour pressure, [kPa]
+    """
+
+    saturation_vapour_pressure_air = calculate_saturation_vapour_pressure(
+        temperature=air_temperature,
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    return saturation_vapour_pressure_air * relative_humidity / 100.0
