@@ -11,6 +11,9 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
+    calculate_saturation_vapour_pressure,
+)
 
 
 def initialise_absorbed_radiation(
@@ -242,6 +245,10 @@ def calculate_net_radiation(
 ) -> NDArray[np.float32]:
     """Calculate net radiation, [W m-2].
 
+    This function calculates net radiation as the difference between incoming shortwave
+    radiation, shortwave absorption, and longwave emission. The absorption of longwave
+    radiation is currently not considered.
+
     Args:
         incoming_radiation: Incoming radiation, [W m-2]
         absorbed_radiation: Absorbed radiation, [W m-2]
@@ -255,26 +262,35 @@ def calculate_net_radiation(
 
 
 def calculate_sensible_heat_flux(
-    molar_density_air: NDArray[np.float32],
+    density_air: NDArray[np.float32],
     specific_heat_air: NDArray[np.float32],
     air_temperature: NDArray[np.float32],
     surface_temperature: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
 ) -> NDArray[np.float32]:
-    """Calculate sensible heat flux, [W m-2].
+    r"""Calculate sensible heat flux, [W m-2].
+
+    The sensible heat flux :math:`H` is calculated using the following equation:
+
+    .. math::
+        H = \frac{\rho_a C_p}{r_a} (T_s - T_a)
+
+    where ρₐ is the density of air, Cₚ is the specific heat capacity of air at constant
+    pressure, rₐ is the aerodynamic resistance of the surface, Tₛ is the surface
+    temperature, and Tₐ is the air temperature.
 
     Args:
-        molar_density_air: Molar density of air, [mole m-3]
+        density_air: Density of air, [kg m-3]
         specific_heat_air: Specific heat of air, [J kg-1 K-1]
         air_temperature: Air temperature, [C]
         surface_temperature: Surface temperature (canopy or soil), [C]
-        aerodynamic_resistance: Aerodynamic resistance, [-]
+        aerodynamic_resistance: Aerodynamic resistance, [s m-1]
 
     Returns:
         sensible heat flux, [W m-2]
     """
     return (
-        molar_density_air * specific_heat_air / aerodynamic_resistance
+        density_air * specific_heat_air / aerodynamic_resistance
     ) * surface_temperature - air_temperature
 
 
@@ -394,7 +410,18 @@ def calculate_wind_profile(
     zero_plane_displacement: NDArray[np.float32],
     min_wind_speed: float,
 ) -> NDArray[np.float32]:
-    """Calculate wind speed profile, [m s-1].
+    r"""Calculate wind speed profile, [m s-1].
+
+    The wind speed at different heights is calculated using the following equation:
+
+    .. math::
+        u(z) = u_{ref} \times \frac{ \ln \left( \frac{z - d}{z_0} \right) }
+                                { \ln \left( \frac{z_{ref} - d}{z_0} \right) }
+
+    where :math:`u(z)` is the wind speed at height :math:`z`, :math:`u_{ref}` is the
+    reference wind speed at reference height :math:`z_{ref}`, :math:`z` is the height at
+    which the wind speed is calculated, :math:`z_0` is the roughness length, and
+    :math:`d` is the zero plane displacement.
 
     Args:
         reference_wind_speed: Reference wind speed above the canopy, [m s-1].
@@ -429,7 +456,19 @@ def calculate_friction_velocity(
     zero_plane_displacement: NDArray[np.float32],
     von_karman_constant: float,
 ) -> NDArray[np.float32]:
-    """Calculate friction velocity, [m s-1].
+    r"""Calculate friction velocity, [m s-1].
+
+    Friction velocity is a measure of the shear stress exerted by the wind on the
+    Earth's surface, representing the velocity scale that relates to turbulent energy
+    transfer near the surface.
+
+    The friction velocity (:math:`u^{*}`, [m s-1]) is calculated as
+
+    :math:`u^{*} = \frac{\kappa u}{\ln{(\frac{z - d}{z_0})}}`
+
+    Where :math:`\kappa` is the von Kármán constant, :math:`u` is the reference wind
+    speed, :math:`z` is the reference height, :math:`d` is the zero plane displacement
+    height, and :math:`z_{0}` is the roughness length.
 
     Args:
         reference_wind_speed: Reference wind speed above the canopy [m s-1].
@@ -476,8 +515,95 @@ def calculate_aerodynamic_resistance(
     aero_resistance = np.log(
         (wind_heights - zero_plane_displacement) / roughness_length
     ) / (von_karman_constant * friction_velocity)
+
     return np.where(
         np.isinf(aero_resistance) | (aero_resistance <= 0), np.nan, aero_resistance
+    )
+
+
+def calculate_leaf_vapour_conductivity(
+    air_heat_conductivity: NDArray[np.float32],
+    stomatal_conductivity: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate leaf vapour conductivity, [mol m-2 s-1].
+
+    Args:
+        air_heat_conductivity: Air heat conductivity, [mol m-2 s-1]
+        stomatal_conductivity: Stomatal conductivity, [mol m-2 s-1]
+
+    Returns:
+        leaf vapour conductivity, [mol m-2 s-1]
+    """
+    leaf_vapour_conductivity = 1 / (
+        1 / air_heat_conductivity + 1 / stomatal_conductivity
+    )
+
+    return np.where(stomatal_conductivity == 0, 0, leaf_vapour_conductivity)
+
+
+def calculate_effective_vapour_pressure(
+    air_temperature: DataArray,
+    relative_humidity: DataArray,
+    saturation_vapour_pressure_factors: list[float],
+) -> DataArray:
+    """Calculate effective vapour pressure, [kPa].
+
+    Args:
+        air_temperature: Air temperature, [C]
+        relative_humidity: Relative humidity, [-]
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
+
+    Returns:
+        effective vapour pressure, [kPa]
+    """
+
+    saturation_vapour_pressure_air = calculate_saturation_vapour_pressure(
+        temperature=air_temperature,
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    return saturation_vapour_pressure_air * relative_humidity / 100.0
+
+
+def calculate_latent_heat_flux(
+    latent_heat_vapourisation: NDArray[np.float32],
+    leaf_vapour_conductivity: NDArray[np.float32],
+    effective_vapour_pressure_leaf: NDArray[np.float32],
+    effective_vapour_pressure_air: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+) -> NDArray[np.float32]:
+    r"""Calculate latent heat flux from canopy or soil, [W m-2].
+
+    The latent heat flux :math:`Q_{LE}` is calculated using the following equation:
+
+    .. math::
+        Q_{LE} = L_v \cdot c_v \cdot
+        \left( \frac{e_{leaf} - e_{air}}{p_{atm}} \right)
+
+    where :math:`L_v` is the latent heat of vapourization, :math:`c_v` is the leaf
+    vapour conductivity, :math:`e_{leaf}` is the effective vapour pressure at the leaf
+    surface, :math:`e_{air}` is the effective vapour pressure in the air, and
+    :math:`p_{atm}` is the atmospheric pressure.
+
+    Args:
+        latent_heat_vapourisation: Latent heat of vapourisation
+        leaf_vapour_conductivity: Conductance for vapour loss from leaves as a function
+            of stomatal conductance
+        effective_vapour_pressure_leaf: Effective vapour pressure in the leaf, [kPa]
+        effective_vapour_pressure_air: Effective vapour pressure in the air, [kPa]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+
+    Returns:
+        Latent heat flux, [W m-2]
+    """
+
+    return (
+        latent_heat_vapourisation
+        * leaf_vapour_conductivity
+        * (
+            (effective_vapour_pressure_leaf - effective_vapour_pressure_air)
+            / atmospheric_pressure
+        )
     )
 
 
@@ -503,6 +629,10 @@ def run_microclimate(
 
     output = {}
 
+    # Selection of often used subsets
+    canopy_height = data["layer_heights"][1].to_numpy()
+    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers").to_numpy()
+
     # Mean atmospheric pressure profile, [kPa]
     # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_pressure"] = layer_structure.from_template()
@@ -519,7 +649,7 @@ def run_microclimate(
 
     #  Calculate atmospheric background variables
     molar_density_air = abiotic_tools.calculate_molar_density_air(
-        temperature=data["air_temperature"].mean(dim="layers").to_numpy(),
+        temperature=np.nanmean(data["air_temperature"].to_numpy(), axis=0),
         atmospheric_pressure=(
             data["atmospheric_pressure_ref"].isel(time_index=time_index).to_numpy()
         ),
@@ -528,16 +658,15 @@ def run_microclimate(
         celsius_to_kelvin=core_constants.zero_Celsius,
     )
     output["molar_density_air"] = DataArray(molar_density_air, dims="cell_id")
+
     specific_heat_air = abiotic_tools.calculate_specific_heat_air(
-        temperature=data["air_temperature"].mean(dim="layers").to_numpy(),
+        temperature=np.nanmean(data["air_temperature"].to_numpy(), axis=0),
         molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
         specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
     )
     output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")
 
     #   Zero plane displacement, [m]
-    canopy_height = data["layer_heights"][1].to_numpy()
-    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers").to_numpy()
     zero_plane_displacement = calculate_zero_plane_displacement(
         canopy_height=canopy_height,
         leaf_area_index=leaf_area_index_sum,
@@ -586,28 +715,30 @@ def run_microclimate(
     output["wind_speed"] = wind_speed
 
     #   Friction velocity, [m s-1]
-    # friction_velocity = calculate_friction_velocity(
-    #     reference_wind_speed=data["wind_speed_ref"]
-    #     .isel(time_index=time_index)
-    #     .to_numpy(),
-    #     reference_height=(
-    #         data["layer_heights"][0].to_numpy()
-    #         + abiotic_constants.wind_reference_height
-    #     ),
-    #     roughness_length=roughness_length,
-    #     zero_plane_displacement=zero_plane_displacement,
-    #     von_karman_constant=core_constants.von_karmans_constant,
-    # )
+    friction_velocity = calculate_friction_velocity(
+        reference_wind_speed=data["wind_speed_ref"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        reference_height=(
+            data["layer_heights"][0].to_numpy()
+            + abiotic_constants.wind_reference_height
+        ),
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
 
-    #   TODO Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = 100.0
-    # aerodynamic_resistance_canopy = calculate_aerodynamic_resistance(
-    #     wind_heights=data["layer_heights"].to_numpy(),
-    #     roughness_length=roughness_length,
-    #     zero_plane_displacement=zero_plane_displacement,
-    #     friction_velocity=friction_velocity,
-    #     von_karman_constant=core_constants.von_karmans_constant,
-    # )
+    #   TODO Aerodynamic resistance canopy, [s m-1], too much nan!
+    # aerodynamic_resistance_canopy = 100.0
+    aerodynamic_resistance_canopy = calculate_aerodynamic_resistance(
+        wind_heights=data["layer_heights"][
+            layer_structure.index_filled_canopy
+        ].to_numpy(),
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+        friction_velocity=friction_velocity,
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
 
     #   TODO  Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = 100.0
@@ -666,16 +797,20 @@ def run_microclimate(
 
     #  Sensible heat flux from canopy layers, [W m-2]
     sensible_heat_flux_canopy = calculate_sensible_heat_flux(
-        molar_density_air=molar_density_air,
+        density_air=molar_density_air / core_constants.standard_mole,
         specific_heat_air=specific_heat_air,
-        air_temperature=data["air_temperature"].to_numpy(),
-        surface_temperature=data["canopy_temperature"].to_numpy(),
+        air_temperature=data["air_temperature"][
+            layer_structure.index_filled_canopy
+        ].to_numpy(),
+        surface_temperature=data["canopy_temperature"][
+            layer_structure.index_filled_canopy
+        ].to_numpy(),
         aerodynamic_resistance=aerodynamic_resistance_canopy,
     )
 
     #  Sensible heat flux from topsoil, [W m-2]
     sensible_heat_flux_soil = calculate_sensible_heat_flux(
-        molar_density_air=molar_density_air,
+        density_air=molar_density_air / core_constants.standard_mole,
         specific_heat_air=specific_heat_air,
         air_temperature=data["air_temperature"][
             layer_structure.index_topsoil_scalar - 1
@@ -688,24 +823,59 @@ def run_microclimate(
 
     # Combine sensible heat flux in one variable
     sensible_heat_flux = layer_structure.from_template()
-    sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy[
-        layer_structure.index_filled_canopy
-    ]
+    sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
     output["sensible_heat_flux"] = sensible_heat_flux
 
     #   Latent heat of vapourisation, [kJ kg-1]
-    # latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-    #     temperature=data["air_temperature"].to_numpy(),
-    #     celsius_to_kelvin=core_constants.zero_Celsius,
-    #     latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
+    latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
+        temperature=np.nanmean(data["air_temperature"].to_numpy(), axis=0),
+        celsius_to_kelvin=core_constants.zero_Celsius,
+        latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
+    )
+
+    #  TODO Effective vapour pressure, [kPa]
+    # effective_vapour_pressure_air = calculate_effective_vapour_pressure(
+    #     air_temperature=data["air_temperature"],
+    #     relative_humidity=data["relative_humidity"],
+    #     saturation_vapour_pressure_factors=(
+    #         abiotic_simple_constants.saturation_vapour_pressure_factors
+    #     ),
+    # )
+
+    # effective_vapour_pressure_leaf = calculate_effective_vapour_pressure(
+    #     air_temperature=data["canopy_temperature"],
+    #     relative_humidity=data["relative_humidity"], # TODO rel humidity in canopy
+    #     saturation_vapour_pressure_factors=(
+    #         abiotic_simple_constants.saturation_vapour_pressure_factors
+    #     ),
     # )
 
     # Latent heat flux canopy, [W m-2]
-    # TODO cross-check with plant model
+    # TODO cross-check with plant model, time step
+    latent_heat_flux_canopy = (
+        data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
+        / 86400.0
+    ) * latent_heat_vapourisation
+    # latent_heat_flux_canopy = calculate_latent_heat_flux(
+    #     latent_heat_vapourisation=latent_heat_vapourisation,
+    #     leaf_vapour_conductivity=leaf_vapour_conductivity,
+    #     effective_vapour_pressure_leaf=effective_vapour_pressure_leaf,
+    #     effective_vapour_pressure_air=effective_vapour_pressure_air,
+    #     atmospheric_pressure=data["atmospheric_pressure"].to_numpy()
+    # )
 
     # Latent heat flux topsoil, [W m-2]
-    # TODO cross-check with hydrology model
+    # TODO cross-check with hydrology model, time step
+    latent_heat_flux_soil = (
+        data["soil_evaporation"].to_numpy() / 86400 * latent_heat_vapourisation
+    )
+
+    # Combine latent heat flux in one variable
+    latent_heat_flux = layer_structure.from_template()
+    latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
+    latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
+    output["latent_heat_flux"] = latent_heat_flux
 
     # Ground heat flux
 
