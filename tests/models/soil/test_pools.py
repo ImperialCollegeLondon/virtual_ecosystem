@@ -47,10 +47,10 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_p_pool_dop": [-1.4593572e-6, -7.3316032e-6, -2.8267967e-5, -3.6612053e-6],
+        "soil_p_pool_dop": [1.85156658e-4, 1.93268373e-5, 1.37019910e-4, 9.94213328e-5],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
-        "soil_p_pool_necromass": [0.0034213, 0.00143969, 0.00747022, 0.00045376],
-        "soil_p_pool_maom": [0.0, 0.0, 0.0, 0.0],
+        "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
+        "soil_p_pool_maom": [5.59848046e-4, 7.99753217e-5, 4.9586363e-4, 3.09247615e-4],
     }
 
     # Make order of pools object
@@ -437,24 +437,31 @@ def test_calculate_nutrient_flows_to_necromass(microbial_changes):
     assert np.allclose(actual_p_flow_to_necromass, expected_p_flow_to_necromass)
 
 
-def test_find_necromass_nitrogen_outflows(
+def test_find_necromass_nutrient_outflows(
     dummy_carbon_data, necromass_breakdown, necromass_sorption
 ):
-    """Test that function to find necromass nitrogen losses works correctly."""
-    from virtual_ecosystem.models.soil.pools import find_necromass_nitrogen_outflows
+    """Test that function to find necromass nutrient losses works correctly."""
+    from virtual_ecosystem.models.soil.pools import find_necromass_nutrient_outflows
 
-    expected_decay = [0.00066649, 0.00413222, 0.00466541, 0.00257709]
-    expected_sorption = [0.00199947, 0.01239667, 0.01399624, 0.00773126]
+    expected_rates = {
+        "decay_nitrogen": [0.00066649, 0.00413222, 0.00466541, 0.00257709],
+        "sorption_nitrogen": [0.00199947, 0.01239667, 0.01399624, 0.00773126],
+        "decay_phosphorus": [1.86616016e-4, 2.6658441e-5, 1.65287877e-4, 1.03082538e-4],
+        "sorption_phosphorus": [5.5984805e-4, 7.9975322e-5, 4.958636e-4, 3.0924762e-4],
+    }
 
-    actual_decay, actual_sorption = find_necromass_nitrogen_outflows(
+    actual_rates = find_necromass_nutrient_outflows(
         necromass_carbon=dummy_carbon_data["soil_c_pool_necromass"],
         necromass_nitrogen=dummy_carbon_data["soil_n_pool_necromass"],
+        necromass_phosphorus=dummy_carbon_data["soil_p_pool_necromass"],
         necromass_decay=necromass_breakdown,
         necromass_sorption=necromass_sorption,
     )
 
-    assert np.allclose(actual_decay, expected_decay)
-    assert np.allclose(actual_sorption, expected_sorption)
+    assert set(expected_rates.keys()) == set(actual_rates.keys())
+
+    for key in expected_rates.keys():
+        assert np.allclose(expected_rates[key], actual_rates[key])
 
 
 def test_calculate_net_nitrogen_transfer_from_maom_to_don(
