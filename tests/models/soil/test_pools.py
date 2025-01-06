@@ -47,10 +47,10 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_p_pool_dop": [1.85156658e-4, 1.93268373e-5, 1.37019910e-4, 9.94213328e-5],
+        "soil_p_pool_dop": [1.92918032e-4, 6.24454858e-5, 1.57222238e-4, 9.94118894e-5],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
-        "soil_p_pool_maom": [5.59848046e-4, 7.99753217e-5, 4.9586363e-4, 3.09247615e-4],
+        "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
     }
 
     # Make order of pools object
@@ -464,24 +464,32 @@ def test_find_necromass_nutrient_outflows(
         assert np.allclose(expected_rates[key], actual_rates[key])
 
 
-def test_calculate_net_nitrogen_transfer_from_maom_to_don(
+def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     dummy_carbon_data, enzyme_mediated_rates, lmwc_sorption, maom_desorption
 ):
     """Test function to find net exchange of nitrogen between maom and don."""
     from virtual_ecosystem.models.soil.pools import (
-        calculate_net_nitrogen_transfer_from_maom_to_don,
+        calculate_net_nutrient_transfers_from_maom_to_lmwc,
     )
 
-    expected_transfer = [5.13427177e-4, 5.97759087e-4, 3.44268148e-4, -2.36081562e-7]
+    expected_transfers = {
+        "nitrogen": [5.13427177e-4, 5.97759087e-4, 3.44268148e-4, -2.36081562e-7],
+        "phosphorus": [7.76137416e-6, 4.31186485e-5, 2.02023283e-5, -9.44337153e-9],
+    }
 
-    actual_transfer = calculate_net_nitrogen_transfer_from_maom_to_don(
+    actual_transfers = calculate_net_nutrient_transfers_from_maom_to_lmwc(
         lmwc_carbon=dummy_carbon_data["soil_c_pool_lmwc"],
         lmwc_nitrogen=dummy_carbon_data["soil_n_pool_don"],
+        lmwc_phosphorus=dummy_carbon_data["soil_p_pool_dop"],
         maom_carbon=dummy_carbon_data["soil_c_pool_maom"],
         maom_nitrogen=dummy_carbon_data["soil_n_pool_maom"],
+        maom_phosphorus=dummy_carbon_data["soil_p_pool_maom"],
         maom_breakdown=enzyme_mediated_rates.maom_to_lmwc,
         maom_desorption=maom_desorption,
         lmwc_sorption=lmwc_sorption,
     )
 
-    assert np.allclose(actual_transfer, expected_transfer)
+    assert set(expected_transfers.keys()) == set(actual_transfers.keys())
+
+    for key in expected_transfers.keys():
+        assert np.allclose(expected_transfers[key], actual_transfers[key])

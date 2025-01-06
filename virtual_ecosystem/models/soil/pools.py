@@ -250,12 +250,14 @@ class SoilPools:
             necromass_sorption=necromass_sorption_to_maom,
         )
         # Find net nitrogen transfer between maom and lmwc/don
-        nitrogen_transfer_maom_to_don = (
-            calculate_net_nitrogen_transfer_from_maom_to_don(
+        nutrient_transfers_maom_to_lmwc = (
+            calculate_net_nutrient_transfers_from_maom_to_lmwc(
                 lmwc_carbon=self.pools["soil_c_pool_lmwc"],
                 lmwc_nitrogen=self.pools["soil_n_pool_don"],
+                lmwc_phosphorus=self.pools["soil_p_pool_dop"],
                 maom_carbon=self.pools["soil_c_pool_maom"],
                 maom_nitrogen=self.pools["soil_n_pool_maom"],
+                maom_phosphorus=self.pools["soil_p_pool_maom"],
                 maom_breakdown=enzyme_mediated.maom_to_lmwc,
                 maom_desorption=maom_desorption_to_lmwc,
                 lmwc_sorption=lmwc_sorption_to_maom,
@@ -294,7 +296,7 @@ class SoilPools:
             litter_mineralisation_fluxes_N["dissolved"]
             + pom_n_mineralisation
             + necromass_outflows["decay_nitrogen"]
-            + nitrogen_transfer_maom_to_don
+            + nutrient_transfers_maom_to_lmwc["nitrogen"]
             - microbial_changes.don_uptake
             - don_leaching
         )
@@ -308,12 +310,14 @@ class SoilPools:
             - necromass_outflows["sorption_nitrogen"]
         )
         delta_pools_ordered["soil_n_pool_maom"] = (
-            necromass_outflows["sorption_nitrogen"] - nitrogen_transfer_maom_to_don
+            necromass_outflows["sorption_nitrogen"]
+            - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_fluxes_P["dissolved"]
             + pom_p_mineralisation
             + necromass_outflows["decay_phosphorus"]
+            + nutrient_transfers_maom_to_lmwc["phosphorus"]
             - microbial_changes.dop_uptake
             - dop_leaching
         )
@@ -325,9 +329,10 @@ class SoilPools:
             - necromass_outflows["decay_phosphorus"]
             - necromass_outflows["sorption_phosphorus"]
         )
-        delta_pools_ordered["soil_p_pool_maom"] = necromass_outflows[
-            "sorption_phosphorus"
-        ]
+        delta_pools_ordered["soil_p_pool_maom"] = (
+            necromass_outflows["sorption_phosphorus"]
+            - nutrient_transfers_maom_to_lmwc["phosphorus"]
+        )
         delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
         delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
 
@@ -1016,26 +1021,32 @@ def find_necromass_nutrient_outflows(
     }
 
 
-def calculate_net_nitrogen_transfer_from_maom_to_don(
+def calculate_net_nutrient_transfers_from_maom_to_lmwc(
     lmwc_carbon: NDArray[np.float32],
     lmwc_nitrogen: NDArray[np.float32],
+    lmwc_phosphorus: NDArray[np.float32],
     maom_carbon: NDArray[np.float32],
     maom_nitrogen: NDArray[np.float32],
+    maom_phosphorus: NDArray[np.float32],
     maom_breakdown: NDArray[np.float32],
     maom_desorption: NDArray[np.float32],
     lmwc_sorption: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    """Calculate the net rate of transfer of nitrogen between MAOM and LMWC/DON.
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate the net rate of transfer of nutrients between MAOM and LMWC.
 
     Args:
         lmwc_carbon: The amount of carbon stored as low molecular weight carbon [kg C
             m^-3]
         lmwc_nitrogen: The amount of nitrogen stored as low molecular weight
             carbon/dissolved organic nitrogen [kg N m^-3]
+        lmwc_phosphorus: The amount of phosphorus stored as low molecular weight
+            carbon/dissolved organic phosphorus [kg P m^-3]
         maom_carbon: The amount of carbon stored as mineral associated organic matter
             [kg C m^-3]
         maom_nitrogen: The amount of nitrogen stored as mineral associated organic
             matter [kg N m^-3]
+        maom_phosphorus: The amount of phosphorus stored as mineral associated organic
+            matter [kg P m^-3]
         maom_breakdown: The rate at which the mineral associated organic matter pool is
             being broken down by enzymes (expressed in carbon terms) [kg C m^-3 day^-1]
         maom_desorption: The rate at which the mineral associated organic matter pool is
@@ -1044,9 +1055,9 @@ def calculate_net_nitrogen_transfer_from_maom_to_don(
             to minerals to form mineral associated organic matter [kg C m^-3 day^-1]
 
     Returns:
-        The net rate of transfer from nitrogen contained in mineral associated
-        organic matter and nitrogen existing as dissolved organic nitrogen [kg N m^-3
-        day^-1]
+        The net nutrient transfer rates of transfer from mineral associated organic
+        matter into dissolved organic forms. This is currently includes nitrogen and
+        phosphorus [kg nutrient m^-3 day^-1]
     """
 
     # Find carbon:nitrogen ratio of the lwmc and maom
@@ -1056,4 +1067,14 @@ def calculate_net_nitrogen_transfer_from_maom_to_don(
     maom_nitrogen_gain = lmwc_sorption / c_n_ratio_lmwc
     maom_nitrogen_loss = (maom_breakdown + maom_desorption) / c_n_ratio_maom
 
-    return maom_nitrogen_loss - maom_nitrogen_gain
+    # Find carbon:phosphorus ratio of the lwmc and maom
+    c_p_ratio_lmwc = lmwc_carbon / lmwc_phosphorus
+    c_p_ratio_maom = maom_carbon / maom_phosphorus
+
+    maom_phosphorus_gain = lmwc_sorption / c_p_ratio_lmwc
+    maom_phosphorus_loss = (maom_breakdown + maom_desorption) / c_p_ratio_maom
+
+    return {
+        "nitrogen": maom_nitrogen_loss - maom_nitrogen_gain,
+        "phosphorus": maom_phosphorus_loss - maom_phosphorus_gain,
+    }
