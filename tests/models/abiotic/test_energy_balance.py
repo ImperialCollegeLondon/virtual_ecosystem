@@ -167,21 +167,17 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     lyr_str = fixture_core_components.layer_structure
 
     result = calculate_aerodynamic_resistance(
-        wind_heights=dummy_climate_data["layer_heights"][
-            lyr_str.index_filled_atmosphere
-        ],
+        wind_heights=dummy_climate_data["layer_heights"][lyr_str.index_filled_canopy],
         roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0.0, 10.0, 25.0, 25.0]),
+        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
         friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
         von_karman_constant=0.4,
     )
     exp_ra = np.array(
         [
-            [144.126812, 124.855095, 79.542499, 79.542499],
-            [142.134882, 122.08445, 71.045725, 71.045725],
-            [129.620527, 101.934823, np.nan, np.nan],
-            [108.227096, np.nan, np.nan, np.nan],
-            [np.nan, np.nan, np.nan, np.nan],
+            [142.134882, 122.08445, 98.78846, 71.045725],
+            [129.620527, 101.934823, 71.04573, np.nan],
+            [108.227096, 0.001, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
@@ -195,9 +191,9 @@ def test_calculate_leaf_vapour_conductivity():
     )
 
     air_heat_conductivity = np.tile([0.5, 1.0, 2.0], 4)
-    stomatal_conductivity = np.tile([0.2, 0.0, 1.0], 4)
+    stomatal_conductivity = np.tile([0.2, 0.001, 1.0], 4)
 
-    exp_output = np.tile([0.142857, 0.0, 0.666667], 4)
+    exp_output = np.tile([0.142857, 0.000999, 0.666667], 4)
 
     result = calculate_leaf_vapour_conductivity(
         air_heat_conductivity, stomatal_conductivity

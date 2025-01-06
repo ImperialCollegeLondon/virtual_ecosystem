@@ -11,20 +11,22 @@ Under steady-state, the balance equation for the leaves in each canopy layer is 
 follows (after :cite:t:`maclean_microclimc_2021`):
 
 .. math::
-    R_{abs} - R_{em} - H - \lambda E
-    = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - c_{P}g_{Ha}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{A}} = 0
+    R_{abs} - R_{em} - H - Q_{LE}
+    = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
+    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{a}} = 0
 
 where :math:`R_{abs}` is absorbed radiation, :math:`R_{em}` emitted radiation, :math:`H`
-the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{s}` the
+the sensible heat flux, :math:`Q_{LE}` the latent heat flux, :math:`\epsilon_{s}` the
 emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{L}` the
 absolute temperature of the leaf, :math:`T_{A}` the absolute temperature of the air
 surrounding the leaf, :math:`\lambda` the latent heat of vapourisation of water,
 :math:`e_{L}` the effective vapour pressure of the leaf, :math:`e_{A}` the vapour
-pressure of air and :math:`p_{A}` atmospheric pressure. :math:`g_{Ha}` is the heat
-conductivity between leaf and atmosphere, :math:`g_{v}` represents the conductivity
-for vapour loss from the leaves as a function of the stomatal conductivity
-:math:`g_{c}`.
+pressure of air and :math:`p_{a}` atmospheric pressure.
+
+:math:`\rho_a` is the density of air, :math:`c_{p}` is the specific heat capacity of air
+at constant pressure, :math:`r_a` is the aerodynamic resistance of the surface (leaf or
+soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
+function of the stomatal conductivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a linearisation approach to solve the equation for
@@ -181,7 +183,7 @@ def initialise_canopy_and_soil_fluxes(
     canopy_temperature[layer_structure.index_filled_canopy] = initial_canopy_temperature
     output["canopy_temperature"] = canopy_temperature
 
-    # Initialise sensible heat flux with zeros and write in output dict
+    # Initialise sensible heat flux with non-zero mimimum values and write in output
     sensible_heat_flux = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
@@ -192,10 +194,10 @@ def initialise_canopy_and_soil_fluxes(
     sensible_heat_flux[layer_structure.index_topsoil] = 0.001
     output["sensible_heat_flux"] = sensible_heat_flux
 
-    # Initialise latent heat flux with zeros and write in output dict
+    # Initialise latent heat flux with non-zero mimimum values and write in output
     output["latent_heat_flux"] = sensible_heat_flux.copy().rename("latent_heat_flux")
 
-    # Initialise latent heat flux with zeros and write in output dict
+    # Initialise latent heat flux with non-zero mimimum values and write in output
     ground_heat_flux = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
@@ -267,11 +269,12 @@ def calculate_sensible_heat_flux(
     The sensible heat flux :math:`H` is calculated using the following equation:
 
     .. math::
-        H = \frac{\rho_a C_p}{r_a} (T_s - T_a)
+        H = \frac{\rho_a c_p}{r_a} (T_S - T_A)
 
-    where ρₐ is the density of air, Cₚ is the specific heat capacity of air at constant
-    pressure, rₐ is the aerodynamic resistance of the surface, Tₛ is the surface
-    temperature, and Tₐ is the air temperature.
+    where :math:`\rho_a` is the density of air, :math:`c_p` is the specific heat
+    capacity of air at constant pressure, :math:`r_a` is the aerodynamic resistance of
+    the surface, :math:`T_S` is the surface temperature, and :math:`T_A` is the air
+    temperature.
 
     Args:
         density_air: Density of air, [kg m-3]
@@ -283,9 +286,9 @@ def calculate_sensible_heat_flux(
     Returns:
         sensible heat flux, [W m-2]
     """
-    return (
-        density_air * specific_heat_air / aerodynamic_resistance
-    ) * surface_temperature - air_temperature
+    return (density_air * specific_heat_air / aerodynamic_resistance) * (
+        surface_temperature - air_temperature
+    )
 
 
 def calculate_aerodynamic_resistance(
@@ -316,7 +319,7 @@ def calculate_aerodynamic_resistance(
     ) / (von_karman_constant * friction_velocity)
 
     return np.where(
-        np.isinf(aero_resistance) | (aero_resistance <= 0), np.nan, aero_resistance
+        np.isinf(aero_resistance) | (aero_resistance <= 0.0), 0.001, aero_resistance
     )
 
 
@@ -337,7 +340,7 @@ def calculate_leaf_vapour_conductivity(
         1 / air_heat_conductivity + 1 / stomatal_conductivity
     )
 
-    return np.where(stomatal_conductivity == 0, 0, leaf_vapour_conductivity)
+    return np.where(stomatal_conductivity == 0.0, 0.001, leaf_vapour_conductivity)
 
 
 def calculate_latent_heat_flux(
@@ -352,13 +355,13 @@ def calculate_latent_heat_flux(
     The latent heat flux :math:`Q_{LE}` is calculated using the following equation:
 
     .. math::
-        Q_{LE} = L_v \cdot g_v \cdot
-        \left( \frac{e_{leaf} - e_{air}}{p_{atm}} \right)
+        Q_{LE} = \lambda \cdot g_v \cdot
+        \left( \frac{e_{L} - e_{A}}{p_{a}} \right)
 
-    where :math:`L_v` is the latent heat of vapourization, :math:`g_v` is the leaf
-    vapour conductivity, :math:`e_{leaf}` is the effective vapour pressure at the leaf
-    surface, :math:`e_{air}` is the effective vapour pressure in the air, and
-    :math:`p_{atm}` is the atmospheric pressure.
+    where :math:`\lambda` is the latent heat of vapourization, :math:`g_v` is the leaf
+    vapour conductivity, :math:`e_{L}` is the effective vapour pressure at the leaf
+    surface, :math:`e_{A}` is the effective vapour pressure in the air, and
+    :math:`p_{a}` is the atmospheric pressure.
 
     Args:
         latent_heat_vapourisation: Latent heat of vapourisation

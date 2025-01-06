@@ -137,7 +137,7 @@ def calculate_dewpoint_temperature(
 
     Args:
         air_temperature: Air temperature, [C]
-        effective_vapour_pressure_air: Actual vapor pressure, [kPa]
+        effective_vapour_pressure_air: Actual vapour pressure, [kPa]
 
     Returns:
         Dewpoint temperature, [C]
