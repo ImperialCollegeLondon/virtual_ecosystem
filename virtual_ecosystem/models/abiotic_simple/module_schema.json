@@ -38,6 +38,10 @@
                             }
                         }
                     }
+                }, 
+                "static": {
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "default": {},

@@ -11,7 +11,7 @@ The module also provides the :func:`~virtual_ecosystem.core.registry.register_mo
 function, which is used to populate the registry with the components of a given module.
 """  # noqa: D205
 
-from dataclasses import dataclass, is_dataclass
+from dataclasses import dataclass
 from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
@@ -172,7 +172,7 @@ def register_module(module_name: str) -> None:
         constants_classes = {
             class_name: class_obj
             for class_name, class_obj in getmembers(constants_submodule)
-            if is_dataclass(class_obj)
+            if isclass(class_obj)
             and issubclass(class_obj, ConstantsDataclass)
             and class_obj is not ConstantsDataclass
         }

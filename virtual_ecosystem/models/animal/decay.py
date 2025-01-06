@@ -56,6 +56,18 @@ class CarcassPool:
 
         return decomposed_nutrient / grid_cell_area
 
+    def reset(self):
+        """Reset tracking of the nutrients associated with decomposed carcasses.
+
+        This function sets the amount of decomposed carbon, nitrogen and phosphorus to
+        zero. This function should only be called after transfers to the soil model due
+        to decomposition have been calculated.
+        """
+
+        self.decomposed_carbon = 0.0
+        self.decomposed_nitrogen = 0.0
+        self.decomposed_phosphorus = 0.0
+
 
 @dataclass
 class ExcrementPool:
@@ -100,6 +112,18 @@ class ExcrementPool:
         decomposed_nutrient = getattr(self, f"decomposed_{nutrient}")
 
         return decomposed_nutrient / grid_cell_area
+
+    def reset(self):
+        """Reset tracking of the nutrients associated with decomposed excrement.
+
+        This function sets the amount of decomposed carbon, nitrogen and phosphorus to
+        zero. This function should only be called after transfers to the soil model due
+        to decomposition have been calculated.
+        """
+
+        self.decomposed_carbon = 0.0
+        self.decomposed_nitrogen = 0.0
+        self.decomposed_phosphorus = 0.0
 
 
 def find_decay_consumed_split(
