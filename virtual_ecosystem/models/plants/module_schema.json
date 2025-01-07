@@ -17,7 +17,7 @@
                   "PlantsConsts"
                ]
             },
-            "pft_definitions": {
+            "pft_definition": {
                "description": "An array of plant functional types definitions",
                "type": "array",
                "items": {
@@ -136,7 +136,7 @@
          "oneOf": [
             {
                "required": [
-                  "pft_definitions"
+                  "pft_definition"
                ]
             },
             {
