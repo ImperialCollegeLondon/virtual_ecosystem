@@ -486,7 +486,7 @@ class Data:
 
         This is a utility method to check if a set of named variables are present in the
         Data object and that together they form a data frame: a set of equal length, one
-        dimensional arrays.
+        dimensional arrays, providing consistent tuples of values across the variables.
 
         Args:
             var_names: A list of the variable names that form a data frame.
@@ -498,17 +498,15 @@ class Data:
         if missing_var:
             return False, f"Missing variables: {', '.join(missing_var)}"
 
-        # All vars identically sized and 1D
-        data_shapes = [self[var].shape for var in var_names]
+        # All vars one dimensional
+        data_not_one_d = [var for var in var_names if self[var].ndim > 1]
+        if data_not_one_d:
+            return False, f"Variables not one dimensional: {','.join(data_not_one_d)}"
 
-        if len(set(data_shapes)) != 1:
-            return False, (
-                f"Unequal variable dimensions:"
-                f" {','.join([str(v) for v in set(data_shapes)])}"
-            )
-
-        if len(data_shapes[0]) != 1:
-            return False, f"Variables not one dimensional: {data_shapes[0]}"
+        # All vars equal sized
+        shapes = sorted(set(str(self[var].shape[0]) for var in var_names))
+        if len(shapes) != 1:
+            return False, f"Variables of unequal length: {','.join(shapes)}"
 
         return True, "Variables form a data frame"
 
