@@ -19,116 +19,146 @@ save_final_state = true
 save_initial_state = true
 
 [plants]
-a_plant_integer = 12
+[[plants.pft_definition]]
+a_hd = 116.0
+ca_ratio = 390.43
+f_g = 0.02
+h_max = 25.33
+lai = 1.8
+m = 2
+n = 5
+name = 'test1'
+par_ext = 0.5
+resp_f = 0.1
+resp_r = 0.913
+resp_s = 0.044
+rho_s = 200.0
+sla = 14.0
+tau_f = 4.0
+tau_r = 1.04
+yld = 0.17
+zeta = 0.17
 
-[[plants.ftypes]]
-max_height = 1.0
-pft_name = "shrub"
-
-[[plants.ftypes]]
-max_height = 50.0
-pft_name = "broadleaf"
+[[plants.pft_definition]]
+a_hd = 116.0
+ca_ratio = 390.43
+f_g = 0.02
+h_max = 15.33
+lai = 1.8
+m = 2
+n = 5
+name = 'test2'
+par_ext = 0.5
+resp_f = 0.1
+resp_r = 0.913
+resp_s = 0.044
+rho_s = 200.0
+sla = 14.0
+tau_f = 4.0
+tau_r = 1.04
+yld = 0.17
+zeta = 0.17
 
 [[animal.functional_groups]]
-name = "carnivorous_bird"
-taxa = "bird"
-diet = "carnivore"
-metabolic_type = "endothermic"
-reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "carnivorous_bird"
-excretion_type = "uricotelic"
-birth_mass = 0.1
 adult_mass = 1.0
-
-[[animal.functional_groups]]
-name = "herbivorous_bird"
+birth_mass = 0.1
+development_status = "adult"
+development_type = "direct"
+diet = "carnivore"
+excretion_type = "uricotelic"
+metabolic_type = "endothermic"
+name = "carnivorous_bird"
+offspring_functional_group = "carnivorous_bird"
+reproductive_type = "iteroparous"
 taxa = "bird"
-diet = "herbivore"
-metabolic_type = "endothermic"
-reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "herbivorous_bird"
-excretion_type = "uricotelic"
-birth_mass = 0.05
+
+[[animal.functional_groups]]
 adult_mass = 0.5
+birth_mass = 0.05
+development_status = "adult"
+development_type = "direct"
+diet = "herbivore"
+excretion_type = "uricotelic"
+metabolic_type = "endothermic"
+name = "herbivorous_bird"
+offspring_functional_group = "herbivorous_bird"
+reproductive_type = "iteroparous"
+taxa = "bird"
 
 [[animal.functional_groups]]
-name = "carnivorous_mammal"
-taxa = "mammal"
-diet = "carnivore"
-metabolic_type = "endothermic"
-reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "carnivorous_mammal"
-excretion_type = "ureotelic"
-birth_mass = 4.0
 adult_mass = 40.0
-
-[[animal.functional_groups]]
-name = "herbivorous_mammal"
-taxa = "mammal"
-diet = "herbivore"
-metabolic_type = "endothermic"
-reproductive_type = "iteroparous"
-development_type = "direct"
+birth_mass = 4.0
 development_status = "adult"
-offspring_functional_group = "herbivorous_mammal"
-excretion_type = "ureotelic"
-birth_mass = 1.0
-adult_mass = 10.0
-
-[[animal.functional_groups]]
-name = "carnivorous_insect"
-taxa = "insect"
+development_type = "direct"
 diet = "carnivore"
-metabolic_type = "ectothermic"
+excretion_type = "ureotelic"
+metabolic_type = "endothermic"
+name = "carnivorous_mammal"
+offspring_functional_group = "carnivorous_mammal"
 reproductive_type = "iteroparous"
-development_type = "direct"
+taxa = "mammal"
+
+[[animal.functional_groups]]
+adult_mass = 10.0
+birth_mass = 1.0
 development_status = "adult"
-offspring_functional_group = "carnivorous_insect"
-excretion_type = "uricotelic"
-birth_mass = 0.001
+development_type = "direct"
+diet = "herbivore"
+excretion_type = "ureotelic"
+metabolic_type = "endothermic"
+name = "herbivorous_mammal"
+offspring_functional_group = "herbivorous_mammal"
+reproductive_type = "iteroparous"
+taxa = "mammal"
+
+[[animal.functional_groups]]
 adult_mass = 0.01
-
-[[animal.functional_groups]]
-name = "herbivorous_insect"
-taxa = "insect"
-diet = "herbivore"
-metabolic_type = "ectothermic"
-reproductive_type = "semelparous"
+birth_mass = 0.001
+development_status = "adult"
 development_type = "direct"
+diet = "carnivore"
+excretion_type = "uricotelic"
+metabolic_type = "ectothermic"
+name = "carnivorous_insect"
+offspring_functional_group = "carnivorous_insect"
+reproductive_type = "iteroparous"
+taxa = "insect"
+
+[[animal.functional_groups]]
+adult_mass = 0.005
+birth_mass = 0.0005
 development_status = "adult"
+development_type = "direct"
+diet = "herbivore"
+excretion_type = "uricotelic"
+metabolic_type = "ectothermic"
+name = "herbivorous_insect"
 offspring_functional_group = "herbivorous_insect"
-excretion_type = "uricotelic"
-birth_mass = 0.0005
-adult_mass = 0.005
-
-[[animal.functional_groups]]
-name = "butterfly"
-taxa = "insect"
-diet = "herbivore"
-metabolic_type = "ectothermic"
 reproductive_type = "semelparous"
-development_type = "indirect"
-development_status = "adult"
-offspring_functional_group = "caterpillar"
-excretion_type = "uricotelic"
-birth_mass = 0.0005
-adult_mass = 0.005
+taxa = "insect"
 
 [[animal.functional_groups]]
-name = "caterpillar"
-taxa = "insect"
-diet = "herbivore"
-metabolic_type = "ectothermic"
-reproductive_type = "nonreproductive"
-development_type = "indirect"
-development_status = "larval"
-offspring_functional_group = "butterfly"
-excretion_type = "uricotelic"
-birth_mass = 0.0005
 adult_mass = 0.005
+birth_mass = 0.0005
+development_status = "adult"
+development_type = "indirect"
+diet = "herbivore"
+excretion_type = "uricotelic"
+metabolic_type = "ectothermic"
+name = "butterfly"
+offspring_functional_group = "caterpillar"
+reproductive_type = "semelparous"
+taxa = "insect"
+
+[[animal.functional_groups]]
+adult_mass = 0.005
+birth_mass = 0.0005
+development_status = "larval"
+development_type = "indirect"
+diet = "herbivore"
+excretion_type = "uricotelic"
+metabolic_type = "ectothermic"
+name = "caterpillar"
+offspring_functional_group = "butterfly"
+reproductive_type = "nonreproductive"
+taxa = "insect"

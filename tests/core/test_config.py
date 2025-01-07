@@ -570,19 +570,6 @@ def test_Config_build_schema(
     "cfg_strings,expected_exception,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=10\n[plants]\n",
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Configuration error in ['plants']: "
-                    "'ftypes' is a required property",
-                ),
-                (CRITICAL, "Configuration contains schema violations: check log"),
-            ),
-            id="missing_required_property",
-        ),
-        pytest.param(
             "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=-10",
             pytest.raises(ConfigurationError),
             (
