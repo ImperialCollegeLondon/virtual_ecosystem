@@ -27,14 +27,13 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.soil.carbon import calculate_soil_carbon_updates
 from virtual_ecosystem.models.soil.constants import SoilConsts
+from virtual_ecosystem.models.soil.pools import SoilPools
 
 
 class IntegrationError(Exception):
@@ -50,9 +49,13 @@ class SoilModel(
         "soil_c_pool_lmwc",
         "soil_c_pool_microbe",
         "soil_c_pool_pom",
+        "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
-        "soil_c_pool_necromass",
+        "soil_n_pool_don",
+        "soil_n_pool_particulate",
+        "soil_n_pool_necromass",
+        "soil_n_pool_maom",
         "pH",
         "bulk_density",
         "clay_fraction",
@@ -66,7 +69,16 @@ class SoilModel(
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
+        "soil_n_pool_don",
+        "soil_n_pool_particulate",
+        "soil_n_pool_necromass",
+        "soil_n_pool_maom",
         "matric_potential",
+        "vertical_flow",
+        "soil_temperature",
+        "soil_moisture",
+        "litter_C_mineralisation_rate",
+        "litter_N_mineralisation_rate",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -76,6 +88,10 @@ class SoilModel(
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
         "soil_enzyme_maom",
+        "soil_n_pool_don",
+        "soil_n_pool_particulate",
+        "soil_n_pool_necromass",
+        "soil_n_pool_maom",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -93,36 +109,6 @@ class SoilModel(
         canopy_layers: The number of canopy layers to be modelled.
         constants: Set of constants for the soil model.
     """
-
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        model_constants: SoilConsts,
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        # Check that soil pool data is appropriately bounded
-        if (
-            np.any(data["soil_c_pool_maom"] < 0.0)
-            or np.any(data["soil_c_pool_lmwc"] < 0.0)
-            or np.any(data["soil_c_pool_microbe"] < 0.0)
-            or np.any(data["soil_c_pool_pom"] < 0.0)
-            or np.any(data["soil_enzyme_pom"] < 0.0)
-            or np.any(data["soil_enzyme_maom"] < 0.0)
-            or np.any(data["soil_c_pool_necromass"] < 0.0)
-        ):
-            to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
-        self.model_constants: SoilConsts = model_constants
-        """Set of constants for the soil model."""
 
     @classmethod
     def from_config(
@@ -142,6 +128,7 @@ class SoilModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
+        static = config["soil"]["static"]
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
@@ -151,16 +138,40 @@ class SoilModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(
+        self,
+        model_constants: SoilConsts,
+        **kwargs: Any,
+    ) -> None:
         """Placeholder function to setup up the soil model."""
+
+        # Check that soil pool data is appropriately bounded
+        if not self._all_pools_positive():
+            to_raise = InitialisationError(
+                "Initial carbon pools contain at least one negative value!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        self.model_constants: SoilConsts = model_constants
+        """Set of constants for the soil model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the soil model by integrating.
 
         Args:
@@ -177,6 +188,22 @@ class SoilModel(
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
+
+    def _all_pools_positive(self) -> bool:
+        """Checks if all soil pools values greater than or equal to zero.
+
+        Returns:
+            A bool specificing whether all pools updated by the model are postive or
+            not.
+        """
+
+        all_positive = True
+
+        for var in self.vars_updated:
+            if np.any(self.data[var] < 0.0):
+                all_positive = False
+
+        return all_positive
 
     def integrate(self) -> dict[str, DataArray]:
         """Integrate the soil model.
@@ -208,7 +235,7 @@ class SoilModel(
             [
                 self.data[name].to_numpy()
                 for name in map(str, self.data.data.keys())
-                if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
+                if name in self.vars_updated
             ]
         )
 
@@ -216,7 +243,7 @@ class SoilModel(
         delta_pools_ordered = {
             name: np.array([])
             for name in map(str, self.data.data.keys())
-            if name.startswith("soil_c_pool_") or name.startswith("soil_enzyme_")
+            if name in self.vars_updated
         }
 
         # Carry out simulation
@@ -230,7 +257,6 @@ class SoilModel(
                 self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
-                self.core_constants,
             ),
         )
 
@@ -263,7 +289,6 @@ def construct_full_soil_model(
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
-    core_constants: CoreConsts,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -278,7 +303,6 @@ def construct_full_soil_model(
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         model_constants: Set of constants for the soil model.
-        core_constants: Set of constants shared between models.
 
     Returns:
         The rate of change for each soil pool
@@ -288,24 +312,15 @@ def construct_full_soil_model(
     slices = make_slices(no_cells, len(delta_pools_ordered))
 
     # Construct dictionary of numpy arrays (using a for loop)
-    soil_pools = {
+    all_pools = {
         str(pool): pools[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
 
-    # Supply soil pools by unpacking dictionary
-    return calculate_soil_carbon_updates(
-        pH=data["pH"].to_numpy(),
-        bulk_density=data["bulk_density"].to_numpy(),
-        soil_moisture=data["soil_moisture"][top_soil_layer_index].to_numpy(),
-        soil_water_potential=data["matric_potential"][top_soil_layer_index].to_numpy(),
-        vertical_flow_rate=data["vertical_flow"].to_numpy(),
-        soil_temp=data["soil_temperature"][top_soil_layer_index].to_numpy(),
-        clay_fraction=data["clay_fraction"].to_numpy(),
-        mineralisation_rate=data["litter_C_mineralisation_rate"].to_numpy(),
+    soil_pools = SoilPools(data, pools=all_pools, constants=model_constants)
+
+    return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
-        model_constants=model_constants,
-        core_constants=core_constants,
-        **soil_pools,
+        top_soil_layer_index=top_soil_layer_index,
     )
 
 

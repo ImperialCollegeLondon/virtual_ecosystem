@@ -1,6 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
 
 from logging import DEBUG
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -260,10 +261,15 @@ def dummy_carbon_data(fixture_core_components):
         "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
         "soil_enzyme_pom": [0.022679, 0.009576, 0.050051, 0.003010],
         "soil_enzyme_maom": [0.0356, 0.0117, 0.02509, 0.00456],
+        "soil_n_pool_don": [0.000571428, 0.00142857, 0.00014285, 0.002857142],
+        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
+        "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
+        "soil_n_pool_maom": [0.86538462, 0.48076923, 0.32692308, 0.09615385],
         "pH": [3.0, 7.5, 9.0, 5.7],
         "bulk_density": [1350.0, 1800.0, 1000.0, 1500.0],
         "clay_fraction": [0.8, 0.3, 0.1, 0.9],
         "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
+        "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
         "vertical_flow": [0.1, 0.5, 2.5, 1.59],
     }
 
@@ -562,3 +568,17 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     return dummy_climate_data
+
+
+def patch_run_update(model: str):
+    """Patch the run_update_check udring the init of the model."""
+    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
+    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
+    return patch(f"{object_to_patch}._run_update_due_to_static_configuration")
+
+
+def patch_bypass_setup(model: str):
+    """Patch the run_update_check udring the init of the model."""
+    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
+    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
+    return patch(f"{object_to_patch}._bypass_setup_due_to_static_configuration")

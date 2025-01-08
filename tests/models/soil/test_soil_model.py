@@ -18,9 +18,13 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
+    (DEBUG, "soil model: required var 'soil_n_pool_maom' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
@@ -128,6 +132,29 @@ def test_soil_model_initialization_bounds_error(
             (ERROR, "Initial carbon pools contain at least one negative value!"),
         ),
     )
+
+
+def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_components):
+    """Test `SoilModel` initialization."""
+
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
+
+    # Initialise model with bad data object
+    soil_model = SoilModel(
+        data=dummy_carbon_data,
+        core_components=fixture_core_components,
+        model_constants=SoilConsts(),
+    )
+
+    assert soil_model._all_pools_positive()
+
+    # Change data to be incorrect for necromass
+    dummy_carbon_data["soil_c_pool_necromass"] = DataArray(
+        [0.05, -0.02, 0.1, 0.005], dims=["cell_id"]
+    )
+
+    assert not soil_model._all_pools_positive()
 
 
 @pytest.mark.parametrize(
@@ -257,27 +284,39 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             does_not_raise(),
             Dataset(
                 data_vars=dict(
-                    lmwc=DataArray(
-                        [0.05110324, 0.0229453, 0.09239938, 0.01485271], dims="cell_id"
+                    soil_c_pool_lmwc=DataArray(
+                        [0.0558832, 0.02294602, 0.11309406, 0.01485682], dims="cell_id"
                     ),
-                    maom=DataArray(
+                    soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
                     ),
-                    microbe=DataArray(
-                        [5.7752035, 2.29002929, 11.24843316, 0.99642482],
+                    soil_c_pool_microbe=DataArray(
+                        [5.77347072, 2.29002259, 11.24219185, 0.99642319],
                         dims="cell_id",
                     ),
-                    pom=DataArray(
-                        [0.10088985, 0.99607906, 0.69401895, 0.35272921], dims="cell_id"
+                    soil_c_pool_pom=DataArray(
+                        [0.10088826, 0.99607827, 0.69401858, 0.35272508], dims="cell_id"
                     ),
-                    necromass=DataArray(
-                        [0.05840539, 0.01865113, 0.10632815, 0.06904724], dims="cell_id"
+                    soil_c_pool_necromass=DataArray(
+                        [0.05840173, 0.01865113, 0.10631256, 0.06904725], dims="cell_id"
                     ),
-                    enzyme_pom=DataArray(
+                    soil_enzyme_pom=DataArray(
                         [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
                     ),
-                    enzyme_maom=DataArray(
+                    soil_enzyme_maom=DataArray(
                         [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
+                    ),
+                    soil_n_pool_don=DataArray(
+                        [0.00124825, 0.00320679, 0.00236633, 0.00388298], dims="cell_id"
+                    ),
+                    soil_n_pool_particulate=DataArray(
+                        [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
+                    ),
+                    soil_n_pool_necromass=DataArray(
+                        [0.00602181, 0.01303618, 0.02189848, 0.00758444], dims="cell_id"
+                    ),
+                    soil_n_pool_maom=DataArray(
+                        [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                 )
             ),
@@ -312,14 +351,12 @@ def test_integrate_soil_model(
 
     with raises:
         new_pools = fixture_soil_model.integrate()
+
         # Check returned pools matched (mocked) integrator output
-        assert np.allclose(new_pools["soil_c_pool_lmwc"], final_pools["lmwc"])
-        assert np.allclose(new_pools["soil_c_pool_maom"], final_pools["maom"])
-        assert np.allclose(new_pools["soil_c_pool_microbe"], final_pools["microbe"])
-        assert np.allclose(new_pools["soil_c_pool_pom"], final_pools["pom"])
-        assert np.allclose(new_pools["soil_c_pool_necromass"], final_pools["necromass"])
-        assert np.allclose(new_pools["soil_enzyme_pom"], final_pools["enzyme_pom"])
-        assert np.allclose(new_pools["soil_enzyme_maom"], final_pools["enzyme_maom"])
+        assert set(new_pools.keys()) == set(final_pools.keys())
+
+        for key in new_pools.keys():
+            assert np.allclose(new_pools[key], final_pools[key])
 
     # Check that integrator is called once (and once only)
     if mock_output:
@@ -360,15 +397,14 @@ def test_order_independance(
         "soil_temperature",
         "clay_fraction",
         "litter_C_mineralisation_rate",
+        "litter_N_mineralisation_rate",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
 
     # Then extract soil carbon pool names from the fixture (in order)
     pool_names = [
-        str(name)
-        for name in dummy_carbon_data.data.keys()
-        if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
+        name for name in dummy_carbon_data.data.keys() if name in SoilModel.vars_updated
     ]
 
     # Add pool values from object in reversed order
@@ -393,27 +429,29 @@ def test_order_independance(
 
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.soil_model import construct_full_soil_model
+    from virtual_ecosystem.models.soil.soil_model import (
+        SoilModel,
+        construct_full_soil_model,
+    )
 
     delta_pools = [
-        0.0022585928,
-        0.0060483065,
-        -0.019175058,
-        0.024247214,
+        0.0129365,
+        0.0060499,
+        0.03697928,
+        0.02425546,
         0.038767651,
         0.00829848,
         0.05982197,
         0.07277182,
-        -0.04978105,
+        -0.05362396,
         -0.02020101,
-        -0.10280967,
+        -0.11965575,
         -0.00719517,
-        0.00178122,
-        -0.00785937,
-        -0.01201551,
-        0.00545857,
+        0.00177803841,
+        -0.007860960795,
+        -0.012016245,
+        0.00545032,
         0.001137474,
         0.009172067,
         0.033573266,
@@ -426,23 +464,38 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -5.09593e-5,
         0.0005990658,
         -3.72112e-5,
+        0.00104884,
+        0.00419763,
+        0.00496839,
+        0.00251317,
+        1.102338e-5,
+        6.422491e-5,
+        0.000131687,
+        1.461799e-5,
+        0.00786114,
+        -0.01209909,
+        0.00432363,
+        -0.00891218,
+        0.00148604,
+        0.01179891,
+        0.01365197,
+        0.0077315,
     ]
 
     # make pools
     pools = np.concatenate(
         [
-            dummy_carbon_data[str(name)].to_numpy()
+            dummy_carbon_data[name].to_numpy()
             for name in dummy_carbon_data.data.keys()
-            if str(name).startswith("soil_c_pool_")
-            or str(name).startswith("soil_enzyme_")
+            if name in SoilModel.vars_updated
         ]
     )
 
     # Find and store order of pools
     delta_pools_ordered = {
-        str(name): np.array([])
+        name: np.array([])
         for name in dummy_carbon_data.data.keys()
-        if str(name).startswith("soil_c_pool_") or str(name).startswith("soil_enzyme_")
+        if name in SoilModel.vars_updated
     }
 
     rate_of_change = construct_full_soil_model(
@@ -453,7 +506,6 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
-        core_constants=CoreConsts,
     )
 
     assert np.allclose(delta_pools, rate_of_change)
