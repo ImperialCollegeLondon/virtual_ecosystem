@@ -11,7 +11,7 @@ jupyter:
       jupytext_version: 1.16.6
 ---
 
-# Abbreviations
+# Glossary
 
 ```{glossary}
 

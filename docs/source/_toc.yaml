@@ -17,7 +17,6 @@ subtrees:
               - file: virtual_ecosystem/theory/soil/soil_theory
               - file: virtual_ecosystem/theory/soil/litter_theory
               - file: virtual_ecosystem/theory/soil/environmental_links
-              - file: virtual_ecosystem/theory/soil/soil_glossary
           - file: virtual_ecosystem/theory/animals/animal_theory
             entries:
               - file: virtual_ecosystem/theory/animals/carcasses_and_excrement
@@ -215,6 +214,7 @@ subtrees:
 
   - caption: Reference
     entries:
+      - file: glossary
       - file: bibliography
       - file: genindex
       - file: modindex
