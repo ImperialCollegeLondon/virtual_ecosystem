@@ -12,10 +12,14 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.demography.community import Cohorts as PlantCohorts
+from pyrealm.demography.community import Community as PlantCommunity
+from pyrealm.demography.flora import Flora as pyrealmFlora
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.functional_types import Flora, PlantFunctionalType
+from virtual_ecosystem.core.utils import split_arrays_by_grouping_variable
+from virtual_ecosystem.models.plants.functional_types import PlantFunctionalType
 
 
 @dataclass
@@ -44,7 +48,7 @@ class PlantCohort:
     """The gross primary productivity for each individual."""
 
 
-class PlantCommunities(dict, Mapping[int, PlantCohort]):
+class PlantCommunities(dict, Mapping[int, PlantCommunity]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
@@ -61,7 +65,7 @@ class PlantCommunities(dict, Mapping[int, PlantCohort]):
         flora: A flora containing the plant functional types used in the cohorts.
     """
 
-    def __init__(self, data: Data, flora: Flora):
+    def __init__(self, data: Data, flora: pyrealmFlora):
         # Validate the data being used to generate the Plants object
         cohort_data_vars = [
             "plant_cohorts_n",
@@ -104,26 +108,33 @@ class PlantCommunities(dict, Mapping[int, PlantCohort]):
             LOGGER.critical(msg)
             raise ValueError(msg)
 
-        bad_pft = set(data["plant_cohorts_pft"].data).difference(flora.keys())
+        bad_pft = set(data["plant_cohorts_pft"].data).difference(flora.name)
         if bad_pft:
             msg = f"Plant cohort PFTs ids not in configured PFTs: {','.join(bad_pft)}"
             LOGGER.critical(msg)
             raise ValueError(msg)
 
-        # TODO - think about mechanisms to keep cohort data as arrays either within
-        #        cells or across the whole simulation, to make it more efficient with
-        #        using pyrealm.
+        # Split data into cell ids:
+        cohort_data_by_cell_id = split_arrays_by_grouping_variable(
+            arrays=[
+                data["plant_cohorts_n"].to_numpy(),
+                data["plant_cohorts_pft"].to_numpy(),
+                data["plant_cohorts_dbh"].to_numpy(),
+            ],
+            group_by=data["plant_cohorts_cell_id"].to_numpy(),
+        )
 
-        # Now compile the plant cohorts adding each cohort to a list keyed by cell id
-        for cid in data.grid.cell_id:
-            self[cid] = []
-
-        for cid, chrt_pft, chrt_dbh, chrt_n in zip(
-            data["plant_cohorts_cell_id"].data,
-            data["plant_cohorts_pft"].data,
-            data["plant_cohorts_dbh"].data,
-            data["plant_cohorts_n"].data,
-        ):
-            self[cid].append(PlantCohort(pft=flora[chrt_pft], dbh=chrt_dbh, n=chrt_n))
+        # Now build the community objects for each cell
+        for cell_id, cell_cohort_data in cohort_data_by_cell_id:
+            self[cell_id] = PlantCommunity(
+                cell_id=cell_id,
+                cell_area=1,
+                flora=flora,
+                cohorts=PlantCohorts(
+                    n_individuals=cell_cohort_data[0],
+                    pft_names=cell_cohort_data[1],
+                    dbh_values=cell_cohort_data[2],
+                ),
+            )
 
         LOGGER.info("Plant cohort data loaded")
