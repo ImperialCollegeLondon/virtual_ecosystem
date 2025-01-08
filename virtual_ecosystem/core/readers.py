@@ -34,6 +34,7 @@ using :func:`~virtual_ecosystem.core.axes.validate_dataarray`. For example:
 from collections.abc import Callable
 from pathlib import Path
 
+from pandas import read_csv, read_excel
 from xarray import DataArray, load_dataset
 
 from virtual_ecosystem.core.logger import LOGGER
@@ -55,7 +56,7 @@ function itself should have the following signature:
 """
 
 
-def register_file_format_loader(file_types: tuple[str]) -> Callable:
+def register_file_format_loader(file_types: tuple[str, ...]) -> Callable:
     """Adds a data loader function to the data loader registry.
 
     This decorator is used to register a function that loads data from a given file type
@@ -127,6 +128,51 @@ def load_netcdf(file: Path, var_name: str) -> DataArray:
 
     # Check if file var is in the dataset
     if var_name not in dataset:
+        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    return dataset[var_name]
+
+
+@register_file_format_loader(
+    file_types=(
+        ".csv",
+        ".xlsx",
+    )
+)
+def load_from_dataframe(file: Path, var_name: str) -> DataArray:
+    """Loads a DataArray from a data frame format.
+
+    Args:
+        file: A Path for a csv or excel file containing the variable to load.
+        var_name: A string providing the name of the variables in this file.
+
+    Raises:
+        FileNotFoundError: with bad file path names.
+        ValueError: if the file data is not readable.
+    """
+
+    to_raise: Exception
+    file_type = file.suffix
+
+    # Determine dataframe file type & load file
+    try:
+        if file_type == ".csv":
+            dataset = read_csv(file)
+        else:
+            dataset = read_excel(file)
+    except FileNotFoundError:
+        to_raise = FileNotFoundError(f"Data file not found: {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+    except ValueError as err:
+        to_raise = ValueError(f"Could not load data from {file}: {err}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    # Check if file var is in the dataset
+    if var_name not in dataset.columns:
         to_raise = KeyError(f"Variable {var_name} not found in {file}")
         LOGGER.critical(to_raise)
         raise to_raise
