@@ -125,10 +125,10 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
         )
 
         # Now build the community objects for each cell
-        for cell_id, cell_cohort_data in cohort_data_by_cell_id:
+        for cell_id, cell_cohort_data in cohort_data_by_cell_id.items():
             self[cell_id] = PlantCommunity(
                 cell_id=cell_id,
-                cell_area=1,
+                cell_area=1,  ### TODO!
                 flora=flora,
                 cohorts=PlantCohorts(
                     n_individuals=cell_cohort_data[0],
