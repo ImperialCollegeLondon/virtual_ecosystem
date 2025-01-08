@@ -5,6 +5,10 @@ tasks that are repeated across modules.
 """  # noqa: D205
 
 from pathlib import Path
+from typing import Any
+
+import numpy as np
+from numpy.typing import NDArray
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
@@ -56,3 +60,40 @@ def check_outfile(merge_file_path: Path) -> None:
         raise to_raise
 
     return None
+
+
+def split_arrays_by_grouping_variable(
+    arrays: list[NDArray], group_by: NDArray
+) -> dict[Any, list[NDArray]]:
+    """Split equal length arrays by a grouping variable.
+
+    This function takes a set of one dimensional arrays of equal length - forming a data
+    frame - and splits the values into lists of subarrays by a grouping variable. It
+    sorts the arrays by the grouping variable before splitting the data.
+
+    Args:
+        arrays: A list of equal length, one dimensional arrays to be split.
+        group_by: A grouping variable to be used to split the arrays.
+
+    Returns:
+        A dictionary of lists of subarrays for each group, keyed by unique values in the
+        grouping variable.
+    """
+
+    # Get a sort order for the arrays based on the split_on variable
+    sort_order = np.argsort(group_by)
+
+    # Apply that sort order to all the arrays
+    arrays = [arr[sort_order] for arr in arrays]
+
+    # Get the indices where the group_by array changes and then split
+    split_at = np.where(np.diff(group_by[sort_order]) > 0)[0] + 1
+
+    # Split the arrays and then package them by the grouping values
+    split_arrays = [np.split(arr, split_at) for arr in arrays]
+    group_value = group_by[sort_order][np.insert(split_at, 0, 0)]
+    arrays_by_split_var = zip(*split_arrays)
+
+    return {
+        gp.item(): arr_list for gp, arr_list in zip(group_value, arrays_by_split_var)
+    }
