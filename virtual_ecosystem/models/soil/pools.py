@@ -178,6 +178,8 @@ class SoilPools:
             soil_moisture=soil_moisture,
             solubility_coefficient=self.constants.solubility_coefficient_lmwc,
         )
+        # TODO - These seperate leaching rates make no sense, they should be based off
+        # the LMWC leaching rate and the pool stoichiometry
         don_leaching = calculate_leaching_rate(
             solute_density=self.pools["soil_n_pool_don"],
             vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
@@ -189,6 +191,12 @@ class SoilPools:
             vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
             soil_moisture=soil_moisture,
             solubility_coefficient=self.constants.solubility_coefficient_dop,
+        )
+        labile_phosphorus_leaching = calculate_leaching_rate(
+            solute_density=self.pools["soil_p_pool_labile"],
+            vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
+            soil_moisture=soil_moisture,
+            solubility_coefficient=self.constants.solubility_coefficient_labile_p,
         )
 
         # Calculate transfers between the lmwc, necromass and maom pools
@@ -341,9 +349,7 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_secondary"] = np.zeros_like(
             delta_pools_ordered["soil_p_pool_maom"]
         )
-        delta_pools_ordered["soil_p_pool_labile"] = np.zeros_like(
-            delta_pools_ordered["soil_p_pool_maom"]
-        )
+        delta_pools_ordered["soil_p_pool_labile"] = -labile_phosphorus_leaching
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))

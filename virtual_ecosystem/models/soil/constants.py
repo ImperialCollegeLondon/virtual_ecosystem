@@ -270,6 +270,13 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
+    solubility_coefficient_labile_p: float = 0.005
+    """Solubility coefficient for labile inorganic phosphorus [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
+    """
+
     necromass_decay_rate: float = (1 / 3) * np.log(2)
     """Rate at which microbial necromass decays to low molecular weight carbon [day^-1]
 

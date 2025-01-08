@@ -536,10 +536,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.0,
         0.0,
         0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
+        -2.274653e-11,
+        -4.1304854e-10,
+        -6.7491988e-9,
+        -2.0451407e-8,
     ]
 
     # make pools
