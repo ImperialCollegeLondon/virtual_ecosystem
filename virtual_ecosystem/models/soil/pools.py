@@ -171,6 +171,7 @@ class SoilPools:
             constants=self.constants,
         )
 
+        # TODO - Combine these into a single function
         labile_carbon_leaching = calculate_leaching_rate(
             solute_density=self.pools["soil_c_pool_lmwc"],
             vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
@@ -292,6 +293,8 @@ class SoilPools:
             - necromass_decay_to_lmwc
             - necromass_sorption_to_maom
         )
+        delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
+        delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_fluxes_N["dissolved"]
             + pom_n_mineralisation
@@ -300,7 +303,6 @@ class SoilPools:
             - microbial_changes.don_uptake
             - don_leaching
         )
-
         delta_pools_ordered["soil_n_pool_particulate"] = (
             litter_mineralisation_fluxes_N["particulate"] - pom_n_mineralisation
         )
@@ -333,8 +335,15 @@ class SoilPools:
             necromass_outflows["sorption_phosphorus"]
             - nutrient_transfers_maom_to_lmwc["phosphorus"]
         )
-        delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
-        delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
+        delta_pools_ordered["soil_p_pool_primary"] = np.zeros_like(
+            delta_pools_ordered["soil_p_pool_maom"]
+        )
+        delta_pools_ordered["soil_p_pool_secondary"] = np.zeros_like(
+            delta_pools_ordered["soil_p_pool_maom"]
+        )
+        delta_pools_ordered["soil_p_pool_labile"] = np.zeros_like(
+            delta_pools_ordered["soil_p_pool_maom"]
+        )
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))

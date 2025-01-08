@@ -29,6 +29,9 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_p_pool_particulate' checked"),
     (DEBUG, "soil model: required var 'soil_p_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_p_pool_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_primary' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_secondary' checked"),
+    (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
@@ -336,6 +339,16 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     soil_p_pool_maom=DataArray(
                         [0.01355237, 0.03473323, 0.01997613, 0.00400384], dims="cell_id"
                     ),
+                    soil_p_pool_primary=DataArray(
+                        [0.0019594, 0.00535662, 0.00277434, 0.00059892], dims="cell_id"
+                    ),
+                    soil_p_pool_secondary=DataArray(
+                        [0.00705668, 0.03816896, 0.01152589, 0.00733107], dims="cell_id"
+                    ),
+                    soil_p_pool_labile=DataArray(
+                        [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
+                        dims="cell_id",
+                    ),
                 )
             ),
             (),
@@ -515,6 +528,18 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         3.68566732e-5,
         4.7566130e-4,
         3.09257058e-4,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
     ]
 
     # make pools
