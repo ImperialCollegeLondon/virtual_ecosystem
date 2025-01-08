@@ -383,3 +383,65 @@ def calculate_latent_heat_flux(
             / atmospheric_pressure
         )
     )
+
+
+def update_soil_temperature(
+    ground_heat_flux: NDArray[np.float32],
+    soil_temperature: NDArray[np.float32],
+    soil_layer_thickness: NDArray[np.float32],
+    soil_thermal_conductivity: float | NDArray[np.float32],
+    soil_bulk_density: float | NDArray[np.float32],
+    specific_heat_capacity_soil: float | NDArray[np.float32],
+    time_interval: int,
+) -> NDArray[np.float32]:
+    """Update soil temperature using heat diffusion.
+
+    TODO add description and equations
+
+    Args:
+        ground_heat_flux: Ground heat flux at top soil, [W m-2]
+        soil_temperature: Soil temperature for each soil layer, [C]
+        soil_thermal_conductivity: Thermal conductivity of soil [W m-2 K-1]
+        soil_bulk_density: Soil bulk density, [kg m-3]
+        specific_heat_capacity_soil: Specific heat capacity of soil [J kg-1 K-1]
+        soil_layer_thickness: Thickness of each soil layer, [m]
+        time_interval: Time interval, [s]
+
+    Returns:
+        Updated soil temperatures, [C]
+    """
+
+    n_layers = len(soil_temperature)
+    new_soil_temperature = soil_temperature.copy()
+
+    # Soil thermal diffusivity, [m2 s-1]
+    soil_thermal_diffusivity = soil_thermal_conductivity / (
+        soil_bulk_density * specific_heat_capacity_soil
+    )
+
+    # Update internal layers using diffusion
+    for i in range(1, n_layers - 1):
+        new_soil_temperature[i, :] += (
+            (time_interval / soil_layer_thickness[i] ** 2)
+            * soil_thermal_diffusivity
+            * (
+                soil_temperature[i + 1, :]
+                - 2 * soil_temperature[i, :]
+                + soil_temperature[i - 1, :]
+            )
+        )
+
+    # Update top layer with ground heat flux
+    new_soil_temperature[0, :] += (
+        time_interval
+        / (soil_bulk_density * specific_heat_capacity_soil * soil_layer_thickness[0])
+    ) * ground_heat_flux
+
+    # No heat flux boundary at the bottom (insulation assumption)
+    new_soil_temperature[-1, :] += (
+        (time_interval / soil_layer_thickness[-1] ** 2)
+        * soil_thermal_diffusivity
+        * (soil_temperature[-2, :] - soil_temperature[-1, :])
+    )
+
+    return new_soil_temperature

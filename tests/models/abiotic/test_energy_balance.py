@@ -219,3 +219,73 @@ def test_calculate_latent_heat_flux():
 
     exp_result = np.array([[-1.58868, 0.0, 19.108873]] * 4)
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp",
+    [
+        # Test case for 2 soil layers and constant (float) soil parameters
+        (
+            np.array([20.0, 25.0, 18.0, 22.0]),
+            np.array([[15.0, 16.0, 14.0, 13.0], [14.0, 15.0, 13.0, 12.0]]),
+            np.array([[0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.1, 0.1]]),
+            1.2,
+            1300.0,
+            800.0,
+            3600,  # time_interval (1 hour)
+            2,
+            np.array(
+                [
+                    [15.692308, 16.865385, 14.623077, 13.761538],
+                    [14.415385, 15.415385, 13.415385, 12.415385],
+                ],
+            ),
+        ),
+        # Test case for 5 soil layers and arrays of soil parameters
+        (
+            np.array([18.0, 19.0, 20.0, 21.0]),
+            np.array(
+                [
+                    [15.0, 16.0, 14.0, 13.0],
+                    [14.5, 15.5, 13.5, 12.5],
+                    [14.2, 15.2, 13.2, 12.2],
+                    [14.1, 15.1, 13.1, 12.1],
+                    [14.0, 15.0, 13.0, 12.0],
+                ],
+            ),
+            np.array([[0.1], [0.2], [0.2], [0.3], [0.2]]) * np.ones((1, 4)),
+            np.repeat(1.2, 4),
+            np.repeat(1300.0, 4),
+            np.repeat(800.0, 4),
+            3600,  # time_interval (1 hour)
+            5,
+            np.array(
+                [
+                    [15.623077, 16.657692, 14.692308, 13.726923],
+                    [14.520769, 15.520769, 13.520769, 12.520769],
+                    [14.220769, 15.220769, 13.220769, 12.220769],
+                    [14.1, 15.1, 13.1, 12.1],
+                    [14.010385, 15.010385, 13.010385, 12.010385],
+                ],
+            ),
+        ),
+    ],
+)
+def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp):
+    """Test update soil temperature."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import update_soil_temperature
+
+    updated_temperature = update_soil_temperature(
+        ground_heat_flux=g,
+        soil_temperature=soil_temp,
+        soil_layer_thickness=dz,
+        soil_thermal_conductivity=k,
+        soil_bulk_density=rho,
+        specific_heat_capacity_soil=cp,
+        time_interval=dt,
+    )
+
+    # Check that the number of layers matches the expected layers
+    assert updated_temperature.shape[0] == exp_n
+    np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)

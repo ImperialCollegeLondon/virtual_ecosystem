@@ -299,8 +299,28 @@ def run_microclimate(
     output["latent_heat_flux"] = latent_heat_flux * time_interval
 
     # Ground heat flux
+    ground_heat_flux = (
+        net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
+    )
 
-    # Update air/canopy/soil temperatures
+    # Update soil temperatures, [C]
+    # TODO Soil parameter currently constants, replace with soil maps
+    new_soil_temperature = energy_balance.update_soil_temperature(
+        ground_heat_flux=ground_heat_flux,
+        soil_temperature=data["soil_temperature"][
+            layer_structure.index_all_soil
+        ].to_numpy(),
+        soil_layer_thickness=layer_structure.soil_layer_thickness,
+        soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
+        soil_bulk_density=abiotic_constants.bulk_density_soil,
+        specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
+        time_interval=time_interval,
+    )
+    soil_temperature = layer_structure.from_template()
+    soil_temperature[layer_structure.index_all_soil] = new_soil_temperature
+    output["soil_temperature"] = soil_temperature
+
+    # Update air/canopy temperatures
 
     # Update humidity/VPD
 
