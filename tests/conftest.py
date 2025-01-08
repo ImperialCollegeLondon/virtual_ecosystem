@@ -118,7 +118,7 @@ def fixture_config():
         lai = 1.8
         m = 2
         n = 5
-        name = 'test1'
+        name = 'shrub'
         par_ext = 0.5
         resp_f = 0.1
         resp_r = 0.913
@@ -138,7 +138,7 @@ def fixture_config():
         lai = 1.8
         m = 2
         n = 5
-        name = 'test2'
+        name = 'broadleaf'
         par_ext = 0.5
         resp_f = 0.1
         resp_r = 0.913

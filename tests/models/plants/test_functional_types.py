@@ -7,7 +7,11 @@ import pytest
 
 
 def test_get_flora_from_config(shared_datadir, fixture_config):
-    """Testing the flora loading mechanism."""
+    """Testing the pyrealm flora loading mechanism.
+
+    This tests the loader in two different configurations (data in TOML, data in CSV)
+    and checks the loader fails if both are present.
+    """
 
     from pyrealm.demography.flora import Flora
 
