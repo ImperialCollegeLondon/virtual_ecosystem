@@ -168,6 +168,7 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.__repr__"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.count"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
+    ("py:exc", "ParserError"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
