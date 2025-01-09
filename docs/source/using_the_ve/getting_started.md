@@ -41,7 +41,7 @@ that the package is still being developed so these are currently early developme
 
 If you are more interested in playing around with the development of the model, then you
 will need to follow the [overview of the code contribution
-process](../development/contributing/overivew.md), which covers the installation of the
+process](../development/contributing/overview.md), which covers the installation of the
 tools required for code development, testing and building documentation.
 
 ## Running an example Virtual Ecosystem simulation
