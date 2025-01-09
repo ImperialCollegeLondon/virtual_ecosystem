@@ -343,10 +343,10 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.0019594, 0.00535662, 0.00277434, 0.00059892], dims="cell_id"
                     ),
                     soil_p_pool_secondary=DataArray(
-                        [0.00705668, 0.03816896, 0.01152589, 0.00733107], dims="cell_id"
+                        [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
+                        [1.08350351e-5, 3.39159643e-5, 6.84343852e-5, 1.94662682e-4],
                         dims="cell_id",
                     ),
                 )
@@ -532,14 +532,14 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -1.222973e-9,
         -6.33411e-10,
         -1.3674e-10,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        4.246051e-10,
-        8.099241e-10,
-        -6.115789e-9,
-        -2.031467e-8,
+        -5.050797e-7,
+        -2.77311e-6,
+        -7.40324e-7,
+        -2.187697e-7,
+        5.0550432e-7,
+        2.77392428e-6,
+        7.3420809e-7,
+        1.9845505e-7,
     ]
 
     # make pools

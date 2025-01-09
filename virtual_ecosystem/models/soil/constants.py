@@ -389,3 +389,15 @@ class SoilConsts(ConstantsDataclass):
     
     Default value taken from :cite:t:`parton_dynamics_1988`.
     """
+
+    secondary_phosphorus_breakdown_rate: float = 1.0 / 13500
+    """Rate constant for breakdown of secondary mineral to labile phosphorus [day^-1].
+    
+    Default value taken from :cite:t:`parton_dynamics_1988`.
+    """
+
+    labile_phosphorus_sorption_rate: float = 1.0 / 600
+    """Rate constant for sorption of labile phosphorus to secondary mineral phosphorus.
+    
+    Units of [day^-1]. Default value taken from :cite:t:`parton_dynamics_1988`.
+    """

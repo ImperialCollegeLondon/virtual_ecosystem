@@ -277,6 +277,12 @@ class SoilPools:
             self.constants.primary_phosphorus_breakdown_rate
             * self.pools["soil_p_pool_primary"]
         )
+        net_formation_secondary_P = calculate_net_formation_of_secondary_P(
+            soil_p_pool_labile=self.pools["soil_p_pool_labile"],
+            soil_p_pool_secondary=self.pools["soil_p_pool_secondary"],
+            secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
+            labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
+        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -352,11 +358,11 @@ class SoilPools:
             self.constants.tectonic_uplift_rate_phosphorus
             - primary_phosphorus_breakdown
         )
-        delta_pools_ordered["soil_p_pool_secondary"] = np.zeros_like(
-            delta_pools_ordered["soil_p_pool_maom"]
-        )
+        delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
-            primary_phosphorus_breakdown - nutrient_leaching.labile_P
+            primary_phosphorus_breakdown
+            - net_formation_secondary_P
+            - nutrient_leaching.labile_P
         )
 
         # Create output array of pools in desired order
@@ -373,7 +379,7 @@ def calculate_microbial_changes(
     soil_temp: NDArray[np.float32],
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
-):
+) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
     This function calculates the uptake of low molecular weight carbon by the microbial
@@ -1159,3 +1165,33 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
         "nitrogen": maom_nitrogen_loss - maom_nitrogen_gain,
         "phosphorus": maom_phosphorus_loss - maom_phosphorus_gain,
     }
+
+
+def calculate_net_formation_of_secondary_P(
+    soil_p_pool_labile: NDArray[np.float32],
+    soil_p_pool_secondary: NDArray[np.float32],
+    secondary_p_breakdown_rate: float,
+    labile_p_sorption_rate: float,
+) -> NDArray[np.float32]:
+    """Calculate net rate of secondary mineral phosphorus formation.
+
+    This is the combination of labile inorganic phosphorus associating with minerals and
+    secondary mineral phosphorus breaking down.
+
+    Args:
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
+        soil_p_pool_secondary: Secondary mineral phosphorus pool [kg P m^-3]
+        secondary_p_breakdown_rate: Rate constant for breakdown of secondary mineral
+            phosphorus to labile phosphorus [day^-1]
+        labile_p_sorption_rate: Rate constant for sorption of labile inorganic
+            phosphorus to soil minerals to form secondary mineral phosphorus [day^-1]
+
+    Returns:
+        The net rate of labile inorganic phosphorus that has become secondary mineral
+        phosphorus (this can be negative) [kg P m^-3 day^-1]
+    """
+
+    association_rate = labile_p_sorption_rate * soil_p_pool_labile
+    breakdown_rate = secondary_p_breakdown_rate * soil_p_pool_secondary
+
+    return association_rate - breakdown_rate

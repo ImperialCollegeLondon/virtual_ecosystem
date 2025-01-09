@@ -52,8 +52,8 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
-        "soil_p_pool_secondary": [0.0, 0.0, 0.0, 0.0],
-        "soil_p_pool_labile": [4.246051e-10, 8.099241e-10, -6.115789e-9, -2.031467e-8],
+        "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
+        "soil_p_pool_labile": [5.0550432e-7, 2.77392428e-6, 7.3420809e-7, 1.9845505e-7],
     }
 
     # Make order of pools object
@@ -523,3 +523,21 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
 
     for key in expected_transfers.keys():
         assert np.allclose(expected_transfers[key], actual_transfers[key])
+
+
+def test_calculate_net_formation_of_secondary_P(dummy_carbon_data):
+    """Test that calculation of the net formation of secondary P is correct."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_net_formation_of_secondary_P,
+    )
+
+    expected_formation = [-5.05079715e-7, -2.77311435e-6, -7.4032388e-7, -2.18769722e-7]
+
+    actual_formation = calculate_net_formation_of_secondary_P(
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        soil_p_pool_secondary=dummy_carbon_data["soil_p_pool_secondary"],
+        secondary_p_breakdown_rate=SoilConsts.secondary_phosphorus_breakdown_rate,
+        labile_p_sorption_rate=SoilConsts.labile_phosphorus_sorption_rate,
+    )
+
+    assert np.allclose(actual_formation, expected_formation)
