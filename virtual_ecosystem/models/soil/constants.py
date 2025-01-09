@@ -263,6 +263,13 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
+    solubility_coefficient_dop: float = 1.0
+    """Solubility coefficient for dissolved organic phosphorus [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
+    """
+
     necromass_decay_rate: float = (1 / 3) * np.log(2)
     """Rate at which microbial necromass decays to low molecular weight carbon [day^-1]
 
@@ -310,6 +317,13 @@ class SoilConsts(ConstantsDataclass):
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
+    litter_leaching_fraction_phosphorus = 0.0001
+    """Fraction of phosphorus mineralisation from litter that occurs by leaching.
+    
+    [unitless]. The remainder of the mineralisation consists of particulates. Value is
+    an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
     microbial_c_n_ratio = 5.2
     """Ratio of carbon to nitrogen in microbial biomass [unitless].
     
@@ -318,8 +332,16 @@ class SoilConsts(ConstantsDataclass):
     added this constant needs to be split.
     """
 
+    microbial_c_p_ratio = 16
+    """Ratio of carbon to phosphorus in microbial biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature. Here using specifically the bacterial value, once fungi are 
+    added this constant needs to be split.
+    """
+
     max_uptake_rate_don = 0.0077
-    """Maximum rate at for dissolved organic nitrogen uptake [day^-1].
+    """Maximum possible rate for dissolved organic nitrogen uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
     :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
@@ -333,6 +355,28 @@ class SoilConsts(ConstantsDataclass):
     """Half saturation constant for uptake of dissolved organic nitrogen (DON).
 
     [kg N m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    max_uptake_rate_dop = 0.0025
+    """Maximum possible rate for dissolved organic phosphorus uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_dop_uptake: float = 0.02275
+    """Half saturation constant for uptake of dissolved organic phosphorus (DOP).
+
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
     and the corresponding activation energy is given by
     :attr:`activation_energy_uptake_saturation`.
 
