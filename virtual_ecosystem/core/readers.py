@@ -35,6 +35,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from pandas import read_csv, read_excel
+from pandas.errors import ParserError
 from xarray import DataArray, load_dataset
 
 from virtual_ecosystem.core.logger import LOGGER
@@ -150,7 +151,11 @@ def load_from_dataframe(file: Path, var_name: str) -> DataArray:
 
     Raises:
         FileNotFoundError: with bad file path names.
-        ValueError: if the file data is not readable.
+        ParserError: if the csv data is not readable.
+        Exception: if the excel data is not readable.
+
+    Note: the general exception is used because of the variety of exceptions that are
+    possible with read_excel.
     """
 
     to_raise: Exception
@@ -161,13 +166,17 @@ def load_from_dataframe(file: Path, var_name: str) -> DataArray:
         if file_type == ".csv":
             dataset = read_csv(file)
         else:
-            dataset = read_excel(file)
+            dataset = read_excel(file, engine="openpyxl")
     except FileNotFoundError:
         to_raise = FileNotFoundError(f"Data file not found: {file}")
         LOGGER.critical(to_raise)
         raise to_raise
-    except ValueError as err:
-        to_raise = ValueError(f"Could not load data from {file}: {err}")
+    except ParserError as err:
+        to_raise = ParserError(f"Could not load data from {file}: {err}.")
+        LOGGER.critical(to_raise)
+        raise to_raise
+    except Exception as err:
+        to_raise = Exception(f"Unidentified exception opening {file}: {err}")
         LOGGER.critical(to_raise)
         raise to_raise
 
@@ -177,7 +186,7 @@ def load_from_dataframe(file: Path, var_name: str) -> DataArray:
         LOGGER.critical(to_raise)
         raise to_raise
 
-    return dataset[var_name]
+    return dataset[var_name].to_xarray()
 
 
 def load_to_dataarray(

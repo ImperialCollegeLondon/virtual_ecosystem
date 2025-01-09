@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, INFO
 
 import pytest
+from pandas.errors import ParserError
 from xarray import DataArray
 
 from tests.conftest import log_check
@@ -93,12 +94,80 @@ def test_file_format_loader(caplog, file_types, expected_log):
     ],
 )
 def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_log):
-    """Test the netdcf variable loader."""
+    """Test the netdcf variable loader.
+
+    The FileNotFoundError test is dependent on running the test_file_format_loader tests
+    first, and will fail if run independently. See TODO above.
+    """
 
     from virtual_ecosystem.core.readers import load_netcdf
 
     with exp_err:
         darray = load_netcdf(shared_datadir / file, file_var)
+        assert isinstance(darray, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["file", "file_var", "exp_err", "expected_log"],
+    argvalues=[
+        (
+            "not_there.csv",
+            "irrelevant",
+            pytest.raises(FileNotFoundError),
+            ((CRITICAL, "Data file not found"),),
+        ),
+        (
+            "garbage.csv",
+            "irrelevant",
+            pytest.raises(ParserError),
+            ((CRITICAL, "Could not load data from"),),
+        ),
+        (
+            "reader_test.csv",
+            "missing",
+            pytest.raises(KeyError),
+            ((CRITICAL, "Variable missing not found in"),),
+        ),
+        (
+            "reader_test.csv",
+            "var1",
+            does_not_raise(),
+            (),
+        ),
+        (
+            "garbage.xlsx",
+            "irrelevant",
+            pytest.raises(Exception),
+            ((CRITICAL, "Unidentified exception opening"),),
+        ),
+        (
+            "reader_test.xlsx",
+            "missing",
+            pytest.raises(KeyError),
+            ((CRITICAL, "Variable missing not found in"),),
+        ),
+        (
+            "reader_test.xlsx",
+            "var1",
+            does_not_raise(),
+            (),
+        ),
+    ],
+)
+def test_load_dataframe(shared_datadir, caplog, file, file_var, exp_err, expected_log):
+    """Test the netdcf variable loader.
+
+    The FileNotFoundError test is dependent on running the test_file_format_loader tests
+    first, and will fail if run independently. See TODO above.
+    """
+
+    from virtual_ecosystem.core.readers import load_from_dataframe
+
+    with exp_err:
+        darray = load_from_dataframe(shared_datadir / file, file_var)
         assert isinstance(darray, DataArray)
 
     # Check the error reports
