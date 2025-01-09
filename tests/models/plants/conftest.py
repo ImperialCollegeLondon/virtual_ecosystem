@@ -24,10 +24,10 @@ def plants_data(fixture_core_components):
     n_cells = fixture_core_components.grid.n_cells
 
     # Add cohort configuration
-    data["plant_cohorts_n"] = DataArray(np.array([5] * n_cells))
+    data["plant_cohorts_n"] = DataArray(np.array([250] * n_cells))
     data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * n_cells))
     data["plant_cohorts_cell_id"] = DataArray(np.arange(n_cells))
-    data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * n_cells))
+    data["plant_cohorts_dbh"] = DataArray(np.array([1.0] * n_cells))
 
     # Spatio-temporal data
     data["photosynthetic_photon_flux_density"] = DataArray(

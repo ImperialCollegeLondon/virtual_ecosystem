@@ -134,7 +134,7 @@ def fixture_config():
         a_hd = 116.0
         ca_ratio = 390.43
         f_g = 0.02
-        h_max = 15.33
+        h_max = 30.33
         lai = 1.8
         m = 2
         n = 5
