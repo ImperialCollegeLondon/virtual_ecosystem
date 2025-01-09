@@ -208,7 +208,9 @@ class PlantsModel(
         """A flora containing the plant functional types used in the plants model."""
         self.model_constants = model_constants
         """Set of constants for the plants model"""
-        self.communities = PlantCommunities(self.data, self.flora)
+        self.communities = PlantCommunities(
+            data=self.data, flora=self.flora, grid=self.grid
+        )
         """Initialise the plant communities from the data object."""
 
         # Initialise and then update the canopy layers.

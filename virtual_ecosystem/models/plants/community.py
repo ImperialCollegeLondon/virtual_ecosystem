@@ -17,6 +17,7 @@ from pyrealm.demography.community import Community as PlantCommunity
 from pyrealm.demography.flora import Flora as pyrealmFlora
 
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.utils import split_arrays_by_grouping_variable
 from virtual_ecosystem.models.plants.functional_types import PlantFunctionalType
@@ -63,9 +64,10 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
     Args:
         data: A data instance containing the required plant cohort data.
         flora: A flora containing the plant functional types used in the cohorts.
+        grid: The grid for the simulation, providing the area of the grid cells.
     """
 
-    def __init__(self, data: Data, flora: pyrealmFlora):
+    def __init__(self, data: Data, flora: pyrealmFlora, grid: Grid):
         # Validate the data being used to generate the Plants object
         cohort_data_vars = [
             "plant_cohorts_n",
@@ -124,11 +126,12 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
             group_by=data["plant_cohorts_cell_id"].to_numpy(),
         )
 
-        # Now build the community objects for each cell
+        # Now build the pyrealm community objects for each cell
+        # TODO - note that this needs fixing if cell area is not constant.
         for cell_id, cell_cohort_data in cohort_data_by_cell_id.items():
             self[cell_id] = PlantCommunity(
                 cell_id=cell_id,
-                cell_area=1,  ### TODO!
+                cell_area=grid.cell_area,
                 flora=flora,
                 cohorts=PlantCohorts(
                     n_individuals=cell_cohort_data[0],
