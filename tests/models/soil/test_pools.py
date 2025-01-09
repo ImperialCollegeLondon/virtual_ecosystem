@@ -137,6 +137,33 @@ def test_calculate_enzyme_mediated_rates(
     assert np.allclose(actual_rates.maom_to_lmwc, expected_maom_to_lmwc)
 
 
+def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components):
+    """Check that the calculation of dissolved nutrient leaching rates is correct."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+
+    expected_lmwc_leaching = [1.0747349e-6, 2.5395235e-6, 9.9154571e-5, 5.2557152e-6]
+    expected_don_leaching = [2.45653448e-7, 3.62788704e-6, 2.83284609e-6, 6.00652988e-5]
+    expected_dop_leaching = [2.45641411e-9, 5.80461927e-8, 1.13319396e-6, 2.40261195e-6]
+    expected_labile_P_leaching = [2.274653e-11, 4.130485e-10, 6.749199e-9, 2.045141e-8]
+
+    actual_leaching = calculate_nutrient_leaching(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_leaching.lmwc, expected_lmwc_leaching)
+    assert np.allclose(actual_leaching.don, expected_don_leaching)
+    assert np.allclose(actual_leaching.dop, expected_dop_leaching)
+    assert np.allclose(actual_leaching.labile_P, expected_labile_P_leaching)
+
+
 def test_calculate_enzyme_changes(dummy_carbon_data):
     """Check that the determination of enzyme pool changes works correctly."""
 
