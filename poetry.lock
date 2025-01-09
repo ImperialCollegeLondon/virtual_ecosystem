@@ -3986,6 +3986,25 @@ rtd = ["myst-parser (>=1.0.0)", "sphinx-book-theme (>=1.0.0)"]
 testing = ["coverage", "pytest (>=7.1)", "pytest-cov", "pytest-regressions"]
 
 [[package]]
+name = "sphinx-hoverxref"
+version = "1.4.2"
+description = "Sphinx extension to show tooltips with content embedded when hover a reference."
+optional = false
+python-versions = "*"
+files = [
+    {file = "sphinx_hoverxref-1.4.2-py2.py3-none-any.whl", hash = "sha256:4fc2e283e908d9df61ea9196589934944a7e2e6e3cb753a420b938cd6d14e220"},
+    {file = "sphinx_hoverxref-1.4.2.tar.gz", hash = "sha256:74fab961b1b8c0e9c2cf22fa195c0e783d635e78686d39dd06ff157c196ca0c9"},
+]
+
+[package.dependencies]
+sphinx = ">=5.0"
+sphinxcontrib-jquery = "*"
+
+[package.extras]
+doc = ["sphinx", "sphinx-autoapi", "sphinx-autobuild", "sphinx-notfound-page", "sphinx-prompt", "sphinx-rtd-theme", "sphinx-tabs", "sphinx-version-warning", "sphinxcontrib-bibtex (>=2.6.0)", "sphinxemoji"]
+test = ["tox"]
+
+[[package]]
 name = "sphinx-rtd-theme"
 version = "3.0.2"
 description = "Read the Docs theme for Sphinx"

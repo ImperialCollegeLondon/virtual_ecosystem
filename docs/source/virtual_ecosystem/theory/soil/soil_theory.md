@@ -90,14 +90,14 @@ very slowly (order of years to decades) and so in most soils it is the main form
 
 Microbial biomass accounts for a small fraction of total soil carbon. However, microbes
 are key drivers of soil carbon cycling, with significant flows of carbon through the
-microbial biomass pool. Microbes assist in the formation of LMWC by excreting enzymes
-that breakdown POM. They then utilise LMWC to form biomass. Microbial waste products and
-necromass either break down into LMWC, or form mineral associations. In addition,
-microbial respiration is one of the major sources of carbon loss to the system. This
-pool turns over rapidly (order of days) and only represents a very small fraction of
-total soil carbon. However, it is very important to track because many soil processes
-are driven by microbes, and so depend either implicitly or explicitly on the size of
-this pool.
+microbial biomass pool. Microbes assist in the formation of {term}`LMWC` by excreting
+enzymes that breakdown {term}`POM`. They then utilise LMWC to form biomass. Microbial
+waste products and necromass either break down into LMWC, or form mineral associations.
+In addition, microbial respiration is one of the major sources of carbon loss to the
+system. This pool turns over rapidly (order of days) and only represents a very small
+fraction of total soil carbon. However, it is very important to track because many soil
+processes are driven by microbes, and so depend either implicitly or explicitly on the
+size of this pool.
 
 ## Nitrogen pools
 
