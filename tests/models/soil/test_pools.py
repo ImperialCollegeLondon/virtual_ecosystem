@@ -43,11 +43,11 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [0.00119921, 0.00470261, 0.00496839, 0.00251442],
+        "soil_n_pool_don": [0.00119944, 0.00470606, 0.00497108, 0.00257148],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_p_pool_dop": [1.92918032e-4, 6.24454858e-5, 1.57222238e-4, 9.94118894e-5],
+        "soil_p_pool_dop": [1.92920366e-4, 6.25006297e-5, 1.58298772e-4, 1.01694371e-4],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
@@ -142,8 +142,8 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
     from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
 
     expected_lmwc_leaching = [1.0747349e-6, 2.5395235e-6, 9.9154571e-5, 5.2557152e-6]
-    expected_don_leaching = [2.45653448e-7, 3.62788704e-6, 2.83284609e-6, 6.00652988e-5]
-    expected_dop_leaching = [2.45641411e-9, 5.80461927e-8, 1.13319396e-6, 2.40261195e-6]
+    expected_don_leaching = [1.22826724e-8, 1.81394352e-7, 1.41642304e-7, 3.00326494e-6]
+    expected_dop_leaching = [1.2282071e-10, 2.90230964e-9, 5.66596981e-8, 1.20130598e-7]
     expected_labile_P_leaching = [2.274653e-11, 4.130485e-10, 6.749199e-9, 2.045141e-8]
 
     actual_leaching = calculate_nutrient_leaching(

@@ -87,10 +87,10 @@ class LeachingRates:
     """Leaching rate for the low molecular weight carbon pool [kg C m^-3 day^-1]."""
 
     don: NDArray[np.float32]
-    """Leaching rate for the dissolved organic nitrogen pool [kg N m^-3 day^-1]."""
+    """Loss of dissolved organic nitrogen due to LMWC leaching [kg N m^-3 day^-1]."""
 
     dop: NDArray[np.float32]
-    """Leaching rate for the dissolved organic phosphorus pool [kg P m^-3 day^-1]."""
+    """Loss of dissolved organic phosphorus due to LMWC leaching [kg P m^-3 day^-1]."""
 
     labile_P: NDArray[np.float32]
     """Leaching rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
@@ -502,6 +502,12 @@ def calculate_nutrient_leaching(
 ) -> LeachingRates:
     """Calculate the rate a which each soluble nutrient pool is leached.
 
+    Leaching rates are calculated for the low molecular weight carbon pool and the
+    inorganic nitrogen and phosphorus pools based on their solubility and the rate at
+    which water flows through the soil. The loss of organic nitrogen and phosphorus due
+    to leaching is then calculated based on the stoichiometry and leaching rate of the
+    LMWC pool.
+
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
@@ -514,25 +520,13 @@ def calculate_nutrient_leaching(
     Returns:
         A dataclass containing the rate a which each soluble nutrient pool leaches.
     """
+
+    # Find leaching rates
     labile_carbon_leaching = calculate_leaching_rate(
         solute_density=soil_c_pool_lmwc,
         vertical_flow_rate=vertical_flow_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_lmwc,
-    )
-    # TODO - These seperate leaching rates make no sense, they should be based off
-    # the LMWC leaching rate and the pool stoichiometry
-    don_leaching = calculate_leaching_rate(
-        solute_density=soil_n_pool_don,
-        vertical_flow_rate=vertical_flow_rate,
-        soil_moisture=soil_moisture,
-        solubility_coefficient=constants.solubility_coefficient_don,
-    )
-    dop_leaching = calculate_leaching_rate(
-        solute_density=soil_p_pool_dop,
-        vertical_flow_rate=vertical_flow_rate,
-        soil_moisture=soil_moisture,
-        solubility_coefficient=constants.solubility_coefficient_dop,
     )
     labile_phosphorus_leaching = calculate_leaching_rate(
         solute_density=soil_p_pool_labile,
@@ -540,6 +534,12 @@ def calculate_nutrient_leaching(
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_labile_p,
     )
+
+    # Find rate at which don and dop are lost due to lmwc leaching
+    c_n_ratio_lmwc = soil_c_pool_lmwc / soil_n_pool_don
+    c_p_ratio_lmwc = soil_c_pool_lmwc / soil_p_pool_dop
+    don_leaching = labile_carbon_leaching / c_n_ratio_lmwc
+    dop_leaching = labile_carbon_leaching / c_p_ratio_lmwc
 
     return LeachingRates(
         lmwc=labile_carbon_leaching,

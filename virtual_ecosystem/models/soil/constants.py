@@ -256,20 +256,6 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
-    solubility_coefficient_don: float = 1.0
-    """Solubility coefficient for dissolved organic nitrogen [unitless].
-
-    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
-    a loose manner.
-    """
-
-    solubility_coefficient_dop: float = 1.0
-    """Solubility coefficient for dissolved organic phosphorus [unitless].
-
-    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
-    a loose manner.
-    """
-
     solubility_coefficient_labile_p: float = 0.005
     """Solubility coefficient for labile inorganic phosphorus [unitless].
 

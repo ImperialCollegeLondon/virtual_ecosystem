@@ -292,7 +292,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.0571695, 0.02695769, 0.11767019, 0.01488859], dims="cell_id"
+                        [0.05716948, 0.02695746, 0.11766245, 0.01488846], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
@@ -314,7 +314,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00133728, 0.00346121, 0.00262946, 0.0038859], dims="cell_id"
+                        [0.00133747, 0.0034642, 0.00264209, 0.00391989], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
                         [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
@@ -326,7 +326,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_p_pool_dop=DataArray(
-                        [1.59404568e-4, 8.17510225e-5, 2.73598058e-4, 1.64590927e-4],
+                        [1.59419021e-4, 8.18045641e-5, 2.74819779e-4, 1.65978052e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_particulate=DataArray(
@@ -496,10 +496,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -5.09593e-5,
         0.0005990658,
         -3.72112e-5,
-        0.00119921,
-        0.00470261,
-        0.00496839,
-        0.00251442,
+        0.00119944,
+        0.00470606,
+        0.00497108,
+        0.00257148,
         1.102338e-5,
         6.422491e-5,
         0.000131687,
@@ -512,10 +512,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.01179891,
         0.01365197,
         0.0077315,
-        1.92918032e-4,
-        6.24454858e-5,
-        1.57222238e-4,
-        9.94118894e-5,
+        1.92920366e-4,
+        6.25006297e-5,
+        1.58298772e-4,
+        1.01694371e-4,
         7.22218e-6,
         -1.13464e-6,
         7.86083e-7,
