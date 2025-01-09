@@ -96,8 +96,8 @@ def test_file_format_loader(caplog, file_types, expected_log):
 def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_log):
     """Test the netdcf variable loader.
 
-    The FileNotFoundError test is dependent on running the test_file_format_loader tests
-    first, and will fail if run independently. See TODO above.
+    The tests here are dependent on the test_file_format_loader, so cannot be run
+    individually.
     """
 
     from virtual_ecosystem.core.readers import load_netcdf
@@ -160,8 +160,8 @@ def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_l
 def test_load_dataframe(shared_datadir, caplog, file, file_var, exp_err, expected_log):
     """Test the netdcf variable loader.
 
-    The FileNotFoundError test is dependent on running the test_file_format_loader tests
-    first, and will fail if run independently. See TODO above.
+    The tests here are dependent on the test_file_format_loader, so cannot be run
+    individually.
     """
 
     from virtual_ecosystem.core.readers import load_from_dataframe
