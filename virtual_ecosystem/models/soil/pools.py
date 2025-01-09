@@ -96,11 +96,82 @@ class LeachingRates:
     """Leaching rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
 
 
+@dataclass
+class PoolData:
+    """Data class collecting the full set of soil pools updated by the soil model."""
+
+    soil_c_pool_maom: NDArray[np.float32]
+    """Mineral associated organic matter pool [kg C m^-3]."""
+
+    soil_c_pool_lmwc: NDArray[np.float32]
+    """Low molecular weight carbon pool [kg C m^-3]."""
+
+    soil_c_pool_microbe: NDArray[np.float32]
+    """Microbial biomass pool [kg C m^-3]."""
+
+    soil_c_pool_pom: NDArray[np.float32]
+    """Particulate organic matter pool [kg C m^-3]."""
+
+    soil_c_pool_necromass: NDArray[np.float32]
+    """Microbial necromass pool [kg C m^-3]."""
+
+    soil_enzyme_pom: NDArray[np.float32]
+    """Enzyme class which breaks down particulate organic matter [kg C m^-3]."""
+
+    soil_enzyme_maom: NDArray[np.float32]
+    """Enzyme class which breaks down mineral associated organic matter [kg C m^-3]."""
+
+    soil_n_pool_don: NDArray[np.float32]
+    """Organic nitrogen content of the low molecular weight carbon pool [kg N m^-3].
+    
+    This also gets termed the dissolved organic nitrogen (DON) pool.
+    """
+
+    soil_n_pool_particulate: NDArray[np.float32]
+    """Organic nitrogen content of the particulate organic matter pool [kg N m^-3]."""
+
+    soil_n_pool_necromass: NDArray[np.float32]
+    """Organic nitrogen content of the microbial necromass pool [kg N m^-3]."""
+
+    soil_n_pool_maom: NDArray[np.float32]
+    """Organic nitrogen content of the mineral associated organic matter pool
+    
+    Units of [kg N m^-3].
+    """
+
+    soil_p_pool_dop: NDArray[np.float32]
+    """Organic phosphorus content of the low molecular weight carbon pool [kg P m^-3].
+    
+    This also gets termed the dissolved organic phosphorus (DOP) pool.
+    """
+
+    soil_p_pool_particulate: NDArray[np.float32]
+    """Organic phosphorus content of the particulate organic matter pool [kg P m^-3]."""
+
+    soil_p_pool_necromass: NDArray[np.float32]
+    """Organic phosphorus content of the microbial necromass pool [kg P m^-3]."""
+
+    soil_p_pool_maom: NDArray[np.float32]
+    """Organic phosphorus content of the mineral associated organic matter pool
+    
+    Units of[kg P m^-3].
+    """
+
+    soil_p_pool_primary: NDArray[np.float32]
+    """Primary mineral phosphorus pool [kg P m^-3]."""
+
+    soil_p_pool_secondary: NDArray[np.float32]
+    """Secondary (inorganic) mineral phosphorus pool [kg P m^-3]."""
+
+    soil_p_pool_labile: NDArray[np.float32]
+    """Inorganic labile phosphorus pool [kg P m^-3]."""
+
+
 class SoilPools:
     """This class collects all the various soil pools so that they can be updated.
 
     This class contains a method to update all soil pools. As well as taking in the data
-    object it also has to take in another dictionary containing the pools. This
+    object it also has to take in another dataclass containing the pools. This
     dictionary is modifiable by the integration algorithm whereas the data object will
     only be modified when the entire soil model simulation has finished.
     """
@@ -110,7 +181,8 @@ class SoilPools:
     ):
         self.data = data
         """The data object for the Virtual Ecosystem simulation."""
-        self.pools = pools
+        # Okay but
+        self.pools = PoolData(**pools)
         """Pools which can change during the soil model update.
         
         These pools need to be added outside the data object otherwise the integrator
@@ -167,22 +239,22 @@ class SoilPools:
         )
         # find changes related to microbial uptake, growth and decay
         microbial_changes = calculate_microbial_changes(
-            soil_c_pool_lmwc=self.pools["soil_c_pool_lmwc"],
-            soil_n_pool_don=self.pools["soil_n_pool_don"],
-            soil_p_pool_dop=self.pools["soil_p_pool_dop"],
-            soil_c_pool_microbe=self.pools["soil_c_pool_microbe"],
-            soil_enzyme_pom=self.pools["soil_enzyme_pom"],
-            soil_enzyme_maom=self.pools["soil_enzyme_maom"],
+            soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
+            soil_n_pool_don=self.pools.soil_n_pool_don,
+            soil_p_pool_dop=self.pools.soil_p_pool_dop,
+            soil_c_pool_microbe=self.pools.soil_c_pool_microbe,
+            soil_enzyme_pom=self.pools.soil_enzyme_pom,
+            soil_enzyme_maom=self.pools.soil_enzyme_maom,
             soil_temp=soil_temperature,
             env_factors=env_factors,
             constants=self.constants,
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
-            soil_enzyme_pom=self.pools["soil_enzyme_pom"],
-            soil_enzyme_maom=self.pools["soil_enzyme_maom"],
-            soil_c_pool_pom=self.pools["soil_c_pool_pom"],
-            soil_c_pool_maom=self.pools["soil_c_pool_maom"],
+            soil_enzyme_pom=self.pools.soil_enzyme_pom,
+            soil_enzyme_maom=self.pools.soil_enzyme_maom,
+            soil_c_pool_pom=self.pools.soil_c_pool_pom,
+            soil_c_pool_maom=self.pools.soil_c_pool_maom,
             soil_temp=soil_temperature,
             env_factors=env_factors,
             constants=self.constants,
@@ -190,10 +262,10 @@ class SoilPools:
 
         # Calculate leaching rates
         nutrient_leaching = calculate_nutrient_leaching(
-            soil_c_pool_lmwc=self.pools["soil_c_pool_lmwc"],
-            soil_n_pool_don=self.pools["soil_n_pool_don"],
-            soil_p_pool_dop=self.pools["soil_p_pool_dop"],
-            soil_p_pool_labile=self.pools["soil_p_pool_labile"],
+            soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
+            soil_n_pool_don=self.pools.soil_n_pool_don,
+            soil_p_pool_dop=self.pools.soil_p_pool_dop,
+            soil_p_pool_labile=self.pools.soil_p_pool_labile,
             vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
             soil_moisture=soil_moisture,
             constants=self.constants,
@@ -201,21 +273,21 @@ class SoilPools:
 
         # Calculate transfers between the lmwc, necromass and maom pools
         maom_desorption_to_lmwc = calculate_maom_desorption(
-            soil_c_pool_maom=self.pools["soil_c_pool_maom"],
+            soil_c_pool_maom=self.pools.soil_c_pool_maom,
             desorption_rate_constant=self.constants.maom_desorption_rate,
         )
 
         necromass_decay_to_lmwc = calculate_necromass_breakdown(
-            soil_c_pool_necromass=self.pools["soil_c_pool_necromass"],
+            soil_c_pool_necromass=self.pools.soil_c_pool_necromass,
             necromass_decay_rate=self.constants.necromass_decay_rate,
         )
 
         necromass_sorption_to_maom = calculate_sorption_to_maom(
-            soil_c_pool=self.pools["soil_c_pool_necromass"],
+            soil_c_pool=self.pools.soil_c_pool_necromass,
             sorption_rate_constant=self.constants.necromass_sorption_rate,
         )
         lmwc_sorption_to_maom = calculate_sorption_to_maom(
-            soil_c_pool=self.pools["soil_c_pool_lmwc"],
+            soil_c_pool=self.pools.soil_c_pool_lmwc,
             sorption_rate_constant=self.constants.lmwc_sorption_rate,
         )
 
@@ -236,13 +308,13 @@ class SoilPools:
 
         # Find mineralisation rates from POM
         pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
-            pool_carbon=self.pools["soil_c_pool_pom"],
-            pool_nutrient=self.pools["soil_n_pool_particulate"],
+            pool_carbon=self.pools.soil_c_pool_pom,
+            pool_nutrient=self.pools.soil_n_pool_particulate,
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
         pom_p_mineralisation = calculate_soil_nutrient_mineralisation(
-            pool_carbon=self.pools["soil_c_pool_pom"],
-            pool_nutrient=self.pools["soil_p_pool_particulate"],
+            pool_carbon=self.pools.soil_c_pool_pom,
+            pool_nutrient=self.pools.soil_p_pool_particulate,
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
@@ -252,21 +324,21 @@ class SoilPools:
         )
         # Find nitrogen released by necromass breakdown/sorption
         necromass_outflows = find_necromass_nutrient_outflows(
-            necromass_carbon=self.pools["soil_c_pool_necromass"],
-            necromass_nitrogen=self.pools["soil_n_pool_necromass"],
-            necromass_phosphorus=self.pools["soil_p_pool_necromass"],
+            necromass_carbon=self.pools.soil_c_pool_necromass,
+            necromass_nitrogen=self.pools.soil_n_pool_necromass,
+            necromass_phosphorus=self.pools.soil_p_pool_necromass,
             necromass_decay=necromass_decay_to_lmwc,
             necromass_sorption=necromass_sorption_to_maom,
         )
         # Find net nitrogen transfer between maom and lmwc/don
         nutrient_transfers_maom_to_lmwc = (
             calculate_net_nutrient_transfers_from_maom_to_lmwc(
-                lmwc_carbon=self.pools["soil_c_pool_lmwc"],
-                lmwc_nitrogen=self.pools["soil_n_pool_don"],
-                lmwc_phosphorus=self.pools["soil_p_pool_dop"],
-                maom_carbon=self.pools["soil_c_pool_maom"],
-                maom_nitrogen=self.pools["soil_n_pool_maom"],
-                maom_phosphorus=self.pools["soil_p_pool_maom"],
+                lmwc_carbon=self.pools.soil_c_pool_lmwc,
+                lmwc_nitrogen=self.pools.soil_n_pool_don,
+                lmwc_phosphorus=self.pools.soil_p_pool_dop,
+                maom_carbon=self.pools.soil_c_pool_maom,
+                maom_nitrogen=self.pools.soil_n_pool_maom,
+                maom_phosphorus=self.pools.soil_p_pool_maom,
                 maom_breakdown=enzyme_mediated.maom_to_lmwc,
                 maom_desorption=maom_desorption_to_lmwc,
                 lmwc_sorption=lmwc_sorption_to_maom,
@@ -275,11 +347,11 @@ class SoilPools:
 
         primary_phosphorus_breakdown = (
             self.constants.primary_phosphorus_breakdown_rate
-            * self.pools["soil_p_pool_primary"]
+            * self.pools.soil_p_pool_primary
         )
         net_formation_secondary_P = calculate_net_formation_of_secondary_P(
-            soil_p_pool_labile=self.pools["soil_p_pool_labile"],
-            soil_p_pool_secondary=self.pools["soil_p_pool_secondary"],
+            soil_p_pool_labile=self.pools.soil_p_pool_labile,
+            soil_p_pool_secondary=self.pools.soil_p_pool_secondary,
             secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
             labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
         )
