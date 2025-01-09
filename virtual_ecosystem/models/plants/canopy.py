@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.demography.canopy import Canopy as PlantCanopy
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -201,3 +202,46 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
     )
 
     return data
+
+
+def calculate_canopies(
+    communities: PlantCommunities, max_canopy_layers: int
+) -> dict[int, PlantCanopy]:
+    """Calculate the canopy structure of communities.
+
+    This function takes a PlantCommunities object and calculates the canopy
+    representation for each community, using the perfect plasticity approximation to
+    calculate the closure heights of the canopy layers.
+
+    Args:
+        communities: The PlantCommunities object to convert
+        max_canopy_layers: The maximum number of permitted canopy layers
+
+    Returns:
+        A dictionary, keyed by cell id, of the canopy representations of each community.
+    """
+
+    # TODO - this could be a method of PlantCommunities but creates circular import of
+    #        PlantCohorts
+
+    # TODO - maybe return dict[str, NDArray] as the number of layers is only going to
+    #        increase with the need for more resources and cohort data.
+
+    # Loop over the communities in each cell
+    canopies: dict[int, PlantCanopy] = {}
+    for cell_id, community in communities.items():
+        # Calculate the PPA canopy model for the community in the cell
+        canopies[cell_id] = PlantCanopy(community, fit_ppa=True)
+
+        # Fail if canopy representation has more layers than the configuration.
+        n_canopy_layers = canopies[cell_id].heights.size
+        if max_canopy_layers < n_canopy_layers:
+            msg = (
+                f"Canopy representation for the plant community in cell "
+                f"{cell_id} has {n_canopy_layers} layers, "
+                f"configured maximum is {max_canopy_layers}"
+            )
+            LOGGER.critical(msg)
+            raise RuntimeError(msg)
+
+    return canopies

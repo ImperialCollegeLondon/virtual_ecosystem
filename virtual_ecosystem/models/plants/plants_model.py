@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 import xarray as xr
+from pyrealm.demography.flora import Flora
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -17,12 +18,12 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
-    build_canopy_arrays,
+    calculate_canopies,
     initialise_canopy_layers,
 )
 from virtual_ecosystem.models.plants.community import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
-from virtual_ecosystem.models.plants.functional_types import Flora
+from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
 
 class PlantsModel(
@@ -162,7 +163,7 @@ class PlantsModel(
         static = config["plants"]["static"]
 
         # Generate the flora
-        flora = Flora.from_config(config=config)
+        flora = get_flora_from_config(config=config)
 
         # Try and create the instance - safeguard against exceptions from __init__
         try:
@@ -213,21 +214,26 @@ class PlantsModel(
         )
         """Initialise the plant communities from the data object."""
 
-        # Initialise and then update the canopy layers.
-        # TODO - this initialisation step may move somewhere else at some point.
+        # This is widely used internally so store it as an attribute.
+        self._canopy_layer_indices = self.layer_structure.index_canopy
+        """The indices of the canopy layers within wider vertical profile"""
+
+        # Initialise the canopy layer arrays.
+        # TODO - this initialisation step may move somewhere else at some point see #442
         self.data = initialise_canopy_layers(
             data=self.data,
             layer_structure=self.layer_structure,
         )
         """A reference to the global data object."""
 
-        # This is widely used internally so store it as an attribute.
-        self._canopy_layer_indices = self.layer_structure.index_canopy
-        """The indices of the canopy layers within wider vertical profile"""
+        # Calculate the community canopy representations.
+        self.canopies = calculate_canopies(
+            communities=self.communities,
+            max_canopy_layers=self.layer_structure.n_canopy_layers,
+        )
+        """Canopy layers."""
 
-        # Run the canopy initialisation - update the canopy structure from the initial
-        # cohort data and then initialise the irradiance using the first observation for
-        # PPFD.
+        # Extract and compile data arrays for the canopies across cells
         self.update_canopy_layers()
         self.set_canopy_absorption(time_index=0)
 
@@ -266,36 +272,35 @@ class PlantsModel(
     def update_canopy_layers(self) -> None:
         """Update the canopy structure for the plant communities.
 
-        This method calculates the canopy structure from the current state of the plant
-        cohorts across grid cells and then updates four canopy layer variables in the
-        the data object:
+        This method updates the following canopy layer variables in the data object from
+        the current state of the canopies attribute:
 
         * the layer closure heights (``layer_heights``),
         * the layer leaf area indices (``leaf_area_index``),
         * the fraction of absorbed photosynthetically active radation in each layer
           (``layer_fapar``), and
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
-
         * the absorbed irradiance in each layer, including the remaining incident
           radation at ground level (``canopy_absorption``).
         """
-        # Retrive the canopy model arrays and insert into the data object.
-        canopy_data = build_canopy_arrays(
-            self.communities,
-            n_canopy_layers=self.layer_structure.n_canopy_layers,
-        )
 
-        # Insert the canopy layers into the data objects
-        self.data["layer_heights"][self._canopy_layer_indices, :] = canopy_data[0]
-        self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_data[1]
-        self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_data[2]
-        self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = canopy_data[3]
+        layers = ["layer_heights", "leaf_area_index", "layer_fapar", "layer_heights"]
 
-        # Update the above canopy heights
-        self.data["layer_heights"][0, :] = (
-            self.data["layer_heights"][1, :]
-            + self.layer_structure.above_canopy_height_offset
-        )
+        for lyr in layers:
+            pass
+            # new_data = [getattr() for cell_id, canopy in self.canopies:
+
+        # # Insert the canopy layers into the data objects
+        # self.data["layer_heights"][self._canopy_layer_indices, :] = canopy_data[0]
+        # self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_data[1]
+        # self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_data[2]
+        # self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = canopy_data[3]
+
+        # # Update the above canopy heights
+        # self.data["layer_heights"][0, :] = (
+        #     self.data["layer_heights"][1, :]
+        #     + self.layer_structure.above_canopy_height_offset
+        # )
 
     def set_canopy_absorption(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
