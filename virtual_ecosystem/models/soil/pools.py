@@ -273,6 +273,11 @@ class SoilPools:
             )
         )
 
+        primary_phosphorus_breakdown = (
+            self.constants.primary_phosphorus_breakdown_rate
+            * self.pools["soil_p_pool_primary"]
+        )
+
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_fluxes_C["dissolved"]
@@ -343,13 +348,16 @@ class SoilPools:
             necromass_outflows["sorption_phosphorus"]
             - nutrient_transfers_maom_to_lmwc["phosphorus"]
         )
-        delta_pools_ordered["soil_p_pool_primary"] = np.zeros_like(
-            delta_pools_ordered["soil_p_pool_maom"]
+        delta_pools_ordered["soil_p_pool_primary"] = (
+            self.constants.tectonic_uplift_rate_phosphorus
+            - primary_phosphorus_breakdown
         )
         delta_pools_ordered["soil_p_pool_secondary"] = np.zeros_like(
             delta_pools_ordered["soil_p_pool_maom"]
         )
-        delta_pools_ordered["soil_p_pool_labile"] = -nutrient_leaching.labile_P
+        delta_pools_ordered["soil_p_pool_labile"] = (
+            primary_phosphorus_breakdown - nutrient_leaching.labile_P
+        )
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))

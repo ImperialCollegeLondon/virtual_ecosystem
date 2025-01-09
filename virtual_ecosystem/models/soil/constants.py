@@ -376,3 +376,16 @@ class SoilConsts(ConstantsDataclass):
     TODO - At present I've invented the value for this constant, so it really needs to
     be better pinned down.
     """
+
+    tectonic_uplift_rate_phosphorus: float = 0.0
+    """Rate at which tectonic uplift exposes new primary phosphorus [kg P m^-3 day^-1].
+
+    This rate is essientially zero for decadal simulations. We have only included to
+    give the flexibility to run longer term test scenarios.
+    """
+
+    primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
+    """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
+    
+    Default value taken from :cite:t:`parton_dynamics_1988`.
+    """

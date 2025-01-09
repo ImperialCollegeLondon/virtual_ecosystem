@@ -51,9 +51,9 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
-        "soil_p_pool_primary": [0.0, 0.0, 0.0, 0.0],
+        "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [0.0, 0.0, 0.0, 0.0],
-        "soil_p_pool_labile": [-2.274653e-11, -4.130485e-10, -6.74920e-9, -2.045141e-8],
+        "soil_p_pool_labile": [4.246051e-10, 8.099241e-10, -6.115789e-9, -2.031467e-8],
     }
 
     # Make order of pools object
