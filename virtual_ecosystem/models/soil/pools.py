@@ -353,7 +353,7 @@ def calculate_microbial_changes(
 ):
     """Calculate the changes for the microbial biomass and enzyme pools.
 
-    This function calculates the uptake of low molecular weight carbon by the microbial
+    This function calculates the uptake of :term:`LMWC` by the microbial
     biomass pool and uses this to calculate the net change in the pool. The net change
     in each enzyme pool is found, and finally the total rate at which necromass is
     created is found.
@@ -444,8 +444,7 @@ def calculate_enzyme_mediated_rates(
 
     Returns:
         A dataclass containing the enzyme mediated decomposition rates of both the
-        particulate organic matter (POM) and mineral associated organic matter (MAOM)
-        pool.
+        :term:`POM` and :term:`MAOM` pool.
     """
 
     pom_decomposition_to_lmwc = calculate_enzyme_mediated_decomposition(
