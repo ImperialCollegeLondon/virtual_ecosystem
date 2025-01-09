@@ -39,12 +39,6 @@ However, you can also run the script from the command line following the [Gettin
 Started](getting_started.md) instructions.
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 %%bash
 # Remove any existing VE data directory in the /tmp/ directory
 if [ -d /tmp/ve_example ]; then
@@ -53,24 +47,12 @@ fi
 ```
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 %%bash
 # Install the example data directory from the Virtual Ecosystem package
 ve_run --install-example /tmp/
 ```
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 %%bash
 ve_run /tmp/ve_example/config \
     --out /tmp/ve_example/out \
@@ -92,12 +74,6 @@ The Virtual Ecosystem writes out a number of data files:
 These files are written to the standard NetCDF data file format.
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 # Dependencies for the data and graphing
 import pathlib
 
@@ -108,12 +84,6 @@ import xarray
 ```
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 # Load the generated data files
 initial_state = xarray.load_dataset("/tmp/ve_example/out/initial_state.nc")
 continuous_data = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
@@ -121,12 +91,6 @@ final_state = xarray.load_dataset("/tmp/ve_example/out/final_state.nc")
 ```
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 # Print the name of each variable in the final state
 for key in list(final_state.keys()):
     print(key)
@@ -204,12 +168,6 @@ initial_state
 ```
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 # Make two side by side plots
 fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 5))
 
@@ -307,12 +265,6 @@ temp_vals = continuous_data["air_temperature"][time_index].to_numpy().flatten()
 ```
 
 ```{code-cell} ipython3
----
-editable: true
-slideshow:
-  slide_type: ''
-tags: []
----
 # Generate a 3 dimensional plot of layer heights showing temperature.
 
 fig = plt.figure(figsize=(10, 8))
