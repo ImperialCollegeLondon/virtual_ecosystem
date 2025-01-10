@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, INFO
+from zipfile import BadZipFile
 
 import pytest
 from pandas.errors import ParserError
@@ -137,11 +138,39 @@ def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_l
             does_not_raise(),
             (),
         ),
+    ],
+)
+def test_load_csv(shared_datadir, caplog, file, file_var, exp_err, expected_log):
+    """Test the netdcf variable loader.
+
+    The tests here are dependent on the test_file_format_loader, so cannot be run
+    individually.
+    """
+
+    from virtual_ecosystem.core.readers import load_csv
+
+    with exp_err:
+        darray = load_csv(shared_datadir / file, file_var)
+        assert isinstance(darray, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["file", "file_var", "exp_err", "expected_log"],
+    argvalues=[
+        (
+            "not_there.xlsx",
+            "irrelevant",
+            pytest.raises(FileNotFoundError),
+            ((CRITICAL, "Data file not found"),),
+        ),
         (
             "garbage.xlsx",
             "irrelevant",
-            pytest.raises(Exception),
-            ((CRITICAL, "Unidentified exception opening"),),
+            pytest.raises(BadZipFile),
+            ((CRITICAL, "Could not load data from"),),
         ),
         (
             "reader_test.xlsx",
@@ -157,17 +186,17 @@ def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_l
         ),
     ],
 )
-def test_load_dataframe(shared_datadir, caplog, file, file_var, exp_err, expected_log):
+def test_load_excel(shared_datadir, caplog, file, file_var, exp_err, expected_log):
     """Test the netdcf variable loader.
 
     The tests here are dependent on the test_file_format_loader, so cannot be run
     individually.
     """
 
-    from virtual_ecosystem.core.readers import load_from_dataframe
+    from virtual_ecosystem.core.readers import load_excel
 
     with exp_err:
-        darray = load_from_dataframe(shared_datadir / file, file_var)
+        darray = load_excel(shared_datadir / file, file_var)
         assert isinstance(darray, DataArray)
 
     # Check the error reports
