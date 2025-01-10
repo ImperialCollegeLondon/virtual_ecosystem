@@ -23,7 +23,7 @@ def plants_data(fixture_core_components):
     data = Data(grid=fixture_core_components.grid)
     n_cells = fixture_core_components.grid.n_cells
 
-    # Add cohort configuration
+    # Add cohort configuration - this adds a
     data["plant_cohorts_n"] = DataArray(np.array([400, 300, 200, 100]))
     data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * n_cells))
     data["plant_cohorts_cell_id"] = DataArray(np.arange(n_cells))
