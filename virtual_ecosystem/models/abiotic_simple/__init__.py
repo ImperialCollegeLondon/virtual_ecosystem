@@ -11,8 +11,8 @@ Each of the abiotic simple sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.microclimate` submodule
   contains a set functions and parameters that are used to calculate atmospheric
-  temperature, relative humidity, vapour pressure deficit, :math:`\ce{CO2}`, and
-  atmospheric pressure profiles as well as soil temperature profiles.
+  temperature, relative humidity, vapour pressure deficit, wind speed, :math:`\ce{CO2}`,
+  and atmospheric pressure profiles as well as soil temperature profiles.
 
 * The :mod:`~virtual_ecosystem.models.abiotic_simple.constants` submodule provides a
   set of dataclasses containing the constants required by the broader abiotic model

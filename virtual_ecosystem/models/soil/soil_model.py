@@ -56,6 +56,10 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_p_pool_dop",
+        "soil_p_pool_particulate",
+        "soil_p_pool_necromass",
+        "soil_p_pool_maom",
         "pH",
         "bulk_density",
         "clay_fraction",
@@ -73,12 +77,17 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_p_pool_dop",
+        "soil_p_pool_particulate",
+        "soil_p_pool_necromass",
+        "soil_p_pool_maom",
         "matric_potential",
         "vertical_flow",
         "soil_temperature",
         "soil_moisture",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
+        "litter_P_mineralisation_rate",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -92,6 +101,10 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_p_pool_dop",
+        "soil_p_pool_particulate",
+        "soil_p_pool_necromass",
+        "soil_p_pool_maom",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -109,28 +122,6 @@ class SoilModel(
         canopy_layers: The number of canopy layers to be modelled.
         constants: Set of constants for the soil model.
     """
-
-    def __init__(
-        self,
-        data: Data,
-        core_components: CoreComponents,
-        model_constants: SoilConsts,
-        **kwargs: Any,
-    ):
-        super().__init__(data=data, core_components=core_components, **kwargs)
-
-        # Check that soil pool data is appropriately bounded
-        if not self._all_pools_positive():
-            to_raise = InitialisationError(
-                "Initial carbon pools contain at least one negative value!"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
-        self.model_constants: SoilConsts = model_constants
-        """Set of constants for the soil model."""
 
     @classmethod
     def from_config(
@@ -150,6 +141,7 @@ class SoilModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
+        static = config["soil"]["static"]
 
         LOGGER.info(
             "Information required to initialise the soil model successfully "
@@ -159,16 +151,40 @@ class SoilModel(
         return cls(
             data=data,
             core_components=core_components,
+            static=static,
             model_constants=model_constants,
         )
 
     def setup(self) -> None:
+        """No longer in use.
+
+        TODO: Remove when the base model is updated.
+        """
+
+    def _setup(
+        self,
+        model_constants: SoilConsts,
+        **kwargs: Any,
+    ) -> None:
         """Placeholder function to setup up the soil model."""
+
+        # Check that soil pool data is appropriately bounded
+        if not self._all_pools_positive():
+            to_raise = InitialisationError(
+                "Initial carbon pools contain at least one negative value!"
+            )
+            LOGGER.error(to_raise)
+            raise to_raise
+
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        self.model_constants: SoilConsts = model_constants
+        """Set of constants for the soil model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
 
-    def update(self, time_index: int, **kwargs: Any) -> None:
+    def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the soil model by integrating.
 
         Args:

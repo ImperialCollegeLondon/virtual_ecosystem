@@ -15,7 +15,6 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
 
     # temperature
     result = log_interpolation(
-        data=dummy_climate_data,
         reference_data=dummy_climate_data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=lyr_strct,
@@ -33,7 +32,6 @@ def test_log_interpolation(dummy_climate_data, fixture_core_components):
 
     # relative humidity
     result_hum = log_interpolation(
-        data=dummy_climate_data,
         reference_data=dummy_climate_data["relative_humidity_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=lyr_strct,
@@ -63,7 +61,6 @@ def test_varying_canopy_log_interpolation(
 
     # temperature
     result = log_interpolation(
-        data=data,
         reference_data=data["air_temperature_ref"].isel(time_index=0),
         leaf_area_index_sum=leaf_area_index_sum,
         layer_structure=lyr_strct,
@@ -211,6 +208,12 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_pressure[lyr_strct.index_atmosphere] = 96
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
 
+    exp_wind = lyr_strct.from_template()
+    exp_wind[lyr_strct.index_filled_atmosphere] = np.array(
+        [1.0, 0.993673, 0.953925, 0.885976, 0.434528]
+    )[:, None]
+    np.testing.assert_allclose(result["wind_speed"], exp_wind, rtol=1e-3, atol=1e-3)
+
 
 def test_run_microclimate_varying_canopy(
     dummy_climate_data_varying_canopy, fixture_core_components
@@ -250,6 +253,16 @@ def test_run_microclimate_varying_canopy(
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(result["soil_temperature"], exp_soil_temp)
+
+    exp_wind = lyr_strct.from_template()
+    exp_wind[lyr_strct.index_filled_atmosphere] = [
+        [1, 1, 1, 1],
+        [0.993673, 0.995782, 0.997891, 0.997891],
+        [0.953925, 0.969284, np.nan, np.nan],
+        [0.885976, np.nan, np.nan, np.nan],
+        [0.434528, 0.623019, 0.811509, 0.811509],
+    ]
+    xr.testing.assert_allclose(result["wind_speed"], exp_wind)
 
     exp_pressure = lyr_strct.from_template()
     exp_pressure[lyr_strct.index_atmosphere] = 96

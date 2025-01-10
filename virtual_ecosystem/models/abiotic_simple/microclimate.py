@@ -3,7 +3,8 @@ r"""The ``models.abiotic_simple.microclimate`` module uses linear regressions fr
 atmospheric temperature, relative humidity, and vapour pressure deficit at ground level
 (1.5 m) given the above canopy conditions and leaf area index of intervening canopy. A
 within canopy profile is then interpolated using a logarithmic curve between the above
-canopy observation and ground level prediction.
+canopy observation and ground level prediction. The same method is applied to derive a
+vertical wind profile within the canopy.
 Soil temperature is interpolated between the surface layer and the soil temperature at
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
@@ -33,8 +34,8 @@ def run_microclimate(
     r"""Calculate simple microclimate.
 
     This function uses empirical relationships between leaf area index (LAI) and
-    atmospheric temperature, relative humidity, and vapour pressure deficit to derive
-    logarithmic profiles of these variables from external climate data such as
+    atmospheric temperature, relative humidity, vapour pressure deficit, and wind speed
+    to derive logarithmic profiles of these variables from external climate data such as
     regional climate models or satellite observations. Note that these sources provide
     data at different heights and with different underlying assumptions which lead to
     different biases in the model output. For below canopy values (1.5 m),
@@ -71,6 +72,7 @@ def run_microclimate(
     * vapour_pressure_deficit_ref [kPa]
     * atmospheric_pressure_ref [kPa]
     * atmospheric_co2_ref [ppm]
+    * wind_speed_ref [m s-1]
     * leaf_area_index [m m-1]
     * layer_heights [m]
 
@@ -84,8 +86,8 @@ def run_microclimate(
 
     Returns:
         Dict of DataArrays for air temperature [C], relative humidity [-], vapour
-        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa], and
-        atmospheric :math:`\ce{CO2}` [ppm]
+        pressure deficit [kPa], soil temperature [C], atmospheric pressure [kPa],
+        atmospheric :math:`\ce{CO2}` [ppm], wind speed [m s-1]
     """
 
     output = {}
@@ -94,11 +96,15 @@ def run_microclimate(
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # Interpolate atmospheric profiles
-    for var in ["air_temperature", "relative_humidity", "vapour_pressure_deficit"]:
+    for var in [
+        "air_temperature",
+        "relative_humidity",
+        "vapour_pressure_deficit",
+        "wind_speed",
+    ]:
         lower, upper, gradient = getattr(bounds, var)
 
         output[var] = log_interpolation(
-            data=data,
             reference_data=data[var + "_ref"].isel(time_index=time_index),
             leaf_area_index_sum=leaf_area_index_sum,
             layer_structure=layer_structure,
@@ -139,7 +145,6 @@ def run_microclimate(
 
 
 def log_interpolation(
-    data: Data,
     reference_data: DataArray,
     leaf_area_index_sum: DataArray,
     layer_structure: LayerStructure,
@@ -151,7 +156,6 @@ def log_interpolation(
     """LAI regression and logarithmic interpolation of variables above ground.
 
     Args:
-        data: Data object
         reference_data: Input variable at reference height
         leaf_area_index_sum: Leaf area index summed over all layers, [m m-1]
         layer_structure: The LayerStructure instance for the simulation.

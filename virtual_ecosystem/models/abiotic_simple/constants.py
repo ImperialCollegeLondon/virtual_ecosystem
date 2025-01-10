@@ -49,5 +49,13 @@ class AbioticSimpleBounds(ConstantsDataclass):
     leaf area index from :cite:t:`hardwick_relationship_2015`.
     """
 
+    wind_speed: tuple[float, float, float] = (0.001, 100.0, -0.1)
+    """Bounds and gradient for wind speed, [m s-1].
+    
+    Gradient for linear regression to calculate wind speed as a function of
+    leaf area index. The value is choses arbitrarily and needs to be replaced with
+    observations.
+    """
+
     soil_temperature: tuple[float, float] = (-10.0, 50.0)
     """Bounds for soil temperature, [C]."""

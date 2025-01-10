@@ -28,13 +28,19 @@ def fixture_soil_model(
     dummy_carbon_data, fixture_soil_config, fixture_soil_core_components
 ):
     """Create a soil model fixture based on the dummy carbon data."""
+    from tests.conftest import patch_bypass_setup, patch_run_update
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
-    return SoilModel.from_config(
-        data=dummy_carbon_data,
-        core_components=fixture_soil_core_components,
-        config=fixture_soil_config,
-    )
+    with (
+        patch_run_update("soil"),
+        patch_bypass_setup("soil") as mock_bypass_setup,
+    ):
+        mock_bypass_setup.return_value = False
+        return SoilModel.from_config(
+            data=dummy_carbon_data,
+            core_components=fixture_soil_core_components,
+            config=fixture_soil_config,
+        )
 
 
 @pytest.fixture
@@ -109,6 +115,7 @@ def microbial_changes(
     return calculate_microbial_changes(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
