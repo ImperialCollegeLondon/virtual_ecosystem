@@ -36,7 +36,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Poetry
-      uses: abatilo/actions-poetry@v4.0.0
+      uses: abatilo/actions-poetry@v3.0.2
       with:
         poetry-version: 1.5.1
 
