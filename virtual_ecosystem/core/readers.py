@@ -187,7 +187,7 @@ def load_excel(file: Path, var_name: str) -> DataArray:
         Exception: catches other exceptions from openpyxl.
 
     Note: BadZipFile is the most common error thrown by openpyxl for corrupted excel
-    fieles, which is based on their internal processing files as zips. The general
+    files, which is based on their internal processing files as zips. The general
     exception is included to cover other possible issues from openpyxl, as it has
     various other potential failure modes.
     """
