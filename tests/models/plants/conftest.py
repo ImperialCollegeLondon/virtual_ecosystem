@@ -1,6 +1,9 @@
 """Fixtures for plants model testing."""
 
+import io
+
 import numpy as np
+import pandas as pd
 import pytest
 from xarray import DataArray
 
@@ -23,11 +26,25 @@ def plants_data(fixture_core_components):
     data = Data(grid=fixture_core_components.grid)
     n_cells = fixture_core_components.grid.n_cells
 
-    # Add cohort configuration - this adds a
-    data["plant_cohorts_n"] = DataArray(np.array([400, 300, 200, 100]))
-    data["plant_cohorts_pft"] = DataArray(np.array(["broadleaf"] * n_cells))
-    data["plant_cohorts_cell_id"] = DataArray(np.arange(n_cells))
-    data["plant_cohorts_dbh"] = DataArray(np.array([1.0] * n_cells))
+    # Add cohort configuration - this adds varying numbers of cohorts with different
+    # canopy profiles to the four cells.
+    # TODO - use the csv reader?
+    cohort_csv = io.StringIO("""cell_id,n,pft,dbh
+    0,400,broadleaf,1.0
+    0,100,broadleaf,0.1
+    0,100,shrub,0.01
+    1,300,broadleaf,1.0
+    1,100,broadleaf,0.1
+    2,200,broadleaf,1.0
+    2,100,shrub,0.01
+    3,100,broadleaf,1.0
+    3,100,broadleaf,0.1
+    3,100,shrub,0.01""")
+
+    cohorts = pd.read_csv(cohort_csv).to_xarray()
+
+    for var in cohorts:
+        data["plant_cohorts_" + var] = cohorts[var]
 
     # Spatio-temporal data
     data["photosynthetic_photon_flux_density"] = DataArray(

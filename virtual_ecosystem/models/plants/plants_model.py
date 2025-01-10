@@ -284,7 +284,7 @@ class PlantsModel(
           radation at ground level (``canopy_absorption``).
         """
 
-        layers = ["layer_heights", "leaf_area_index", "layer_fapar", "layer_heights"]
+        # layers = ["layer_heights", "leaf_area_index", "layer_fapar", "layer_heights"]
 
         heights = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
         fapar = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
@@ -308,6 +308,8 @@ class PlantsModel(
             per_cohort_leaf_mass = (
                 community.stem_allometry.foliage_mass * community.cohorts.n_individuals
             )
+
+            # Tranmission needs to insert the final value at _ground_ level.
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
