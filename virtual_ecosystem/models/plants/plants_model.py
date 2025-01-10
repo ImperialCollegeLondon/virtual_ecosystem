@@ -286,12 +286,31 @@ class PlantsModel(
 
         layers = ["layer_heights", "leaf_area_index", "layer_fapar", "layer_heights"]
 
-        for lyr in layers:
-            pass
-            # new_data = [getattr() for cell_id, canopy in self.canopies:
+        heights = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
+        fapar = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
+        lai = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
+        mass = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
+        absorption = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
 
-        # # Insert the canopy layers into the data objects
-        # self.data["layer_heights"][self._canopy_layer_indices, :] = canopy_data[0]
+        for cell_id, canopy, community in zip(
+            self.canopies, self.canopies.values(), self.communities.values()
+        ):
+            # Insert layer heights
+            heights[: canopy.heights.size, (cell_id,)] = canopy.heights
+
+            # Insert canopy fapar
+            fapar[: canopy.heights.size, (cell_id,)] = canopy.community_data.fapar
+
+            # Partition the total stem foliage masses across cohorts vertically
+            # following the leaf area within each layer.
+            # TODO - need to expose the per cohort data to allow selective herbivory. Do
+            #        we need the total leaf mass per layer for anything
+            per_cohort_leaf_mass = (
+                community.stem_allometry.foliage_mass * community.cohorts.n_individuals
+            )
+
+        # Insert the canopy layers into the data objects
+        self.data["layer_heights"][self._canopy_layer_indices, :] = heights
         # self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_data[1]
         # self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_data[2]
         # self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = canopy_data[3]
