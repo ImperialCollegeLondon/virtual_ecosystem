@@ -13,7 +13,7 @@ from pyrealm.demography.canopy import Canopy as PlantCanopy
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.community import PlantCohort, PlantCommunities
 
@@ -66,86 +66,6 @@ def generate_canopy_model(
     layer_leaf_mass = np.array([10000.0, 10000.0, 10000.0], dtype=np.float32)
 
     return layer_heights, layer_leaf_area_indices, layer_fapar, layer_leaf_mass
-
-
-def build_canopy_arrays(
-    communities: PlantCommunities, n_canopy_layers: int
-) -> tuple[NDArray, NDArray, NDArray, NDArray]:
-    """Converts the PlantCommunities data into canopy layer data arrays.
-
-    This function takes a list of plant cohorts present in a community and uses the T
-    Model to estimate the heights and crown areas of the individuals. It then uses the
-    perfect plasticity approximation to calculate the closure heights of the canopy
-    layers and the leaf area indices of each layer.
-
-    Args:
-        communities: The PlantCommunities object to convert
-        n_canopy_layers: The maximum number of permitted canopy layers.
-
-    Returns:
-        A tuple of two dimensional numpy arrays giving the canopy layer heights and then
-        leaf area indices, :math:`f_{APAR}` and leaf mass by cell id.
-    """
-
-    # TODO - this could be a method of PlantCommunities but creates circular import of
-    #        PlantCohorts
-
-    # TODO - maybe return dict[str, NDArray] as the number of layers is only going to
-    #        increase with the need for more resources and cohort data.
-
-    # Initialise list of arrays
-    layer_heights: list[NDArray[np.float32]] = []
-    layer_leaf_area_index: list[NDArray[np.float32]] = []
-    layer_fapar: list[NDArray[np.float32]] = []
-    layer_leaf_mass: list[NDArray[np.float32]] = []
-    cell_has_too_many_layers: list[int] = []
-
-    # Loop over the communities in each cell
-    for cell_id, community in communities.items():
-        # Calculate the canopy model for the community in the cell and pad as needed
-        # TODO - note that this allows generate_canopy_model to return different sized
-        #        canopy layers, which may not be true, so n_pad may be constant across
-        #        communities.
-        canopy_layers = list(generate_canopy_model(community))
-        n_pad = n_canopy_layers - len(canopy_layers[0])
-
-        # Record cells where the canopy breaks the config
-        if n_pad < 0:
-            cell_has_too_many_layers.append(cell_id)
-            continue
-
-        # If padding is needed, then pad canopy layers and the cohort canopy areas.
-        if n_pad > 0:
-            for idx, var in enumerate(canopy_layers):
-                canopy_layers[idx] = np.pad(
-                    var, (0, n_pad), "constant", constant_values=np.nan
-                )
-            for cohort in community:
-                cohort.canopy_area = np.pad(
-                    cohort.canopy_area, (0, n_pad), "constant", constant_values=np.nan
-                )
-
-        layer_heights.append(canopy_layers[0])
-        layer_leaf_area_index.append(canopy_layers[1])
-        layer_fapar.append(canopy_layers[2])
-        layer_leaf_mass.append(canopy_layers[3])
-
-    # Bail if any cells had too many canopy layers
-    if cell_has_too_many_layers:
-        msg = (
-            "Generated canopy has more layers than the configured maximum in "
-            f"cells: {','.join(str(v) for v in cell_has_too_many_layers)}."
-        )
-        LOGGER.critical(msg)
-        raise ConfigurationError(msg)
-
-    # Combine lists of layers by cell_id into canopy layers x cell_id arrays
-    return (
-        np.stack(layer_heights, axis=1),
-        np.stack(layer_leaf_area_index, axis=1),
-        np.stack(layer_fapar, axis=1),
-        np.stack(layer_leaf_mass, axis=1),
-    )
 
 
 def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Data:
