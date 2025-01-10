@@ -20,7 +20,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.12.0rc3
+  version: 3.12.8
 ---
 
 # Getting started

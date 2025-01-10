@@ -19,13 +19,14 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.12.0rc3
+  version: 3.12.8
 ---
 
 # Exploring the Virtual Ecosystem outputs
 
 The code below provides a walkthrough of some basic plots for the input and output of
-the Virtual Ecosystem simulation.
+the Virtual Ecosystem simulation. If you have not installed the model, you should do
+so first on the [Getting Started](getting_started.md) page.
 
 ## Run the simulation
 
