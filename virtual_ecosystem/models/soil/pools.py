@@ -206,11 +206,15 @@ class SoilPools:
     """
 
     def __init__(
-        self, data: Data, pools: dict[str, NDArray[np.float32]], constants: SoilConsts
+        self,
+        data: Data,
+        pools: dict[str, NDArray[np.float32]],
+        constants: SoilConsts,
+        max_depth_of_microbial_activity: float,
     ):
         self.data = data
         """The data object for the Virtual Ecosystem simulation."""
-        # Okay but
+
         self.pools = PoolData(**pools)
         """Pools which can change during the soil model update.
         
@@ -218,6 +222,10 @@ class SoilPools:
         cannot update them and the integration will fail.
         """
         self.constants = constants
+        """Set of constants for the soil model."""
+
+        self.max_depth_of_microbial_activity = max_depth_of_microbial_activity
+        """Maximum depth of the soil profile where microbial activity occurs [m]."""
 
     def calculate_all_pool_updates(
         self,
@@ -383,6 +391,13 @@ class SoilPools:
             secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
             labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
         )
+        # Convert phosphorus deposition from per area to per volume units, under the
+        # assumption the phosphorus just gets deposited in the very upper layer of the
+        # soil
+        phosphorus_deposition = (
+            self.constants.phosphorus_deposition_rate
+            / self.max_depth_of_microbial_activity
+        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
@@ -461,6 +476,7 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
             litter_mineralisation_flux.labile_p
+            + phosphorus_deposition
             + primary_phosphorus_breakdown
             - net_formation_secondary_P
             - nutrient_leaching.labile_P

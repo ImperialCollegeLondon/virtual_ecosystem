@@ -346,7 +346,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [1.08350351e-5, 3.39159643e-5, 6.84343852e-5, 1.94662682e-4],
+                        [1.08624022e-5, 3.39433314e-5, 6.84617516e-5, 1.94690048e-4],
                         dims="cell_id",
                     ),
                 )
@@ -461,6 +461,7 @@ def test_order_independance(
 
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import (
         SoilModel,
@@ -536,10 +537,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -2.77311e-6,
         -7.40324e-7,
         -2.187697e-7,
-        5.0550432e-7,
-        2.77392428e-6,
-        7.3420809e-7,
-        1.9845505e-7,
+        5.6026134e-7,
+        2.8286813e-6,
+        7.8896511e-7,
+        2.5321207e-7,
     ]
 
     # make pools
@@ -566,6 +567,7 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
+        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
     )
 
     assert np.allclose(delta_pools, rate_of_change)

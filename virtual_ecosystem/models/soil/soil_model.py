@@ -123,13 +123,6 @@ class SoilModel(
     can be updated by numerical integration. At present the underlying model this class
     wraps is quite simple (i.e. four soil carbon pools), but this will get more complex
     as the Virtual Ecosystem develops.
-
-    Args:
-        data: The data object to be used in the model.
-        update_interval: Time to wait between updates of the model state.
-        soil_layers: A list giving the number and depth of soil layers to be modelled.
-        canopy_layers: The number of canopy layers to be modelled.
-        constants: Set of constants for the soil model.
     """
 
     @classmethod
@@ -153,8 +146,7 @@ class SoilModel(
         static = config["soil"]["static"]
 
         LOGGER.info(
-            "Information required to initialise the soil model successfully "
-            "extracted."
+            "Information required to initialise the soil model successfully extracted."
         )
 
         return cls(
@@ -279,6 +271,7 @@ class SoilModel(
                 self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
+                self.core_constants.max_depth_of_microbial_activity,
             ),
         )
 
@@ -311,6 +304,7 @@ def construct_full_soil_model(
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
+    max_depth_of_microbial_activity: float,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -325,6 +319,8 @@ def construct_full_soil_model(
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         model_constants: Set of constants for the soil model.
+        max_depth_of_microbial_activity: Maximum depth of the soil profile where
+            microbial activity occurs [m].
 
     Returns:
         The rate of change for each soil pool
@@ -338,7 +334,12 @@ def construct_full_soil_model(
         str(pool): pools[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
 
-    soil_pools = SoilPools(data, pools=all_pools, constants=model_constants)
+    soil_pools = SoilPools(
+        data,
+        pools=all_pools,
+        constants=model_constants,
+        max_depth_of_microbial_activity=max_depth_of_microbial_activity,
+    )
 
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,

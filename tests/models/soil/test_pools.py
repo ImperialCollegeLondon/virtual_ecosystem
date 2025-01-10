@@ -11,6 +11,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 
 def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
     from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
 
@@ -33,7 +34,12 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     pools = {
         str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
-    soil_pools = SoilPools(data=dummy_carbon_data, pools=pools, constants=SoilConsts)
+    soil_pools = SoilPools(
+        data=dummy_carbon_data,
+        pools=pools,
+        constants=SoilConsts,
+        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+    )
 
     change_in_pools = {
         "soil_c_pool_lmwc": [0.01510858, 0.01400719, 0.03697928, 0.02426899],
@@ -53,7 +59,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
-        "soil_p_pool_labile": [5.0550432e-7, 2.77392428e-6, 7.3420809e-7, 1.9845505e-7],
+        "soil_p_pool_labile": [5.6026134e-7, 2.8286813e-6, 7.8896511e-7, 2.5321207e-7],
     }
 
     # Make order of pools object

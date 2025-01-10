@@ -409,3 +409,10 @@ class SoilConsts(ConstantsDataclass):
     
     Units of [day^-1]. Default value taken from :cite:t:`parton_dynamics_1988`.
     """
+
+    phosphorus_deposition_rate: float = 5e-6 / 365.25
+    """Rate at which phosphorus is deposited into the system [kg P m^-2 day^-1].
+    
+    We are assuming that deposistion rates won't vary substantially over the area the
+    simulation encompasses. Value taken from :cite:t:`Mahowald2008`.
+    """
