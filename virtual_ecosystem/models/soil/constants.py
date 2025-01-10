@@ -317,6 +317,14 @@ class SoilConsts(ConstantsDataclass):
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
+    organic_proportion_litter_phosphorus_leaching = 1.0
+    """Fraction of leached phosphrous from litter mineralisation that is organic form.
+    
+    [unitless]. The remainder of the leaching consists of inorganic phosphorus. Value is
+    taken from :cite:t:`fatichi_mechanistic_2019`, where it is assumed that phosphorus
+    leaches from litter solely in organic form.
+    """
+
     microbial_c_n_ratio = 5.2
     """Ratio of carbon to nitrogen in microbial biomass [unitless].
     

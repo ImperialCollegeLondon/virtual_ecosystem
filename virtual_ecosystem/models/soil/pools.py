@@ -115,6 +115,9 @@ class LitterMineralisationFluxes:
     dop: NDArray[np.float32]
     """Mineralisation into the dissolved organic phosphorus pool [kg P m^-3 day^-1]."""
 
+    labile_p: NDArray[np.float32]
+    """Mineralisation into the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
+
     particulate_p: NDArray[np.float32]
     """Mineralisation into the particulate organic phosphorus pool.
     
@@ -457,7 +460,8 @@ class SoilPools:
         )
         delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
-            primary_phosphorus_breakdown
+            litter_mineralisation_flux.labile_p
+            + primary_phosphorus_breakdown
             - net_formation_secondary_P
             - nutrient_leaching.labile_P
         )
@@ -1085,8 +1089,9 @@ def calculate_litter_mineralisation_fluxes(
     """Calculate the split of the litter mineralisation fluxes between soil pools.
 
     Each mineralisation flux from litter to soil has to be split between the particulate
-    and dissolved pools for the nutrient in question. TODO - more to say here about
-    nitrogen and phosphorus.
+    and dissolved pools for the nutrient in question. The leached nitrogen and
+    phosphorus fluxes are further split between organic and inorganic forms.
+    TODO - Mention specifically where the inorganic nitrogen goes.
 
     Args:
         litter_C_mineralisation_rate: The rate at which carbon is being mineralised from
@@ -1114,13 +1119,20 @@ def calculate_litter_mineralisation_fluxes(
         mineralisation_rate=litter_P_mineralisation_rate,
         litter_leaching_coefficient=constants.litter_leaching_fraction_phosphorus,
     )
+    flux_P_organic_dissolved = (
+        flux_P_dissolved * constants.organic_proportion_litter_phosphorus_leaching
+    )
+    flux_P_inorganic_dissolved = flux_P_dissolved * (
+        1 - constants.organic_proportion_litter_phosphorus_leaching
+    )
 
     return LitterMineralisationFluxes(
         lmwc=flux_C_dissolved,
         pom=flux_C_particulate,
         don=flux_N_dissolved,
         particulate_n=flux_N_particulate,
-        dop=flux_P_dissolved,
+        dop=flux_P_organic_dissolved,
+        labile_p=flux_P_inorganic_dissolved,
         particulate_p=flux_P_particulate,
     )
 

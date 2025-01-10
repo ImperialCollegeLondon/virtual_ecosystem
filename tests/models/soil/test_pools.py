@@ -426,6 +426,7 @@ def test_calculate_litter_mineralisation_fluxes(dummy_carbon_data):
         "particulate_n": [3.52979735e-5, 7.05959470e-5, 1.82725500e-4, 1.63088001e-5],
         "dop": [7.32000e-10, 1.41404e-10, 2.82808e-10, 6.53332e-11],
         "particulate_p": [7.31926800e-6, 1.41389860e-6, 2.82779719e-6, 6.53266667e-7],
+        "labile_p": [0.0, 0.0, 0.0, 0.0],
     }
 
     actual_fluxes = calculate_litter_mineralisation_fluxes(
