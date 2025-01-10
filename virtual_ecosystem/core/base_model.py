@@ -348,12 +348,6 @@ class BaseModel(ABC):
     def _setup(self, *args: Any, **kwargs: Any) -> None:
         """Function to setup the model during initialisation."""
 
-    def setup(self) -> None:
-        """Function to use input data to set up the model.
-
-        TODO: Remove.
-        """
-
     @abstractmethod
     def spinup(self) -> None:
         """Function to spin up the model."""

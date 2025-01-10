@@ -182,12 +182,6 @@ class PlantsModel(
         LOGGER.info("Plants model instance generated from configuration.")
         return inst
 
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
-
     def _setup(
         self,
         flora: Flora,

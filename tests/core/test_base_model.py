@@ -397,9 +397,6 @@ def test_check_vars_required_for_init(
         vars_required_for_init=(),
         vars_updated=[],
     ):
-        def setup(self) -> None:
-            pass
-
         def spinup(self) -> None:
             pass
 
