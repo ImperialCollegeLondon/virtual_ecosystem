@@ -180,9 +180,9 @@ class TestLitterPool:
             * herbivore_cohort_instance.functional_group.mechanical_efficiency
             * herbivore_cohort_instance.functional_group.conversion_efficiency
         )
-        assert actual_mass_gain == pytest.approx(
-            expected_mass_gain
-        ), "Actual mass gain should match expected value after efficiency adjustments."
+        assert actual_mass_gain == pytest.approx(expected_mass_gain), (
+            "Actual mass gain should match expected value after efficiency adjustments."
+        )
 
         # Check that carbon:nitrogen and carbon:phosphorus ratios remain unchanged
         assert initial_c_n_ratio == pytest.approx(
