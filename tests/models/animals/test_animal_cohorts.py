@@ -797,9 +797,9 @@ class TestAnimalCohort:
         result = cohort_instance.calculate_alpha()
 
         # Assert that the result matches the expected outcome for the given scenario
-        assert (
-            result == expected_alpha
-        ), f"Failed scenario: alpha_0_herb={alpha_0_herb}, mass_current={mass_current}"
+        assert result == expected_alpha, (
+            f"Failed scenario: alpha_0_herb={alpha_0_herb}, mass_current={mass_current}"
+        )
 
     @pytest.mark.parametrize(
         "alpha, mass_current, phi_herb_t, expected_biomass",
@@ -983,9 +983,9 @@ class TestAnimalCohort:
         result = herbivore_cohort_instance.calculate_theta_opt_i()
 
         # Assert the result matches the mocked return value
-        assert (
-            result == 0.5
-        ), "The result does not match the expected return value from sf.theta_opt_i"
+        assert result == 0.5, (
+            "The result does not match the expected return value from sf.theta_opt_i"
+        )
 
         # Assert sf.theta_opt_i was called with the correct parameters
         theta_opt_i_mock.assert_called_once_with(
@@ -1125,10 +1125,7 @@ class TestAnimalCohort:
             return_value=0.8,
         )
         mock_theta_i_j = mocker.patch(
-            (
-                "virtual_ecosystem.models.animal.animal_cohorts."
-                "AnimalCohort.theta_i_j"
-            ),
+            ("virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.theta_i_j"),
             return_value=0.7,
         )
         mock_potential_prey = mocker.patch(
@@ -1162,9 +1159,9 @@ class TestAnimalCohort:
         N_i = predator_cohort_instance.individuals
         N_target = target_animal.individuals
         expected_rate = N_i * (10 / (1 + 2)) * (1 / N_target)
-        assert rate == pytest.approx(
-            expected_rate
-        ), "F_i_j_individual did not return the expected predation rate."
+        assert rate == pytest.approx(expected_rate), (
+            "F_i_j_individual did not return the expected predation rate."
+        )
 
     def test_theta_i_j(self, predator_cohort_instance, animal_list_instance):
         """Test theta_i_j."""
@@ -1285,9 +1282,9 @@ class TestAnimalCohort:
         expected_delta_mass = 10.0 * len(plant_list_instance)
 
         # Assert the calculated delta_mass matches the expected value
-        assert delta_mass == pytest.approx(
-            expected_delta_mass
-        ), "Calculated change in mass due to herbivory did not match expected value."
+        assert delta_mass == pytest.approx(expected_delta_mass), (
+            "Calculated change in mass due to herbivory did not match expected value."
+        )
 
     def test_forage_cohort(
         self,
@@ -1391,9 +1388,9 @@ class TestAnimalCohort:
         probability_of_dispersal = cohort.migrate_juvenile_probability()
 
         # Assertion to check if the method returns the correct probability
-        assert (
-            probability_of_dispersal == expected_probability
-        ), "The probability calculated did not match the expected probability."
+        assert probability_of_dispersal == expected_probability, (
+            "The probability calculated did not match the expected probability."
+        )
 
     @pytest.mark.parametrize(
         "is_mature, u_bg, lambda_se, t_to_maturity, t_since_maturity, lambda_max, J_st,"
@@ -1519,6 +1516,6 @@ class TestAnimalCohort:
         )
 
         # Verify
-        assert (
-            cohort.individuals == 100 - expected_dead
-        ), "The calculated number of dead individuals doesn't match the expected value."
+        assert cohort.individuals == 100 - expected_dead, (
+            "The calculated number of dead individuals doesn't match the expected value."
+        )

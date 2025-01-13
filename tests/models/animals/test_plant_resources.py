@@ -28,14 +28,14 @@ class TestPlantResources:
             * herbivore_cohort_instance.functional_group.mechanical_efficiency
             * herbivore_cohort_instance.functional_group.conversion_efficiency
         )
-        assert actual_mass_gain == pytest.approx(
-            expected_mass_gain
-        ), "Actual mass gain should match expected value after efficiency adjustments."
+        assert actual_mass_gain == pytest.approx(expected_mass_gain), (
+            "Actual mass gain should match expected value after efficiency adjustments."
+        )
 
         # Check if the excess mass has been calculated correctly
         expected_excess_mass = consumed_mass * (
             1 - herbivore_cohort_instance.functional_group.mechanical_efficiency
         )
-        assert excess_mass == pytest.approx(
-            expected_excess_mass
-        ), "Excess mass should match the expected value based on mechanical efficiency."
+        assert excess_mass == pytest.approx(expected_excess_mass), (
+            "Excess mass should match the expected value based on mechanical efficiency."
+        )

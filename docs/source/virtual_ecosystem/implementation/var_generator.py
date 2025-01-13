@@ -91,7 +91,7 @@ def generate_all_variable_markdown(
     # Add the variables formatted as list table rows
     for v in variables.KNOWN_VARIABLES.values():
         table_rows.append(
-            "* - " + "  - ".join([f"{getattr(v,fld)}\n" for fld in fields_to_display])
+            "* - " + "  - ".join([f"{getattr(v, fld)}\n" for fld in fields_to_display])
         )
 
     # Wrap the variable rows in the rest of the list table syntax
