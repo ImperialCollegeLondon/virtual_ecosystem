@@ -2,7 +2,6 @@
 :class:`~virtual_ecosystem.models.litter.litter_model.LitterModel` class as a child of
 the :class:`~virtual_ecosystem.core.base_model.BaseModel` class. At present a lot of
 the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
 :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the Virtual Ecosystem
 model develops. The factory method
