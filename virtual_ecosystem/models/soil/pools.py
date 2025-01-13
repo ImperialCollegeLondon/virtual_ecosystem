@@ -43,6 +43,13 @@ class MicrobialChanges:
     
     Units of [kg P m^-3 day^-1]."""
 
+    labile_p_change: NDArray[np.float32]
+    """Total change in the labile inorganic phosphorus pool due to microbial activity.
+    
+    Units of [kg P m^-3 day^-1]. This change arises from the balence of immobilisation
+    and mineralisation of labile P. A positive value indicates a net immobilisation
+    (uptake) of P. """
+
     microbe_change: NDArray[np.float32]
     """Rate of change of microbial biomass pool [kg C m^-3 day^-1]."""
 
@@ -500,6 +507,7 @@ class SoilPools:
             litter_mineralisation_flux.labile_p
             + phosphorus_deposition
             + primary_phosphorus_breakdown
+            - microbial_changes.labile_p_change
             - net_formation_secondary_P
             - nutrient_leaching.labile_P
         )
@@ -583,6 +591,7 @@ def calculate_microbial_changes(
         lmwc_uptake=microbial_uptake.carbon,
         don_uptake=microbial_uptake.organic_nitrogen,
         dop_uptake=microbial_uptake.organic_phosphorus,
+        labile_p_change=microbial_uptake.inorganic_phosphorus,
         microbe_change=biomass_growth - biomass_loss,
         pom_enzyme_change=pom_enzyme_net_change,
         maom_enzyme_change=maom_enzyme_net_change,
@@ -841,12 +850,18 @@ def calculate_nutrient_uptake_rates(
     carbon case is more complex as carbon gets used both for biomass synthesis and
     respiration. In this case, we calculate the carbon use efficency and use this to
     find the maximum amount of carbon avaliable for biomass sythesis. Once the most
-    limiting nutrient uptake stream is found it is straightforward to find the uptake
-    rates of the other nutrients. This is because the microbial biomass stochiometry can
-    only remain the same if nutrients are taken up following the same stochiometry (with
-    an adjustment made for carbon use efficency).
+    limiting nutrient uptake stream is found it is straightforward to find the demand
+    for other nutrientss. This is because the microbial biomass stochiometry can only
+    remain the same if nutrients are taken up following the same stochiometry (with an
+    adjustment made for carbon use efficency).
 
-    TODO - NEED TO ADD SOMETHING ABOUT NUTRIENT MINERALSIATION HERE ONCE I'VE ADDED THAT
+    The balence of mineralisation and immobilisation rates of inorganic nitrogen and
+    phosphorus are also calculated in this function. This is done by calculating the
+    difference between the demand for nitrogen and phosphorus and their uptake due to
+    organic matter uptake. If more is taken up as a component of organic matter than is
+    needed then nutrients are mineralised, i.e. mass is added to the relevant inorganic
+    nutrient pool. Conversly, if more is required to meet demand uptake occurs from the
+    relevant inorganic nutrient pool (this is termed immobilisation).
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
@@ -933,14 +948,22 @@ def calculate_nutrient_uptake_rates(
             ),
         ]
     )
+    actual_carbon_uptake = actual_carbon_gain / carbon_use_efficency
+
+    # Calculate actual uptake of organic phosphorus based on carbon uptake
+    lmwc_c_p_ratio = soil_c_pool_lmwc / soil_p_pool_dop
+    actual_organic_phosphorus_uptake = actual_carbon_uptake / lmwc_c_p_ratio
+
+    # Calculate uptake/release of inorganic phosphorus based on difference between
+    # stochiometic demand and organic phosphorus uptake
+    phosphorus_demand = actual_carbon_gain / constants.microbial_c_p_ratio
+    inorganic_phosphorus_uptake = phosphorus_demand - actual_organic_phosphorus_uptake
+
     consumption_rates = NetNutrientConsumption(
         organic_nitrogen=actual_carbon_gain / constants.microbial_c_n_ratio,
-        organic_phosphorus=actual_carbon_gain / constants.microbial_c_p_ratio,
-        carbon=actual_carbon_gain / carbon_use_efficency,
-        # TODO - Setting this to the max for now, but this will need to be updated
-        # TODO - Once this is done, this needs to be added to the microbial updates
-        # dataclass, and then actually subtracted from the labile P pool
-        inorganic_phosphorus=inorganic_phosphorus_uptake_rate_max,
+        organic_phosphorus=actual_organic_phosphorus_uptake,
+        carbon=actual_carbon_uptake,
+        inorganic_phosphorus=inorganic_phosphorus_uptake,
     )
 
     # TODO - the quantities calculated above can be used to calculate the carbon

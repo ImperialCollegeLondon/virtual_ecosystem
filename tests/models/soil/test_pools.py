@@ -53,13 +53,13 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_p_pool_dop": [1.90041235e-4, 4.85239970e-5, 1.58298667e-4, 1.01288571e-4],
+        "soil_p_pool_dop": [1.94452573e-4, 7.10041449e-5, 1.86586343e-4, 1.01700974e-4],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
-        "soil_p_pool_labile": [5.6026134e-7, 2.8286813e-6, 7.8896511e-7, 2.5321207e-7],
+        "soil_p_pool_labile": [-3.851076e-6, -1.965147e-5, -2.749871e-5, -1.591909e-7],
     }
 
     # Make order of pools object
@@ -88,8 +88,8 @@ def test_calculate_microbial_changes(
     expected_mic_changes = {
         "lmwc_uptake": [1.97060348e-4, 1.15388472e-3, 1.55610000e-3, 5.77363558e-5],
         "don_uptake": [1.36426394e-5, 7.32272994e-5, 8.9775e-5, 5.32950977e-6],
-        "dop_uptake": [4.4338578e-6, 2.3798872e-5, 2.9176875e-5, 1.73209068e-6],
-        "labile_p_uptake": [2.8791314e-6, 1.397663e-5, 4.2721437e-5, 2.2533527e-6],
+        "dop_uptake": [2.25200566e-8, 1.3187241e-6, 8.8919911e-7, 1.3196877e-6],
+        "labile_p_change": [4.4113378e-6, 2.2480148e-5, 2.8287676e-5, 4.124029e-7],
         "microbe_change": [-0.05435984, -0.02260329, -0.11965575, -0.00719517],
         "pom_enzyme_change": [1.17571917e-8, 1.6744223e-8, 1.8331136e-9, -1.1167587e-8],
         "maom_enzyme_change": [-3.1009224e-4, -5.0959256e-5, 5.990658e-4, -3.721117e-5],
@@ -279,9 +279,9 @@ def test_calculate_nutrient_uptake_rates(
     expected_carbon_gain = [7.09417251e-5, 3.80781957e-4, 0.00046683, 2.77134508e-5]
     expected_consumption_rates = {
         "organic_nitrogen": [1.36426394e-5, 7.32272994e-5, 8.9775e-5, 5.32950977e-6],
-        "organic_phosphorus": [4.4338578e-6, 2.3798872e-5, 2.9176875e-5, 1.73209068e-6],
+        "organic_phosphorus": [2.25200566e-8, 1.3187241e-6, 8.8919911e-7, 1.3196877e-6],
         "carbon": [1.97060348e-4, 1.15388472e-3, 1.55610000e-3, 5.77363558e-5],
-        "inorganic_phosphorus": [2.8791314e-6, 1.397663e-5, 4.2721437e-5, 2.2533527e-6],
+        "inorganic_phosphorus": [4.4113378e-6, 2.2480148e-5, 2.8287676e-5, 4.124029e-7],
     }
 
     actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
