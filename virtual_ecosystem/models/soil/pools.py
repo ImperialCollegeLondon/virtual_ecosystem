@@ -63,6 +63,24 @@ class MicrobialChanges:
 
 
 @dataclass
+class NetNutrientConsumption:
+    """Net consumption of each labile due to microbial activity.
+
+    The labile inorganic pools can have negative consumptions because microbes can
+    mineralise inorganic nutrients from organic nutrients (from organic form).
+    """
+
+    carbon: NDArray[np.float32]
+    """Uptake of low molecular weight carbon [kg C m^-3 day^-1]."""
+
+    organic_nitrogen: NDArray[np.float32]
+    """Uptake of dissolved organic nitrogen [kg N m^-3 day^-1]."""
+
+    organic_phosphorus: NDArray[np.float32]
+    """Uptake of dissolved organic phosphorus [kg P m^-3 day^-1]."""
+
+
+@dataclass
 class EnzymeMediatedRates:
     """Rates of each enzyme mediated transfer between pools."""
 
@@ -555,9 +573,9 @@ def calculate_microbial_changes(
     ) * biomass_loss
 
     return MicrobialChanges(
-        lmwc_uptake=microbial_uptake["carbon"],
-        don_uptake=microbial_uptake["nitrogen"],
-        dop_uptake=microbial_uptake["phosphorus"],
+        lmwc_uptake=microbial_uptake.carbon,
+        don_uptake=microbial_uptake.organic_nitrogen,
+        dop_uptake=microbial_uptake.organic_phosphorus,
         microbe_change=biomass_growth - biomass_loss,
         pom_enzyme_change=pom_enzyme_net_change,
         maom_enzyme_change=maom_enzyme_net_change,
@@ -806,7 +824,7 @@ def calculate_nutrient_uptake_rates(
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
-) -> tuple[NDArray[np.float32], dict[str, NDArray[np.float32]]]:
+) -> tuple[NDArray[np.float32], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 
     These rates are found based on the assumption that microbial stochiometry is
@@ -834,7 +852,7 @@ def calculate_nutrient_uptake_rates(
 
     Returns:
         A tuple containing the rate at which microbial biomass increases due to nutrient
-        uptake, as well as a dictionary containing the rate at which carbon, nitrogen
+        uptake, as well as a dataclass containing the rate at which carbon, nitrogen
         and phosphorus get taken up.
     """
 
@@ -890,11 +908,11 @@ def calculate_nutrient_uptake_rates(
             constants.microbial_c_p_ratio * phosphorus_uptake_rate_max,
         ]
     )
-    consumption_rates = {
-        "nitrogen": actual_carbon_gain / constants.microbial_c_n_ratio,
-        "phosphorus": actual_carbon_gain / constants.microbial_c_p_ratio,
-        "carbon": actual_carbon_gain / carbon_use_efficency,
-    }
+    consumption_rates = NetNutrientConsumption(
+        organic_nitrogen=actual_carbon_gain / constants.microbial_c_n_ratio,
+        organic_phosphorus=actual_carbon_gain / constants.microbial_c_p_ratio,
+        carbon=actual_carbon_gain / carbon_use_efficency,
+    )
 
     # TODO - the quantities calculated above can be used to calculate the carbon
     # respired instead of being uptaken. This isn't currently of interest, but will be

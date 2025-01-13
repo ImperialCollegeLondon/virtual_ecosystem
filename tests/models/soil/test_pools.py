@@ -276,8 +276,8 @@ def test_calculate_nutrient_uptake_rates(
 
     expected_carbon_gain = [2.48756225e-5, 1.57155834e-4, 4.66828319e-4, 2.12206561e-5]
     expected_consumption_rates = {
-        "nitrogen": [4.78377356e-6, 3.02222758e-5, 8.97746767e-5, 4.08089540e-6],
-        "phosphorus": [1.55472641e-6, 9.82223962e-6, 2.91767699e-5, 1.32629101e-6],
+        "organic_nitrogen": [4.78377356e-6, 3.02222758e-5, 8.97746767e-5, 4.0808954e-6],
+        "organic_phosphorus": [1.55472641e-6, 9.82223962e-6, 2.917677e-5, 1.326291e-6],
         "carbon": [6.90989514e-5, 4.76229800e-4, 1.55609440e-3, 4.42097002e-5],
     }
 
@@ -296,14 +296,15 @@ def test_calculate_nutrient_uptake_rates(
 
     assert np.allclose(actual_carbon_gain, expected_carbon_gain)
 
-    assert set(expected_consumption_rates.keys()) == set(
-        actual_consumption_rates.keys()
-    )
-
-    for key in expected_consumption_rates.keys():
-        assert np.allclose(
-            expected_consumption_rates[key], actual_consumption_rates[key]
-        )
+    for attr in dir(actual_consumption_rates):
+        if not attr.startswith("_"):
+            assert (
+                attr in expected_consumption_rates.keys()
+            ), f"Attribute {attr} not tested"
+            assert np.allclose(
+                getattr(actual_consumption_rates, attr),
+                expected_consumption_rates[attr],
+            )
 
 
 def test_calculate_highest_achievable_nutrient_uptake(
