@@ -42,18 +42,18 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.01510858, 0.01400719, 0.03697928, 0.02426899],
+        "soil_c_pool_lmwc": [0.01498062, 0.01332954, 0.03697927, 0.02425546],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
-        "soil_c_pool_microbe": [-0.0544059, -0.02282691, -0.11965575, -0.00720166],
+        "soil_c_pool_microbe": [-0.05435984, -0.02260329, -0.11965575, -0.00719517],
         "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [0.00119944, 0.00470606, 0.00497108, 0.00257148],
+        "soil_n_pool_don": [0.00119058, 0.00466305, 0.00497108, 0.00257023],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_p_pool_dop": [1.92920366e-4, 6.25006297e-5, 1.58298772e-4, 1.01694371e-4],
+        "soil_p_pool_dop": [1.90041235e-4, 4.85239970e-5, 1.58298667e-4, 1.01288571e-4],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
@@ -86,10 +86,11 @@ def test_calculate_microbial_changes(
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
     expected_mic_changes = {
-        "lmwc_uptake": [6.90989514e-5, 4.76229800e-4, 1.55609440e-3, 4.42097002e-5],
-        "don_uptake": [4.78377356e-6, 3.02222758e-5, 8.97746767e-5, 4.08089540e-6],
-        "dop_uptake": [1.55472641e-6, 9.82223962e-6, 2.91767699e-5, 1.32629101e-6],
-        "microbe_change": [-0.0544059, -0.02282691, -0.11965575, -0.00720166],
+        "lmwc_uptake": [1.97060348e-4, 1.15388472e-3, 1.55610000e-3, 5.77363558e-5],
+        "don_uptake": [1.36426394e-5, 7.32272994e-5, 8.9775e-5, 5.32950977e-6],
+        "dop_uptake": [4.4338578e-6, 2.3798872e-5, 2.9176875e-5, 1.73209068e-6],
+        "labile_p_uptake": [2.8791314e-6, 1.397663e-5, 4.2721437e-5, 2.2533527e-6],
+        "microbe_change": [-0.05435984, -0.02260329, -0.11965575, -0.00719517],
         "pom_enzyme_change": [1.17571917e-8, 1.6744223e-8, 1.8331136e-9, -1.1167587e-8],
         "maom_enzyme_change": [-3.1009224e-4, -5.0959256e-5, 5.990658e-4, -3.721117e-5],
         "necromass_generation": [0.05474086, 0.02303502, 0.11952352, 0.00726011],
@@ -99,6 +100,7 @@ def test_calculate_microbial_changes(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
@@ -274,17 +276,19 @@ def test_calculate_nutrient_uptake_rates(
         calculate_nutrient_uptake_rates,
     )
 
-    expected_carbon_gain = [2.48756225e-5, 1.57155834e-4, 4.66828319e-4, 2.12206561e-5]
+    expected_carbon_gain = [7.09417251e-5, 3.80781957e-4, 0.00046683, 2.77134508e-5]
     expected_consumption_rates = {
-        "organic_nitrogen": [4.78377356e-6, 3.02222758e-5, 8.97746767e-5, 4.0808954e-6],
-        "organic_phosphorus": [1.55472641e-6, 9.82223962e-6, 2.917677e-5, 1.326291e-6],
-        "carbon": [6.90989514e-5, 4.76229800e-4, 1.55609440e-3, 4.42097002e-5],
+        "organic_nitrogen": [1.36426394e-5, 7.32272994e-5, 8.9775e-5, 5.32950977e-6],
+        "organic_phosphorus": [4.4338578e-6, 2.3798872e-5, 2.9176875e-5, 1.73209068e-6],
+        "carbon": [1.97060348e-4, 1.15388472e-3, 1.55610000e-3, 5.77363558e-5],
+        "inorganic_phosphorus": [2.8791314e-6, 1.397663e-5, 4.2721437e-5, 2.2533527e-6],
     }
 
     actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,

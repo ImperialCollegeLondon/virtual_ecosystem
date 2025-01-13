@@ -67,7 +67,7 @@ class NetNutrientConsumption:
     """Net consumption of each labile due to microbial activity.
 
     The labile inorganic pools can have negative consumptions because microbes can
-    mineralise inorganic nutrients from organic nutrients (from organic form).
+    mineralise inorganic nutrients from nutrients in organic form.
     """
 
     carbon: NDArray[np.float32]
@@ -78,6 +78,9 @@ class NetNutrientConsumption:
 
     organic_phosphorus: NDArray[np.float32]
     """Uptake of dissolved organic phosphorus [kg P m^-3 day^-1]."""
+
+    inorganic_phosphorus: NDArray[np.float32]
+    """Uptake of labile inorganic phosphorus [kg P m^-3 day^-1]."""
 
 
 @dataclass
@@ -297,6 +300,7 @@ class SoilPools:
             soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
             soil_n_pool_don=self.pools.soil_n_pool_don,
             soil_p_pool_dop=self.pools.soil_p_pool_dop,
+            soil_p_pool_labile=self.pools.soil_p_pool_labile,
             soil_c_pool_microbe=self.pools.soil_c_pool_microbe,
             soil_enzyme_pom=self.pools.soil_enzyme_pom,
             soil_enzyme_maom=self.pools.soil_enzyme_maom,
@@ -508,6 +512,7 @@ def calculate_microbial_changes(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_n_pool_don: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
+    soil_p_pool_labile: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
@@ -517,15 +522,16 @@ def calculate_microbial_changes(
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
-    This function calculates the uptake of low molecular weight carbon by the microbial
-    biomass pool and uses this to calculate the net change in the pool. The net change
-    in each enzyme pool is found, and finally the total rate at which necromass is
-    created is found.
+    This function calculates the uptake of low molecular weight carbon and inorganic
+    nutrients by the microbial biomass pool and uses this to calculate the net change in
+    the pool. The net change in each enzyme pool is found, and finally the total rate at
+    which necromass is created is found.
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
@@ -546,6 +552,7 @@ def calculate_microbial_changes(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         soil_n_pool_don=soil_n_pool_don,
         soil_p_pool_dop=soil_p_pool_dop,
+        soil_p_pool_labile=soil_p_pool_labile,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
@@ -819,6 +826,7 @@ def calculate_nutrient_uptake_rates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_n_pool_don: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
+    soil_p_pool_labile: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
@@ -838,10 +846,13 @@ def calculate_nutrient_uptake_rates(
     only remain the same if nutrients are taken up following the same stochiometry (with
     an adjustment made for carbon use efficency).
 
+    TODO - NEED TO ADD SOMETHING ABOUT NUTRIENT MINERALSIATION HERE ONCE I'VE ADDED THAT
+
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
+        soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
@@ -885,7 +896,7 @@ def calculate_nutrient_uptake_rates(
         half_saturation_constant=constants.half_sat_don_uptake,
         constants=constants,
     )
-    phosphorus_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
+    organic_phosphorus_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_p_pool_dop,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=water_factor,
@@ -893,6 +904,16 @@ def calculate_nutrient_uptake_rates(
         soil_temp=soil_temp,
         max_uptake_rate=constants.max_uptake_rate_dop,
         half_saturation_constant=constants.half_sat_dop_uptake,
+        constants=constants,
+    )
+    inorganic_phosphorus_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
+        labile_nutrient_pool=soil_p_pool_labile,
+        soil_c_pool_microbe=soil_c_pool_microbe,
+        water_factor=water_factor,
+        pH_factor=pH_factor,
+        soil_temp=soil_temp,
+        max_uptake_rate=constants.max_uptake_rate_labile_p,
+        half_saturation_constant=constants.half_sat_labile_p_uptake,
         constants=constants,
     )
 
@@ -905,13 +926,21 @@ def calculate_nutrient_uptake_rates(
         [
             carbon_gain_max,
             constants.microbial_c_n_ratio * nitrogen_uptake_rate_max,
-            constants.microbial_c_p_ratio * phosphorus_uptake_rate_max,
+            constants.microbial_c_p_ratio
+            * (
+                organic_phosphorus_uptake_rate_max
+                + inorganic_phosphorus_uptake_rate_max
+            ),
         ]
     )
     consumption_rates = NetNutrientConsumption(
         organic_nitrogen=actual_carbon_gain / constants.microbial_c_n_ratio,
         organic_phosphorus=actual_carbon_gain / constants.microbial_c_p_ratio,
         carbon=actual_carbon_gain / carbon_use_efficency,
+        # TODO - Setting this to the max for now, but this will need to be updated
+        # TODO - Once this is done, this needs to be added to the microbial updates
+        # dataclass, and then actually subtracted from the labile P pool
+        inorganic_phosphorus=inorganic_phosphorus_uptake_rate_max,
     )
 
     # TODO - the quantities calculated above can be used to calculate the carbon

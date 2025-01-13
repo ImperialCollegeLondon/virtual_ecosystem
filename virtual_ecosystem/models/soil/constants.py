@@ -385,6 +385,28 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
+    max_uptake_rate_labile_p = 0.0025
+    """Maximum possible rate for labile inorganic phosphorus uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_labile_p_uptake: float = 0.02275
+    """Half saturation constant for uptake of labile inorganic phosphorus.
+
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
     tectonic_uplift_rate_phosphorus: float = 0.0
     """Rate at which tectonic uplift exposes new primary phosphorus [kg P m^-3 day^-1].
 
