@@ -42,10 +42,10 @@ model.
 
 Some models require an additional setup step to calculate values for internal variables
 from the initial loaded data or to set up further structures within the model, such as
-representations of plant or animal communities. Each model will run the
-{meth}`~virtual_ecosystem.core.base_model.BaseModel._setup` method defined for the
-specific model. In simple science models, this method may not actually need to do
-anything.
+representations of plant or animal communities. During initialization, each model will
+run the {meth}`~virtual_ecosystem.core.base_model.BaseModel._setup` method defined
+for the specific model. In simple science models, this method may not actually need to
+do anything.
 
 ## Model spinup
 
