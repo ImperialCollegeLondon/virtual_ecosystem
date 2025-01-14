@@ -221,7 +221,7 @@ def _format_variables_list(vars: dict[str, dict]) -> str:
     """
     out = []
     for i, v in enumerate(vars.values()):
-        title = f"{i+1}- {v['name']}"
+        title = f"{i + 1}- {v['name']}"
         out.append(title)
         out.append(f"{'=' * len(title)}")
         out.append("")

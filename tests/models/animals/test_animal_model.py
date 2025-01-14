@@ -185,9 +185,9 @@ class TestAnimalModel:
                 called_methods.append(method_name)
 
         # Ensure the methods were called in the expected order
-        assert (
-            called_methods == method_names
-        ), f"Methods called in wrong order: {called_methods}"
+        assert called_methods == method_names, (
+            f"Methods called in wrong order: {called_methods}"
+        )
 
     def test_update_method_time_index_argument(
         self,
@@ -209,9 +209,9 @@ class TestAnimalModel:
         from xarray import DataArray
 
         # Check if 'total_animal_respiration' is in the data object
-        assert (
-            "total_animal_respiration" in prepared_animal_model_instance.data
-        ), "'total_animal_respiration' should be initialized in the data object."
+        assert "total_animal_respiration" in prepared_animal_model_instance.data, (
+            "'total_animal_respiration' should be initialized in the data object."
+        )
 
         # Retrieve the total_animal_respiration DataArray from the model's data object
         total_animal_respiration = prepared_animal_model_instance.data[
@@ -219,22 +219,22 @@ class TestAnimalModel:
         ]
 
         # Check that total_animal_respiration is an instance of xarray.DataArray
-        assert isinstance(
-            total_animal_respiration, DataArray
-        ), "'total_animal_respiration' should be an instance of xarray.DataArray."
+        assert isinstance(total_animal_respiration, DataArray), (
+            "'total_animal_respiration' should be an instance of xarray.DataArray."
+        )
 
         # Check the initial values of total_animal_respiration are all zeros
-        assert np.all(
-            total_animal_respiration.values == 0
-        ), "Initial values of 'total_animal_respiration' should be all zeros."
+        assert np.all(total_animal_respiration.values == 0), (
+            "Initial values of 'total_animal_respiration' should be all zeros."
+        )
 
         # Optionally, you can also check the dimensions and coordinates
         # This is useful if your setup method is supposed to initialize the data
         # variable with specific dimensions or coordinates based on your model's
         # structure
-        assert (
-            "cell_id" in total_animal_respiration.dims
-        ), "'cell_id' should be a dimension of 'total_animal_respiration'."
+        assert "cell_id" in total_animal_respiration.dims, (
+            "'cell_id' should be a dimension of 'total_animal_respiration'."
+        )
 
     def test_population_density_initialization(
         self,
@@ -254,9 +254,9 @@ class TestAnimalModel:
 
         # Check dimensions
         expected_dims = ["community_id", "functional_group_id"]
-        assert all(
-            dim in population_densities.dims for dim in expected_dims
-        ), f"Expected dimensions {expected_dims} not found in 'population_densities'."
+        assert all(dim in population_densities.dims for dim in expected_dims), (
+            f"Expected dimensions {expected_dims} not found in 'population_densities'."
+        )
 
         # Check coordinates
         # you should adjust according to actual community IDs and functional group names
@@ -276,9 +276,9 @@ class TestAnimalModel:
 
         # Assuming densities have been updated, check if densities are greater than or
         #  equal to zero
-        assert np.all(
-            population_densities.values >= 0
-        ), "Population densities should be greater than or equal to zero."
+        assert np.all(population_densities.values >= 0), (
+            "Population densities should be greater than or equal to zero."
+        )
 
     def test_update_population_densities(self, prepared_animal_model_instance):
         """Test that the update_population_densities method correctly updates."""
@@ -925,15 +925,15 @@ class TestAnimalModel:
         if is_semelparous:
             # For semelparous organisms, the parent dies and the offspring cohort
             # replaces it
-            assert (
-                len(animal_model_instance.cohorts) == initial_num_cohorts
-            ), f"Expected {initial_num_cohorts} cohorts but"
+            assert len(animal_model_instance.cohorts) == initial_num_cohorts, (
+                f"Expected {initial_num_cohorts} cohorts but"
+            )
             " found {len(animal_model_instance.cohorts)}"
         else:
             # For iteroparous organisms, the parent survives and the offspring is added
-            assert (
-                len(animal_model_instance.cohorts) == initial_num_cohorts + 1
-            ), f"Expected {initial_num_cohorts + 1} cohorts but"
+            assert len(animal_model_instance.cohorts) == initial_num_cohorts + 1, (
+                f"Expected {initial_num_cohorts + 1} cohorts but"
+            )
             " found {len(animal_model_instance.cohorts)}"
 
         # Get the offspring cohort (assuming it was added correctly)
@@ -1236,9 +1236,9 @@ class TestAnimalModel:
         )
 
         # Ensure the butterfly functional group is found
-        assert (
-            butterfly_functional_group is not None
-        ), "Butterfly functional group not found"
+        assert butterfly_functional_group is not None, (
+            "Butterfly functional group not found"
+        )
 
         # Run the metamorphose method on the caterpillar cohort
         animal_model_instance.metamorphose(caterpillar_cohort_instance)
@@ -1260,14 +1260,14 @@ class TestAnimalModel:
         assert adult_cohort is not None, "Butterfly cohort was not created"
 
         # Assert that the number of individuals in the butterfly cohort is correct
-        assert (
-            adult_cohort.individuals == caterpillar_cohort_instance.individuals
-        ), "Butterfly cohort's individuals count does not match the expected value"
+        assert adult_cohort.individuals == caterpillar_cohort_instance.individuals, (
+            "Butterfly cohort's individuals count does not match the expected value"
+        )
 
         # Assert that the caterpillar cohort is marked as dead and removed
-        assert (
-            not caterpillar_cohort_instance.is_alive
-        ), "Caterpillar cohort should be marked as dead"
+        assert not caterpillar_cohort_instance.is_alive, (
+            "Caterpillar cohort should be marked as dead"
+        )
         assert (
             caterpillar_cohort_instance not in animal_model_instance.cohorts.values()
         ), "Caterpillar cohort should be removed from the model"
