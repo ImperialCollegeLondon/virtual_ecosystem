@@ -45,6 +45,7 @@ class FunctionalGroup:
         excretion_type: str,
         birth_mass: float,
         adult_mass: float,
+        cnp_proportions: dict[str, float],
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         """The constructor for the FunctionalGroup class.
@@ -76,6 +77,9 @@ class FunctionalGroup:
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
+        self.cnp_proportions = cnp_proportions
+        """The proportions of carbon/nitrogen/phosphorus in the functional group,
+            example {"C": 0.8, "N": 0.15, "P": 0.05}."""
         self.constants = constants
         """Animal constants."""
         self.metabolic_rate_terms = self.constants.metabolic_rate_terms[
@@ -138,6 +142,7 @@ def import_functional_groups(
             row.excretion_type,
             row.birth_mass,
             row.adult_mass,
+            row.cnp_proportions,
             constants=constants,
         )
         for row in fg.itertuples()

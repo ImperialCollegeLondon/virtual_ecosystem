@@ -38,12 +38,6 @@ class AnimalCohort:
         if age < 0:
             raise ValueError("Age must be a positive number.")
         """Check if age is a positive number. """
-
-        if mass < 0:
-            raise ValueError("Mass must be a positive number.")
-        """Check if mass is a positive number."""
-
-        """The constructor for the AnimalCohort class."""
         self.functional_group = functional_group
         """The functional group of the animal cohort which holds constants."""
         self.name = functional_group.name
@@ -102,6 +96,18 @@ class AnimalCohort:
             animal_scavenging_rate=self.constants.scavenging_rate_carcasses,
         )
         """The fraction of carcass biomass which decays before it gets consumed."""
+        self.cnp_proportions: dict[str, float] = self.functional_group.cnp_proportions
+        """The normalized stoichiometric proportions that constrains growth."""
+        self.mass_stoich: dict[str, float] = self._initialize_mass_stoich()
+        """The mass of each stoichiometric element found in the animal cohort,
+        {"C": value, "N": value, "P": value}."""
+
+    def _initialize_mass_stoich(self) -> dict[str, float]:
+        """Initializes mass_stoich based on mass_current and cnp_proportions."""
+        return {
+            element: self.mass_current * proportion
+            for element, proportion in self.cnp_proportions.items()
+        }
 
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
@@ -150,6 +156,36 @@ class AnimalCohort:
         """
 
         self.territory = new_grid_cell_keys
+
+    def grow(self, resource_intake: dict[str, float]) -> dict[str, float]:
+        """Handles growth based on resource intake, enforcing stoichiometry.
+
+        Args:
+            resource_intake: A dictionary of the mass of C, N, and P available for
+            intake.
+
+        Returns:
+            A dictionary of the excess elements (waste) that could not be used for
+            growth.
+        """
+        # Determine limiting element for growth
+        potential_growth = {
+            element: resource_intake[element] / self.cnp_proportions[element]
+            for element in self.cnp_proportions
+        }
+        max_growth = min(potential_growth.values())  # Limited by the scarcest element
+
+        # Update mass and stoichiometry
+        for element in self.cnp_proportions:
+            used_mass = max_growth * self.cnp_proportions[element]
+            self.mass_stoich[element] += used_mass
+            resource_intake[element] -= used_mass
+
+        self.mass_current += max_growth  # Total mass grows by the limiting factor
+
+        # Calculate excess (waste) for each element
+        waste = {element: resource_intake[element] for element in resource_intake}
+        return waste
 
     def metabolize(self, temperature: float, dt: timedelta64) -> float:
         """The function to reduce body mass through metabolism.
