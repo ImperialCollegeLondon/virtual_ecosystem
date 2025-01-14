@@ -143,8 +143,7 @@ class SoilModel(
         static = config["soil"]["static"]
 
         LOGGER.info(
-            "Information required to initialise the soil model successfully "
-            "extracted."
+            "Information required to initialise the soil model successfully extracted."
         )
 
         return cls(

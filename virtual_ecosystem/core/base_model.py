@@ -506,8 +506,7 @@ class BaseModel(ABC):
         # Check lower less than upper bound
         if model_update_bounds_pint[0] >= model_update_bounds_pint[1]:
             to_raise = ValueError(
-                f"Lower time bound for {cls.__name__} is not less than the upper "
-                f"bound."
+                f"Lower time bound for {cls.__name__} is not less than the upper bound."
             )
             LOGGER.error(to_raise)
             raise to_raise
