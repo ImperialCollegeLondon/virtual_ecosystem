@@ -302,9 +302,9 @@ def test_calculate_nutrient_uptake_rates(
 
     for attr in dir(actual_consumption_rates):
         if not attr.startswith("_"):
-            assert (
-                attr in expected_consumption_rates.keys()
-            ), f"Attribute {attr} not tested"
+            assert attr in expected_consumption_rates.keys(), (
+                f"Attribute {attr} not tested"
+            )
             assert np.allclose(
                 getattr(actual_consumption_rates, attr),
                 expected_consumption_rates[attr],
