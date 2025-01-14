@@ -174,12 +174,6 @@ class HydrologyModel(
             model_constants=model_constants,
         )
 
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
-
     def _setup(
         self,
         initial_soil_moisture: float,
