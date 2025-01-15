@@ -67,11 +67,21 @@ configuration and data files to run a model.
 
 You can then run the model itself:
 
-```shell
-ve_run /path/ve_example/config \
+````{tabs}
+```{group-tab} macOS/Linux
+  ```shell
+    ve_run /path/ve_example/config \
     --outpath /path/ve_example/out \
     --logfile /path/ve_example/out/ve_example.log
 ```
+
+```{group-tab} Windows
+  ```powershell
+    ve_run \path\ve_example\config `
+    --outpath \path\ve_example/out `
+    --logfile \path\ve_example\out\ve_example.log
+```
+````
 
 The [Virtual Ecosystem in use](virtual_ecosystem_in_use.md) page provides a walkthrough
 of this process, showing the typical outputs of the model run process, and also provides
