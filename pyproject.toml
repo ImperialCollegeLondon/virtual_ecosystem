@@ -24,7 +24,7 @@ license = "BSD-3-Clause"
 name = "virtual_ecosystem"
 readme = "README.md"
 repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
-version = "0.1.1a6"
+version = "0.1.1a7"
 
 [tool.poetry.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
@@ -71,6 +71,7 @@ mdformat_frontmatter = ">=0.4.1,<2.1.0"
 mdformat_tables = ">=0.4.1,<1.1.0"
 mypy = "^1.5.1"
 pre-commit = ">=3,<5"
+ruff = "^0.9.1"
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"

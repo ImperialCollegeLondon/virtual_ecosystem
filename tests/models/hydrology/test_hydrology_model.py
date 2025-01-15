@@ -164,7 +164,7 @@ def test_hydrology_model_initialization(
             None,
             pytest.raises(ConfigurationError),
             (
-                (ERROR, "Unknown names supplied for HydroConsts: " "soilm_cap"),
+                (ERROR, "Unknown names supplied for HydroConsts: soilm_cap"),
                 (INFO, "Valid names are: "),
                 (CRITICAL, "Could not initialise hydrology.HydroConsts from config"),
             ),

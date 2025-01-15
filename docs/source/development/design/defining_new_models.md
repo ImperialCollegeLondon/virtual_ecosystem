@@ -481,7 +481,7 @@ there's no need to include any particular content within them (i.e. they can jus
 function definitions with docstrings).
 
 ```{code-block} ipython3
-def setup(self) -> None:
+def _setup(self) -> None:
     """Placeholder function to set up the freshwater model."""
 
 

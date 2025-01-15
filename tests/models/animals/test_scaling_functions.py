@@ -17,9 +17,9 @@ def test_damuths_law(mass, population_density, terms, scenario_id):
     from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
     testing_pop = damuths_law(mass, terms)
-    assert testing_pop == pytest.approx(
-        population_density
-    ), f"Scenario {scenario_id} failed: Expect {population_density}, got {testing_pop}"
+    assert testing_pop == pytest.approx(population_density), (
+        f"Scenario {scenario_id} failed: Expect {population_density}, got {testing_pop}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -154,9 +154,9 @@ def test_background_mortality(input_value, expected_output):
     """Test the background_mortality function returns the correct mortality rate."""
     from virtual_ecosystem.models.animal.scaling_functions import background_mortality
 
-    assert (
-        background_mortality(input_value) == expected_output
-    ), "The mortality rate returned did not match the expected value."
+    assert background_mortality(input_value) == expected_output, (
+        "The mortality rate returned did not match the expected value."
+    )
 
 
 @pytest.mark.parametrize(
@@ -188,9 +188,9 @@ def test_senescence_mortality(
             senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
     else:
         result = senescence_mortality(lambda_se, t_to_maturity, t_since_maturity)
-        assert result == pytest.approx(
-            expected_mortality
-        ), "The calculated mortality did not match the expected value."
+        assert result == pytest.approx(expected_mortality), (
+            "The calculated mortality did not match the expected value."
+        )
 
 
 @pytest.mark.parametrize(
@@ -399,9 +399,9 @@ def test_w_bar_i_j(
             w_bar_i_j(mass_predator, mass_prey, theta_opt_i, sigma_opt_pred_prey)
     else:
         result = w_bar_i_j(mass_predator, mass_prey, theta_opt_i, sigma_opt_pred_prey)
-        assert (
-            0.0 <= result <= 1.0
-        ), "Result is outside the expected probability range [0.0, 1.0]"
+        assert 0.0 <= result <= 1.0, (
+            "Result is outside the expected probability range [0.0, 1.0]"
+        )
 
 
 @pytest.mark.parametrize(
