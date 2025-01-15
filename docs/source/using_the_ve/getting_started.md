@@ -28,8 +28,9 @@ language_info:
 ## Installing the Virtual Ecosystem model
 
 For most users the best way to get started with the Virtual Ecosystem package is to
-[install Python](https://www.python.org/downloads/) and then install the Virtual
-Ecosystem using the `pip` package installer.
+first [install Python](https://www.python.org/downloads/). Then open a terminal window
+and use the following command to install the Virtual Ecosystem using the `pip` package
+installer.
 
 ```sh
 pip install virtual-ecosystem
@@ -41,7 +42,7 @@ that the package is still being developed so these are currently early developme
 
 If you are more interested in playing around with the development of the model, then you
 will need to follow the [overview of the code contribution
-process]../development/contributing/overivew.md), which covers the installation of the
+process](../development/contributing/overivew.md), which covers the installation of the
 tools required for code development, testing and building documentation.
 
 ## Running an example Virtual Ecosystem simulation
