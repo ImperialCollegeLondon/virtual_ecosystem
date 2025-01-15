@@ -74,6 +74,18 @@ maom_p_values = 0.008 + 0.016 * gradient / 64.0
 # phosphorus pool [kg P m^-3].
 necromass_p_values = 1.2e-6 + 2.8e-6 * gradient / 64.0
 
+# Generate a range of plausible values (0.001-0.005) for the primary phosphorus pool [kg
+# P m^-3].
+primary_p_values = 0.001 + 0.004 * gradient / 64.0
+
+# Generate a range of plausible values (0.005-0.05) for the secondary phosphorus pool
+# [kg P m^-3].
+secondary_p_values = 0.005 + 0.045 * gradient / 64.0
+
+# Generate a range of plausible values (2.5e-5-5e-5) for the labile inorganic phosphorus
+# pool [kg P m^-3].
+labile_p_values = 2.5e-5 + 2.5e-5 * gradient / 64.0
+
 # Make example soil dataset
 example_soil_data = Dataset(
     data_vars=dict(
@@ -95,6 +107,9 @@ example_soil_data = Dataset(
         soil_p_pool_particulate=(["x", "y"], particulate_p_values),
         soil_p_pool_maom=(["x", "y"], maom_p_values),
         soil_p_pool_necromass=(["x", "y"], necromass_p_values),
+        soil_p_pool_primary=(["x", "y"], primary_p_values),
+        soil_p_pool_secondary=(["x", "y"], secondary_p_values),
+        soil_p_pool_labile=(["x", "y"], labile_p_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),

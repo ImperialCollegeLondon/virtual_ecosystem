@@ -11,6 +11,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 
 def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
     from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
 
@@ -33,24 +34,32 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     pools = {
         str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
     }
-    soil_pools = SoilPools(data=dummy_carbon_data, pools=pools, constants=SoilConsts)
+    soil_pools = SoilPools(
+        data=dummy_carbon_data,
+        pools=pools,
+        constants=SoilConsts,
+        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+    )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.01510858, 0.01400719, 0.03697928, 0.02426899],
+        "soil_c_pool_lmwc": [0.01498062, 0.01332954, 0.03697927, 0.02425546],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
-        "soil_c_pool_microbe": [-0.0544059, -0.02282691, -0.11965575, -0.00720166],
+        "soil_c_pool_microbe": [-0.05435984, -0.02260329, -0.11965575, -0.00719517],
         "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
         "soil_enzyme_maom": [-0.00031009, -5.09593e-5, 0.0005990658, -3.72112e-5],
-        "soil_n_pool_don": [0.00119921, 0.00470261, 0.00496839, 0.00251442],
+        "soil_n_pool_don": [0.00119058, 0.00466305, 0.00497108, 0.00257023],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_p_pool_dop": [1.92918032e-4, 6.24454858e-5, 1.57222238e-4, 9.94118894e-5],
+        "soil_p_pool_dop": [1.94452573e-4, 7.10041449e-5, 1.86586343e-4, 1.01700974e-4],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
+        "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
+        "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
+        "soil_p_pool_labile": [-3.851076e-6, -1.965147e-5, -2.749871e-5, -1.591909e-7],
     }
 
     # Make order of pools object
@@ -76,18 +85,22 @@ def test_calculate_microbial_changes(
 
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
-    expected_lmwc_uptake = [6.90989514e-5, 4.76229800e-4, 1.55609440e-3, 4.42097002e-5]
-    expected_don_uptake = [4.78377356e-6, 3.02222758e-5, 8.97746767e-5, 4.08089540e-6]
-    expected_dop_uptake = [1.55472641e-6, 9.82223962e-6, 2.91767699e-5, 1.32629101e-6]
-    expected_microbe = [-0.0544059, -0.02282691, -0.11965575, -0.00720166]
-    expected_pom_enzyme = [1.17571917e-8, 1.67442231e-8, 1.83311362e-9, -1.11675865e-8]
-    expected_maom_enzyme = [-3.1009224e-4, -5.0959256e-5, 5.9906583e-4, -3.7211168e-5]
-    expected_necromass = [0.05474086, 0.02303502, 0.11952352, 0.00726011]
+    expected_mic_changes = {
+        "lmwc_uptake": [1.97060348e-4, 1.15388472e-3, 1.55610000e-3, 5.77363558e-5],
+        "don_uptake": [1.36426394e-5, 7.32272994e-5, 8.9775e-5, 5.32950977e-6],
+        "dop_uptake": [2.25200566e-8, 1.3187241e-6, 8.8919911e-7, 1.3196877e-6],
+        "labile_p_change": [4.4113378e-6, 2.2480148e-5, 2.8287676e-5, 4.124029e-7],
+        "microbe_change": [-0.05435984, -0.02260329, -0.11965575, -0.00719517],
+        "pom_enzyme_change": [1.17571917e-8, 1.6744223e-8, 1.8331136e-9, -1.1167587e-8],
+        "maom_enzyme_change": [-3.1009224e-4, -5.0959256e-5, 5.990658e-4, -3.721117e-5],
+        "necromass_generation": [0.05474086, 0.02303502, 0.11952352, 0.00726011],
+    }
 
-    mic_changes = calculate_microbial_changes(
+    actual_mic_changes = calculate_microbial_changes(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
@@ -98,14 +111,12 @@ def test_calculate_microbial_changes(
         constants=SoilConsts,
     )
 
-    # Check that each rate matches expectation
-    assert np.allclose(mic_changes.lmwc_uptake, expected_lmwc_uptake)
-    assert np.allclose(mic_changes.don_uptake, expected_don_uptake)
-    assert np.allclose(mic_changes.dop_uptake, expected_dop_uptake)
-    assert np.allclose(mic_changes.microbe_change, expected_microbe)
-    assert np.allclose(mic_changes.pom_enzyme_change, expected_pom_enzyme)
-    assert np.allclose(mic_changes.maom_enzyme_change, expected_maom_enzyme)
-    assert np.allclose(mic_changes.necromass_generation, expected_necromass)
+    for attr in dir(actual_mic_changes):
+        if not attr.startswith("_"):
+            assert attr in expected_mic_changes.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(
+                getattr(actual_mic_changes, attr), expected_mic_changes[attr]
+            )
 
 
 def test_calculate_enzyme_mediated_rates(
@@ -115,8 +126,10 @@ def test_calculate_enzyme_mediated_rates(
 
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
-    expected_pom_to_lmwc = [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5]
-    expected_maom_to_lmwc = [1.45988485e-3, 2.10172756e-3, 4.69571604e-3, 8.62951373e-6]
+    expected_rates = {
+        "pom_to_lmwc": [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5],
+        "maom_to_lmwc": [1.45988485e-3, 2.10172756e-3, 4.69571604e-3, 8.62951373e-6],
+    }
 
     actual_rates = calculate_enzyme_mediated_rates(
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
@@ -130,8 +143,39 @@ def test_calculate_enzyme_mediated_rates(
         constants=SoilConsts,
     )
 
-    assert np.allclose(actual_rates.pom_to_lmwc, expected_pom_to_lmwc)
-    assert np.allclose(actual_rates.maom_to_lmwc, expected_maom_to_lmwc)
+    for attr in dir(actual_rates):
+        if not attr.startswith("_"):
+            assert attr in expected_rates.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_rates, attr), expected_rates[attr])
+
+
+def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components):
+    """Check that the calculation of dissolved nutrient leaching rates is correct."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+
+    expected_leaching = {
+        "lmwc": [1.0747349e-6, 2.5395235e-6, 9.9154571e-5, 5.2557152e-6],
+        "don": [1.22826724e-8, 1.81394352e-7, 1.41642304e-7, 3.00326494e-6],
+        "dop": [1.2282071e-10, 2.90230964e-9, 5.66596981e-8, 1.20130598e-7],
+        "labile_P": [2.274653e-11, 4.130485e-10, 6.749199e-9, 2.045141e-8],
+    }
+
+    actual_leaching = calculate_nutrient_leaching(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        constants=SoilConsts,
+    )
+
+    for attr in dir(actual_leaching):
+        if not attr.startswith("_"):
+            assert attr in expected_leaching.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_leaching, attr), expected_leaching[attr])
 
 
 def test_calculate_enzyme_changes(dummy_carbon_data):
@@ -232,17 +276,19 @@ def test_calculate_nutrient_uptake_rates(
         calculate_nutrient_uptake_rates,
     )
 
-    expected_carbon_gain = [2.48756225e-5, 1.57155834e-4, 4.66828319e-4, 2.12206561e-5]
+    expected_carbon_gain = [7.09417251e-5, 3.80781957e-4, 0.00046683, 2.77134508e-5]
     expected_consumption_rates = {
-        "nitrogen": [4.78377356e-6, 3.02222758e-5, 8.97746767e-5, 4.08089540e-6],
-        "phosphorus": [1.55472641e-6, 9.82223962e-6, 2.91767699e-5, 1.32629101e-6],
-        "carbon": [6.90989514e-5, 4.76229800e-4, 1.55609440e-3, 4.42097002e-5],
+        "organic_nitrogen": [1.36426394e-5, 7.32272994e-5, 8.9775e-5, 5.32950977e-6],
+        "organic_phosphorus": [2.25200566e-8, 1.3187241e-6, 8.8919911e-7, 1.3196877e-6],
+        "carbon": [1.97060348e-4, 1.15388472e-3, 1.55610000e-3, 5.77363558e-5],
+        "inorganic_phosphorus": [4.4113378e-6, 2.2480148e-5, 2.8287676e-5, 4.124029e-7],
     }
 
     actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
@@ -254,14 +300,15 @@ def test_calculate_nutrient_uptake_rates(
 
     assert np.allclose(actual_carbon_gain, expected_carbon_gain)
 
-    assert set(expected_consumption_rates.keys()) == set(
-        actual_consumption_rates.keys()
-    )
-
-    for key in expected_consumption_rates.keys():
-        assert np.allclose(
-            expected_consumption_rates[key], actual_consumption_rates[key]
-        )
+    for attr in dir(actual_consumption_rates):
+        if not attr.startswith("_"):
+            assert attr in expected_consumption_rates.keys(), (
+                f"Attribute {attr} not tested"
+            )
+            assert np.allclose(
+                getattr(actual_consumption_rates, attr),
+                expected_consumption_rates[attr],
+            )
 
 
 def test_calculate_highest_achievable_nutrient_uptake(
@@ -377,26 +424,58 @@ def test_calculate_necromass_breakdown(dummy_carbon_data):
     assert np.allclose(actual_breakdown, expected_breakdown)
 
 
+def test_calculate_litter_mineralisation_fluxes(dummy_carbon_data):
+    """Test that calculation of litter mineralisation fluxes works correctly."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_litter_mineralisation_fluxes,
+    )
+
+    expected_fluxes = {
+        "lmwc": [3.181590e-6, 1.590795e-6, 7.350000e-7, 8.250000e-6],
+        "pom": [0.00211788, 0.00105894, 0.00048927, 0.00549175],
+        "don": [5.302650e-8, 1.060530e-7, 2.745000e-7, 2.449995e-8],
+        "particulate_n": [3.52979735e-5, 7.05959470e-5, 1.82725500e-4, 1.63088001e-5],
+        "dop": [7.32000e-10, 1.41404e-10, 2.82808e-10, 6.53332e-11],
+        "particulate_p": [7.31926800e-6, 1.41389860e-6, 2.82779719e-6, 6.53266667e-7],
+        "labile_p": [0.0, 0.0, 0.0, 0.0],
+    }
+
+    actual_fluxes = calculate_litter_mineralisation_fluxes(
+        litter_C_mineralisation_rate=dummy_carbon_data[
+            "litter_C_mineralisation_rate"
+        ].to_numpy(),
+        litter_N_mineralisation_rate=dummy_carbon_data[
+            "litter_N_mineralisation_rate"
+        ].to_numpy(),
+        litter_P_mineralisation_rate=dummy_carbon_data[
+            "litter_P_mineralisation_rate"
+        ].to_numpy(),
+        constants=SoilConsts,
+    )
+
+    # Check all (non-private) dataclass attributes against the dictionary
+    for attr in dir(actual_fluxes):
+        if not attr.startswith("_"):
+            assert attr in expected_fluxes.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_fluxes, attr), expected_fluxes[attr])
+
+
 def test_calculate_litter_mineralisation_split(dummy_carbon_data):
     """Test that the calculation of the mineralisation split works as expected."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_litter_mineralisation_split,
     )
 
-    expected_split = {
-        "dissolved": [3.18159e-6, 1.590795e-6, 7.35e-7, 8.25e-6],
-        "particulate": [0.00211787841, 0.001058939205, 0.000489265, 0.00549175],
-    }
+    expected_dissolved = [3.18159e-6, 1.590795e-6, 7.35e-7, 8.25e-6]
+    expected_particulate = [0.00211787841, 0.001058939205, 0.000489265, 0.00549175]
 
-    actual_split = calculate_litter_mineralisation_split(
+    actual_particulate, expected_dissolved = calculate_litter_mineralisation_split(
         mineralisation_rate=dummy_carbon_data["litter_C_mineralisation_rate"],
         litter_leaching_coefficient=SoilConsts.litter_leaching_fraction_carbon,
     )
 
-    assert set(expected_split.keys()) == set(actual_split.keys())
-
-    for key in actual_split.keys():
-        assert np.allclose(actual_split[key], expected_split[key])
+    assert np.allclose(actual_particulate, expected_particulate)
+    assert np.allclose(expected_dissolved, expected_dissolved)
 
 
 def test_calculate_soil_nutrient_mineralisation(
@@ -493,3 +572,21 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
 
     for key in expected_transfers.keys():
         assert np.allclose(expected_transfers[key], actual_transfers[key])
+
+
+def test_calculate_net_formation_of_secondary_P(dummy_carbon_data):
+    """Test that calculation of the net formation of secondary P is correct."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_net_formation_of_secondary_P,
+    )
+
+    expected_formation = [-5.05079715e-7, -2.77311435e-6, -7.4032388e-7, -2.18769722e-7]
+
+    actual_formation = calculate_net_formation_of_secondary_P(
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        soil_p_pool_secondary=dummy_carbon_data["soil_p_pool_secondary"],
+        secondary_p_breakdown_rate=SoilConsts.secondary_phosphorus_breakdown_rate,
+        labile_p_sorption_rate=SoilConsts.labile_phosphorus_sorption_rate,
+    )
+
+    assert np.allclose(actual_formation, expected_formation)

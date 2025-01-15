@@ -89,6 +89,15 @@ var_name = "soil_p_pool_necromass"
 [[core.data.variable]]
 file = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_maom"
+[[core.data.variable]]
+file = "../data/example_soil_data.nc"
+var_name = "soil_p_pool_primary"
+[[core.data.variable]]
+file = "../data/example_soil_data.nc"
+var_name = "soil_p_pool_secondary"
+[[core.data.variable]]
+file = "../data/example_soil_data.nc"
+var_name = "soil_p_pool_labile"
 
 # Litter 
 [[core.data.variable]]
