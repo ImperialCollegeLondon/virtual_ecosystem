@@ -8,7 +8,7 @@ each stage, although the specific methods may simply do nothing if no action is 
 at that stage. The stages are:
 
 * Creating a model instance (:class:`~virtual_ecosystem.core.base_model.BaseModel`).
-* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel.setup`).
+* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel._setup`).
 * Perform any spinup required to get a model state to equilibrate
   (:meth:`~virtual_ecosystem.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
@@ -347,12 +347,6 @@ class BaseModel(ABC):
     @abstractmethod
     def _setup(self, *args: Any, **kwargs: Any) -> None:
         """Function to setup the model during initialisation."""
-
-    def setup(self) -> None:
-        """Function to use input data to set up the model.
-
-        TODO: Remove.
-        """
 
     @abstractmethod
     def spinup(self) -> None:

@@ -32,5 +32,6 @@ language_info:
     :members:
     :special-members: __init_subclass__, __repr__, __str__, __init__
     :private-members: _check_vars_required_for_init, _check_model_name,
-      _check_model_update_bounds, _check_vars_updated, _check_variables_attribute
+      _check_model_update_bounds, _check_vars_updated, _check_variables_attribute,
+      _setup
 ```
