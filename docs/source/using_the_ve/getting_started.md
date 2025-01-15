@@ -61,7 +61,7 @@ configuration and data files to run a model.
 
 ```{group-tab} Windows
   ```powershell
-    ve_run --install-example \path\
+    ve_run --install-example C:\path\
 
 ````
 
@@ -77,9 +77,9 @@ You can then run the model itself:
 
 ```{group-tab} Windows
   ```powershell
-    ve_run \path\ve_example\config `
-    --outpath \path\ve_example/out `
-    --logfile \path\ve_example\out\ve_example.log
+    ve_run C:\path\ve_example\config `
+    --outpath C:\path\ve_example/out `
+    --logfile C:\path\ve_example\out\ve_example.log
 ```
 ````
 
