@@ -42,7 +42,7 @@ that the package is still being developed so these are currently early developme
 
 If you are more interested in playing around with the development of the model, then you
 will need to follow the [overview of the code contribution
-process](../development/contributing/overivew.md), which covers the installation of the
+process](../development/contributing/overview.md), which covers the installation of the
 tools required for code development, testing and building documentation.
 
 ## Running an example Virtual Ecosystem simulation
@@ -53,15 +53,23 @@ first need to install the data to a location of your choice. The command below w
 create the `ve_example` directory at the location you choose and install all of the
 configuration and data files to run a model.
 
-```shell
-ve_run --install-example /path/
+````{tabs}
+```{group-tab} macOS/Linux
+  ```shell
+    ve_run --install-example /path/
 ```
+
+```{group-tab} Windows
+  ```powershell
+    ve_run --install-example \path\
+
+````
 
 You can then run the model itself:
 
 ```shell
 ve_run /path/ve_example/config \
-    --outpath /path/ve_example/config/out \
+    --outpath /path/ve_example/out \
     --logfile /path/ve_example/out/ve_example.log
 ```
 
