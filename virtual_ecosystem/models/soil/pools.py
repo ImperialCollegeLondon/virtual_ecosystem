@@ -196,6 +196,12 @@ class PoolData:
     Units of [kg N m^-3].
     """
 
+    soil_n_pool_ammonium: NDArray[np.float32]
+    """Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
+
+    soil_n_pool_nitrate: NDArray[np.float32]
+    """Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
+
     soil_p_pool_dop: NDArray[np.float32]
     """Organic phosphorus content of the low molecular weight carbon pool [kg P m^-3].
     
@@ -477,6 +483,12 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_maom"] = (
             necromass_outflows["sorption_nitrogen"]
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
+        )
+        delta_pools_ordered["soil_n_pool_ammonium"] = np.zeros_like(
+            self.pools.soil_n_pool_ammonium
+        )
+        delta_pools_ordered["soil_n_pool_nitrate"] = np.zeros_like(
+            self.pools.soil_n_pool_nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_flux.dop
