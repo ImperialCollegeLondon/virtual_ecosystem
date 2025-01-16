@@ -46,7 +46,7 @@ class MicrobialChanges:
     labile_p_change: NDArray[np.float32]
     """Total change in the labile inorganic phosphorus pool due to microbial activity.
     
-    Units of [kg P m^-3 day^-1]. This change arises from the balence of immobilisation
+    Units of [kg P m^-3 day^-1]. This change arises from the balance of immobilisation
     and mineralisation of labile P. A positive value indicates a net immobilisation
     (uptake) of P. """
 
@@ -119,6 +119,12 @@ class LeachingRates:
 
     dop: NDArray[np.float32]
     """Loss of dissolved organic phosphorus due to LMWC leaching [kg P m^-3 day^-1]."""
+
+    ammonium: NDArray[np.float32]
+    """Leaching rate for the soil ammonium pool [kg N m^-3 day^-1]."""
+
+    nitrate: NDArray[np.float32]
+    """Leaching rate for the soil nitrate pool [kg N m^-3 day^-1]."""
 
     labile_P: NDArray[np.float32]
     """Leaching rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
@@ -337,6 +343,8 @@ class SoilPools:
             soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
             soil_n_pool_don=self.pools.soil_n_pool_don,
             soil_p_pool_dop=self.pools.soil_p_pool_dop,
+            soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
+            soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
             vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
             soil_moisture=soil_moisture,
@@ -484,12 +492,8 @@ class SoilPools:
             necromass_outflows["sorption_nitrogen"]
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
-        delta_pools_ordered["soil_n_pool_ammonium"] = np.zeros_like(
-            self.pools.soil_n_pool_ammonium
-        )
-        delta_pools_ordered["soil_n_pool_nitrate"] = np.zeros_like(
-            self.pools.soil_n_pool_nitrate
-        )
+        delta_pools_ordered["soil_n_pool_ammonium"] = -nutrient_leaching.ammonium
+        delta_pools_ordered["soil_n_pool_nitrate"] = -nutrient_leaching.nitrate
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_flux.dop
             + pom_p_mineralisation
@@ -671,6 +675,8 @@ def calculate_nutrient_leaching(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_n_pool_don: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
+    soil_n_pool_ammonium: NDArray[np.float32],
+    soil_n_pool_nitrate: NDArray[np.float32],
     soil_p_pool_labile: NDArray[np.float32],
     vertical_flow_rate: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
@@ -688,6 +694,8 @@ def calculate_nutrient_leaching(
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
         vertical_flow_rate: Rate of flow downwards through the soil [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
@@ -703,6 +711,18 @@ def calculate_nutrient_leaching(
         vertical_flow_rate=vertical_flow_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_lmwc,
+    )
+    ammonium_leaching = calculate_leaching_rate(
+        solute_density=soil_n_pool_ammonium,
+        vertical_flow_rate=vertical_flow_rate,
+        soil_moisture=soil_moisture,
+        solubility_coefficient=constants.solubility_coefficient_ammonium,
+    )
+    nitrate_leaching = calculate_leaching_rate(
+        solute_density=soil_n_pool_nitrate,
+        vertical_flow_rate=vertical_flow_rate,
+        soil_moisture=soil_moisture,
+        solubility_coefficient=constants.solubility_coefficient_nitrate,
     )
     labile_phosphorus_leaching = calculate_leaching_rate(
         solute_density=soil_p_pool_labile,
@@ -721,6 +741,8 @@ def calculate_nutrient_leaching(
         lmwc=labile_carbon_leaching,
         don=don_leaching,
         dop=dop_leaching,
+        ammonium=ammonium_leaching,
+        nitrate=nitrate_leaching,
         labile_P=labile_phosphorus_leaching,
     )
 
@@ -855,23 +877,23 @@ def calculate_nutrient_uptake_rates(
 ) -> tuple[NDArray[np.float32], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 
-    These rates are found based on the assumption that microbial stochiometry is
+    These rates are found based on the assumption that microbial stoichiometry is
     inflexible, i.e. assuming that the rate of uptake of all nutrients (carbon, nitrogen
     and phosphorus) needed for growth will be set by the least available nutrient. The
     carbon case is more complex as carbon gets used both for biomass synthesis and
-    respiration. In this case, we calculate the carbon use efficency and use this to
-    find the maximum amount of carbon avaliable for biomass sythesis. Once the most
+    respiration. In this case, we calculate the carbon use efficiency and use this to
+    find the maximum amount of carbon available for biomass synthesis. Once the most
     limiting nutrient uptake stream is found it is straightforward to find the demand
-    for other nutrientss. This is because the microbial biomass stochiometry can only
-    remain the same if nutrients are taken up following the same stochiometry (with an
-    adjustment made for carbon use efficency).
+    for other nutrients. This is because the microbial biomass stoichiometry can only
+    remain the same if nutrients are taken up following the same stoichiometry (with an
+    adjustment made for carbon use efficiency).
 
-    The balence of mineralisation and immobilisation rates of inorganic nitrogen and
+    The balance of mineralisation and immobilisation rates of inorganic nitrogen and
     phosphorus are also calculated in this function. This is done by calculating the
     difference between the demand for nitrogen and phosphorus and their uptake due to
     organic matter uptake. If more is taken up as a component of organic matter than is
     needed then nutrients are mineralised, i.e. mass is added to the relevant inorganic
-    nutrient pool. Conversly, if more is required to meet demand uptake occurs from the
+    nutrient pool. Conversely, if more is required to meet demand uptake occurs from the
     relevant inorganic nutrient pool (this is termed immobilisation).
 
     Args:
@@ -894,7 +916,7 @@ def calculate_nutrient_uptake_rates(
     """
 
     # Calculate carbon use efficiency
-    carbon_use_efficency = calculate_carbon_use_efficiency(
+    carbon_use_efficiency = calculate_carbon_use_efficiency(
         soil_temp,
         constants.reference_cue,
         constants.cue_reference_temp,
@@ -943,8 +965,8 @@ def calculate_nutrient_uptake_rates(
         constants=constants,
     )
 
-    # Use carbon use efficency to determine maximum possible rate of carbon gain
-    carbon_gain_max = carbon_uptake_rate_max * carbon_use_efficency
+    # Use carbon use efficiency to determine maximum possible rate of carbon gain
+    carbon_gain_max = carbon_uptake_rate_max * carbon_use_efficiency
 
     # Find actual rate of carbon gain based on most limiting uptake rate, then find
     # nutrient gain and total carbon consumption based on this
@@ -959,14 +981,14 @@ def calculate_nutrient_uptake_rates(
             ),
         ]
     )
-    actual_carbon_uptake = actual_carbon_gain / carbon_use_efficency
+    actual_carbon_uptake = actual_carbon_gain / carbon_use_efficiency
 
     # Calculate actual uptake of organic phosphorus based on carbon uptake
     lmwc_c_p_ratio = soil_c_pool_lmwc / soil_p_pool_dop
     actual_organic_phosphorus_uptake = actual_carbon_uptake / lmwc_c_p_ratio
 
     # Calculate uptake/release of inorganic phosphorus based on difference between
-    # stochiometic demand and organic phosphorus uptake
+    # stoichiometric demand and organic phosphorus uptake
     phosphorus_demand = actual_carbon_gain / constants.microbial_c_p_ratio
     inorganic_phosphorus_uptake = phosphorus_demand - actual_organic_phosphorus_uptake
 
@@ -994,7 +1016,7 @@ def calculate_highest_achievable_nutrient_uptake(
     half_saturation_constant: float,
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
-    """Calculate highest acheivable uptake rate for a specific nutrient.
+    """Calculate highest achievable uptake rate for a specific nutrient.
 
     This function starts by calculating the impact that environmental factors have on
     the rate and saturation constants for microbial uptake. These constants are then
@@ -1298,9 +1320,9 @@ def calculate_nutrient_flows_to_necromass(
     These flows comprise of the nitrogen and phosphorus content of the dead cells and
     denatured enzymes that flow into the necromass pool.
 
-    TODO - A core assumption here is that the stochiometry of the enzymes are identical
+    TODO - A core assumption here is that the stoichiometry of the enzymes are identical
     to the microbial cells. This assumption works for now but will have to be revisited
-    when fungi are added (as they have different stochiometric ratios but will
+    when fungi are added (as they have different stoichiometric ratios but will
     contribute to the same enzyme pools)
 
     Args:
@@ -1346,7 +1368,7 @@ def find_necromass_nutrient_outflows(
             form mineral associated organic matter [kg C m^-3 day^-1]
 
     Returns:
-        A dictionary containing the rates at which nitrogen and phosphrous contained in
+        A dictionary containing the rates at which nitrogen and phosphorus contained in
         necromass is released as dissolved organic nitrogen, and the rates at which they
         gets sorbed to soil minerals to form soil associated organic matter [kg nutrient
         m^-3 day^-1].
@@ -1393,7 +1415,7 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
         maom_breakdown: The rate at which the mineral associated organic matter pool is
             being broken down by enzymes (expressed in carbon terms) [kg C m^-3 day^-1]
         maom_desorption: The rate at which the mineral associated organic matter pool is
-            spontaneouly desorbing [kg C m^-3 day^-1]
+            spontaneously desorbing [kg C m^-3 day^-1]
         lmwc_sorption: The rate at which the low molecular weight carbon pool is sorbing
             to minerals to form mineral associated organic matter [kg C m^-3 day^-1]
 

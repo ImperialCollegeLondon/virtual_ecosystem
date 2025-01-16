@@ -256,6 +256,20 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
+    solubility_coefficient_ammonium: float = 0.05
+    """Solubility coefficient for ammonium in soil [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
+    """
+
+    solubility_coefficient_nitrate: float = 1.0
+    """Solubility coefficient for nitrate in soil [unitless].
+
+    Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
+    a loose manner.
+    """
+
     solubility_coefficient_labile_p: float = 0.005
     """Solubility coefficient for labile inorganic phosphorus [unitless].
 

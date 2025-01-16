@@ -53,8 +53,8 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_n_pool_ammonium": [0.0, 0.0, 0.0, 0.0],
-        "soil_n_pool_nitrate": [0.0, 0.0, 0.0, 0.0],
+        "soil_n_pool_ammonium": [-1.496453e-9, -6.33797e-7, -2.271304e-7, -5.461249e-6],
+        "soil_n_pool_nitrate": [-1.04116e-6, -1.12864e-5, -6.7987275e-6, -0.000276251],
         "soil_p_pool_dop": [1.94452573e-4, 7.10041449e-5, 1.86586343e-4, 1.01700974e-4],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
@@ -159,6 +159,8 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         "lmwc": [1.0747349e-6, 2.5395235e-6, 9.9154571e-5, 5.2557152e-6],
         "don": [1.22826724e-8, 1.81394352e-7, 1.41642304e-7, 3.00326494e-6],
         "dop": [1.2282071e-10, 2.90230964e-9, 5.66596981e-8, 1.20130598e-7],
+        "ammonium": [1.496453109e-9, 6.337967958e-7, 2.271304008e-7, 5.461249320e-6],
+        "nitrate": [1.041160794e-6, 1.128640314e-5, 6.798727493e-6, 0.00027625126],
         "labile_P": [2.274653e-11, 4.130485e-10, 6.749199e-9, 2.045141e-8],
     }
 
@@ -166,6 +168,8 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
         soil_moisture=dummy_carbon_data["soil_moisture"][
