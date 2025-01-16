@@ -28,9 +28,12 @@ language_info:
 ## Installing the Virtual Ecosystem model
 
 For most users the best way to get started with the Virtual Ecosystem package is to
-first [install Python](https://www.python.org/downloads/). Then open a terminal window
-and use the following command to install the Virtual Ecosystem using the `pip` package
-installer.
+first [install Python](https://www.python.org/downloads/). To use the Virtual Ecosystem
+you will need Python 3.10, 3.11, or 3.12. If you are new to Python, we recommend using
+`pyenv` or `pyenv-win` to install and manage versions of Python.
+
+Afer installing Python, open a terminal window and use the following command to install
+the Virtual Ecosystem using the `pip` package installer.
 
 ```sh
 pip install virtual-ecosystem
