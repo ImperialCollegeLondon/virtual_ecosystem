@@ -23,7 +23,11 @@ from virtual_ecosystem.models.animal.protocols import Resource
 
 
 class AnimalCohort:
-    """This is a class of animal cohorts."""
+    """This is a class of animal cohorts.
+
+    TODO: Implement stoichiometric reproduction
+
+    """
 
     def __init__(
         self,
@@ -98,12 +102,15 @@ class AnimalCohort:
         """The fraction of carcass biomass which decays before it gets consumed."""
         self.cnp_proportions: dict[str, float] = self.functional_group.cnp_proportions
         """The normalized stoichiometric proportions that constrains growth."""
-        self.mass_stoich: dict[str, float] = self._initialize_mass_stoich()
+        self.mass_cnp: dict[str, float] = self._initialize_mass_cnp()
         """The mass of each stoichiometric element found in the animal cohort,
         {"C": value, "N": value, "P": value}."""
+        self.reproductive_mass_cnp: dict[str, float] = {"C": 0.0, "N": 0.0, "P": 0.0}
+        """The reproductive mass of each stoichiometric element found in the animal
+          cohort, {"C": value, "N": value, "P": value}."""
 
-    def _initialize_mass_stoich(self) -> dict[str, float]:
-        """Initializes mass_stoich based on mass_current and cnp_proportions."""
+    def _initialize_mass_cnp(self) -> dict[str, float]:
+        """Initializes mass_cnp based on mass_current and cnp_proportions."""
         return {
             element: self.mass_current * proportion
             for element, proportion in self.cnp_proportions.items()
@@ -168,138 +175,166 @@ class AnimalCohort:
             A dictionary of the excess elements (waste) that could not be used for
             growth.
         """
-        # Determine limiting element for growth
+
+        # Determine the amount of growth that would occur if each element were limiting
         potential_growth = {
             element: resource_intake[element] / self.cnp_proportions[element]
             for element in self.cnp_proportions
         }
-        max_growth = min(potential_growth.values())  # Limited by the scarcest element
 
-        # Update mass and stoichiometry
+        # Identify the actually limiting element by selecting the element with the
+        # least potential growth
+        max_growth = min(potential_growth.values())
+
+        # Update mass and stoichiometry with the amount of growth that occurs as
+        # constrained by the limiting element
         for element in self.cnp_proportions:
             used_mass = max_growth * self.cnp_proportions[element]
-            self.mass_stoich[element] += used_mass
+            self.mass_cnp[element] += used_mass
             resource_intake[element] -= used_mass
 
-        self.mass_current += max_growth  # Total mass grows by the limiting factor
+        # Total mass grows by the limiting factor
+        self.mass_current += max_growth
 
         # Calculate excess (waste) for each element
         waste = {element: resource_intake[element] for element in resource_intake}
         return waste
 
-    def metabolize(self, temperature: float, dt: timedelta64) -> float:
-        """The function to reduce body mass through metabolism.
+    def metabolize(self, temperature: float, dt: timedelta64) -> dict[str, float]:
+        """The function to reduce body carbon mass through metabolism.
 
-        This method currently employs a toy 50/50 split of basal and field metabolism
-        through the metabolic_rate scaling function. Ecothermic metabolism is a function
-        of environmental temperature. Endotherms are unaffected by temperature change.
-        This method will later drive the processing of carbon and nitrogen metabolic
-        products.
+        This method reduces the carbon component of the cohort's body mass through
+        metabolic activity. Metabolism is a function of environmental temperature
+        for ectotherms, while endotherms are unaffected by temperature changes.
 
-        TODO: Update with stoichiometry
+        TODO: Update with stoichiometry for nitrogen and phosphorus.
 
         Args:
-            temperature: Current air temperature (K)
+            temperature: Current air temperature (K).
             dt: Number of days over which the metabolic costs should be calculated.
 
         Returns:
-            The mass of metabolic waste produced.
-
+            The total carbon mass metabolized by the cohort.
         """
 
         if dt < timedelta64(0, "D"):
             raise ValueError("dt cannot be negative.")
 
-        if self.mass_current < 0:
-            raise ValueError("mass_current cannot be negative.")
+        if self.mass_cnp["C"] < 0:
+            raise ValueError("Carbon mass (C) cannot be negative.")
 
-        #  kg/day metabolic rate * number of days
-        potential_mass_metabolized = sf.metabolic_rate(
+        # Calculate potential carbon metabolized (kg/day * number of days)
+        potential_carbon_metabolized = sf.metabolic_rate(
             self.mass_current,
             temperature,
             self.functional_group.metabolic_rate_terms,
             self.functional_group.metabolic_type,
         ) * float(dt / timedelta64(1, "D"))
 
-        actual_mass_metabolized = min(self.mass_current, potential_mass_metabolized)
+        # Ensure metabolized carbon does not exceed available carbon
+        actual_carbon_metabolized = min(
+            self.mass_cnp["C"], potential_carbon_metabolized
+        )
 
-        self.mass_current -= actual_mass_metabolized
+        # Reduce carbon in the cohort
+        self.mass_cnp["C"] -= actual_carbon_metabolized
 
-        # returns total metabolic waste from cohort to animal_communities for tracking
-        # in data object
-        return actual_mass_metabolized * self.individuals
+        # Create a stoichiometric dictionary for metabolized mass
+        metabolized_mass = {"C": actual_carbon_metabolized, "N": 0.0, "P": 0.0}
+
+        # Scale for the entire cohort and return
+        return {
+            nutrient: mass * self.individuals
+            for nutrient, mass in metabolized_mass.items()
+        }
 
     def excrete(
-        self, excreta_mass: float, excrement_pools: list[ExcrementPool]
+        self, excreta_mass: dict[str, float], excrement_pools: list[ExcrementPool]
     ) -> None:
-        """Transfers metabolic wastes to the excrement pool.
+        """Transfers metabolic wastes to the excrement pools.
 
         This method handles nitrogenous and carbonaceous wastes, split between
-        scavengeable and decomposed pools. Pending rework of stoichiometric
-        calculations.
+        scavengeable and decomposed pools, using provided excreta mass.
 
         Args:
-            excreta_mass: The total mass of wastes excreted by the cohort.
+            excreta_mass: Dictionary specifying the mass of each element in the waste
+                {"C": value, "N": value, "P": value} [kg].
             excrement_pools: The pools of waste to which the excreted wastes flow.
+
+        Raises:
+            ValueError: If `excreta_mass` is missing required keys or contains negative
+              values.
         """
+        # Validate the excreta_mass input
+        required_keys = {"C", "N", "P"}
+        if not required_keys.issubset(excreta_mass.keys()):
+            raise ValueError(
+                f"excreta_mass must contain all required keys {required_keys}. "
+                f"Provided keys: {excreta_mass.keys()}"
+            )
+        if any(value < 0 for value in excreta_mass.values()):
+            raise ValueError(
+                f"Values in excreta_mass must be non-negative. Provided: {excreta_mass}"
+            )
+
+        # Determine the number of communities
         number_communities = len(excrement_pools)
 
-        # Calculate excreta mass per community and proportionate nitrogen flow
-        excreta_mass_per_community = excreta_mass / number_communities
-        nitrogen_mass_per_community = (
-            excreta_mass_per_community * self.constants.nitrogen_excreta_proportion
-        )
+        # Distribute excreta mass evenly across communities
+        excreta_mass_per_community = {
+            nutrient: mass / number_communities
+            for nutrient, mass in excreta_mass.items()
+        }
 
-        # Calculate scavengeable and decomposed nitrogen
-        scavengeable_nitrogen_per_community = (
-            1 - self.decay_fraction_excrement
-        ) * nitrogen_mass_per_community
-        decomposed_nitrogen_per_community = (
-            self.decay_fraction_excrement * nitrogen_mass_per_community
-        )
-
-        # Carbon and phosphorus are fractions of nitrogen per community
-        scavengeable_carbon_per_community = 0.5 * scavengeable_nitrogen_per_community
-        decomposed_carbon_per_community = 0.5 * decomposed_nitrogen_per_community
-        scavengeable_phosphorus_per_community = (
-            0.01 * scavengeable_nitrogen_per_community
-        )
-        decomposed_phosphorus_per_community = 0.01 * decomposed_nitrogen_per_community
+        # Calculate scavengeable and decomposed fractions
+        scavengeable_factors = 1 - self.decay_fraction_excrement
+        decomposed_factors = self.decay_fraction_excrement
 
         for excrement_pool in excrement_pools:
-            # Assign calculated nitrogen, carbon, and phosphorus to the pool
-            excrement_pool.scavengeable_nitrogen += scavengeable_nitrogen_per_community
-            excrement_pool.decomposed_nitrogen += decomposed_nitrogen_per_community
-            excrement_pool.scavengeable_carbon += scavengeable_carbon_per_community
-            excrement_pool.decomposed_carbon += decomposed_carbon_per_community
-            excrement_pool.scavengeable_phosphorus += (
-                scavengeable_phosphorus_per_community
-            )
-            excrement_pool.decomposed_phosphorus += decomposed_phosphorus_per_community
+            # Update scavengeable CNP
+            for nutrient in excreta_mass_per_community:
+                excrement_pool.scavengeable_cnp[nutrient] += (
+                    scavengeable_factors * excreta_mass_per_community[nutrient]
+                )
 
-    def respire(self, excreta_mass: float) -> float:
+            # Update decomposed CNP
+            for nutrient in excreta_mass_per_community:
+                excrement_pool.decomposed_cnp[nutrient] += (
+                    decomposed_factors * excreta_mass_per_community[nutrient]
+                )
+
+    def respire(self, excreta_mass: dict[str, float]) -> float:
         """Transfers carbonaceous metabolic wastes to the atmosphere.
 
-        This method will not be fully implemented until the stoichiometric rework. All
-        current metabolic wastes are carbonaceous and so all this does is return the
-        excreta mass for updating data["total_animal_respiration"] in metabolize
-        community.
+        This method processes the metabolic waste for carbon and returns the total
+        mass respired to the atmosphere as a float. Currently, only carbon is affected.
 
-        TODO: Update with stoichiometry
+        TODO: This method needs to be properly fleshed out or it will produce a small
+        error in carbon totals.
 
         Args:
-            excreta_mass: The total mass of carbonaceous wastes excreted by the cohort.
+            excreta_mass: A dictionary representing the mass of each nutrient excreted
+                by the cohort: {"C": value, "N": value, "P": value}.
 
-        Return: The total mass of carbonaceous wastes excreted by the cohort.
-
+        Returns:
+            A float representing the total carbon mass respired to the atmosphere.
         """
 
-        return excreta_mass * self.constants.carbon_excreta_proportion
+        # Validate the input dictionary
+        if "C" not in excreta_mass:
+            raise ValueError("excreta_mass must contain the key 'C' for carbon.")
+        if excreta_mass["C"] < 0:
+            raise ValueError("Carbon mass in excreta_mass cannot be negative.")
+
+        # Calculate the carbonaceous waste for respiration
+        respired_mass = excreta_mass["C"] * self.constants.carbon_excreta_proportion
+
+        return respired_mass
 
     def defecate(
         self,
         excrement_pools: list[ExcrementPool],
-        mass_consumed: float,
+        mass_consumed: dict[str, float],
     ) -> None:
         """Transfer waste mass from an animal cohort to the excrement pools.
 
@@ -308,70 +343,66 @@ class AnimalCohort:
         according to stoichiometric ratios. Mass is distributed over multiple excrement
         pools if provided.
 
-        TODO: Needs to be reworked to use carbon mass rather than total mass.
-        TODO: Update with current conversion efficiency and stoichiometry.
+        TODO: rework to interact with grow and remove excess nutrients
+        TODO: update conversion efficiency
 
         Args:
             excrement_pools: The ExcrementPool objects in the cohort's territory in
                 which waste is deposited.
-            mass_consumed: The amount of mass flowing through cohort digestion.
+            mass_consumed: Dictionary specifying the mass of each nutrient consumed by
+                the cohort {"C": value, "N": value, "P": value} [kg].
         """
-        number_communities = len(excrement_pools)
 
-        # Calculate the total waste mass, which is the mass consumed times conversion
-        # efficiency
-        total_waste_mass = (
-            mass_consumed
+        # Validate mass_consumed input
+        required_keys = {"C", "N", "P"}
+        if not required_keys.issubset(mass_consumed.keys()):
+            raise ValueError(
+                f"mass_consumed must contain all required keys {required_keys}. "
+                f"Provided keys: {mass_consumed.keys()}"
+            )
+        if any(value < 0 for value in mass_consumed.values()):
+            raise ValueError(
+                f"Values in mass_consumed must be non-negative. Values: {mass_consumed}"
+            )
+
+        # Calculate total waste mass per nutrient
+        total_waste_mass = {
+            nutrient: mass
             * self.functional_group.conversion_efficiency
             * self.individuals
-        )
+            for nutrient, mass in mass_consumed.items()
+        }
 
         # Split the waste mass proportionally among communities
-        waste_mass_per_community = total_waste_mass / number_communities
 
-        # Calculate waste for carbon, nitrogen, and phosphorus using current
-        # stoichiometry
-        waste_carbon_per_community = waste_mass_per_community
-        waste_nitrogen_per_community = 0.1 * waste_carbon_per_community
-        waste_phosphorus_per_community = 0.01 * waste_carbon_per_community
+        number_communities = len(excrement_pools)
+        if number_communities == 0:
+            raise ValueError("No excrement pools provided for waste distribution.")
+        waste_mass_per_community = {
+            nutrient: mass / number_communities
+            for nutrient, mass in total_waste_mass.items()
+        }
 
-        # Pre-calculate the scavengeable and decomposed fractions for each nutrient
-        scavengeable_carbon_per_community = (
-            1 - self.decay_fraction_excrement
-        ) * waste_carbon_per_community
-        decomposed_carbon_per_community = (
-            self.decay_fraction_excrement * waste_carbon_per_community
-        )
+        # Calculate the scavengeable and decomposed fractions for each nutrient
+        scavengeable_factors = 1 - self.decay_fraction_excrement
+        decomposed_factors = self.decay_fraction_excrement
 
-        scavengeable_nitrogen_per_community = (
-            1 - self.decay_fraction_excrement
-        ) * waste_nitrogen_per_community
-        decomposed_nitrogen_per_community = (
-            self.decay_fraction_excrement * waste_nitrogen_per_community
-        )
-
-        scavengeable_phosphorus_per_community = (
-            1 - self.decay_fraction_excrement
-        ) * waste_phosphorus_per_community
-        decomposed_phosphorus_per_community = (
-            self.decay_fraction_excrement * waste_phosphorus_per_community
-        )
+        scavengeable_mass = {
+            nutrient: scavengeable_factors * mass
+            for nutrient, mass in waste_mass_per_community.items()
+        }
+        decomposed_mass = {
+            nutrient: decomposed_factors * mass
+            for nutrient, mass in waste_mass_per_community.items()
+        }
 
         # Distribute waste across each excrement pool
         for excrement_pool in excrement_pools:
-            # Update carbon pools
-            excrement_pool.scavengeable_carbon += scavengeable_carbon_per_community
-            excrement_pool.decomposed_carbon += decomposed_carbon_per_community
-
-            # Update nitrogen pools
-            excrement_pool.scavengeable_nitrogen += scavengeable_nitrogen_per_community
-            excrement_pool.decomposed_nitrogen += decomposed_nitrogen_per_community
-
-            # Update phosphorus pools
-            excrement_pool.scavengeable_phosphorus += (
-                scavengeable_phosphorus_per_community
-            )
-            excrement_pool.decomposed_phosphorus += decomposed_phosphorus_per_community
+            for nutrient in required_keys:
+                # Update scavengeable pools
+                excrement_pool.scavengeable_cnp[nutrient] += scavengeable_mass[nutrient]
+                # Update decomposed pools
+                excrement_pool.decomposed_cnp[nutrient] += decomposed_mass[nutrient]
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes and flag maturity.
@@ -395,109 +426,118 @@ class AnimalCohort:
             self.time_to_maturity = self.age
 
     def die_individual(
-        self, number_dead: int, carcass_pools: list[CarcassPool]
+        self, number_of_deaths: int, carcass_pools: list[CarcassPool]
     ) -> None:
-        """The function to reduce the number of individuals in the cohort through death.
+        """Handles the death of individuals in the cohort.
 
-        Currently, all cohorts are crafted as single km2 grid cohorts. This means that
-        very large animal will have one or fewer cohort members per grid. As changes
-        are made to capture large body size and multi-grid occupancy, this will be
-        updated.
-
-        Currently, this function is in an inbetween state where mass is removed from
-        the animal cohort but it is recieved by the litter pool as energy. This will be
-        fixed once the litter pools are updated for mass.
-
-        TODO: Rework after update litter pools for mass
+        The biomass of dead individuals is transferred to the carcass pools. The biomass
+        is split between scavengeable and decomposed compartments and distributed
+        proportionally among the provided pools.
 
         Args:
-            number_dead: The number of individuals by which to decrease the population
-                count.
-            carcass_pools: The resident pool of animal carcasses to which the dead
-                individuals are delivered.
+            number_of_deaths: The number of individuals dying in the cohort.
+            carcass_pools: The CarcassPool objects to which remains are delivered.
 
+        Raises:
+            ValueError: If the number of deaths is invalid or exceeds the cohort size.
         """
-        self.individuals -= number_dead
+        if number_of_deaths <= 0:
+            raise ValueError("Number of deaths must be a positive integer.")
+        if number_of_deaths > self.individuals:
+            raise ValueError(
+                f"Number of deaths ({number_of_deaths}) exceeds the number of "
+                f"individuals in the cohort ({self.individuals})."
+            )
 
-        # Find total mass contained in the carcasses
-        carcass_mass = number_dead * self.mass_current
+        # Calculate the total mass lost (mass of dead individuals)
+        total_mass_lost = {
+            nutrient: self.mass_cnp[nutrient] * number_of_deaths
+            for nutrient in self.mass_cnp
+        }
 
-        self.update_carcass_pool(carcass_mass, carcass_pools)
+        # Reduce the cohort size
+        self.individuals -= number_of_deaths
+
+        # Transfer the lost mass to carcass pools
+        self.update_carcass_pool(total_mass_lost, carcass_pools)
 
     def update_carcass_pool(
-        self, carcass_mass: float, carcass_pools: list[CarcassPool]
+        self, carcass_mass: dict[str, float], carcass_pools: list[CarcassPool]
     ) -> None:
         """Updates the carcass pools after deaths.
 
         Carcass mass is transferred to the carcass pools, split between a decomposed and
-        a scavengeable compartment. Carbon, nitrogen, and phosphorus are all transferred
-        according to stoichiometric ratios.
-
-        TODO: Update to handle proper carbon mass rather than total mass.
-        TODO: Use dynamic stoichiometry once implemented.
+        a scavengeable compartment. Carbon, nitrogen, and phosphorus are transferred
+        directly from the input dictionary. Mass is distributed over multiple carcass
+        pools if provided.
 
         Args:
-            carcass_mass: The total mass consumed from the prey cohort.
+            carcass_mass: Dictionary specifying the mass of each nutrient in the carcass
+                {"C": value, "N": value, "P": value} [kg].
             carcass_pools: The pools to which remains of eaten individuals are
-             delivered.
+                delivered.
+
+        Raises:
+            ValueError: If `carcass_mass` is missing required keys or contains negative
+                values.
         """
+        # Validate carcass_mass input
+        required_keys = {"C", "N", "P"}
+        if not required_keys.issubset(carcass_mass.keys()):
+            raise ValueError(
+                f"carcass_mass must contain all required keys {required_keys}. "
+                f"Provided keys: {carcass_mass.keys()}"
+            )
+        if any(value < 0 for value in carcass_mass.values()):
+            raise ValueError(
+                f"Values in carcass_mass must be non-negative. Values: {carcass_mass}"
+            )
+
+        # Number of carcass pools
         number_carcass_pools = len(carcass_pools)
 
-        # Split carcass mass per pool
-        carcass_mass_per_pool = carcass_mass / number_carcass_pools
+        if number_carcass_pools == 0:
+            raise ValueError("No carcass pools provided for waste distribution.")
 
-        # Calculate stoichiometric proportions for nitrogen and phosphorus
-        carcass_mass_nitrogen_per_pool = 0.1 * carcass_mass_per_pool
-        carcass_mass_phosphorus_per_pool = 0.01 * carcass_mass_per_pool
+        # Split carcass mass proportionally across pools
+        carcass_mass_per_pool = {
+            nutrient: mass / number_carcass_pools
+            for nutrient, mass in carcass_mass.items()
+        }
 
-        # Pre-calculate scavengeable and decomposed fractions for carbon, nitrogen,
-        # and phosphorus
-        scavengeable_carbon_per_pool = (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass_per_pool
-        decomposed_carbon_per_pool = (
-            self.decay_fraction_carcasses * carcass_mass_per_pool
-        )
+        # Calculate scavengeable and decomposed fractions for each nutrient
+        scavengeable_factors = 1 - self.decay_fraction_carcasses
+        decomposed_factors = self.decay_fraction_carcasses
 
-        scavengeable_nitrogen_per_pool = (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass_nitrogen_per_pool
-        decomposed_nitrogen_per_pool = (
-            self.decay_fraction_carcasses * carcass_mass_nitrogen_per_pool
-        )
+        scavengeable_mass = {
+            nutrient: scavengeable_factors * mass
+            for nutrient, mass in carcass_mass_per_pool.items()
+        }
+        decomposed_mass = {
+            nutrient: decomposed_factors * mass
+            for nutrient, mass in carcass_mass_per_pool.items()
+        }
 
-        scavengeable_phosphorus_per_pool = (
-            1 - self.decay_fraction_carcasses
-        ) * carcass_mass_phosphorus_per_pool
-        decomposed_phosphorus_per_pool = (
-            self.decay_fraction_carcasses * carcass_mass_phosphorus_per_pool
-        )
-
-        # Distribute carcass mass across the carcass pools
+        # Distribute carcass mass across carcass pools
         for carcass_pool in carcass_pools:
-            # Update carbon pools
-            carcass_pool.scavengeable_carbon += scavengeable_carbon_per_pool
-            carcass_pool.decomposed_carbon += decomposed_carbon_per_pool
-
-            # Update nitrogen pools
-            carcass_pool.scavengeable_nitrogen += scavengeable_nitrogen_per_pool
-            carcass_pool.decomposed_nitrogen += decomposed_nitrogen_per_pool
-
-            # Update phosphorus pools
-            carcass_pool.scavengeable_phosphorus += scavengeable_phosphorus_per_pool
-            carcass_pool.decomposed_phosphorus += decomposed_phosphorus_per_pool
+            for nutrient in required_keys:
+                # Update scavengeable pools
+                carcass_pool.scavengeable_cnp[nutrient] += scavengeable_mass[nutrient]
+                # Update decomposed pools
+                carcass_pool.decomposed_cnp[nutrient] += decomposed_mass[nutrient]
 
     def get_eaten(
         self,
         potential_consumed_mass: float,
         predator: AnimalCohort,
         carcass_pools: dict[int, list[CarcassPool]],
-    ) -> float:
+    ) -> dict[str, float]:
         """Removes individuals according to mass demands of a predation event.
 
         It finds the smallest whole number of prey required to satisfy the predators
-        mass demands and caps at then caps it at the available population.
+        mass demands and caps it at the available population.
 
+        TODO: double check conversion efficiencies
 
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
@@ -506,30 +546,44 @@ class AnimalCohort:
               delivered.
 
         Returns:
-            The actual mass consumed by the predator, closely matching consumed_mass.
+            A dictionary of the actual mass consumed by the predator in stoichiometric
+              terms: {"C": value, "N": value, "P": value}.
         """
 
         # Mass of an average individual in the cohort
         individual_mass = self.mass_current
 
+        # Calculate the number of individuals to be killed
         max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
         actual_individuals_killed = min(max_individuals_killed, self.individuals)
 
-        # Calculate the mass represented by the individuals actually killed
+        # Calculate the total mass killed
         actual_mass_killed = actual_individuals_killed * individual_mass
 
         # Calculate the actual amount of mass consumed by the predator
         actual_mass_consumed = min(actual_mass_killed, potential_consumed_mass)
 
-        # Calculate the amount of mass that goes into carcass pool
-        carcass_mass = (actual_mass_killed - actual_mass_consumed) + (
-            actual_mass_consumed * (1 - predator.functional_group.mechanical_efficiency)
-        )
+        # Convert `actual_mass_consumed` to a stoichiometric dictionary
+        actual_mass_consumed_cnp = {
+            nutrient: self.mass_cnp[nutrient] * actual_mass_consumed / individual_mass
+            for nutrient in self.mass_cnp
+        }
+
+        # Calculate the mass going into carcass pools
+        carcass_mass_total = (
+            actual_mass_killed - actual_mass_consumed
+        ) + actual_mass_consumed * (1 - predator.functional_group.mechanical_efficiency)
+
+        # Convert `carcass_mass_total` to a stoichiometric dictionary
+        carcass_mass_cnp = {
+            nutrient: self.mass_cnp[nutrient] * carcass_mass_total / individual_mass
+            for nutrient in self.mass_cnp
+        }
 
         # Update the number of individuals in the prey cohort
         self.individuals -= actual_individuals_killed
 
-        # set cohort to not alive if all the individuals are dead
+        # Set cohort to not alive if all the individuals are dead
         if self.individuals <= 0:
             self.is_alive = False
 
@@ -538,10 +592,10 @@ class AnimalCohort:
             predator.territory, carcass_pools
         )
 
-        # Update the carcass pool with carcass mass
-        self.update_carcass_pool(carcass_mass, intersection_carcass_pools)
+        # Update the carcass pool with stoichiometric carcass mass
+        self.update_carcass_pool(carcass_mass_cnp, intersection_carcass_pools)
 
-        return actual_mass_consumed
+        return actual_mass_consumed_cnp
 
     def calculate_alpha(self) -> float:
         """Calculate search efficiency.
@@ -762,6 +816,7 @@ class AnimalCohort:
         consumed based on this rate and other model parameters.
 
         TODO: Replace delta_t with time step reference
+        TODO: Update with stoichiometry
 
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
@@ -791,39 +846,43 @@ class AnimalCohort:
         animal_list: list[AnimalCohort],
         excrement_pools: list[ExcrementPool],
         carcass_pools: dict[int, list[CarcassPool]],
-    ) -> float:
+    ) -> dict[str, float]:
         """This method handles mass assimilation from predation.
 
-        This is Madingley's delta_assimilation_mass_predation
+        This is Madingley's delta_assimilation_mass_predation.
 
         TODO: rethink defecate location
 
         Args:
-            animal_list: A list of animal cohorts that can be consumed by the
-                         predator.
+            animal_list: A list of animal cohorts that can be consumed by the predator.
             excrement_pools: The pools representing the excrement in the territory.
             carcass_pools: The pools to which animal carcasses are delivered.
 
         Returns:
-            The change in mass experienced by the predator.
+            A dictionary representing the total change in mass (C, N, P) experienced by
+            the predator: {"C": value, "N": value, "P": value}.
         """
-
-        total_consumed_mass = 0.0  # Initialize the total consumed mass
+        # Initialize the total consumed mass as a stoichiometric dictionary
+        total_consumed_mass = {"C": 0.0, "N": 0.0, "P": 0.0}
 
         for prey_cohort in animal_list:
             # Calculate the mass to be consumed from this cohort
             consumed_mass = self.calculate_consumed_mass_predation(
                 animal_list, prey_cohort
             )
+
             # Call get_eaten on the prey cohort to update its mass and individuals
-            actual_consumed_mass = prey_cohort.get_eaten(
+            actual_consumed_cnp = prey_cohort.get_eaten(
                 consumed_mass, self, carcass_pools
             )
-            # Update total mass gained by the predator
-            total_consumed_mass += actual_consumed_mass
 
-        # Process waste generated from predation, separate from herbivory b/c diff waste
+            # Update total consumed mass for each nutrient
+            for element in total_consumed_mass:
+                total_consumed_mass[element] += actual_consumed_cnp[element]
+
+        # Process waste generated from predation
         self.defecate(excrement_pools, total_consumed_mass)
+
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
@@ -836,6 +895,7 @@ class AnimalCohort:
         this rate and other model parameters.
 
         TODO: Replace delta_t with actual time step reference
+        TODO: Update with stoichiometry
 
         Args:
             plant_list: A list of plant resources that can be consumed by the
@@ -858,7 +918,7 @@ class AnimalCohort:
         plant_list: list[Resource],
         excrement_pools: list[ExcrementPool],
         herbivory_waste_pools: dict[int, HerbivoryWaste],
-    ) -> float:
+    ) -> dict[str, float]:
         """This method handles mass assimilation from herbivory.
 
         TODO: rethink defecate location
@@ -866,6 +926,7 @@ class AnimalCohort:
         this probably should change to be a list of waste pools once herbivory for other
         plant tissues is added.
         TODO: update name
+        TODO: Update with stoichiometry
 
         Args:
             plant_list: A list of plant resources available for herbivory.
@@ -874,24 +935,27 @@ class AnimalCohort:
               leaves) that gets removed as part of herbivory but not actually consumed.
 
         Returns:
-            A float of the total plant mass consumed by the animal cohort in g.
-
+            A dictionary of total plant mass (C, N, P) consumed by the animal cohort.
         """
-        total_consumed_mass = 0.0  # Initialize the total consumed mass
+        # Initialize total consumed stoichiometric masses
+        total_consumed_cnp = {element: 0.0 for element in ["C", "N", "P"]}
 
         for plant in plant_list:
             # Calculate the mass to be consumed from this plant
             consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
             # Update the plant resource's state based on consumed mass
-            actual_consumed_mass, excess_mass = plant.get_eaten(consumed_mass, self)
+            herbivore_gain_cnp, plant_litter_cnp = plant.get_eaten(consumed_mass, self)
             # Update total mass gained by the herbivore
-            total_consumed_mass += actual_consumed_mass
-            herbivory_waste_pools[plant.cell_id].mass_current += excess_mass
+            for element in total_consumed_cnp:
+                total_consumed_cnp[element] += herbivore_gain_cnp[element]
+            # Add the litter to the appropriate herbivory waste pool
+            for element in plant_litter_cnp:
+                herbivory_waste_pools[plant.cell_id].add_waste(plant_litter_cnp)
 
-        # Process waste generated from predation, separate from predation b/c diff waste
-        self.defecate(excrement_pools, total_consumed_mass)
+        # Process waste generated from herbivory, separate from predation b/c diff waste
+        self.defecate(excrement_pools, total_consumed_cnp)
 
-        return total_consumed_mass
+        return total_consumed_cnp
 
     def forage_cohort(
         self,
@@ -902,6 +966,8 @@ class AnimalCohort:
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> None:
         """This function handles selection of resources from a list for consumption.
+
+        TODO: Update with stoichiometry
 
         Args:
             plant_list: A list of plant resources available for herbivory.
@@ -965,33 +1031,33 @@ class AnimalCohort:
             if self.mass_current == cohort.mass_current
         )
 
-    def eat(self, mass_consumed: float) -> None:
+    def eat(self, mass_consumed: dict[str, float]) -> None:
         """Handles the mass gain from consuming food.
 
-        This method updates the consumer's mass based on the amount of food consumed.
-        It assumes the `mass_consumed` has already been calculated and processed
-        through `get_eaten`.
+        This method updates the consumer's mass based on the amount of food consumed
+        in stoichiometric terms. It assumes the `mass_consumed` has already been
+        calculated and processed through `get_eaten`.
 
-        TODO: non-reproductive functional groups should not store any reproductive mass
+        TODO: non-reproductive functional groups should not store any reproductive mass.
 
         Args:
-            mass_consumed: The mass consumed by this consumer, calculated externally.
-
-        Returns:
-            The amount of consumed mass, adjusted for efficiency and used for waste
-            output.
+            mass_consumed: A dictionary representing the mass of each nutrient consumed
+                by this consumer: {"C": value, "N": value, "P": value}.
         """
         if self.individuals == 0:
             return
 
-        # Adjust mass gain based on the consumer's current mass and reproductive
-        # threshold
+        # Determine where the mass gain should be allocated
         if self.is_below_mass_threshold(
             self.constants.flow_to_reproductive_mass_threshold
         ):
-            self.mass_current += mass_consumed  # Gains to reproductive or body mass
+            # Gains to body mass or reproductive mass below the threshold
+            for nutrient in mass_consumed:
+                self.mass_cnp[nutrient] += mass_consumed[nutrient]
         else:
-            self.reproductive_mass += mass_consumed
+            # Gains directly to reproductive mass
+            for nutrient in mass_consumed:
+                self.reproductive_mass_cnp[nutrient] += mass_consumed[nutrient]
 
     def is_below_mass_threshold(self, mass_threshold: float) -> bool:
         """Check if cohort's total mass is below a certain threshold.

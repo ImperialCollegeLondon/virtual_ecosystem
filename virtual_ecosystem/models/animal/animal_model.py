@@ -256,12 +256,8 @@ class AnimalModel(
         self.excrement_pools: dict[int, list[ExcrementPool]] = {
             cell_id: [
                 ExcrementPool(
-                    scavengeable_carbon=1e-3,
-                    scavengeable_nitrogen=1e-4,
-                    scavengeable_phosphorus=1e-6,
-                    decomposed_carbon=0.0,
-                    decomposed_nitrogen=0.0,
-                    decomposed_phosphorus=0.0,
+                    scavengeable_cnp={"C": 1e-3, "N": 1e-4, "P": 1e-6},
+                    decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -270,12 +266,8 @@ class AnimalModel(
         self.carcass_pools: dict[int, list[CarcassPool]] = {
             cell_id: [
                 CarcassPool(
-                    scavengeable_carbon=1e-3,
-                    scavengeable_nitrogen=1e-4,
-                    scavengeable_phosphorus=1e-6,
-                    decomposed_carbon=0.0,
-                    decomposed_nitrogen=0.0,
-                    decomposed_phosphorus=0.0,
+                    scavengeable_cnp={"C": 1e-3, "N": 1e-4, "P": 1e-6},
+                    decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -439,6 +431,9 @@ class AnimalModel(
 
         TODO: rework for merge
 
+        Note: will break if animals don't consume from litter in fixed stochiometric
+        proportions
+
         Args:
             litter_pools: The full set of animal accessible litter pools.
 
@@ -476,16 +471,18 @@ class AnimalModel(
 
         # Find the size of the leaf waste pool (in carbon terms)
         leaf_addition = [
-            self.leaf_waste_pools[cell_id].mass_current / self.data.grid.cell_area
+            self.leaf_waste_pools[cell_id].mass_cnp["C"] / self.data.grid.cell_area
             for cell_id in self.data.grid.cell_id
         ]
         # Find the chemistry of the pools as well
         leaf_c_n = [
-            self.leaf_waste_pools[cell_id].c_n_ratio
+            self.leaf_waste_pools[cell_id].mass_cnp["C"]
+            / self.leaf_waste_pools[cell_id].mass_cnp["N"]
             for cell_id in self.data.grid.cell_id
         ]
         leaf_c_p = [
-            self.leaf_waste_pools[cell_id].c_p_ratio
+            self.leaf_waste_pools[cell_id].mass_cnp["C"]
+            / self.leaf_waste_pools[cell_id].mass_cnp["P"]
             for cell_id in self.data.grid.cell_id
         ]
         leaf_lignin = [
@@ -495,7 +492,9 @@ class AnimalModel(
 
         # Reset all of the herbivory waste pools to zero
         for waste in self.leaf_waste_pools.values():
-            waste.mass_current = 0.0
+            waste.mass_cnp["C"] = 0.0
+            waste.mass_cnp["N"] = 0.0
+            waste.mass_cnp["P"] = 0.0
 
         return {
             "herbivory_waste_leaf_carbon": DataArray(
