@@ -575,7 +575,7 @@ def test_check_update_speed(
             True,
             ("var1", "var2"),
             {},
-            True,
+            False,
             does_not_raise(),
             None,
             id="static_no_vars_present",
