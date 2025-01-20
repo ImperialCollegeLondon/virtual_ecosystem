@@ -297,7 +297,7 @@ class SoilConsts(ConstantsDataclass):
     """Rate constant for low molecular weight carbon sorption to minerals [day^-1]
     
     The default value of this rate is not based on data. It was instead chosen so that
-    the ratio of :term:`LWMC` to :term:`MAOM` would tend to 1/100, in the absence of
+    the ratio of :term:`LMWC` to :term:`MAOM` would tend to 1/100, in the absence of
     microbes. This is another key target for sensitivity analysis.
     """
 
@@ -432,7 +432,7 @@ class SoilConsts(ConstantsDataclass):
     tectonic_uplift_rate_phosphorus: float = 0.0
     """Rate at which tectonic uplift exposes new primary phosphorus [kg P m^-3 day^-1].
 
-    This rate is essientially zero for decadal simulations. We have only included to
+    This rate is essentially zero for decadal simulations. We have only included to
     give the flexibility to run longer term test scenarios.
     """
 
@@ -454,9 +454,16 @@ class SoilConsts(ConstantsDataclass):
     Units of [day^-1]. Default value taken from :cite:t:`parton_dynamics_1988`.
     """
 
+    ammonium_deposition_rate: float = 1.5e-4 / 365.25
+    """Rate at which ammonium is deposited into the system [kg N m^-2 day^-1].
+    
+    We are assuming that deposition rates won't vary substantially over the area the
+    simulation encompasses. Value taken from :cite:t:`vet_global_2014`.
+    """
+
     phosphorus_deposition_rate: float = 5e-6 / 365.25
     """Rate at which phosphorus is deposited into the system [kg P m^-2 day^-1].
     
-    We are assuming that deposistion rates won't vary substantially over the area the
+    We are assuming that deposition rates won't vary substantially over the area the
     simulation encompasses. Value taken from :cite:t:`Mahowald2008`.
     """

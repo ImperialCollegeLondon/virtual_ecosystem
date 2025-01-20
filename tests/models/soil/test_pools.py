@@ -53,7 +53,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_n_pool_ammonium": [-1.496453e-9, -6.33797e-7, -2.271304e-7, -5.461249e-6],
+        "soil_n_pool_ammonium": [1.641214e-6, 1.0089135e-6, 1.4155801e-6, -3.818539e-6],
         "soil_n_pool_nitrate": [-1.04116e-6, -1.12864e-5, -6.7987275e-6, -0.000276251],
         "soil_p_pool_dop": [1.94452573e-4, 7.10041449e-5, 1.86586343e-4, 1.01700974e-4],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],

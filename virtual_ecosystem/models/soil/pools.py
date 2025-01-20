@@ -437,9 +437,13 @@ class SoilPools:
             secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
             labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
         )
-        # Convert phosphorus deposition from per area to per volume units, under the
-        # assumption the phosphorus just gets deposited in the very upper layer of the
-        # soil
+        # Convert ammonium and phosphorus depositions from per area to per volume units,
+        # under the assumption the phosphorus just gets deposited in the very upper
+        # layer of the soil
+        ammonium_deposition = (
+            self.constants.ammonium_deposition_rate
+            / self.max_depth_of_microbial_activity
+        )
         phosphorus_deposition = (
             self.constants.phosphorus_deposition_rate
             / self.max_depth_of_microbial_activity
@@ -496,7 +500,9 @@ class SoilPools:
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
         delta_pools_ordered["soil_n_pool_ammonium"] = (
-            litter_mineralisation_flux.ammonium - nutrient_leaching.ammonium
+            ammonium_deposition
+            + litter_mineralisation_flux.ammonium
+            - nutrient_leaching.ammonium
         )
         delta_pools_ordered["soil_n_pool_nitrate"] = -nutrient_leaching.nitrate
         delta_pools_ordered["soil_p_pool_dop"] = (

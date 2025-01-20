@@ -328,7 +328,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [6.96188898e-5, 4.99114551e-3, 2.28953463e-4, 5.19280399e-3],
+                        [7.04402406e-5, 4.99196684e-3, 2.29774615e-4, 5.19362513e-3],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
@@ -522,10 +522,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.01179891,
         0.01365197,
         0.0077315,
-        -1.496453e-9,
-        -6.33797e-7,
-        -2.271304e-7,
-        -5.461249e-6,
+        1.641214e-6,
+        1.0089135e-6,
+        1.4155801e-6,
+        -3.818539e-6,
         -1.04116e-6,
         -1.12864e-5,
         -6.7987275e-6,
