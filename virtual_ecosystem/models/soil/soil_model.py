@@ -206,7 +206,7 @@ class SoilModel(
         """Checks if all soil pools values greater than or equal to zero.
 
         Returns:
-            A bool specificing whether all pools updated by the model are postive or
+            A bool specifying whether all pools updated by the model are positive or
             not.
         """
 

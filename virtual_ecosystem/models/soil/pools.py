@@ -143,6 +143,9 @@ class LitterMineralisationFluxes:
     don: NDArray[np.float32]
     """Mineralisation into the dissolved organic nitrogen pool [kg N m^-3 day^-1]."""
 
+    ammonium: NDArray[np.float32]
+    """Mineralisation into the ammonium pool [kg N m^-3 day^-1]."""
+
     particulate_n: NDArray[np.float32]
     """Mineralisation into the particulate organic nitrogen pool [kg N m^-3 day^-1]."""
 
@@ -492,7 +495,9 @@ class SoilPools:
             necromass_outflows["sorption_nitrogen"]
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
-        delta_pools_ordered["soil_n_pool_ammonium"] = -nutrient_leaching.ammonium
+        delta_pools_ordered["soil_n_pool_ammonium"] = (
+            litter_mineralisation_flux.ammonium - nutrient_leaching.ammonium
+        )
         delta_pools_ordered["soil_n_pool_nitrate"] = -nutrient_leaching.nitrate
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_flux.dop
@@ -1209,8 +1214,8 @@ def calculate_litter_mineralisation_fluxes(
 
     Each mineralisation flux from litter to soil has to be split between the particulate
     and dissolved pools for the nutrient in question. The leached nitrogen and
-    phosphorus fluxes are further split between organic and inorganic forms.
-    TODO - Mention specifically where the inorganic nitrogen goes.
+    phosphorus fluxes are further split between organic and inorganic forms, with the
+    inorganic leached nitrogen assumed to be entirely in the form of ammonium.
 
     Args:
         litter_C_mineralisation_rate: The rate at which carbon is being mineralised from
@@ -1234,6 +1239,12 @@ def calculate_litter_mineralisation_fluxes(
         mineralisation_rate=litter_N_mineralisation_rate,
         litter_leaching_coefficient=constants.litter_leaching_fraction_nitrogen,
     )
+    flux_N_organic_dissolved = (
+        flux_N_dissolved * constants.organic_proportion_litter_nitrogen_leaching
+    )
+    flux_N_inorganic_dissolved = flux_N_dissolved * (
+        1 - constants.organic_proportion_litter_nitrogen_leaching
+    )
     flux_P_particulate, flux_P_dissolved = calculate_litter_mineralisation_split(
         mineralisation_rate=litter_P_mineralisation_rate,
         litter_leaching_coefficient=constants.litter_leaching_fraction_phosphorus,
@@ -1248,7 +1259,8 @@ def calculate_litter_mineralisation_fluxes(
     return LitterMineralisationFluxes(
         lmwc=flux_C_dissolved,
         pom=flux_C_particulate,
-        don=flux_N_dissolved,
+        don=flux_N_organic_dissolved,
+        ammonium=flux_N_inorganic_dissolved,
         particulate_n=flux_N_particulate,
         dop=flux_P_organic_dissolved,
         labile_p=flux_P_inorganic_dissolved,

@@ -297,8 +297,8 @@ class SoilConsts(ConstantsDataclass):
     """Rate constant for low molecular weight carbon sorption to minerals [day^-1]
     
     The default value of this rate is not based on data. It was instead chosen so that
-    the ratio of LWMC to mineral associated organic matter would tend to 1/100, in the
-    absence of microbes. This is another key target for sensitivity analysis.
+    the ratio of :term:`LWMC` to :term:`MAOM` would tend to 1/100, in the absence of
+    microbes. This is another key target for sensitivity analysis.
     """
 
     necromass_sorption_rate: float = 1.0 * np.log(2)
@@ -331,8 +331,16 @@ class SoilConsts(ConstantsDataclass):
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
+    organic_proportion_litter_nitrogen_leaching = 1.0
+    """Fraction of leached nitrogen from litter mineralisation that is organic form.
+    
+    [unitless]. The remainder of the leaching consists of ammonium. Value is taken from
+    :cite:t:`fatichi_mechanistic_2019`, where it is assumed that nitrogen leaches from
+    litter solely in organic form.
+    """
+
     organic_proportion_litter_phosphorus_leaching = 1.0
-    """Fraction of leached phosphrous from litter mineralisation that is organic form.
+    """Fraction of leached phosphorus from litter mineralisation that is organic form.
     
     [unitless]. The remainder of the leaching consists of inorganic phosphorus. Value is
     taken from :cite:t:`fatichi_mechanistic_2019`, where it is assumed that phosphorus
