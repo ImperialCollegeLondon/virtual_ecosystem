@@ -57,12 +57,12 @@ def test_calculate_environmental_effect_factors(
 @pytest.mark.parametrize(
     "activation_energy,expected_factors",
     [
-        (30000.0, [2.57153601, 2.82565326, 3.10021393, 1.73629781]),
-        (45000.0, [4.12371761, 4.74983258, 5.45867825, 2.28789625]),
-        (57000.0, [6.01680536, 7.19657491, 8.58309980, 2.85289648]),
+        (30000.0, [2.57140165, 2.82549088, 3.10001987, 1.73624481]),
+        (45000.0, [4.1233944, 4.7494232, 5.4581657, 2.2877915]),
+        (57000.0, [6.01620802, 7.19578916, 8.58207901, 2.85273102]),
     ],
 )
-def calculate_temperature_effect_on_microbes(
+def test_calculate_temperature_effect_on_microbes(
     dummy_carbon_data, fixture_core_components, activation_energy, expected_factors
 ):
     """Test function to calculate microbial temperature response."""
@@ -77,7 +77,6 @@ def calculate_temperature_effect_on_microbes(
         ],
         activation_energy=activation_energy,
         reference_temperature=SoilConsts.arrhenius_reference_temp,
-        gas_constant=SoilConsts.universal_gas_constant,
     )
 
     assert np.allclose(expected_factors, actual_factors)
