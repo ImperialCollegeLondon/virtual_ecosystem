@@ -363,8 +363,16 @@ class SoilConsts(ConstantsDataclass):
     added this constant needs to be split.
     """
 
-    max_uptake_rate_don = 0.0077
-    """Maximum possible rate for dissolved organic nitrogen uptake [day^-1].
+    ammonium_mineralisation_proportion = 0.9
+    """Proportion of microbially mineralised nitrogen that takes the form of ammonium.
+    
+    [unitless]. The remainder gets mineralised as nitrate. Estimate taken from
+    :cite:t:`fatichi_mechanistic_2019`, but the way it was obtained wasn't made
+    particularly clear.
+    """
+
+    max_uptake_rate_ammonium = 5e-3
+    """Maximum possible rate for ammonium uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
     :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
@@ -374,10 +382,10 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    half_sat_don_uptake: float = 0.07
-    """Half saturation constant for uptake of dissolved organic nitrogen (DON).
+    half_sat_ammonium_uptake: float = 0.02275
+    """Half saturation constant for uptake of ammonium.
 
-    [kg N m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
     and the corresponding activation energy is given by
     :attr:`activation_energy_uptake_saturation`.
 
@@ -385,8 +393,8 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    max_uptake_rate_dop = 0.0025
-    """Maximum possible rate for dissolved organic phosphorus uptake [day^-1].
+    max_uptake_rate_nitrate = 5e-4
+    """Maximum possible rate for nitrate uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
     :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
@@ -396,8 +404,8 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    half_sat_dop_uptake: float = 0.02275
-    """Half saturation constant for uptake of dissolved organic phosphorus (DOP).
+    half_sat_nitrate_uptake: float = 0.02275
+    """Half saturation constant for uptake of nitrate.
 
     [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
     and the corresponding activation energy is given by

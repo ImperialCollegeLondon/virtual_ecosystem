@@ -115,6 +115,8 @@ def microbial_changes(
     return calculate_microbial_changes(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],

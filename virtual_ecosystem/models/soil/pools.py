@@ -3,7 +3,7 @@ Ecosystem. At the moment five carbon pools are modelled (low molecular weight ca
 (LMWC), mineral associated organic matter (MAOM), microbial biomass, particulate organic
 matter (POM), microbial necromass), as well as two enzyme pools (POM and MAOM) degrading
 enzymes. Pools that track the nitrogen and phosphorus pools associated with each of the
-carbon pools are also included.
+carbon pools are also included, as well as inorganic nitrogen and phosphorus pools.
 """  # noqa: D205
 
 from dataclasses import dataclass
@@ -37,6 +37,18 @@ class MicrobialChanges:
     """Total rate of microbial uptake of dissolved organic nitrogen.
     
     Units of [kg N m^-3 day^-1]."""
+
+    ammonium_change: NDArray[np.float32]
+    """Total change in the ammonium pool due to microbial activity [kg P m^-3 day^-1].
+    
+    This change arises from the balance of immobilisation and mineralisation of
+    ammonium. A positive value indicates a net immobilisation (uptake) of ammonium."""
+
+    nitrate_change: NDArray[np.float32]
+    """Total change in the nitrate pool due to microbial activity [kg N m^-3 day^-1].
+
+    This change arises from the balance of immobilisation and mineralisation of
+    nitrate. A positive value indicates a net immobilisation (uptake) of nitrate."""
 
     dop_uptake: NDArray[np.float32]
     """Total rate of microbial uptake of dissolved organic phosphorus.
@@ -82,6 +94,12 @@ class NetNutrientConsumption:
 
     organic_nitrogen: NDArray[np.float32]
     """Uptake of dissolved organic nitrogen [kg N m^-3 day^-1]."""
+
+    ammonium: NDArray[np.float32]
+    """Uptake of ammonium [kg N m^-3 day^-1]."""
+
+    nitrate: NDArray[np.float32]
+    """Uptake of nitrate [kg N m^-3 day^-1]."""
 
     organic_phosphorus: NDArray[np.float32]
     """Uptake of dissolved organic phosphorus [kg P m^-3 day^-1]."""
@@ -321,6 +339,8 @@ class SoilPools:
         microbial_changes = calculate_microbial_changes(
             soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
             soil_n_pool_don=self.pools.soil_n_pool_don,
+            soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
+            soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_dop=self.pools.soil_p_pool_dop,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
             soil_c_pool_microbe=self.pools.soil_c_pool_microbe,
@@ -502,9 +522,12 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_ammonium"] = (
             ammonium_deposition
             + litter_mineralisation_flux.ammonium
+            - microbial_changes.ammonium_change
             - nutrient_leaching.ammonium
         )
-        delta_pools_ordered["soil_n_pool_nitrate"] = -nutrient_leaching.nitrate
+        delta_pools_ordered["soil_n_pool_nitrate"] = (
+            -microbial_changes.nitrate_change - nutrient_leaching.nitrate
+        )
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_flux.dop
             + pom_p_mineralisation
@@ -546,6 +569,8 @@ class SoilPools:
 def calculate_microbial_changes(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_n_pool_don: NDArray[np.float32],
+    soil_n_pool_ammonium: NDArray[np.float32],
+    soil_n_pool_nitrate: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
     soil_p_pool_labile: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
@@ -565,6 +590,8 @@ def calculate_microbial_changes(
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
@@ -586,6 +613,8 @@ def calculate_microbial_changes(
     biomass_growth, microbial_uptake = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         soil_n_pool_don=soil_n_pool_don,
+        soil_n_pool_ammonium=soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_n_pool_nitrate,
         soil_p_pool_dop=soil_p_pool_dop,
         soil_p_pool_labile=soil_p_pool_labile,
         soil_c_pool_microbe=soil_c_pool_microbe,
@@ -617,6 +646,8 @@ def calculate_microbial_changes(
     return MicrobialChanges(
         lmwc_uptake=microbial_uptake.carbon,
         don_uptake=microbial_uptake.organic_nitrogen,
+        ammonium_change=microbial_uptake.ammonium,
+        nitrate_change=microbial_uptake.nitrate,
         dop_uptake=microbial_uptake.organic_phosphorus,
         labile_p_change=microbial_uptake.inorganic_phosphorus,
         microbe_change=biomass_growth - biomass_loss,
@@ -878,6 +909,8 @@ def calculate_enzyme_turnover(
 def calculate_nutrient_uptake_rates(
     soil_c_pool_lmwc: NDArray[np.float32],
     soil_n_pool_don: NDArray[np.float32],
+    soil_n_pool_ammonium: NDArray[np.float32],
+    soil_n_pool_nitrate: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
     soil_p_pool_labile: NDArray[np.float32],
     soil_c_pool_microbe: NDArray[np.float32],
@@ -905,11 +938,17 @@ def calculate_nutrient_uptake_rates(
     organic matter uptake. If more is taken up as a component of organic matter than is
     needed then nutrients are mineralised, i.e. mass is added to the relevant inorganic
     nutrient pool. Conversely, if more is required to meet demand uptake occurs from the
-    relevant inorganic nutrient pool (this is termed immobilisation).
+    relevant inorganic nutrient pool (this is termed immobilisation). Two forms
+    inorganic nitrogen can be taken up by microbes, ammonium and nitrate. The rate at
+    which these are taken up is determined by the ratio of their uptake rates. When
+    inorganic nitrogen is mineralised the ratio of ammonium to nitrate mineralised is
+    determined by a fixed ratio defined in the model constants.
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
+        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
+        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
         soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
@@ -922,19 +961,12 @@ def calculate_nutrient_uptake_rates(
 
     Returns:
         A tuple containing the rate at which microbial biomass increases due to nutrient
-        uptake, as well as a dataclass containing the rate at which carbon, nitrogen
-        and phosphorus get taken up.
+        uptake, as well as a dataclass containing the rate at which carbon, nitrogen and
+        phosphorus get taken up.
     """
 
-    # Calculate carbon use efficiency
-    carbon_use_efficiency = calculate_carbon_use_efficiency(
-        soil_temp,
-        constants.reference_cue,
-        constants.cue_reference_temp,
-        constants.cue_with_temperature,
-    )
-
-    # Calculate highest possible microbial carbon and nitrogen uptake rates
+    # Calculate highest possible microbial uptake rates for organic matter and inorganic
+    # forms of nitrogen and phosphorus
     carbon_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_c_pool_lmwc,
         soil_c_pool_microbe=soil_c_pool_microbe,
@@ -945,24 +977,24 @@ def calculate_nutrient_uptake_rates(
         half_saturation_constant=constants.half_sat_labile_C_uptake,
         constants=constants,
     )
-    nitrogen_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=soil_n_pool_don,
+    ammonium_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
+        labile_nutrient_pool=soil_n_pool_ammonium,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        max_uptake_rate=constants.max_uptake_rate_don,
-        half_saturation_constant=constants.half_sat_don_uptake,
+        max_uptake_rate=constants.max_uptake_rate_ammonium,
+        half_saturation_constant=constants.half_sat_ammonium_uptake,
         constants=constants,
     )
-    organic_phosphorus_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=soil_p_pool_dop,
+    nitrate_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
+        labile_nutrient_pool=soil_n_pool_nitrate,
         soil_c_pool_microbe=soil_c_pool_microbe,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        max_uptake_rate=constants.max_uptake_rate_dop,
-        half_saturation_constant=constants.half_sat_dop_uptake,
+        max_uptake_rate=constants.max_uptake_rate_nitrate,
+        half_saturation_constant=constants.half_sat_nitrate_uptake,
         constants=constants,
     )
     inorganic_phosphorus_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
@@ -976,15 +1008,34 @@ def calculate_nutrient_uptake_rates(
         constants=constants,
     )
 
-    # Use carbon use efficiency to determine maximum possible rate of carbon gain
+    # Calculate carbon use efficiency and use to determine maximum possible rate of
+    # carbon gain
+    carbon_use_efficiency = calculate_carbon_use_efficiency(
+        soil_temp,
+        constants.reference_cue,
+        constants.cue_reference_temp,
+        constants.cue_with_temperature,
+    )
     carbon_gain_max = carbon_uptake_rate_max * carbon_use_efficiency
+
+    # Find stoichiometry of the LMWC pool and use to find maximum possible uptake rates
+    # for organic nitrogen and phosphorus
+    lmwc_c_n_ratio = soil_c_pool_lmwc / soil_n_pool_don
+    lmwc_c_p_ratio = soil_c_pool_lmwc / soil_p_pool_dop
+    organic_nitrogen_uptake_rate_max = carbon_uptake_rate_max / lmwc_c_n_ratio
+    organic_phosphorus_uptake_rate_max = carbon_uptake_rate_max / lmwc_c_p_ratio
 
     # Find actual rate of carbon gain based on most limiting uptake rate, then find
     # nutrient gain and total carbon consumption based on this
     actual_carbon_gain = np.minimum.reduce(
         [
             carbon_gain_max,
-            constants.microbial_c_n_ratio * nitrogen_uptake_rate_max,
+            constants.microbial_c_n_ratio
+            * (
+                organic_nitrogen_uptake_rate_max
+                + ammonium_uptake_rate_max
+                + nitrate_uptake_rate_max
+            ),
             constants.microbial_c_p_ratio
             * (
                 organic_phosphorus_uptake_rate_max
@@ -994,20 +1045,37 @@ def calculate_nutrient_uptake_rates(
     )
     actual_carbon_uptake = actual_carbon_gain / carbon_use_efficiency
 
-    # Calculate actual uptake of organic phosphorus based on carbon uptake
-    lmwc_c_p_ratio = soil_c_pool_lmwc / soil_p_pool_dop
+    # Calculate actual uptake of organic nitrogen and phosphorus based on carbon uptake
+    actual_organic_nitrogen_uptake = actual_carbon_uptake / lmwc_c_n_ratio
     actual_organic_phosphorus_uptake = actual_carbon_uptake / lmwc_c_p_ratio
+
+    # Calculate uptake/release of inorganic nitrogen based on difference between
+    # stoichiometric demand and organic nitrogen uptake
+    nitrogen_demand = actual_carbon_gain / constants.microbial_c_n_ratio
+    inorganic_nitrogen_change = nitrogen_demand - actual_organic_nitrogen_uptake
+    # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
+    # follows the proportion of the maximum uptake rates, for the mineralisation it is
+    # determined by a fixed constant.
+    ammonium_to_nitrate_proportion = np.where(
+        inorganic_nitrogen_change > 0,
+        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        constants.ammonium_mineralisation_proportion,
+    )
+    ammonium_change = inorganic_nitrogen_change * ammonium_to_nitrate_proportion
+    nitrate_change = inorganic_nitrogen_change * (1 - ammonium_to_nitrate_proportion)
 
     # Calculate uptake/release of inorganic phosphorus based on difference between
     # stoichiometric demand and organic phosphorus uptake
     phosphorus_demand = actual_carbon_gain / constants.microbial_c_p_ratio
-    inorganic_phosphorus_uptake = phosphorus_demand - actual_organic_phosphorus_uptake
+    inorganic_phosphorus_change = phosphorus_demand - actual_organic_phosphorus_uptake
 
     consumption_rates = NetNutrientConsumption(
-        organic_nitrogen=actual_carbon_gain / constants.microbial_c_n_ratio,
+        organic_nitrogen=actual_organic_nitrogen_uptake,
         organic_phosphorus=actual_organic_phosphorus_uptake,
         carbon=actual_carbon_uptake,
-        inorganic_phosphorus=inorganic_phosphorus_uptake,
+        ammonium=ammonium_change,
+        nitrate=nitrate_change,
+        inorganic_phosphorus=inorganic_phosphorus_change,
     )
 
     # TODO - the quantities calculated above can be used to calculate the carbon
