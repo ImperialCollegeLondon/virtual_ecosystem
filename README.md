@@ -31,13 +31,9 @@ The research is based at Imperial College London:
 
 ## Project Team
 
-* Professor Robert Ewers
-* Olivia Daniel
-* Dr. Jaideep Joshi
-* Dr. David Orme
-* Dr. Vivienne Groner
-* Dr. Jacob Cook
-* Dr. Taran Rallings
+The Virtual Ecosystem is being developed by a international team of researchers lead by
+Professor Robert Ewers (Imperial College London). For more details, please see the [team
+page](https://virtual-ecosystem.readthedocs.io/en/latest/project_team.html) on our website.
 
 The research team are supported by the Imperial College London
 [Research Software
