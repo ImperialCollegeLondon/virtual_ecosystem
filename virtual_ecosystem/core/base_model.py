@@ -292,7 +292,11 @@ class BaseModel(ABC):
                     f"all to be absent. {found} out of {expected} found: "
                     f"{', '.join(present)}."
                 )
+            elif found == 0:
+                # The case when static is true and no init vars provided
+                return False
             else:
+                # The case when static is true and all init vars provideed
                 return True
 
         return False
