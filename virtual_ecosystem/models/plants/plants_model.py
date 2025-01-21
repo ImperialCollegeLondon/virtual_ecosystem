@@ -284,8 +284,6 @@ class PlantsModel(
           radation at ground level (``canopy_absorption``).
         """
 
-        # layers = ["layer_heights", "leaf_area_index", "layer_fapar", "layer_heights"]
-
         heights = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
         fapar = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
         lai = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
@@ -295,27 +293,43 @@ class PlantsModel(
         for cell_id, canopy, community in zip(
             self.canopies, self.canopies.values(), self.communities.values()
         ):
-            # Insert layer heights
-            heights[: canopy.heights.size, (cell_id,)] = canopy.heights
+            # Get the indices of the array to be filled in
+            fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
-            # Insert canopy fapar
-            fapar[: canopy.heights.size, (cell_id,)] = canopy.community_data.fapar
+            # Insert layer heights
+            heights[fill_idx] = canopy.heights
+
+            # TODO: check with @vgro what goes where
+            # - what values at the bottom of the layers, so the last one is ground level
+            # - layer bounds versus centres
+
+            # Insert canopy fapar:
+            # TODO: currently 1D, not 2D - consistency in pyrealm? keepdims?
+            fapar[fill_idx] = canopy.community_data.fapar.reshape((-1, 1))
 
             # Partition the total stem foliage masses across cohorts vertically
             # following the leaf area within each layer.
             # TODO - need to expose the per cohort data to allow selective herbivory. Do
-            #        we need the total leaf mass per layer for anything
-            per_cohort_leaf_mass = (
-                community.stem_allometry.foliage_mass * community.cohorts.n_individuals
+            #        we need the total leaf mass per layer for anything?
+            leaf_mass_per_cohort_per_layer = (
+                community.stem_allometry.foliage_mass
+                * community.cohorts.n_individuals
+                * (canopy.cohort_data.lai / canopy.cohort_data.lai.sum(axis=0))
             )
+            mass[fill_idx] = leaf_mass_per_cohort_per_layer.sum(axis=1, keepdims=True)
 
-            # Tranmission needs to insert the final value at _ground_ level.
+            # LAI - add up LAI across cohorts within layers
+            lai[fill_idx] = canopy.cohort_data.lai.sum(axis=1, keepdims=True)
+
+            # Absorption
+            absorption[fill_idx] = canopy.community_data.f_abs.reshape((-1, 1))
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
-        # self.data["leaf_area_index"][self._canopy_layer_indices, :] = canopy_data[1]
-        # self.data["layer_fapar"][self._canopy_layer_indices, :] = canopy_data[2]
-        # self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = canopy_data[3]
+        self.data["leaf_area_index"][self._canopy_layer_indices, :] = lai
+        self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
+        self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
+        self.data["absorption"][self._canopy_layer_indices, :] = absorption
 
         # # Update the above canopy heights
         # self.data["layer_heights"][0, :] = (
