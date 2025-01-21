@@ -594,8 +594,6 @@ class BaseModel(ABC):
                 defined
             TypeError: If model_name is not a string
         """
-        # if cls.__init__ != BaseModel.__init__:
-        #    raise NotImplementedError("Model subclasses cannot override __init__.")
 
         if cls.update != BaseModel.update:
             raise NotImplementedError(
