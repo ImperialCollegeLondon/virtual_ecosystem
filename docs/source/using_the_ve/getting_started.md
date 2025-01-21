@@ -80,7 +80,7 @@ You can then run the model itself:
 ```{group-tab} Windows
   ```powershell
     ve_run C:\path\ve_example\config `
-    --outpath C:\path\ve_example/out `
+    --outpath C:\path\ve_example\out `
     --logfile C:\path\ve_example\out\ve_example.log
 ```
 ````
