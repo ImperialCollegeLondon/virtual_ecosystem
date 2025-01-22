@@ -884,9 +884,7 @@ def test_bypass_setup_but_run_update_fails(
     core_components = CoreComponents(config=fixture_config)
 
     with expected_exception as exc:
-        TestModel(
-            data=fixture_data, core_components=core_components, static=static
-        )
+        TestModel(data=fixture_data, core_components=core_components, static=static)
 
     if expected_message:
         assert str(exc.value) == expected_message
