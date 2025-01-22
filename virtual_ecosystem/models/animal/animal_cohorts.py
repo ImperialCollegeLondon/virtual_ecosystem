@@ -70,8 +70,6 @@ class AnimalCohort:
         """The amount of time [days] between birth and adult body-mass."""
         self.time_since_maturity: float = 0.0
         """The amount of time [days] since reaching adult body-mass."""
-        self.reproductive_mass: float = 0.0
-        """The pool of biomass from which the material of reproduction is drawn."""
         self.prey_groups: dict[str, tuple[float, float]] = sf.prey_group_selection(
             self.functional_group.diet,
             self.functional_group.adult_mass,
@@ -114,9 +112,14 @@ class AnimalCohort:
 
     @property
     def mass_current(self) -> float:
-        """Dynamically calculate the current total body mass based on stoichiometry."""
+        """Dynamically calculate the current total body mass from stoichiometry."""
 
         return sum(self.mass_cnp.values())
+
+    @property
+    def reproductive_mass(self) -> float:
+        """Dynamically calculate the current reproductive mass from stoichiometry."""
+        return sum(self.reproductive_mass_cnp.values())
 
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.

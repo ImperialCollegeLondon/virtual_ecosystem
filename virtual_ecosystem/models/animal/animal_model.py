@@ -743,70 +743,97 @@ class AnimalModel(
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
 
+        TODO: Add something like a birth_mass_cnp trait
+
         A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
-        with age 0 and mass=birth_mass. A new territory, likely smaller b/c allometry,
-        is generated for the newborn cohort.
-
-        The science here follows Madingley.
-
-        TODO: Check whether Madingley discards excess reproductive mass.
-        TODO: Rework birth mass for indirect developers.
+        with age 0 and a mass determined by the functional group's birth mass.
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new cohort.
         """
-        # semelparous organisms use a portion of their non-reproductive mass to make
-        # offspring and then they die
-        non_reproductive_mass_loss = 0.0
+        # Semelparous organisms use a portion of their non-reproductive mass to make
+        # offspring and then die
+        non_reproductive_mass_loss_cnp = {"C": 0.0, "N": 0.0, "P": 0.0}
         if parent_cohort.functional_group.reproductive_type == "semelparous":
-            non_reproductive_mass_loss = (
-                parent_cohort.mass_current
-                * parent_cohort.constants.semelparity_mass_loss
-            )
-            parent_cohort.mass_current -= non_reproductive_mass_loss
-            # kill the semelparous parent cohort
+            for nutrient in parent_cohort.mass_cnp:
+                non_reproductive_mass_loss_cnp[nutrient] = (
+                    parent_cohort.mass_cnp[nutrient]
+                    * parent_cohort.constants.semelparity_mass_loss
+                )
+                parent_cohort.mass_cnp[nutrient] -= non_reproductive_mass_loss_cnp[
+                    nutrient
+                ]
+            # Kill the semelparous parent cohort
             parent_cohort.is_alive = False
 
-        number_offspring = (
-            int(
-                (parent_cohort.reproductive_mass + non_reproductive_mass_loss)
-                / parent_cohort.functional_group.birth_mass
+        # Calculate the total reproductive mass available (including semelparous loss)
+        total_reproductive_mass_cnp = {
+            nutrient: parent_cohort.reproductive_mass_cnp[nutrient]
+            + non_reproductive_mass_loss_cnp[nutrient]
+            for nutrient in parent_cohort.reproductive_mass_cnp
+        }
+
+        # Generate birth_mass_cnp from birth_mass and functional group proportions
+        birth_mass = parent_cohort.functional_group.birth_mass
+        birth_mass_cnp = {
+            nutrient: birth_mass * parent_cohort.cnp_proportions[nutrient]
+            for nutrient in parent_cohort.cnp_proportions
+        }
+
+        # Calculate the number of offspring
+        number_offspring = int(
+            min(
+                total_reproductive_mass_cnp["C"] / birth_mass_cnp["C"],
+                total_reproductive_mass_cnp["N"] / birth_mass_cnp["N"],
+                total_reproductive_mass_cnp["P"] / birth_mass_cnp["P"],
             )
             * parent_cohort.individuals
         )
-
-        # reduce reproductive mass by amount used to generate offspring
-        parent_cohort.reproductive_mass = 0.0
 
         if number_offspring <= 0:
             print("No offspring created, exiting birth method.")
             return
 
+        # Calculate the total mass used for reproduction
+        total_mass_used_cnp = {
+            nutrient: number_offspring * birth_mass_cnp[nutrient]
+            for nutrient in birth_mass_cnp
+        }
+
+        # Update the parent's reproductive mass by subtracting the used mass
+        for nutrient in parent_cohort.reproductive_mass_cnp:
+            parent_cohort.reproductive_mass_cnp[nutrient] -= total_mass_used_cnp[
+                nutrient
+            ]
+
+        # Get the functional group for the offspring
         offspring_functional_group = get_functional_group_by_name(
             self.functional_groups,
             parent_cohort.functional_group.offspring_functional_group,
         )
 
+        # Create the offspring cohort
         offspring_cohort = AnimalCohort(
-            offspring_functional_group,
-            parent_cohort.functional_group.birth_mass,
-            0.0,
-            number_offspring,
-            parent_cohort.centroid_key,
-            parent_cohort.grid,
-            parent_cohort.constants,
+            functional_group=offspring_functional_group,
+            mass=sum(birth_mass_cnp.values()),  # Use the total birth mass
+            age=0.0,  # Offspring start at age 0
+            individuals=number_offspring,
+            centroid_key=parent_cohort.centroid_key,
+            grid=parent_cohort.grid,
+            constants=parent_cohort.constants,
         )
 
-        # add a new cohort of the parental type to the community
+        # Add the new cohort to the community
         self.cohorts[offspring_cohort.id] = offspring_cohort
 
         # Debug: Print cohorts after adding offspring
         print(f"Total cohorts after adding offspring: {len(self.cohorts)}")
 
-        # add the new cohort to the community lists it occupies
+        # Update community occupancy
         self.update_community_occupancy(offspring_cohort, offspring_cohort.centroid_key)
 
+        # Remove the semelparous parent cohort if applicable
         if parent_cohort.functional_group.reproductive_type == "semelparous":
             self.remove_dead_cohort(parent_cohort)
 
