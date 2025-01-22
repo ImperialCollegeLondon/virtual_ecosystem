@@ -46,8 +46,6 @@ class AnimalCohort:
         """The functional group of the animal cohort which holds constants."""
         self.name = functional_group.name
         """The functional type name of the animal cohort."""
-        self.mass_current = mass
-        """The current average body mass of an individual [kg]."""
         self.age = age
         """The age of the animal cohort [days]."""
         self.individuals = individuals
@@ -102,19 +100,23 @@ class AnimalCohort:
         """The fraction of carcass biomass which decays before it gets consumed."""
         self.cnp_proportions: dict[str, float] = self.functional_group.cnp_proportions
         """The normalized stoichiometric proportions that constrains growth."""
-        self.mass_cnp: dict[str, float] = self._initialize_mass_cnp()
-        """The mass of each stoichiometric element found in the animal cohort,
-        {"C": value, "N": value, "P": value}."""
+        if not abs(sum(self.cnp_proportions.values()) - 1.0) < 1e-6:
+            raise ValueError("CNP proportions must sum to 1.")
+        self.mass_cnp = {
+            element: mass * proportion
+            for element, proportion in self.cnp_proportions.items()
+        }
+        """The mass of C, N, and P in the cohort, from total mass and proportions."""
+
         self.reproductive_mass_cnp: dict[str, float] = {"C": 0.0, "N": 0.0, "P": 0.0}
         """The reproductive mass of each stoichiometric element found in the animal
           cohort, {"C": value, "N": value, "P": value}."""
 
-    def _initialize_mass_cnp(self) -> dict[str, float]:
-        """Initializes mass_cnp based on mass_current and cnp_proportions."""
-        return {
-            element: self.mass_current * proportion
-            for element, proportion in self.cnp_proportions.items()
-        }
+    @property
+    def mass_current(self) -> float:
+        """Dynamically calculate the current total body mass based on stoichiometry."""
+
+        return sum(self.mass_cnp.values())
 
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
@@ -169,7 +171,7 @@ class AnimalCohort:
 
         Args:
             resource_intake: A dictionary of the mass of C, N, and P available for
-            intake.
+                intake.
 
         Returns:
             A dictionary of the excess elements (waste) that could not be used for
@@ -182,19 +184,15 @@ class AnimalCohort:
             for element in self.cnp_proportions
         }
 
-        # Identify the actually limiting element by selecting the element with the
-        # least potential growth
+        # Identify the limiting element as the element with the least potential growth
         max_growth = min(potential_growth.values())
 
-        # Update mass and stoichiometry with the amount of growth that occurs as
-        # constrained by the limiting element
+        # Update mass_cnp with the amount of growth that occurs as constrained by the
+        # limiting element
         for element in self.cnp_proportions:
             used_mass = max_growth * self.cnp_proportions[element]
             self.mass_cnp[element] += used_mass
             resource_intake[element] -= used_mass
-
-        # Total mass grows by the limiting factor
-        self.mass_current += max_growth
 
         # Calculate excess (waste) for each element
         waste = {element: resource_intake[element] for element in resource_intake}
@@ -851,8 +849,6 @@ class AnimalCohort:
 
         This is Madingley's delta_assimilation_mass_predation.
 
-        TODO: rethink defecate location
-
         Args:
             animal_list: A list of animal cohorts that can be consumed by the predator.
             excrement_pools: The pools representing the excrement in the territory.
@@ -880,9 +876,6 @@ class AnimalCohort:
             for element in total_consumed_mass:
                 total_consumed_mass[element] += actual_consumed_cnp[element]
 
-        # Process waste generated from predation
-        self.defecate(excrement_pools, total_consumed_mass)
-
         return total_consumed_mass
 
     def calculate_consumed_mass_herbivory(
@@ -895,7 +888,6 @@ class AnimalCohort:
         this rate and other model parameters.
 
         TODO: Replace delta_t with actual time step reference
-        TODO: Update with stoichiometry
 
         Args:
             plant_list: A list of plant resources that can be consumed by the
@@ -921,12 +913,10 @@ class AnimalCohort:
     ) -> dict[str, float]:
         """This method handles mass assimilation from herbivory.
 
-        TODO: rethink defecate location
         TODO: At present this just takes a single herbivory waste pool (for leaves),
         this probably should change to be a list of waste pools once herbivory for other
         plant tissues is added.
         TODO: update name
-        TODO: Update with stoichiometry
 
         Args:
             plant_list: A list of plant resources available for herbivory.
@@ -951,9 +941,6 @@ class AnimalCohort:
             # Add the litter to the appropriate herbivory waste pool
             for element in plant_litter_cnp:
                 herbivory_waste_pools[plant.cell_id].add_waste(plant_litter_cnp)
-
-        # Process waste generated from herbivory, separate from predation b/c diff waste
-        self.defecate(excrement_pools, total_consumed_cnp)
 
         return total_consumed_cnp
 
@@ -993,7 +980,9 @@ class AnimalCohort:
             consumed_mass = self.delta_mass_herbivory(
                 plant_list, excrement_pools, herbivory_waste_pools
             )  # Directly modifies the plant mass
-            self.eat(consumed_mass)  # Accumulate net mass gain from each plant
+            self.eat(
+                consumed_mass, excrement_pools
+            )  # Accumulate net mass gain from each plant
 
         # Carnivore diet
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
@@ -1002,7 +991,7 @@ class AnimalCohort:
                 animal_list, excrement_pools, carcass_pools
             )
             # Update the predator's mass with the total gained mass
-            self.eat(consumed_mass)
+            self.eat(consumed_mass, excrement_pools)
 
     def theta_i_j(self, animal_list: list[AnimalCohort]) -> float:
         """Cumulative density method for delta_mass_predation.
@@ -1031,33 +1020,29 @@ class AnimalCohort:
             if self.mass_current == cohort.mass_current
         )
 
-    def eat(self, mass_consumed: dict[str, float]) -> None:
-        """Handles the mass gain from consuming food.
+    def eat(
+        self, mass_consumed: dict[str, float], excrement_pools: list[ExcrementPool]
+    ) -> None:
+        """Handles the mass gain from consuming food and processes waste.
 
         This method updates the consumer's mass based on the amount of food consumed
-        in stoichiometric terms. It assumes the `mass_consumed` has already been
-        calculated and processed through `get_eaten`.
-
-        TODO: non-reproductive functional groups should not store any reproductive mass.
+        in stoichiometric terms. It also handles waste by calling `defecate` with any
+        excess nutrients after growth.
 
         Args:
             mass_consumed: A dictionary representing the mass of each nutrient consumed
                 by this consumer: {"C": value, "N": value, "P": value}.
+            excrement_pools: The ExcrementPool objects in the cohort's territory in
+                which waste is deposited.
         """
         if self.individuals == 0:
             return
 
-        # Determine where the mass gain should be allocated
-        if self.is_below_mass_threshold(
-            self.constants.flow_to_reproductive_mass_threshold
-        ):
-            # Gains to body mass or reproductive mass below the threshold
-            for nutrient in mass_consumed:
-                self.mass_cnp[nutrient] += mass_consumed[nutrient]
-        else:
-            # Gains directly to reproductive mass
-            for nutrient in mass_consumed:
-                self.reproductive_mass_cnp[nutrient] += mass_consumed[nutrient]
+        # Apply growth and calculate waste
+        waste_mass = self.grow(mass_consumed)
+
+        # Pass the waste to the defecate method for processing
+        self.defecate(excrement_pools, waste_mass)
 
     def is_below_mass_threshold(self, mass_threshold: float) -> bool:
         """Check if cohort's total mass is below a certain threshold.
