@@ -178,12 +178,6 @@ class AbioticModel(
             model_constants=model_constants,
         )
 
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
-
     def _setup(
         self, model_constants: AbioticConsts = AbioticConsts(), **kwargs
     ) -> None:

@@ -397,9 +397,6 @@ def test_check_vars_required_for_init(
         vars_required_for_init=(),
         vars_updated=[],
     ):
-        def setup(self) -> None:
-            pass
-
         def spinup(self) -> None:
             pass
 
@@ -578,7 +575,7 @@ def test_check_update_speed(
             True,
             ("var1", "var2"),
             {},
-            True,
+            False,
             does_not_raise(),
             None,
             id="static_no_vars_present",

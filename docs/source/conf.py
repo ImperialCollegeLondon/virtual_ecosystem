@@ -101,6 +101,7 @@ extensions = [
     "sphinx_external_toc",
     "sphinx_design",
     "hoverxref.extension",
+    "sphinx_tabs.tabs",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -168,6 +169,8 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.__repr__"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.count"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
+    ("py:exc", "ParserError"),
+    ("py:exc", "BadZipFile"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),

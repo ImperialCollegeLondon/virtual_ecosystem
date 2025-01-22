@@ -100,7 +100,7 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
             ),
             (
                 ERROR,
-                "litter model: init data missing required var " "'litter_pool_woody'",
+                "litter model: init data missing required var 'litter_pool_woody'",
             ),
             (
                 ERROR,
@@ -119,7 +119,7 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
             ),
             (
                 ERROR,
-                "litter model: init data missing required var " "'lignin_woody'",
+                "litter model: init data missing required var 'lignin_woody'",
             ),
             (
                 ERROR,

@@ -8,7 +8,7 @@ each stage, although the specific methods may simply do nothing if no action is 
 at that stage. The stages are:
 
 * Creating a model instance (:class:`~virtual_ecosystem.core.base_model.BaseModel`).
-* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel.setup`).
+* Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel._setup`).
 * Perform any spinup required to get a model state to equilibrate
   (:meth:`~virtual_ecosystem.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
@@ -292,7 +292,11 @@ class BaseModel(ABC):
                     f"all to be absent. {found} out of {expected} found: "
                     f"{', '.join(present)}."
                 )
+            elif found == 0:
+                # The case when static is true and no init vars provided
+                return False
             else:
+                # The case when static is true and all init vars provideed
                 return True
 
         return False
@@ -347,12 +351,6 @@ class BaseModel(ABC):
     @abstractmethod
     def _setup(self, *args: Any, **kwargs: Any) -> None:
         """Function to setup the model during initialisation."""
-
-    def setup(self) -> None:
-        """Function to use input data to set up the model.
-
-        TODO: Remove.
-        """
 
     @abstractmethod
     def spinup(self) -> None:
@@ -512,8 +510,7 @@ class BaseModel(ABC):
         # Check lower less than upper bound
         if model_update_bounds_pint[0] >= model_update_bounds_pint[1]:
             to_raise = ValueError(
-                f"Lower time bound for {cls.__name__} is not less than the upper "
-                f"bound."
+                f"Lower time bound for {cls.__name__} is not less than the upper bound."
             )
             LOGGER.error(to_raise)
             raise to_raise
