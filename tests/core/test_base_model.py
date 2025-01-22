@@ -807,3 +807,86 @@ def test_run_update_due_to_static_configuration(
 
     if expected_message:
         assert str(exc.value) == expected_message
+
+
+@pytest.mark.parametrize(
+    "static, vars_populated_by_init, vars_updated, data_vars, expected_exception, "
+    "expected_message",
+    [
+        # Test case where _setup is bypassed and _update is run
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            ("var3",),
+            {"var1": 1, "var2": 2},
+            pytest.raises(ConfigurationError),
+            "Static model test_model will not run the setup method, but "
+            "requires the update method to run once. This is an invalid "
+            "configuration. Please, make sure that either both methods are run once"
+            " by not providing any variables in vars_populated_by_first_update and "
+            "vars_updated or that both are bypassed by providing all variables in "
+            "vars_populated_by_init.",
+            id="static_setup_bypassed_update_run",
+        ),
+    ],
+)
+def test_bypass_setup_but_run_update_fails(
+    static,
+    vars_populated_by_init,
+    vars_updated,
+    data_vars,
+    expected_exception,
+    expected_message,
+    fixture_data,
+    fixture_config,
+):
+    """Test the _bypass_setup_due_to_static_configuration method."""
+    from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.core_components import (
+        CoreComponents,
+    )
+    from virtual_ecosystem.core.data import Data
+
+    class TestModel(
+        BaseModel,
+        model_name="test_model",
+        model_update_bounds=("1 day", "1 month"),
+        vars_required_for_init=(),
+        vars_updated=vars_updated,
+        vars_required_for_update=(),
+        vars_populated_by_init=vars_populated_by_init,
+        vars_populated_by_first_update=(),
+    ):
+        def _setup(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def spinup(self) -> None:
+            pass
+
+        def _update(self, time_index: int, **kwargs: Any) -> None:
+            pass
+
+        def cleanup(self) -> None:
+            pass
+
+        @classmethod
+        def from_config(
+            cls, data: Data, core_components: CoreComponents, config: Config
+        ) -> BaseModel:
+            return super().from_config(
+                data=data, core_components=core_components, config=config
+            )
+
+    for var in data_vars.keys():
+        fixture_data[var] = fixture_data["existing_var"].copy()
+
+    core_components = CoreComponents(config=fixture_config)
+
+    with expected_exception as exc:
+        TestModel(
+            data=fixture_data, core_components=core_components, static=static
+        )
+
+    if expected_message:
+        assert str(exc.value) == expected_message

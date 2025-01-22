@@ -253,7 +253,18 @@ class BaseModel(ABC):
         # Check the configured update interval is within model bounds
         self._check_update_speed()
 
-        if not self._bypass_setup_due_to_static_configuration():
+        bypass_setup = self._bypass_setup_due_to_static_configuration()
+        if bypass_setup and self._run_initial_static_update:
+            raise ConfigurationError(
+                f"Static model {self.model_name} will not run the setup method, but "
+                "requires the update method to run once. This is an invalid "
+                "configuration. Please, make sure that either both methods are run once"
+                " by not providing any variables in vars_populated_by_first_update and "
+                "vars_updated or that both are bypassed by providing all variables in "
+                "vars_populated_by_init."
+            )
+
+        if not bypass_setup:
             self._setup(**kwargs)
 
     def _bypass_setup_due_to_static_configuration(self) -> bool:
@@ -334,7 +345,7 @@ class BaseModel(ABC):
             )
 
         elif self._static:
-            if found == 0:
+            if found == 0 and expected > 0:
                 return True
             elif found == expected:
                 return False
