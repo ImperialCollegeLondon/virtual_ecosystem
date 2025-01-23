@@ -54,6 +54,21 @@ egestas.
 
 :::
 
+:::{grid-item-card} Dr Anna Rallings
+:margin: 2 2 0 0
+:link: project_team.html
+
+```{image} _static/images/people/photo_placeholder.png
+:alt: Dr Anna Rallings
+:class: team-photo
+```
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
+montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
+egestas.
+
+:::
+
 ::::
 
 ## Code development and model science
