@@ -284,11 +284,12 @@ class PlantsModel(
           radation at ground level (``canopy_absorption``).
         """
 
-        heights = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
-        fapar = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
-        lai = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
-        mass = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
-        absorption = np.zeros((self.layer_structure.n_canopy_layers, self.grid.n_cells))
+        canopy_array_shape = (self.layer_structure.n_canopy_layers, self.grid.n_cells)
+        heights = np.full(canopy_array_shape, fill_value=np.nan)
+        fapar = np.full(canopy_array_shape, fill_value=np.nan)
+        lai = np.full(canopy_array_shape, fill_value=np.nan)
+        mass = np.full(canopy_array_shape, fill_value=np.nan)
+        absorption = np.full(canopy_array_shape, fill_value=np.nan)
 
         for cell_id, canopy, community in zip(
             self.canopies, self.canopies.values(), self.communities.values()
@@ -296,15 +297,22 @@ class PlantsModel(
             # Get the indices of the array to be filled in
             fill_idx = (slice(0, canopy.heights.size), (cell_id,))
 
-            # Insert layer heights
-            heights[fill_idx] = canopy.heights
+            # Insert canopy layer heights
+            # TODO - #695 At present, pyrealm returns a column array which _I think_
+            #        always has zero as the last entry. We don't want that value, so it
+            #        is being clipped out here but keep an eye on this definition and
+            #        update if pyrealm changes. In the meantime, keep this guard check
+            #        to raise if the issue arises.
 
-            # TODO: check with @vgro what goes where
-            # - what values at the bottom of the layers, so the last one is ground level
-            # - layer bounds versus centres
+            if canopy.heights[-1, :].item() > 0:
+                raise ValueError("Last canopy.height is non-zero")
+
+            heights[fill_idx] = np.concatenate(
+                [[[canopy.max_stem_height]], canopy.heights[0:-1, :]]
+            )
 
             # Insert canopy fapar:
-            # TODO: currently 1D, not 2D - consistency in pyrealm? keepdims?
+            # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
             fapar[fill_idx] = canopy.community_data.fapar.reshape((-1, 1))
 
             # Partition the total stem foliage masses across cohorts vertically
@@ -322,20 +330,24 @@ class PlantsModel(
             lai[fill_idx] = canopy.cohort_data.lai.sum(axis=1, keepdims=True)
 
             # Absorption
-            absorption[fill_idx] = canopy.community_data.f_abs.reshape((-1, 1))
+            absorption[fill_idx] = canopy.community_data.fapar.reshape((-1, 1))
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
         self.data["leaf_area_index"][self._canopy_layer_indices, :] = lai
         self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
         self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
-        self.data["absorption"][self._canopy_layer_indices, :] = absorption
+        self.data["canopy_absorption"][self._canopy_layer_indices, :] = absorption
 
-        # # Update the above canopy heights
-        # self.data["layer_heights"][0, :] = (
-        #     self.data["layer_heights"][1, :]
-        #     + self.layer_structure.above_canopy_height_offset
-        # )
+        # Add the above canopy reference height
+        self.data["layer_heights"][self.layer_structure.index_above, :] = (
+            heights[0, :] + self.layer_structure.above_canopy_height_offset
+        )
+
+        # Add the fraction of radiation reaching ground level
+        self.data["canopy_absorption"][self.layer_structure.index_surface, :] = (
+            1.0 - absorption.sum(axis=0)
+        )
 
     def set_canopy_absorption(self, time_index: int) -> None:
         """Set the absorbed irradiance across the canopy.
