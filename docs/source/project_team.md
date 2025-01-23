@@ -15,6 +15,12 @@ kernelspec:
 # Project Team
 
 <!-- markdownlint-disable MD034 -->
+<!-- The :link: tag requires bare URLs and markdownlint autowraps them in <>
+unless this rule is disabled. Do not merge these comments - apparently markdownlint is
+fussy about the formatting within the disable comment.
+-->
+
+## Project leadership
 
 ::::{grid} 1 1 2 2
 
@@ -47,6 +53,12 @@ montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius him
 egestas.
 
 :::
+
+::::
+
+## Code development and model science
+
+::::{grid} 1 1 2 2
 
 :::{grid-item-card} Dr. Jaideep Joshi
 :margin: 2 2 0 0
@@ -127,6 +139,82 @@ egestas.
 
 ```{image} _static/images/people/photo_placeholder.png
 :alt: Professor Priyanga Amarasekare
+:class: team-photo
+```
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
+montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
+egestas.
+:::
+
+::::
+
+## Model parameterisation and data science
+
+::::{grid} 1 1 2 2
+
+:::{grid-item-card} Siti Nor Baizurah Abdul Malik
+:margin: 2 2 0 0
+:link: project_team.html
+
+```{image} _static/images/people/photo_placeholder.png
+:alt: Siti Nor Baizurah Abdul Malik
+:class: team-photo
+```
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
+montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
+egestas.
+:::
+
+:::{grid-item-card} Lelavathy Samikan Mazilamani
+:margin: 2 2 0 0
+:link: project_team.html
+
+```{image} _static/images/people/photo_placeholder.png
+:alt: Lelavathy Samikan Mazilamani
+:class: team-photo
+```
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
+montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
+egestas.
+:::
+
+:::{grid-item-card} Dr. Hao Ran Lai
+:margin: 2 2 0 0
+:link: project_team.html
+
+```{image} _static/images/people/photo_placeholder.png
+:alt: Dr. Hao Ran Lai
+:class: team-photo
+```
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
+montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
+egestas.
+:::
+
+:::{grid-item-card} Nicholas Wei Cheng Tan
+:margin: 2 2 0 0
+:link: project_team.html
+
+```{image} _static/images/people/photo_placeholder.png
+:alt: Nicholas Wei Cheng Tan
+:class: team-photo
+```
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
+montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
+egestas.
+:::
+
+:::{grid-item-card} Arne Scheire
+:margin: 2 2 0 0
+:link: project_team.html
+
+```{image} _static/images/people/photo_placeholder.png
+:alt: Arne Scheire
 :class: team-photo
 ```
 

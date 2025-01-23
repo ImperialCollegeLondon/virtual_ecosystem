@@ -23,6 +23,7 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
+import datetime
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -66,13 +67,12 @@ variables.output_known_variables(varfile)
 
 
 # -- Project information -----------------------------------------------------
+# Ideally the copyright would have a link to the team page, but neither an RST link, nor
+# an HTML <a> link works - they just get rendered as is.
 
 # +
 project = "Virtual Ecosystem"
-copyright = (
-    "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
-    "Jaideep Joshi, Taran Rallings, Vivienne Groner"
-)
+copyright = f"{datetime.date.today().year}, The Virtual Ecosystem project team"
 author = (
     "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
     "Taran Rallings, Vivienne Groner"
