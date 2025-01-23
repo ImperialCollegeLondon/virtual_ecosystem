@@ -447,6 +447,14 @@ class SoilPools:
             )
         )
 
+        # Calculate rate at which ammonium volatilises as ammonia
+        # TODO - This is a plausible validation target, so maybe want to save this as a
+        # variable in future.
+        ammonia_volatilisation_rate = (
+            self.constants.ammonia_volatilisation_rate_constant
+            * self.pools.soil_n_pool_ammonium
+        )
+
         primary_phosphorus_breakdown = (
             self.constants.primary_phosphorus_breakdown_rate
             * self.pools.soil_p_pool_primary
@@ -524,6 +532,7 @@ class SoilPools:
             + litter_mineralisation_flux.ammonium
             - microbial_changes.ammonium_change
             - nutrient_leaching.ammonium
+            - ammonia_volatilisation_rate
         )
         delta_pools_ordered["soil_n_pool_nitrate"] = (
             -microbial_changes.nitrate_change - nutrient_leaching.nitrate

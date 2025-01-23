@@ -444,6 +444,13 @@ class SoilConsts(ConstantsDataclass):
     give the flexibility to run longer term test scenarios.
     """
 
+    ammonia_volatilisation_rate_constant: float = 1e-9 * (24 * 60 * 60)
+    """Rate constant for ammonia volatilisation from ammonium [day^-1].
+    
+    Following :cite:t:`dickinson_nitrogen_2002`, linear kinetics are assumed. We also
+    take our default value from there.
+    """
+
     primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
     """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
     
