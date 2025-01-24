@@ -9,7 +9,9 @@ from typing import Any
 
 import numpy as np
 import xarray as xr
+from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.demography.flora import Flora
+from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -50,6 +52,10 @@ class PlantsModel(
         "plant_cohorts_n",
         "plant_cohorts_dbh",
         "photosynthetic_photon_flux_density",
+        "air_temperature",
+        "vapour_pressure_deficit",
+        "atmospheric_pressure",
+        "atmospheric_co2",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -138,10 +144,6 @@ class PlantsModel(
         flora: A Flora instance of the plant functional types to be used in the model.
         model_constants: Set of constants for the plants model.
     """
-
-    # TODO - think about a shared "plant cohort" core axis that defines the cohort
-    #        initialisation  data, but the issue here is that the length of this is
-    #        variable.
 
     @classmethod
     def from_config(
@@ -232,6 +234,12 @@ class PlantsModel(
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
         """Canopy layers."""
+
+        self.pmodel_consts = PModelConst()
+        """PModel constants used by pyrealm."""
+
+        self.pmodel_core_consts = CoreConst()
+        """Core constants used by pyrealm."""
 
         # Create and populate the canopy data layers and set the absorption from the
         # first time index
@@ -352,19 +360,19 @@ class PlantsModel(
         canopy for a particular time index and uses the ``layer_fapar`` data calculated
         by the canopy model to estimate the irradiance absorbed by each layer and the
         remaining irradiance at ground level.
-        """
 
-        # TODO:
-        # - With the full canopy model, this could be partitioned into sunspots
-        #   and shade.
-        # - At the moment, we're only looking at PPFD. We'd be better off working with
-        #   SWDown but need to work with @vgro about radiation.
+        TODO:
+          - With the full canopy model, this could be partitioned into sunspots
+            and shade.
+          - At the moment, we're only looking at PPFD. Need to talk to @vgro about the
+            fuller spectrum of radiation.
+        """  # noqa: D405 temporary section
 
         # Extract a PPFD time slice
         canopy_top_ppfd = (
             self.data["photosynthetic_photon_flux_density"]
             .isel(time_index=time_index)
-            .data
+            .to_numpy()
         )
 
         # Calculate the fate of PPFD through the layers
@@ -401,86 +409,61 @@ class PlantsModel(
             ValueError: if any of the P Model forcing variables are not defined.
         """
 
-        # For the moment check the data presence and dimensionality
-        # 1 ) PModelEnvironment vars
-        forcing_vars = (
-            "air_temperature",
-            "vapour_pressure_deficit",
-            "atmospheric_pressure",
-            "atmospheric_co2",
+        # Estimate the light use efficiency of leaves within each canopy layer within
+        # each grid cell. These are constant across all cohorts within each layer so can
+        # be calculated per cell easily.
+        pmodel_env = PModelEnvironment(
+            tc=self.data["air_temperature"].to_numpy(),
+            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
+            patm=self.data["atmospheric_pressure"].to_numpy(),
+            co2=self.data["atmospheric_co2"].to_numpy(),
+            core_const=self.pmodel_core_consts,
+            pmodel_const=self.pmodel_consts,
         )
+        pmodel = PModel(pmodel_env)
 
-        # Loop over the P Model environment forcing variables, checking they are found
-        for var in forcing_vars:
-            if var not in self.data:
-                msg = f"Variable missing from estimate_gpp: {var}"
-                LOGGER.critical(msg)
-                raise ValueError(msg)
-
-        # # Next step will to calculate the PModelEnvironment and fit the PModel
-        # pmodel_env = PModelEnvironment(
-        #     tc = self.data["air_temperature"].isel(time=time_index).data
-        #     vpd = self.data["vapour_pressure_deficit"].isel(time=time_index).data
-        #     patm = self.data["atmospheric_pressure"].isel(time=time_index).data
-        #     co2 = self.data["atmospheric_co2"].isel(time=time_index).data
-        #     const = self.pmodel_consts
-        # )
-        # pmodel = PModel(pmodel_env)
+        # The LUE in gC mol -1 of photons is then used to calculate the per stem and per
+        # layer gross primary productivity within the cohorts of each community. For
+        # each cell, the LUE per layer can be scaled the per stem, per layer fAPAR and
+        # the canopy top radiation and the stem leaf area. The total GPP per stem is
+        # then the sum across layers of those values.
         #
-        # This will give an array of the light use efficiency per layer per cell,
+        # Units: (gC mol-1) * (-) * (µmol m-2 s-1) * (m2)
+        #        = (µmol s-1)
+        # Dims: (n_layer, n_cohorts) * (n_layer, 1) * scalar * (n_layer, n_cohorts)
+        #        = (n_layer, n_cohorts)
 
-        # Get an array where populated canopy layers are one otherwise nan
-        filled_canopy = xr.where(
-            (self.data["layer_heights"] * self._canopy_layer_indices[:, None]) > 0,
-            1,
-            np.nan,
+        canopy_top_ppfd = (
+            self.data["photosynthetic_photon_flux_density"]
+            .isel(time_index=time_index)
+            .to_numpy()
         )
 
-        # Set a representative place holder LUE in gC mol-1 for now
-        self.data["layer_light_use_efficiency"] = filled_canopy * 0.3
+        for cell_id in self.canopies.keys():
+            canopy = self.canopies[cell_id]
 
-        # The LUE can then be scaled by the calculated absorbed irradiance, which is
-        # the product of the layer specific fapar and the downwelling PPFD. In practice,
-        # this will use something like:
-        #
-        # pmodel.estimate_productivity(
-        #     fapar=1, ppfd=self.data["canopy_absorption"]
-        # )
-        # but for now:
+            # The per layer per stem gpp is:
+            #  Per layer LUE * per stem per layer fAPAR * the canopy top PPFD.
+            # Dimensions:
+            #  (n_layer, n_cohorts) * (n_layer, 1) * scalar.
+            gpp_per_stem_per_second = (
+                canopy.cohort_data.stem_fapar
+                * pmodel.lue[:, [cell_id]][self.layer_structure.index_filled_canopy]
+                * canopy_top_ppfd[cell_id]
+                * canopy.cohort_data.stem_leaf_area
+            ).sum(axis=0)
 
-        self.data["layer_gpp_per_m2"] = (
-            self.data["layer_light_use_efficiency"] * self.data["canopy_absorption"]
-        )
+            # We then have the GPP in µg C s-1 for each stem, which can can converted to
+            # total GPP for the update time step
 
-        # We then have the gross primary productivity in µg C m-2 s-1 within each
-        # canopy layer for each cell. This needs to be converted into the per stem GPP
-        # for each cohort across the layers and scaled up from per second to the time
-        # step.
+            # TODO - calculate time covered in update properly
+            seconds_since_last_update = 30 * 24 * 60 * 60
 
-        # TODO - this implementation isn't great. Need to think about whether Cohorts
-        # are objects or whether Communities are a dataclass of arrays. Also need to
-        # think about where the split between the virtual_ecosystem layer definition
-        # (with above canopy/subcanopy/surface/soil) and the pyrealm canopy layer
-        # definition occurs.
+            gpp_per_stem = gpp_per_stem_per_second * seconds_since_last_update
 
-        # TODO - calculate time covered in update properly
-        seconds_since_last_update = 30 * 24 * 60 * 60
-
-        for cell_id, community in self.communities.items():
-            # Extract the vertical slice for this cell and reduce to the canopy layers
-            cell_gpp_per_m2 = (
-                self.data["layer_gpp_per_m2"]
-                .isel(cell_id=cell_id)
-                .data[self._canopy_layer_indices]
-            )
-            for cohort in community:
-                cohort.gpp = np.nansum(
-                    cohort.canopy_area * cell_gpp_per_m2 * seconds_since_last_update
-                )
-
-        # Estimate evapotranspiration
-        #  - currently just a placeholder for something more involved
-        self.data["evapotranspiration"] = filled_canopy * 20
+            # Estimate evapotranspiration
+            #  - currently just a placeholder for something more involved
+            self.data["evapotranspiration"] = filled_canopy * 20
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
