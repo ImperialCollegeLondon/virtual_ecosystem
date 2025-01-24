@@ -241,6 +241,60 @@ def calculate_clay_impact_on_enzyme_saturation(
     return base_protection + protection_with_clay * clay_fraction
 
 
+def calculate_nitrification_temperature_factor(
+    soil_temp: NDArray[np.float32],
+    optimum_temp: float,
+    max_temp: float,
+    thermal_sensitivity: int,
+) -> NDArray[np.float32]:
+    """Calculate factor that captures the effect of temperature on nitrification rate.
+
+    Form of this function is taken from :cite:t:`xu-ri_terrestrial_2008`.
+
+    Args:
+        soil_temp: Temperature of the relevant segment of soil [C]
+        optimum_temp: Temperature at which nitrification is maximised [K]
+        max_temp: Maximum temperature for which this expression still gives a meaningful
+            result [K]
+        thermal_sensitivity: Sensitivity of the factor to changes in temperature
+            [unitless]
+
+    Returns:
+        A factor capturing the impact of soil temperature on the nitrification rate
+        [unitless].
+    """
+
+    # Convert the temperatures to Kelvin
+    soil_temp_in_kelvin = convert_temperature(
+        soil_temp, old_scale="Celsius", new_scale="Kelvin"
+    )
+
+    return (
+        ((max_temp - soil_temp_in_kelvin) / (max_temp - optimum_temp))
+        ** thermal_sensitivity
+    ) * np.exp(
+        thermal_sensitivity
+        * ((soil_temp_in_kelvin - optimum_temp) / (max_temp - optimum_temp))
+    )
+
+
+def calculate_nitrification_moisture_factor(effective_saturation: NDArray[np.float32]):
+    """Calculate factor that captures the effect of soil moisture on nitrification rate.
+
+    Form of this function is taken from :cite:t:`fatichi_mechanistic_2019`, where it is
+    provided with basically no justification.
+
+    Args:
+        effective_saturation: Effective saturation of the soil with water [unitless]
+
+    Returns:
+        A factor capturing the impact of soil moisture on the nitrification rate
+        [unitless].
+    """
+
+    return effective_saturation * (1 - effective_saturation) / 0.25
+
+
 def calculate_leaching_rate(
     solute_density: NDArray[np.float32],
     vertical_flow_rate: NDArray[np.float32],

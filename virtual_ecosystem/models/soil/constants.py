@@ -451,6 +451,38 @@ class SoilConsts(ConstantsDataclass):
     take our default value from there.
     """
 
+    nitrification_rate_constant: float = 1e-6 * (24 * 60 * 60)
+    """Rate constant for nitrification from ammonium [day^-1].
+    
+    Following :cite:t:`dickinson_nitrogen_2002`, linear kinetics are assumed. We also
+    take our default value from there.
+    """
+
+    nitrification_optimum_temperature: float = 311.15
+    """Soil temperature at which nitrification is maximised [K].
+    
+    Value taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
+    independently of :attr:`nitrification_maximum_temperature` and
+    :attr:`nitrification_thermal_sensitivity`!
+    """
+
+    nitrification_maximum_temperature: float = 343.15
+    """Temperature at which our empirical nitrification model stops working [K].
+    
+    This is well outside field values so this should be too much of a problem. Value
+    taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
+    independently of :attr:`nitrification_optimum_temperature` and
+    :attr:`nitrification_thermal_sensitivity`!
+    """
+
+    nitrification_thermal_sensitivity: int = 12
+    """Sensitivity of nitrification rate to changes in temperature [K].
+    
+    Value taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
+    independently of :attr:`nitrification_optimum_temperature` and
+    :attr:`nitrification_maximum_temperature`!
+    """
+
     primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
     """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
     

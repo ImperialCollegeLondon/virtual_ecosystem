@@ -12,6 +12,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
     from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
 
@@ -53,8 +54,8 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_n_pool_ammonium": [-9.401275e-7, 8.7873657e-6, -0.000196226, 2.062898e-5],
-        "soil_n_pool_nitrate": [-9.654186e-6, -1.037421e-5, -3.632837e-5, -0.000273485],
+        "soil_n_pool_ammonium": [-6.657325e-6, -0.000415127, -0.00021181, -9.40141e-5],
+        "soil_n_pool_nitrate": [-3.936989e-6, 0.0004135406, -2.074930e-5, -0.000158842],
         "soil_p_pool_dop": [0.000194453, 7.1014337e-5, 0.0001851685, 0.0001017010],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [2.674836e-3, 1.333056e-3, 6.8090685e-3, 4.1429847e-5],
@@ -72,6 +73,10 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     delta_pools = soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=pool_order,
         top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
+        soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+        top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
+            0
+        ],
     )
 
     # Check that the updates are correctly calculated. Using a loop here implicitly
@@ -587,6 +592,34 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
 
     for key in expected_transfers.keys():
         assert np.allclose(expected_transfers[key], actual_transfers[key])
+
+
+def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_components):
+    """Test that calculation of the rate of nitrification is correct."""
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * HydroConsts.soil_moisture_capacity
+    )
+
+    expected_rate = [5.71719748e-6, 0.000423915, 1.557907e-5, 0.000114643]
+
+    actual_rate = calculate_rate_of_nitrification(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        effective_saturation=effective_saturation,
+        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
 
 
 def test_calculate_net_formation_of_secondary_P(dummy_carbon_data):

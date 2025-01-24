@@ -202,6 +202,55 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
     assert np.allclose(expected_factor, actual_factor)
 
 
+def test_calculate_nitrification_temperature_factor(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of nitrification temperature factor."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_nitrification_temperature_factor,
+    )
+
+    expected_factor = [0.95155852, 0.99855129, 0.97583452, 0.45663041]
+
+    actual_factor = calculate_nitrification_temperature_factor(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        optimum_temp=SoilConsts.nitrification_optimum_temperature,
+        max_temp=SoilConsts.nitrification_maximum_temperature,
+        thermal_sensitivity=SoilConsts.nitrification_thermal_sensitivity,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_nitrification_moisture_factor(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of nitrification moisture factor."""
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_nitrification_moisture_factor,
+    )
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * HydroConsts.soil_moisture_capacity
+    )
+
+    expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]
+
+    actual_factor = calculate_nitrification_moisture_factor(
+        effective_saturation=effective_saturation
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
 def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
     """Test calculation of solute leaching rates."""
     from virtual_ecosystem.models.soil.constants import SoilConsts

@@ -12,6 +12,7 @@ def fixture_soil_config():
 
     return Config(
         cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
+        "[hydrology]\n"
     )
 
 

@@ -150,6 +150,9 @@ class SoilModel(
         model_constants = load_constants(config, "soil", "SoilConsts")
         static = config["soil"]["static"]
 
+        # Also need to load in hydrology constants
+        hydro_constants = load_constants(config, "hydrology", "HydroConsts")
+
         LOGGER.info(
             "Information required to initialise the soil model successfully extracted."
         )
@@ -159,11 +162,13 @@ class SoilModel(
             core_components=core_components,
             static=static,
             model_constants=model_constants,
+            soil_moisture_capacity=hydro_constants.soil_moisture_capacity,
         )
 
     def _setup(
         self,
         model_constants: SoilConsts,
+        soil_moisture_capacity: float,
         **kwargs: Any,
     ) -> None:
         """Placeholder function to setup up the soil model."""
@@ -180,6 +185,8 @@ class SoilModel(
         # both the soil and abiotic models get more complex this might well change.
         self.model_constants: SoilConsts = model_constants
         """Set of constants for the soil model."""
+        self.soil_moisture_capacity = soil_moisture_capacity
+        """Soil moisture capacity, i.e. the maximum moisture the soil can hold."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
@@ -271,6 +278,8 @@ class SoilModel(
                 delta_pools_ordered,
                 self.model_constants,
                 self.core_constants.max_depth_of_microbial_activity,
+                self.soil_moisture_capacity,
+                self.layer_structure.soil_layer_thickness[0],
             ),
         )
 
@@ -304,6 +313,8 @@ def construct_full_soil_model(
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
     max_depth_of_microbial_activity: float,
+    soil_moisture_capacity: float,
+    top_soil_layer_thickness: float,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -320,6 +331,9 @@ def construct_full_soil_model(
         model_constants: Set of constants for the soil model.
         max_depth_of_microbial_activity: Maximum depth of the soil profile where
             microbial activity occurs [m].
+        soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
+            (volumetric) moisture the soil can hold [unitless].
+        top_soil_layer_thickness: Thickness of the topsoil layer [mm].
 
     Returns:
         The rate of change for each soil pool
@@ -343,6 +357,8 @@ def construct_full_soil_model(
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
         top_soil_layer_index=top_soil_layer_index,
+        soil_moisture_capacity=soil_moisture_capacity,
+        top_soil_layer_thickness=top_soil_layer_thickness,
     )
 
 

@@ -17,6 +17,8 @@ from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
     calculate_environmental_effect_factors,
     calculate_leaching_rate,
+    calculate_nitrification_moisture_factor,
+    calculate_nitrification_temperature_factor,
     calculate_temperature_effect_on_microbes,
 )
 
@@ -292,6 +294,8 @@ class SoilPools:
         self,
         delta_pools_ordered: dict[str, NDArray[np.float32]],
         top_soil_layer_index: int,
+        soil_moisture_capacity: float,
+        top_soil_layer_thickness: float,
     ) -> NDArray[np.float32]:
         """Calculate net change for all soil pools.
 
@@ -314,6 +318,9 @@ class SoilPools:
                 pools are stored in the initial condition vector.
             top_soil_layer_index: Index for layer in data object representing top soil
                 layer
+            soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
+                (volumetric) moisture the soil can hold [unitless].
+            top_soil_layer_thickness: Thickness of the topsoil layer [mm].
 
         Returns:
             A vector containing net changes to each pool. Order [lmwc, maom].
@@ -327,6 +334,12 @@ class SoilPools:
             top_soil_layer_index
         ].to_numpy()
         soil_moisture = self.data["soil_moisture"][top_soil_layer_index].to_numpy()
+        # Calculate the effective saturation of the soil (soil layer thickness needs to
+        # be converted from m to mm here to be consistent with soil moisture units)
+        # TODO - This needs to be reviewed as part of the soil abiotic links review
+        effective_saturation = self.data["soil_moisture"][
+            top_soil_layer_index
+        ].to_numpy() / (soil_moisture_capacity * top_soil_layer_thickness * 1e3)
 
         # Find environmental factors which impact biogeochemical soil processes
         env_factors = calculate_environmental_effect_factors(
@@ -447,9 +460,19 @@ class SoilPools:
             )
         )
 
+        # TODO - Gas fluxes from soil area plausible validation target, but with the
+        # exception of ammonia need more work to extract. But functionality to do this
+        # and save it to the data object is something to think about in future.
+
+        # Calculate nitrification and denitrification rates
+        nitrification_rate = calculate_rate_of_nitrification(
+            soil_temp=soil_temperature,
+            effective_saturation=effective_saturation,
+            soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
+            constants=self.constants,
+        )
+
         # Calculate rate at which ammonium volatilises as ammonia
-        # TODO - This is a plausible validation target, so maybe want to save this as a
-        # variable in future.
         ammonia_volatilisation_rate = (
             self.constants.ammonia_volatilisation_rate_constant
             * self.pools.soil_n_pool_ammonium
@@ -533,9 +556,12 @@ class SoilPools:
             - microbial_changes.ammonium_change
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
+            - nitrification_rate
         )
         delta_pools_ordered["soil_n_pool_nitrate"] = (
-            -microbial_changes.nitrate_change - nutrient_leaching.nitrate
+            nitrification_rate
+            - microbial_changes.nitrate_change
+            - nutrient_leaching.nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_flux.dop
@@ -1538,6 +1564,46 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
         "nitrogen": maom_nitrogen_loss - maom_nitrogen_gain,
         "phosphorus": maom_phosphorus_loss - maom_phosphorus_gain,
     }
+
+
+def calculate_rate_of_nitrification(
+    soil_temp: NDArray[np.float32],
+    effective_saturation: NDArray[np.float32],
+    soil_n_pool_ammonium: NDArray[np.float32],
+    constants: SoilConsts,
+) -> NDArray[np.float32]:
+    """Calculate the rate at which ammonium nitrifies to form nitrate.
+
+    This is an empirical relationship that we have taken from
+    :cite:t:`fatichi_mechanistic_2019`.
+
+    Args:
+        soil_temp: Temperature of the relevant segment of soil [C]
+        effective_saturation: Effective saturation of the soil with water [unitless]
+        soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The rate at which ammonium nitrifies to form nitrate [kg N m^-3 day^-1].
+    """
+
+    # Calculate moisture and temperature factors
+    temp_factor = calculate_nitrification_temperature_factor(
+        soil_temp=soil_temp,
+        optimum_temp=constants.nitrification_optimum_temperature,
+        max_temp=constants.nitrification_maximum_temperature,
+        thermal_sensitivity=constants.nitrification_thermal_sensitivity,
+    )
+    moisture_factor = calculate_nitrification_moisture_factor(
+        effective_saturation=effective_saturation
+    )
+
+    return (
+        constants.nitrification_rate_constant
+        * temp_factor
+        * moisture_factor
+        * soil_n_pool_ammonium
+    )
 
 
 def calculate_net_formation_of_secondary_P(
