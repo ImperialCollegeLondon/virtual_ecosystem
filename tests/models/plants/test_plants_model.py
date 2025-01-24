@@ -92,13 +92,8 @@ def test_PlantsModel_update_canopy_layers(
     del fixture_canopy_layer_data["canopy_absorption"]
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
-
-    # Check canopy_absorption is indeed still empty
-    xarray.testing.assert_allclose(
-        fxt_plants_model.data["canopy_absorption"], from_template()
-    )
 
 
 def test_PlantsModel_set_canopy_absorption(
@@ -125,7 +120,7 @@ def test_PlantsModel_set_canopy_absorption(
 
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
 

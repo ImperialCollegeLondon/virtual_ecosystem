@@ -233,7 +233,8 @@ class PlantsModel(
         )
         """Canopy layers."""
 
-        # Extract and compile data arrays for the canopies across cells
+        # Create and populate the canopy data layers and set the absorption from the
+        # first time index
         self.update_canopy_layers()
         self.set_canopy_absorption(time_index=0)
 
@@ -280,8 +281,6 @@ class PlantsModel(
         * the fraction of absorbed photosynthetically active radation in each layer
           (``layer_fapar``), and
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
-        * the absorbed irradiance in each layer, including the remaining incident
-          radation at ground level (``canopy_absorption``).
         """
 
         canopy_array_shape = (self.layer_structure.n_canopy_layers, self.grid.n_cells)
@@ -289,7 +288,6 @@ class PlantsModel(
         fapar = np.full(canopy_array_shape, fill_value=np.nan)
         lai = np.full(canopy_array_shape, fill_value=np.nan)
         mass = np.full(canopy_array_shape, fill_value=np.nan)
-        absorption = np.full(canopy_array_shape, fill_value=np.nan)
 
         for cell_id, canopy, community in zip(
             self.canopies, self.canopies.values(), self.communities.values()
@@ -329,24 +327,22 @@ class PlantsModel(
             # LAI - add up LAI across cohorts within layers
             lai[fill_idx] = canopy.cohort_data.lai.sum(axis=1, keepdims=True)
 
-            # Absorption
-            absorption[fill_idx] = canopy.community_data.fapar.reshape((-1, 1))
-
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
         self.data["leaf_area_index"][self._canopy_layer_indices, :] = lai
         self.data["layer_fapar"][self._canopy_layer_indices, :] = fapar
         self.data["layer_leaf_mass"][self._canopy_layer_indices, :] = mass
-        self.data["canopy_absorption"][self._canopy_layer_indices, :] = absorption
 
         # Add the above canopy reference height
         self.data["layer_heights"][self.layer_structure.index_above, :] = (
             heights[0, :] + self.layer_structure.above_canopy_height_offset
         )
 
-        # Add the fraction of radiation reaching ground level
-        self.data["canopy_absorption"][self.layer_structure.index_surface, :] = (
-            1.0 - absorption.sum(axis=0)
+        # Update the filled canopy layers
+        self.layer_structure.set_filled_canopy(canopy_heights=heights)
+
+        LOGGER.info(
+            f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
 
     def set_canopy_absorption(self, time_index: int) -> None:
@@ -358,8 +354,11 @@ class PlantsModel(
         remaining irradiance at ground level.
         """
 
-        # TODO: With the full canopy model, this could be partitioned into sunspots and
-        #       shade.
+        # TODO:
+        # - With the full canopy model, this could be partitioned into sunspots
+        #   and shade.
+        # - At the moment, we're only looking at PPFD. We'd be better off working with
+        #   SWDown but need to work with @vgro about radiation.
 
         # Extract a PPFD time slice
         canopy_top_ppfd = (
@@ -369,15 +368,13 @@ class PlantsModel(
         )
 
         # Calculate the fate of PPFD through the layers
-        absorbed_irradiance = canopy_top_ppfd * self.data["layer_fapar"].data
-        ground_irradiance = canopy_top_ppfd - np.nansum(absorbed_irradiance, axis=0)
+        absorbed_irradiance = canopy_top_ppfd * self.data["layer_fapar"]
+        # Add the remaining irradiance at the surface layer level
+        absorbed_irradiance[self.layer_structure.index_surface] = (
+            canopy_top_ppfd - np.nansum(absorbed_irradiance, axis=0)
+        )
 
-        # Store the absorbed irradiance in the data object and add the remaining
-        # irradiance at the surface layer level
-        # NOTE - this is only the _PPFD_ at ground level not the SWDown.
-        self.data["canopy_absorption"][:] = absorbed_irradiance
-        ground = np.where(self.data["layer_roles"].data == "surface")[0]
-        self.data["canopy_absorption"][ground] = ground_irradiance
+        self.data["canopy_absorption"] = absorbed_irradiance
 
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.

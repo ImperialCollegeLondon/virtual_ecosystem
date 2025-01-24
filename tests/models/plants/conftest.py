@@ -122,32 +122,81 @@ def fixture_canopy_layer_data(fixture_core_components):
     return {
         "layer_heights_full": (
             "layer_heights",
-            np.array([32, 30, 20, 10, 0.1, -0.5, -1]),
+            np.array(
+                [
+                    [31.66797952, 31.66797952, 31.66797952, 31.66797952],
+                    [29.66797952, 29.66797952, 29.66797952, 29.66797952],
+                    [28.57219268, 28.34012822, 27.87517919, 1.02256003],
+                    [27.87517997, 27.35745311, np.nan, np.nan],
+                    [27.05144791, np.nan, np.nan, np.nan],
+                    [0.1, 0.1, 0.1, 0.1],
+                    [-0.5, -0.5, -0.5, -0.5],
+                    [-1.0, -1.0, -1.0, -1.0],
+                ]
+            ),
             np.logical_or(lyr_strct.index_filled_atmosphere, lyr_strct.index_all_soil),
         ),
         "layer_heights_canopy": (
             "layer_heights",
-            np.array([32, 30, 20, 10]),
+            np.array(
+                [
+                    [31.66797952, 31.66797952, 31.66797952, 31.66797952],
+                    [29.66797952, 29.66797952, 29.66797952, 29.66797952],
+                    [28.57219268, 28.34012822, 27.87517919, 1.02256003],
+                    [27.87517997, 27.35745311, np.nan, np.nan],
+                    [27.05144791, np.nan, np.nan, np.nan],
+                ],
+            ),
             np.logical_or(lyr_strct.index_above, lyr_strct.index_filled_canopy),
         ),
         "leaf_area_index": (
             "leaf_area_index",
-            np.array([1, 1, 1]),
+            np.array(
+                [
+                    [1.76395258e00, 1.76394186e00, 1.76400479e00, 1.79998897e00],
+                    [1.76405508e00, 1.76443550e00, 1.72228517e00, 1.14824589e-04],
+                    [1.76388228e00, 1.75668428e00, np.nan, np.nan],
+                    [1.73664971e00, np.nan, np.nan, np.nan],
+                ]
+            ),
             lyr_strct.index_filled_canopy,
         ),
         "layer_fapar": (
             "layer_fapar",
-            np.array([0.4, 0.2, 0.1]),
+            np.array(
+                [
+                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
+                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
+                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
+                    [4.11687555e-02, np.nan, np.nan, np.nan],
+                ]
+            ),
             lyr_strct.index_filled_canopy,
         ),
         "canopy_absorption": (
             "canopy_absorption",
-            np.array([400, 200, 100, 300]),
+            np.array(
+                [
+                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
+                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
+                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
+                    [4.11687555e-02, np.nan, np.nan, np.nan],
+                    [0.02976953, 0.0711809, 0.17496926, 0.40654856],
+                ]
+            )
+            * 1000,
             np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface),
         ),
         "layer_leaf_mass": (
             "layer_leaf_mass",
-            np.array([10000, 10000, 10000]),
+            np.array(
+                [
+                    [1.02057257e03, 1.02056636e03, 1.02060277e03, 1.04142219e03],
+                    [1.02063187e03, 1.02085197e03, 9.96464992e02, 6.64342267e-02],
+                    [1.02053189e03, 1.01636733e03, np.nan, np.nan],
+                    [1.00477590e03, np.nan, np.nan, np.nan],
+                ]
+            ),
             lyr_strct.index_filled_canopy,
         ),
     }
