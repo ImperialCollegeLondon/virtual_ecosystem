@@ -248,6 +248,15 @@ class AnimalConsts(ConstantsDataclass):
     should be a constant, but as a simplifying assumption it is.
     """
 
+    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {"C": 0.5, "N": 0.3, "P": 0.2},  # Toy C:N:P values
+            TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},  # Toy C:N:P values
+            TaxaType.INSECT: {"C": 0.4, "N": 0.2, "P": 0.3},  # Toy C:N:P values
+        }
+    )
+    """Proportions of CNP that are standard among the taxa groups."""
+
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
