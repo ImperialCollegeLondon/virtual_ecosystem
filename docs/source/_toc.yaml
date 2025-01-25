@@ -214,6 +214,7 @@ subtrees:
 
   - caption: Reference
     entries:
+      - file: glossary
       - file: bibliography
       - file: genindex
       - file: modindex

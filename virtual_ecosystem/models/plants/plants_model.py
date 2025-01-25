@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 import xarray as xr
+from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.demography.flora import Flora
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -20,6 +21,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
+    PlantCanopy,
     calculate_canopies,
     initialise_canopy_layers,
 )
@@ -145,6 +147,41 @@ class PlantsModel(
         model_constants: Set of constants for the plants model.
     """
 
+    # TODO - think about a shared "plant cohort" core axis that defines the cohort
+    #        initialisation  data, but the issue here is that the length of this is
+    #        variable.
+
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Plants init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.flora: Flora
+        """A flora containing the plant functional types used in the plants model."""
+        self.model_constant: PlantsConsts
+        """Set of constants for the plants model"""
+        self.communities: PlantCommunities
+        """Initialise the plant communities from the data object."""
+        self._canopy_layer_indices: NDArray[np.bool_]
+        """The indices of the canopy layers within wider vertical profile. This is 
+        a shorter reference to self.layer_structure.index_canopy."""
+        self.canopies: dict[int, PlantCanopy]
+        """A dictionary giving the canopy structure of each grid cell."""
+        self.pmodel_consts: PModelConst
+        """PModel constants used by pyrealm."""
+        self.pmodel_core_consts: CoreConst
+        """Core constants used by pyrealm."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -185,12 +222,6 @@ class PlantsModel(
         LOGGER.info("Plants model instance generated from configuration.")
         return inst
 
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
-
     def _setup(
         self,
         flora: Flora,
@@ -206,19 +237,14 @@ class PlantsModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        # Save the class attributes
+        # Set the instance attributes from the __init__ arguments
         self.flora = flora
-        """A flora containing the plant functional types used in the plants model."""
         self.model_constants = model_constants
-        """Set of constants for the plants model"""
         self.communities = PlantCommunities(
             data=self.data, flora=self.flora, grid=self.grid
         )
-        """Initialise the plant communities from the data object."""
-
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
-        """The indices of the canopy layers within wider vertical profile"""
 
         # Initialise the canopy layer arrays.
         # TODO - this initialisation step may move somewhere else at some point see #442
@@ -226,20 +252,16 @@ class PlantsModel(
             data=self.data,
             layer_structure=self.layer_structure,
         )
-        """A reference to the global data object."""
 
         # Calculate the community canopy representations.
         self.canopies = calculate_canopies(
             communities=self.communities,
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
-        """Canopy layers."""
 
+        # TODO - #697 these need to be configurable
         self.pmodel_consts = PModelConst()
-        """PModel constants used by pyrealm."""
-
         self.pmodel_core_consts = CoreConst()
-        """Core constants used by pyrealm."""
 
         # Create and populate the canopy data layers and set the absorption from the
         # first time index
@@ -376,7 +398,7 @@ class PlantsModel(
         )
 
         # Calculate the fate of PPFD through the layers
-        absorbed_irradiance = canopy_top_ppfd * self.data["layer_fapar"]
+        absorbed_irradiance = self.data["layer_fapar"] * canopy_top_ppfd
         # Add the remaining irradiance at the surface layer level
         absorbed_irradiance[self.layer_structure.index_surface] = (
             canopy_top_ppfd - np.nansum(absorbed_irradiance, axis=0)
@@ -463,7 +485,7 @@ class PlantsModel(
 
             # Estimate evapotranspiration
             #  - currently just a placeholder for something more involved
-            self.data["evapotranspiration"] = filled_canopy * 20
+            # self.data["evapotranspiration"] = 20
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

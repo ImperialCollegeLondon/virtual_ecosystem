@@ -148,12 +148,6 @@ def ve_run(
 
     LOGGER.info("All models successfully intialised.")
 
-    # Setup all models (those with placeholder setup processes won't change at all)
-    for model in models_init.values():
-        model.setup()
-
-    LOGGER.info("All models successfully set up.")
-
     # TODO - A model spin up might be needed here in future
 
     # Create output folder if it does not exist

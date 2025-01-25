@@ -256,8 +256,8 @@ class SoilConsts(ConstantsDataclass):
     a loose manner.
     """
 
-    solubility_coefficient_don: float = 1.0
-    """Solubility coefficient for dissolved organic nitrogen [unitless].
+    solubility_coefficient_labile_p: float = 0.005
+    """Solubility coefficient for labile inorganic phosphorus [unitless].
 
     Value taken from :cite:t:`fatichi_mechanistic_2019`, where it is estimated in quite
     a loose manner.
@@ -310,6 +310,21 @@ class SoilConsts(ConstantsDataclass):
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
+    litter_leaching_fraction_phosphorus = 0.0001
+    """Fraction of phosphorus mineralisation from litter that occurs by leaching.
+    
+    [unitless]. The remainder of the mineralisation consists of particulates. Value is
+    an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
+    """
+
+    organic_proportion_litter_phosphorus_leaching = 1.0
+    """Fraction of leached phosphrous from litter mineralisation that is organic form.
+    
+    [unitless]. The remainder of the leaching consists of inorganic phosphorus. Value is
+    taken from :cite:t:`fatichi_mechanistic_2019`, where it is assumed that phosphorus
+    leaches from litter solely in organic form.
+    """
+
     microbial_c_n_ratio = 5.2
     """Ratio of carbon to nitrogen in microbial biomass [unitless].
     
@@ -318,8 +333,16 @@ class SoilConsts(ConstantsDataclass):
     added this constant needs to be split.
     """
 
+    microbial_c_p_ratio = 16
+    """Ratio of carbon to phosphorus in microbial biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature. Here using specifically the bacterial value, once fungi are 
+    added this constant needs to be split.
+    """
+
     max_uptake_rate_don = 0.0077
-    """Maximum rate at for dissolved organic nitrogen uptake [day^-1].
+    """Maximum possible rate for dissolved organic nitrogen uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
     :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
@@ -338,4 +361,80 @@ class SoilConsts(ConstantsDataclass):
 
     TODO - At present I've invented the value for this constant, so it really needs to
     be better pinned down.
+    """
+
+    max_uptake_rate_dop = 0.0025
+    """Maximum possible rate for dissolved organic phosphorus uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_dop_uptake: float = 0.02275
+    """Half saturation constant for uptake of dissolved organic phosphorus (DOP).
+
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    max_uptake_rate_labile_p = 0.0025
+    """Maximum possible rate for labile inorganic phosphorus uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_labile_p_uptake: float = 0.02275
+    """Half saturation constant for uptake of labile inorganic phosphorus.
+
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    tectonic_uplift_rate_phosphorus: float = 0.0
+    """Rate at which tectonic uplift exposes new primary phosphorus [kg P m^-3 day^-1].
+
+    This rate is essientially zero for decadal simulations. We have only included to
+    give the flexibility to run longer term test scenarios.
+    """
+
+    primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
+    """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
+    
+    Default value taken from :cite:t:`parton_dynamics_1988`.
+    """
+
+    secondary_phosphorus_breakdown_rate: float = 1.0 / 13500
+    """Rate constant for breakdown of secondary mineral to labile phosphorus [day^-1].
+    
+    Default value taken from :cite:t:`parton_dynamics_1988`.
+    """
+
+    labile_phosphorus_sorption_rate: float = 1.0 / 600
+    """Rate constant for sorption of labile phosphorus to secondary mineral phosphorus.
+    
+    Units of [day^-1]. Default value taken from :cite:t:`parton_dynamics_1988`.
+    """
+
+    phosphorus_deposition_rate: float = 5e-6 / 365.25
+    """Rate at which phosphorus is deposited into the system [kg P m^-2 day^-1].
+    
+    We are assuming that deposistion rates won't vary substantially over the area the
+    simulation encompasses. Value taken from :cite:t:`Mahowald2008`.
     """
