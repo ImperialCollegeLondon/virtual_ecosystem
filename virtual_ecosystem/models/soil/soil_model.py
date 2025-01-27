@@ -124,6 +124,24 @@ class SoilModel(
     as the Virtual Ecosystem develops.
     """
 
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Soil init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.soil.soil_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.model_constants: SoilConsts
+        """Set of constants for the soil model."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -172,8 +190,7 @@ class SoilModel(
 
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
-        self.model_constants: SoilConsts = model_constants
-        """Set of constants for the soil model."""
+        self.model_constants = model_constants
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""

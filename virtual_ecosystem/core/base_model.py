@@ -9,6 +9,8 @@ at that stage. The stages are:
 
 * Creating a model instance (:class:`~virtual_ecosystem.core.base_model.BaseModel`).
 * Setup a model instance (:meth:`~virtual_ecosystem.core.base_model.BaseModel._setup`).
+  This method should include any initialization logic including validating and
+  populating class attributes.
 * Perform any spinup required to get a model state to equilibrate
   (:meth:`~virtual_ecosystem.core.base_model.BaseModel.spinup`).
 * Update the model from one time step to the next
@@ -56,8 +58,10 @@ and validates the class attributes for the new model class.
 The ``BaseModel.__init__`` method
 ----------------------------------
 
-Each model subclass will include an ``__init__`` method that validates and populates
-model specific attributes. That ``__init__`` method **must** call the
+Each model subclass should include an ``__init__`` method that defines all
+model specific attributes. The ``__init__`` should not contain any further
+initialization logic, which should happen in the subclass ``_setup`` method instead.
+The ``__init__`` method **must** call the
 :meth:`BaseModel.__init__() <virtual_ecosystem.core.base_model.BaseModel.__init__>`
 method, as this populates core shared model attrributes - see the linked method
 description for details.
@@ -605,8 +609,6 @@ class BaseModel(ABC):
                 defined
             TypeError: If model_name is not a string
         """
-        if cls.__init__ != BaseModel.__init__:
-            raise NotImplementedError("Model subclasses cannot override __init__.")
 
         if cls.update != BaseModel.update:
             raise NotImplementedError(
