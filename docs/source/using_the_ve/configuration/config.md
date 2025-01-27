@@ -198,15 +198,35 @@ All models (except `core`) accept a boolean configuration option, `static`, that
 indicates if such a model should be updated every iteration (`static=false`, the
 default behaviour) or not.
 
-If `static=true`, there are several possibilities depending on the data
-variables available in the [`Data` object](../data/data.md):
+If `static=true`, the initial model behaviour depends on the data variables available in
+the [`Data` object](../data/data.md).
 
-- For the initialisation, if the variables that are populated are:
-  - **All present**: The model initialisation process is bypassed.
-  - **None present**: The model initialisation process runs normally.
-- For the update, if the variables that are populated are:
-  - **All present**: Then the update process is bypassed.
-  - **None present**: The update *is run just once*, keeping the same values for those
-  variables throughout the simulation.
+* If the data object has all varibles in the model's `vars_populated_by_init`, then the
+model `_setup` function is skipped.
+* If the data object contains all `vars_populated_by_first_update` then the `update` is
+skipped, otherwise it is run once to initialise the variables and then frozen for the
+rest of the simulation run.
+
+Since it is not possible for the model to run `update` without first running `setup`, if
+this combination of variables is provided the simulation will not run. In summary, the
+model options are:
+
+| Static | _setup | _update | Comments                                                 |
+| ------ | ------ | ------- | ---------------------------------------------------------|
+| No     | Yes    | Yes     | Default model behaviour.                                 |
+| Yes    | Yes    | Once    | Update once and freeze.                                  |
+| Yes    | No     | No      | All setup and update data are provided from the config.  |
+| Yes    | No     | Once    | Impromper configuration, will not run.                   |
+| Yes    | Yes    | No      | Unlikely scenario - setup runs but update does not.      |
+
+In the above table, the most common static configuration uses cases will be options 2
+and 3.
+
+* Option 2 covers the cases when standard initial data is provided to the model, without
+any of the variables set by logic in `_setup` or `update`. This is what would happen
+using the example data (tutorial TODO).
+* Option 3 requires all model variables to be predefined. The most likely case for this
+is when using a previously run model configuration file, which includes all the
+variables initialised by the `_setup` and `update` functions.
 
 Providing some but not all of the variables will result in an error in all cases.
