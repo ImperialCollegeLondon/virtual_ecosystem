@@ -289,3 +289,46 @@ def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_te
     # Check that the number of layers matches the expected layers
     assert updated_temperature.shape[0] == exp_n
     np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
+
+
+def test_update_air_canopy_temperature():
+    """Test update air and canopy temperatures."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_air_canopy_temperature,
+    )
+
+    # Test inputs (2D arrays for layers and grid cells)
+    net_radiation_canopy = np.array([[190.0, 240.0], [290.0, 340.0]])
+    sensible_heat_flux_canopy = np.array([[50.0, 60.0], [70.0, 80.0]])
+    latent_heat_flux_canopy = np.array([[30.0, 40.0], [50.0, 60.0]])
+    air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])  # K
+    canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])  # K
+    density_air = np.array([[1.2, 1.2], [1.2, 1.2]])  # kg m-3
+    specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])  # J kg-1 K-1
+    time_interval = 60.0  # s
+
+    # Expected outputs (calculated manually)
+    expected_canopy_temperature = np.array(
+        [[310.472637, 306.965174], [303.457711, 299.950249]]
+    )
+    expected_air_temperature = np.array([[302.48755, 297.98508], [293.48257, 288.9801]])
+
+    # Call the function
+    updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
+        net_radiation_canopy=net_radiation_canopy,
+        sensible_heat_flux_canopy=sensible_heat_flux_canopy,
+        latent_heat_flux_canopy=latent_heat_flux_canopy,
+        air_temperature=air_temperature,
+        canopy_temperature=canopy_temperature,
+        density_air=density_air,
+        specific_heat_air=specific_heat_air,
+        time_interval=time_interval,
+    )
+
+    # Assertions
+    np.testing.assert_allclose(
+        updated_canopy_temperature, expected_canopy_temperature, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        updated_air_temperature, expected_air_temperature, rtol=1e-4
+    )

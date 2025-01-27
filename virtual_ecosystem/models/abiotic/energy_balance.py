@@ -445,3 +445,49 @@ def update_soil_temperature(
     )
 
     return new_soil_temperature
+
+
+def update_air_canopy_temperature(
+    net_radiation_canopy: NDArray[np.float32],
+    sensible_heat_flux_canopy: NDArray[np.float32],
+    latent_heat_flux_canopy: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    canopy_temperature: NDArray[np.float32],
+    density_air: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    time_interval: float,
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Update air and canopy temperatures.
+
+    Parameters:
+        net_radiation_canopy: Net radiation at all canopy layers, [W m-2]
+        sensible_heat_flux_canopy: Sensible heat flux from all canopy layers, [W m-2]
+        latent_heat_flux_canopy: Latent heat flux from all canopy layers, [W m-2]
+        air_temperature: Air temperature for all layers around true canopy, [K]
+        canopy_temperature: canopy temperatures for all true canopy layers, [K]
+        density_air: Density of air, [kg m-3]
+        specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
+        time_interval: Time interval, [s]
+
+    Returns:
+        Updated canopy and air temperatures, [K]
+    """
+
+    # Energy balance for canopy
+    energy_balance_canopy = (
+        net_radiation_canopy - sensible_heat_flux_canopy - latent_heat_flux_canopy
+    )
+    temperature_change_canopy = (
+        energy_balance_canopy / (density_air * specific_heat_air)
+    ) * time_interval
+
+    # Update canopy temperature
+    canopy_temperature += temperature_change_canopy
+
+    # Update air temperature based on sensible heat exchange
+    temperature_change_air = (
+        sensible_heat_flux_canopy / (density_air * specific_heat_air)
+    ) * time_interval
+    air_temperature += temperature_change_air
+
+    return canopy_temperature, air_temperature
