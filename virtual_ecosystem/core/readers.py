@@ -33,7 +33,10 @@ using :func:`~virtual_ecosystem.core.axes.validate_dataarray`. For example:
 
 from collections.abc import Callable
 from pathlib import Path
+from zipfile import BadZipFile
 
+from pandas import read_csv, read_excel
+from pandas.errors import ParserError
 from xarray import DataArray, load_dataset
 
 from virtual_ecosystem.core.logger import LOGGER
@@ -55,7 +58,7 @@ function itself should have the following signature:
 """
 
 
-def register_file_format_loader(file_types: tuple[str]) -> Callable:
+def register_file_format_loader(file_types: tuple[str, ...]) -> Callable:
     """Adds a data loader function to the data loader registry.
 
     This decorator is used to register a function that loads data from a given file type
@@ -132,6 +135,88 @@ def load_netcdf(file: Path, var_name: str) -> DataArray:
         raise to_raise
 
     return dataset[var_name]
+
+
+@register_file_format_loader(file_types=(".csv",))
+def load_csv(file: Path, var_name: str) -> DataArray:
+    """Loads a DataArray from a csv file.
+
+    Args:
+        file: A Path for a csv or excel file containing the variable to load.
+        var_name: A string providing the name of the variables in this file.
+
+    Raises:
+        FileNotFoundError: with bad file path names.
+        ParserError: if the csv data is not readable.
+    """
+
+    to_raise: Exception
+
+    # Try to load file
+    try:
+        dataset = read_csv(file)
+    except FileNotFoundError:
+        to_raise = FileNotFoundError(f"Data file not found: {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+    except ParserError as err:
+        to_raise = ParserError(f"Could not load data from {file}: {err}.")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    # Check if file var is in the dataset
+    if var_name not in dataset.columns:
+        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    return dataset[var_name].to_xarray()
+
+
+@register_file_format_loader(file_types=(".xlsx",))
+def load_excel(file: Path, var_name: str) -> DataArray:
+    """Loads a DataArray from an excel file.
+
+    Args:
+        file: A Path for a csv or excel file containing the variable to load.
+        var_name: A string providing the name of the variables in this file.
+
+    Raises:
+        FileNotFoundError: with bad file path names.
+        BadZipFile: if the excel file is corrupted.
+        Exception: catches other exceptions from openpyxl.
+
+    Note: BadZipFile is the most common error thrown by openpyxl for corrupted excel
+    files, which is based on their internal processing files as zips. The general
+    exception is included to cover other possible issues from openpyxl, as it has
+    various other potential failure modes.
+    """
+
+    to_raise: Exception
+
+    # Determine dataframe file type & load file
+    try:
+        dataset = read_excel(file, engine="openpyxl")
+    except FileNotFoundError:
+        to_raise = FileNotFoundError(f"Data file not found: {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+    except BadZipFile as err:
+        to_raise = BadZipFile(f"Could not load data from {file}: {err}.")
+        LOGGER.critical(to_raise)
+        raise to_raise
+    except Exception as err:
+        to_raise = Exception(f"Unidentified exception opening {file}: {err}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    # Check if file var is in the dataset
+    if var_name not in dataset.columns:
+        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+        LOGGER.critical(to_raise)
+        raise to_raise
+
+    return dataset[var_name].to_xarray()
 
 
 def load_to_dataarray(

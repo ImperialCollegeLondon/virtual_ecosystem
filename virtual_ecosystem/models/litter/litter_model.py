@@ -2,7 +2,6 @@
 :class:`~virtual_ecosystem.models.litter.litter_model.LitterModel` class as a child of
 the :class:`~virtual_ecosystem.core.base_model.BaseModel` class. At present a lot of
 the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
 :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the Virtual Ecosystem
 model develops. The factory method
@@ -160,6 +159,26 @@ class LitterModel(
         model_constants: Set of constants for the litter model.
     """
 
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Litter init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.litter.litter_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.litter_chemistry: LitterChemistry
+        """Litter chemistry object for tracking of litter pool chemistries."""
+        self.model_constants: LitterConsts
+        """Set of constants for the litter model."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -190,12 +209,6 @@ class LitterModel(
             static=static,
             model_constants=model_constants,
         )
-
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
 
     def _setup(
         self,
@@ -274,10 +287,7 @@ class LitterModel(
             raise to_raise
 
         self.litter_chemistry = LitterChemistry(self.data, constants=model_constants)
-        """Litter chemistry object for tracking of litter pool chemistries."""
-
         self.model_constants = model_constants
-        """Set of constants for the litter model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""

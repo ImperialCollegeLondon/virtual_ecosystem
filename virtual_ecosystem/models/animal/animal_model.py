@@ -2,7 +2,6 @@
 :class:`~virtual_ecosystem.models.animal.animal_model.AnimalModel` class as a
 child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
 At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.setup` and
 :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
 placeholder functions that don't do anything. This will change as the
 Virtual Ecosystem model develops. The factory method
@@ -122,11 +121,39 @@ class AnimalModel(
         model_constants: Set of constants for the animal model.
     """
 
-    communities: dict[int, list[AnimalCohort]]
-    """Animal communities with grid cell IDs and lists of AnimalCohorts."""
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Animal init function.
 
-    cohorts: dict[uuid.UUID, AnimalCohort]
-    """A dictionary of all animal cohorts and their unique ids."""
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.communities: dict[int, list[AnimalCohort]]
+        """Animal communities with grid cell IDs and lists of AnimalCohorts."""
+        self.cohorts: dict[uuid.UUID, AnimalCohort]
+        """A dictionary of all animal cohorts and their unique ids."""
+        self.update_interval_timedelta: timedelta64
+        """Convert pint update_interval to timedelta64 once during initialization."""
+        self.functional_groups: list[FunctionalGroup]
+        """List of functional groups in the model."""
+        self.model_constants: AnimalConsts
+        """Animal constants."""
+        self.plant_resources: dict[int, list[Resource]]
+        """The plant resource pools in the model with associated grid cell ids."""
+        self.excrement_pools: dict[int, list[ExcrementPool]]
+        """The excrement pools in the model with associated grid cell ids."""
+        self.carcass_pools: dict[int, list[CarcassPool]]
+        """The carcass pools in the model with associated grid cell ids."""
+        self.leaf_waste_pools: dict[int, HerbivoryWaste]
+        """A pool for leaves removed by herbivory but not actually consumed."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -209,12 +236,6 @@ class AnimalModel(
             model_constants=model_constants,
         )
 
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
-
     def _setup(
         self,
         functional_groups: list[FunctionalGroup],
@@ -238,10 +259,8 @@ class AnimalModel(
         self._setup_grid_neighbours()
         """Determine grid square adjacency."""
         self.functional_groups = functional_groups
-        """List of functional groups in the model."""
         self.model_constants = model_constants
-        """Animal constants."""
-        self.plant_resources: dict[int, list[Resource]] = {
+        self.plant_resources = {
             cell_id: [
                 PlantResources(
                     data=self.data, cell_id=cell_id, constants=self.model_constants
@@ -249,11 +268,10 @@ class AnimalModel(
             ]
             for cell_id in self.data.grid.cell_id
         }
-        """The plant resource pools in the model with associated grid cell ids."""
         # TODO - In future, need to take in data on average size of excrement and
         # carcasses pools and their stoichiometries for the initial scavengeable pool
         # parameterisations
-        self.excrement_pools: dict[int, list[ExcrementPool]] = {
+        self.excrement_pools = {
             cell_id: [
                 ExcrementPool(
                     scavengeable_carbon=1e-3,
@@ -266,8 +284,7 @@ class AnimalModel(
             ]
             for cell_id in self.data.grid.cell_id
         }
-        """The excrement pools in the model with associated grid cell ids."""
-        self.carcass_pools: dict[int, list[CarcassPool]] = {
+        self.carcass_pools = {
             cell_id: [
                 CarcassPool(
                     scavengeable_carbon=1e-3,
@@ -280,17 +297,13 @@ class AnimalModel(
             ]
             for cell_id in self.data.grid.cell_id
         }
-        """The carcass pools in the model with associated grid cell ids."""
-        self.leaf_waste_pools: dict[int, HerbivoryWaste] = {
+
+        self.leaf_waste_pools = {
             cell_id: HerbivoryWaste(plant_matter_type="leaf")
             for cell_id in self.data.grid.cell_id
         }
-        """A pool for leaves removed by herbivory but not actually consumed."""
-        self.cohorts: dict[uuid.UUID, AnimalCohort] = {}
-        """A dictionary of all animal cohorts and their unique ids."""
-        self.communities: dict[int, list[AnimalCohort]] = {
-            cell_id: list() for cell_id in self.data.grid.cell_id
-        }
+        self.cohorts = {}
+        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with

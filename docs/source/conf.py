@@ -100,6 +100,8 @@ extensions = [
     "sphinx_rtd_theme",
     "sphinx_external_toc",
     "sphinx_design",
+    "hoverxref.extension",
+    "sphinx_tabs.tabs",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -152,7 +154,9 @@ nitpick_ignore = [
     ("py:class", "numpy.bool_"),
     ("py:class", "np.float32"),
     ("py:class", "np.datetime64"),
+    ("py:class", "np.ndarray"),
     ("py:class", "np.timedelta64"),
+    ("py:class", "timedelta64"),
     ("py:class", "InitVar"),
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
@@ -167,6 +171,8 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.__repr__"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.count"),
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
+    ("py:exc", "ParserError"),
+    ("py:exc", "BadZipFile"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -245,3 +251,8 @@ html_static_path = ["_static"]
 html_sidebars = {
     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 }
+
+# Configure hoverxref
+hoverxref_roles = ["term"]
+
+hoverxref_role_types = {"term": "tooltip"}

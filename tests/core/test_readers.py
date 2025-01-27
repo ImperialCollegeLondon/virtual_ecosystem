@@ -2,8 +2,10 @@
 
 from contextlib import nullcontext as does_not_raise
 from logging import CRITICAL, DEBUG, INFO
+from zipfile import BadZipFile
 
 import pytest
+from pandas.errors import ParserError
 from xarray import DataArray
 
 from tests.conftest import log_check
@@ -93,12 +95,108 @@ def test_file_format_loader(caplog, file_types, expected_log):
     ],
 )
 def test_load_netcdf(shared_datadir, caplog, file, file_var, exp_err, expected_log):
-    """Test the netdcf variable loader."""
+    """Test the netdcf variable loader.
+
+    The tests here are dependent on the test_file_format_loader, so cannot be run
+    individually.
+    """
 
     from virtual_ecosystem.core.readers import load_netcdf
 
     with exp_err:
         darray = load_netcdf(shared_datadir / file, file_var)
+        assert isinstance(darray, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["file", "file_var", "exp_err", "expected_log"],
+    argvalues=[
+        (
+            "not_there.csv",
+            "irrelevant",
+            pytest.raises(FileNotFoundError),
+            ((CRITICAL, "Data file not found"),),
+        ),
+        (
+            "garbage.csv",
+            "irrelevant",
+            pytest.raises(ParserError),
+            ((CRITICAL, "Could not load data from"),),
+        ),
+        (
+            "reader_test.csv",
+            "missing",
+            pytest.raises(KeyError),
+            ((CRITICAL, "Variable missing not found in"),),
+        ),
+        (
+            "reader_test.csv",
+            "var1",
+            does_not_raise(),
+            (),
+        ),
+    ],
+)
+def test_load_csv(shared_datadir, caplog, file, file_var, exp_err, expected_log):
+    """Test the netdcf variable loader.
+
+    The tests here are dependent on the test_file_format_loader, so cannot be run
+    individually.
+    """
+
+    from virtual_ecosystem.core.readers import load_csv
+
+    with exp_err:
+        darray = load_csv(shared_datadir / file, file_var)
+        assert isinstance(darray, DataArray)
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=["file", "file_var", "exp_err", "expected_log"],
+    argvalues=[
+        (
+            "not_there.xlsx",
+            "irrelevant",
+            pytest.raises(FileNotFoundError),
+            ((CRITICAL, "Data file not found"),),
+        ),
+        (
+            "garbage.xlsx",
+            "irrelevant",
+            pytest.raises(BadZipFile),
+            ((CRITICAL, "Could not load data from"),),
+        ),
+        (
+            "reader_test.xlsx",
+            "missing",
+            pytest.raises(KeyError),
+            ((CRITICAL, "Variable missing not found in"),),
+        ),
+        (
+            "reader_test.xlsx",
+            "var1",
+            does_not_raise(),
+            (),
+        ),
+    ],
+)
+def test_load_excel(shared_datadir, caplog, file, file_var, exp_err, expected_log):
+    """Test the netdcf variable loader.
+
+    The tests here are dependent on the test_file_format_loader, so cannot be run
+    individually.
+    """
+
+    from virtual_ecosystem.core.readers import load_excel
+
+    with exp_err:
+        darray = load_excel(shared_datadir / file, file_var)
         assert isinstance(darray, DataArray)
 
     # Check the error reports

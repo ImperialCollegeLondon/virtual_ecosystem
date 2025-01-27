@@ -142,6 +142,30 @@ class PlantsModel(
     #        initialisation  data, but the issue here is that the length of this is
     #        variable.
 
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Plants init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.flora: Flora
+        """A flora containing the plant functional types used in the plants model."""
+        self.model_constant: PlantsConsts
+        """Set of constants for the plants model"""
+        self.communities: PlantCommunities
+        """Initialise the plant communities from the data object."""
+        self._canopy_layer_indices: np.ndarray
+        """The indices of the canopy layers within wider vertical profile"""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -182,12 +206,6 @@ class PlantsModel(
         LOGGER.info("Plants model instance generated from configuration.")
         return inst
 
-    def setup(self) -> None:
-        """No longer in use.
-
-        TODO: Remove when the base model is updated.
-        """
-
     def _setup(
         self,
         flora: Flora,
@@ -203,25 +221,20 @@ class PlantsModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        # Save the class attributes
+        # Set the class attributes
         self.flora = flora
-        """A flora containing the plant functional types used in the plants model."""
         self.model_constants = model_constants
-        """Set of constants for the plants model"""
         self.communities = PlantCommunities(self.data, self.flora)
-        """Initialise the plant communities from the data object."""
 
-        # Initialise and then update the canopy layers.
+        # Update canopy layers
         # TODO - this initialisation step may move somewhere else at some point.
         self.data = initialise_canopy_layers(
             data=self.data,
             layer_structure=self.layer_structure,
         )
-        """A reference to the global data object."""
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
-        """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
         # cohort data and then initialise the irradiance using the first observation for
