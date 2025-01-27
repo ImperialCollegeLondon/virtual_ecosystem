@@ -33,6 +33,7 @@ language_info:
     :autosummary:
     :members:
     :exclude-members: model_name
+    :inherited-members:
 ```
 
 ## The plants {mod}`~virtual_ecosystem.models.plants.constants` module

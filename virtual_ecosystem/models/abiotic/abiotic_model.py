@@ -147,6 +147,26 @@ class AbioticModel(
         model_constants: Set of constants for the abiotic model.
     """
 
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Abiotic init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.abiotic.abiotic_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.model_constants: AbioticConsts
+        """Set of constants for the abiotic model."""
+        self.simple_constants: AbioticSimpleConsts
+        """Set of constants for simple abiotic model."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -193,10 +213,8 @@ class AbioticModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        self.model_constants: AbioticConsts = model_constants
-        """Set of constants for the abiotic model."""
-        self.simple_constants: AbioticSimpleConsts = AbioticSimpleConsts()
-        """Set of constants for simple abiotic model."""
+        self.model_constants = model_constants
+        self.simple_constants = AbioticSimpleConsts()
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()

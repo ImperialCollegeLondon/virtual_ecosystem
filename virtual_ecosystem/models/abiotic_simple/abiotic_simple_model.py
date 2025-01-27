@@ -73,10 +73,26 @@ class AbioticSimpleModel(
         model_constants: Set of constants for the abiotic_simple model.
     """
 
-    model_constants: AbioticSimpleConsts
-    """Set of constants for the abiotic simple model"""
-    bounds: AbioticSimpleBounds
-    """Upper and lower bounds for abiotic variables."""
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Abiotic simple init.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in
+        :fun:`~virtual_ecosystem.abiotic_simple.abiotic_simple_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.model_constants: AbioticSimpleConsts
+        """Set of constants for the abiotic simple model"""
+        self.bounds: AbioticSimpleBounds
+        """Upper and lower bounds for abiotic variables."""
 
     @classmethod
     def from_config(
