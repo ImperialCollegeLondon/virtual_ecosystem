@@ -15,6 +15,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
+    calculate_denitrification_temperature_factor,
     calculate_environmental_effect_factors,
     calculate_leaching_rate,
     calculate_nitrification_moisture_factor,
@@ -471,6 +472,12 @@ class SoilPools:
             soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
             constants=self.constants,
         )
+        denitrification_rate = calculate_rate_of_denitrification(
+            soil_temp=soil_temperature,
+            effective_saturation=effective_saturation,
+            soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
+            constants=self.constants,
+        )
 
         # Calculate rate at which ammonium volatilises as ammonia
         ammonia_volatilisation_rate = (
@@ -560,6 +567,7 @@ class SoilPools:
         )
         delta_pools_ordered["soil_n_pool_nitrate"] = (
             nitrification_rate
+            - denitrification_rate
             - microbial_changes.nitrate_change
             - nutrient_leaching.nitrate
         )
@@ -1603,6 +1611,44 @@ def calculate_rate_of_nitrification(
         * temp_factor
         * moisture_factor
         * soil_n_pool_ammonium
+    )
+
+
+def calculate_rate_of_denitrification(
+    soil_temp: NDArray[np.float32],
+    effective_saturation: NDArray[np.float32],
+    soil_n_pool_nitrate: NDArray[np.float32],
+    constants: SoilConsts,
+) -> NDArray[np.float32]:
+    """Calculate the rate at which nitrate denitrifies (and leaves the soil).
+
+    This is an empirical relationship that we have taken from
+    :cite:t:`fatichi_mechanistic_2019`.
+
+    Args:
+        soil_temp: Temperature of the relevant segment of soil [C]
+        effective_saturation: Effective saturation of the soil with water [unitless]
+        soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The rate at which ammonium nitrifies to form nitrate [kg N m^-3 day^-1].
+    """
+
+    # Calculate moisture and temperature factors
+    temp_factor = calculate_denitrification_temperature_factor(
+        soil_temp=soil_temp,
+        factor_at_infinity=constants.denitrification_infinite_temperature_factor,
+        minimum_temp=constants.denitrification_minimum_temperature,
+        thermal_sensitivity=constants.denitrification_thermal_sensitivity,
+    )
+    moisture_factor = effective_saturation**2
+
+    return (
+        constants.denitrification_rate_constant
+        * temp_factor
+        * moisture_factor
+        * soil_n_pool_nitrate
     )
 
 

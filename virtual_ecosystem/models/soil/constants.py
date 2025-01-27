@@ -458,6 +458,13 @@ class SoilConsts(ConstantsDataclass):
     take our default value from there.
     """
 
+    denitrification_rate_constant: float = 2.5e-6 * (24 * 60 * 60)
+    """Rate constant for denitrification from nitrate [day^-1].
+    
+    Following :cite:t:`dickinson_nitrogen_2002`, linear kinetics are assumed. We also
+    take our default value from there.
+    """
+
     nitrification_optimum_temperature: float = 311.15
     """Soil temperature at which nitrification is maximised [K].
     
@@ -476,11 +483,38 @@ class SoilConsts(ConstantsDataclass):
     """
 
     nitrification_thermal_sensitivity: int = 12
-    """Sensitivity of nitrification rate to changes in temperature [K].
+    """Sensitivity of nitrification rate to changes in temperature [unitless].
     
     Value taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
     independently of :attr:`nitrification_optimum_temperature` and
     :attr:`nitrification_maximum_temperature`!
+    """
+
+    denitrification_infinite_temperature_factor: float = 93.34598
+    """Denitrification temperature factor at infinite temperature.
+    
+    [unitless]. Value is obtained from :cite:t:`xu-ri_terrestrial_2008`, by taking the
+    exponential of the constant part of the expression. This value should not be varied
+    independently of :attr:`denitrification_minimum_temperature` and
+    :attr:`denitrification_thermal_sensitivity`!
+    """
+
+    denitrification_minimum_temperature: float = 273.15 - 46.02
+    """Temperature at which denitrification stops entirely [K].
+    
+    Value is obtained from :cite:t:`xu-ri_terrestrial_2008`, and converted to Kelvin.
+    The expression we are using does not function below this temperature, but this is
+    not a major problem as it is a very low temperature. This value should not be varied
+    independently of :attr:`denitrification_infinite_temperature_factor` and
+    :attr:`denitrification_thermal_sensitivity`!
+    """
+
+    denitrification_thermal_sensitivity: float = 308.56
+    """Sensitivity of denitrification rate to changes in temperature [K].
+    
+    Value is obtained from :cite:t:`xu-ri_terrestrial_2008`. This value should not be
+    varied independently of :attr:`denitrification_infinite_temperature_factor` and
+    :attr:`denitrification_minimum_temperature`!
     """
 
     primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6

@@ -295,6 +295,39 @@ def calculate_nitrification_moisture_factor(effective_saturation: NDArray[np.flo
     return effective_saturation * (1 - effective_saturation) / 0.25
 
 
+def calculate_denitrification_temperature_factor(
+    soil_temp: NDArray[np.float32],
+    factor_at_infinity: float,
+    minimum_temp: float,
+    thermal_sensitivity: float,
+):
+    """Calculate factor that captures the effect of temperature on denitrification rate.
+
+    Form of this function is a slight rearranged of one provided in
+    :cite:t:`xu-ri_terrestrial_2008`.
+
+    Args:
+        soil_temp: Temperature of the relevant segment of soil [C]
+        factor_at_infinity: Value of temperature factor at infinite temperature
+            [unitless]
+        minimum_temp: Minimum temperature at which denitrification can still happen [K]
+        thermal_sensitivity: Sensitivity of the factor to changes in temperature [K]
+
+    Returns:
+        A factor capturing the impact of soil temperature on the denitrification rate
+        [unitless].
+    """
+
+    # Convert the temperatures to Kelvin
+    soil_temp_in_kelvin = convert_temperature(
+        soil_temp, old_scale="Celsius", new_scale="Kelvin"
+    )
+
+    return factor_at_infinity * np.exp(
+        -thermal_sensitivity / (soil_temp_in_kelvin - minimum_temp)
+    )
+
+
 def calculate_leaching_rate(
     solute_density: NDArray[np.float32],
     vertical_flow_rate: NDArray[np.float32],

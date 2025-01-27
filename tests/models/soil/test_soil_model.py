@@ -45,7 +45,7 @@ def test_soil_model_initialization(
 ):
     """Test `SoilModel` initialization with good data."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
@@ -53,7 +53,7 @@ def test_soil_model_initialization(
         data=dummy_carbon_data,
         core_components=fixture_soil_core_components,
         model_constants=SoilConsts(),
-        soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -74,10 +74,9 @@ def test_soil_model_initialization_no_data(
     caplog, dummy_carbon_data, fixture_core_components
 ):
     """Test `SoilModel` initialization with no data."""
-
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
@@ -91,7 +90,7 @@ def test_soil_model_initialization_no_data(
             data=empty_data,
             core_components=fixture_core_components,
             model_constants=SoilConsts(),
-            soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+            soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         )
 
     # Final check that expected logging entries are produced: modify shared
@@ -119,7 +118,7 @@ def test_soil_model_initialization_bounds_error(
     caplog, dummy_carbon_data, fixture_core_components
 ):
     """Test `SoilModel` initialization."""
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
@@ -134,7 +133,7 @@ def test_soil_model_initialization_bounds_error(
             data=dummy_carbon_data,
             core_components=fixture_core_components,
             model_constants=SoilConsts(),
-            soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+            soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         )
 
     # Final check that expected logging entries are produced
@@ -150,7 +149,7 @@ def test_soil_model_initialization_bounds_error(
 
 def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_components):
     """Test `SoilModel` initialization."""
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
@@ -159,7 +158,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
         data=dummy_carbon_data,
         core_components=fixture_core_components,
         model_constants=SoilConsts(),
-        soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
     assert soil_model._all_pools_positive()
@@ -176,12 +175,11 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
     "cfg_string,max_decomp,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n[hydrology]",
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]",
             60.0,
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised hydrology.HydroConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -193,12 +191,11 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
         ),
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
-            "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05\n[hydrology]",
+            "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05",
             0.05,
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised hydrology.HydroConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -210,7 +207,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
         ),
         pytest.param(
             "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
-            "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n[hydrology]",
+            "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
             None,
             pytest.raises(ConfigurationError),
             (
@@ -336,11 +333,11 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [6.53830586e-5, 4.93023264e-3, 1.08684927e-4, 5.11474887e-3],
+                        [6.47546289e-5, 4.93023264e-3, 1.07788527e-4, 5.11474885e-3],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00240231, 0.00453564, 0.00032306, 0.01309475], dims="cell_id"
+                        [0.00188967, 0.00375189, 0.00029596, 0.01290329], dims="cell_id"
                     ),
                     soil_p_pool_dop=DataArray(
                         [1.68559250e-4, 9.03050817e-5, 3.15038568e-4, 1.66029558e-4],
@@ -479,7 +476,6 @@ def test_order_independance(
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import (
         SoilModel,
@@ -535,10 +531,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -0.000415127,
         -0.00021181,
         -9.40141e-5,
-        -3.936989e-6,
-        0.0004135406,
-        -2.074930e-5,
-        -0.000158842,
+        -0.000293386,
+        -1.292735e-5,
+        -3.576543e-5,
+        -0.000255954,
         0.000194453,
         7.1014337e-5,
         0.0001851685,
@@ -594,7 +590,7 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
         max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
-        soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
             0
         ],

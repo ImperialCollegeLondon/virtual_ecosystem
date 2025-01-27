@@ -251,6 +251,29 @@ def test_calculate_nitrification_moisture_factor(
     assert np.allclose(expected_factor, actual_factor)
 
 
+def test_calculate_denitrification_temperature_factor(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of nitrification temperature factor."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_denitrification_temperature_factor,
+    )
+
+    expected_factor = [2.0706664, 2.3206989, 2.5837455, 1.2112116]
+
+    actual_factor = calculate_denitrification_temperature_factor(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        factor_at_infinity=SoilConsts.denitrification_infinite_temperature_factor,
+        minimum_temp=SoilConsts.denitrification_minimum_temperature,
+        thermal_sensitivity=SoilConsts.denitrification_thermal_sensitivity,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
 def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
     """Test calculation of solute leaching rates."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
