@@ -171,12 +171,19 @@ class PlantsModel(
         self.model_constant: PlantsConsts
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
-        """Initialise the plant communities from the data object."""
+        """An instance of PlantCommunities providing dictionary access keyed by cell id
+        to PlantCommunity instances for each cell."""
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, PlantCanopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.stem_gpp: dict[int, NDArray[np.floating]]
+        """A dictionary keyed by cell id giving the stem GPP for each cohort in the cell
+        community"""
+        self.stem_transpiration: dict[int, NDArray[np.floating]]
+        """A dictionary keyed by cell id giving the stem transpiration for each cohort
+        in the cell community"""
         self.pmodel_consts: PModelConst
         """PModel constants used by pyrealm."""
         self.pmodel_core_consts: CoreConst
@@ -267,6 +274,9 @@ class PlantsModel(
         # first time index
         self.update_canopy_layers()
         self.set_canopy_absorption(time_index=0)
+
+        # Initialise other attributes
+        self.stem_gpp = {}
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -465,9 +475,10 @@ class PlantsModel(
             canopy = self.canopies[cell_id]
 
             # The per layer per stem gpp is:
-            #  Per layer LUE * per stem per layer fAPAR * the canopy top PPFD.
+            #    Per layer LUE * per stem per layer fAPAR * the canopy top PPFD.
             # Dimensions:
-            #  (n_layer, n_cohorts) * (n_layer, 1) * scalar.
+            #    (n_layer, n_cohorts) * (n_layer, 1) * scalar
+            # This is then summed across layers to give the total GPP per stem
             gpp_per_stem_per_second = (
                 canopy.cohort_data.stem_fapar
                 * pmodel.lue[:, [cell_id]][self.layer_structure.index_filled_canopy]
@@ -475,17 +486,23 @@ class PlantsModel(
                 * canopy.cohort_data.stem_leaf_area
             ).sum(axis=0)
 
-            # We then have the GPP in µg C s-1 for each stem, which can can converted to
+            # We then have the GPP in g C s-1 for each stem, which can can converted to
             # total GPP for the update time step
 
             # TODO - calculate time covered in update properly
             seconds_since_last_update = 30 * 24 * 60 * 60
 
-            gpp_per_stem = gpp_per_stem_per_second * seconds_since_last_update
+            # Calculate total gpp and transpiration
+            # TODO - currently assuming well-watered
+            stem_total_gpp = gpp_per_stem_per_second * seconds_since_last_update
+            self.stem_gpp[cell_id] = stem_total_gpp
+            # Estimate transpiration - iwue gives µmol mol-1, convert to mm.
+            transpiration = (
+                stem_total_gpp / self.pmodel_core_consts.k_CtoK
+            ) * pmodel.iwue
+            self.stem_transpiration[cell_id] = transpiration
 
-            # Estimate evapotranspiration
-            #  - currently just a placeholder for something more involved
-            # self.data["evapotranspiration"] = 20
+        self.data["evapotranspiration"] = 20  # TODO USE IWUE!
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
