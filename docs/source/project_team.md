@@ -108,16 +108,17 @@ at Imperial College London.
 
 :::{grid-item-card} Dr. Vivienne Groner
 :margin: 2 2 0 0
-:link: project_team.html
+:link: https://profiles.imperial.ac.uk/v.groner
 
-```{image} _static/images/people/photo_placeholder.png
+```{image} _static/images/people/vivienne_groner.jpg
 :alt: Dr. Vivienne Groner
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Vivienne is an Earth system scientist with focus on the interaction between climate
+change and biodiversity. She is one of the programmers for the Virtual Ecosystem, with
+particular focus on the abiotic and hydrology science model. Vivienne is based at the
+Silwood Park Campus at Imperial College London.
 :::
 
 :::{grid-item-card} Dr. Jacob Cook
