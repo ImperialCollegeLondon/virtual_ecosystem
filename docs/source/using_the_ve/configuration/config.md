@@ -198,10 +198,18 @@ All models (except `core`) accept a boolean configuration option, `static`, that
 indicates if such a model should be updated every iteration (`static=false`, the
 default behaviour) or not.
 
-If `static=true`, the initial model behaviour depends on the data variables available in
-the [`Data` object](../data/data.md).
+There are various use cases for the static functionality. In development this could be
+used for debugging, by keeping all models but one static in order to isolate and
+assess changes. It could also be used when using the model to explore individual models
+or combinations of models to understand the interactions without running the entire
+complex model.
 
-* If the data object has all varibles in the model's `vars_populated_by_init`, then the
+Even when the model is run in static mode the model constants and variables need to be
+populated, for use by any models that are not in static mode. The way these variables
+are populated depends on the data provided at the start of the simulation in the
+[`Data` object](../data/data.md).
+
+* If the data object has all variables in the model's `vars_populated_by_init`, then the
 model `_setup` function is skipped.
 * If the data object contains all `vars_populated_by_first_update` then the `update` is
 skipped, otherwise it is run once to initialise the variables and then frozen for the
