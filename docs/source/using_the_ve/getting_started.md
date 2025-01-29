@@ -55,35 +55,51 @@ first need to install the data to a location of your choice. The command below w
 create the `ve_example` directory at the location you choose and install all of the
 configuration and data files to run a model.
 
-````{tabs}
-```{group-tab} macOS/Linux
-  ```shell
-    ve_run --install-example /path/
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} shell
+ve_run --install-example /path/
 ```
-
-```{group-tab} Windows
-  ```powershell
-    ve_run --install-example C:\path\
-
 ````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+ve_run --install-example C:\path\
+```
+````
+`````
 
 You can then run the model itself:
 
-````{tabs}
-```{group-tab} macOS/Linux
-  ```shell
-    ve_run /path/ve_example/config \
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} shell
+ve_run /path/ve_example/config \
     --outpath /path/ve_example/out \
     --logfile /path/ve_example/out/ve_example.log
 ```
+````
 
-```{group-tab} Windows
-  ```powershell
-    ve_run C:\path\ve_example\config `
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+ve_run C:\path\ve_example\config `
     --outpath C:\path\ve_example\out `
     --logfile C:\path\ve_example\out\ve_example.log
 ```
 ````
+`````
 
 The [Virtual Ecosystem in use](virtual_ecosystem_in_use.md) page provides a walkthrough
 of this process, showing the typical outputs of the model run process, and also provides
