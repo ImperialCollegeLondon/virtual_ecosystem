@@ -578,11 +578,12 @@ class PlantsModel(
             height, rather than calculating the actual predictions of the T Model.
         """
 
-        for community in self.communities.values():
-            for cohort in community:
-                # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
-                # dbh to provide an annual increment that relates to GPP.
-                cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2
+        pass
+        # for community in self.communities.values():
+        #     for cohort in community:
+        #         # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
+        #         # dbh to provide an annual increment that relates to GPP.
+        #         cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
