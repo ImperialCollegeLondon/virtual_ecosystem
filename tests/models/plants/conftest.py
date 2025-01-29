@@ -108,16 +108,14 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
 
 
 @pytest.fixture
-def fixture_canopy_layer_data(fixture_core_components):
+def fixture_canopy_layer_data():
     """Shared canopy layer data.
 
-    The fixture supplies tuples of layer name, test values and the indices of the
-    vertical layer dimension to insert test values.
-
-    TODO: This is currently convoluted because of the way in which layer_heights is set
-    within the plants model.
+    The fixture supplies a dictionary of data values expected from the cohort data in
+    the plants_data fixture. Each enntry provides a tuple of the variable name to be
+    tested, the data itself and then the vertical layer indices into which to insert the
+    data.
     """
-    lyr_strct = fixture_core_components.layer_structure
 
     return {
         "layer_heights_full": (
@@ -134,7 +132,8 @@ def fixture_canopy_layer_data(fixture_core_components):
                     [-1.0, -1.0, -1.0, -1.0],
                 ]
             ),
-            np.logical_or(lyr_strct.index_filled_atmosphere, lyr_strct.index_all_soil),
+            [0, 1, 2, 3, 4, 11, 12, 13],
+            # index_filled_atmosphere, index_surface, index_all_soil
         ),
         "layer_heights_canopy": (
             "layer_heights",
@@ -147,7 +146,8 @@ def fixture_canopy_layer_data(fixture_core_components):
                     [27.05144791, np.nan, np.nan, np.nan],
                 ],
             ),
-            np.logical_or(lyr_strct.index_above, lyr_strct.index_filled_canopy),
+            [0, 1, 2, 3, 4],
+            # index_above, index_filled_canopy),
         ),
         "leaf_area_index": (
             "leaf_area_index",
@@ -159,7 +159,8 @@ def fixture_canopy_layer_data(fixture_core_components):
                     [1.73664971e00, np.nan, np.nan, np.nan],
                 ]
             ),
-            lyr_strct.index_filled_canopy,
+            [1, 2, 3, 4],
+            # index_filled_canopy,
         ),
         "layer_fapar": (
             "layer_fapar",
@@ -171,7 +172,8 @@ def fixture_canopy_layer_data(fixture_core_components):
                     [4.11687555e-02, np.nan, np.nan, np.nan],
                 ]
             ),
-            lyr_strct.index_filled_canopy,
+            [1, 2, 3, 4],
+            # index_filled_canopy,
         ),
         "canopy_absorption": (
             "canopy_absorption",
@@ -185,7 +187,8 @@ def fixture_canopy_layer_data(fixture_core_components):
                 ]
             )
             * 1000,
-            np.logical_or(lyr_strct.index_filled_canopy, lyr_strct.index_surface),
+            [1, 2, 3, 4, 11],
+            # index_filled_canopy, index_surface
         ),
         "layer_leaf_mass": (
             "layer_leaf_mass",
@@ -197,6 +200,7 @@ def fixture_canopy_layer_data(fixture_core_components):
                     [1.00477590e03, np.nan, np.nan, np.nan],
                 ]
             ),
-            lyr_strct.index_filled_canopy,
+            [1, 2, 3, 4],
+            # index_filled_canopy,
         ),
     }

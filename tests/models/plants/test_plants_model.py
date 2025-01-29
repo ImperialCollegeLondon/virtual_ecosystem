@@ -21,7 +21,7 @@ def test_PlantsModel__init__(
 
     # Test the flora and community are as expected
     n_cells = fixture_core_components.grid.n_cells
-    assert len(plants_model.flora) == len(flora)
+    assert plants_model.flora == flora
     assert len(plants_model.communities) == n_cells
 
     # Check the canopy has been initialised and updated, using the full layer heights
@@ -33,7 +33,7 @@ def test_PlantsModel__init__(
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         assert layer_name in plants_data
         expected = fixture_core_components.layer_structure.from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(plants_data[layer_name], expected)
 
 
@@ -62,7 +62,7 @@ def test_PlantsModel_from_config(
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         assert layer_name in plants_data
         expected = fixture_core_components.layer_structure.from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(plants_data[layer_name], expected)
 
 
