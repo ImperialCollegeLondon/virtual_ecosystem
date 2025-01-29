@@ -216,9 +216,11 @@ class LitterPool:
         }
         """Mass of the litter pool for each nutrient [kg]."""
 
-        # Total mass is the sum of all nutrients
-        self.mass_current = self.mass_cnp["C"] + self.mass_cnp["N"] + self.mass_cnp["P"]
-        """Total mass of the litter pool [kg]."""
+    @property
+    def mass_current(self) -> float:
+        """Dynamically calculate the current total body mass from stoichiometry."""
+
+        return sum(self.mass_cnp.values())
 
     def get_eaten(
         self, consumed_mass: float, detritivore: "Consumer", grid_cell_id: int
@@ -234,26 +236,34 @@ class LitterPool:
             A dictionary containing the net mass gain of carbon, nitrogen, phosphorus
             after mechanical efficiencies: {"C": value, "N": value, "P": value}.
         """
-        # Check if the requested consumed mass exceeds the available mass
-        actually_available_mass = min(self.mass_current[grid_cell_id], consumed_mass)
+        # Ensure consumed_mass is non-negative
+        if consumed_mass < 0:
+            raise ValueError("Consumed mass cannot be negative.")
 
-        # Calculate the mass of the consumed litter after mechanical efficiency
+        # Check available mass in the cell
+        actually_available_mass = min(self.mass_current, consumed_mass)
+
+        # Calculate the mass of litter consumed after mechanical efficiency
         actual_consumed_mass = (
             actually_available_mass * detritivore.functional_group.mechanical_efficiency
         )
 
-        # Update the litter pool mass to reflect the consumed mass
-        self.mass_current[grid_cell_id] -= actual_consumed_mass
+        # Ensure we don't divide by zero when updating nutrient proportions
+        if self.mass_current == 0:
+            raise ValueError("Litter pool is empty; cannot consume nutrients.")
 
         # Calculate the net nutrient mass consumed for each element
-        nutrient_gain: dict[str, float] = {}
+        nutrient_gain = {}
         for nutrient in self.mass_cnp:
             # Proportional consumption of each nutrient
-            nutrient_consumed = actual_consumed_mass * (
-                self.mass_cnp[nutrient][grid_cell_id] / self.mass_current[grid_cell_id]
+            nutrient_fraction = (
+                self.mass_cnp[nutrient][grid_cell_id] / self.mass_current
             )
+            nutrient_consumed = actual_consumed_mass * nutrient_fraction
+
             # Reduce the nutrient pool
             self.mass_cnp[nutrient][grid_cell_id] -= nutrient_consumed
+            nutrient_gain[nutrient] = nutrient_consumed
 
         return nutrient_gain
 

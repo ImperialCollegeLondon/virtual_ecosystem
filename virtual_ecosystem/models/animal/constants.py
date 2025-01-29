@@ -13,10 +13,12 @@ from virtual_ecosystem.models.animal.animal_traits import (
     TaxaType,
 )
 
+print("AnimalConsts module loaded")
+
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
-    """Dataclass to store all constants related to metabolic rates.
+    """Dataclass to store all constants related to animals.
 
     TODO: Remove unused constants.
 
@@ -83,6 +85,14 @@ class AnimalConsts(ConstantsDataclass):
                 TaxaType.BIRD: (1.0, 1.0),  # Toy values
             },
             MetabolicType.ECTOTHERMIC: {TaxaType.INSECT: (1.0, 1.0)},  # Toy values
+        }
+    )
+
+    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {"C": 0.5, "N": 0.3, "P": 0.2},
+            TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},
+            TaxaType.INSECT: {"C": 0.4, "N": 0.2, "P": 0.4},
         }
     )
 
@@ -247,15 +257,6 @@ class AnimalConsts(ConstantsDataclass):
     biomass between scavengable carcass biomass and flow into the soil. In reality this
     should be a constant, but as a simplifying assumption it is.
     """
-
-    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = field(
-        default_factory=lambda: {
-            TaxaType.MAMMAL: {"C": 0.5, "N": 0.3, "P": 0.2},  # Toy C:N:P values
-            TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},  # Toy C:N:P values
-            TaxaType.INSECT: {"C": 0.4, "N": 0.2, "P": 0.3},  # Toy C:N:P values
-        }
-    )
-    """Proportions of CNP that are standard among the taxa groups."""
 
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]

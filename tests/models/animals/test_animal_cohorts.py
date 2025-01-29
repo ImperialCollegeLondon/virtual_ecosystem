@@ -98,6 +98,21 @@ class TestAnimalCohort:
                 constants_instance,
             )
 
+    def test_mass_current(self, herbivore_cohort_instance):
+        """Test the mass_current property."""
+        print(
+            f"Resolved TaxaType: {herbivore_cohort_instance.functional_group.taxa}"
+        )  # Debug output
+        expected_mass = sum(
+            self.cohort.mass * proportion
+            for proportion in (
+                herbivore_cohort_instance.functional_group.cnp_proportions.values()
+            )
+        )
+        self.assertAlmostEqual(
+            herbivore_cohort_instance.cohort.mass_current, expected_mass, places=6
+        )
+
     @pytest.mark.parametrize(
         "cohort_type, dt, initial_mass, temperature, expected_final_mass, error_type,"
         "metabolic_rate_return_value",
