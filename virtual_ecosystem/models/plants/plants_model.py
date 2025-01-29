@@ -442,8 +442,8 @@ class PlantsModel(
         """
 
         # Estimate the light use efficiency of leaves within each canopy layer within
-        # each grid cell. These are constant across all cohorts within each layer so can
-        # be calculated per cell easily.
+        # each grid cell. The LUE is set purely by the environmental conditions, which
+        # are shared across cohorts so we can calculate all layers in all cells.
         pmodel_env = PModelEnvironment(
             tc=self.data["air_temperature"].to_numpy(),
             vpd=self.data["vapour_pressure_deficit"].to_numpy(),
@@ -454,7 +454,17 @@ class PlantsModel(
         )
         pmodel = PModel(pmodel_env)
 
-        # The LUE in gC mol -1 of photons is then used to calculate the per stem and per
+        # The LUE in gC mol -1 of photons is then used to calculate the per-stem
+        # per-layer per-m2 GPP for each cohort in a grid cell per m2 per second. The
+        # per-m2 values can be used to estimate the transpiration per m2, and then the
+        # GPP per-layer can be scaled up by the leaf area of stem and summed to give the
+        # whole stem GPP.
+
+        # TODO - Because the number of cohorts differ between grid cells, this is
+        #        calculation is done within a loop over grid cells, but it is possible
+        #        that this could be unwrapped into a single calculation, which might be
+        #        much faster.
+
         # layer gross primary productivity within the cohorts of each community. For
         # each cell, the LUE per layer can be scaled the per stem, per layer fAPAR and
         # the canopy top radiation and the stem leaf area. The total GPP per stem is
@@ -473,36 +483,58 @@ class PlantsModel(
 
         for cell_id in self.canopies.keys():
             canopy = self.canopies[cell_id]
+            community = self.communities[cell_id]
 
-            # The per layer per stem gpp is:
-            #    Per layer LUE * per stem per layer fAPAR * the canopy top PPFD.
+            # GPP is estimated as:
+            #    LUE * per stem per layer fAPAR * the canopy top PPFD.
             # Dimensions:
             #    (n_layer, n_cohorts) * (n_layer, 1) * scalar
-            # This is then summed across layers to give the total GPP per stem
-            gpp_per_stem_per_second = (
-                canopy.cohort_data.stem_fapar
-                * pmodel.lue[:, [cell_id]][self.layer_structure.index_filled_canopy]
+            # Units:
+            #    gC mol-1 * (-) * µmol m-2 s-1 = µg m-2 s-1
+            stem_gpp_per_layer_per_m2_per_s = (
+                pmodel.lue[:, [cell_id]][self.layer_structure.index_filled_canopy]
+                * canopy.cohort_data.stem_fapar
                 * canopy_top_ppfd[cell_id]
+            )
+
+            # The transpiration associated with that GPP is then:
+            #    (GPP / (Mc * 1e6)) * iwue
+            # Dimensions:
+            #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
+            # Units:
+            #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
+
+            stem_transpiration_per_layer_per_m2_per_s = (
+                stem_gpp_per_layer_per_m2_per_s / (self.pmodel_core_consts.k_CtoK * 1e6)
+            ) * pmodel.iwue[:, [cell_id]][self.layer_structure.index_filled_canopy]
+
+            # Now scale up and aggregate those values
+
+            # Per stem GPP since last update: sum GPP * leaf area across the whole stem
+            # and scale by elapsed time in seconds
+            self.stem_gpp[cell_id] = (
+                stem_gpp_per_layer_per_m2_per_s * canopy.cohort_data.stem_leaf_area
+            ).sum(axis=0) * self.model_timing.update_interval
+
+            # Calculate total stem transpiration in µmol per stem and total grid cell
+            # transpiration in mm m-2 since last update
+            self.stem_transpiration[cell_id] = (
+                stem_transpiration_per_layer_per_m2_per_s
                 * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0)
+            ).sum(axis=0) * self.model_timing.update_interval
 
-            # We then have the GPP in g C s-1 for each stem, which can can converted to
-            # total GPP for the update time step
-
-            # TODO - calculate time covered in update properly
-            seconds_since_last_update = 30 * 24 * 60 * 60
-
-            # Calculate total gpp and transpiration
-            # TODO - currently assuming well-watered
-            stem_total_gpp = gpp_per_stem_per_second * seconds_since_last_update
-            self.stem_gpp[cell_id] = stem_total_gpp
-            # Estimate transpiration - iwue gives µmol mol-1, convert to mm.
-            transpiration = (
-                stem_total_gpp / self.pmodel_core_consts.k_CtoK
-            ) * pmodel.iwue
-            self.stem_transpiration[cell_id] = transpiration
-
-        self.data["evapotranspiration"] = 20  # TODO USE IWUE!
+            # For conversion to mm m-2, the initial value is in µmol m2 s1, conversion
+            # factor from µmol m2 to mm is currently approximated at fixed standard temp
+            # and pressure, but could be adjusted once
+            # `pyrealm.core.water.convert_water_moles_to_mm` is public
+            self.data["evapotranspiration"][cell_id] = (
+                (
+                    community.cohort_data.n_individuals
+                    * stem_transpiration_per_layer_per_m2_per_s
+                ).sum()
+                * self.model_timing.update_interval
+                * 1.8e-8
+            )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
