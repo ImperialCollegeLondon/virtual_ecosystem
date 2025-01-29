@@ -433,9 +433,16 @@ def update_soil_temperature(
 
     # Update top layer with ground heat flux
     new_soil_temperature[0, :] += (
-        time_interval
-        / (soil_bulk_density * specific_heat_capacity_soil * soil_layer_thickness[0])
-    ) * ground_heat_flux
+        (
+            time_interval
+            / (
+                soil_bulk_density
+                * specific_heat_capacity_soil
+                * soil_layer_thickness[0]
+            )
+        )
+        * ground_heat_flux
+    ).squeeze()  # TODO check why squeeze needed
 
     # No heat flux boundary at the bottom (insulation assumption)
     new_soil_temperature[-1, :] += (
@@ -455,7 +462,6 @@ def update_air_canopy_temperature(
     canopy_temperature: NDArray[np.float32],
     density_air: NDArray[np.float32],
     specific_heat_air: NDArray[np.float32],
-    time_interval: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Update air and canopy temperatures.
 
@@ -467,7 +473,6 @@ def update_air_canopy_temperature(
         canopy_temperature: canopy temperatures for all true canopy layers, [K]
         density_air: Density of air, [kg m-3]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
-        time_interval: Time interval, [s]
 
     Returns:
         Updated canopy and air temperatures, [K]
@@ -477,17 +482,17 @@ def update_air_canopy_temperature(
     energy_balance_canopy = (
         net_radiation_canopy - sensible_heat_flux_canopy - latent_heat_flux_canopy
     )
-    temperature_change_canopy = (
-        energy_balance_canopy / (density_air * specific_heat_air)
-    ) * time_interval
+    temperature_change_canopy = energy_balance_canopy / (
+        density_air * specific_heat_air
+    )
 
     # Update canopy temperature
     canopy_temperature += temperature_change_canopy
 
     # Update air temperature based on sensible heat exchange
-    temperature_change_air = (
-        sensible_heat_flux_canopy / (density_air * specific_heat_air)
-    ) * time_interval
+    temperature_change_air = sensible_heat_flux_canopy / (
+        density_air * specific_heat_air
+    )
     air_temperature += temperature_change_air
 
     return canopy_temperature, air_temperature

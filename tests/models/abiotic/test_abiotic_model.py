@@ -386,7 +386,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         assert var in model.data
 
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([20.085517, 20.001773])[
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([15.555145, 19.957183])[
         :, None
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp1)

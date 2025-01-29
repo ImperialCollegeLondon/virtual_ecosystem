@@ -26,22 +26,22 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_longwave_emission = lyr_str.from_template()
     exp_longwave_emission[lyr_str.index_flux_layers] = np.array(
-        [434.633028, 434.633028, 434.633028, 406.202942]
+        [420.227971, 419.777262, 419.007599, 376.234677]
     )[:, None]
     np.testing.assert_allclose(
-        result["longwave_emission"],
-        exp_longwave_emission,
+        result["longwave_emission"][lyr_str.index_flux_layers],
+        exp_longwave_emission[lyr_str.index_flux_layers],
         rtol=1e-04,
         atol=1e-04,
     )
 
     exp_sens_heat = lyr_str.from_template()
     exp_sens_heat[lyr_str.index_flux_layers] = np.array(
-        [-98.591399, -78.774914, -44.8992, 78.426]
+        [-76.915123, -67.750717, -52.084082, -20.436854]
     )[:, None]
     np.testing.assert_allclose(
-        result["sensible_heat_flux"],
-        exp_sens_heat,
+        result["sensible_heat_flux"][lyr_str.index_flux_layers],
+        exp_sens_heat[lyr_str.index_flux_layers],
         rtol=1e-04,
         atol=1e-04,
     )
@@ -74,10 +74,32 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([19.380045, 20.0])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([13.90642, 19.928294])[:, None]
     np.testing.assert_allclose(
-        result["soil_temperature"],
-        exp_soiltemp,
+        result["soil_temperature"][lyr_str.index_all_soil],
+        exp_soiltemp[lyr_str.index_all_soil],
+        rtol=1e-04,
+        atol=1e-04,
+    )
+
+    exp_cantemp = lyr_str.from_template()
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array(
+        [22.237898, 22.150857, 22.002058]
+    )[:, None]
+    np.testing.assert_allclose(
+        result["canopy_temperature"][lyr_str.index_filled_canopy],
+        exp_cantemp[lyr_str.index_filled_canopy],
+        rtol=1e-04,
+        atol=1e-04,
+    )
+
+    exp_airtemp = lyr_str.from_template()
+    exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.257819, 28.373119, 26.860713, 16.232778]
+    )[:, None]
+    np.testing.assert_allclose(
+        result["air_temperature"][lyr_str.index_filled_canopy],
+        exp_airtemp[lyr_str.index_filled_canopy],
         rtol=1e-04,
         atol=1e-04,
     )

@@ -305,13 +305,14 @@ def test_update_air_canopy_temperature():
     canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])  # K
     density_air = np.array([[1.2, 1.2], [1.2, 1.2]])  # kg m-3
     specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])  # J kg-1 K-1
-    time_interval = 60.0  # s
 
     # Expected outputs (calculated manually)
     expected_canopy_temperature = np.array(
-        [[310.472637, 306.965174], [303.457711, 299.950249]]
+        [[305.091211, 300.116086], [295.140962, 290.165837]]
     )
-    expected_air_temperature = np.array([[302.48755, 297.98508], [293.48257, 288.9801]])
+    expected_air_temperature = np.array(
+        [[300.041459, 295.049751], [290.058043, 285.066335]]
+    )
 
     # Call the function
     updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
@@ -322,7 +323,6 @@ def test_update_air_canopy_temperature():
         canopy_temperature=canopy_temperature,
         density_air=density_air,
         specific_heat_air=specific_heat_air,
-        time_interval=time_interval,
     )
 
     # Assertions
