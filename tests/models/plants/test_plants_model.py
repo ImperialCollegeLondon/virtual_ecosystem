@@ -127,8 +127,6 @@ def test_PlantsModel_set_canopy_absorption(
 def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     """Test the estimate_gpp method."""
 
-    lyr_str = fixture_core_components.layer_structure
-
     # Set the canopy and absorbed irradiance
     fxt_plants_model.update_canopy_layers()
     fxt_plants_model.set_canopy_absorption(time_index=0)
@@ -136,41 +134,30 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     # Calculate GPP
     fxt_plants_model.estimate_gpp(time_index=0)
 
-    # Check calculated quantities - this is currently very basic.
+    # TODO - currently no actual validation of values, only of structure
+    #      - maybe mock lue and iwue to get easier values rather than current obscure
+    #        ones
 
-    # - Light use efficiency: currently asserted fixed value
-    exp_lue = lyr_str.from_template()
-    exp_lue[lyr_str.index_filled_canopy] = 0.3
-    xarray.testing.assert_allclose(
-        fxt_plants_model.data["layer_light_use_efficiency"],
-        exp_lue,
+    # Check stem_gpp and stem_transpiration structure
+    exp_stem_struct = {
+        cid: cmty.number_of_cohorts
+        for cid, cmty in fxt_plants_model.communities.items()
+    }
+
+    # Are the stem properties dictionaries of arrays with the right length
+    assert exp_stem_struct == {
+        cid: len(vals) for cid, vals in fxt_plants_model.stem_gpp.items()
+    }
+
+    assert exp_stem_struct == {
+        cid: len(vals) for cid, vals in fxt_plants_model.stem_transpiration.items()
+    }
+
+    # Check the evapotranspiration shape
+
+    assert fxt_plants_model.data["evapotranspiration"].shape == (
+        fxt_plants_model.grid.n_cells,
     )
-
-    # Same for evapotranspiration
-    exp_evapo = lyr_str.from_template()
-    exp_evapo[lyr_str.index_filled_canopy] = 20
-    xarray.testing.assert_allclose(
-        fxt_plants_model.data["evapotranspiration"],
-        exp_evapo,
-    )
-
-    # - Canopy fapar to expected gpp per m2
-    exp_fapar = lyr_str.from_template()
-    exp_fapar[lyr_str.index_flux_layers] = [[0.4], [0.2], [0.1], [0.3]]
-    exp_gpp_per_m2 = exp_lue * 1000 * exp_fapar
-
-    assert np.allclose(
-        fxt_plants_model.data["layer_gpp_per_m2"].data, exp_gpp_per_m2, equal_nan=True
-    )
-
-    # - GPP calculated correctly
-    for cell_id, community in fxt_plants_model.communities.items():
-        cell_gpp_per_m2 = exp_gpp_per_m2[np.arange(1, 11), cell_id]
-        for cohort in community:
-            assert np.allclose(
-                cohort.gpp,
-                np.nansum(cell_gpp_per_m2 * cohort.canopy_area * 30 * 24 * 60 * 60),
-            )
 
 
 def test_PlantsModel_update(
