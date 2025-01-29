@@ -178,6 +178,8 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, PlantCanopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.filled_canopy_mask: NDArray[np.bool]
+        """A boolean array showing which layers contain canopy by cell."""
         self.stem_gpp: dict[int, NDArray[np.floating]]
         """A dictionary keyed by cell id giving the stem GPP for each cohort in the cell
         community"""
@@ -277,6 +279,10 @@ class PlantsModel(
 
         # Initialise other attributes
         self.stem_gpp = {}
+        self.stem_transpiration = {}
+        self.filled_canopy_mask = np.full(
+            (self.layer_structure.n_layers, self.grid.n_cells), False
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -381,6 +387,9 @@ class PlantsModel(
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
 
+        # Update the internal canopy layer mask
+        self.filled_canopy_mask = np.logical_not(np.isnan(self.data["layer_leaf_mass"]))
+
         LOGGER.info(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
@@ -481,9 +490,20 @@ class PlantsModel(
             .to_numpy()
         )
 
+        # Initialise transpiration array to collect per grid cell values
+        transpiration = np.full(self.grid.n_cells, fill_value=np.nan)
+
+        # Get a floating point representation of the numner of seconds since last update
+        # TODO - move this attribute to model_timing.
+        n_seconds = self.model_timing.update_interval / np.timedelta64(1, "s")
+
         for cell_id in self.canopies.keys():
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
+
+            # Generate subsetting to match the layer structure to the cohort canopy
+            # layers, whose dimensions vary between grid cells
+            active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
 
             # GPP is estimated as:
             #    LUE * per stem per layer fAPAR * the canopy top PPFD.
@@ -491,8 +511,11 @@ class PlantsModel(
             #    (n_layer, n_cohorts) * (n_layer, 1) * scalar
             # Units:
             #    gC mol-1 * (-) * µmol m-2 s-1 = µg m-2 s-1
+            #
+            # TODO - I know this indexing style d[r, :][:, c] looks mad, but not quite
+            #        sure how to get numpy to give me back what this does more directly.
             stem_gpp_per_layer_per_m2_per_s = (
-                pmodel.lue[:, [cell_id]][self.layer_structure.index_filled_canopy]
+                pmodel.lue[active_layers, :][:, [cell_id]]
                 * canopy.cohort_data.stem_fapar
                 * canopy_top_ppfd[cell_id]
             )
@@ -503,10 +526,9 @@ class PlantsModel(
             #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
             # Units:
             #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
-
             stem_transpiration_per_layer_per_m2_per_s = (
                 stem_gpp_per_layer_per_m2_per_s / (self.pmodel_core_consts.k_CtoK * 1e6)
-            ) * pmodel.iwue[:, [cell_id]][self.layer_structure.index_filled_canopy]
+            ) * pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Now scale up and aggregate those values
 
@@ -514,27 +536,36 @@ class PlantsModel(
             # and scale by elapsed time in seconds
             self.stem_gpp[cell_id] = (
                 stem_gpp_per_layer_per_m2_per_s * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0) * self.model_timing.update_interval
+            ).sum(axis=0) * n_seconds
 
             # Calculate total stem transpiration in µmol per stem and total grid cell
             # transpiration in mm m-2 since last update
             self.stem_transpiration[cell_id] = (
                 stem_transpiration_per_layer_per_m2_per_s
                 * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0) * self.model_timing.update_interval
+            ).sum(axis=0) * n_seconds
 
             # For conversion to mm m-2, the initial value is in µmol m2 s1, conversion
             # factor from µmol m2 to mm is currently approximated at fixed standard temp
             # and pressure, but could be adjusted once
             # `pyrealm.core.water.convert_water_moles_to_mm` is public
-            self.data["evapotranspiration"][cell_id] = (
+            transpiration[cell_id] = (
                 (
-                    community.cohort_data.n_individuals
+                    community.cohorts.n_individuals
                     * stem_transpiration_per_layer_per_m2_per_s
                 ).sum()
-                * self.model_timing.update_interval
+                * n_seconds
                 * 1.8e-8
             )
+
+        # Pass values to data object
+        #
+        # TODO - #704, this is _not_ evapotranspiration, but we'll pretend it is for
+        #        the moment.
+        #
+        self.data["evapotranspiration"] = xr.DataArray(
+            transpiration, coords={"cell_id": self.grid.cell_id}
+        )
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
