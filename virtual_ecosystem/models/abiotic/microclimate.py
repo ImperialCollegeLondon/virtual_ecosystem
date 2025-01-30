@@ -25,6 +25,11 @@ def run_microclimate(
     This function iteratively updates air, soil and canopy temperatures by calculating
     the energy balance for each layer.
 
+    TODO the units of fluxes are in W m-2 and we need to make sure that the input energy
+    over a time interval is coherent with the calculations of fluxes in that time
+    interval.
+
+
     Args:
         data: Data object
         time_index: Time index

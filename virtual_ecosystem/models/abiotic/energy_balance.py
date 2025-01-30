@@ -32,6 +32,9 @@ A challenge in solving this equation is the dependency of latent heat and emitte
 radiation on leaf temperature. We use a linearisation approach to solve the equation for
 leaf temperature and air temperature simultaneously.
 
+TODO the units of fluxes are in W m-2 and we need to make sure that the input energy
+over a time interval is coherent with the calculations of fluxes in that time interval.
+
 """  # noqa: D205, D415
 
 import numpy as np
