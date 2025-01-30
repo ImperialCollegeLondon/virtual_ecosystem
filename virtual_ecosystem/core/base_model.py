@@ -267,6 +267,15 @@ class BaseModel(ABC):
                 "vars_updated or that both are bypassed by providing all variables in "
                 "vars_populated_by_init."
             )
+        if not bypass_setup and not self._run_initial_static_update:
+            raise ConfigurationError(
+                f"Static model {self.model_name} will run the setup method, but "
+                "not the update method. This is an invalid configuration. "
+                "Please, make sure that either both methods are run once"
+                " by not providing any variables in vars_populated_by_init or that both"
+                " are bypassed by providing all variables in "
+                "vars_populated_by_first_update and vars_updated."
+            )
 
         if not bypass_setup:
             self._setup(**kwargs)
@@ -311,7 +320,7 @@ class BaseModel(ABC):
                 # The case when static is true and no init vars provided
                 return False
             else:
-                # The case when static is true and all init vars provideed
+                # The case when static is true and all init vars provided
                 return True
 
         return False
