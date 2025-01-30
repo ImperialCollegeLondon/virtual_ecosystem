@@ -135,6 +135,20 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
             ("b.bb.bbb.bbba.bbbaa",),
             id="conflict_complex",
         ),
+        pytest.param(
+            {"d1": {"d2": [1, 2, 3]}},
+            {"d1": {"d2": [4, 5]}},
+            {"d1": {"d2": [1, 2, 3, 4, 5]}},
+            (),
+            id="no_conflict_list_merge",
+        ),
+        pytest.param(
+            {"d1": {"d2": [1, 2, 3]}},
+            {"d1": {"d2": "a"}},
+            {"d1": {"d2": "a"}},
+            ("d1.d2",),
+            id="conflict_list_and_not_list",
+        ),
     ],
 )
 def test_config_merge(dest, source, exp_result, exp_conflicts):
