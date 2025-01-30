@@ -55,6 +55,8 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_n_pool_ammonium",
+        "soil_n_pool_nitrate",
         "soil_p_pool_dop",
         "soil_p_pool_particulate",
         "soil_p_pool_necromass",
@@ -79,6 +81,8 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_n_pool_ammonium",
+        "soil_n_pool_nitrate",
         "soil_p_pool_dop",
         "soil_p_pool_particulate",
         "soil_p_pool_necromass",
@@ -106,6 +110,8 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_n_pool_ammonium",
+        "soil_n_pool_nitrate",
         "soil_p_pool_dop",
         "soil_p_pool_particulate",
         "soil_p_pool_necromass",
@@ -217,7 +223,7 @@ class SoilModel(
         """Checks if all soil pools values greater than or equal to zero.
 
         Returns:
-            A bool specificing whether all pools updated by the model are postive or
+            A bool specifying whether all pools updated by the model are positive or
             not.
         """
 
@@ -282,6 +288,8 @@ class SoilModel(
                 delta_pools_ordered,
                 self.model_constants,
                 self.core_constants.max_depth_of_microbial_activity,
+                self.core_constants.soil_moisture_capacity,
+                self.layer_structure.soil_layer_thickness[0],
             ),
         )
 
@@ -315,6 +323,8 @@ def construct_full_soil_model(
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
     max_depth_of_microbial_activity: float,
+    soil_moisture_capacity: float,
+    top_soil_layer_thickness: float,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -331,6 +341,9 @@ def construct_full_soil_model(
         model_constants: Set of constants for the soil model.
         max_depth_of_microbial_activity: Maximum depth of the soil profile where
             microbial activity occurs [m].
+        soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
+            (volumetric) moisture the soil can hold [unitless].
+        top_soil_layer_thickness: Thickness of the topsoil layer [mm].
 
     Returns:
         The rate of change for each soil pool
@@ -354,6 +367,9 @@ def construct_full_soil_model(
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
         top_soil_layer_index=top_soil_layer_index,
+        # TODO - This needs to be reconsidered as part of the soil-abiotic links review
+        soil_moisture_capacity=soil_moisture_capacity,
+        top_soil_layer_thickness=top_soil_layer_thickness,
     )
 
 

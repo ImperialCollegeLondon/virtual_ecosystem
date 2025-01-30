@@ -978,6 +978,8 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_n_pool_particulate",
             "soil_n_pool_necromass",
             "soil_n_pool_maom",
+            "soil_n_pool_ammonium",
+            "soil_n_pool_nitrate",
             "soil_p_pool_dop",
             "soil_p_pool_particulate",
             "soil_p_pool_necromass",
