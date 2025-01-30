@@ -5,89 +5,8 @@ from logging import CRITICAL
 
 import numpy as np
 import pytest
-from numpy import ndarray
 
 from tests.conftest import log_check
-from virtual_ecosystem.core.exceptions import ConfigurationError
-
-
-def test_generate_canopy_model(fixture_core_components, plants_data, flora):
-    """Test the function to turn a community list into a canopy model."""
-
-    # TODO - the functionality in this function does nothing at the moment, so this
-    #        method just tests data handling
-
-    from virtual_ecosystem.models.plants.canopy import generate_canopy_model
-    from virtual_ecosystem.models.plants.community import PlantCommunities
-
-    communities = PlantCommunities(
-        data=plants_data, flora=flora, grid=fixture_core_components.grid
-    )
-
-    for _, community in communities.items():
-        canopy_data = generate_canopy_model(community=community)
-
-        assert isinstance(canopy_data[0], ndarray)  # layer_hght
-        assert isinstance(canopy_data[1], ndarray)  # layer_lai
-        assert isinstance(canopy_data[2], ndarray)  # layer_fapar
-        assert isinstance(canopy_data[3], ndarray)  # layer_leaf_mass
-
-        assert np.all([arr.ndim == 1 for arr in canopy_data])
-
-        for cohort in community:
-            assert np.allclose(
-                cohort.canopy_area,
-                np.array([5, 5, 5]),
-            )
-
-
-@pytest.mark.parametrize(
-    argnames="max_layers, raises, exp_log",
-    argvalues=[
-        pytest.param(10, does_not_raise(), None, id="many_layers"),
-        pytest.param(5, does_not_raise(), None, id="enough_layers"),
-        pytest.param(
-            1,
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    CRITICAL,
-                    "Generated canopy has more layers than the configured maximum",
-                ),
-            ),
-            id="not_enough_layers",
-        ),
-    ],
-)
-def test_build_canopy_arrays(caplog, plants_data, flora, max_layers, raises, exp_log):
-    """Test the function to turn PlantsCommunities into canopy arrays."""
-
-    from virtual_ecosystem.models.plants.canopy import build_canopy_arrays
-    from virtual_ecosystem.models.plants.community import PlantCommunities
-
-    # Use fixture communities for now - this may need parameterised communities in the
-    # future to try and trigger various warning - or might not.
-    communities = PlantCommunities(plants_data, flora)
-
-    with raises:
-        # Build the canopy layers, which takes the generated canopy model, pads to the
-        # configured maximum and stacks into arrays by cell id
-        canopy_data = build_canopy_arrays(
-            communities=communities, n_canopy_layers=max_layers
-        )
-
-        # Check the canopy layers arrays are the right size and that the
-        # cohort.canopy_areas have been padded successfully
-        if isinstance(raises, does_not_raise):
-            for arr in canopy_data:
-                assert arr.shape == (max_layers, len(communities))
-
-            for community in communities.values():
-                for cohort in community:
-                    assert cohort.canopy_area.shape == (max_layers,)
-
-        if exp_log is not None:
-            log_check(caplog, exp_log)
 
 
 def test_initialise_canopy_layers(plants_data, fixture_core_components):
@@ -141,3 +60,51 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
         np.tile(np.array([[np.nan] * 11 + [0.1, -0.5, -1.0]]).T, 4),
         equal_nan=True,
     )
+
+
+@pytest.mark.parametrize(
+    "max_canopy_layers, expected_exception, expected_log",
+    [
+        (10, does_not_raise(), None),
+        (5, does_not_raise(), None),
+        (
+            1,
+            pytest.raises(RuntimeError),
+            (
+                (
+                    CRITICAL,
+                    "Canopy representation for the plant community in cell 1 has 3 "
+                    "layers, configured maximum is 1",
+                ),
+            ),
+        ),
+    ],
+)
+def test_calculate_canopies(
+    caplog,
+    fixture_core_components,
+    plants_data,
+    flora,
+    max_canopy_layers,
+    expected_exception,
+    expected_log,
+):
+    """Test the calculate_canopies function with different max_canopy_layers values."""
+    from virtual_ecosystem.models.plants.canopy import PlantCanopy, calculate_canopies
+    from virtual_ecosystem.models.plants.community import PlantCommunities
+
+    communities = PlantCommunities(
+        data=plants_data, flora=flora, grid=fixture_core_components.grid
+    )
+
+    with expected_exception:
+        canopies = calculate_canopies(communities, max_canopy_layers)
+
+        if expected_exception is does_not_raise():
+            assert isinstance(canopies, dict)
+            for canopy in canopies.values():
+                assert isinstance(canopy, PlantCanopy)
+                assert canopy.heights.size <= max_canopy_layers
+
+        if expected_log is not None:
+            log_check(caplog, expected_log)
