@@ -11,7 +11,7 @@ from tests.conftest import log_check
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
-def test_generate_canopy_model(plants_data, flora):
+def test_generate_canopy_model(fixture_core_components, plants_data, flora):
     """Test the function to turn a community list into a canopy model."""
 
     # TODO - the functionality in this function does nothing at the moment, so this
@@ -20,7 +20,9 @@ def test_generate_canopy_model(plants_data, flora):
     from virtual_ecosystem.models.plants.canopy import generate_canopy_model
     from virtual_ecosystem.models.plants.community import PlantCommunities
 
-    communities = PlantCommunities(plants_data, flora)
+    communities = PlantCommunities(
+        data=plants_data, flora=flora, grid=fixture_core_components.grid
+    )
 
     for _, community in communities.items():
         canopy_data = generate_canopy_model(community=community)

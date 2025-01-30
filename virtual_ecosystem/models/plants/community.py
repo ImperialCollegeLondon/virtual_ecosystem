@@ -68,7 +68,14 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
     """
 
     def __init__(self, data: Data, flora: pyrealmFlora, grid: Grid):
-        # Validate the data being used to generate the Plants object
+        """Initialise the community object.
+
+        Args:
+            data: A data object.
+            flora: A flora object.
+            grid: A grid object
+        """
+        # Validate the data being used to generate the Plants object form a dataframe
         cohort_data_vars = [
             "plant_cohorts_n",
             "plant_cohorts_pft",
@@ -76,27 +83,10 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
             "plant_cohorts_dbh",
         ]
 
-        # All vars present
-        missing_var = [v for v in cohort_data_vars if v not in data]
+        is_df, msg = data.confirm_variables_form_data_frame(cohort_data_vars)
 
-        if missing_var:
-            msg = f"Missing plant cohort variables: {', '.join(missing_var)}"
-            LOGGER.critical(msg)
-            raise ValueError(msg)
-
-        # All vars identically sized and 1D
-        data_shapes = [data[var].shape for var in cohort_data_vars]
-
-        if len(set(data_shapes)) != 1:
-            msg = (
-                f"Unequal plant cohort variable dimensions:"
-                f" {','.join([str(v) for v in set(data_shapes)])}"
-            )
-            LOGGER.critical(msg)
-            raise ValueError(msg)
-
-        if len(data_shapes[0]) != 1:
-            msg = "Plant cohort variable data is not one dimensional"
+        if not is_df:
+            msg = "Cannot initialise plant communities. " + msg
             LOGGER.critical(msg)
             raise ValueError(msg)
 
