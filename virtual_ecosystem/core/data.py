@@ -120,6 +120,7 @@ file.
 
 """  # noqa: D205
 
+from itertools import groupby
 from pathlib import Path
 from typing import Any
 
@@ -336,19 +337,29 @@ class Data:
                 LOGGER.error("Duplicate variable names in data configuration.")
                 clean_load = False
 
+            # Group variables by file
+            variables = data_config["variable"]
+            variables.sort(key=lambda v: v["file"])
+            file_groups = groupby(variables, key=lambda v: v["file"])
+
             # Load data from each data source
-            for each_var in data_config["variable"]:
+            for file, file_vars in file_groups:
                 # Attempt to load the file, trapping exceptions as critical logger
                 # messages and defer failure until the whole configuration has been
                 # processed
+
                 try:
-                    self[each_var["var_name"]] = load_to_dataarray(
-                        file=Path(each_var["file"]),
-                        var_name=each_var["var_name"],
+                    loaded_data = load_to_dataarray(
+                        file=Path(file),
+                        var_names=[var["var_name"] for var in file_vars],
                     )
+
                 except Exception as err:
                     LOGGER.error(str(err))
                     clean_load = False
+                else:
+                    for var_name, data_array in loaded_data.items():
+                        self[var_name] = data_array
 
         if "constant" in data_config:
             msg = "Data config for constants not yet implemented."
