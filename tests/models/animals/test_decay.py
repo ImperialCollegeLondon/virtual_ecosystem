@@ -210,3 +210,110 @@ class TestLitterPool:
         assert np.allclose(litter_pool.mass_cnp["C"], expected_carbon_mass)
         assert np.allclose(litter_pool.mass_cnp["N"], expected_nitrogen_mass)
         assert np.allclose(litter_pool.mass_cnp["P"], expected_phosphorus_mass)
+
+    def test_mass_current(self, litter_pool_instance):
+        """Test that mass_current correctly returns an xarray DataArray."""
+        import numpy as np
+        from xarray import DataArray
+
+        # Call mass_current
+        mass_current = litter_pool_instance.mass_current
+
+        # Check that it returns an xarray DataArray
+        assert isinstance(mass_current, DataArray), "mass_current should be a DataArray"
+
+        # Ensure dimensions match expected structure
+        assert "cell_id" in mass_current.dims, (
+            "mass_current should have 'cell_id' dimension"
+        )
+
+        # Check that mass_current values match sum of individual nutrient masses
+        expected_mass_current = sum(litter_pool_instance.mass_cnp.values())
+        assert np.allclose(mass_current.values, expected_mass_current), (
+            f"Mismatch: Expected {expected_mass_current}, Got {mass_current.values}"
+        )
+
+    def test_get_eaten(self, litter_pool_instance, caterpillar_cohort_instance):
+        """Test the get_eaten method using the litter_pool_instance fixture."""
+
+        import numpy as np
+
+        # Define test parameters
+        grid_cell_id = 1  # Test a specific grid cell
+        consumed_mass = 50.0  # Mass intended to be consumed
+
+        # Use real consumer instance (caterpillar cohort)
+        detritivore = caterpillar_cohort_instance
+        detritivore.functional_group.mechanical_efficiency = 0.8  # Example value
+
+        # Store initial mass values for each nutrient before calling get_eaten
+        initial_mass_c = litter_pool_instance.mass_cnp["C"][grid_cell_id]
+        initial_mass_n = litter_pool_instance.mass_cnp["N"][grid_cell_id]
+        initial_mass_p = litter_pool_instance.mass_cnp["P"][grid_cell_id]
+
+        # Compute total initial mass in the litter pool (before modification)
+        initial_mass_current = initial_mass_c + initial_mass_n + initial_mass_p
+
+        # Debugging output
+        print(
+            f"Initial C: {initial_mass_c}, Initial N: {initial_mass_n}, Initial P:"
+            f"{initial_mass_p}"
+        )
+        print(f"Initial Total Mass: {initial_mass_current}")
+
+        # Call get_eaten method on the existing fixture instance
+        nutrient_gain = litter_pool_instance.get_eaten(
+            consumed_mass, detritivore, grid_cell_id
+        )
+
+        # Calculate expected nutrient consumption using the pre-update mass values
+        actual_consumed_mass = (
+            consumed_mass * detritivore.functional_group.mechanical_efficiency
+        )
+        expected_nutrient_gain = {
+            "C": actual_consumed_mass * (initial_mass_c / initial_mass_current),
+            "N": actual_consumed_mass * (initial_mass_n / initial_mass_current),
+            "P": actual_consumed_mass * (initial_mass_p / initial_mass_current),
+        }
+
+        # Debugging output
+        print(
+            f"Expected C Gain: {expected_nutrient_gain['C']}, Actual C Gain:"
+            f"{nutrient_gain['C']}"
+        )
+        print(
+            f"Expected N Gain: {expected_nutrient_gain['N']}, Actual N Gain:"
+            f"{nutrient_gain['N']}"
+        )
+        print(
+            f"Expected P Gain: {expected_nutrient_gain['P']}, Actual P Gain:"
+            f"{nutrient_gain['P']}"
+        )
+
+        # Assertions to check correct nutrient reduction and return values
+        assert np.allclose(
+            nutrient_gain["C"], expected_nutrient_gain["C"], atol=1e-6
+        ), f"Mismatch: Expected {expected_nutrient_gain['C']}, Got {nutrient_gain['C']}"
+        assert np.allclose(
+            nutrient_gain["N"], expected_nutrient_gain["N"], atol=1e-6
+        ), f"Mismatch: Expected {expected_nutrient_gain['N']}, Got {nutrient_gain['N']}"
+        assert np.allclose(
+            nutrient_gain["P"], expected_nutrient_gain["P"], atol=1e-6
+        ), f"Mismatch: Expected {expected_nutrient_gain['P']}, Got {nutrient_gain['P']}"
+
+        # **✅ Corrected Assertions for Mass Reduction**
+        assert np.allclose(
+            litter_pool_instance.mass_cnp["C"][grid_cell_id],
+            initial_mass_c - expected_nutrient_gain["C"],
+        ), "C mass not reduced correctly."
+
+        assert np.allclose(
+            litter_pool_instance.mass_cnp["N"][grid_cell_id],
+            initial_mass_n
+            - expected_nutrient_gain["N"],  # ✅ Corrected from initial_mass_c
+        ), "N mass not reduced correctly."
+
+        assert np.allclose(
+            litter_pool_instance.mass_cnp["P"][grid_cell_id],
+            initial_mass_p - expected_nutrient_gain["P"],
+        ), "P mass not reduced correctly."
