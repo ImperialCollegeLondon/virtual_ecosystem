@@ -501,12 +501,12 @@ class Data:
         # All vars one dimensional
         data_not_one_d = [var for var in var_names if self[var].ndim > 1]
         if data_not_one_d:
-            return False, f"Variables not one dimensional: {','.join(data_not_one_d)}"
+            return False, f"Variables not one dimensional: {', '.join(data_not_one_d)}"
 
         # All vars equal sized
         shapes = sorted(set(str(self[var].shape[0]) for var in var_names))
         if len(shapes) != 1:
-            return False, f"Variables of unequal length: {','.join(shapes)}"
+            return False, f"Variables of unequal length: {', '.join(shapes)}"
 
         return True, "Variables form a data frame"
 

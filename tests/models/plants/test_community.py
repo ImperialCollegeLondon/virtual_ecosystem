@@ -16,7 +16,13 @@ from tests.conftest import log_check
         pytest.param(
             (("plant_cohorts_n", DataArray(np.array([5] * 4))),),
             pytest.raises(ValueError),
-            ((CRITICAL, "Missing plant cohort variables"),),
+            (
+                (
+                    CRITICAL,
+                    "Cannot initialise plant communities. Missing variables: "
+                    "plant_cohorts_pft, plant_cohorts_cell_id, plant_cohorts_dbh",
+                ),
+            ),
             None,
             id="missing var",
         ),
@@ -28,7 +34,13 @@ from tests.conftest import log_check
                 ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4))),
             ),
             pytest.raises(ValueError),
-            ((CRITICAL, "Unequal plant cohort variable dimensions"),),
+            (
+                (
+                    CRITICAL,
+                    "Cannot initialise plant communities. Variables of "
+                    "unequal length: 4, 9",
+                ),
+            ),
             None,
             id="unequal sizes",
         ),
@@ -40,7 +52,14 @@ from tests.conftest import log_check
                 ("plant_cohorts_dbh", DataArray(np.array([0.1] * 4).reshape(2, 2))),
             ),
             pytest.raises(ValueError),
-            ((CRITICAL, "Plant cohort variable data is not one dimensional"),),
+            (
+                (
+                    CRITICAL,
+                    "Cannot initialise plant communities. Variables not one "
+                    "dimensional: plant_cohorts_n, plant_cohorts_pft, "
+                    "plant_cohorts_cell_id, plant_cohorts_dbh",
+                ),
+            ),
             None,
             id="not 1D",
         ),
@@ -113,7 +132,7 @@ def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log, exp_n_co
     caplog.clear()
 
     with raises:
-        plants_obj = PlantCommunities(data, flora=flora)
+        plants_obj = PlantCommunities(data, flora=flora, grid=data.grid)
 
         if isinstance(raises, does_not_raise):
             # Check the expected contents of plants_obj
