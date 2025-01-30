@@ -28,7 +28,6 @@ def plants_data(fixture_core_components):
 
     # Add cohort configuration - this adds varying numbers of cohorts with different
     # canopy profiles to the four cells.
-    # TODO - use the csv reader?
     cohort_csv = io.StringIO("""cell_id,n,pft,dbh
     0,400,broadleaf,1.0
     0,100,broadleaf,0.1

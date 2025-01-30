@@ -8,10 +8,7 @@ NOTE - much of this will be outsourced to pyrealm.
 """  # noqa: D205
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
 
-import numpy as np
-from numpy.typing import NDArray
 from pyrealm.demography.community import Cohorts as PlantCohorts
 from pyrealm.demography.community import Community as PlantCommunity
 from pyrealm.demography.flora import Flora as pyrealmFlora
@@ -20,33 +17,6 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.utils import split_arrays_by_grouping_variable
-from virtual_ecosystem.models.plants.functional_types import PlantFunctionalType
-
-
-@dataclass
-class PlantCohort:
-    """A dataclass describing a plant cohort.
-
-    The cohort is defined by the plant functional type, the number of individuals in the
-    cohort and the diameter at breast height for the cohort.
-
-    Instances also have a ``canopy_area`` and ``gpp`` attributes that are used to track
-    the canopy structure of a cohort within the wider community and record gross primary
-    productivity. These should not be updated by users.
-    """
-
-    pft: PlantFunctionalType
-    """The plant functional type of the cohort."""
-    dbh: float
-    """The diameter at breast height (m) of cohort members."""
-    n: int
-    """The number of individuals in the cohort."""
-    canopy_area: NDArray[np.float32] = field(
-        init=False, default_factory=lambda: np.array([])
-    )
-    """The canopy area within canopy layers of each individual."""
-    gpp: float = field(init=False, default=0)
-    """The gross primary productivity for each individual."""
 
 
 class PlantCommunities(dict, Mapping[int, PlantCommunity]):

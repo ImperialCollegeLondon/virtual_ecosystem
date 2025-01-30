@@ -1147,7 +1147,7 @@ def test_merge_continuous_file_already_exists(
             },
             ["a", "b"],
             False,
-            "Variables of unequal length: 12,14",
+            "Variables of unequal length: 12, 14",
             id="not equal length",
         ),
     ],

@@ -7,65 +7,13 @@ NOTE - much of this will be outsourced to pyrealm.
 
 from __future__ import annotations
 
-import numpy as np
-from numpy.typing import NDArray
 from pyrealm.demography.canopy import Canopy as PlantCanopy
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.community import PlantCohort, PlantCommunities
-
-
-def generate_canopy_model(
-    community: list[PlantCohort],
-) -> tuple[NDArray, NDArray, NDArray, NDArray]:
-    """Generate the canopy structure for a plant community.
-
-    This function takes a list of plant cohorts present in a community and uses the T
-    Model to estimate the heights and crown areas of the individuals. It then uses the
-    perfect plasticity approximation to calculate the closure heights of the canopy
-    layers and the leaf area indices of each layer. The last step is then to use the
-    Beer-Lambert law to estimate the fraction of absorbed photosynthetically active
-    radiation (``fapar``, :math:`f_{APAR}`) for the canopy.
-
-    This function also updates the input community data, by setting the
-    :attr:`~virtual_ecosystem.models.plants.community.PlantCohort.canopy_area`
-    attribute of each :attr:`~virtual_ecosystem.models.plants.community.PlantCohort`
-    object to the area of canopy for that cohort within each of the canopy layers. These
-    are then used to calculate the gross primary productivity of each cohort within the
-    community.
-
-    Warning:
-        This function defines the API for generating canopy models but currently returns
-        constant values for all inputs.
-
-    Args:
-        community: A list of plant cohorts.
-
-    Returns:
-        A tuple of one dimensional numpy arrays giving the layer heights along with the
-        leaf area indices, :math:`f_{APAR}` and leaf masses from the canopy model.
-    """
-
-    # TODO - actually calculate these and think about whether pyrealm pads to a maximum
-    #        canopy layer number.
-
-    # TODO - Need to expose cohort details within the data object in order to allow
-    #        animals to target specific PFT, size classes or layers
-
-    # Calculate the canopy area within each layer for each cohort.
-    for cohort in community:
-        cohort.canopy_area = np.array([5.0, 5.0, 5.0])
-
-    # Calculate the canopy wide summaries
-    layer_heights = np.array([30.0, 20.0, 10.0], dtype=np.float32)
-    layer_leaf_area_indices = np.array([1.0, 1.0, 1.0], dtype=np.float32)
-    layer_fapar = np.array([0.4, 0.2, 0.1], dtype=np.float32)
-    layer_leaf_mass = np.array([10000.0, 10000.0, 10000.0], dtype=np.float32)
-
-    return layer_heights, layer_leaf_area_indices, layer_fapar, layer_leaf_mass
+from virtual_ecosystem.models.plants.community import PlantCommunities
 
 
 def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Data:
