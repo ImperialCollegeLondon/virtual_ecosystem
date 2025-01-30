@@ -264,6 +264,7 @@ def calculate_nitrification_temperature_factor(
         [unitless].
     """
 
+    # TODO - This will be removed once temperatures start being supplied in Kelvin
     # Convert the temperatures to Kelvin
     soil_temp_in_kelvin = convert_temperature(
         soil_temp, old_scale="Celsius", new_scale="Kelvin"
@@ -318,6 +319,7 @@ def calculate_denitrification_temperature_factor(
         [unitless].
     """
 
+    # TODO - This will be removed once temperatures start being supplied in Kelvin
     # Convert the temperatures to Kelvin
     soil_temp_in_kelvin = convert_temperature(
         soil_temp, old_scale="Celsius", new_scale="Kelvin"

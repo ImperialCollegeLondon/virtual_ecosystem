@@ -367,6 +367,7 @@ def construct_full_soil_model(
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
         top_soil_layer_index=top_soil_layer_index,
+        # TODO - This needs to be reconsidered as part of the soil-abiotic links review
         soil_moisture_capacity=soil_moisture_capacity,
         top_soil_layer_thickness=top_soil_layer_thickness,
     )
