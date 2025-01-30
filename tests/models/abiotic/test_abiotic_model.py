@@ -9,7 +9,12 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
+from tests.conftest import (
+    log_check,
+    patch_bypass_setup,
+    patch_run_update,
+    patch_static_config,
+)
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 REQUIRED_INIT_VAR_CHECKS = (
@@ -368,12 +373,8 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
-    ):
-        mock_update.return_value = False
-        mock_bypass_setup.return_value = False
+    with patch_static_config("abiotic") as mock_static_config:
+        mock_static_config.return_value = False, False
         model = AbioticModel(
             data=dummy_climate_data,
             core_components=fixture_core_components,

@@ -590,3 +590,10 @@ def patch_bypass_setup(model: str):
     klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
     object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
     return patch(f"{object_to_patch}._bypass_setup_due_to_static_configuration")
+
+
+def patch_static_config(model: str):
+    """Patch the run_update_check udring the init of the model."""
+    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
+    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
+    return patch(f"{object_to_patch}._check_static_config")
