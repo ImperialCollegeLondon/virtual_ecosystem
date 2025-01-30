@@ -479,6 +479,37 @@ class Data:
 
         return out_path
 
+    def confirm_variables_form_data_frame(
+        self, var_names: list[str]
+    ) -> tuple[bool, str]:
+        """Check a list of named variables form a data frame.
+
+        This is a utility method to check if a set of named variables are present in the
+        Data object and that together they form a data frame: a set of equal length, one
+        dimensional arrays, providing consistent tuples of values across the variables.
+
+        Args:
+            var_names: A list of the variable names that form a data frame.
+        """
+
+        # All vars present
+        missing_var = [v for v in var_names if v not in self]
+
+        if missing_var:
+            return False, f"Missing variables: {', '.join(missing_var)}"
+
+        # All vars one dimensional
+        data_not_one_d = [var for var in var_names if self[var].ndim > 1]
+        if data_not_one_d:
+            return False, f"Variables not one dimensional: {','.join(data_not_one_d)}"
+
+        # All vars equal sized
+        shapes = sorted(set(str(self[var].shape[0]) for var in var_names))
+        if len(shapes) != 1:
+            return False, f"Variables of unequal length: {','.join(shapes)}"
+
+        return True, "Variables form a data frame"
+
 
 def merge_continuous_data_files(
     data_options: dict[str, Any], continuous_data_files: list[Path]
