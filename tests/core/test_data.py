@@ -376,7 +376,7 @@ def fixture_load_data_grids(request):
             ["__any__"],
             "cellid_coords_too_few.nc",
             pytest.raises(ValueError),
-            "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
@@ -393,7 +393,7 @@ def fixture_load_data_grids(request):
             ["__any__"],
             "cellid_coords_bad_cellid.nc",
             pytest.raises(ValueError),
-            "The data cell ids do not provide a one-to-one map onto grid " "cell ids.",
+            "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
                 (INFO, "Loading variable 'temp' from file:"),
                 (INFO, "Adding data array for 'temp'"),
@@ -978,6 +978,13 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_n_pool_particulate",
             "soil_n_pool_necromass",
             "soil_n_pool_maom",
+            "soil_p_pool_dop",
+            "soil_p_pool_particulate",
+            "soil_p_pool_necromass",
+            "soil_p_pool_maom",
+            "soil_p_pool_primary",
+            "soil_p_pool_secondary",
+            "soil_p_pool_labile",
         ],
         time_index,
     )

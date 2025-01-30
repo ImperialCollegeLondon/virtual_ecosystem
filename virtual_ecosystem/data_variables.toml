@@ -602,6 +602,55 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Dissolved organic phosphorus pool"
+name = "soil_p_pool_dop"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Particulate organic phosphorus pool"
+name = "soil_p_pool_particulate"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of phosphorus contained in the necromass pool"
+name = "soil_p_pool_necromass"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of phosphorus contained in the mineral associated organic matter pool"
+name = "soil_p_pool_maom"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of phosphorus in a primary mineral form"
+name = "soil_p_pool_primary"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of inorganic phosphorus that is associated with secondary minerals"
+name = "soil_p_pool_secondary"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of inorganic phosphorus that is in a labile form"
+name = "soil_p_pool_labile"
+unit = "kg P m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Bulk density of soil"
 name = "bulk_density"
 unit = "kg m^-3"

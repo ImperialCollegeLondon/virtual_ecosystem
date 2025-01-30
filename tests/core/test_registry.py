@@ -19,8 +19,7 @@ from tests.conftest import log_check
                 (INFO, "Schema registered for virtual_ecosystem.core:"),
                 (
                     INFO,
-                    "Constants class registered for "
-                    "virtual_ecosystem.core: CoreConsts",
+                    "Constants class registered for virtual_ecosystem.core: CoreConsts",
                 ),
             ),
             id="core_import_good",
