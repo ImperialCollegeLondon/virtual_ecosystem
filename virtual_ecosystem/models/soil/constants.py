@@ -383,10 +383,10 @@ class SoilConsts(ConstantsDataclass):
     """
 
     half_sat_ammonium_uptake: float = 0.02275
-    """Half saturation constant for uptake of ammonium.
-
-    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
-    and the corresponding activation energy is given by
+    """Half saturation constant for uptake of ammonium [kg N m^-3].
+    
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
     :attr:`activation_energy_uptake_saturation`.
 
     TODO - At present I've invented the value for this constant, so it really needs to
@@ -405,10 +405,10 @@ class SoilConsts(ConstantsDataclass):
     """
 
     half_sat_nitrate_uptake: float = 0.02275
-    """Half saturation constant for uptake of nitrate.
+    """Half saturation constant for uptake of nitrate [kg N m^-3].
 
-    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
-    and the corresponding activation energy is given by
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
     :attr:`activation_energy_uptake_saturation`.
 
     TODO - At present I've invented the value for this constant, so it really needs to
