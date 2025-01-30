@@ -100,17 +100,16 @@ class TestAnimalCohort:
 
     def test_mass_current(self, herbivore_cohort_instance):
         """Test the mass_current property."""
-        print(
-            f"Resolved TaxaType: {herbivore_cohort_instance.functional_group.taxa}"
-        )  # Debug output
+
         expected_mass = sum(
-            self.cohort.mass * proportion
+            herbivore_cohort_instance.mass_current * proportion
             for proportion in (
                 herbivore_cohort_instance.functional_group.cnp_proportions.values()
             )
         )
-        self.assertAlmostEqual(
-            herbivore_cohort_instance.cohort.mass_current, expected_mass, places=6
+
+        assert herbivore_cohort_instance.mass_current == pytest.approx(
+            expected_mass, rel=1e-6
         )
 
     @pytest.mark.parametrize(
@@ -227,8 +226,11 @@ class TestAnimalCohort:
         else:
             raise ValueError("Invalid cohort type provided.")
 
-        # Set initial mass
-        cohort_instance.mass_current = initial_mass
+        # Update mass_cnp instead of mass_current
+        cohort_instance.mass_cnp = {
+            element: initial_mass * proportion
+            for element, proportion in cohort_instance.cnp_proportions.items()
+        }
 
         # Mocking the sf.metabolic_rate function to return a specific value
         mocker.patch(
@@ -244,71 +246,28 @@ class TestAnimalCohort:
             assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
 
     @pytest.mark.parametrize(
-        "cohort_type, excreta_mass, initial_pool_carbon, num_pools",
+        "cohort_type, excreta_mass, num_pools",
         [
-            ("herbivore", 100.0, 500.0, 1),  # normal case for herbivore with one pool
-            (
-                "herbivore",
-                0.0,
-                500.0,
-                1,
-            ),  # zero excreta mass for herbivore with one pool
-            ("ectotherm", 50.0, 300.0, 1),  # normal case for ectotherm with one pool
-            (
-                "ectotherm",
-                0.0,
-                300.0,
-                1,
-            ),  # zero excreta mass for ectotherm with one pool
-            (
-                "herbivore",
-                100.0,
-                500.0,
-                3,
-            ),  # normal case for herbivore with multiple pools
-            (
-                "herbivore",
-                0.0,
-                500.0,
-                3,
-            ),  # zero excreta mass for herbivore with multiple pools
-            (
-                "ectotherm",
-                50.0,
-                300.0,
-                3,
-            ),  # normal case for ectotherm with multiple pools
-            (
-                "ectotherm",
-                0.0,
-                300.0,
-                3,
-            ),  # zero excreta mass for ectotherm with multiple pools
-        ],
-        ids=[
-            "herbivore_normal_one_pool",
-            "herbivore_zero_excreta_one_pool",
-            "ectotherm_normal_one_pool",
-            "ectotherm_zero_excreta_one_pool",
-            "herbivore_normal_multiple_pools",
-            "herbivore_zero_excreta_multiple_pools",
-            "ectotherm_normal_multiple_pools",
-            "ectotherm_zero_excreta_multiple_pools",
+            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 1),
+            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
+            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 1),
+            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
+            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 3),
+            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
+            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 3),
+            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
         ],
     )
     def test_excrete(
         self,
-        mocker,
         herbivore_cohort_instance,
         ectotherm_cohort_instance,
         cohort_type,
         excreta_mass,
-        initial_pool_carbon,
         num_pools,
+        excrement_pools_instance,
     ):
-        """Testing excrete method for various scenarios."""
-
-        from virtual_ecosystem.models.animal.decay import ExcrementPool
+        """Testing excrete method for various scenarios using the fixture."""
 
         # Select the appropriate cohort instance
         cohort_instance = (
@@ -317,61 +276,56 @@ class TestAnimalCohort:
             else ectotherm_cohort_instance
         )
 
-        # Mock the excrement pools
-        excrement_pools = []
-        for _ in range(num_pools):
-            excrement_pool = mocker.Mock(spec=ExcrementPool)
-            # Initialize the required attributes for the mock object
-            excrement_pool.decomposed_carbon = initial_pool_carbon
-            excrement_pool.scavengeable_carbon = initial_pool_carbon
-            excrement_pool.decomposed_nitrogen = 0.0
-            excrement_pool.scavengeable_nitrogen = 0.0
-            excrement_pool.decomposed_phosphorus = 0.0
-            excrement_pool.scavengeable_phosphorus = 0.0
-            excrement_pools.append(excrement_pool)
+        # Retrieve the excrement pools from the fixture
+        excrement_pools = excrement_pools_instance[1][:num_pools]
+
+        # Store initial values before excretion
+        initial_scavengeable_cnp = {
+            nutrient: sum(pool.scavengeable_cnp[nutrient] for pool in excrement_pools)
+            for nutrient in excreta_mass
+        }
+        initial_decomposed_cnp = {
+            nutrient: sum(pool.decomposed_cnp[nutrient] for pool in excrement_pools)
+            for nutrient in excreta_mass
+        }
 
         # Call the excrete method
         cohort_instance.excrete(excreta_mass, excrement_pools)
 
         # Expected results calculation
-        excreta_mass_per_community = excreta_mass / num_pools
-        nitrogen_mass_per_community = (
-            excreta_mass_per_community
-            * cohort_instance.constants.nitrogen_excreta_proportion
-        )
+        excreta_mass_per_community = {
+            nutrient: excreta_mass[nutrient] / num_pools for nutrient in excreta_mass
+        }
         decay_fraction = cohort_instance.decay_fraction_excrement
 
-        # Calculate expected decomposed and scavengeable carbon
-        expected_decomposed_carbon = (
-            initial_pool_carbon + decay_fraction * 0.5 * nitrogen_mass_per_community
-        )
-        expected_scavengeable_carbon = (
-            initial_pool_carbon
-            + (1 - decay_fraction) * 0.5 * nitrogen_mass_per_community
-        )
+        # Calculate expected decomposed and scavengeable fractions
+        expected_decomposed_cnp = {
+            nutrient: initial_decomposed_cnp[nutrient]
+            + decay_fraction * excreta_mass_per_community[nutrient] * num_pools
+            for nutrient in excreta_mass
+        }
+        expected_scavengeable_cnp = {
+            nutrient: initial_scavengeable_cnp[nutrient]
+            + (1 - decay_fraction) * excreta_mass_per_community[nutrient] * num_pools
+            for nutrient in excreta_mass
+        }
 
-        # Check assertions for carbon
         for excrement_pool in excrement_pools:
-            assert excrement_pool.decomposed_carbon == pytest.approx(
-                expected_decomposed_carbon, rel=1e-3
-            )
-            assert excrement_pool.scavengeable_carbon == pytest.approx(
-                expected_scavengeable_carbon, rel=1e-3
-            )
+            for nutrient in excreta_mass:
+                assert excrement_pool.decomposed_cnp[nutrient] == pytest.approx(
+                    expected_decomposed_cnp[nutrient], rel=1e-3
+                )
+                assert excrement_pool.scavengeable_cnp[nutrient] == pytest.approx(
+                    expected_scavengeable_cnp[nutrient], rel=1e-3
+                )
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass",
         [
-            ("herbivore", 100.0),  # normal case for herbivore
-            ("herbivore", 0.0),  # zero excreta mass for herbivore
-            ("ectotherm", 50.0),  # normal case for ectotherm
-            ("ectotherm", 0.0),  # zero excreta mass for ectotherm
-        ],
-        ids=[
-            "herbivore_normal",
-            "herbivore_zero_excreta",
-            "ectotherm_normal",
-            "ectotherm_zero_excreta",
+            ("herbivore", {"C": 100.0, "N": 0.0, "P": 0.0}),
+            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}),  # Zero excreta
+            ("ectotherm", {"C": 50.0, "N": 0.0, "P": 0.0}),
+            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}),  # Zero excreta
         ],
     )
     def test_respire(
@@ -381,23 +335,18 @@ class TestAnimalCohort:
         cohort_type,
         excreta_mass,
     ):
-        """Testing respire method for various scenarios.
-
-        This test is deliberately simple because it will be reworked with stoichiometry.
-
-        """
+        """Testing respire method for various scenarios."""
 
         # Select the appropriate cohort instance
-        if cohort_type == "herbivore":
-            cohort_instance = herbivore_cohort_instance
-        elif cohort_type == "ectotherm":
-            cohort_instance = ectotherm_cohort_instance
-        else:
-            raise ValueError("Invalid cohort type provided.")
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
 
         # Calculate the expected carbon waste based on the cohort's constants
         expected_carbon_waste = (
-            excreta_mass * cohort_instance.constants.carbon_excreta_proportion
+            excreta_mass["C"] * cohort_instance.constants.carbon_excreta_proportion
         )
 
         # Call the respire method
@@ -407,80 +356,86 @@ class TestAnimalCohort:
         assert carbon_waste == expected_carbon_waste
 
     @pytest.mark.parametrize(
-        "scav_initial, decomp_initial, consumed_mass, num_pools",
+        "cohort_type, mass_consumed, num_pools",
         [
-            (1000.0, 0.0, 1000.0, 1),  # Single pool, waste mass consumed
-            (0.0, 1000.0, 1000.0, 1),  # Single pool, initial decomposed
-            (1000.0, 0.0, 0.0, 1),  # No mass consumed, single pool
-            (0.0, 1000.0, 0.0, 1),  # No mass consumed, initial decomposed
-            (1000.0, 0.0, 1000.0, 3),  # Test with multiple pools
-            (
-                0.0,
-                1000.0,
-                1000.0,
-                3,
-            ),  # Test with multiple pools, initial decomposed
-        ],
-        ids=[
-            "single_pool_scenario_1",
-            "single_pool_scenario_2",
-            "single_pool_scenario_3",
-            "single_pool_scenario_4",
-            "multiple_pools_scenario_1",
-            "multiple_pools_scenario_2",
+            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 1),
+            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
+            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 1),
+            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
+            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 3),
+            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
+            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 3),
+            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
         ],
     )
     def test_defecate(
         self,
-        mocker,
         herbivore_cohort_instance,
-        scav_initial,
-        decomp_initial,
-        consumed_mass,
+        ectotherm_cohort_instance,
+        cohort_type,
+        mass_consumed,
         num_pools,
+        excrement_pools_instance,
     ):
-        """Testing defecate() for varying carbon mass levels and multiple pools."""
+        """Testing defecate method for various scenarios using the fixture."""
 
-        # Mock the excrement pools
-        excrement_pools = []
-        for _ in range(num_pools):
-            excrement_pool = mocker.Mock()
-            excrement_pool.scavengeable_carbon = scav_initial
-            excrement_pool.decomposed_carbon = decomp_initial
-            excrement_pool.scavengeable_nitrogen = 0.0
-            excrement_pool.decomposed_nitrogen = 0.0
-            excrement_pool.scavengeable_phosphorus = 0.0
-            excrement_pool.decomposed_phosphorus = 0.0
-            excrement_pools.append(excrement_pool)
+        # Select the appropriate cohort instance
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
+
+        # Retrieve the excrement pools from the fixture
+        excrement_pools = excrement_pools_instance[1][:num_pools]
+
+        # Store initial values before defecation
+        initial_scavengeable_cnp = {
+            nutrient: sum(pool.scavengeable_cnp[nutrient] for pool in excrement_pools)
+            for nutrient in mass_consumed
+        }
+        initial_decomposed_cnp = {
+            nutrient: sum(pool.decomposed_cnp[nutrient] for pool in excrement_pools)
+            for nutrient in mass_consumed
+        }
 
         # Call the defecate method
-        herbivore_cohort_instance.defecate(excrement_pools, consumed_mass)
+        cohort_instance.defecate(excrement_pools, mass_consumed)
 
-        # Check the expected results
+        # Expected results calculation
+        total_waste_mass = {
+            nutrient: mass
+            * cohort_instance.functional_group.conversion_efficiency
+            * cohort_instance.individuals
+            for nutrient, mass in mass_consumed.items()
+        }
+
+        waste_mass_per_community = {
+            nutrient: total_waste_mass[nutrient] / num_pools
+            for nutrient in total_waste_mass
+        }
+        decay_fraction = cohort_instance.decay_fraction_excrement
+
+        # Calculate expected decomposed and scavengeable fractions
+        expected_decomposed_cnp = {
+            nutrient: initial_decomposed_cnp[nutrient]
+            + decay_fraction * waste_mass_per_community[nutrient] * num_pools
+            for nutrient in mass_consumed
+        }
+        expected_scavengeable_cnp = {
+            nutrient: initial_scavengeable_cnp[nutrient]
+            + (1 - decay_fraction) * waste_mass_per_community[nutrient] * num_pools
+            for nutrient in mass_consumed
+        }
+
         for excrement_pool in excrement_pools:
-            expected_scavengeable_carbon = (
-                scav_initial
-                + (1 - herbivore_cohort_instance.decay_fraction_excrement)
-                * consumed_mass
-                / num_pools
-                * herbivore_cohort_instance.functional_group.conversion_efficiency
-                * herbivore_cohort_instance.individuals
-            )
-            expected_decomposed_carbon = (
-                decomp_initial
-                + herbivore_cohort_instance.decay_fraction_excrement
-                * consumed_mass
-                / num_pools
-                * herbivore_cohort_instance.functional_group.conversion_efficiency
-                * herbivore_cohort_instance.individuals
-            )
-
-            assert excrement_pool.scavengeable_carbon == pytest.approx(
-                expected_scavengeable_carbon
-            )
-            assert excrement_pool.decomposed_carbon == pytest.approx(
-                expected_decomposed_carbon
-            )
+            for nutrient in mass_consumed:
+                assert excrement_pool.decomposed_cnp[nutrient] == pytest.approx(
+                    expected_decomposed_cnp[nutrient], rel=1e-3
+                )
+                assert excrement_pool.scavengeable_cnp[nutrient] == pytest.approx(
+                    expected_scavengeable_cnp[nutrient], rel=1e-3
+                )
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",

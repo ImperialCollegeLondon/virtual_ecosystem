@@ -41,7 +41,10 @@ class AnimalCohort:
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
-        """Check if age is a positive number. """
+        """Check if age is a positive number."""
+        if mass < 0:
+            raise ValueError("Mass must be a positive number.")
+        """Check if mass is a positive number."""
         self.functional_group = functional_group
         """The functional group of the animal cohort which holds constants."""
         self.name = functional_group.name
@@ -337,24 +340,8 @@ class AnimalCohort:
         excrement_pools: list[ExcrementPool],
         mass_consumed: dict[str, float],
     ) -> None:
-        """Transfer waste mass from an animal cohort to the excrement pools.
+        """Transfer waste mass from an animal cohort to the excrement pools."""
 
-        Waste mass is transferred to the excrement pool(s), split between decomposed and
-        scavengable compartments. Carbon, nitrogen, and phosphorus are transferred
-        according to stoichiometric ratios. Mass is distributed over multiple excrement
-        pools if provided.
-
-        TODO: rework to interact with grow and remove excess nutrients
-        TODO: update conversion efficiency
-
-        Args:
-            excrement_pools: The ExcrementPool objects in the cohort's territory in
-                which waste is deposited.
-            mass_consumed: Dictionary specifying the mass of each nutrient consumed by
-                the cohort {"C": value, "N": value, "P": value} [kg].
-        """
-
-        # Validate mass_consumed input
         required_keys = {"C", "N", "P"}
         if not required_keys.issubset(mass_consumed.keys()):
             raise ValueError(
@@ -374,36 +361,26 @@ class AnimalCohort:
             for nutrient, mass in mass_consumed.items()
         }
 
-        # Split the waste mass proportionally among communities
-
+        # Ensure pools exist
         number_communities = len(excrement_pools)
         if number_communities == 0:
             raise ValueError("No excrement pools provided for waste distribution.")
-        waste_mass_per_community = {
-            nutrient: mass / number_communities
-            for nutrient, mass in total_waste_mass.items()
-        }
 
-        # Calculate the scavengeable and decomposed fractions for each nutrient
+        # Calculate scavengeable and decomposed fractions
         scavengeable_factors = 1 - self.decay_fraction_excrement
         decomposed_factors = self.decay_fraction_excrement
 
-        scavengeable_mass = {
-            nutrient: scavengeable_factors * mass
-            for nutrient, mass in waste_mass_per_community.items()
-        }
-        decomposed_mass = {
-            nutrient: decomposed_factors * mass
-            for nutrient, mass in waste_mass_per_community.items()
-        }
-
-        # Distribute waste across each excrement pool
         for excrement_pool in excrement_pools:
             for nutrient in required_keys:
-                # Update scavengeable pools
-                excrement_pool.scavengeable_cnp[nutrient] += scavengeable_mass[nutrient]
-                # Update decomposed pools
-                excrement_pool.decomposed_cnp[nutrient] += decomposed_mass[nutrient]
+                waste_mass_per_pool = total_waste_mass[nutrient] / number_communities
+
+                # Calculate scavengeable and decomposed mass for this pool
+                scavengeable_mass = scavengeable_factors * waste_mass_per_pool
+                decomposed_mass = decomposed_factors * waste_mass_per_pool
+
+                # Update excrement pool
+                excrement_pool.scavengeable_cnp[nutrient] += scavengeable_mass
+                excrement_pool.decomposed_cnp[nutrient] += decomposed_mass
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes and flag maturity.

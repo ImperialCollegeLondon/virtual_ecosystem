@@ -672,17 +672,28 @@ def butterfly_cohort_instance(
 
 @pytest.fixture
 def excrement_pool_instance():
-    """Fixture for a soil pool used in tests."""
+    """Fixture for an excrement pool used in tests."""
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_carbon=0.0,
-        decomposed_carbon=0.0,
-        scavengeable_nitrogen=0.0,
-        decomposed_nitrogen=0.0,
-        scavengeable_phosphorus=0.0,
-        decomposed_phosphorus=0.0,
+        scavengeable_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+        decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
     )
+
+
+@pytest.fixture
+def excrement_pools_instance():
+    """Fixture for excrement pools used in tests."""
+    from virtual_ecosystem.models.animal.decay import ExcrementPool
+
+    return {
+        1: [
+            ExcrementPool(
+                scavengeable_cnp={"C": 500.0, "N": 100.0, "P": 50.0},
+                decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+            )
+        ]
+    }
 
 
 @pytest.fixture
@@ -737,12 +748,8 @@ def carcass_pool_instance():
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(
-        scavengeable_carbon=0.0,
-        decomposed_carbon=0.0,
-        scavengeable_nitrogen=0.0,
-        decomposed_nitrogen=0.0,
-        scavengeable_phosphorus=0.0,
-        decomposed_phosphorus=0.0,
+        scavengeable_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+        decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
     )
 
 
@@ -754,12 +761,8 @@ def carcass_pools_instance():
     return {
         1: [
             CarcassPool(
-                scavengeable_carbon=500.0,
-                decomposed_carbon=0.0,
-                scavengeable_nitrogen=100.0,
-                decomposed_nitrogen=0.0,
-                scavengeable_phosphorus=50.0,
-                decomposed_phosphorus=0.0,
+                scavengeable_cnp={"C": 500.0, "N": 100.0, "P": 50.0},
+                decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
             )
         ]
     }
