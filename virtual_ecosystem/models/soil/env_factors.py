@@ -325,8 +325,11 @@ def calculate_denitrification_temperature_factor(
         soil_temp, old_scale="Celsius", new_scale="Kelvin"
     )
 
-    return factor_at_infinity * np.exp(
-        -thermal_sensitivity / (soil_temp_in_kelvin - minimum_temp)
+    return np.where(
+        soil_temp_in_kelvin <= minimum_temp,
+        0,
+        factor_at_infinity
+        * np.exp(-thermal_sensitivity / (soil_temp_in_kelvin - minimum_temp)),
     )
 
 
