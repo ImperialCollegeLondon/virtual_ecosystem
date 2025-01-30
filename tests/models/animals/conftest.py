@@ -108,14 +108,46 @@ def animal_fixture_config():
         surface_layer_height = 0.1
 
         [plants]
-        a_plant_integer = 12
-        [[plants.ftypes]]
-        pft_name = "shrub"
-        max_height = 1.0
-        [[plants.ftypes]]
-        pft_name = "broadleaf"
-        max_height = 50.0
+        [[plants.pft_definition]]
+        a_hd = 116.0
+        ca_ratio = 390.43
+        f_g = 0.02
+        h_max = 25.33
+        lai = 1.8
+        m = 2
+        n = 5
+        name = 'shrub'
+        par_ext = 0.5
+        resp_f = 0.1
+        resp_r = 0.913
+        resp_s = 0.044
+        rho_s = 200.0
+        sla = 14.0
+        tau_f = 4.0
+        tau_r = 1.04
+        yld = 0.17
+        zeta = 0.17
 
+        [[plants.pft_definition]]
+        a_hd = 116.0
+        ca_ratio = 390.43
+        f_g = 0.02
+        h_max = 30.33
+        lai = 1.8
+        m = 2
+        n = 5
+        name = 'broadleaf'
+        par_ext = 0.5
+        resp_f = 0.1
+        resp_r = 0.913
+        resp_s = 0.044
+        rho_s = 200.0
+        sla = 14.0
+        tau_f = 4.0
+        tau_r = 1.04
+        yld = 0.17
+        zeta = 0.17
+        
         [[animal.functional_groups]]
         name = "carnivorous_bird"
         taxa = "bird"
