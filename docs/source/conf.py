@@ -101,7 +101,6 @@ extensions = [
     "sphinx_external_toc",
     "sphinx_design",
     "hoverxref.extension",
-    "sphinx_tabs.tabs",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -154,7 +153,9 @@ nitpick_ignore = [
     ("py:class", "numpy.bool_"),
     ("py:class", "np.float32"),
     ("py:class", "np.datetime64"),
+    ("py:class", "np.ndarray"),
     ("py:class", "np.timedelta64"),
+    ("py:class", "timedelta64"),
     ("py:class", "InitVar"),
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),

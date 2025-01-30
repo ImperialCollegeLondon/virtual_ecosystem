@@ -159,6 +159,26 @@ class LitterModel(
         model_constants: Set of constants for the litter model.
     """
 
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Litter init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.litter.litter_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.litter_chemistry: LitterChemistry
+        """Litter chemistry object for tracking of litter pool chemistries."""
+        self.model_constants: LitterConsts
+        """Set of constants for the litter model."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -267,10 +287,7 @@ class LitterModel(
             raise to_raise
 
         self.litter_chemistry = LitterChemistry(self.data, constants=model_constants)
-        """Litter chemistry object for tracking of litter pool chemistries."""
-
         self.model_constants = model_constants
-        """Set of constants for the litter model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the litter model."""
