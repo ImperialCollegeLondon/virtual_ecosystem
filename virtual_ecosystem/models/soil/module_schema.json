@@ -17,26 +17,6 @@
                   "SoilConsts"
                ]
             },
-            "depends": {
-               "type": "object",
-               "default": {},
-               "properties": {
-                  "init": {
-                     "type": "array",
-                     "default": [],
-                     "items": {
-                        "type": "string"
-                     }
-                  },
-                  "update": {
-                     "type": "array",
-                     "default": [],
-                     "items": {
-                        "type": "string"
-                     }
-                  }
-               }
-            }, 
             "static": {
                 "type": "boolean",
                 "default": false
