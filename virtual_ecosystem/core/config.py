@@ -47,7 +47,9 @@ def config_merge(
     of tables (https://toml.io/en/v1.0.0#array-of-tables). In this case, it is
     reasonable to append the source values to the destination values. The motivating
     example here are `[[core.data.variable]]` entries, which can quite reasonably be
-    split across files.
+    split across configuration sources. Note that no attempt is made to check that the
+    combined values are congruent - this is deferred to error handling when the
+    configuration is used.
 
     Args:
         dest: A dictionary to extend
