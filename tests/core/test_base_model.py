@@ -828,6 +828,21 @@ def test_run_update_due_to_static_configuration(
             "vars_populated_by_init.",
             id="static_setup_bypassed_update_run",
         ),
+        # Test case where _setup is run and _update is not run
+        pytest.param(
+            True,
+            ("var1", "var2"),
+            ("var3",),
+            {"var3": 1},
+            pytest.raises(ConfigurationError),
+            "Static model test_model will run the setup method, but "
+            "not the update method. This is an invalid configuration. "
+            "Please, make sure that either both methods are run once"
+            " by not providing any variables in vars_populated_by_init or that both"
+            " are bypassed by providing all variables in "
+            "vars_populated_by_first_update and vars_updated.",
+            id="static_setup_run_update_not",
+        ),
     ],
 )
 def test_bypass_setup_but_run_update_fails(
