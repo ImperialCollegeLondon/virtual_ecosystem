@@ -257,6 +257,7 @@
                      },
                      "variables": {
                         "type": "array",
+                        "description": "Variables to be carried over to the next step.",
                         "items": {
                            "type": "string"
                         }
