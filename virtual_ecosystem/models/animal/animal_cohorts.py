@@ -442,23 +442,8 @@ class AnimalCohort:
     def update_carcass_pool(
         self, carcass_mass: dict[str, float], carcass_pools: list[CarcassPool]
     ) -> None:
-        """Updates the carcass pools after deaths.
+        """Updates the carcass pools after deaths."""
 
-        Carcass mass is transferred to the carcass pools, split between a decomposed and
-        a scavengeable compartment. Carbon, nitrogen, and phosphorus are transferred
-        directly from the input dictionary. Mass is distributed over multiple carcass
-        pools if provided.
-
-        Args:
-            carcass_mass: Dictionary specifying the mass of each nutrient in the carcass
-                {"C": value, "N": value, "P": value} [kg].
-            carcass_pools: The pools to which remains of eaten individuals are
-                delivered.
-
-        Raises:
-            ValueError: If `carcass_mass` is missing required keys or contains negative
-                values.
-        """
         # Validate carcass_mass input
         required_keys = {"C", "N", "P"}
         if not required_keys.issubset(carcass_mass.keys()):
@@ -497,7 +482,7 @@ class AnimalCohort:
         }
 
         # Distribute carcass mass across carcass pools
-        for carcass_pool in carcass_pools:
+        for i, carcass_pool in enumerate(carcass_pools):
             for nutrient in required_keys:
                 # Update scavengeable pools
                 carcass_pool.scavengeable_cnp[nutrient] += scavengeable_mass[nutrient]
@@ -510,58 +495,63 @@ class AnimalCohort:
         predator: AnimalCohort,
         carcass_pools: dict[int, list[CarcassPool]],
     ) -> dict[str, float]:
-        """Removes individuals according to mass demands of a predation event.
-
-        It finds the smallest whole number of prey required to satisfy the predators
-        mass demands and caps it at the available population.
-
-        TODO: double check conversion efficiencies
+        """Handles predation, removing individuals and distributing biomass.
 
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
             predator: The predator consuming the cohort.
             carcass_pools: The pools to which remains of eaten individuals are
-              delivered.
+                delivered.
 
         Returns:
             A dictionary of the actual mass consumed by the predator in stoichiometric
-              terms: {"C": value, "N": value, "P": value}.
+                terms.
         """
 
-        # Mass of an average individual in the cohort
+        # Ensure the prey has nonzero body mass
+        if self.mass_current <= 0:
+            raise ValueError("Prey cohort mass must be greater than zero.")
+
+        # Compute the mass of a single individual
         individual_mass = self.mass_current
 
-        # Calculate the number of individuals to be killed
+        # Compute the maximum individuals that could be killed
         max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
         actual_individuals_killed = min(max_individuals_killed, self.individuals)
 
-        # Calculate the total mass killed
+        print("Max Individuals That Could Be Killed:", max_individuals_killed)
+        print("Actual Individuals Removed:", actual_individuals_killed)
+
+        # Compute total mass killed
         actual_mass_killed = actual_individuals_killed * individual_mass
 
-        # Calculate the actual amount of mass consumed by the predator
+        # Compute the actual mass that can be consumed, given predator's mechanical eff.
         actual_mass_consumed = min(actual_mass_killed, potential_consumed_mass)
+        consumed_mass_after_efficiency = (
+            actual_mass_consumed * predator.functional_group.mechanical_efficiency
+        )
 
-        # Convert `actual_mass_consumed` to a stoichiometric dictionary
+        # Compute the carcass mass (mass that is not consumed)
+        carcass_mass_total = actual_mass_killed - consumed_mass_after_efficiency
+
+        # Convert consumed mass to stoichiometric proportions
         actual_mass_consumed_cnp = {
-            nutrient: self.mass_cnp[nutrient] * actual_mass_consumed / individual_mass
+            nutrient: self.mass_cnp[nutrient]
+            * consumed_mass_after_efficiency
+            / individual_mass
             for nutrient in self.mass_cnp
         }
 
-        # Calculate the mass going into carcass pools
-        carcass_mass_total = (
-            actual_mass_killed - actual_mass_consumed
-        ) + actual_mass_consumed * (1 - predator.functional_group.mechanical_efficiency)
-
-        # Convert `carcass_mass_total` to a stoichiometric dictionary
+        # Convert carcass mass to stoichiometric proportions
         carcass_mass_cnp = {
             nutrient: self.mass_cnp[nutrient] * carcass_mass_total / individual_mass
             for nutrient in self.mass_cnp
         }
 
-        # Update the number of individuals in the prey cohort
+        # Remove individuals from the prey cohort
         self.individuals -= actual_individuals_killed
 
-        # Set cohort to not alive if all the individuals are dead
+        # If no individuals remain, mark the cohort as dead
         if self.individuals <= 0:
             self.is_alive = False
 
@@ -570,7 +560,7 @@ class AnimalCohort:
             predator.territory, carcass_pools
         )
 
-        # Update the carcass pool with stoichiometric carcass mass
+        # Update the carcass pool with the carcass mass
         self.update_carcass_pool(carcass_mass_cnp, intersection_carcass_pools)
 
         return actual_mass_consumed_cnp

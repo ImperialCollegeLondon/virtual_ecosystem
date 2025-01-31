@@ -759,12 +759,13 @@ def carcass_pools_instance():
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return {
-        1: [
+        cell_id: [
             CarcassPool(
                 scavengeable_cnp={"C": 500.0, "N": 100.0, "P": 50.0},
                 decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
             )
         ]
+        for cell_id in range(0, 9)  # Creates carcass pools for cells 0 to 8
     }
 
 

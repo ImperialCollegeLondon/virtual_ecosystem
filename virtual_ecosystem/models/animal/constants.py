@@ -13,8 +13,6 @@ from virtual_ecosystem.models.animal.animal_traits import (
     TaxaType,
 )
 
-print("AnimalConsts module loaded")
-
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
