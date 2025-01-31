@@ -85,7 +85,7 @@ supported formats and for extending the system to additional file formats.
     # Load temperature data from a supported file
     from virtual_ecosystem.core.readers import load_to_dataarray
     results = load_to_dataarray(
-        '/path/to/supported/format.nc', var_name='temperature'
+        '/path/to/supported/format.nc', var_names=['temperature']
     )
     data['temperature'] = results['temperature']
 
