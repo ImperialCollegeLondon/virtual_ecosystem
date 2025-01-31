@@ -215,7 +215,10 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
         ),
         pytest.param(
             None,
-            '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
+            """[[core.data.variable]]
+            file_path = "cellid_coords.nc
+            var_name = "temp"
+            """,
             [],
             does_not_raise(),
             None,
@@ -224,8 +227,14 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
         pytest.param(
             None,
             [
-                '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
-                '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "patm\n"',
+                """[[core.data.variable]]
+                file_path = "cellid_coords.nc
+                var_name = "temp"
+                """,
+                """[[core.data.variable]]
+                file_path = "cellid_coords.nc
+                var_name = "patm"
+                """,
             ],
             [],
             does_not_raise(),
@@ -242,7 +251,10 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
         ),
         pytest.param(
             "string1",
-            '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
+            """[[core.data.variable]]
+            file_path = "cellid_coords.nc
+            var_name = "temp"
+            """,
             [],
             pytest.raises(ValueError),
             "Do not use both cfg_paths and cfg_strings.",

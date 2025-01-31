@@ -99,19 +99,19 @@ structure of the data configuration section within those TOML files is as follow
 .. code-block:: toml
 
     [[core.data.variable]]
-    file="/path/to/file.nc"
+    file_path="/path/to/file.nc"
     var_name="precip"
     [[core.data.variable]]
-    file="/path/to/file.nc"
+    file_path="/path/to/file.nc"
     var_name="temperature"
     [[core.data.variable]]
+    file_path="/path/to/a/different/file.nc"
     var_name="elev"
-
-Data configurations must not contain repeated data variable names.
 
 You can include ```core.data.variable``` tags in different files. This can be useful to
 group model-specific data with other model configuration options, and allow
-configuration files to be swapped in a more modular fashion.
+configuration files to be swapped in a more modular fashion. However, the data
+configurations across all files **must not** contain repeated data variable names.
 
 .. code-block:: python
 
@@ -343,7 +343,7 @@ class Data:
                 # processed
                 try:
                     self[each_var["var_name"]] = load_to_dataarray(
-                        file=Path(each_var["file"]),
+                        file=Path(each_var["file_path"]),
                         var_name=each_var["var_name"],
                     )
                 except Exception as err:

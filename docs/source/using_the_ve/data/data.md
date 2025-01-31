@@ -206,8 +206,8 @@ like the example below for each variable to be loaded.
 
 ```toml
 [[core.data.variable]]
-file="'../../data/xy_dim.nc'"
-var_name="temp"
+file_path = "'../../data/xy_dim.nc'"
+var_name = "temp"
 ```
 
 You can include `core.data.variable` tags in different files. This can be useful to
@@ -222,8 +222,8 @@ object:
 
 ```{code-cell} ipython3
 data_toml = """[[core.data.variable]]
-file="../../data/xy_dim.nc"
-var_name="temp"
+file_path = "../../data/xy_dim.nc"
+var_name = "temp"
 """
 
 config = Config(cfg_strings=data_toml)
