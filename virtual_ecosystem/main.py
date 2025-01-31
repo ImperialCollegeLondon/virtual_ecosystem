@@ -3,6 +3,7 @@ simulation of the model, along with helper functions to validate and configure t
 model.
 """  # noqa: D205
 
+import copy
 import os
 from collections.abc import Sequence
 from itertools import chain
@@ -124,6 +125,9 @@ def _simple_run(config: Config, progress: bool) -> None:
         progress: A logical switch to turn on simple progress reporting, mostly for
             visual confirmation of progress when the log is not printed to the console.
     """
+    # Create output folder if it does not exist
+    out_path = Path(config["core"]["data_output_options"]["out_path"])
+    os.makedirs(out_path, exist_ok=True)
 
     # Save the merged config if requested
     data_opt = config["core"]["data_output_options"]
@@ -172,10 +176,6 @@ def _simple_run(config: Config, progress: bool) -> None:
     LOGGER.info("All models successfully intialised.")
 
     # TODO - A model spin up might be needed here in future
-
-    # Create output folder if it does not exist
-    out_path = Path(config["core"]["data_output_options"]["out_path"])
-    os.makedirs(out_path, exist_ok=True)
 
     # Save the initial state of the model
     if config["core"]["data_output_options"]["save_initial_state"]:
@@ -276,3 +276,51 @@ def _spin_up_run(config: Config, progress: bool) -> None:
             "Some models in a spin-up step have not been included in the simulation! "
             f"The valid models are: {', '.join(requested_models)}"
         )
+
+    for i, step in enumerate(steps):
+        LOGGER.info(f"Starting spin-up step {i + 1}...")
+
+        cfg = copy.deepcopy(config)
+
+        # Replace the core timing of the simulation
+        cfg["core"]["timing"] = step["timing"]
+
+        # Set all the models not to spin up as static
+        for model in set(requested_models).difference(step["models"]):
+            cfg[model]["static"] = True
+
+        # Put all the spin-up data in a dedicated location
+        cfg["core"]["data_output_options"]["out_path"] = (
+            cfg["core"]["data_output_options"]["out_path"] + f"\\spin_up\\{i + 1}"
+        )
+
+        # Update data sources with those from previous run
+        if i > 0:
+            extract_spin_up_data(cfg, i - 1)
+
+        # Finally, run the simulation for the spin-up step
+        _simple_run(cfg, progress)
+
+        # Reset relevant global variables in preparation for the next steps
+        variables.clear_run_variables()
+
+        LOGGER.info(f"Spin-up step {i + 1} done!")
+
+    # After the spin up, run the actual simulation
+    extract_spin_up_data(config, i)
+    _simple_run(config, progress)
+
+
+def extract_spin_up_data(config: Config, step: int) -> None:
+    """Extract the relevant data from the previous step and updates the config.
+
+    This function extracts the variables indicated in the configuration for the chosen
+    step, picks the last time entry for each of them from the output continous file
+    and puts them into a new file, saving it in that step subfolder. Then, it updates
+    the 'core.data.variable' configuration to use those variables instead of the ones
+    configured.
+
+    Args:
+        config: A fully formed and validated Config object.
+        step: The index of the step to extract the variables from.
+    """
