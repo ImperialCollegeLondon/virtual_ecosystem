@@ -210,10 +210,9 @@ file="'../../data/xy_dim.nc'"
 var_name="temp"
 ```
 
-**NOTE**: At the moment,
-`core.data.variable` tags cannot be used across multiple toml config files without
-causing `ConfigurationError: Duplicated entries in config files: core.data.variable` to
-be raised. This means that all variables need to be combined in one `config` file.
+You can include `core.data.variable` tags in different files. This can be useful to
+group model-specific data with other model configuration options, and allow
+configuration files to be swapped in a more modular fashion.
 
 To load configuration data , you will typically use the `cfg_paths` argument
 to pass one or more TOML formatted configuration files to create a
