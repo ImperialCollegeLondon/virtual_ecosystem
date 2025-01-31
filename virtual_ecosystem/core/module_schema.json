@@ -250,15 +250,22 @@
                      },
                      "timing": {
                         "type": "object",
-                        "description": "Timing options for this spin_up step",
+                        "description": "Timing options for this spin-up step",
                         "allOf": [
                           { "$ref": "#/properties/core/properties/timing" }
                         ]
+                     },
+                     "variables": {
+                        "type": "array",
+                        "items": {
+                           "type": "string"
+                        }
                      }
                   },
                   "required": [
                      "models",
-                     "timing"
+                     "timing",
+                     "variables"
                   ]
                },
                "default": []
