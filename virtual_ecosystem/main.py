@@ -296,7 +296,7 @@ def _spin_up_run(config: Config, progress: bool) -> None:
 
         # Update data sources with those from previous run
         if i > 0:
-            extract_spin_up_data(cfg, i - 1)
+            update_data_sources(cfg, i - 1)
 
         # Finally, run the simulation for the spin-up step
         _simple_run(cfg, progress)
@@ -307,20 +307,23 @@ def _spin_up_run(config: Config, progress: bool) -> None:
         LOGGER.info(f"Spin-up step {i + 1} done!")
 
     # After the spin up, run the actual simulation
-    extract_spin_up_data(config, i)
+    update_data_sources(config, i)
     _simple_run(config, progress)
 
 
-def extract_spin_up_data(config: Config, step: int) -> None:
-    """Extract the relevant data from the previous step and updates the config.
+def update_data_sources(config: Config, step: int) -> None:
+    """Update the data sources of the current step based in the previous one outputs.
 
     Updates the 'core.data.variable' configuration to use the variables indicated in the
-    step configuration but contained in the final state output file from the step.
+    step configuration contained in final state output file from the step.
 
     Args:
         config: A fully formed and validated Config object.
         step: The index of the step to extract the variables from.
     """
+    import xarray as xr
+
+    # Get the path for tne new source for the data
     root_path = config["core"]["data_output_options"]["out_path"].split("\\spin_up")[0]
     new_source = (
         root_path
@@ -328,14 +331,18 @@ def extract_spin_up_data(config: Config, step: int) -> None:
         + config["core"]["data_output_options"]["out_final_file_name"]
     )
 
+    # Check if the requested variables exist in the new source
     variables = copy.deepcopy(config["core"]["spin_up"][step]["variables"])
+    source_data = xr.open_dataset(new_source)
+    if not all(var in source_data.data_vars for var in variables):
+        raise ConfigurationError(f"Variables {variables} not found in {new_source}.")
+
+    # Update the existing data sources in the configuration
     for i, var_data in enumerate(config["core"]["data"]["variable"]):
         if var_data["var_name"] in variables:
             config["core"]["data"]["variable"][i]["file"] = new_source
             variables.remove(var_data["var_name"])
 
-    if variables:
-        ConfigurationError(
-            "Some variables from a spin up step expected to be used are not. These "
-            f"are: {variables}"
-        )
+    # Adds new variables to the configuration
+    for var in variables:
+        config["core"]["data"]["variable"].append({"file": new_source, "var_name": var})
