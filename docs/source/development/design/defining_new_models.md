@@ -374,43 +374,13 @@ properties.
 
 #### Model dependencies
 
-Your model may depend on a particular execution order for other models. For example, the
-`freshwater` model might rely on data set up by the `hydrology` model, and so the
-`hydrology` model needs to be initialised and updated before the `freshwater` model.
-This is controlled using model configuration: although these dependencies may be
-strong, it is more flexible to set them up through the configuration process than by
-hard coding dependencies into the model objects themselves.
+Your model may depend on a particular execution order for other models. This order is
+found automatically by Virtual Ecosystem based on the variables that the models require
+to be initialised and updated. Eg. if a model requires variable `A` to be initialised
+and that variable is provided by another model, this second model will run first.
 
-Your JSON Schema document therefore needs to include the following at the root level, so
-that the model configuration includes a `[freshwater.depends]` section:
-
-```json
-"depends": {
-    "type": "object",
-    "default": {},
-    "properties": {
-        "init": {
-            "type": "array",
-            "default": ["hydrology"],
-            "items": {
-            "type": "string"
-            }
-        },
-        "update": {
-            "type": "array",
-            "default": ["hydrology"],
-            "items": {
-            "type": "string"
-            }
-        }
-    }
-}
-```
-
-Note that this schema provides **default dependencies**, which set which models should
-run before your model. There is no guarantee that users will necessarily include all of
-these models in their configuration and the dependencies can always be overridden by
-users. Configurations that do this may well not work, but that is for users to tackle.
+If a suitable order cannot be found, the simulation will stop and an error message will
+be provided informing on the specific issue.
 
 ### The `from_config` factory method
 

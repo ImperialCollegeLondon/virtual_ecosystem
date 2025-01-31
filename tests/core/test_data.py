@@ -978,6 +978,8 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_n_pool_particulate",
             "soil_n_pool_necromass",
             "soil_n_pool_maom",
+            "soil_n_pool_ammonium",
+            "soil_n_pool_nitrate",
             "soil_p_pool_dop",
             "soil_p_pool_particulate",
             "soil_p_pool_necromass",
@@ -1114,3 +1116,54 @@ def test_merge_continuous_file_already_exists(
             ),
         ),
     )
+
+
+@pytest.mark.parametrize(
+    argnames="vars, var_names, exp_result, exp_msg",
+    argvalues=[
+        pytest.param(
+            {"a": DataArray(np.ones(12)), "b": DataArray(np.ones(12))},
+            ["a", "b"],
+            True,
+            "Variables form a data frame",
+            id="correct",
+        ),
+        pytest.param(
+            {"a": DataArray(np.ones(12)), "b": DataArray(np.ones(12))},
+            ["a", "c"],
+            False,
+            "Missing variables: c",
+            id="missing variable",
+        ),
+        pytest.param(
+            {"a": DataArray(np.ones((12, 2))), "b": DataArray(np.ones(12))},
+            ["a", "b"],
+            False,
+            "Variables not one dimensional: a",
+            id="not all one dimensional",
+        ),
+        pytest.param(
+            {
+                "a": DataArray(np.ones(14), dims="dim_1"),
+                "b": DataArray(np.ones(12), dims="dim_2"),
+            },
+            ["a", "b"],
+            False,
+            "Variables of unequal length: 12,14",
+            id="not equal length",
+        ),
+    ],
+)
+def test_Data_confirm_variables_form_data_frame(vars, var_names, exp_result, exp_msg):
+    """Test the data frame validation mechanism."""
+
+    from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.grid import Grid
+
+    data = Data(grid=Grid())
+    data.add_from_dict(vars)
+
+    result, msg = data.confirm_variables_form_data_frame(var_names)
+
+    assert result == exp_result
+    assert msg == exp_msg
