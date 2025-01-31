@@ -39,11 +39,7 @@ from tests.conftest import log_check
     ],
 )
 def test_file_format_loader(caplog, file_types, expected_log):
-    """Tests the file format loader decorator.
-
-    TODO - Note that the test here is actually changing the live DATA_LOADER_REGISTRY,
-           so that the tests are not independent of one another.
-    """
+    """Tests the file format loader decorator."""
 
     # Import register_data_loader - this triggers the registration of existing data
     # loaders so need to clear those log messages before trying new ones
@@ -113,11 +109,7 @@ def test_file_format_loader(caplog, file_types, expected_log):
     ],
 )
 def test_load_netcdf(shared_datadir, caplog, file, file_vars, exp_err, expected_log):
-    """Test the netdcf variable loader.
-
-    The tests here are dependent on the test_file_format_loader, so cannot be run
-    individually.
-    """
+    """Test the netdcf variable loader."""
 
     from virtual_ecosystem.core.readers import load_netcdf
 
@@ -182,11 +174,7 @@ def test_load_netcdf(shared_datadir, caplog, file, file_vars, exp_err, expected_
     ],
 )
 def test_load_csv(shared_datadir, caplog, file, file_vars, exp_err, expected_log):
-    """Test the netdcf variable loader.
-
-    The tests here are dependent on the test_file_format_loader, so cannot be run
-    individually.
-    """
+    """Test the netdcf variable loader."""
 
     from virtual_ecosystem.core.readers import load_csv
 
@@ -251,11 +239,7 @@ def test_load_csv(shared_datadir, caplog, file, file_vars, exp_err, expected_log
     ],
 )
 def test_load_excel(shared_datadir, caplog, file, file_vars, exp_err, expected_log):
-    """Test the netdcf variable loader.
-
-    The tests here are dependent on the test_file_format_loader, so cannot be run
-    individually.
-    """
+    """Test the netdcf variable loader."""
 
     from virtual_ecosystem.core.readers import load_excel
 

@@ -105,12 +105,16 @@ two methods:
    {class}`~virtual_ecosystem.core.data.Data` instance just using the standard
    dictionary assignment: ``data['var_name'] = data_array``. The Virtual Ecosystem
    {mod}`~virtual_ecosystem.core.readers` module provides the
-   function {func}`~virtual_ecosystem.core.readers.load_to_dataarray` to read data into
-   a DataArray from supported file formats. This can then be added directly to a Data
-   instance:
+   function {func}`~virtual_ecosystem.core.readers.load_to_dataarray` to read a list of
+   variables in a file into DataArrays from supported file formats. The returned value
+   is a dictionary of DataArrays keyed by the variable names and can then be added
+   directly to a Data instance:
 
 ```{code-block} ipython3
-data["var_name"] = load_to_dataarray("path/to/file.nc", var_name="temperature")
+loaded_data = load_to_dataarray("path/to/file.nc", var_names=["temperature"])
+# iterate over the dictionary of variable names and arrays
+for var_name, data_array in loaded_data.items():
+    data[var_name] = data_array
 ```
 
 1. The  {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method takes a
@@ -186,7 +190,11 @@ configured grid.
 ```{code-cell} ipython3
 # Load data from a file
 file_path = Path("../../data/xy_dim.nc")
-data["temp"] = load_to_dataarray(file_path, var_name="temp")
+loaded_data = load_to_dataarray(file_path, var_names=["temp"])
+
+# iterate over the dictionary of variable names and arrays
+for var_name, data_array in loaded_data.items():
+    data[var_name] = data_array
 ```
 
 ```{code-cell} ipython3

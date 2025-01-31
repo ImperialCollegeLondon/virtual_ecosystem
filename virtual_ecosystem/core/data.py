@@ -70,7 +70,8 @@ Adding data from a file
 The general solution for programmatically adding data from a file is to:
 
 * manually open a data file using an appropriate reader packages for the format,
-* coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
+* coerce data from named variables into properly structured :class:`~xarray.DataArray`
+  objects, and then
 * use the :meth:`~virtual_ecosystem.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_ecosystem.core.data.Data` instance.
 
@@ -83,9 +84,10 @@ supported formats and for extending the system to additional file formats.
 
     # Load temperature data from a supported file
     from virtual_ecosystem.core.readers import load_to_dataarray
-    data['temp'] = load_to_dataarray(
+    results = load_to_dataarray(
         '/path/to/supported/format.nc', var_name='temperature'
     )
+    data['temperature'] = results['temperature']
 
 Using a data configuration
 --------------------------

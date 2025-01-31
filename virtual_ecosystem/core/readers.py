@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.core.readers` module provides the function
 :func:`~virtual_ecosystem.core.readers.load_to_dataarray`, which is used to load a set
 of data variables from a file and convert them into a dictionary of
-:class:`~xarray.DataArray` objects. The ``DataArray``s can then be added to a
+:class:`~xarray.DataArray` objects. The ``DataArray`` values can then be added to a
 :class:`~virtual_ecosystem.core.data.Data` instance for use in a Virtual Ecosystem
 simulation.
 
@@ -263,7 +263,7 @@ def load_to_dataarray(
         raise to_raise
 
     # If so, load the data
-    LOGGER.info("Loading variables from file %s: %s", file, "\n - ".join(var_names))
+    LOGGER.info("Loading variables from file %s: %s", file, ", ".join(var_names))
     loader = FILE_FORMAT_REGISTRY[file_type]
     value = loader(file, var_names)
 
