@@ -102,6 +102,26 @@ def ve_run(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
 
+    # Run the simulation
+    _simple_run(config, progress)
+
+    # Restore default logging settings
+    if logfile is not None:
+        remove_file_logger()
+
+    if progress:
+        print("Virtual Ecosystem run complete.")
+
+
+def _simple_run(config: Config, progress: bool) -> None:
+    """Runs a VE simulation out of a Config object.
+
+    Args:
+        config: A fully formed and validated Config object.
+        progress: A logical switch to turn on simple progress reporting, mostly for
+            visual confirmation of progress when the log is not printed to the console.
+    """
+
     # Save the merged config if requested
     data_opt = config["core"]["data_output_options"]
     if data_opt["save_merged_config"]:
@@ -231,10 +251,3 @@ def ve_run(
             print("* Saved final model state")
 
     LOGGER.info("Virtual Ecosystem model run completed!")
-
-    # Restore default logging settings
-    if logfile is not None:
-        remove_file_logger()
-
-    if progress:
-        print("Virtual Ecosystem run complete.")
