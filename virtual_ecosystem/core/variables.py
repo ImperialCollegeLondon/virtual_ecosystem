@@ -478,6 +478,15 @@ def get_variable(name: str) -> Variable:
         raise KeyError(f"Variable '{name}' is not a known variable.")
 
 
+def clear_run_variables() -> None:
+    """Clear the RUN_VARIABLES_REGISTRY, in preparation for another run.
+
+    Typically, this will be used between steps of a spin up process, so each new run
+    starts fresh.
+    """
+    RUN_VARIABLES_REGISTRY.clear()
+
+
 def get_model_order(stage: str) -> list[str]:
     """Get the order of running the models during init or update.
 
