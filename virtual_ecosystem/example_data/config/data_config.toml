@@ -160,8 +160,3 @@ var_name = "c_p_ratio_below_metabolic"
 [[core.data.variable]]
 file = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_below_structural"
-
-# Plants
-[[core.data.variable]]
-file = "../data/example_plant_data.nc"
-var_name = "photosynthetic_photon_flux_density"
