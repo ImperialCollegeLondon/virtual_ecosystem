@@ -265,3 +265,14 @@ def _spin_up_run(config: Config, progress: bool) -> None:
             visual confirmation of progress when the log is not printed to the console.
     """
     LOGGER.info("Running a spin-up simulation.")
+
+    steps = config["core"]["spin_up"]
+
+    # Check that the models to spin-up actually have been included in the simulation
+    requested_models: list[str] = list(config.keys())
+    requested_models.remove("core")
+    if not all(set(step["models"]).issubset(requested_models) for step in steps):
+        raise ConfigurationError(
+            "Some models in a spin-up step have not been included in the simulation! "
+            f"The valid models are: {', '.join(requested_models)}"
+        )
