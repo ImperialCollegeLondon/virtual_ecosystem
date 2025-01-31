@@ -402,9 +402,13 @@ class Config(dict):
 
         for config_file, contents in self.toml_contents.items():
             if isinstance(config_file, Path):
-                _resolve_config_paths(
-                    config_dir=config_file.parent, config_dict=contents
-                )
+                try:
+                    _resolve_config_paths(
+                        config_dir=config_file.parent, config_dict=contents
+                    )
+                except ValueError as excep:
+                    LOGGER.critical(excep)
+                    raise excep
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.

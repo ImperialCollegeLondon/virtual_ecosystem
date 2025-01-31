@@ -893,6 +893,8 @@ def test__resolve_config_paths_file_locations(
 
 @pytest.mark.parametrize(
     "params_dict,raises,expected,err_msg",
+    # The str(Path(x)) pattern in the expected values below is to ensure that
+    # the expected paths are converted to the file system of the test machine.
     (
         pytest.param(
             {
@@ -903,8 +905,8 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": "path/to/config/file.txt",
-                "other_path": "path/to/config/file2.txt",
+                "file1_path": str(Path("path/to/config/file.txt")),
+                "other_path": str(Path("path/to/config/file2.txt")),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -920,8 +922,8 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": "path/to/config/file.txt",
-                "other_path": "path/file2.txt",
+                "file1_path": str(Path("path/to/config/file.txt")),
+                "other_path": str(Path("path/file2.txt")),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -936,8 +938,8 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": "path/to/config/file.txt",
-                "nested": {"other_path": "path/file2.txt", "foo": "bar"},
+                "file1_path": str(Path("path/to/config/file.txt")),
+                "nested": {"other_path": str(Path("path/file2.txt")), "foo": "bar"},
                 "baz": 6,
             },
             None,
