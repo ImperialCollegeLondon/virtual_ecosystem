@@ -755,34 +755,89 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
 @pytest.mark.parametrize("cfg_is_relative", (True, False))
 @pytest.mark.parametrize("filepath_is_relative", (True, False))
 @pytest.mark.parametrize(
-    "filepaths,expected",
+    "params_dict_source,expected",
     (
         pytest.param(
-            ["file.txt", "file2.txt"],
-            ["path/to/config/file.txt", "path/to/config/file2.txt"],
-            id="co-located",
+            {
+                "file1_path": "file.txt",
+                "other_path": "file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/to/config/file.txt",
+                "other_path": "path/to/config/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="colocated",
         ),
         pytest.param(
-            ["data/file.txt", "data/file2.txt"],
-            ["path/to/config/data/file.txt", "path/to/config/data/file2.txt"],
+            {
+                "file1_path": "data/file.txt",
+                "other_path": "data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/to/config/data/file.txt",
+                "other_path": "path/to/config/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
             id="inside_cfg_dir",
         ),
         pytest.param(
-            ["../data/file.txt", "../data/file2.txt"],
-            ["path/to/data/file.txt", "path/to/data/file2.txt"],
-            id="outside_cfg_dir",
+            {
+                "file1_path": "../data/file.txt",
+                "other_path": "../data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/to/data/file.txt",
+                "other_path": "path/to/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="parallel_to_cfg_dir",
         ),
         pytest.param(
-            ["../../../data/file.txt", "../../../data/file2.txt"],
-            ["data/file.txt", "data/file2.txt"],
-            id="moar_outside_cfg_dir",
+            {
+                "file1_path": "../../data/file.txt",
+                "other_path": "../../data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/data/file.txt",
+                "other_path": "path/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="below_cfg_dir",
+        ),
+        pytest.param(
+            {
+                "file1_path": "../../data/file.txt",
+                "other_path": "data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/data/file.txt",
+                "other_path": "path/to/config/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="mixed",
         ),
     ),
 )
-def test__resolve_config_paths(
-    tmpdir, cfg_is_relative, filepath_is_relative, filepaths, expected
+def test__resolve_config_paths_file_locations(
+    tmpdir, cfg_is_relative, filepath_is_relative, params_dict_source, expected
 ):
-    """Test the _fix_up_variable_entry_paths() function.
+    """Test the __resolve_config_paths() function can get relative paths correctly.
 
     This is using tmpdir to get an OS appropriate base file path - the location is not
     used for any actual file IO.
@@ -795,24 +850,109 @@ def test__resolve_config_paths(
     cfg_absolute = execution_root / cfg_relative
     cfg_path = cfg_relative if cfg_is_relative else cfg_absolute
 
-    # Package the inputs for testing
-    vars = [
-        {"file_path": fn, "var_name": f"v_{idx}"} for idx, fn in enumerate(filepaths)
-    ]
-    params_dict = {"core": {"data": {"variable": vars}}}
+    # Clone the input to avoid editing the test environment
+    params_dict = params_dict_source.copy()
 
     # For absolute file path entries, construct from the inputs
     if not filepath_is_relative:
-        for entry in params_dict["core"]["data"]["variable"]:
-            entry["file_path"] = str(
-                (execution_root / cfg_relative / Path(entry["file_path"])).resolve()
-            )
+        for key, val in params_dict.items():
+            if key.endswith("_path"):
+                params_dict[key] = str(
+                    (execution_root / cfg_relative / Path(val)).resolve()
+                )
 
     # Run the function
     _resolve_config_paths(cfg_path, params_dict)
 
-    for result, expected in zip(params_dict["core"]["data"]["variable"], expected):
-        if cfg_is_relative and filepath_is_relative:
-            assert Path(result["file_path"]) == Path(expected)
-        else:
-            assert Path(result["file_path"]) == execution_root / expected
+    for key, val in params_dict.items():
+        # Test that paths have been resolved as expected
+        # but that the other entries have been left alone
+        if key.endswith("_path"):
+            if cfg_is_relative and filepath_is_relative:
+                assert Path(val) == Path(expected[key])
+            else:
+                assert Path(val) == execution_root / expected[key]
+
+        elif key == "foo":
+            assert val == "bar"
+        elif key == "baz":
+            assert val == 6
+
+
+@pytest.mark.parametrize(
+    "params_dict,raises,expected,err_msg",
+    (
+        pytest.param(
+            {
+                "file1_path": "file.txt",
+                "other_path": "file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            does_not_raise(),
+            {
+                "file1_path": "path/to/config/file.txt",
+                "other_path": "path/to/config/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            None,
+            id="all_good_flat_colocated",
+        ),
+        pytest.param(
+            {
+                "file1_path": "file.txt",
+                "other_path": "../../file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            does_not_raise(),
+            {
+                "file1_path": "path/to/config/file.txt",
+                "other_path": "path/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            None,
+            id="all_good_flat_mixed",
+        ),
+        pytest.param(
+            {
+                "file1_path": "file.txt",
+                "nested": {"other_path": "../../file2.txt", "foo": "bar"},
+                "baz": 6,
+            },
+            does_not_raise(),
+            {
+                "file1_path": "path/to/config/file.txt",
+                "nested": {"other_path": "path/file2.txt", "foo": "bar"},
+                "baz": 6,
+            },
+            None,
+            id="all_good_nested_mixed",
+        ),
+        pytest.param(
+            {
+                "file1_path": 42,
+                "nested": {"other_path": "../../file2.txt", "foo": "bar"},
+                "baz": 6,
+            },
+            pytest.raises(ValueError),
+            None,
+            "The value for config key 'file1_path' is not a string: 42",
+            id="bad_path_value",
+        ),
+    ),
+)
+def test__resolve_config_paths_values(tmpdir, params_dict, raises, expected, err_msg):
+    """Test the _resolve_config_paths_values handles different inputs as expected."""
+    from virtual_ecosystem.core.config import _resolve_config_paths
+
+    with raises as excep:
+        # Run the function
+        _resolve_config_paths(Path("path/to/config"), params_dict)
+
+        assert params_dict == expected
+
+    if excep is not None:
+        assert str(excep.value) == err_msg

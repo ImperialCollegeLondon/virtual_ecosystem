@@ -101,16 +101,16 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
     """Resolve paths in a configuration file.
 
     Takes the path of a directory containing a given configuration file and resolves any
-    file paths in the configuration file contents, relative to that file location.
-
-    Todo:
-        At present, this only targets `core.data.variable` configuration entries and may
-        want to resolve additional paths in the future.
+    file paths in the configuration file contents, relative to that file location. File
+    paths as string values that have a key ending in ``_path``.
 
     Args:
         config_dir: A folder containing a configuration file.
         config_dict: A dictionary of contents of the configuration file, which may
             contain file paths to resolve.
+
+    Raises:
+        ValueError: if a key ending in ``_path`` has a non-string value.
     """
 
     for key, item in config_dict.items():
@@ -120,6 +120,10 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
             for list_entry in item:
                 _resolve_config_paths(config_dir=config_dir, config_dict=list_entry)
         elif key.endswith("_path"):
+            if not isinstance(item, str):
+                raise ValueError(
+                    f"The value for config key '{key}' is not a string: {item}"
+                )
             file_path = Path(item)
             if not file_path.is_absolute():
                 # The resolve method is used here because it is the only method to
@@ -398,7 +402,9 @@ class Config(dict):
 
         for config_file, contents in self.toml_contents.items():
             if isinstance(config_file, Path):
-                _resolve_config_paths(config_file.parent, contents)
+                _resolve_config_paths(
+                    config_dir=config_file.parent, config_dict=contents
+                )
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.
