@@ -97,7 +97,7 @@ def config_merge(
     return dest, conflicts
 
 
-def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
+def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None:
     """Resolve paths in a configuration file.
 
     Takes the path of a directory containing a given configuration file and resolves any
@@ -109,24 +109,18 @@ def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
 
     Args:
         config_dir: A folder containing a configuration file.
-        params: A dictionary of contents of the configuration file, which may contain
-            file paths to resolve.
+        config_dict: A dictionary of contents of the configuration file, which may
+            contain file paths to resolve.
     """
-    try:
-        var_entries = params["core"]["data"]["variable"]
-    except KeyError:
-        # No variable entries
-        return
 
-    if not isinstance(var_entries, list):
-        # Must be an array
-        return
-
-    for entry in var_entries:
-        # Though all variable entries should have a file attribute according to the
-        # schema, the config has not been verified at this stage so we need to check
-        if "file" in entry:
-            file_path = Path(entry["file"])
+    for key, item in config_dict.items():
+        if isinstance(item, dict):
+            _resolve_config_paths(config_dir=config_dir, config_dict=item)
+        elif isinstance(item, list):
+            for list_entry in item:
+                _resolve_config_paths(config_dir=config_dir, config_dict=list_entry)
+        elif key.endswith("_path"):
+            file_path = Path(item)
             if not file_path.is_absolute():
                 # The resolve method is used here because it is the only method to
                 # resolve ../ entries from relative file paths. However, it also makes
@@ -139,7 +133,7 @@ def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
                     config_absolute = Path(config_dir.root).absolute()
                     file_resolved = file_resolved.relative_to(config_absolute)
 
-                entry["file"] = str(file_resolved)
+                config_dict[key] = str(file_resolved)
 
 
 class Config(dict):

@@ -777,24 +777,6 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
             ["data/file.txt", "data/file2.txt"],
             id="moar_outside_cfg_dir",
         ),
-        # pytest.param(
-        #     False,
-        #     [{"file": str(_ABS_PATH / "file.txt"), "var_name": "my_path"}],
-        #     [{"file": str(_ABS_PATH / "file.txt"), "var_name": "my_path"}],
-        #     id="leave_abs_paths_unchanged",
-        # ),
-        # pytest.param(
-        #     False,
-        #     [{"var_name": "my_path"}],
-        #     [{"var_name": "my_path"}],
-        #     id="ignore_missing_file_key",
-        # ),
-        # pytest.param(
-        #     False,
-        #     {"file": "file.txt", "var_name": "my_path"},
-        #     {"file": "file.txt", "var_name": "my_path"},
-        #     id="variable_not_list",
-        # ),
     ),
 )
 def test__resolve_config_paths(
@@ -814,14 +796,16 @@ def test__resolve_config_paths(
     cfg_path = cfg_relative if cfg_is_relative else cfg_absolute
 
     # Package the inputs for testing
-    vars = [{"file": fn, "var_name": f"v_{idx}"} for idx, fn in enumerate(filepaths)]
+    vars = [
+        {"file_path": fn, "var_name": f"v_{idx}"} for idx, fn in enumerate(filepaths)
+    ]
     params_dict = {"core": {"data": {"variable": vars}}}
 
     # For absolute file path entries, construct from the inputs
     if not filepath_is_relative:
         for entry in params_dict["core"]["data"]["variable"]:
-            entry["file"] = str(
-                (execution_root / cfg_relative / Path(entry["file"])).resolve()
+            entry["file_path"] = str(
+                (execution_root / cfg_relative / Path(entry["file_path"])).resolve()
             )
 
     # Run the function
@@ -829,6 +813,6 @@ def test__resolve_config_paths(
 
     for result, expected in zip(params_dict["core"]["data"]["variable"], expected):
         if cfg_is_relative and filepath_is_relative:
-            assert Path(result["file"]) == Path(expected)
+            assert Path(result["file_path"]) == Path(expected)
         else:
-            assert Path(result["file"]) == execution_root / expected
+            assert Path(result["file_path"]) == execution_root / expected
