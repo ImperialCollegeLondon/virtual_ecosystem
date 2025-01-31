@@ -314,13 +314,28 @@ def _spin_up_run(config: Config, progress: bool) -> None:
 def extract_spin_up_data(config: Config, step: int) -> None:
     """Extract the relevant data from the previous step and updates the config.
 
-    This function extracts the variables indicated in the configuration for the chosen
-    step, picks the last time entry for each of them from the output continous file
-    and puts them into a new file, saving it in that step subfolder. Then, it updates
-    the 'core.data.variable' configuration to use those variables instead of the ones
-    configured.
+    Updates the 'core.data.variable' configuration to use the variables indicated in the
+    step configuration but contained in the final state output file from the step.
 
     Args:
         config: A fully formed and validated Config object.
         step: The index of the step to extract the variables from.
     """
+    root_path = config["core"]["data_output_options"]["out_path"].split("\\spin_up")[0]
+    new_source = (
+        root_path
+        + f"\\spin_up\\{step + 1}\\"
+        + config["core"]["data_output_options"]["out_final_file_name"]
+    )
+
+    variables = copy.deepcopy(config["core"]["spin_up"][step]["variables"])
+    for i, var_data in enumerate(config["core"]["data"]["variable"]):
+        if var_data["var_name"] in variables:
+            config["core"]["data"]["variable"][i]["file"] = new_source
+            variables.remove(var_data["var_name"])
+
+    if variables:
+        ConfigurationError(
+            "Some variables from a spin up step expected to be used are not. These "
+            f"are: {variables}"
+        )
