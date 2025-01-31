@@ -233,6 +233,35 @@
                   "surface_layer_height",
                   "subcanopy_layer_height"
                ]
+            },
+            "spin_up": {
+               "description": "A sequence of spin-up steps to run before the normal run.",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "models": {
+                        "description": "List of models to spin-up together in this step.",
+                        "type": "array",
+                        "items":{
+                           "type": "string"
+                        }
+                        
+                     },
+                     "timing": {
+                        "type": "object",
+                        "description": "Timing options for this spin_up step",
+                        "allOf": [
+                          { "$ref": "#/properties/core/properties/timing" }
+                        ]
+                     }
+                  },
+                  "required": [
+                     "models",
+                     "timing"
+                  ]
+               },
+               "default": []
             }
          },
          "default": {},

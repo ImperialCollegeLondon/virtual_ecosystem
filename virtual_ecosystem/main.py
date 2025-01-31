@@ -103,7 +103,10 @@ def ve_run(
     )
 
     # Run the simulation
-    _simple_run(config, progress)
+    if config["core"]["spin_up"]:
+        _spin_up_run(config, progress)
+    else:
+        _simple_run(config, progress)
 
     # Restore default logging settings
     if logfile is not None:
@@ -251,3 +254,14 @@ def _simple_run(config: Config, progress: bool) -> None:
             print("* Saved final model state")
 
     LOGGER.info("Virtual Ecosystem model run completed!")
+
+
+def _spin_up_run(config: Config, progress: bool) -> None:
+    """Runs a VE simulation including spin-up steps.
+
+    Args:
+        config: A fully formed and validated Config object.
+        progress: A logical switch to turn on simple progress reporting, mostly for
+            visual confirmation of progress when the log is not printed to the console.
+    """
+    LOGGER.info("Running a spin-up simulation.")
