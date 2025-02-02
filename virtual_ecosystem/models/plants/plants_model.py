@@ -546,8 +546,9 @@ class PlantsModel(
             ).sum(axis=0) * n_seconds
 
             # For conversion to mm m-2, the initial value is in µmol m2 s1, conversion
-            # factor from µmol m2 to mm is currently approximated at fixed standard temp
-            # and pressure, but could be adjusted once
+            # factor from µmol m2 to mm m2 of 1.8e-8 is currently approximated at fixed
+            # standard temp and pressure, (1 mol is ~ 18 cm2 = 18000 mm2 = 0.018 mm m2
+            # so 1 µmol is 1.8e-8 mm m2) but could be adjusted once
             # `pyrealm.core.water.convert_water_moles_to_mm` is public
             transpiration[cell_id] = (
                 (
