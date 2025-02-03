@@ -463,41 +463,33 @@ class PlantsModel(
         )
         pmodel = PModel(pmodel_env)
 
-        # The LUE in gC mol -1 of photons is then used to calculate the per-stem
-        # per-layer per-m2 GPP for each cohort in a grid cell per m2 per second. The
-        # per-m2 values can be used to estimate the transpiration per m2, and then the
-        # GPP per-layer can be scaled up by the leaf area of stem and summed to give the
-        # whole stem GPP.
-
-        # TODO - Because the number of cohorts differ between grid cells, this is
-        #        calculation is done within a loop over grid cells, but it is possible
-        #        that this could be unwrapped into a single calculation, which might be
-        #        much faster.
-
-        # layer gross primary productivity within the cohorts of each community. For
-        # each cell, the LUE per layer can be scaled the per stem, per layer fAPAR and
-        # the canopy top radiation and the stem leaf area. The total GPP per stem is
-        # then the sum across layers of those values.
-        #
-        # Units: (gC mol-1) * (-) * (µmol m-2 s-1) * (m2)
-        #        = (µmol s-1)
-        # Dims: (n_layer, n_cohorts) * (n_layer, 1) * scalar * (n_layer, n_cohorts)
-        #        = (n_layer, n_cohorts)
-
+        # Get the canopy top PPFD per grid cell for this time index
         canopy_top_ppfd = (
             self.data["photosynthetic_photon_flux_density"]
             .isel(time_index=time_index)
             .to_numpy()
         )
 
-        # Initialise transpiration array to collect per grid cell values
-        transpiration = np.full(self.grid.n_cells, fill_value=np.nan)
-
         # Get a floating point representation of the numner of seconds since last update
         # TODO - move this attribute to model_timing.
         n_seconds = self.model_timing.update_interval / np.timedelta64(1, "s")
 
+        # Initialise transpiration array to collect per grid cell values
+        #
+        # TODO - #704, this is _not_ evapotranspiration, but we'll pretend it is for
+        #        the moment.
+        #
+        transpiration = self.layer_structure.from_template("evapotranspiration")
+
+        # Now calculate the gross primary productivity and transpiration across cohorts
+        # and canopy layers over the time period.
+        # TODO - Because the number of cohorts differ between grid cells, this is
+        #        calculation is done within a loop over grid cells, but it is possible
+        #        that this could be unwrapped into a single calculation, which might be
+        #        much faster.
+
         for cell_id in self.canopies.keys():
+            # Get the canopy and community for the cell
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
 
@@ -508,13 +500,11 @@ class PlantsModel(
             # GPP is estimated as:
             #    LUE * per stem per layer fAPAR * the canopy top PPFD.
             # Dimensions:
-            #    (n_layer, n_cohorts) * (n_layer, 1) * scalar
+            #    (n_active_layers, 1) * (n_active_layers, n_cohorts) * scalar
+            #    = (n_active_layers, n_cohorts)
             # Units:
-            #    gC mol-1 * (-) * µmol m-2 s-1 = µg m-2 s-1
-            #
-            # TODO - I know this indexing style d[r, :][:, c] looks mad, but not quite
-            #        sure how to get numpy to give me back what this does more directly.
-            stem_gpp_per_layer_per_m2_per_s = (
+            #    gC mol-1  * µmol m-2 s-1 * (-) = µg m-2 s-1
+            stem_gpp_rate = (
                 pmodel.lue[active_layers, :][:, [cell_id]]
                 * canopy.cohort_data.stem_fapar
                 * canopy_top_ppfd[cell_id]
@@ -526,47 +516,44 @@ class PlantsModel(
             #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
             # Units:
             #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
-            stem_transpiration_per_layer_per_m2_per_s = (
-                stem_gpp_per_layer_per_m2_per_s / (self.pmodel_core_consts.k_CtoK * 1e6)
+            stem_transpiration_rate = (
+                stem_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
             ) * pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Now scale up and aggregate those values
 
-            # Per stem GPP since last update: sum GPP * leaf area across the whole stem
+            # Per stem GPP since last update: sum GPP *  whole stem leaf area
             # and scale by elapsed time in seconds
             self.stem_gpp[cell_id] = (
-                stem_gpp_per_layer_per_m2_per_s * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0) * n_seconds
+                stem_gpp_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+            ).sum(axis=0)
 
             # Calculate total stem transpiration in µmol per stem and total grid cell
             # transpiration in mm m-2 since last update
             self.stem_transpiration[cell_id] = (
-                stem_transpiration_per_layer_per_m2_per_s
-                * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0) * n_seconds
+                stem_transpiration_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+            ).sum(axis=0)
 
-            # For conversion to mm m-2, the initial value is in µmol m2 s1, conversion
-            # factor from µmol m2 to mm m2 of 1.8e-8 is currently approximated at fixed
-            # standard temp and pressure, (1 mol is ~ 18 cm2 = 18000 mm2 = 0.018 mm m2
-            # so 1 µmol is 1.8e-8 mm m2) but could be adjusted once
-            # `pyrealm.core.water.convert_water_moles_to_mm` is public
-            transpiration[cell_id] = (
-                (
-                    community.cohorts.n_individuals
-                    * stem_transpiration_per_layer_per_m2_per_s
-                ).sum()
+            # Calculate the total transpiration per layer in mm m2 in mm, converted from
+            # an initial value is in µmol m2 s1.abs
+            # TODO - conversion factor from µmol m2 to mm m2 of 1.8e-8 is currently
+            #        approximated at fixed standard temp and pressure, (1 mol is ~ 18
+            #        cm2 = 18000 mm2 = 0.018 mm m2 so 1 µmol is 1.8e-8 mm m2) but could
+            #        be adjusted once `pyrealm.core.water.convert_water_moles_to_mm` is
+            #        public
+            transpiration[active_layers, cell_id] = (
+                community.cohorts.n_individuals
+                * stem_transpiration_rate
                 * n_seconds
                 * 1.8e-8
-            )
+            ).sum(axis=1)
 
         # Pass values to data object
         #
         # TODO - #704, this is _not_ evapotranspiration, but we'll pretend it is for
         #        the moment.
         #
-        self.data["evapotranspiration"] = xr.DataArray(
-            transpiration, coords={"cell_id": self.grid.cell_id}
-        )
+        self.data["evapotranspiration"] = transpiration
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
