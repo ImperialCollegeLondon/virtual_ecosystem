@@ -586,10 +586,8 @@ class AnimalCohort:
         """Calculate potential consumed biomass for the target plant.
 
         This method computes the potential consumed biomass based on the search
-        efficiency (alpha),the fraction of the total plant stock available to the cohort
-        (phi), and the biomass of the target plant.
-
-        TODO: give A_cell a grid size reference
+        efficiency (alpha), the fraction of the total plant stock available to the
+        cohort (phi), and the biomass of the target plant.
 
         Args:
             target_plant: The plant resource being targeted by the herbivore cohort.
@@ -598,10 +596,33 @@ class AnimalCohort:
         Returns:
             A float representing the potential consumed biomass of the target plant by
             the cohort [g/day].
+
+        Raises:
+            ValueError: If `target_plant.mass_current` is missing or negative.
+            ValueError: If `alpha` is negative or zero.
         """
 
+        # Validate that target_plant has a valid mass_current
+        if (
+            not hasattr(target_plant, "mass_current")
+            or target_plant.mass_current is None
+        ):
+            raise ValueError(
+                "target_plant.mass_current must be defined and non-negative."
+            )
+        if target_plant.mass_current < 0:
+            raise ValueError(
+                f"target_plant.mass_current must be non-negative."
+                f"Got {target_plant.mass_current}."
+            )
+
+        # Validate alpha (search efficiency)
+        if alpha <= 0:
+            raise ValueError(f"alpha must be positive. Got {alpha}.")
+
         phi = self.functional_group.constants.phi_herb_t
-        A_cell = 1.0  # temporary
+        A_cell = 1.0  # Temporary value
+
         return sf.k_i_k(alpha, phi, target_plant.mass_current, A_cell)
 
     def calculate_total_handling_time_for_herbivory(
@@ -812,22 +833,36 @@ class AnimalCohort:
     def delta_mass_predation(
         self,
         animal_list: list[AnimalCohort],
-        excrement_pools: list[ExcrementPool],
         carcass_pools: dict[int, list[CarcassPool]],
     ) -> dict[str, float]:
-        """This method handles mass assimilation from predation.
+        """Handles mass assimilation from predation.
 
         This is Madingley's delta_assimilation_mass_predation.
 
         Args:
             animal_list: A list of animal cohorts that can be consumed by the predator.
-            excrement_pools: The pools representing the excrement in the territory.
             carcass_pools: The pools to which animal carcasses are delivered.
 
         Returns:
             A dictionary representing the total change in mass (C, N, P) experienced by
             the predator: {"C": value, "N": value, "P": value}.
+
+        Raises:
+            ValueError: If `animal_list` or `carcass_pools` is None.
+            ValueError: If `prey_cohort.get_eaten()` returns None.
+            ValueError: If `self.calculate_consumed_mass_predation()` returns None.
         """
+
+        # Validate inputs
+        if animal_list is None:
+            raise ValueError("animal_list cannot be None.")
+        if carcass_pools is None:
+            raise ValueError("carcass_pools cannot be None.")
+
+        # If no prey are available, return zero change
+        if not animal_list:
+            return {"C": 0.0, "N": 0.0, "P": 0.0}
+
         # Initialize the total consumed mass as a stoichiometric dictionary
         total_consumed_mass = {"C": 0.0, "N": 0.0, "P": 0.0}
 
@@ -837,10 +872,19 @@ class AnimalCohort:
                 animal_list, prey_cohort
             )
 
+            if consumed_mass is None:
+                raise ValueError(
+                    f"calculate_consumed_mass_predation() returned None for"
+                    f"{prey_cohort}."
+                )
+
             # Call get_eaten on the prey cohort to update its mass and individuals
             actual_consumed_cnp = prey_cohort.get_eaten(
                 consumed_mass, self, carcass_pools
             )
+
+            if actual_consumed_cnp is None:
+                raise ValueError(f"get_eaten() returned None for {prey_cohort}.")
 
             # Update total consumed mass for each nutrient
             for element in total_consumed_mass:
@@ -878,39 +922,70 @@ class AnimalCohort:
     def delta_mass_herbivory(
         self,
         plant_list: list[Resource],
-        excrement_pools: list[ExcrementPool],
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> dict[str, float]:
-        """This method handles mass assimilation from herbivory.
+        """Handles mass assimilation from herbivory.
 
         TODO: At present this just takes a single herbivory waste pool (for leaves),
         this probably should change to be a list of waste pools once herbivory for other
         plant tissues is added.
-        TODO: update name
+        TODO: update name.
 
         Args:
             plant_list: A list of plant resources available for herbivory.
-            excrement_pools: The pools representing the excrement in the territory.
             herbivory_waste_pools: Waste pools for plant biomass (at this point just
-              leaves) that gets removed as part of herbivory but not actually consumed.
+            leaves) that gets removed as part of herbivory but not actually consumed.
 
         Returns:
             A dictionary of total plant mass (C, N, P) consumed by the animal cohort.
+
+        Raises:
+            ValueError: If `plant_list` or `herbivory_waste_pools` is None.
+            ValueError: If `calculate_consumed_mass_herbivory` returns None.
+            ValueError: If `get_eaten` returns None.
+            KeyError: If `plant.cell_id` is missing from `herbivory_waste_pools`.
         """
+
+        # Validate inputs
+        if plant_list is None:
+            raise ValueError("plant_list cannot be None.")
+        if herbivory_waste_pools is None:
+            raise ValueError("herbivory_waste_pools cannot be None.")
+
+        # If no plants are available, return zero change
+        if not plant_list:
+            return {"C": 0.0, "N": 0.0, "P": 0.0}
+
         # Initialize total consumed stoichiometric masses
         total_consumed_cnp = {element: 0.0 for element in ["C", "N", "P"]}
 
         for plant in plant_list:
             # Calculate the mass to be consumed from this plant
             consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
+
+            if consumed_mass is None:
+                raise ValueError(
+                    f"calculate_consumed_mass_herbivory() returned None for {plant}."
+                )
+
             # Update the plant resource's state based on consumed mass
             herbivore_gain_cnp, plant_litter_cnp = plant.get_eaten(consumed_mass, self)
+
+            if herbivore_gain_cnp is None or plant_litter_cnp is None:
+                raise ValueError(f"get_eaten() returned None for {plant}.")
+
             # Update total mass gained by the herbivore
             for element in total_consumed_cnp:
                 total_consumed_cnp[element] += herbivore_gain_cnp[element]
+
+            # Ensure plant.cell_id exists in waste pools before adding waste
+            if plant.cell_id not in herbivory_waste_pools:
+                raise KeyError(
+                    f"herbivory_waste_pools is missing cell_id {plant.cell_id}."
+                )
+
             # Add the litter to the appropriate herbivory waste pool
-            for element in plant_litter_cnp:
-                herbivory_waste_pools[plant.cell_id].add_waste(plant_litter_cnp)
+            herbivory_waste_pools[plant.cell_id].add_waste(plant_litter_cnp)
 
         return total_consumed_cnp
 
@@ -948,7 +1023,7 @@ class AnimalCohort:
         # Herbivore diet
         if self.functional_group.diet == DietType.HERBIVORE and plant_list:
             consumed_mass = self.delta_mass_herbivory(
-                plant_list, excrement_pools, herbivory_waste_pools
+                plant_list, herbivory_waste_pools
             )  # Directly modifies the plant mass
             self.eat(
                 consumed_mass, excrement_pools
@@ -957,9 +1032,7 @@ class AnimalCohort:
         # Carnivore diet
         elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
             # Calculate the mass gained from predation
-            consumed_mass = self.delta_mass_predation(
-                animal_list, excrement_pools, carcass_pools
-            )
+            consumed_mass = self.delta_mass_predation(animal_list, carcass_pools)
             # Update the predator's mass with the total gained mass
             self.eat(consumed_mass, excrement_pools)
 
@@ -1004,9 +1077,29 @@ class AnimalCohort:
                 by this consumer: {"C": value, "N": value, "P": value}.
             excrement_pools: The ExcrementPool objects in the cohort's territory in
                 which waste is deposited.
+
+        Raises:
+            ValueError: If `mass_consumed` contains negative values or missing keys.
+            ValueError: If no excrement pools are provided.
         """
         if self.individuals == 0:
             return
+
+        # Validate mass_consumed input
+        required_keys = {"C", "N", "P"}
+        if not required_keys.issubset(mass_consumed.keys()):
+            raise ValueError(
+                f"mass_consumed must contain all required keys {required_keys}. "
+                f"Provided keys: {mass_consumed.keys()}"
+            )
+        if any(value < 0 for value in mass_consumed.values()):
+            raise ValueError(
+                f"Values in mass_consumed must be non-negative: {mass_consumed}"
+            )
+
+        # Ensure at least one excrement pool is provided
+        if not excrement_pools:
+            raise ValueError("At least one excrement pool must be provided.")
 
         # Apply growth and calculate waste
         waste_mass = self.grow(mass_consumed)
