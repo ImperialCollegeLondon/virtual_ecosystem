@@ -517,6 +517,36 @@ class SoilConsts(ConstantsDataclass):
     :attr:`denitrification_minimum_temperature`!
     """
 
+    nitrogen_fixation_cost_zero_celcius: float = 59.19651970522086
+    """Cost (in carbon) that plants pay to their symbiotic partners at zero Celsius.
+    
+    Units of [kg C kg N^-1]. This is cost per unit of nitrogen received, and will be
+    higher than the symbiotic partners actually spend to fix the nitrogen. Value is
+    obtained from :cite:t:`brzostek_modeling_2014`.
+    """
+
+    nitrogen_fixation_cost_infinite_temp_offset: float = -0.8034802947791453
+    """Difference in nitrogen fixation cost between zero Celsius and infinite limit.
+    
+    Units of [kg C kg N^-1]. This limit of infinite temperature is not biologically
+    meaningful and is instead just a way of characterising the form of the empirical
+    function. A negative value means that the cost in the infinite temperature limit is
+    higher than at zero Celsius. Value is obtained from
+    :cite:t:`brzostek_modeling_2014`.
+    """
+
+    nitrogen_fixation_cost_thermal_sensitivity: float = 0.27
+    """Sensitivity of symbiotic nitrogen fixation cost to changes in temperature.
+    
+    Units of [C^-1]. Value is obtained from :cite:t:`brzostek_modeling_2014`.
+    """
+
+    nitrogen_fixation_cost_equality_temperature: float = 50.28
+    """Positive temperature at which nitrogen fixation cost is the same at zero Celsius.
+    
+    Units of [C]. Value is obtained from :cite:t:`brzostek_modeling_2014`.
+    """
+
     primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
     """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
     

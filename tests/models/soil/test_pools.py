@@ -53,7 +53,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00786114, -0.01209909, 0.00432363, -0.00891218],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_n_pool_ammonium": [-6.657325e-6, -0.000415127, -0.00021181, -9.40141e-5],
+        "soil_n_pool_ammonium": [0.00086665, 0.01980133, 0.00035757, 0.00042715],
         "soil_n_pool_nitrate": [-0.000293386, -1.292735e-5, -3.576543e-5, -0.000255954],
         "soil_p_pool_dop": [0.000194453, 7.1014337e-5, 0.0001851685, 0.0001017010],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
@@ -647,6 +647,61 @@ def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_compo
     )
 
     assert np.allclose(actual_rate, expected_rate)
+
+
+def test_calculate_symbiotic_nitrogen_fixation(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check calculation of the rate of symbiotic nitrogen fixation is correct."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_symbiotic_nitrogen_fixation,
+    )
+
+    expected_fixation = [0.000873306, 0.02021645, 0.00056937, 0.00052116]
+
+    actual_fixation = calculate_symbiotic_nitrogen_fixation(
+        carbon_supply=dummy_carbon_data["nitrogen_fixation_carbon_supply"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        active_depth=CoreConsts.max_depth_of_microbial_activity,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_fixation, expected_fixation)
+
+
+def test_calculate_symbiotic_nitrogen_fixation_negative_temps(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check symbiotic nitrogen fixation functions handles negative temperatures."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_symbiotic_nitrogen_fixation,
+    )
+
+    # Modify some of the soil temps to be below the minimum
+    soil_temp = dummy_carbon_data["soil_temperature"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ]
+    soil_temp[1] = -23.3
+    soil_temp[3] = -200.0
+
+    expected_fixation = [0.000873306, 0.0, 0.00056937, 0.0]
+
+    actual_fixation = calculate_symbiotic_nitrogen_fixation(
+        carbon_supply=dummy_carbon_data["nitrogen_fixation_carbon_supply"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        active_depth=CoreConsts.max_depth_of_microbial_activity,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_fixation, expected_fixation)
 
 
 def test_calculate_net_formation_of_secondary_P(dummy_carbon_data):

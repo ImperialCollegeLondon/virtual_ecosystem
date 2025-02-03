@@ -20,6 +20,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_leaching_rate,
     calculate_nitrification_moisture_factor,
     calculate_nitrification_temperature_factor,
+    calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
 )
 
@@ -42,7 +43,7 @@ class MicrobialChanges:
     Units of [kg N m^-3 day^-1]."""
 
     ammonium_change: NDArray[np.float32]
-    """Total change in the ammonium pool due to microbial activity [kg P m^-3 day^-1].
+    """Total change in the ammonium pool due to microbial activity [kg N m^-3 day^-1].
     
     This change arises from the balance of immobilisation and mineralisation of
     ammonium. A positive value indicates a net immobilisation (uptake) of ammonium."""
@@ -485,6 +486,14 @@ class SoilPools:
             * self.pools.soil_n_pool_ammonium
         )
 
+        # Calculate rate at which nitrogen is fixed
+        symbiotic_nitrogen_fixation = calculate_symbiotic_nitrogen_fixation(
+            carbon_supply=self.data["nitrogen_fixation_carbon_supply"].to_numpy(),
+            soil_temp=soil_temperature,
+            active_depth=self.max_depth_of_microbial_activity,
+            constants=self.constants,
+        )
+
         primary_phosphorus_breakdown = (
             self.constants.primary_phosphorus_breakdown_rate
             * self.pools.soil_p_pool_primary
@@ -560,6 +569,7 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_ammonium"] = (
             ammonium_deposition
             + litter_mineralisation_flux.ammonium
+            + symbiotic_nitrogen_fixation
             - microbial_changes.ammonium_change
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
@@ -1650,6 +1660,44 @@ def calculate_rate_of_denitrification(
         * moisture_factor
         * soil_n_pool_nitrate
     )
+
+
+def calculate_symbiotic_nitrogen_fixation(
+    carbon_supply: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    active_depth: float,
+    constants: SoilConsts,
+):
+    """Calculate rate of nitrogen fixation by plant symbionts.
+
+    The nitrogen is considered to be fixed solely in the form of ammonium. This function
+    also converts from the per area units the carbon supply (coming from the plant)
+    model is defined in, to the per volume units used by the soil model.
+
+    Args:
+        carbon_supply: The rate at which carbon is supplied to symbiotic partners by
+            plants for the purpose of nitrogen fixation [kg C m^-2 day^-1]
+        soil_temp: Temperature of the relevant soil zone [C]
+        active_depth: The depth to which the soil is considered to be biologically
+            active [m]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The rate at which nitrogen is fixed by plant associated microbial symbionts [kg
+        N m^-3 day^-1]
+    """
+
+    fixation_carbon_cost = calculate_symbiotic_nitrogen_fixation_carbon_cost(
+        soil_temp=soil_temp,
+        cost_at_zero_celsius=constants.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=constants.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=constants.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=constants.nitrogen_fixation_cost_equality_temperature,
+    )
+
+    carbon_supply_per_volume = carbon_supply / active_depth
+
+    return carbon_supply_per_volume / fixation_carbon_cost
 
 
 def calculate_net_formation_of_secondary_P(

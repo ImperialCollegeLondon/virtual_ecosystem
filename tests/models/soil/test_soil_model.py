@@ -333,11 +333,11 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [6.47546289e-5, 4.93023264e-3, 1.07788527e-4, 5.11474885e-3],
+                        [0.00049401, 0.01494318, 0.00037713, 0.00537297],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00188967, 0.00375189, 0.00029596, 0.01290329], dims="cell_id"
+                        [0.00189658, 0.00384081, 0.00031077, 0.01290555], dims="cell_id"
                     ),
                     soil_p_pool_dop=DataArray(
                         [1.68559250e-4, 9.03050817e-5, 3.15038568e-4, 1.66029558e-4],
@@ -444,6 +444,7 @@ def test_order_independance(
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
         "litter_P_mineralisation_rate",
+        "nitrogen_fixation_carbon_supply",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -527,10 +528,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.01179891,
         0.01365197,
         0.0077315,
-        -6.657325e-6,
-        -0.000415127,
-        -0.00021181,
-        -9.40141e-5,
+        0.00086665,
+        0.01980133,
+        0.00035757,
+        0.00042715,
         -0.000293386,
         -1.292735e-5,
         -3.576543e-5,
