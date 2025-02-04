@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.constants import convert_temperature
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -493,6 +494,13 @@ class SoilPools:
             active_depth=self.max_depth_of_microbial_activity,
             constants=self.constants,
         )
+        free_living_nitrogen_fixation = calculate_free_living_nitrogen_fixation(
+            soil_temp=soil_temperature,
+            fixation_at_reference=self.constants.free_living_N_fixation_reference_rate,
+            reference_temperature=self.constants.free_living_N_fixation_reference_temp,
+            q10_nitrogen_fixation=self.constants.free_living_N_fixation_q10_coefficent,
+            active_depth=self.max_depth_of_microbial_activity,
+        )
 
         primary_phosphorus_breakdown = (
             self.constants.primary_phosphorus_breakdown_rate
@@ -570,6 +578,7 @@ class SoilPools:
             ammonium_deposition
             + litter_mineralisation_flux.ammonium
             + symbiotic_nitrogen_fixation
+            + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
@@ -1667,7 +1676,7 @@ def calculate_symbiotic_nitrogen_fixation(
     soil_temp: NDArray[np.float32],
     active_depth: float,
     constants: SoilConsts,
-):
+) -> NDArray[np.float32]:
     """Calculate rate of nitrogen fixation by plant symbionts.
 
     The nitrogen is considered to be fixed solely in the form of ammonium. This function
@@ -1698,6 +1707,51 @@ def calculate_symbiotic_nitrogen_fixation(
     carbon_supply_per_volume = carbon_supply / active_depth
 
     return carbon_supply_per_volume / fixation_carbon_cost
+
+
+def calculate_free_living_nitrogen_fixation(
+    soil_temp: NDArray[np.float32],
+    fixation_at_reference: float,
+    reference_temperature: float,
+    q10_nitrogen_fixation: float,
+    active_depth: float,
+) -> NDArray[np.float32]:
+    """Calculate rate of nitrogen fixation by free living microbes.
+
+    These are microbes not in a symbiotic association with plants. They are considered
+    to fix nitrogen solely in the form of ammonium. The functional form used is taken
+    from :cite:t:`lin_modelling_2000`.
+
+    TODO: At the moment this function takes in soil temperatures in Celsius and
+    converts them to Kelvin, this should be reviewed as part of the soil-abiotic links
+    review.
+
+    Args:
+        soil_temp: Temperature of the relevant soil zone [C]
+        fixation_at_reference: Rate of nitrogen fixation at the reference temperature
+            [kg N m^-2 day^-1]
+        reference_temperature: Reference temperature [K]
+        q10_nitrogen_fixation: Q10 temperature coefficient for free-living nitrogen
+            fixation [unitless]
+        active_depth: The depth to which the soil is considered to be biologically
+            active [m]
+
+    Returns:
+        The rate at which nitrogen is fixed by free living (i.e. non-symbiotic) microbes
+        [kg N m^-3 day^-1]
+    """
+
+    soil_temp_in_kelvin = convert_temperature(
+        soil_temp, old_scale="Celsius", new_scale="Kelvin"
+    )
+
+    # Convert the fixation rate from per area to per volume units based on the active
+    # soil depth
+    fixation_at_reference_volume = fixation_at_reference / active_depth
+
+    return fixation_at_reference_volume * q10_nitrogen_fixation ** (
+        (soil_temp_in_kelvin - reference_temperature) / 10.0
+    )
 
 
 def calculate_net_formation_of_secondary_P(

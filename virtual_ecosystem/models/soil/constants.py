@@ -547,6 +547,27 @@ class SoilConsts(ConstantsDataclass):
     Units of [C]. Value is obtained from :cite:t:`brzostek_modeling_2014`.
     """
 
+    free_living_N_fixation_reference_rate: float = 15.0 * 1e-4 / 365.25
+    """Rate at which free living microbes fix nitrogen (at the reference temperature).
+    
+    Units of [kg N m^-2 day^-1]. Value specific to tropical forests, and is taken from
+    :cite:t:`lin_modelling_2000` (with the units adjusted). Should not be changed
+    independently from :attr:`free_living_N_fixation_reference_temp`.
+    """
+
+    free_living_N_fixation_reference_temp: float = 293.15
+    """Temperature reference rate of free-living nitrogen fixation was measured at.
+
+    Units of [K]. Value taken from :cite:t:`lin_modelling_2000`. Should not be changed
+    independently from :attr:`free_living_N_fixation_reference_rate`.
+    """
+
+    free_living_N_fixation_q10_coefficent: float = 3.0
+    """Q10 coefficient for free-living fixation of nitrogen [unitless].
+
+    Value taken from :cite:t:`lin_modelling_2000`.
+    """
+
     primary_phosphorus_breakdown_rate: float = 1.0 / 4.38e6
     """Rate constant for breakdown of primary phosphorus to labile phosphorus [day^-1].
     
