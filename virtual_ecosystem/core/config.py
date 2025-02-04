@@ -34,10 +34,22 @@ def config_merge(
     """Recursively merge two dictionaries detecting duplicated key definitions.
 
     This function returns a copy of the input ``dest`` dictionary that has been extended
-    recursively with the entries from the input ``source`` dictionary. The two input
-    dictionaries must not share any key paths and when duplicated key paths are
-    found, the value from the source dictionary is used and the function extends the
-    returned ``conflicts`` tuple with the duplicated key path.
+    recursively with the entries from the input ``source`` dictionary.
+
+    In general, if two input dictionaries share complete key paths (that is a set of
+    nested dictionary keys leading to a value) then that indicates a duplicated setting.
+    The values might be identical, but the configuration files should not duplicate
+    settings. When  duplicated key paths are found, the value from the source dictionary
+    is used and the function extends the returned ``conflicts`` tuple with the
+    duplicated key path.
+
+    However an exception is where both entries are lists - resulting from a TOML array
+    of tables (https://toml.io/en/v1.0.0#array-of-tables). In this case, it is
+    reasonable to append the source values to the destination values. The motivating
+    example here are `[[core.data.variable]]` entries, which can quite reasonably be
+    split across configuration sources. Note that no attempt is made to check that the
+    combined values are congruent - this is deferred to error handling when the
+    configuration is used.
 
     Args:
         dest: A dictionary to extend
@@ -66,6 +78,9 @@ def config_merge(
             dest[src_key], conflicts = config_merge(
                 dest_val, src_val, conflicts=conflicts, path=next_path
             )
+        elif isinstance(dest_val, list) and isinstance(src_val, list):
+            # Both values for this key are lists, so merge the lists
+            dest[src_key] = [*dest_val, *src_val]
         elif dest_val is None:
             # The key is not currently in dest, so add the key value pair
             dest[src_key] = src_val
@@ -82,36 +97,44 @@ def config_merge(
     return dest, conflicts
 
 
-def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
+def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None:
     """Resolve paths in a configuration file.
 
-    Takes the path of a directory containing a given configuration file and resolves any
-    file paths in the configuration file contents, relative to that file location.
+    Configuration files may contain keys providing file paths for data and other
+    settings: these paths may be absolute but also could be relative to the specific
+    configuration file. This becomes a problem when configurations are compiled across
+    multiple configuration files, possibly in different locations, so this function
+    searches the configuration dictionary loaded from a single file and updates
+    configure paths to be congruent from the directory in which Virtual Ecosystem is
+    being run.
 
-    Todo:
-        At present, this only targets `core.data.variable` configuration entries and may
-        want to resolve additional paths in the future.
+    At present, the configuration schema does not have an explicit mechanism to type a
+    configuration option as being a path, so we currently use the `_path` suffix to
+    indicate configuration options setting a path. So, this function recursively search
+    a configuration file payload for values stored under keys ending in `_path` and
+    resolves the paths.
 
     Args:
         config_dir: A folder containing a configuration file.
-        params: A dictionary of contents of the configuration file, which may contain
-            file paths to resolve.
+        config_dict: A dictionary of contents of the configuration file, which may
+            contain file paths to resolve.
+
+    Raises:
+        ValueError: if a key ending in ``_path`` has a non-string value.
     """
-    try:
-        var_entries = params["core"]["data"]["variable"]
-    except KeyError:
-        # No variable entries
-        return
 
-    if not isinstance(var_entries, list):
-        # Must be an array
-        return
-
-    for entry in var_entries:
-        # Though all variable entries should have a file attribute according to the
-        # schema, the config has not been verified at this stage so we need to check
-        if "file" in entry:
-            file_path = Path(entry["file"])
+    for key, item in config_dict.items():
+        if isinstance(item, dict):
+            _resolve_config_paths(config_dir=config_dir, config_dict=item)
+        elif isinstance(item, list):
+            for list_entry in item:
+                _resolve_config_paths(config_dir=config_dir, config_dict=list_entry)
+        elif key.endswith("_path"):
+            if not isinstance(item, str):
+                raise ValueError(
+                    f"The value for config key '{key}' is not a string: {item}"
+                )
+            file_path = Path(item)
             if not file_path.is_absolute():
                 # The resolve method is used here because it is the only method to
                 # resolve ../ entries from relative file paths. However, it also makes
@@ -124,7 +147,7 @@ def _resolve_config_paths(config_dir: Path, params: dict[str, Any]) -> None:
                     config_absolute = Path(config_dir.root).absolute()
                     file_resolved = file_resolved.relative_to(config_absolute)
 
-                entry["file"] = str(file_resolved)
+                config_dict[key] = str(file_resolved)
 
 
 class Config(dict):
@@ -389,7 +412,13 @@ class Config(dict):
 
         for config_file, contents in self.toml_contents.items():
             if isinstance(config_file, Path):
-                _resolve_config_paths(config_file.parent, contents)
+                try:
+                    _resolve_config_paths(
+                        config_dir=config_file.parent, config_dict=contents
+                    )
+                except ValueError as excep:
+                    LOGGER.critical(excep)
+                    raise excep
 
     def build_config(self) -> None:
         """Build a combined configuration from the loaded files.

@@ -536,16 +536,16 @@ def test_Data_load_to_dataarray_data_handling(
         pytest.param(
             """[core]
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "temp"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "prec"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "vapd"
                """,
             does_not_raise(),
@@ -573,16 +573,16 @@ def test_Data_load_to_dataarray_data_handling(
         pytest.param(
             """[core]
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "temp"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "prec"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                """,
             pytest.raises(ConfigurationError),
@@ -635,7 +635,7 @@ def test_Data_load_from_config(
     # Note that the no data test gets the default empty dict for cfg["core"]["data"]
     if "variable" in cfg["core"]["data"]:
         for each_var in cfg["core"]["data"]["variable"]:
-            each_var["file"] = shared_datadir / each_var["file"]
+            each_var["file_path"] = shared_datadir / each_var["file_path"]
 
     with exp_error as err:
         data.load_data_config(config=cfg)
