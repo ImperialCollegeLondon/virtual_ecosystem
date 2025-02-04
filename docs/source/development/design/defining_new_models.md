@@ -342,7 +342,12 @@ properties.
 
 You may want your configuration file to point to resources stored in an external file,
 as in the example above. You should not be loading core data in this way, but you may
-want to point to a file that defines model specific configuration data.
+want to point to a file that defines model specific configuration data. For example, the
+plants model uses definitions of different plant functional types: the most convenient
+way to provide these for the model initialisation is as a small CSV file containing a
+data frame. This isn't data that is needed by the other models, but it is easier to
+maintain and edit in a small CSV, so it is passed in via the `pft_definitions_path`
+configuration option.
 
 However, users may provide a configuration with an absolute file, but could also provide
 a path relative to the configuration file itself. This can become a problem when a
