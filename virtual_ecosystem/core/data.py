@@ -298,8 +298,10 @@ class Data:
         This is a method is used to validate a provided user data configuration and
         populate the Data instance object from the provided data sources. The
         data_config dictionary can contain a 'variable' key containing an array of
-        dictionaries providing the path to the file (``file``) and the
-        name of the variable within the file (``var_name``).
+        dictionaries providing the path to the file (``file_path``) and the name of the
+        variable within the file (``var_name``). The function groups variables by their
+        source file path, so that each file is only opened once to load the requested
+        variables.
 
         Args:
             config: A validated Virtual Ecosystem model configuration object.
@@ -341,8 +343,8 @@ class Data:
 
             # Group variables by file
             variables = data_config["variable"]
-            variables.sort(key=lambda v: v["file"])
-            file_groups = groupby(variables, key=lambda v: v["file"])
+            variables.sort(key=lambda v: v["file_path"])
+            file_groups = groupby(variables, key=lambda v: v["file_path"])
 
             # Load data from each data source
             for file, file_vars in file_groups:
