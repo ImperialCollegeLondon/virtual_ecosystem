@@ -100,9 +100,19 @@ def config_merge(
 def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None:
     """Resolve paths in a configuration file.
 
-    Takes the path of a directory containing a given configuration file and resolves any
-    file paths in the configuration file contents, relative to that file location. File
-    paths as string values that have a key ending in ``_path``.
+    Configuration files may contain to keys providing file paths for data and other
+    settings: these paths may be absolute but also could be relative to the specific
+    configuration file. This becomes a problem when configurations are compiled across
+    multiple configuration files, possibly in different locations, so this function
+    searches the configuration dictionary loaded from a single file and updates
+    configure paths to be congruent from the directory in which Virtual Ecosystem is
+    being run.
+
+    At present, the configuration schema does not have an explicit mechanism to type a
+    configuration option as being a path, so we currently use the `_path` suffix to
+    indicate configuration options setting a path. So, this function recursively search
+    a configuration file payload for values stored under keys ending in `_path` and
+    resolves the paths.
 
     Args:
         config_dir: A folder containing a configuration file.
