@@ -248,14 +248,14 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass, num_pools",
         [
-            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 1),
-            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
-            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 1),
-            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
-            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 3),
-            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
-            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 3),
-            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 1),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 1),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 3),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 3),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
         ],
     )
     def test_excrete(
@@ -322,10 +322,16 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass",
         [
-            ("herbivore", {"C": 100.0, "N": 0.0, "P": 0.0}),
-            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}),  # Zero excreta
-            ("ectotherm", {"C": 50.0, "N": 0.0, "P": 0.0}),
-            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}),  # Zero excreta
+            ("herbivore", {"carbon": 100.0, "nitrogen": 0.0, "phosphorus": 0.0}),
+            (
+                "herbivore",
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),  # Zero excreta
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 0.0, "phosphorus": 0.0}),
+            (
+                "ectotherm",
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),  # Zero excreta
         ],
     )
     def test_respire(
@@ -346,7 +352,7 @@ class TestAnimalCohort:
 
         # Calculate the expected carbon waste based on the cohort's constants
         expected_carbon_waste = (
-            excreta_mass["C"] * cohort_instance.constants.carbon_excreta_proportion
+            excreta_mass["carbon"] * cohort_instance.constants.carbon_excreta_proportion
         )
 
         # Call the respire method
@@ -358,14 +364,14 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "cohort_type, mass_consumed, num_pools",
         [
-            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 1),
-            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
-            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 1),
-            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 1),
-            ("herbivore", {"C": 100.0, "N": 10.0, "P": 1.0}, 3),
-            ("herbivore", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
-            ("ectotherm", {"C": 50.0, "N": 5.0, "P": 0.5}, 3),
-            ("ectotherm", {"C": 0.0, "N": 0.0, "P": 0.0}, 3),
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 1),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 1),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 3),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 3),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
         ],
     )
     def test_defecate(
@@ -515,34 +521,44 @@ class TestAnimalCohort:
     @pytest.mark.parametrize(
         "carcass_mass, num_pools, decay_fraction, should_raise",
         [
-            ({"C": 0.0, "N": 0.0, "P": 0.0}, 1, 0.5, False),  # zero_mass
             (
-                {"C": 1000.0, "N": 500.0, "P": 250.0},
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                1,
+                0.5,
+                False,
+            ),  # zero_mass
+            (
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
                 1,
                 0.5,
                 False,
             ),  # single_pool_distribution
             (
-                {"C": 1000.0, "N": 500.0, "P": 250.0},
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
                 2,
                 0.5,
                 False,
             ),  # multiple_pools_distribution
             (
-                {"C": 1000.0, "N": 500.0, "P": 250.0},
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
                 1,
                 1.0,
                 False,
             ),  # high_decay_fraction
             (
-                {"C": 1000.0, "N": 500.0, "P": 250.0},
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
                 1,
                 0.0,
                 False,
             ),  # low_decay_fraction
-            ({"C": 1000.0, "N": 500.0, "P": 250.0}, 0, 0.5, True),  # no_pools_provided
             (
-                {"C": -100.0, "N": 500.0, "P": 250.0},
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
+                0,
+                0.5,
+                True,
+            ),  # no_pools_provided
+            (
+                {"carbon": -100.0, "nitrogen": 500.0, "phosphorus": 250.0},
                 1,
                 0.5,
                 True,
@@ -573,8 +589,12 @@ class TestAnimalCohort:
         # Create carcass pools from fixture
         carcass_pools = [
             CarcassPool(
-                scavengeable_cnp={"C": 500.0, "N": 100.0, "P": 50.0},
-                decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+                scavengeable_cnp={
+                    "carbon": 500.0,
+                    "nitrogen": 100.0,
+                    "phosphorus": 50.0,
+                },
+                decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
             )
             for _ in range(num_pools)
         ]
@@ -664,17 +684,17 @@ class TestAnimalCohort:
 
         # Track initial total carcass pool mass for each nutrient
         initial_carcass_mass_c = sum(
-            pool.scavengeable_cnp["C"]
+            pool.scavengeable_cnp["carbon"]
             for pools in carcass_pools_instance.values()
             for pool in pools
         )
         initial_carcass_mass_n = sum(
-            pool.scavengeable_cnp["N"]
+            pool.scavengeable_cnp["nitrogen"]
             for pools in carcass_pools_instance.values()
             for pool in pools
         )
         initial_carcass_mass_p = sum(
-            pool.scavengeable_cnp["P"]
+            pool.scavengeable_cnp["phosphorus"]
             for pools in carcass_pools_instance.values()
             for pool in pools
         )
@@ -688,9 +708,9 @@ class TestAnimalCohort:
         decay_fraction_carcasses = herbivore_cohort_instance.decay_fraction_carcasses
 
         # **Get C, N, P proportions for the prey species (mammal)**
-        c_proportion = herbivore_cohort_instance.cnp_proportions["C"]
-        n_proportion = herbivore_cohort_instance.cnp_proportions["N"]
-        p_proportion = herbivore_cohort_instance.cnp_proportions["P"]
+        c_proportion = herbivore_cohort_instance.cnp_proportions["carbon"]
+        n_proportion = herbivore_cohort_instance.cnp_proportions["nitrogen"]
+        p_proportion = herbivore_cohort_instance.cnp_proportions["phosphorus"]
 
         # **Mock `find_intersecting_carcass_pools` return only relevant carcass pools**
         predator_cells = predator_cohort_instance.territory
@@ -765,17 +785,17 @@ class TestAnimalCohort:
 
         # Track final total carcass pool mass for each nutrient
         final_carcass_mass_c = sum(
-            pool.scavengeable_cnp["C"]
+            pool.scavengeable_cnp["carbon"]
             for pools in carcass_pools_instance.values()
             for pool in pools
         )
         final_carcass_mass_n = sum(
-            pool.scavengeable_cnp["N"]
+            pool.scavengeable_cnp["nitrogen"]
             for pools in carcass_pools_instance.values()
             for pool in pools
         )
         final_carcass_mass_p = sum(
-            pool.scavengeable_cnp["P"]
+            pool.scavengeable_cnp["phosphorus"]
             for pools in carcass_pools_instance.values()
             for pool in pools
         )
@@ -803,24 +823,34 @@ class TestAnimalCohort:
         "mass_consumed, expected_waste",
         [
             # Normal cases
-            ({"C": 100.0, "N": 10.0, "P": 1.0}, {"C": 20.0, "N": 2.0, "P": 0.2}),
-            ({"C": 50.0, "N": 5.0, "P": 0.5}, {"C": 10.0, "N": 1.0, "P": 0.1}),
+            (
+                {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0},
+                {"carbon": 20.0, "nitrogen": 2.0, "phosphorus": 0.2},
+            ),
+            (
+                {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5},
+                {"carbon": 10.0, "nitrogen": 1.0, "phosphorus": 0.1},
+            ),
             # Edge cases
             (
-                {"C": 0.0, "N": 0.0, "P": 0.0},
-                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
             ),  # Zero consumption
             (
-                {"C": 1e9, "N": 1e9, "P": 1e9},
-                {"C": 2e8, "N": 2e8, "P": 2e8},
+                {"carbon": 1e9, "nitrogen": 1e9, "phosphorus": 1e9},
+                {"carbon": 2e8, "nitrogen": 2e8, "phosphorus": 2e8},
             ),  # Extremely high consumption
             (
-                {"C": 0.0000001, "N": 0.0000001, "P": 0.0000001},
-                {"C": 0.00000002, "N": 0.00000002, "P": 0.00000002},
+                {"carbon": 0.0000001, "nitrogen": 0.0000001, "phosphorus": 0.0000001},
+                {
+                    "carbon": 0.00000002,
+                    "nitrogen": 0.00000002,
+                    "phosphorus": 0.00000002,
+                },
             ),  # Floating point precision
             (
-                {"C": 1e-6, "N": 1e-6, "P": 1e-6},
-                {"C": 2e-7, "N": 2e-7, "P": 2e-7},
+                {"carbon": 1e-6, "nitrogen": 1e-6, "phosphorus": 1e-6},
+                {"carbon": 2e-7, "nitrogen": 2e-7, "phosphorus": 2e-7},
             ),  # Minimum nonzero consumption
         ],
     )
@@ -856,39 +886,39 @@ class TestAnimalCohort:
         [
             # Missing required keys
             (
-                {"C": 100.0, "N": 10.0},
+                {"carbon": 100.0, "nitrogen": 10.0},
                 ["mock_pool"],
                 "mass_consumed must contain all required keys",
             ),
             (
-                {"C": 100.0, "P": 1.0},
+                {"carbon": 100.0, "phosphorus": 1.0},
                 ["mock_pool"],
                 "mass_consumed must contain all required keys",
             ),
             (
-                {"N": 10.0, "P": 1.0},
+                {"nitrogen": 10.0, "phosphorus": 1.0},
                 ["mock_pool"],
                 "mass_consumed must contain all required keys",
             ),
             # Negative values
             (
-                {"C": -100.0, "N": 10.0, "P": 1.0},
+                {"carbon": -100.0, "nitrogen": 10.0, "phosphorus": 1.0},
                 ["mock_pool"],
                 "Values in mass_consumed must be non-negative",
             ),
             (
-                {"C": 100.0, "N": -10.0, "P": 1.0},
+                {"carbon": 100.0, "nitrogen": -10.0, "phosphorus": 1.0},
                 ["mock_pool"],
                 "Values in mass_consumed must be non-negative",
             ),
             (
-                {"C": 100.0, "N": 10.0, "P": -1.0},
+                {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": -1.0},
                 ["mock_pool"],
                 "Values in mass_consumed must be non-negative",
             ),
             # No excrement pools
             (
-                {"C": 100.0, "N": 10.0, "P": 1.0},
+                {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0},
                 [],
                 "At least one excrement pool must be provided.",
             ),
@@ -934,8 +964,8 @@ class TestAnimalCohort:
         """Test `is_below_mass_threshold` for different mass and threshold values."""
 
         # Mock `mass_current` and `reproductive_mass` properties
-        herbivore_cohort_instance.mass_cnp = {"C": mass_current}
-        herbivore_cohort_instance.reproductive_mass_cnp = {"C": reproductive_mass}
+        herbivore_cohort_instance.mass_cnp = {"carbon": mass_current}
+        herbivore_cohort_instance.reproductive_mass_cnp = {"carbon": reproductive_mass}
 
         # Mock `adult_mass`
         herbivore_cohort_instance.functional_group.adult_mass = adult_mass
@@ -1399,9 +1429,9 @@ class TestAnimalCohort:
                 {1: [{"mock": True}]},
                 False,
                 None,
-                {"C": 10.0, "N": 2.0, "P": 1.0},
-                {"C": 8.0, "N": 1.5, "P": 0.8},
-                {"C": 8.0, "N": 1.5, "P": 0.8},
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
             ),
             # Normal case: Two prey cohorts, sum their values
             (
@@ -1409,9 +1439,9 @@ class TestAnimalCohort:
                 {1: [{"mock": True}]},
                 False,
                 None,
-                {"C": 5.0, "N": 1.0, "P": 0.5},
-                {"C": 4.0, "N": 0.8, "P": 0.4},
-                {"C": 8.0, "N": 1.6, "P": 0.8},
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                {"carbon": 4.0, "nitrogen": 0.8, "phosphorus": 0.4},
+                {"carbon": 8.0, "nitrogen": 1.6, "phosphorus": 0.8},
             ),
             # No prey (should return zero mass)
             (
@@ -1421,7 +1451,7 @@ class TestAnimalCohort:
                 None,
                 None,
                 None,
-                {"C": 0.0, "N": 0.0, "P": 0.0},
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
             ),
             # animal_list is None
             (
@@ -1450,7 +1480,7 @@ class TestAnimalCohort:
                 True,
                 "calculate_consumed_mass_predation.*returned None",
                 None,
-                {"C": 8.0, "N": 1.5, "P": 0.8},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
                 None,
             ),
             # get_eaten returns None
@@ -1459,7 +1489,7 @@ class TestAnimalCohort:
                 {1: [{"mock": True}]},
                 True,
                 "get_eaten.*returned None",
-                {"C": 10.0, "N": 2.0, "P": 1.0},
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
                 None,
                 None,
             ),
@@ -1535,26 +1565,34 @@ class TestAnimalCohort:
             # ✅ Case 1: Two plants (Original test case)
             (
                 2,
-                {"C": 10.0, "N": 2.0, "P": 1.0},
-                {"C": 8.0, "N": 1.5, "P": 0.8},
-                {"C": 2.0, "N": 0.5, "P": 0.2},
-                {"C": 16.0, "N": 3.0, "P": 1.6},
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                {"carbon": 16.0, "nitrogen": 3.0, "phosphorus": 1.6},
             ),
             # ✅ Case 2: Three plants (Larger mass summation)
             (
                 3,
-                {"C": 5.0, "N": 1.0, "P": 0.5},
-                {"C": 4.0, "N": 0.8, "P": 0.4},
-                {"C": 1.0, "N": 0.2, "P": 0.1},
-                {"C": 12.0, "N": pytest.approx(2.4), "P": pytest.approx(1.2)},
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                {"carbon": 4.0, "nitrogen": 0.8, "phosphorus": 0.4},
+                {"carbon": 1.0, "nitrogen": 0.2, "phosphorus": 0.1},
+                {
+                    "carbon": 12.0,
+                    "nitrogen": pytest.approx(2.4),
+                    "phosphorus": pytest.approx(1.2),
+                },
             ),
             # ✅ Case 3: Single plant (Minimal case)
             (
                 1,
-                {"C": 15.0, "N": 3.0, "P": 1.5},
-                {"C": 12.0, "N": 2.4, "P": 1.2},
-                {"C": 3.0, "N": 0.6, "P": 0.3},
-                {"C": 12.0, "N": pytest.approx(2.4), "P": pytest.approx(1.2)},
+                {"carbon": 15.0, "nitrogen": 3.0, "phosphorus": 1.5},
+                {"carbon": 12.0, "nitrogen": 2.4, "phosphorus": 1.2},
+                {"carbon": 3.0, "nitrogen": 0.6, "phosphorus": 0.3},
+                {
+                    "carbon": 12.0,
+                    "nitrogen": pytest.approx(2.4),
+                    "phosphorus": pytest.approx(1.2),
+                },
             ),
         ],
     )

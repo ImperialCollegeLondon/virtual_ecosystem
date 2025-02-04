@@ -29,7 +29,7 @@ class TestFunctionalGroup:
                 -0.75,
                 4.23,
                 0.1,
-                {"C": 0.5, "N": 0.3, "P": 0.2},
+                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
             ),
             (
                 "carnivorous_bird",
@@ -46,7 +46,7 @@ class TestFunctionalGroup:
                 -0.75,
                 2.00,
                 0.25,
-                {"C": 0.4, "N": 0.3, "P": 0.3},
+                {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
             ),
             (
                 "herbivorous_insect_iteroparous",
@@ -63,7 +63,7 @@ class TestFunctionalGroup:
                 -0.75,
                 5.00,
                 0.1,
-                {"C": 0.4, "N": 0.2, "P": 0.4},
+                {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
             ),
         ],
     )

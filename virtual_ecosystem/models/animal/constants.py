@@ -88,9 +88,9 @@ class AnimalConsts(ConstantsDataclass):
 
     cnp_proportion_terms: dict[TaxaType, dict[str, float]] = field(
         default_factory=lambda: {
-            TaxaType.MAMMAL: {"C": 0.5, "N": 0.3, "P": 0.2},
-            TaxaType.BIRD: {"C": 0.4, "N": 0.3, "P": 0.3},
-            TaxaType.INSECT: {"C": 0.4, "N": 0.2, "P": 0.4},
+            TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+            TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
+            TaxaType.INSECT: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
 

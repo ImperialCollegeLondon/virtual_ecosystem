@@ -676,8 +676,8 @@ def excrement_pool_instance():
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
-        decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+        scavengeable_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+        decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
     )
 
 
@@ -689,8 +689,12 @@ def excrement_pools_instance():
     return {
         1: [
             ExcrementPool(
-                scavengeable_cnp={"C": 500.0, "N": 100.0, "P": 50.0},
-                decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+                scavengeable_cnp={
+                    "carbon": 500.0,
+                    "nitrogen": 100.0,
+                    "phosphorus": 50.0,
+                },
+                decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
             )
         ]
     }
@@ -748,8 +752,8 @@ def carcass_pool_instance():
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(
-        scavengeable_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
-        decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+        scavengeable_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+        decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
     )
 
 
@@ -761,8 +765,12 @@ def carcass_pools_instance():
     return {
         cell_id: [
             CarcassPool(
-                scavengeable_cnp={"C": 500.0, "N": 100.0, "P": 50.0},
-                decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+                scavengeable_cnp={
+                    "carbon": 500.0,
+                    "nitrogen": 100.0,
+                    "phosphorus": 50.0,
+                },
+                decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
             )
         ]
         for cell_id in range(0, 9)  # Creates carcass pools for cells 0 to 8

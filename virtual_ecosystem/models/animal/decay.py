@@ -19,17 +19,17 @@ class CarcassPool:
     """This class stores information about the carcass biomass in each grid cell."""
 
     scavengeable_cnp: dict[str, float] = field(
-        default_factory=lambda: {"C": 0.0, "N": 0.0, "P": 0.0}
+        default_factory=lambda: {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
     )
     """Dictionary of animal accessible nutrients in the carcass pool
-    {"C": value, "N": value, "P": value} in [kg].
+    {"carbon": value, "nitrogen": value, "phosphorus": value} in [kg].
     """
 
     decomposed_cnp: dict[str, float] = field(
-        default_factory=lambda: {"C": 0.0, "N": 0.0, "P": 0.0}
+        default_factory=lambda: {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
     )
     """Dictionary of decomposed nutrients in the carcass pool
-    {"C": value, "N": value, "P": value} in [kg].
+    {"carbon": value, "nitrogen": value, "phosphorus": value} in [kg].
     """
 
     def decomposed_nutrient_per_area(
@@ -62,13 +62,14 @@ class CarcassPool:
 
         Args:
             input_mass_cnp: Dictionary specifying the input mass of each
-                element in the carcass {"C": value, "N": value, "P": value}.
+                element in the carcass {"carbon": value, "nitrogen": value,
+                "phosphorus": value}.
 
         Raises:
             ValueError: If the input dictionary is missing required elements or contains
                 negative values.
         """
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(input_mass_cnp.keys()):
             raise ValueError(
                 f"input_mass_cnp must contain all required keys {required_keys}. "
@@ -98,17 +99,17 @@ class ExcrementPool:
     """This class store information about the amount of excrement in each grid cell."""
 
     scavengeable_cnp: dict[str, float] = field(
-        default_factory=lambda: {"C": 0.0, "N": 0.0, "P": 0.0}
+        default_factory=lambda: {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
     )
     """Dictionary of animal accessible nutrients in the excrement pool
-    {"C": value, "N": value, "P": value} in [kg].
+    {"carbon": value, "nitrogen": value, "phosphorus": value} in [kg].
     """
 
     decomposed_cnp: dict[str, float] = field(
-        default_factory=lambda: {"C": 0.0, "N": 0.0, "P": 0.0}
+        default_factory=lambda: {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
     )
     """Dictionary of decomposed nutrients in the excrement pool
-    {"C": value, "N": value, "P": value} in [kg].
+    {"carbon": value, "nitrogen": value, "phosphorus": value} in [kg].
     """
 
     def decomposed_nutrient_per_area(
@@ -140,13 +141,14 @@ class ExcrementPool:
 
         Args:
             input_mass_cnp: Dictionary specifying the scavengeable mass of each
-                element in the excrement {"C": value, "N": value, "P": value}.
+                element in the excrement {"carbon": value, "nitrogen": value,
+                "phosphorus": value}.
 
         Raises:
             ValueError: If the input dictionary is missing required elements or contains
                 negative values.
         """
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(input_mass_cnp.keys()):
             raise ValueError(
                 f"input_mass_cnp must contain all required keys {required_keys}. "
@@ -212,9 +214,9 @@ class LitterPool:
         # Initialize mass_cnp based on the pool's carbon content and ratios
         carbon_mass = (data[f"litter_pool_{pool_name}"].to_numpy()) * cell_area
         self.mass_cnp = {
-            "C": carbon_mass,
-            "N": carbon_mass / data[f"c_n_ratio_{pool_name}"].to_numpy(),
-            "P": carbon_mass / data[f"c_p_ratio_{pool_name}"].to_numpy(),
+            "carbon": carbon_mass,
+            "nitrogen": carbon_mass / data[f"c_n_ratio_{pool_name}"].to_numpy(),
+            "phosphorus": carbon_mass / data[f"c_p_ratio_{pool_name}"].to_numpy(),
         }
         """Mass of the litter pool for each nutrient [kg]."""
 
@@ -242,7 +244,8 @@ class LitterPool:
 
         Returns:
             A dictionary containing the net mass gain of carbon, nitrogen, phosphorus
-            after mechanical efficiencies: {"C": value, "N": value, "P": value}.
+            after mechanical efficiencies: {"carbon": value, "nitrogen": value,
+            "phosphorus": value}.
         """
         # Ensure consumed_mass is non-negative
         if consumed_mass < 0:
@@ -317,9 +320,13 @@ class HerbivoryWaste:
         self.plant_matter_type = plant_matter_type
         """Type of plant matter this waste pool contains."""
 
-        self.mass_cnp: dict[str, float] = {"C": 0.0, "N": 0.0, "P": 0.0}
+        self.mass_cnp: dict[str, float] = {
+            "carbon": 0.0,
+            "nitrogen": 0.0,
+            "phosphorus": 0.0,
+        }
         """The mass of each stoichiometric element found in the plant resources,
-        {"C": value, "N": value, "P": value}."""
+        {"carbon": value, "nitrogen": value, "phosphorus": value}."""
 
         self.lignin_proportion = 0.25
         """Proportion of the herbivory waste pool carbon that is lignin [unitless]."""
@@ -329,14 +336,14 @@ class HerbivoryWaste:
 
         Args:
             input_mass_cnp: Dictionary specifying the mass of each element in the waste
-                {"C": value, "N": value, "P": value}.
+                {"carbon": value, "nitrogen": value, "phosphorus": value}.
 
         Raises:
             ValueError: If the input dictionary is missing required elements or contains
                 negative values.
         """
         # Validate input structure and content
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(input_mass_cnp.keys()):
             raise ValueError(
                 f"mass_cnp must contain all required keys {required_keys}. "

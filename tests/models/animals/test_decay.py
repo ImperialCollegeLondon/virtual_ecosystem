@@ -14,33 +14,46 @@ class TestCarcassPool:
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
         carcasses = CarcassPool(
-            scavengeable_cnp={"C": 1.0007e-2, "N": 0.000133333332, "P": 1.33333332e-6},
-            decomposed_cnp={"C": 2.5e-5, "N": 3.3333333e-6, "P": 3.3333333e-8},
+            scavengeable_cnp={
+                "carbon": 1.0007e-2,
+                "nitrogen": 0.000133333332,
+                "phosphorus": 1.33333332e-6,
+            },
+            decomposed_cnp={
+                "carbon": 2.5e-5,
+                "nitrogen": 3.3333333e-6,
+                "phosphorus": 3.3333333e-8,
+            },
         )
-        assert pytest.approx(carcasses.scavengeable_cnp["C"]) == 1.0007e-2
-        assert pytest.approx(carcasses.decomposed_cnp["C"]) == 2.5e-5
-        assert pytest.approx(carcasses.scavengeable_cnp["N"]) == 0.000133333332
-        assert pytest.approx(carcasses.decomposed_cnp["N"]) == 3.3333333e-6
-        assert pytest.approx(carcasses.scavengeable_cnp["P"]) == 1.33333332e-6
-        assert pytest.approx(carcasses.decomposed_cnp["P"]) == 3.3333333e-8
+        assert pytest.approx(carcasses.scavengeable_cnp["carbon"]) == 1.0007e-2
+        assert pytest.approx(carcasses.decomposed_cnp["carbon"]) == 2.5e-5
+        assert pytest.approx(carcasses.scavengeable_cnp["nitrogen"]) == 0.000133333332
+        assert pytest.approx(carcasses.decomposed_cnp["nitrogen"]) == 3.3333333e-6
+        assert pytest.approx(carcasses.scavengeable_cnp["phosphorus"]) == 1.33333332e-6
+        assert pytest.approx(carcasses.decomposed_cnp["phosphorus"]) == 3.3333333e-8
 
     def test_decomposed_nutrient_per_area(self):
         """Test conversion of decomposed carcass nutrient content to per area basis."""
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
         carcasses = CarcassPool(
-            decomposed_cnp={"C": 2.5e-5, "N": 3.3333333e-6, "P": 3.3333333e-8}
+            decomposed_cnp={
+                "carbon": 2.5e-5,
+                "nitrogen": 3.3333333e-6,
+                "phosphorus": 3.3333333e-8,
+            }
         )
 
         assert (
-            pytest.approx(carcasses.decomposed_nutrient_per_area("C", 10000)) == 2.5e-9
+            pytest.approx(carcasses.decomposed_nutrient_per_area("carbon", 10000))
+            == 2.5e-9
         )
         assert (
-            pytest.approx(carcasses.decomposed_nutrient_per_area("N", 10000))
+            pytest.approx(carcasses.decomposed_nutrient_per_area("nitrogen", 10000))
             == 3.3333333e-10
         )
         assert (
-            pytest.approx(carcasses.decomposed_nutrient_per_area("P", 10000))
+            pytest.approx(carcasses.decomposed_nutrient_per_area("phosphorus", 10000))
             == 3.3333333e-12
         )
 
@@ -50,10 +63,28 @@ class TestCarcassPool:
     @pytest.mark.parametrize(
         "input_mass, expected_c, expected_n, expected_p, raises_exception",
         [
-            ({"C": 5.0, "N": 1.0, "P": 0.5}, 5.0, 1.0, 0.5, False),  # Normal case
-            ({"C": 0.0, "N": 0.0, "P": 0.0}, 0.0, 0.0, 0.0, False),  # Zero mass
-            ({"C": -1.0, "N": 1.0, "P": 0.5}, None, None, None, True),  # Negative value
-            ({"C": 5.0, "N": 1.0}, None, None, None, True),  # Missing key
+            (
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                5.0,
+                1.0,
+                0.5,
+                False,
+            ),  # Normal case
+            (
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                0.0,
+                0.0,
+                0.0,
+                False,
+            ),  # Zero mass
+            (
+                {"carbon": -1.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                None,
+                None,
+                None,
+                True,
+            ),  # Negative value
+            ({"carbon": 5.0, "nitrogen": 1.0}, None, None, None, True),  # Missing key
         ],
     )
     def test_add_carcass(
@@ -69,22 +100,26 @@ class TestCarcassPool:
                 carcasses.add_carcass(input_mass)
         else:
             carcasses.add_carcass(input_mass)
-            assert carcasses.scavengeable_cnp["C"] == expected_c
-            assert carcasses.scavengeable_cnp["N"] == expected_n
-            assert carcasses.scavengeable_cnp["P"] == expected_p
+            assert carcasses.scavengeable_cnp["carbon"] == expected_c
+            assert carcasses.scavengeable_cnp["nitrogen"] == expected_n
+            assert carcasses.scavengeable_cnp["phosphorus"] == expected_p
 
     def test_reset(self):
         """Test resetting of the carcass pool."""
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
         carcasses = CarcassPool(
-            decomposed_cnp={"C": 2.5e-5, "N": 3.3333333e-6, "P": 3.3333333e-8}
+            decomposed_cnp={
+                "carbon": 2.5e-5,
+                "nitrogen": 3.3333333e-6,
+                "phosphorus": 3.3333333e-8,
+            }
         )
         carcasses.reset()
 
-        assert carcasses.decomposed_cnp["C"] == 0.0
-        assert carcasses.decomposed_cnp["N"] == 0.0
-        assert carcasses.decomposed_cnp["P"] == 0.0
+        assert carcasses.decomposed_cnp["carbon"] == 0.0
+        assert carcasses.decomposed_cnp["nitrogen"] == 0.0
+        assert carcasses.decomposed_cnp["phosphorus"] == 0.0
 
 
 class TestExcrementPool:
@@ -95,23 +130,45 @@ class TestExcrementPool:
         from virtual_ecosystem.models.animal.decay import ExcrementPool
 
         excrement = ExcrementPool(
-            scavengeable_cnp={"C": 7.77e-5, "N": 1e-5, "P": 1e-7},
-            decomposed_cnp={"C": 2.5e-5, "N": 3.3333333e-6, "P": 3.3333333e-8},
+            scavengeable_cnp={"carbon": 7.77e-5, "nitrogen": 1e-5, "phosphorus": 1e-7},
+            decomposed_cnp={
+                "carbon": 2.5e-5,
+                "nitrogen": 3.3333333e-6,
+                "phosphorus": 3.3333333e-8,
+            },
         )
-        assert pytest.approx(excrement.scavengeable_cnp["C"]) == 7.77e-5
-        assert pytest.approx(excrement.decomposed_cnp["C"]) == 2.5e-5
-        assert pytest.approx(excrement.scavengeable_cnp["N"]) == 1e-5
-        assert pytest.approx(excrement.decomposed_cnp["N"]) == 3.3333333e-6
-        assert pytest.approx(excrement.scavengeable_cnp["P"]) == 1e-7
-        assert pytest.approx(excrement.decomposed_cnp["P"]) == 3.3333333e-8
+        assert pytest.approx(excrement.scavengeable_cnp["carbon"]) == 7.77e-5
+        assert pytest.approx(excrement.decomposed_cnp["carbon"]) == 2.5e-5
+        assert pytest.approx(excrement.scavengeable_cnp["nitrogen"]) == 1e-5
+        assert pytest.approx(excrement.decomposed_cnp["nitrogen"]) == 3.3333333e-6
+        assert pytest.approx(excrement.scavengeable_cnp["phosphorus"]) == 1e-7
+        assert pytest.approx(excrement.decomposed_cnp["phosphorus"]) == 3.3333333e-8
 
     @pytest.mark.parametrize(
         "input_mass, expected_c, expected_n, expected_p, raises_exception",
         [
-            ({"C": 5.0, "N": 1.0, "P": 0.5}, 5.0, 1.0, 0.5, False),  # Normal case
-            ({"C": 0.0, "N": 0.0, "P": 0.0}, 0.0, 0.0, 0.0, False),  # Zero mass
-            ({"C": -1.0, "N": 1.0, "P": 0.5}, None, None, None, True),  # Negative value
-            ({"C": 5.0, "N": 1.0}, None, None, None, True),  # Missing key
+            (
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                5.0,
+                1.0,
+                0.5,
+                False,
+            ),  # Normal case
+            (
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                0.0,
+                0.0,
+                0.0,
+                False,
+            ),  # Zero mass
+            (
+                {"carbon": -1.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                None,
+                None,
+                None,
+                True,
+            ),  # Negative value
+            ({"carbon": 5.0, "nitrogen": 1.0}, None, None, None, True),  # Missing key
         ],
     )
     def test_add_excrement(
@@ -127,22 +184,26 @@ class TestExcrementPool:
                 excrement.add_excrement(input_mass)
         else:
             excrement.add_excrement(input_mass)
-            assert excrement.scavengeable_cnp["C"] == expected_c
-            assert excrement.scavengeable_cnp["N"] == expected_n
-            assert excrement.scavengeable_cnp["P"] == expected_p
+            assert excrement.scavengeable_cnp["carbon"] == expected_c
+            assert excrement.scavengeable_cnp["nitrogen"] == expected_n
+            assert excrement.scavengeable_cnp["phosphorus"] == expected_p
 
     def test_reset(self):
         """Test resetting of the excrement pool."""
         from virtual_ecosystem.models.animal.decay import ExcrementPool
 
         excrement = ExcrementPool(
-            decomposed_cnp={"C": 2.5e-5, "N": 3.3333333e-6, "P": 3.3333333e-8}
+            decomposed_cnp={
+                "carbon": 2.5e-5,
+                "nitrogen": 3.3333333e-6,
+                "phosphorus": 3.3333333e-8,
+            }
         )
         excrement.reset()
 
-        assert excrement.decomposed_cnp["C"] == 0.0
-        assert excrement.decomposed_cnp["N"] == 0.0
-        assert excrement.decomposed_cnp["P"] == 0.0
+        assert excrement.decomposed_cnp["carbon"] == 0.0
+        assert excrement.decomposed_cnp["nitrogen"] == 0.0
+        assert excrement.decomposed_cnp["phosphorus"] == 0.0
 
 
 @pytest.mark.parametrize(
@@ -207,9 +268,9 @@ class TestLitterPool:
         expected_phosphorus_mass = expected_carbon_mass / c_p_ratio
 
         # Assertions to check initialization values
-        assert np.allclose(litter_pool.mass_cnp["C"], expected_carbon_mass)
-        assert np.allclose(litter_pool.mass_cnp["N"], expected_nitrogen_mass)
-        assert np.allclose(litter_pool.mass_cnp["P"], expected_phosphorus_mass)
+        assert np.allclose(litter_pool.mass_cnp["carbon"], expected_carbon_mass)
+        assert np.allclose(litter_pool.mass_cnp["nitrogen"], expected_nitrogen_mass)
+        assert np.allclose(litter_pool.mass_cnp["phosphorus"], expected_phosphorus_mass)
 
     def test_mass_current(self, litter_pool_instance):
         """Test that mass_current correctly returns an xarray DataArray."""
@@ -247,9 +308,9 @@ class TestLitterPool:
         detritivore.functional_group.mechanical_efficiency = 0.8  # Example value
 
         # Store initial mass values for each nutrient before calling get_eaten
-        initial_mass_c = litter_pool_instance.mass_cnp["C"][grid_cell_id]
-        initial_mass_n = litter_pool_instance.mass_cnp["N"][grid_cell_id]
-        initial_mass_p = litter_pool_instance.mass_cnp["P"][grid_cell_id]
+        initial_mass_c = litter_pool_instance.mass_cnp["carbon"][grid_cell_id]
+        initial_mass_n = litter_pool_instance.mass_cnp["nitrogen"][grid_cell_id]
+        initial_mass_p = litter_pool_instance.mass_cnp["phosphorus"][grid_cell_id]
 
         # Compute total initial mass in the litter pool (before modification)
         initial_mass_current = initial_mass_c + initial_mass_n + initial_mass_p
@@ -271,9 +332,10 @@ class TestLitterPool:
             consumed_mass * detritivore.functional_group.mechanical_efficiency
         )
         expected_nutrient_gain = {
-            "C": actual_consumed_mass * (initial_mass_c / initial_mass_current),
-            "N": actual_consumed_mass * (initial_mass_n / initial_mass_current),
-            "P": actual_consumed_mass * (initial_mass_p / initial_mass_current),
+            "carbon": actual_consumed_mass * (initial_mass_c / initial_mass_current),
+            "nitrogen": actual_consumed_mass * (initial_mass_n / initial_mass_current),
+            "phosphorus": actual_consumed_mass
+            * (initial_mass_p / initial_mass_current),
         }
 
         # Debugging output
@@ -292,28 +354,28 @@ class TestLitterPool:
 
         # Assertions to check correct nutrient reduction and return values
         assert np.allclose(
-            nutrient_gain["C"], expected_nutrient_gain["C"], atol=1e-6
+            nutrient_gain["carbon"], expected_nutrient_gain["carbon"], atol=1e-6
         ), f"Mismatch: Expected {expected_nutrient_gain['C']}, Got {nutrient_gain['C']}"
         assert np.allclose(
-            nutrient_gain["N"], expected_nutrient_gain["N"], atol=1e-6
+            nutrient_gain["nitrogen"], expected_nutrient_gain["nitrogen"], atol=1e-6
         ), f"Mismatch: Expected {expected_nutrient_gain['N']}, Got {nutrient_gain['N']}"
         assert np.allclose(
-            nutrient_gain["P"], expected_nutrient_gain["P"], atol=1e-6
+            nutrient_gain["phosphorus"], expected_nutrient_gain["phosphorus"], atol=1e-6
         ), f"Mismatch: Expected {expected_nutrient_gain['P']}, Got {nutrient_gain['P']}"
 
         # **✅ Corrected Assertions for Mass Reduction**
         assert np.allclose(
-            litter_pool_instance.mass_cnp["C"][grid_cell_id],
-            initial_mass_c - expected_nutrient_gain["C"],
+            litter_pool_instance.mass_cnp["carbon"][grid_cell_id],
+            initial_mass_c - expected_nutrient_gain["carbon"],
         ), "C mass not reduced correctly."
 
         assert np.allclose(
-            litter_pool_instance.mass_cnp["N"][grid_cell_id],
+            litter_pool_instance.mass_cnp["nitrogen"][grid_cell_id],
             initial_mass_n
-            - expected_nutrient_gain["N"],  # ✅ Corrected from initial_mass_c
+            - expected_nutrient_gain["nitrogen"],  # ✅ Corrected from initial_mass_c
         ), "N mass not reduced correctly."
 
         assert np.allclose(
-            litter_pool_instance.mass_cnp["P"][grid_cell_id],
-            initial_mass_p - expected_nutrient_gain["P"],
+            litter_pool_instance.mass_cnp["phosphorus"][grid_cell_id],
+            initial_mass_p - expected_nutrient_gain["phosphorus"],
         ), "P mass not reduced correctly."

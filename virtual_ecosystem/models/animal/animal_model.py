@@ -274,8 +274,12 @@ class AnimalModel(
         self.excrement_pools = {
             cell_id: [
                 ExcrementPool(
-                    scavengeable_cnp={"C": 1e-3, "N": 1e-4, "P": 1e-6},
-                    decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+                    scavengeable_cnp={
+                        "carbon": 1e-3,
+                        "nitrogen": 1e-4,
+                        "phosphorus": 1e-6,
+                    },
+                    decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -283,8 +287,12 @@ class AnimalModel(
         self.carcass_pools = {
             cell_id: [
                 CarcassPool(
-                    scavengeable_cnp={"C": 1e-3, "N": 1e-4, "P": 1e-6},
-                    decomposed_cnp={"C": 0.0, "N": 0.0, "P": 0.0},
+                    scavengeable_cnp={
+                        "carbon": 1e-3,
+                        "nitrogen": 1e-4,
+                        "phosphorus": 1e-6,
+                    },
+                    decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -484,18 +492,18 @@ class AnimalModel(
 
         # Find the size of the leaf waste pool (in carbon terms)
         leaf_addition = [
-            self.leaf_waste_pools[cell_id].mass_cnp["C"] / self.data.grid.cell_area
+            self.leaf_waste_pools[cell_id].mass_cnp["carbon"] / self.data.grid.cell_area
             for cell_id in self.data.grid.cell_id
         ]
         # Find the chemistry of the pools as well
         leaf_c_n = [
-            self.leaf_waste_pools[cell_id].mass_cnp["C"]
-            / self.leaf_waste_pools[cell_id].mass_cnp["N"]
+            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
+            / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
             for cell_id in self.data.grid.cell_id
         ]
         leaf_c_p = [
-            self.leaf_waste_pools[cell_id].mass_cnp["C"]
-            / self.leaf_waste_pools[cell_id].mass_cnp["P"]
+            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
+            / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
             for cell_id in self.data.grid.cell_id
         ]
         leaf_lignin = [
@@ -505,9 +513,9 @@ class AnimalModel(
 
         # Reset all of the herbivory waste pools to zero
         for waste in self.leaf_waste_pools.values():
-            waste.mass_cnp["C"] = 0.0
-            waste.mass_cnp["N"] = 0.0
-            waste.mass_cnp["P"] = 0.0
+            waste.mass_cnp["carbon"] = 0.0
+            waste.mass_cnp["nitrogen"] = 0.0
+            waste.mass_cnp["phosphorus"] = 0.0
 
         return {
             "herbivory_waste_leaf_carbon": DataArray(
@@ -774,7 +782,11 @@ class AnimalModel(
         """
         # Semelparous organisms use a portion of their non-reproductive mass to make
         # offspring and then die
-        non_reproductive_mass_loss_cnp = {"C": 0.0, "N": 0.0, "P": 0.0}
+        non_reproductive_mass_loss_cnp = {
+            "carbon": 0.0,
+            "nitrogen": 0.0,
+            "phosphorus": 0.0,
+        }
         if parent_cohort.functional_group.reproductive_type == "semelparous":
             for nutrient in parent_cohort.mass_cnp:
                 non_reproductive_mass_loss_cnp[nutrient] = (
@@ -804,9 +816,10 @@ class AnimalModel(
         # Calculate the number of offspring
         number_offspring = int(
             min(
-                total_reproductive_mass_cnp["C"] / birth_mass_cnp["C"],
-                total_reproductive_mass_cnp["N"] / birth_mass_cnp["N"],
-                total_reproductive_mass_cnp["P"] / birth_mass_cnp["P"],
+                total_reproductive_mass_cnp["carbon"] / birth_mass_cnp["carbon"],
+                total_reproductive_mass_cnp["nitrogen"] / birth_mass_cnp["nitrogen"],
+                total_reproductive_mass_cnp["phosphorus"]
+                / birth_mass_cnp["phosphorus"],
             )
             * parent_cohort.individuals
         )

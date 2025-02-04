@@ -109,9 +109,13 @@ class AnimalCohort:
         }
         """The mass of C, N, and P in the cohort, from total mass and proportions."""
 
-        self.reproductive_mass_cnp: dict[str, float] = {"C": 0.0, "N": 0.0, "P": 0.0}
+        self.reproductive_mass_cnp: dict[str, float] = {
+            "carbon": 0.0,
+            "nitrogen": 0.0,
+            "phosphorus": 0.0,
+        }
         """The reproductive mass of each stoichiometric element found in the animal
-          cohort, {"C": value, "N": value, "P": value}."""
+          cohort, {"carbon": value, "nitrogen": value, "phosphorus": value}."""
 
     @property
     def mass_current(self) -> float:
@@ -224,7 +228,7 @@ class AnimalCohort:
         if dt < timedelta64(0, "D"):
             raise ValueError("dt cannot be negative.")
 
-        if self.mass_cnp["C"] < 0:
+        if self.mass_cnp["carbon"] < 0:
             raise ValueError("Carbon mass (C) cannot be negative.")
 
         # Calculate potential carbon metabolized (kg/day * number of days)
@@ -237,14 +241,18 @@ class AnimalCohort:
 
         # Ensure metabolized carbon does not exceed available carbon
         actual_carbon_metabolized = min(
-            self.mass_cnp["C"], potential_carbon_metabolized
+            self.mass_cnp["carbon"], potential_carbon_metabolized
         )
 
         # Reduce carbon in the cohort
-        self.mass_cnp["C"] -= actual_carbon_metabolized
+        self.mass_cnp["carbon"] -= actual_carbon_metabolized
 
         # Create a stoichiometric dictionary for metabolized mass
-        metabolized_mass = {"C": actual_carbon_metabolized, "N": 0.0, "P": 0.0}
+        metabolized_mass = {
+            "carbon": actual_carbon_metabolized,
+            "nitrogen": 0.0,
+            "phosphorus": 0.0,
+        }
 
         # Scale for the entire cohort and return
         return {
@@ -262,7 +270,7 @@ class AnimalCohort:
 
         Args:
             excreta_mass: Dictionary specifying the mass of each element in the waste
-                {"C": value, "N": value, "P": value} [kg].
+                {"carbon": value, "nitrogen": value, "phosphorus": value} [kg].
             excrement_pools: The pools of waste to which the excreted wastes flow.
 
         Raises:
@@ -270,7 +278,7 @@ class AnimalCohort:
               values.
         """
         # Validate the excreta_mass input
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(excreta_mass.keys()):
             raise ValueError(
                 f"excreta_mass must contain all required keys {required_keys}. "
@@ -318,20 +326,23 @@ class AnimalCohort:
 
         Args:
             excreta_mass: A dictionary representing the mass of each nutrient excreted
-                by the cohort: {"C": value, "N": value, "P": value}.
+                by the cohort: {"carbon": value, "nitrogen": value,
+                "phosphorus": value}.
 
         Returns:
             A float representing the total carbon mass respired to the atmosphere.
         """
 
         # Validate the input dictionary
-        if "C" not in excreta_mass:
+        if "carbon" not in excreta_mass:
             raise ValueError("excreta_mass must contain the key 'C' for carbon.")
-        if excreta_mass["C"] < 0:
+        if excreta_mass["carbon"] < 0:
             raise ValueError("Carbon mass in excreta_mass cannot be negative.")
 
         # Calculate the carbonaceous waste for respiration
-        respired_mass = excreta_mass["C"] * self.constants.carbon_excreta_proportion
+        respired_mass = (
+            excreta_mass["carbon"] * self.constants.carbon_excreta_proportion
+        )
 
         return respired_mass
 
@@ -342,7 +353,7 @@ class AnimalCohort:
     ) -> None:
         """Transfer waste mass from an animal cohort to the excrement pools."""
 
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(mass_consumed.keys()):
             raise ValueError(
                 f"mass_consumed must contain all required keys {required_keys}. "
@@ -445,7 +456,7 @@ class AnimalCohort:
         """Updates the carcass pools after deaths."""
 
         # Validate carcass_mass input
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(carcass_mass.keys()):
             raise ValueError(
                 f"carcass_mass must contain all required keys {required_keys}. "
@@ -845,7 +856,7 @@ class AnimalCohort:
 
         Returns:
             A dictionary representing the total change in mass (C, N, P) experienced by
-            the predator: {"C": value, "N": value, "P": value}.
+            the predator: {"carbon": value, "nitrogen": value, "phosphorus": value}.
 
         Raises:
             ValueError: If `animal_list` or `carcass_pools` is None.
@@ -861,10 +872,10 @@ class AnimalCohort:
 
         # If no prey are available, return zero change
         if not animal_list:
-            return {"C": 0.0, "N": 0.0, "P": 0.0}
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
 
         # Initialize the total consumed mass as a stoichiometric dictionary
-        total_consumed_mass = {"C": 0.0, "N": 0.0, "P": 0.0}
+        total_consumed_mass = {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
 
         for prey_cohort in animal_list:
             # Calculate the mass to be consumed from this cohort
@@ -954,10 +965,12 @@ class AnimalCohort:
 
         # If no plants are available, return zero change
         if not plant_list:
-            return {"C": 0.0, "N": 0.0, "P": 0.0}
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
 
         # Initialize total consumed stoichiometric masses
-        total_consumed_cnp = {element: 0.0 for element in ["C", "N", "P"]}
+        total_consumed_cnp = {
+            element: 0.0 for element in ["carbon", "nitrogen", "phosphorus"]
+        }
 
         for plant in plant_list:
             # Calculate the mass to be consumed from this plant
@@ -1074,7 +1087,8 @@ class AnimalCohort:
 
         Args:
             mass_consumed: A dictionary representing the mass of each nutrient consumed
-                by this consumer: {"C": value, "N": value, "P": value}.
+                by this consumer: {"carbon": value, "nitrogen": value,
+                "phosphorus": value}.
             excrement_pools: The ExcrementPool objects in the cohort's territory in
                 which waste is deposited.
 
@@ -1086,7 +1100,7 @@ class AnimalCohort:
             return
 
         # Validate mass_consumed input
-        required_keys = {"C", "N", "P"}
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
         if not required_keys.issubset(mass_consumed.keys()):
             raise ValueError(
                 f"mass_consumed must contain all required keys {required_keys}. "
