@@ -405,8 +405,8 @@ class PlantsModel(
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
             and shade.
-          - At the moment, we're only looking at PPFD. Need to talk to @vgro about the
-            fuller spectrum of radiation.
+          - At the moment, we're only looking at PPFD and need to switch to SWDown
+            `#721 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/721>`_
         """  # noqa: D405 temporary section
 
         # Extract a PPFD time slice
@@ -438,9 +438,14 @@ class PlantsModel(
         The GPP for each cohort is then estimated by mutiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
 
-        Warning:
-            At present this method checks that the required forcing variables exist, but
-            asserts a constant fixed light use efficiency rather than using the P Model.
+        .. TODO:
+
+            * This function populates evapotranspiration but the calculation is
+              currently only estimating _transpiration_
+              `#704 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/704>`_
+            * Conversion of transpiration from `µmol m-2` to `mm m-2` currently ignores
+              density changes with conditions:
+              `#723 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/723>`_
 
         Args:
             time_index: The index along the time axis of the forcing data giving the
@@ -448,6 +453,8 @@ class PlantsModel(
 
         Raises:
             ValueError: if any of the P Model forcing variables are not defined.
+
+
         """
 
         # Estimate the light use efficiency of leaves within each canopy layer within
@@ -475,15 +482,13 @@ class PlantsModel(
         n_seconds = self.model_timing.update_interval / np.timedelta64(1, "s")
 
         # Initialise transpiration array to collect per grid cell values
-        #
-        # TODO - #704, this is _not_ evapotranspiration, but we'll pretend it is for
+        # NOTE - #704, this is _not_ evapotranspiration, but we'll pretend it is for
         #        the moment.
-        #
         transpiration = self.layer_structure.from_template("evapotranspiration")
 
         # Now calculate the gross primary productivity and transpiration across cohorts
         # and canopy layers over the time period.
-        # TODO - Because the number of cohorts differ between grid cells, this is
+        # NOTE - Because the number of cohorts differ between grid cells, this is
         #        calculation is done within a loop over grid cells, but it is possible
         #        that this could be unwrapped into a single calculation, which might be
         #        much faster.
@@ -536,11 +541,6 @@ class PlantsModel(
 
             # Calculate the total transpiration per layer in mm m2 in mm, converted from
             # an initial value is in µmol m2 s1.abs
-            # TODO - conversion factor from µmol m2 to mm m2 of 1.8e-8 is currently
-            #        approximated at fixed standard temp and pressure, (1 mol is ~ 18
-            #        cm2 = 18000 mm2 = 0.018 mm m2 so 1 µmol is 1.8e-8 mm m2) but could
-            #        be adjusted once `pyrealm.core.water.convert_water_moles_to_mm` is
-            #        public
             transpiration[active_layers, cell_id] = (
                 community.cohorts.n_individuals
                 * stem_transpiration_rate
@@ -550,7 +550,7 @@ class PlantsModel(
 
         # Pass values to data object
         #
-        # TODO - #704, this is _not_ evapotranspiration, but we'll pretend it is for
+        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
         #        the moment.
         #
         self.data["evapotranspiration"] = transpiration
