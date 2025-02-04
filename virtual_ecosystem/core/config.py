@@ -100,7 +100,7 @@ def config_merge(
 def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None:
     """Resolve paths in a configuration file.
 
-    Configuration files may contain to keys providing file paths for data and other
+    Configuration files may contain keys providing file paths for data and other
     settings: these paths may be absolute but also could be relative to the specific
     configuration file. This becomes a problem when configurations are compiled across
     multiple configuration files, possibly in different locations, so this function
