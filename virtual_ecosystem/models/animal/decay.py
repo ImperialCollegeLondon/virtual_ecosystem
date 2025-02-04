@@ -220,16 +220,25 @@ class LitterPool:
         }
         """Mass of the litter pool for each nutrient [kg]."""
 
+        if carbon_mass.min() < 0:
+            raise ValueError(
+                f"Negative values detected in {self.pool_name}"
+                f"litter pool: {carbon_mass}"
+            )
+
     @property
     def mass_current(self) -> DataArray:
         """Dynamically calculate the current total body mass from stoichiometry.
 
+        TODO: currently carbon only
+
         Returns:
-            A DataArray representing the total litter mass for each grid cell.
+            A DataArray representing the total carbon mass for each grid cell.
         """
+
         return DataArray(
-            sum(self.mass_cnp.values()),  # Keep grid structure
-            dims=["cell_id"],  # Ensure mass_current matches grid dimensions
+            self.mass_cnp["carbon"],
+            dims=["cell_id"],
         )
 
     def get_eaten(

@@ -421,27 +421,27 @@ class AnimalModel(
             "above_metabolic": LitterPool(
                 pool_name="above_metabolic",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "above_structural": LitterPool(
                 pool_name="above_structural",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "woody": LitterPool(
                 pool_name="woody",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "below_metabolic": LitterPool(
                 pool_name="below_metabolic",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "below_structural": LitterPool(
                 pool_name="below_structural",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
         }
 

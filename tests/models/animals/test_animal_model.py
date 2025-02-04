@@ -326,46 +326,122 @@ class TestAnimalModel:
                     f"Expected: {expected_density}, Found: {calculated_density}"
                 )
 
+    @pytest.mark.parametrize(
+        "density_values, expected_mass, c_n_ratio, c_p_ratio, expect_error",
+        [
+            # Edge Case 1: Zero Density
+            ("zeros", "zeros", "ones", "ones", False),
+            # Edge Case 2: Very Small Density Values (Avoids Underflow)
+            ("small", "small", "tens", "twenties", False),
+            # Edge Case 3: Very Large Density Values (Avoids Overflow)
+            ("large", "large", "fifties", "hundreds", False),
+            # Edge Case 4: Negative Values (Should Raise Error or Reset to Zero)
+            ("negative", "zeros", "tens", "twenties", True),
+            # Edge Case 5: Extremely High C:N and C:P Ratios (Ensures Division Works)
+            ("medium", "medium", "huge", "huge", False),
+        ],
+    )
     def test_populate_litter_pools(
         self,
-        litter_data_instance,
-        fixture_core_components,
-        functional_group_list_instance,
-        constants_instance,
+        animal_model_instance,
+        density_values,
+        expected_mass,
+        c_n_ratio,
+        c_p_ratio,
+        expect_error,
     ):
-        """Test function to populate animal consumable litter pool works properly."""
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        """Test that populate_litter_pools."""
 
-        model = AnimalModel(
-            data=litter_data_instance,
-            core_components=fixture_core_components,
-            functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
+        import numpy as np
+        import xarray as xr
+
+        from virtual_ecosystem.models.animal.decay import LitterPool
+
+        # Define values based on test case
+        value_map = {
+            "zeros": np.zeros(9),
+            "small": np.full(9, 1e-10),
+            "large": np.full(9, 1e5),
+            "negative": np.full(9, -1.0),
+            "medium": np.full(9, 10.0),
+            "ones": np.ones(9),
+            "tens": np.full(9, 10.0),
+            "twenties": np.full(9, 20.0),
+            "fifties": np.full(9, 50.0),
+            "hundreds": np.full(9, 100.0),
+            "huge": np.full(9, 1e6),
+        }
+
+        density_values = xr.DataArray(value_map[density_values], dims=["cell_id"])
+        expected_mass = xr.DataArray(
+            value_map[expected_mass] * animal_model_instance.data.grid.cell_area,
+            dims=["cell_id"],
         )
+        c_n_ratio = xr.DataArray(value_map[c_n_ratio], dims=["cell_id"])
+        c_p_ratio = xr.DataArray(value_map[c_p_ratio], dims=["cell_id"])
 
-        litter_pools = model.populate_litter_pools()
-        # Check that all five pools have been populated, with the correct values
-        pool_names = [
+        # Assign mock data to model
+        for pool_name in [
             "above_metabolic",
             "above_structural",
             "woody",
             "below_metabolic",
             "below_structural",
-        ]
-        for pool_name in pool_names:
-            assert np.allclose(
-                litter_pools[pool_name].mass_current,
-                litter_data_instance[f"litter_pool_{pool_name}"]
-                * fixture_core_components.grid.cell_area,
+        ]:
+            animal_model_instance.data[f"litter_pool_{pool_name}"] = density_values
+            animal_model_instance.data[f"c_n_ratio_{pool_name}"] = c_n_ratio
+            animal_model_instance.data[f"c_p_ratio_{pool_name}"] = c_p_ratio
+
+        # Populate litter pools
+        if expect_error:
+            with pytest.raises(ValueError):
+                litter_pools = animal_model_instance.populate_litter_pools()
+        else:
+            litter_pools = animal_model_instance.populate_litter_pools()
+
+            # Ensure all expected pools are present
+            expected_pools = [
+                "above_metabolic",
+                "above_structural",
+                "woody",
+                "below_metabolic",
+                "below_structural",
+            ]
+            assert set(litter_pools.keys()) == set(expected_pools), (
+                "Not all litter pools were initialized."
             )
-            assert np.allclose(
-                litter_pools[pool_name].c_n_ratio,
-                litter_data_instance[f"c_n_ratio_{pool_name}"],
-            )
-            assert np.allclose(
-                litter_pools[pool_name].c_p_ratio,
-                litter_data_instance[f"c_p_ratio_{pool_name}"],
-            )
+
+            # Check pool attributes and expected mass values
+            for pool_name in expected_pools:
+                assert isinstance(litter_pools[pool_name], LitterPool), (
+                    f"{pool_name} is not a LitterPool instance."
+                )
+                assert litter_pools[pool_name].pool_name == pool_name, (
+                    f"{pool_name} pool name mismatch."
+                )
+
+                # Ensure mass_current only tracks carbon and is correctly computed
+                assert np.allclose(
+                    litter_pools[pool_name].mass_current.values,
+                    expected_mass.values,
+                    rtol=1e-5,
+                    atol=1e-8,
+                ), f"{pool_name} mass_current mismatch."
+
+                # Ensure nitrogen and phosphorus are calculated correctly
+                assert np.allclose(
+                    litter_pools[pool_name].mass_cnp["nitrogen"],
+                    (expected_mass / c_n_ratio).values,
+                    rtol=1e-5,
+                    atol=1e-8,
+                ), f"{pool_name} nitrogen mass is incorrect."
+
+                assert np.allclose(
+                    litter_pools[pool_name].mass_cnp["phosphorus"],
+                    (expected_mass / c_p_ratio).values,
+                    rtol=1e-5,
+                    atol=1e-8,
+                ), f"{pool_name} phosphorus mass is incorrect."
 
     def test_calculate_total_litter_consumption(
         self,
