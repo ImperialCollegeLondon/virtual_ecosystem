@@ -160,6 +160,20 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     )
 
 
+def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
+    """Test the allocate_gpp method."""
+
+    cell_id = next(iter(fxt_plants_model.communities))
+    previous_dbh = fxt_plants_model.communities.cohort[cell_id].dbh_values
+
+    # Allocate GPP
+    fxt_plants_model.allocate_gpp()
+
+    updated_dbh = fxt_plants_model.communities.cohort[cell_id].dbh_values
+
+    assert updated_dbh > previous_dbh
+
+
 def test_PlantsModel_update(
     fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
 ):
