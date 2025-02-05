@@ -143,7 +143,7 @@ updated configuration file:
       --outpath /path/ve_example/out \
       --logfile /path/ve_example/out/ve_example.log
   ```
-  
+
 TODO check that this works, add both examples?
 
 ## Compare results
