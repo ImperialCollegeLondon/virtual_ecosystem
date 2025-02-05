@@ -32,6 +32,7 @@ This page documents three submodules of the `plants` module:
 2. The plant community structures, describing the cohorts of stems of different PFTs
    with different diameters at breast height within a grid cell.
 3. The canopy structure generated in a grid cell by the plant community.
+4. The constants definitions required to run the model
 
 ## The plant {mod}`~virtual_ecosystem.models.plants.functional_types` module
 
@@ -53,6 +54,14 @@ This page documents three submodules of the `plants` module:
 
 ```{eval-rst}
 .. automodule:: virtual_ecosystem.models.plants.canopy
+    :autosummary:
+    :members:
+```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.constants
     :autosummary:
     :members:
 ```

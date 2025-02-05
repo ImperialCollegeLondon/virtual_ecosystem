@@ -1,8 +1,8 @@
-"""The :mod:`~virtual_ecosystem.models.plants.canopy` submodule provides the core
-functions used to estimate the canopy model.
-
-NOTE - much of this will be outsourced to pyrealm.
-
+"""The :mod:`~virtual_ecosystem.models.plants.canopy` submodule provides functionality
+to initialise the canopy layer data held in the simulation
+:class:`~virtual_ecosystem.core.data.Data` instance and to generate
+:class:`~pyrealm.demography.canopy.Canopy` instances from the plant community data
+within each grid cell.
 """  # noqa: D205
 
 from __future__ import annotations

@@ -1,17 +1,15 @@
-"""The :mod:`~virtual_ecosystem.models.plants.community` submodule provides a simple
-dataclass to hold plant cohort information and then the ``PlantCommunities`` class that
-is used to hold list of plant cohorts by grid cell and generate those lists from
-variables provided in the data object.
-
-NOTE - much of this will be outsourced to pyrealm.
-
+"""The :mod:`~virtual_ecosystem.models.plants.community` submodule contains
+functionality to generate a dictionary of
+:class:`~pyrealm.demography.community.Community` instances for each grid cell, populated
+with size-structured :class:`~pyrealm.demography.community.Cohort` instances from
+initial plant cohort inventories for a simulation.
 """  # noqa: D205
 
 from collections.abc import Mapping
 
 from pyrealm.demography.community import Cohorts as PlantCohorts
 from pyrealm.demography.community import Community as PlantCommunity
-from pyrealm.demography.flora import Flora as pyrealmFlora
+from pyrealm.demography.flora import Flora
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.grid import Grid
@@ -37,7 +35,7 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
         grid: The grid for the simulation, providing the area of the grid cells.
     """
 
-    def __init__(self, data: Data, flora: pyrealmFlora, grid: Grid):
+    def __init__(self, data: Data, flora: Flora, grid: Grid):
         """Initialise the community object.
 
         Args:

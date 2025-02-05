@@ -105,9 +105,6 @@ class PlantsModel(
 ):
     """A class defining the plants model.
 
-    This is currently a basic placeholder to define the main interfaces between the
-    plants model and other models.
-
     When a model instance is created, the model attributes are validated and set.
     The initial canopy structure for each grid cell is then generated from provided
     plant cohort data using the
