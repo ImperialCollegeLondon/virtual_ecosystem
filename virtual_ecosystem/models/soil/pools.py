@@ -227,10 +227,10 @@ class PoolData:
     """
 
     soil_n_pool_ammonium: NDArray[np.float32]
-    """Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
+    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
 
     soil_n_pool_nitrate: NDArray[np.float32]
-    """Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
+    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
 
     soil_p_pool_dop: NDArray[np.float32]
     """Organic phosphorus content of the low molecular weight carbon pool [kg P m^-3].

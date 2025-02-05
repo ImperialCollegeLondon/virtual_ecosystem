@@ -229,27 +229,27 @@ def test_Data_contains(fixture_data, var_name, expected):
 
 
 @pytest.mark.parametrize(
-    argnames=["name", "exp_log"],
+    argnames=["var_names", "exp_log"],
     argvalues=[
         pytest.param(
-            "temp",
+            ["temp"],
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
             ),
             id="simple_load",
         ),
         pytest.param(
-            "elev",
+            ["elev"],
             (
-                (INFO, "Loading variable 'elev' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Replacing data array for 'elev'"),
             ),
             id="load_and_replace",
         ),
     ],
 )
-def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
+def test_Data_load_to_dataarray_naming(caplog, shared_datadir, var_names, exp_log):
     """Test the coding of the name handling and replacement."""
 
     # Setup a Data instance to match the example files generated in tests/core/data
@@ -257,6 +257,8 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.core.readers import load_to_dataarray
+
+    caplog.clear()
 
     grid = Grid(
         grid_type="square",
@@ -275,11 +277,14 @@ def test_Data_load_to_dataarray_naming(caplog, shared_datadir, name, exp_log):
     # Load the data from file
     datafile = shared_datadir / "cellid_coords.nc"
 
-    data[name] = load_to_dataarray(file=datafile, var_name=name)
+    results = load_to_dataarray(file=datafile, var_names=var_names)
+    for ky, val in results.items():
+        data[ky] = val
 
-    # Check the naming has worked and the data are loaded
-    assert name in data
-    assert data[name].sum() == (20 * 100)
+    for name in var_names:
+        # Check the naming has worked and the data are loaded
+        assert name in data
+        assert data[name].sum() == (20 * 100)
 
     # Check the error reports
     log_check(caplog, exp_log)
@@ -328,7 +333,7 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
@@ -340,7 +345,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 60",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 60"),
             ),
@@ -353,7 +358,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Grid defines 100 cells, data provides 200",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (CRITICAL, "Grid defines 100 cells, data provides 200"),
             ),
@@ -366,7 +371,7 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
@@ -378,7 +383,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (
                     CRITICAL,
@@ -395,7 +400,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "The data cell ids do not provide a one-to-one map onto grid cell ids.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (
                     CRITICAL,
@@ -412,7 +417,7 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
@@ -424,7 +429,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Data XY dimensions do not match square grid",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (CRITICAL, "Data XY dimensions do not match square grid"),
             ),
@@ -437,7 +442,7 @@ def fixture_load_data_grids(request):
             does_not_raise(),
             None,
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
             ),
             20 * 100,
@@ -449,7 +454,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Mapped points do not cover all cells.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (CRITICAL, "Mapped points do not cover all cells."),
             ),
@@ -462,7 +467,7 @@ def fixture_load_data_grids(request):
             pytest.raises(ValueError),
             "Mapped points fall outside grid.",
             (
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
                 (CRITICAL, "Mapped points fall outside grid."),
             ),
@@ -499,6 +504,8 @@ def test_Data_load_to_dataarray_data_handling(
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.readers import load_to_dataarray
 
+    caplog.clear()
+
     # Skip combinations where validator does not supported this grid
     if not (
         ("__any__" in supported_grids)
@@ -510,7 +517,8 @@ def test_Data_load_to_dataarray_data_handling(
     datafile = shared_datadir / filename
 
     with exp_error as err:
-        data["temp"] = load_to_dataarray(file=datafile, var_name="temp")
+        results = load_to_dataarray(file=datafile, var_names=["temp"])
+        data["temp"] = results["temp"]
 
         # Check the data is in fact loaded and that a simple sum of values matches
         assert "temp" in data
@@ -521,8 +529,6 @@ def test_Data_load_to_dataarray_data_handling(
 
     log_check(caplog, exp_log)
 
-    return
-
 
 @pytest.mark.parametrize(
     argnames=["cfg_strings", "exp_error", "exp_msg", "exp_log"],
@@ -530,29 +536,26 @@ def test_Data_load_to_dataarray_data_handling(
         pytest.param(
             """[core]
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "temp"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "prec"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "vapd"
                """,
             does_not_raise(),
             None,
             (
                 (INFO, "Loading data from configuration"),
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
-                (INFO, "Loading variable 'prec' from file:"),
                 (INFO, "Adding data array for 'prec'"),
-                (INFO, "Loading variable 'elev' from file:"),
                 (INFO, "Adding data array for 'elev'"),
-                (INFO, "Loading variable 'vapd' from file:"),
                 (INFO, "Adding data array for 'vapd'"),
             ),
             id="valid config",
@@ -570,16 +573,16 @@ def test_Data_load_to_dataarray_data_handling(
         pytest.param(
             """[core]
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "temp"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "prec"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                """,
             pytest.raises(ConfigurationError),
@@ -587,14 +590,10 @@ def test_Data_load_to_dataarray_data_handling(
             (
                 (INFO, "Loading data from configuration"),
                 (ERROR, "Duplicate variable names in data configuration"),
-                (INFO, "Loading variable 'temp' from file:"),
+                (INFO, "Loading variables from file"),
                 (INFO, "Adding data array for 'temp'"),
-                (INFO, "Loading variable 'prec' from file:"),
                 (INFO, "Adding data array for 'prec'"),
-                (INFO, "Loading variable 'elev' from file:"),
                 (INFO, "Adding data array for 'elev'"),
-                (INFO, "Loading variable 'elev' from file:"),
-                (INFO, "Replacing data array for 'elev'"),
                 (CRITICAL, "Data configuration did not load cleanly - check log"),
             ),
             id="repeated names",
@@ -636,7 +635,7 @@ def test_Data_load_from_config(
     # Note that the no data test gets the default empty dict for cfg["core"]["data"]
     if "variable" in cfg["core"]["data"]:
         for each_var in cfg["core"]["data"]["variable"]:
-            each_var["file"] = shared_datadir / each_var["file"]
+            each_var["file_path"] = shared_datadir / each_var["file_path"]
 
     with exp_error as err:
         data.load_data_config(config=cfg)
