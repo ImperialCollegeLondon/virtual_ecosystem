@@ -11,6 +11,7 @@ import numpy as np
 import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
+from pyrealm.demography.canopy import Canopy
 from pyrealm.demography.flora import Flora
 from pyrealm.pmodel import PModel, PModelEnvironment
 
@@ -21,7 +22,6 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
-    PlantCanopy,
     calculate_canopies,
     initialise_canopy_layers,
 )
@@ -173,14 +173,14 @@ class PlantsModel(
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
-        self.canopies: dict[int, PlantCanopy]
+        self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
-        self.filled_canopy_mask: NDArray[np.bool]
+        self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
-        self.stem_gpp: dict[int, NDArray[np.floating]]
+        self.stem_gpp: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving the stem GPP for each cohort in the cell
         community"""
-        self.stem_transpiration: dict[int, NDArray[np.floating]]
+        self.stem_transpiration: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving the stem transpiration for each cohort
         in the cell community"""
         self.pmodel_consts: PModelConst

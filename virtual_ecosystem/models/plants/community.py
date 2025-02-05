@@ -7,8 +7,7 @@ initial plant cohort inventories for a simulation.
 
 from collections.abc import Mapping
 
-from pyrealm.demography.community import Cohorts as PlantCohorts
-from pyrealm.demography.community import Community as PlantCommunity
+from pyrealm.demography.community import Cohorts, Community
 from pyrealm.demography.flora import Flora
 
 from virtual_ecosystem.core.data import Data
@@ -17,7 +16,7 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.utils import split_arrays_by_grouping_variable
 
 
-class PlantCommunities(dict, Mapping[int, PlantCommunity]):
+class PlantCommunities(dict, Mapping[int, Community]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
@@ -87,11 +86,11 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
         # Now build the pyrealm community objects for each cell
         # TODO - note that this needs fixing if cell area is not constant.
         for cell_id, cell_cohort_data in cohort_data_by_cell_id.items():
-            self[cell_id] = PlantCommunity(
+            self[cell_id] = Community(
                 cell_id=cell_id,
                 cell_area=grid.cell_area,
                 flora=flora,
-                cohorts=PlantCohorts(
+                cohorts=Cohorts(
                     n_individuals=cell_cohort_data[0],
                     pft_names=cell_cohort_data[1],
                     dbh_values=cell_cohort_data[2],

@@ -90,7 +90,9 @@ def test_calculate_canopies(
     expected_log,
 ):
     """Test the calculate_canopies function with different max_canopy_layers values."""
-    from virtual_ecosystem.models.plants.canopy import PlantCanopy, calculate_canopies
+    from pyrealm.demography.canopy import Canopy
+
+    from virtual_ecosystem.models.plants.canopy import calculate_canopies
     from virtual_ecosystem.models.plants.community import PlantCommunities
 
     communities = PlantCommunities(
@@ -103,7 +105,7 @@ def test_calculate_canopies(
         if expected_exception is does_not_raise():
             assert isinstance(canopies, dict)
             for canopy in canopies.values():
-                assert isinstance(canopy, PlantCanopy)
+                assert isinstance(canopy, Canopy)
                 assert canopy.heights.size <= max_canopy_layers
 
         if expected_log is not None:
