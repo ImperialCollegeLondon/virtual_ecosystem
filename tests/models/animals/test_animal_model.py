@@ -331,13 +331,13 @@ class TestAnimalModel:
         [
             # Edge Case 1: Zero Density
             ("zeros", "zeros", "ones", "ones", False),
-            # Edge Case 2: Very Small Density Values (Avoids Underflow)
+            # Edge Case 2: Very Small Density Values
             ("small", "small", "tens", "twenties", False),
-            # Edge Case 3: Very Large Density Values (Avoids Overflow)
+            # Edge Case 3: Very Large Density Values
             ("large", "large", "fifties", "hundreds", False),
-            # Edge Case 4: Negative Values (Should Raise Error or Reset to Zero)
+            # Edge Case 4: Negative Values
             ("negative", "zeros", "tens", "twenties", True),
-            # Edge Case 5: Extremely High C:N and C:P Ratios (Ensures Division Works)
+            # Edge Case 5: Extremely High C:N and C:P Ratios
             ("medium", "medium", "huge", "huge", False),
         ],
     )
@@ -992,7 +992,7 @@ class TestAnimalModel:
             parent_cohort.functional_group.name
         )
 
-        # Assign a mock cohort ID
+        # Assign a cohort ID
         cohort_id = uuid4()
         parent_cohort.id = cohort_id
 

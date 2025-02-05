@@ -945,7 +945,7 @@ class AnimalCohort:
         Args:
             plant_list: A list of plant resources available for herbivory.
             herbivory_waste_pools: Waste pools for plant biomass (at this point just
-            leaves) that gets removed as part of herbivory but not actually consumed.
+                leaves) that gets removed as part of herbivory but not consumed.
 
         Returns:
             A dictionary of total plant mass (C, N, P) consumed by the animal cohort.
