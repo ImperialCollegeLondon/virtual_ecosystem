@@ -770,15 +770,15 @@ class TestAnimalModel:
     )
     def test_migrate_community(
         self,
-        animal_model_instance,
-        herbivore_cohort_instance,
         mocker,
         mass_ratio,
         age,
         probability_output,
         should_migrate,
+        animal_model_instance,
+        herbivore_cohort_instance,
     ):
-        """Test migrate_community."""
+        """Test migrate_community method in the AnimalModel class."""
 
         # Empty the communities and cohorts before the test
         animal_model_instance.communities = {
@@ -787,24 +787,31 @@ class TestAnimalModel:
         animal_model_instance.cohorts = {}
 
         # Set up mock cohort with dynamic mass and age values
-        cohort_id = herbivore_cohort_instance.id
-        herbivore_cohort_instance.age = age
-        herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass * mass_ratio
-        )
-        animal_model_instance.cohorts[cohort_id] = herbivore_cohort_instance
+        cohort = herbivore_cohort_instance
+        cohort.age = age
+
+        # Update mass_cnp instead of directly setting mass_current
+        for element in cohort.mass_cnp:
+            cohort.mass_cnp[element] = (
+                cohort.functional_group.adult_mass
+                * mass_ratio
+                * cohort.cnp_proportions[element]
+            )
+
+        cohort_id = cohort.id
+        animal_model_instance.cohorts[cohort_id] = cohort
 
         # Mock `is_below_mass_threshold` to simulate starvation
         is_starving = mass_ratio < 1.0
         mocker.patch.object(
-            herbivore_cohort_instance,
+            cohort,
             "is_below_mass_threshold",
             return_value=is_starving,
         )
 
         # Mock the juvenile migration probability based on the test parameter
         mocker.patch.object(
-            herbivore_cohort_instance,
+            cohort,
             "migrate_juvenile_probability",
             return_value=probability_output,
         )
@@ -818,13 +825,13 @@ class TestAnimalModel:
         # Check migration behavior
         if should_migrate:
             # Assert migrate was called with correct cohort
-            mock_migrate.assert_called_once_with(herbivore_cohort_instance, mocker.ANY)
+            mock_migrate.assert_called_once_with(cohort, mocker.ANY)
         else:
             # Assert migrate was NOT called
             mock_migrate.assert_not_called()
 
         # Assert that starvation check was applied
-        herbivore_cohort_instance.is_below_mass_threshold.assert_called_once()
+        cohort.is_below_mass_threshold.assert_called_once()
 
     @pytest.mark.parametrize(
         "is_cohort_in_model, expected_exception",
@@ -963,9 +970,19 @@ class TestAnimalModel:
             else butterfly_cohort_instance
         )
 
-        # Mock the attributes of the parent cohort for the test case
-        parent_cohort.reproductive_mass = reproductive_mass
-        parent_cohort.mass_current = mass_current
+        # Update reproductive_mass_cnp instead of directly setting reproductive_mass
+        for element in parent_cohort.reproductive_mass_cnp:
+            parent_cohort.reproductive_mass_cnp[element] = (
+                reproductive_mass * parent_cohort.cnp_proportions[element]
+            )
+
+        # Update mass_cnp instead of directly setting mass_current
+        for element in parent_cohort.mass_cnp:
+            parent_cohort.mass_cnp[element] = (
+                mass_current * parent_cohort.cnp_proportions[element]
+            )
+
+        # Set other attributes
         parent_cohort.functional_group.birth_mass = birth_mass
         parent_cohort.individuals = individuals
         parent_cohort.functional_group.reproductive_type = (
@@ -975,7 +992,7 @@ class TestAnimalModel:
             parent_cohort.functional_group.name
         )
 
-        # Set a mock cohort ID
+        # Assign a mock cohort ID
         cohort_id = uuid4()
         parent_cohort.id = cohort_id
 
@@ -995,22 +1012,21 @@ class TestAnimalModel:
             assert parent_cohort.is_alive is True
 
         # Check that reproductive mass is reset
-        assert parent_cohort.reproductive_mass == 0.0
+        assert sum(parent_cohort.reproductive_mass_cnp.values()) == 0.0
 
         # Check the number of offspring generated and added to the cohort list
         if is_semelparous:
-            # For semelparous organisms, the parent dies and the offspring cohort
-            # replaces it
+            # For semelparous organisms, the parent dies
             assert len(animal_model_instance.cohorts) == initial_num_cohorts, (
                 f"Expected {initial_num_cohorts} cohorts but"
+                f" found {len(animal_model_instance.cohorts)}"
             )
-            " found {len(animal_model_instance.cohorts)}"
         else:
             # For iteroparous organisms, the parent survives and the offspring is added
             assert len(animal_model_instance.cohorts) == initial_num_cohorts + 1, (
                 f"Expected {initial_num_cohorts + 1} cohorts but"
+                f" found {len(animal_model_instance.cohorts)}"
             )
-            " found {len(animal_model_instance.cohorts)}"
 
         # Get the offspring cohort (assuming it was added correctly)
         offspring_cohort = list(animal_model_instance.cohorts.values())[-1]

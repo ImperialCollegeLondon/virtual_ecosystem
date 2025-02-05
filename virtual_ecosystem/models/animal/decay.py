@@ -213,29 +213,35 @@ class LitterPool:
 
         # Initialize mass_cnp based on the pool's carbon content and ratios
         carbon_mass = (data[f"litter_pool_{pool_name}"].to_numpy()) * cell_area
+
+        # Ensure valid ratios to prevent division errors
+        c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
+        c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
+
+        if (c_n_ratio <= 0).any() or (c_p_ratio <= 0).any():
+            raise ValueError(f"Invalid C:N or C:P ratios in {self.pool_name} pool.")
+
         self.mass_cnp = {
             "carbon": carbon_mass,
-            "nitrogen": carbon_mass / data[f"c_n_ratio_{pool_name}"].to_numpy(),
-            "phosphorus": carbon_mass / data[f"c_p_ratio_{pool_name}"].to_numpy(),
+            "nitrogen": carbon_mass / c_n_ratio,
+            "phosphorus": carbon_mass / c_p_ratio,
         }
         """Mass of the litter pool for each nutrient [kg]."""
 
-        if carbon_mass.min() < 0:
-            raise ValueError(
-                f"Negative values detected in {self.pool_name}"
-                f"litter pool: {carbon_mass}"
-            )
+        # Validate that no negative values exist
+        for nutrient, values in self.mass_cnp.items():
+            if (values < 0).any():
+                raise ValueError(
+                    f"Negative values detected in {self.pool_name} {nutrient} pool."
+                )
 
     @property
     def mass_current(self) -> DataArray:
-        """Dynamically calculate the current total body mass from stoichiometry.
-
-        TODO: currently carbon only
+        """Dynamically calculate the current total carbon mass.
 
         Returns:
             A DataArray representing the total carbon mass for each grid cell.
         """
-
         return DataArray(
             self.mass_cnp["carbon"],
             dims=["cell_id"],
@@ -247,46 +253,44 @@ class LitterPool:
         """Handle litter detritivory.
 
         Args:
-            consumed_mass: The mass intended to be consumed by the detritivore [kg].
-            detritivore: The Consumer (AnimalCohort) consuming the Litter.
-            grid_cell_id: The cell id of the cell the animal cohort is in.
+            consumed_mass: The amount of mass the detritivore attempts to consume.
+            detritivore: The consuming animal cohort.
+            grid_cell_id: The ID of the grid cell where consumption occurs.
 
         Returns:
-            A dictionary containing the net mass gain of carbon, nitrogen, phosphorus
-            after mechanical efficiencies: {"carbon": value, "nitrogen": value,
-            "phosphorus": value}.
+            A dictionary containing the amount of each nutrient consumed.
         """
-        # Ensure consumed_mass is non-negative
+
         if consumed_mass < 0:
             raise ValueError("Consumed mass cannot be negative.")
 
-        # Check available mass in the specified grid cell
-        actually_available_mass = min(
-            self.mass_current[grid_cell_id].item(), consumed_mass
-        )
+        # Store the current carbon mass to avoid multiple property calls
+        carbon_available = self.mass_cnp["carbon"][grid_cell_id]
 
-        # Calculate the mass of litter consumed after mechanical efficiency
-        actual_consumed_mass = (
-            actually_available_mass * detritivore.functional_group.mechanical_efficiency
-        )
+        # Ensure available mass is properly bounded
+        actually_available_mass = min(carbon_available, consumed_mass)
 
-        # Ensure we don't divide by zero when updating nutrient proportions
-        if self.mass_current[grid_cell_id] == 0:
-            raise ValueError("Litter pool is empty; cannot consume nutrients.")
+        # Apply mechanical efficiency before limiting available mass
+        efficiency = detritivore.functional_group.mechanical_efficiency
+        actual_consumed_mass = actually_available_mass * efficiency
 
-        # **Store initial nutrient fractions before modifying `mass_cnp`**
-        nutrient_fractions = {
-            nutrient: self.mass_cnp[nutrient][grid_cell_id]
-            / self.mass_current[grid_cell_id]
-            for nutrient in self.mass_cnp
-        }
+        # Avoid division by zero in nutrient fractions calculation
+        if carbon_available > 0:
+            nutrient_fractions = {
+                nutrient: self.mass_cnp[nutrient][grid_cell_id] / carbon_available
+                for nutrient in self.mass_cnp
+            }
+        else:
+            nutrient_fractions = {nutrient: 0.0 for nutrient in self.mass_cnp}
 
-        # **Apply mass consumption AFTER fractions are calculated**
+        # Deduct consumed mass from each nutrient pool
         nutrient_gain = {}
         for nutrient in self.mass_cnp:
             nutrient_consumed = actual_consumed_mass * nutrient_fractions[nutrient]
             self.mass_cnp[nutrient][grid_cell_id] -= nutrient_consumed
-            nutrient_gain[nutrient] = nutrient_consumed
+            nutrient_gain[nutrient] = float(
+                nutrient_consumed
+            )  # Ensure return type is float
 
         return nutrient_gain
 

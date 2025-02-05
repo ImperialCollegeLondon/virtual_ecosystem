@@ -289,14 +289,13 @@ class TestLitterPool:
         )
 
         # Check that mass_current values match sum of individual nutrient masses
-        expected_mass_current = sum(litter_pool_instance.mass_cnp.values())
+        expected_mass_current = litter_pool_instance.mass_cnp["carbon"]
         assert np.allclose(mass_current.values, expected_mass_current), (
             f"Mismatch: Expected {expected_mass_current}, Got {mass_current.values}"
         )
 
     def test_get_eaten(self, litter_pool_instance, caterpillar_cohort_instance):
         """Test the get_eaten method using the litter_pool_instance fixture."""
-
         import numpy as np
 
         # Define test parameters
@@ -312,58 +311,34 @@ class TestLitterPool:
         initial_mass_n = litter_pool_instance.mass_cnp["nitrogen"][grid_cell_id]
         initial_mass_p = litter_pool_instance.mass_cnp["phosphorus"][grid_cell_id]
 
-        # Compute total initial mass in the litter pool (before modification)
-        initial_mass_current = initial_mass_c + initial_mass_n + initial_mass_p
+        # Ensure carbon is not zero to avoid division errors
+        assert initial_mass_c > 0, "Initial carbon mass must be greater than zero."
 
-        # Debugging output
-        print(
-            f"Initial C: {initial_mass_c}, Initial N: {initial_mass_n}, Initial P:"
-            f"{initial_mass_p}"
-        )
-        print(f"Initial Total Mass: {initial_mass_current}")
-
-        # Call get_eaten method on the existing fixture instance
+        # Call get_eaten method
         nutrient_gain = litter_pool_instance.get_eaten(
             consumed_mass, detritivore, grid_cell_id
         )
 
-        # Calculate expected nutrient consumption using the pre-update mass values
+        # Compute expected consumption amounts
         actual_consumed_mass = (
             consumed_mass * detritivore.functional_group.mechanical_efficiency
         )
         expected_nutrient_gain = {
-            "carbon": actual_consumed_mass * (initial_mass_c / initial_mass_current),
-            "nitrogen": actual_consumed_mass * (initial_mass_n / initial_mass_current),
-            "phosphorus": actual_consumed_mass
-            * (initial_mass_p / initial_mass_current),
+            "carbon": actual_consumed_mass,
+            "nitrogen": actual_consumed_mass * (initial_mass_n / initial_mass_c),
+            "phosphorus": actual_consumed_mass * (initial_mass_p / initial_mass_c),
         }
 
-        # Debugging output
-        print(
-            f"Expected C Gain: {expected_nutrient_gain['C']}, Actual C Gain:"
-            f"{nutrient_gain['C']}"
-        )
-        print(
-            f"Expected N Gain: {expected_nutrient_gain['N']}, Actual N Gain:"
-            f"{nutrient_gain['N']}"
-        )
-        print(
-            f"Expected P Gain: {expected_nutrient_gain['P']}, Actual P Gain:"
-            f"{nutrient_gain['P']}"
-        )
+        # Assertions for correct nutrient intake
+        for nutrient in ["carbon", "nitrogen", "phosphorus"]:
+            assert np.allclose(
+                nutrient_gain[nutrient], expected_nutrient_gain[nutrient], atol=1e-6
+            ), (
+                f"Mismatch: Expected {expected_nutrient_gain[nutrient]},"
+                f"Got {nutrient_gain[nutrient]}"
+            )
 
-        # Assertions to check correct nutrient reduction and return values
-        assert np.allclose(
-            nutrient_gain["carbon"], expected_nutrient_gain["carbon"], atol=1e-6
-        ), f"Mismatch: Expected {expected_nutrient_gain['C']}, Got {nutrient_gain['C']}"
-        assert np.allclose(
-            nutrient_gain["nitrogen"], expected_nutrient_gain["nitrogen"], atol=1e-6
-        ), f"Mismatch: Expected {expected_nutrient_gain['N']}, Got {nutrient_gain['N']}"
-        assert np.allclose(
-            nutrient_gain["phosphorus"], expected_nutrient_gain["phosphorus"], atol=1e-6
-        ), f"Mismatch: Expected {expected_nutrient_gain['P']}, Got {nutrient_gain['P']}"
-
-        # **✅ Corrected Assertions for Mass Reduction**
+        # Assertions for correct mass reduction
         assert np.allclose(
             litter_pool_instance.mass_cnp["carbon"][grid_cell_id],
             initial_mass_c - expected_nutrient_gain["carbon"],
@@ -371,8 +346,7 @@ class TestLitterPool:
 
         assert np.allclose(
             litter_pool_instance.mass_cnp["nitrogen"][grid_cell_id],
-            initial_mass_n
-            - expected_nutrient_gain["nitrogen"],  # ✅ Corrected from initial_mass_c
+            initial_mass_n - expected_nutrient_gain["nitrogen"],
         ), "N mass not reduced correctly."
 
         assert np.allclose(

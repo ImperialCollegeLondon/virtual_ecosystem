@@ -481,7 +481,6 @@ class AnimalModel(
 
         TODO - At present the only type of herbivory this works for is leaf herbivory,
         that should be changed once herbivory as a whole is fleshed out.
-        TODO: rework for merge
 
         Returns:
             A dictionary containing details of the leaf litter addition due to herbivory
@@ -499,11 +498,15 @@ class AnimalModel(
         leaf_c_n = [
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
             / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
+            if self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"] > 0
+            else 0.0
             for cell_id in self.data.grid.cell_id
         ]
         leaf_c_p = [
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
             / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
+            if self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"] > 0
+            else 0.0
             for cell_id in self.data.grid.cell_id
         ]
         leaf_lignin = [
@@ -771,8 +774,6 @@ class AnimalModel(
     def birth(self, parent_cohort: AnimalCohort) -> None:
         """Produce a new AnimalCohort through reproduction.
 
-        TODO: Add something like a birth_mass_cnp trait
-
         A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
         with age 0 and a mass determined by the functional group's birth mass.
@@ -789,15 +790,17 @@ class AnimalModel(
         }
         if parent_cohort.functional_group.reproductive_type == "semelparous":
             for nutrient in parent_cohort.mass_cnp:
-                non_reproductive_mass_loss_cnp[nutrient] = (
+                loss = (
                     parent_cohort.mass_cnp[nutrient]
                     * parent_cohort.constants.semelparity_mass_loss
                 )
+                non_reproductive_mass_loss_cnp[nutrient] = min(
+                    loss, parent_cohort.mass_cnp[nutrient]
+                )  # Cap loss
                 parent_cohort.mass_cnp[nutrient] -= non_reproductive_mass_loss_cnp[
                     nutrient
                 ]
-            # Kill the semelparous parent cohort
-            parent_cohort.is_alive = False
+            parent_cohort.is_alive = False  # Kill semelparous parent cohort
 
         # Calculate the total reproductive mass available (including semelparous loss)
         total_reproductive_mass_cnp = {
@@ -813,20 +816,18 @@ class AnimalModel(
             for nutrient in parent_cohort.cnp_proportions
         }
 
-        # Calculate the number of offspring
-        number_offspring = int(
+        # Ensure enough reproductive mass is available
+        max_possible_offspring = int(
             min(
-                total_reproductive_mass_cnp["carbon"] / birth_mass_cnp["carbon"],
-                total_reproductive_mass_cnp["nitrogen"] / birth_mass_cnp["nitrogen"],
-                total_reproductive_mass_cnp["phosphorus"]
-                / birth_mass_cnp["phosphorus"],
+                round(total_reproductive_mass_cnp[nutrient] / birth_mass_cnp[nutrient])
+                for nutrient in total_reproductive_mass_cnp
             )
-            * parent_cohort.individuals
         )
 
+        number_offspring = int(max_possible_offspring * parent_cohort.individuals)
+
         if number_offspring <= 0:
-            print("No offspring created, exiting birth method.")
-            return
+            return  # No offspring can be created
 
         # Calculate the total mass used for reproduction
         total_mass_used_cnp = {
@@ -834,11 +835,13 @@ class AnimalModel(
             for nutrient in birth_mass_cnp
         }
 
-        # Update the parent's reproductive mass by subtracting the used mass
+        # Ensure the parent's reproductive mass never goes negative
         for nutrient in parent_cohort.reproductive_mass_cnp:
-            parent_cohort.reproductive_mass_cnp[nutrient] -= total_mass_used_cnp[
-                nutrient
-            ]
+            parent_cohort.reproductive_mass_cnp[nutrient] = max(
+                0.0,
+                parent_cohort.reproductive_mass_cnp[nutrient]
+                - total_mass_used_cnp[nutrient],
+            )
 
         # Get the functional group for the offspring
         offspring_functional_group = get_functional_group_by_name(
@@ -859,9 +862,6 @@ class AnimalModel(
 
         # Add the new cohort to the community
         self.cohorts[offspring_cohort.id] = offspring_cohort
-
-        # Debug: Print cohorts after adding offspring
-        print(f"Total cohorts after adding offspring: {len(self.cohorts)}")
 
         # Update community occupancy
         self.update_community_occupancy(offspring_cohort, offspring_cohort.centroid_key)
