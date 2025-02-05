@@ -12,6 +12,7 @@ import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.demography.flora import Flora
+from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -572,18 +573,39 @@ class PlantsModel(
 
         This method will use the T Model to estimate the allocation of plant gross
         primary productivity to respiration, growth, maintenance and turnover costs.
-
-        Warning:
-            At present, this asserts a constant fixed increment in diameter at breast
-            height, rather than calculating the actual predictions of the T Model.
+        The method then simulates growth by increasing dbh and calculates leaf and root
+        turnover values.
         """
 
-        pass
-        # for community in self.communities.values():
-        #     for cohort in community:
-        #         # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
-        #         # dbh to provide an annual increment that relates to GPP.
-        #         cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2
+        # .. TODO: Move this functionality elsewhere / where are data vars initialised?
+        # For now, this should work because it is not cumulative so resetting each run
+        # is fine.
+        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
+        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
+
+        for cell_id in self.communities.keys():
+            cohorts = self.communities[cell_id].cohorts
+
+            cohort_allometry = StemAllometry(
+                stem_traits=self.flora, at_dbh=cohorts.dbh_values
+            )
+
+            cohort_allocation = StemAllocation(
+                stem_traits=self.flora,
+                stem_allometry=cohort_allometry,
+                at_potential_gpp=self.stem_gpp,
+            )
+
+            # Grow the plants by increasing cohort dbh
+            cohorts.dbh_value += cohort_allocation.delta_dbh[0]
+
+            # .. TODO: move leaf/root turnover calculation to pyrealm & call here
+            leaf_turnover = cohort_allometry.foliage_mass / self.flora.tau_f
+            # Turnover is provided as a total for all cohorts in the entire cell
+            self.data["leaf_turnover"][cell_id] = sum(leaf_turnover)
+            self.data["root_turnover"][cell_id] = sum(
+                cohort_allocation.turnover - leaf_turnover
+            )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -600,11 +622,9 @@ class PlantsModel(
 
         # All outputs are just constants at the moment
         self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
-        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0.027)
         self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
             self.data["elevation"], 0.003
         )
-        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0.027)
         self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
         self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
