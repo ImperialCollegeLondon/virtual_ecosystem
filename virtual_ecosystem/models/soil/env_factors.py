@@ -346,10 +346,8 @@ def calculate_symbiotic_nitrogen_fixation_carbon_cost(
     :cite:t:`brzostek_modeling_2014`. As the function is not defined below zero degrees
     celsius if a negative temperature is input an infinite cost is returned.
 
-    TODO - I could not sensibly convert this empirically derived function from Celsius
-    to Kelvin units so this is the only function in the soil model to use Celsius units.
-    Longer term I should think about replacing this function with something with
-    stronger theoretical underpinnings.
+    I could not sensibly convert this empirically derived function from Celsius to
+    Kelvin units so this is the only function in the soil model to use Celsius units.
 
     Args:
         soil_temp: Temperature of the relevant soil zone [C]
