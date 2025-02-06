@@ -94,6 +94,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.mermaid",
     "myst_nb",
@@ -110,6 +111,9 @@ autosummary_generate = True
 # Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
 external_toc_exclude_missing = False
+
+# Display TODO lists:
+todo_include_todos = True
 
 
 # Set up a bracketed citation style, register it with sphinxcontrib.bibtex, and then set
@@ -180,6 +184,7 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!

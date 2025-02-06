@@ -602,6 +602,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Amount of nitrogen contained in the soil ammonium (NH4+) pool"
+name = "soil_n_pool_ammonium"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen contained in the soil nitrate (NO3-) pool"
+name = "soil_n_pool_nitrate"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Dissolved organic phosphorus pool"
 name = "soil_p_pool_dop"
 unit = "kg P m^-3"

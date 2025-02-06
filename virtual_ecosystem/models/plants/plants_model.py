@@ -11,6 +11,7 @@ import numpy as np
 import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
+from pyrealm.demography.canopy import Canopy
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -22,7 +23,6 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
-    PlantCanopy,
     calculate_canopies,
     initialise_canopy_layers,
 )
@@ -106,9 +106,6 @@ class PlantsModel(
 ):
     """A class defining the plants model.
 
-    This is currently a basic placeholder to define the main interfaces between the
-    plants model and other models.
-
     When a model instance is created, the model attributes are validated and set.
     The initial canopy structure for each grid cell is then generated from provided
     plant cohort data using the
@@ -177,14 +174,14 @@ class PlantsModel(
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
-        self.canopies: dict[int, PlantCanopy]
+        self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
-        self.filled_canopy_mask: NDArray[np.bool]
+        self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
-        self.stem_gpp: dict[int, NDArray[np.floating]]
+        self.stem_gpp: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving the stem GPP for each cohort in the cell
         community"""
-        self.stem_transpiration: dict[int, NDArray[np.floating]]
+        self.stem_transpiration: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving the stem transpiration for each cohort
         in the cell community"""
         self.pmodel_consts: PModelConst
@@ -406,8 +403,8 @@ class PlantsModel(
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
             and shade.
-          - At the moment, we're only looking at PPFD. Need to talk to @vgro about the
-            fuller spectrum of radiation.
+          - At the moment, we're only looking at PPFD and need to switch to SWDown
+            `#721 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/721>`_
         """  # noqa: D405 temporary section
 
         # Extract a PPFD time slice
@@ -439,9 +436,14 @@ class PlantsModel(
         The GPP for each cohort is then estimated by mutiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
 
-        Warning:
-            At present this method checks that the required forcing variables exist, but
-            asserts a constant fixed light use efficiency rather than using the P Model.
+        .. TODO:
+
+            * This function populates evapotranspiration but the calculation is
+              currently only estimating _transpiration_
+              `#704 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/704>`_
+            * Conversion of transpiration from `µmol m-2` to `mm m-2` currently ignores
+              density changes with conditions:
+              `#723 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/723>`_
 
         Args:
             time_index: The index along the time axis of the forcing data giving the
@@ -449,6 +451,8 @@ class PlantsModel(
 
         Raises:
             ValueError: if any of the P Model forcing variables are not defined.
+
+
         """
 
         # Estimate the light use efficiency of leaves within each canopy layer within
@@ -464,41 +468,31 @@ class PlantsModel(
         )
         pmodel = PModel(pmodel_env)
 
-        # The LUE in gC mol -1 of photons is then used to calculate the per-stem
-        # per-layer per-m2 GPP for each cohort in a grid cell per m2 per second. The
-        # per-m2 values can be used to estimate the transpiration per m2, and then the
-        # GPP per-layer can be scaled up by the leaf area of stem and summed to give the
-        # whole stem GPP.
-
-        # TODO - Because the number of cohorts differ between grid cells, this is
-        #        calculation is done within a loop over grid cells, but it is possible
-        #        that this could be unwrapped into a single calculation, which might be
-        #        much faster.
-
-        # layer gross primary productivity within the cohorts of each community. For
-        # each cell, the LUE per layer can be scaled the per stem, per layer fAPAR and
-        # the canopy top radiation and the stem leaf area. The total GPP per stem is
-        # then the sum across layers of those values.
-        #
-        # Units: (gC mol-1) * (-) * (µmol m-2 s-1) * (m2)
-        #        = (µmol s-1)
-        # Dims: (n_layer, n_cohorts) * (n_layer, 1) * scalar * (n_layer, n_cohorts)
-        #        = (n_layer, n_cohorts)
-
+        # Get the canopy top PPFD per grid cell for this time index
         canopy_top_ppfd = (
             self.data["photosynthetic_photon_flux_density"]
             .isel(time_index=time_index)
             .to_numpy()
         )
 
-        # Initialise transpiration array to collect per grid cell values
-        transpiration = np.full(self.grid.n_cells, fill_value=np.nan)
-
         # Get a floating point representation of the numner of seconds since last update
         # TODO - move this attribute to model_timing.
         n_seconds = self.model_timing.update_interval / np.timedelta64(1, "s")
 
+        # Initialise transpiration array to collect per grid cell values
+        # NOTE - #704, this is _not_ evapotranspiration, but we'll pretend it is for
+        #        the moment.
+        transpiration = self.layer_structure.from_template("evapotranspiration")
+
+        # Now calculate the gross primary productivity and transpiration across cohorts
+        # and canopy layers over the time period.
+        # NOTE - Because the number of cohorts differ between grid cells, this is
+        #        calculation is done within a loop over grid cells, but it is possible
+        #        that this could be unwrapped into a single calculation, which might be
+        #        much faster.
+
         for cell_id in self.canopies.keys():
+            # Get the canopy and community for the cell
             canopy = self.canopies[cell_id]
             community = self.communities[cell_id]
 
@@ -509,13 +503,11 @@ class PlantsModel(
             # GPP is estimated as:
             #    LUE * per stem per layer fAPAR * the canopy top PPFD.
             # Dimensions:
-            #    (n_layer, n_cohorts) * (n_layer, 1) * scalar
+            #    (n_active_layers, 1) * (n_active_layers, n_cohorts) * scalar
+            #    = (n_active_layers, n_cohorts)
             # Units:
-            #    gC mol-1 * (-) * µmol m-2 s-1 = µg m-2 s-1
-            #
-            # TODO - I know this indexing style d[r, :][:, c] looks mad, but not quite
-            #        sure how to get numpy to give me back what this does more directly.
-            stem_gpp_per_layer_per_m2_per_s = (
+            #    gC mol-1  * µmol m-2 s-1 * (-) = µg m-2 s-1
+            stem_gpp_rate = (
                 pmodel.lue[active_layers, :][:, [cell_id]]
                 * canopy.cohort_data.stem_fapar
                 * canopy_top_ppfd[cell_id]
@@ -527,46 +519,39 @@ class PlantsModel(
             #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
             # Units:
             #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
-            stem_transpiration_per_layer_per_m2_per_s = (
-                stem_gpp_per_layer_per_m2_per_s / (self.pmodel_core_consts.k_CtoK * 1e6)
+            stem_transpiration_rate = (
+                stem_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
             ) * pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Now scale up and aggregate those values
 
-            # Per stem GPP since last update: sum GPP * leaf area across the whole stem
+            # Per stem GPP since last update: sum GPP *  whole stem leaf area
             # and scale by elapsed time in seconds
             self.stem_gpp[cell_id] = (
-                stem_gpp_per_layer_per_m2_per_s * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0) * n_seconds
+                stem_gpp_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+            ).sum(axis=0)
 
             # Calculate total stem transpiration in µmol per stem and total grid cell
             # transpiration in mm m-2 since last update
             self.stem_transpiration[cell_id] = (
-                stem_transpiration_per_layer_per_m2_per_s
-                * canopy.cohort_data.stem_leaf_area
-            ).sum(axis=0) * n_seconds
+                stem_transpiration_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+            ).sum(axis=0)
 
-            # For conversion to mm m-2, the initial value is in µmol m2 s1, conversion
-            # factor from µmol m2 to mm is currently approximated at fixed standard temp
-            # and pressure, but could be adjusted once
-            # `pyrealm.core.water.convert_water_moles_to_mm` is public
-            transpiration[cell_id] = (
-                (
-                    community.cohorts.n_individuals
-                    * stem_transpiration_per_layer_per_m2_per_s
-                ).sum()
+            # Calculate the total transpiration per layer in mm m2 in mm, converted from
+            # an initial value is in µmol m2 s1.abs
+            transpiration[active_layers, cell_id] = (
+                community.cohorts.n_individuals
+                * stem_transpiration_rate
                 * n_seconds
                 * 1.8e-8
-            )
+            ).sum(axis=1)
 
         # Pass values to data object
         #
-        # TODO - #704, this is _not_ evapotranspiration, but we'll pretend it is for
+        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
         #        the moment.
         #
-        self.data["evapotranspiration"] = xr.DataArray(
-            transpiration, coords={"cell_id": self.grid.cell_id}
-        )
+        self.data["evapotranspiration"] = transpiration
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.

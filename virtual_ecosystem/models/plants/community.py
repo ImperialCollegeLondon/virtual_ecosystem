@@ -1,17 +1,14 @@
-"""The :mod:`~virtual_ecosystem.models.plants.community` submodule provides a simple
-dataclass to hold plant cohort information and then the ``PlantCommunities`` class that
-is used to hold list of plant cohorts by grid cell and generate those lists from
-variables provided in the data object.
-
-NOTE - much of this will be outsourced to pyrealm.
-
+"""The :mod:`~virtual_ecosystem.models.plants.community` submodule contains
+functionality to generate a dictionary of
+:class:`~pyrealm.demography.community.Community` instances for each grid cell, populated
+with size-structured :class:`~pyrealm.demography.community.Cohort` instances from
+initial plant cohort inventories for a simulation.
 """  # noqa: D205
 
 from collections.abc import Mapping
 
-from pyrealm.demography.community import Cohorts as PlantCohorts
-from pyrealm.demography.community import Community as PlantCommunity
-from pyrealm.demography.flora import Flora as pyrealmFlora
+from pyrealm.demography.community import Cohorts, Community
+from pyrealm.demography.flora import Flora
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.grid import Grid
@@ -19,7 +16,7 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.utils import split_arrays_by_grouping_variable
 
 
-class PlantCommunities(dict, Mapping[int, PlantCommunity]):
+class PlantCommunities(dict, Mapping[int, Community]):
     """A dictionary of plant cohorts keyed by grid cell id.
 
     An instance of this class is initialised from a
@@ -37,7 +34,7 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
         grid: The grid for the simulation, providing the area of the grid cells.
     """
 
-    def __init__(self, data: Data, flora: pyrealmFlora, grid: Grid):
+    def __init__(self, data: Data, flora: Flora, grid: Grid):
         """Initialise the community object.
 
         Args:
@@ -89,11 +86,11 @@ class PlantCommunities(dict, Mapping[int, PlantCommunity]):
         # Now build the pyrealm community objects for each cell
         # TODO - note that this needs fixing if cell area is not constant.
         for cell_id, cell_cohort_data in cohort_data_by_cell_id.items():
-            self[cell_id] = PlantCommunity(
+            self[cell_id] = Community(
                 cell_id=cell_id,
                 cell_area=grid.cell_area,
                 flora=flora,
-                cohorts=PlantCohorts(
+                cohorts=Cohorts(
                     n_individuals=cell_cohort_data[0],
                     pft_names=cell_cohort_data[1],
                     dbh_values=cell_cohort_data[2],

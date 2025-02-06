@@ -156,6 +156,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     # Check the evapotranspiration shape
 
     assert fxt_plants_model.data["evapotranspiration"].shape == (
+        fxt_plants_model.layer_structure.n_layers,
         fxt_plants_model.grid.n_cells,
     )
 

@@ -530,16 +530,16 @@ def test_Data_load_to_dataarray_data_handling(
         pytest.param(
             """[core]
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "temp"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "prec"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "vapd"
                """,
             does_not_raise(),
@@ -570,16 +570,16 @@ def test_Data_load_to_dataarray_data_handling(
         pytest.param(
             """[core]
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "temp"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "prec"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                [[core.data.variable]]
-               file = "cellid_coords.nc"
+               file_path =  "cellid_coords.nc"
                var_name = "elev"
                """,
             pytest.raises(ConfigurationError),
@@ -636,7 +636,7 @@ def test_Data_load_from_config(
     # Note that the no data test gets the default empty dict for cfg["core"]["data"]
     if "variable" in cfg["core"]["data"]:
         for each_var in cfg["core"]["data"]["variable"]:
-            each_var["file"] = shared_datadir / each_var["file"]
+            each_var["file_path"] = shared_datadir / each_var["file_path"]
 
     with exp_error as err:
         data.load_data_config(config=cfg)
@@ -978,6 +978,8 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_n_pool_particulate",
             "soil_n_pool_necromass",
             "soil_n_pool_maom",
+            "soil_n_pool_ammonium",
+            "soil_n_pool_nitrate",
             "soil_p_pool_dop",
             "soil_p_pool_particulate",
             "soil_p_pool_necromass",

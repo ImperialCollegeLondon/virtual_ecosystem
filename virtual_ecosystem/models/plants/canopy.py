@@ -1,13 +1,13 @@
-"""The :mod:`~virtual_ecosystem.models.plants.canopy` submodule provides the core
-functions used to estimate the canopy model.
-
-NOTE - much of this will be outsourced to pyrealm.
-
+"""The :mod:`~virtual_ecosystem.models.plants.canopy` submodule provides functionality
+to initialise the canopy layer data held in the simulation
+:class:`~virtual_ecosystem.core.data.Data` instance and to generate
+:class:`~pyrealm.demography.canopy.Canopy` instances from the plant community data
+within each grid cell.
 """  # noqa: D205
 
 from __future__ import annotations
 
-from pyrealm.demography.canopy import Canopy as PlantCanopy
+from pyrealm.demography.canopy import Canopy
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -74,7 +74,7 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
 
 def calculate_canopies(
     communities: PlantCommunities, max_canopy_layers: int
-) -> dict[int, PlantCanopy]:
+) -> dict[int, Canopy]:
     """Calculate the canopy structure of communities.
 
     This function takes a PlantCommunities object and calculates the canopy
@@ -96,10 +96,10 @@ def calculate_canopies(
     #        increase with the need for more resources and cohort data.
 
     # Loop over the communities in each cell
-    canopies: dict[int, PlantCanopy] = {}
+    canopies: dict[int, Canopy] = {}
     for cell_id, community in communities.items():
         # Calculate the PPA canopy model for the community in the cell
-        canopies[cell_id] = PlantCanopy(community, fit_ppa=True)
+        canopies[cell_id] = Canopy(community, fit_ppa=True)
 
         # Fail if canopy representation has more layers than the configuration.
         n_canopy_layers = canopies[cell_id].heights.size

@@ -336,6 +336,14 @@ Virtual Ecosystem configuration and so can be deleted. You may also need to edit
 properties are required and which provide defaults that will be used to fill missing
 properties.
 
+One last detail of model configurations is that you may want to allow users to specify a
+file path to configure your model. This should not be used for loading the data used to
+run the model but might be used to load further details. If you do want to include a
+file path in your congfiguration, you need to pick a configuration key name that ends in
+`_path`. Configuration options matching this pattern are managed by the Virtual
+Ecosystem configuration to ensure that file paths are preserved when configuration files
+are built.
+
 ```json
 {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
