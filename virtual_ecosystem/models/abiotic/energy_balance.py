@@ -458,24 +458,70 @@ def update_soil_temperature(
 
 
 def update_air_canopy_temperature(
-    net_radiation_canopy: NDArray[np.float32],
+    canopy_temperature: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    absorbed_radiation_canopy: NDArray[np.float32],
+    longwave_emission_canopy: NDArray[np.float32],
     sensible_heat_flux_canopy: NDArray[np.float32],
     latent_heat_flux_canopy: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    canopy_temperature: NDArray[np.float32],
-    density_air: NDArray[np.float32],
+    emissivity_leaf: float,
     specific_heat_air: NDArray[np.float32],
+    density_air: NDArray[np.float32],
+    aerodynamic_resistance: float | NDArray[np.float32],
+    relaxation_factor: float,
+    stefan_boltzmann_constant: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
-    """Update air and canopy temperatures.
+    r"""Update air and canopy temperature in steady state.
 
-    Parameters:
-        net_radiation_canopy: Net radiation at all canopy layers, [W m-2]
+    The method linearizes the energy balance of the canopy and air temperature updates
+    using Newton-Raphson approximation for temperature adjustment.
+
+    The energy balance (:math:`EB`) for the canopy is given by:
+
+    .. math::
+        EB = R_{abs} - \epsilon \sigma T_{c}^{4} - H - Q_{LE}
+
+    Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
+    :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
+    constant, :math:`T_c` is the canopy temperature :math:`H` is the sensible heat
+    flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
+
+    The Newton-Raphson linearization for canopy temperature update is:
+
+    .. math::
+        T^{new}_{c} = T_{c} - \frac{EB} {\frac{\delta EB}{\delta T_{c}}}
+
+    with
+
+    .. math::
+        \frac{\delta EB}{\delta T_{c}}
+        = -(4 \epsilon \sigma T_{c}^{3} + \frac{\rho_{a} c_{p}} {r_{a}})
+
+    Where :math:`c_{p}` is the specific heat capacity of air, and :math:`\rho_{a}` is
+    the density of air, and :math:`r_{a}` is the aerodynamic resistance.
+
+    The new air temperature :math:`T^{new}_{a}` is given by:
+
+    .. math::
+        T^{new}_{a} = T_{a} + \alpha * (T_{c} - T_{a})
+
+    Where the relaxation factor :math:`\alpha` is a weighting factor for air temperature
+    update.
+
+    Args:
+        canopy_temperature: canopy temperatures for all true canopy layers, [K]
+        air_temperature: Air temperature for all layers around true canopy, [K]
+        absorbed_radiation_canopy: Absorbed shortwave radiation at all canopy layers,
+            [W m-2]
+        longwave_emission_canopy: Longwave emission from all canopy layers, [W m-2]
         sensible_heat_flux_canopy: Sensible heat flux from all canopy layers, [W m-2]
         latent_heat_flux_canopy: Latent heat flux from all canopy layers, [W m-2]
-        air_temperature: Air temperature for all layers around true canopy, [K]
-        canopy_temperature: canopy temperatures for all true canopy layers, [K]
-        density_air: Density of air, [kg m-3]
+        emissivity_leaf: Leaf emissivity
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
+        density_air: Density of air, [kg m-3]
+        aerodynamic_resistance: Aerodynamic resistance, []
+        relaxation_factor: Weighting factor for air temperature update (default 0.1)
+        stefan_boltzmann_constant: Stefan Boltzmann constant
 
     Returns:
         Updated canopy and air temperatures, [K]
@@ -483,19 +529,22 @@ def update_air_canopy_temperature(
 
     # Energy balance for canopy
     energy_balance_canopy = (
-        net_radiation_canopy - sensible_heat_flux_canopy - latent_heat_flux_canopy
-    )
-    temperature_change_canopy = energy_balance_canopy / (
-        density_air * specific_heat_air
+        absorbed_radiation_canopy
+        - longwave_emission_canopy
+        - sensible_heat_flux_canopy
+        - latent_heat_flux_canopy
     )
 
-    # Update canopy temperature
-    canopy_temperature += temperature_change_canopy
-
-    # Update air temperature based on sensible heat exchange
-    temperature_change_air = sensible_heat_flux_canopy / (
-        density_air * specific_heat_air
+    derivative = -(
+        4 * emissivity_leaf * stefan_boltzmann_constant * canopy_temperature**3
+        + specific_heat_air * density_air / aerodynamic_resistance
     )
-    air_temperature += temperature_change_air
 
-    return canopy_temperature, air_temperature
+    # Newton-Raphson step
+    new_canopy_temperature = canopy_temperature - energy_balance_canopy / derivative
+
+    new_air_temperature = air_temperature + relaxation_factor * (
+        canopy_temperature - air_temperature
+    )
+
+    return new_canopy_temperature, new_air_temperature

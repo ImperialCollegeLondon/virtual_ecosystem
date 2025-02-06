@@ -298,31 +298,34 @@ def test_update_air_canopy_temperature():
     )
 
     # Test inputs (2D arrays for layers and grid cells)
-    net_radiation_canopy = np.array([[190.0, 240.0], [290.0, 340.0]])
-    sensible_heat_flux_canopy = np.array([[50.0, 60.0], [70.0, 80.0]])
-    latent_heat_flux_canopy = np.array([[30.0, 40.0], [50.0, 60.0]])
-    air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])  # K
-    canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])  # K
-    density_air = np.array([[1.2, 1.2], [1.2, 1.2]])  # kg m-3
-    specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])  # J kg-1 K-1
+    absorbed_radiation_canopy = np.array([[290.0, 340.0], [390.0, 440.0]])
+    longwave_emission_canopy = np.array([[100.0, 100.0], [100.0, 100.0]])
+    sensible_heat_flux_canopy = np.array([[-50.0, -60.0], [-70.0, -80.0]])
+    latent_heat_flux_canopy = np.array([[-30.0, -40.0], [-50.0, -60.0]])
+    air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
+    canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
+    specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])
 
     # Expected outputs (calculated manually)
     expected_canopy_temperature = np.array(
-        [[305.091211, 300.116086], [295.140962, 290.165837]]
+        [[306.998597, 302.5214], [298.045954, 293.572175]]
     )
-    expected_air_temperature = np.array(
-        [[300.041459, 295.049751], [290.058043, 285.066335]]
-    )
+    expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
 
     # Call the function
     updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
-        net_radiation_canopy=net_radiation_canopy,
+        absorbed_radiation_canopy=absorbed_radiation_canopy,
+        longwave_emission_canopy=longwave_emission_canopy,
         sensible_heat_flux_canopy=sensible_heat_flux_canopy,
         latent_heat_flux_canopy=latent_heat_flux_canopy,
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
-        density_air=density_air,
+        emissivity_leaf=0.8,
         specific_heat_air=specific_heat_air,
+        density_air=1.293,
+        aerodynamic_resistance=10.0,
+        relaxation_factor=0.1,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
     )
 
     # Assertions
