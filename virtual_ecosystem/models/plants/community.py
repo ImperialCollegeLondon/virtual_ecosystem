@@ -1,7 +1,7 @@
 """The :mod:`~virtual_ecosystem.models.plants.community` submodule contains
 functionality to generate a dictionary of
 :class:`~pyrealm.demography.community.Community` instances for each grid cell, populated
-with size-structured :class:`~pyrealm.demography.community.Cohort` instances from
+with size-structured :class:`~pyrealm.demography.community.Cohorts` instances from
 initial plant cohort inventories for a simulation.
 """  # noqa: D205
 
@@ -42,6 +42,7 @@ class PlantCommunities(dict, Mapping[int, Community]):
             flora: A flora object.
             grid: A grid object
         """
+
         # Validate the data being used to generate the Plants object form a dataframe
         cohort_data_vars = [
             "plant_cohorts_n",

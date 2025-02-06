@@ -132,11 +132,6 @@ class PlantsModel(
         * ``photosynthetic_photon_flux_density``: The above canopy photosynthetic photon
           flux density in µmol m-2 s-1.
 
-    Warning:
-        The current implementation defines the main interfaces between the plants model
-        and other models and accesses and updates the expected data to be used in the
-        full model. The actual predictions of the model are placeholder values.
-
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
