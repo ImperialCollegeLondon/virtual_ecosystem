@@ -32,7 +32,7 @@ from pathlib import Path
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
 import sphinxcontrib.bibtex.plugin
-from sphinx.deprecation import RemovedInSphinx80Warning
+from sphinx.deprecation import RemovedInSphinx90Warning
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
@@ -41,7 +41,7 @@ from virtual_ecosystem.core import variables
 
 # +
 # Silence sphinx 8 warnings.
-warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
+warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
 
 
 # +
@@ -176,6 +176,12 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
     ("py:exc", "ParserError"),
     ("py:exc", "BadZipFile"),
+    # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
+    # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "Canopy"),
+    ("py:class", "Flora"),
+    ("py:class", "PModelConst"),
+    ("py:class", "CoreConst"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
