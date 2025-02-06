@@ -137,18 +137,16 @@ def test_calculate_slope_of_saturated_pressure_curve():
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_effective_vapour_pressure(
-    dummy_climate_data, fixture_core_components
-):
+def test_calculate_actual_vapour_pressure(dummy_climate_data, fixture_core_components):
     """Calculate effective vapour pressure, [kPa]."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        calculate_effective_vapour_pressure,
+        calculate_actual_vapour_pressure,
     )
 
     lyr_str = fixture_core_components.layer_structure
 
-    result = calculate_effective_vapour_pressure(
+    result = calculate_actual_vapour_pressure(
         air_temperature=dummy_climate_data["air_temperature"],
         relative_humidity=dummy_climate_data["relative_humidity"],
         saturation_vapour_pressure_factors=[0.61078, 7.5, 237.3],
@@ -156,6 +154,31 @@ def test_calculate_effective_vapour_pressure(
 
     exp_result = lyr_str.from_template()
     exp_result[lyr_str.index_filled_atmosphere] = np.array(
-        [1.275543, 1.275448, 1.274309, 1.270266, 0.984889]
+        [1.275543, 1.275448, 1.274309, 1.270266, 1.128206]
     )[:, None]
+    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
+
+
+def test_calculate_vapour_pressure_soil(dummy_climate_data, fixture_core_components):
+    """Test calculate vapour pressure at soil surface."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_vapour_pressure_soil,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+
+    result = calculate_vapour_pressure_soil(
+        soil_temperature=dummy_climate_data["soil_temperature"][
+            lyr_str.index_topsoil
+        ].to_numpy(),
+        soil_matric_potential=dummy_climate_data["matric_potential"][
+            lyr_str.index_topsoil
+        ].to_numpy(),
+        saturated_vapour_pressure=np.array([0.61078, 7.5, 237.3, 1.0]),
+        gas_constant_water_vapour=461.5,
+    )
+
+    exp_result = np.array([0.610582, 7.491879, 230.958854, 0.338435])
+
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
