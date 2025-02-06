@@ -73,6 +73,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
+        "nitrogen_fixation_carbon_supply",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -92,6 +93,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
+        "nitrogen_fixation_carbon_supply",
     ),
 ):
     """A class defining the plants model.
@@ -467,7 +469,8 @@ class PlantsModel(
         This function calculates the turnover rate for each plant biomass pool (wood,
         leaves, roots, and reproductive tissues). As well as this the lignin
         concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
-        turnover flow is calculated.
+        turnover flow is calculated. It also returns the rate at which plants supply
+        carbon to their nitrogen fixing symbionts in the soil.
 
         Warning:
             At present, this function literally just returns constant values for each of
@@ -506,4 +509,8 @@ class PlantsModel(
         )
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], 656.7
+        )
+
+        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
+            self.data["elevation"], 0.01
         )
