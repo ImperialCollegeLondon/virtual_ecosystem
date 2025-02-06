@@ -397,11 +397,16 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [30.0, 29.844995, 28.87117, 27.206405, 21.145945]
     )[:, None]
 
     data["soil_temperature"] = from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = 20.0
+
+    data["matric_potential"] = from_template()
+    data["matric_potential"][lyr_str.index_topsoil] = np.array(
+        [-3.0, -10.0, -250.0, -10000.0]
+    )
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
