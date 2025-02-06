@@ -568,27 +568,29 @@ class PlantsModel(
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
 
+        # Loop over each cell
         for cell_id in self.communities.keys():
-            cohorts = self.communities[cell_id].cohorts
+            community = self.communities[cell_id]
+            cohorts = community.cohorts
 
             cohort_allometry = StemAllometry(
-                stem_traits=self.flora, at_dbh=cohorts.dbh_values
+                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
 
             cohort_allocation = StemAllocation(
-                stem_traits=self.flora,
+                stem_traits=community.stem_traits,
                 stem_allometry=cohort_allometry,
-                at_potential_gpp=self.stem_gpp,
+                at_potential_gpp=self.stem_gpp[cell_id],
             )
 
             # Grow the plants by increasing cohort dbh
-            cohorts.dbh_value += cohort_allocation.delta_dbh[0]
+            cohorts.dbh_values += cohort_allocation.delta_dbh[0]
 
             # .. TODO: move leaf/root turnover calculation to pyrealm & call here
-            leaf_turnover = cohort_allometry.foliage_mass / self.flora.tau_f
+            leaf_turnover = cohort_allometry.foliage_mass / community.stem_traits.tau_f
             # Turnover is provided as a total for all cohorts in the entire cell
-            self.data["leaf_turnover"][cell_id] = sum(leaf_turnover)
-            self.data["root_turnover"][cell_id] = sum(
+            self.data["leaf_turnover"][cell_id] = np.sum(leaf_turnover)
+            self.data["root_turnover"][cell_id] = np.sum(
                 cohort_allocation.turnover - leaf_turnover
             )
 

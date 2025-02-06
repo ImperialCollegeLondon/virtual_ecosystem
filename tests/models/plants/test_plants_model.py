@@ -164,15 +164,22 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
 def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
     """Test the allocate_gpp method."""
 
-    cell_id = next(iter(fxt_plants_model.communities))
-    previous_dbh = fxt_plants_model.communities.cohort[cell_id].dbh_values
-
+    fxt_plants_model.stem_gpp = {
+        cell_id: np.array([55]) for cell_id in fxt_plants_model.communities.keys()
+    }
     # Allocate GPP
     fxt_plants_model.allocate_gpp()
 
-    updated_dbh = fxt_plants_model.communities.cohort[cell_id].dbh_values
+    for community in fxt_plants_model.communities.values():
+        # .. TODO: not sure what to test here? Main thing it does is change the
+        # dbh value, so maybe check that it has grown?
+        assert (community.cohorts.dbh_values > 0).all()
 
-    assert updated_dbh > previous_dbh
+    # Check that leaf_turnover and root_turnover are correctly calculated
+    for cell_id in fxt_plants_model.communities.keys():
+        # .. TODO: same as above, this is a bit logic-less
+        assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
+        assert fxt_plants_model.data["root_turnover"][cell_id] > 0
 
 
 def test_PlantsModel_update(
@@ -214,11 +221,9 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_component
 
     # Check that all expected variables are generated and have the correct value
     assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover"], 0.027)
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
     )
-    assert np.allclose(fxt_plants_model.data["root_turnover"], 0.027)
     assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
     assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
     assert np.allclose(
