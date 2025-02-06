@@ -6,21 +6,21 @@ class as a child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` cl
 There are still a number of open TODOs related to process implementation and improvement
 , time step and model structure, and units and module coordination.
 
-TODO processes
+.. TODO:: processes
 
     * spin up soil moisture and accumulated runoff
     * set boundaries for river discharge
     * add canopy evaporation
     * update infiltration process
 
-TODO time step and model structure
+.. TODO:: time step and model structure
 
     * find a way to load daily (precipitation) data and loop over daily time_index
     * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
     * add abiotic constants from config
 
-TODO units and module coordination
+.. TODO:: units and module coordination
 
     * change temperature to Kelvin
 

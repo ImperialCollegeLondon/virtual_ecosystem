@@ -1,8 +1,9 @@
 """The :mod:`~virtual_ecosystem.core.readers` module provides the function
-:func:`~virtual_ecosystem.core.readers.load_to_dataarray`, which is used to load data
-from a file and convert it into a :class:`~xarray.DataArray` object. The ``DataArray``
-can then be added to a :class:`~virtual_ecosystem.core.data.Data` instance for use in a
-Virtual Ecosystem simulation.
+:func:`~virtual_ecosystem.core.readers.load_to_dataarray`, which is used to load a set
+of data variables from a file and convert them into a dictionary of
+:class:`~xarray.DataArray` objects. The ``DataArray`` values can then be added to a
+:class:`~virtual_ecosystem.core.data.Data` instance for use in a Virtual Ecosystem
+simulation.
 
 The module also supports the registration of different reader functions, used to convert
 files in different storage formats into a ``DataArray``. The
@@ -53,7 +54,7 @@ function itself should have the following signature:
 
 .. code-block:: python
 
-    func(file: Path, var_name: str) -> DataArray
+    func(file: Path, var_names: str) -> dict[str, DataArray]
 
 """
 
@@ -98,12 +99,13 @@ def register_file_format_loader(file_types: tuple[str, ...]) -> Callable:
 
 
 @register_file_format_loader(file_types=(".nc",))
-def load_netcdf(file: Path, var_name: str) -> DataArray:
+def load_netcdf(file: Path, var_names: list[str]) -> dict[str, DataArray]:
     """Loads a DataArray from a NetCDF file.
 
     Args:
         file: A Path for a NetCDF file containing the variable to load.
-        var_name: A string providing the name of the variable in the file.
+        var_names: A list of strings providing the names of the variables to be loaded
+            from the file.
 
     Raises:
         FileNotFoundError: with bad file path names.
@@ -128,22 +130,26 @@ def load_netcdf(file: Path, var_name: str) -> DataArray:
         LOGGER.critical(to_raise)
         raise to_raise
 
-    # Check if file var is in the dataset
-    if var_name not in dataset:
-        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+    # Check if file vars are in the dataset
+    missing_vars = set(var_names).difference(dataset.data_vars)
+    if missing_vars:
+        to_raise = KeyError(
+            f"Data variables not found in {file}: {', '.join(missing_vars)}"
+        )
         LOGGER.critical(to_raise)
         raise to_raise
 
-    return dataset[var_name]
+    return {var: dataset[var] for var in var_names}
 
 
 @register_file_format_loader(file_types=(".csv",))
-def load_csv(file: Path, var_name: str) -> DataArray:
+def load_csv(file: Path, var_names: list[str]) -> dict[str, DataArray]:
     """Loads a DataArray from a csv file.
 
     Args:
         file: A Path for a csv or excel file containing the variable to load.
-        var_name: A string providing the name of the variables in this file.
+        var_names: A list of strings providing the names of the variables to be loaded
+            from the file.
 
     Raises:
         FileNotFoundError: with bad file path names.
@@ -165,31 +171,36 @@ def load_csv(file: Path, var_name: str) -> DataArray:
         raise to_raise
 
     # Check if file var is in the dataset
-    if var_name not in dataset.columns:
-        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+    missing_vars = set(var_names).difference(dataset.columns)
+    if missing_vars:
+        to_raise = KeyError(
+            f"Data variables not found in {file}: {', '.join(missing_vars)}"
+        )
         LOGGER.critical(to_raise)
         raise to_raise
 
-    return dataset[var_name].to_xarray()
+    return {var: dataset[var].to_xarray() for var in var_names}
 
 
 @register_file_format_loader(file_types=(".xlsx",))
-def load_excel(file: Path, var_name: str) -> DataArray:
+def load_excel(file: Path, var_names: list[str]) -> dict[str, DataArray]:
     """Loads a DataArray from an excel file.
 
     Args:
         file: A Path for a csv or excel file containing the variable to load.
-        var_name: A string providing the name of the variables in this file.
+        var_names: A list of strings providing the names of the variables to be loaded
+            from the file.
 
     Raises:
         FileNotFoundError: with bad file path names.
         BadZipFile: if the excel file is corrupted.
         Exception: catches other exceptions from openpyxl.
 
-    Note: BadZipFile is the most common error thrown by openpyxl for corrupted excel
-    files, which is based on their internal processing files as zips. The general
-    exception is included to cover other possible issues from openpyxl, as it has
-    various other potential failure modes.
+    Note:
+        BadZipFile is the most common error thrown by openpyxl for corrupted excel
+        files, which is based on their internal processing files as zips. The general
+        exception is included to cover other possible issues from openpyxl, as it has
+        various other potential failure modes.
     """
 
     to_raise: Exception
@@ -211,29 +222,32 @@ def load_excel(file: Path, var_name: str) -> DataArray:
         raise to_raise
 
     # Check if file var is in the dataset
-    if var_name not in dataset.columns:
-        to_raise = KeyError(f"Variable {var_name} not found in {file}")
+    missing_vars = set(var_names).difference(dataset.columns)
+    if missing_vars:
+        to_raise = KeyError(
+            f"Data variables not found in {file}: {', '.join(missing_vars)}"
+        )
         LOGGER.critical(to_raise)
         raise to_raise
 
-    return dataset[var_name].to_xarray()
+    return {var: dataset[var].to_xarray() for var in var_names}
 
 
 def load_to_dataarray(
     file: Path,
-    var_name: str,
-) -> DataArray:
+    var_names: list[str],
+) -> dict[str, DataArray]:
     """Loads data from a file into a DataArray.
 
     The function takes a path to a file format supported in the
-    :attr:`~virtual_ecosystem.core.readers.FILE_FORMAT_REGISTRY` and uses the
-    appropriate data loader function to load the data and convert it to a
-    {class}`~xarray.DataArray`, ready for insertion into a
-    :attr:`~virtual_ecosystem.core.data.Data` instance.
+    :attr:`~virtual_ecosystem.core.readers.FILE_FORMAT_REGISTRY` and a list of variable
+    names that are asserted to be stored in the file. It uses the appropriate data
+    loader function to load the data and convert it to a {class}`~xarray.DataArray`,
+    ready for insertion into a :attr:`~virtual_ecosystem.core.data.Data` instance.
 
     Args:
         file: A Path for the file containing the variable to load.
-        var_name: A string providing the name of the variable in the file.
+        var_names: A list of strings providing the names of variables in the file.
 
     Raises:
         ValueError: if there is no loader provided for the file format.
@@ -249,8 +263,8 @@ def load_to_dataarray(
         raise to_raise
 
     # If so, load the data
-    LOGGER.info("Loading variable '%s' from file: %s", var_name, file)
+    LOGGER.info("Loading variables from file %s: %s", file, ", ".join(var_names))
     loader = FILE_FORMAT_REGISTRY[file_type]
-    value = loader(file, var_name)
+    value = loader(file, var_names)
 
     return value
