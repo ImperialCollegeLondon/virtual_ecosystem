@@ -252,6 +252,7 @@ class AbioticModel(
             time_interval=3600,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
+            abiotic_simple_constants=self.simple_constants,
             core_constants=self.core_constants,
         )
 
