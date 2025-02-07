@@ -315,6 +315,62 @@ def test_denitrification_temperature_factor_bad_temp(
     assert np.allclose(expected_factor, actual_factor)
 
 
+def test_calculate_symbiotic_nitrogen_fixation_carbon_cost(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of symbiotic nitrogen fixation cost."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_symbiotic_nitrogen_fixation_carbon_cost,
+    )
+
+    expected_cost = [45.8029373, 49.464657, 52.689498, 36.073368]
+
+    actual_cost = calculate_symbiotic_nitrogen_fixation_carbon_cost(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        cost_at_zero_celsius=SoilConsts.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=SoilConsts.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=SoilConsts.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=SoilConsts.nitrogen_fixation_cost_equality_temperature,
+    )
+
+    assert np.allclose(expected_cost, actual_cost)
+
+
+def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check calculation of nitrogen fixation cost handles bad temperature values."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_symbiotic_nitrogen_fixation_carbon_cost,
+    )
+
+    soil_temp = dummy_carbon_data["soil_temperature"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ]
+
+    # Modify some of the soil temps to be below the minimum
+    soil_temp[1] = -23.3
+    soil_temp[3] = -200.0
+
+    expected_cost = [45.8029373, np.inf, 52.689498, np.inf]
+
+    actual_cost = calculate_symbiotic_nitrogen_fixation_carbon_cost(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        cost_at_zero_celsius=SoilConsts.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=SoilConsts.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=SoilConsts.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=SoilConsts.nitrogen_fixation_cost_equality_temperature,
+    )
+
+    assert np.allclose(expected_cost, actual_cost)
+
+
 def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
     """Test calculation of solute leaching rates."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
