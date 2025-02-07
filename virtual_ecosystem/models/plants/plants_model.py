@@ -73,6 +73,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
+        "nitrogen_fixation_carbon_supply",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -92,6 +93,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
+        "nitrogen_fixation_carbon_supply",
     ),
 ):
     """A class defining the plants model.
@@ -141,6 +143,30 @@ class PlantsModel(
     # TODO - think about a shared "plant cohort" core axis that defines the cohort
     #        initialisation  data, but the issue here is that the length of this is
     #        variable.
+
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Plants init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.flora: Flora
+        """A flora containing the plant functional types used in the plants model."""
+        self.model_constant: PlantsConsts
+        """Set of constants for the plants model"""
+        self.communities: PlantCommunities
+        """Initialise the plant communities from the data object."""
+        self._canopy_layer_indices: np.ndarray
+        """The indices of the canopy layers within wider vertical profile"""
 
     @classmethod
     def from_config(
@@ -197,25 +223,20 @@ class PlantsModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        # Save the class attributes
+        # Set the class attributes
         self.flora = flora
-        """A flora containing the plant functional types used in the plants model."""
         self.model_constants = model_constants
-        """Set of constants for the plants model"""
         self.communities = PlantCommunities(self.data, self.flora)
-        """Initialise the plant communities from the data object."""
 
-        # Initialise and then update the canopy layers.
+        # Update canopy layers
         # TODO - this initialisation step may move somewhere else at some point.
         self.data = initialise_canopy_layers(
             data=self.data,
             layer_structure=self.layer_structure,
         )
-        """A reference to the global data object."""
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
-        """The indices of the canopy layers within wider vertical profile"""
 
         # Run the canopy initialisation - update the canopy structure from the initial
         # cohort data and then initialise the irradiance using the first observation for
@@ -448,7 +469,8 @@ class PlantsModel(
         This function calculates the turnover rate for each plant biomass pool (wood,
         leaves, roots, and reproductive tissues). As well as this the lignin
         concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
-        turnover flow is calculated.
+        turnover flow is calculated. It also returns the rate at which plants supply
+        carbon to their nitrogen fixing symbionts in the soil.
 
         Warning:
             At present, this function literally just returns constant values for each of
@@ -487,4 +509,8 @@ class PlantsModel(
         )
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], 656.7
+        )
+
+        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
+            self.data["elevation"], 0.01
         )

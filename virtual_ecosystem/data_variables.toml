@@ -602,6 +602,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Amount of nitrogen contained in the soil ammonium (NH4+) pool"
+name = "soil_n_pool_ammonium"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of nitrogen contained in the soil nitrate (NO3-) pool"
+name = "soil_n_pool_nitrate"
+unit = "kg N m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Dissolved organic phosphorus pool"
 name = "soil_p_pool_dop"
 unit = "kg P m^-3"
@@ -1025,6 +1039,13 @@ axis = ["spatial"]
 description = "Carbon:phosphorus ratio of root turnover"
 name = "root_turnover_c_p_ratio"
 unit = "-"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants are supplying carbon to their soil-living nitrogen-fixing symbiotic partners"
+name = "nitrogen_fixation_carbon_supply"
+unit = "kg C m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]

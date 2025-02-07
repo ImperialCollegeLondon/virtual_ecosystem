@@ -3,30 +3,30 @@ save_initial_state = true
 
 # Climate data
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "air_temperature_ref"
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "relative_humidity_ref"
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "atmospheric_pressure_ref"
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "precipitation"
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "atmospheric_co2_ref"
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "mean_annual_temperature"
 [[core.data.variable]]
-file = "../data/example_climate_data.nc"
+file_path = "../data/example_climate_data.nc"
 var_name = "wind_speed_ref"
 
 # Elevation
 [[core.data.variable]]
-file = "../data/example_elevation_data.nc"
+file_path = "../data/example_elevation_data.nc"
 var_name = "elevation"
 
 # # Hydrology
@@ -36,138 +36,144 @@ var_name = "elevation"
 
 # Soil
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "pH"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "bulk_density"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "clay_fraction"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_lmwc"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_maom"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_microbe"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_necromass"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_pom"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_enzyme_maom"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_don"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_particulate"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_necromass"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_maom"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_n_pool_ammonium"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_n_pool_nitrate"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_dop"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_particulate"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_necromass"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_maom"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_primary"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_secondary"
 [[core.data.variable]]
-file = "../data/example_soil_data.nc"
+file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_labile"
 
 # Litter 
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "litter_pool_above_metabolic"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "litter_pool_above_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "litter_pool_woody"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "litter_pool_below_metabolic"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "litter_pool_below_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "lignin_above_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "lignin_woody"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "lignin_below_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_n_ratio_above_metabolic"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_n_ratio_above_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_n_ratio_woody"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_n_ratio_below_metabolic"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_n_ratio_below_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_above_metabolic"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_above_structural"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_woody"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_below_metabolic"
 [[core.data.variable]]
-file = "../data/example_litter_data.nc"
+file_path = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_below_structural"
 
 # Plants
 [[core.data.variable]]
-file = "../data/example_plant_data.nc"
+file_path = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_n"
 [[core.data.variable]]
-file = "../data/example_plant_data.nc"
+file_path = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_pft"
 [[core.data.variable]]
-file = "../data/example_plant_data.nc"
+file_path = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_cell_id"
 [[core.data.variable]]
-file = "../data/example_plant_data.nc"
+file_path = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_dbh"
 [[core.data.variable]]
-file = "../data/example_plant_data.nc"
+file_path = "../data/example_plant_data.nc"
 var_name = "photosynthetic_photon_flux_density"

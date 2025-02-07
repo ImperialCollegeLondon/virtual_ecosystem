@@ -265,6 +265,8 @@ def dummy_carbon_data(fixture_core_components):
         "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
         "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
         "soil_n_pool_maom": [0.86538462, 0.48076923, 0.32692308, 0.09615385],
+        "soil_n_pool_ammonium": [6.9619638e-5, 0.0049914624, 0.000229067, 0.0051955339],
+        "soil_n_pool_nitrate": [0.0024219014, 0.0044442996, 0.0003428348, 0.0131405173],
         "soil_p_pool_dop": [5.714e-6, 2.2857120e-5, 5.7142800e-5, 1.1428568e-4],
         "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
         "soil_p_pool_necromass": [0.00080769, 0.00011538, 0.00071538, 0.00044615],
@@ -279,6 +281,7 @@ def dummy_carbon_data(fixture_core_components):
         "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
         "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
         "vertical_flow": [0.1, 0.5, 2.5, 1.59],
+        "nitrogen_fixation_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
     }
 
     for var_name, var_values in data_values.items():

@@ -322,12 +322,14 @@ Writing JSONSchema documents can be very tedious. The following tools may be of 
 Both of those tools take data documents formatted as JSON as inputs, where we use TOML
 configuration files, but there are lots of web tools to convert TOML to JSON and back.
 
-As an example, the `FreshwaterModel` above might need two configuration options.
+As an example, the `FreshwaterModel` above might need the following configuration
+options.
 
 ```toml
 [freshwater]
 update_interval = "1 month"
 no_of_ponds = 3
+pond_classification_path = "../path/to/pond_classification.csv"
 ```
 
 The JSON Schema document generated from the JSON Schema app above is shown below. Some
@@ -335,6 +337,28 @@ of the fields - such as the `title` and `examples` entries - are not required in
 Virtual Ecosystem configuration and so can be deleted. You may also need to edit which
 properties are required and which provide defaults that will be used to fill missing
 properties.
+
+#### Paths in model schema
+
+You may want your configuration file to point to resources stored in an external file,
+as in the example above. You should not be loading core data in this way, but you may
+want to point to a file that defines model specific configuration data. For example, the
+plants model uses definitions of different plant functional types: the most convenient
+way to provide these for the model initialisation is as a small CSV file containing a
+data frame. This isn't data that is needed by the other models, but it is easier to
+maintain and edit in a small CSV, so it is passed in via the `pft_definitions_path`
+configuration option.
+
+However, users may provide a configuration with an absolute file, but could also provide
+a path relative to the configuration file itself. This can become a problem when a
+complete configuration is compiled from sections in multiple configuration files,
+possibly in different locations.
+
+For this reason, the Virtual Ecosystem resolves configured paths when the configuration
+is compiled and checked. In order to trigger this path resolution, you **must** use the
+`_path` suffix on configuration options that set file paths. This naming convention
+allows the Virtual Ecosystem configuration to manage file paths to ensure that file
+paths are preserved when configuration files are compiled.
 
 ```json
 {
@@ -363,54 +387,33 @@ properties.
             "examples": [
                 3
             ]
+        },
+        "pond_classification_path": {
+            "type": "string",
+            "default": "",
+            "title": "The pond_classification_path Schema",
+            "examples": [
+                "../path/to/pond_classification.csv"
+            ]
         }
     },
     "examples": [{
         "update_interval": "1 month",
-        "no_of_ponds": 3
+        "no_of_ponds": 3,
+        "pond_classification_path": "../path/to/pond_classification.csv"
     }]
 }
 ```
 
 #### Model dependencies
 
-Your model may depend on a particular execution order for other models. For example, the
-`freshwater` model might rely on data set up by the `hydrology` model, and so the
-`hydrology` model needs to be initialised and updated before the `freshwater` model.
-This is controlled using model configuration: although these dependencies may be
-strong, it is more flexible to set them up through the configuration process than by
-hard coding dependencies into the model objects themselves.
+Your model may depend on a particular execution order for other models. This order is
+found automatically by Virtual Ecosystem based on the variables that the models require
+to be initialised and updated. Eg. if a model requires variable `A` to be initialised
+and that variable is provided by another model, this second model will run first.
 
-Your JSON Schema document therefore needs to include the following at the root level, so
-that the model configuration includes a `[freshwater.depends]` section:
-
-```json
-"depends": {
-    "type": "object",
-    "default": {},
-    "properties": {
-        "init": {
-            "type": "array",
-            "default": ["hydrology"],
-            "items": {
-            "type": "string"
-            }
-        },
-        "update": {
-            "type": "array",
-            "default": ["hydrology"],
-            "items": {
-            "type": "string"
-            }
-        }
-    }
-}
-```
-
-Note that this schema provides **default dependencies**, which set which models should
-run before your model. There is no guarantee that users will necessarily include all of
-these models in their configuration and the dependencies can always be overridden by
-users. Configurations that do this may well not work, but that is for users to tackle.
+If a suitable order cannot be found, the simulation will stop and an error message will
+be provided informing on the specific issue.
 
 ### The `from_config` factory method
 
