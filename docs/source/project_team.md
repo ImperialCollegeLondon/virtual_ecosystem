@@ -125,14 +125,15 @@ Silwood Park Campus at Imperial College London.
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/photo_placeholder.png
+```{image} _static/images/people/jacob_cook.jpg
 :alt: Dr. Jacob Cook
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Jacob is a microbial ecologist whose work focuses on developing improved representations
+of microbial communities in ecological models. He is one of the programmers for the
+Virtual Ecosystem, with a particular focus on the soil and litter science models. He is
+based at the Silwood Park Campus at Imperial College London.
 :::
 
 :::{grid-item-card} Dr. Taran Rallings
