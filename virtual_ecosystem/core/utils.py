@@ -140,7 +140,9 @@ def split_arrays_by_grouping_variable(
     group_var = var_arrays.pop(group_by)
 
     # Get a sort order for the arrays based on the split_on variable
-    sort_order = np.argsort(group_var)
+    # `stable` is being used here primarily to avoid sorting order differences in
+    # testing across platforms
+    sort_order = np.argsort(group_var, kind="stable")
 
     # Apply that sort order to all the arrays
     var_arrays = {ky: arr[sort_order] for ky, arr in var_arrays.items()}
