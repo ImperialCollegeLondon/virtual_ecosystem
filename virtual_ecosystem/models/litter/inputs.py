@@ -130,52 +130,69 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.float32]]:
     """
 
     # Calculate totals for each plant matter type
-    leaf_total = data["leaf_turnover"] + data["herbivory_waste_leaf_carbon"]
+    leaf_total = (
+        data["leaf_turnover"] + data["herbivory_waste_leaf_carbon"]
+    ).to_numpy()
     root_total = data["root_turnover"]
     deadwood_total = data["deadwood_production"]
     reprod_total = data["plant_reproductive_tissue_turnover"]
 
-    # Calculate leaf lignin concentrations for each combined pool
-    leaf_lignin = (
-        data["leaf_turnover_lignin"] * data["leaf_turnover"]
-        + data["herbivory_waste_leaf_lignin"] * data["herbivory_waste_leaf_carbon"]
-    ) / (leaf_total)
+    # Calculate lignin concentrations for each combined pool
+    leaf_lignin = merge_input_chemical_proportions(
+        turnover_mass=data["leaf_turnover"].to_numpy(),
+        herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        total_mass=leaf_total,
+        turnover_chemical_proportion=data["leaf_turnover_lignin"].to_numpy(),
+        herbivory_waste_chemical_proportion=data[
+            "herbivory_waste_leaf_lignin"
+        ].to_numpy(),
+    )
     root_lignin = data["root_turnover_lignin"]
     deadwood_lignin = data["deadwood_lignin"]
     reprod_lignin = data["plant_reproductive_tissue_turnover_lignin"]
 
     # Calculate leaf nitrogen concentrations for each combined pool
-    leaf_nitrogen = (
-        data["leaf_turnover_c_n_ratio"] * data["leaf_turnover"]
-        + data["herbivory_waste_leaf_nitrogen"] * data["herbivory_waste_leaf_carbon"]
-    ) / (leaf_total)
+    leaf_nitrogen = merge_input_chemical_proportions(
+        turnover_mass=data["leaf_turnover"].to_numpy(),
+        herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        total_mass=leaf_total,
+        turnover_chemical_proportion=data["leaf_turnover_c_n_ratio"].to_numpy(),
+        herbivory_waste_chemical_proportion=data[
+            "herbivory_waste_leaf_nitrogen"
+        ].to_numpy(),
+    )
     root_nitrogen = data["root_turnover_c_n_ratio"]
     deadwood_nitrogen = data["deadwood_c_n_ratio"]
     reprod_nitrogen = data["plant_reproductive_tissue_turnover_c_n_ratio"]
 
     # Calculate leaf phosphorus concentrations for each combined pool
-    leaf_phosphorus = (
-        data["leaf_turnover_c_p_ratio"] * data["leaf_turnover"]
-        + data["herbivory_waste_leaf_phosphorus"] * data["herbivory_waste_leaf_carbon"]
-    ) / (leaf_total)
+    leaf_phosphorus = merge_input_chemical_proportions(
+        turnover_mass=data["leaf_turnover"].to_numpy(),
+        herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        total_mass=leaf_total,
+        turnover_chemical_proportion=data["leaf_turnover_c_p_ratio"].to_numpy(),
+        herbivory_waste_chemical_proportion=data[
+            "herbivory_waste_leaf_phosphorus"
+        ].to_numpy(),
+    )
     root_phosphorus = data["root_turnover_c_p_ratio"]
     deadwood_phosphorus = data["deadwood_c_p_ratio"]
     reprod_phosphorus = data["plant_reproductive_tissue_turnover_c_p_ratio"]
 
     return {
-        "leaf_mass": leaf_total.to_numpy(),
+        "leaf_mass": leaf_total,
         "root_mass": root_total.to_numpy(),
         "deadwood_mass": deadwood_total.to_numpy(),
         "reprod_mass": reprod_total.to_numpy(),
-        "leaf_lignin": leaf_lignin.to_numpy(),
+        "leaf_lignin": leaf_lignin,
         "root_lignin": root_lignin.to_numpy(),
         "deadwood_lignin": deadwood_lignin.to_numpy(),
         "reprod_lignin": reprod_lignin.to_numpy(),
-        "leaf_nitrogen": leaf_nitrogen.to_numpy(),
+        "leaf_nitrogen": leaf_nitrogen,
         "root_nitrogen": root_nitrogen.to_numpy(),
         "deadwood_nitrogen": deadwood_nitrogen.to_numpy(),
         "reprod_nitrogen": reprod_nitrogen.to_numpy(),
-        "leaf_phosphorus": leaf_phosphorus.to_numpy(),
+        "leaf_phosphorus": leaf_phosphorus,
         "root_phosphorus": root_phosphorus.to_numpy(),
         "deadwood_phosphorus": deadwood_phosphorus.to_numpy(),
         "reprod_phosphorus": reprod_phosphorus.to_numpy(),
@@ -347,3 +364,51 @@ def split_pool_into_metabolic_and_structural_litter(
         raise to_raise
     else:
         return metabolic_fraction
+
+
+def merge_input_chemical_proportions(
+    turnover_mass: NDArray[np.float32],
+    herbivory_waste_mass: NDArray[np.float32],
+    total_mass: NDArray[np.float32],
+    turnover_chemical_proportion: NDArray[np.float32],
+    herbivory_waste_chemical_proportion: NDArray[np.float32],
+):
+    """Merge the chemical proportions of two input sources to the same litter pool.
+
+    Args:
+        turnover_mass: Input mass coming from the natural turnover of plant tissue [kg C
+            m^-2]
+        herbivory_waste_mass: Input mass coming from the mechanical inefficiencies of
+            herbivory [kg C m^-2]
+        total_mass: The combined mass of the two input sources [kg C m^-2]
+        turnover_chemical_proportion: Proportion of the chemical of interest in the
+            input mass from natural plant turnover [unitless]
+        herbivory_waste_chemical_proportion: Proportion of the chemical of interest in
+            the input mass from mechanical inefficiencies of herbivory [unitless]
+
+    Raises:
+        ValueError: If any of the chemical proportions are infinite.
+
+    Returns:
+        The ratio of the chemical in question to this total mass for the new combined
+        input stream [unitless]
+    """
+
+    if any(np.isinf(turnover_chemical_proportion)):
+        to_raise = ValueError(
+            "Litter input from plant turnover contains an infinite chemical proportion!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+    elif any(np.isinf(herbivory_waste_chemical_proportion)):
+        to_raise = ValueError(
+            "Litter input from animal herbivory waste contains an infinite chemical "
+            "proportion!"
+        )
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    return (
+        turnover_chemical_proportion * turnover_mass
+        + herbivory_waste_chemical_proportion * herbivory_waste_mass
+    ) / (total_mass)
