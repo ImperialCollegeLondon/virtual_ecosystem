@@ -1042,6 +1042,13 @@ unit = "-"
 variable_type = "float"
 
 [[variable]]
+axis = ["spatial"]
+description = "Rate at which plants are supplying carbon to their soil-living nitrogen-fixing symbiotic partners"
+name = "nitrogen_fixation_carbon_supply"
+unit = "kg C m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
 axis = [] # as_yet_undefined_cohort_setup_axis
 description = "Cell ID of plant cohorts"
 name = "plant_cohorts_cell_id"

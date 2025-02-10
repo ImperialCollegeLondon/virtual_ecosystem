@@ -333,6 +333,52 @@ def calculate_denitrification_temperature_factor(
     )
 
 
+def calculate_symbiotic_nitrogen_fixation_carbon_cost(
+    soil_temp: NDArray[np.float32],
+    cost_at_zero_celsius: float,
+    infinite_temp_cost_offset: float,
+    thermal_sensitivity: float,
+    cost_equality_temp: float,
+):
+    """Calculate the cost of symbiotic nitrogen fixation in carbon terms.
+
+    The function used here is adapted from an empirical function provided in
+    :cite:t:`brzostek_modeling_2014`. As the function is not defined below zero degrees
+    celsius if a negative temperature is input an infinite cost is returned.
+
+    I could not sensibly convert this empirically derived function from Celsius to
+    Kelvin units so this is the only function in the soil model to use Celsius units.
+
+    Args:
+        soil_temp: Temperature of the relevant soil zone [C]
+        cost_at_zero_celsius: The cost nitrogen fixation at zero Celsius [kg C kg N^-1]
+        infinite_temp_cost_offset: The difference between the nitrogen fixation cost at
+            zero Celsius and the cost that it tends towards at very high temperatures
+            [kg C kg N^-1]
+        thermal_sensitivity: Sensitivity of nitrogen fixation cost to changes in
+            temperature [C^-1]
+        cost_equality_temp: Temperature (positive) at which the nitrogen fixation cost
+            is the same as it is at zero Celsius [C]
+
+    Returns:
+        The carbon cost that plants have to pay their microbial symbionts to fix per
+        unit of nitrogen fixed [kg C kg N^-1]
+    """
+
+    return np.where(
+        soil_temp < 0.0,
+        np.inf,
+        cost_at_zero_celsius
+        + infinite_temp_cost_offset
+        * (
+            np.exp(
+                thermal_sensitivity * soil_temp * (1 - (soil_temp / cost_equality_temp))
+            )
+            - 1
+        ),
+    )
+
+
 def calculate_leaching_rate(
     solute_density: NDArray[np.float32],
     vertical_flow_rate: NDArray[np.float32],
