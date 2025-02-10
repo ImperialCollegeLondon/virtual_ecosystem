@@ -70,7 +70,8 @@ Adding data from a file
 The general solution for programmatically adding data from a file is to:
 
 * manually open a data file using an appropriate reader packages for the format,
-* coerce the data into a properly structured :class:`~xarray.DataArray` object, and then
+* coerce data from named variables into properly structured :class:`~xarray.DataArray`
+  objects, and then
 * use the :meth:`~virtual_ecosystem.core.data.Data.__setitem__` method to validate and
   add it to a :class:`~virtual_ecosystem.core.data.Data` instance.
 
@@ -83,9 +84,10 @@ supported formats and for extending the system to additional file formats.
 
     # Load temperature data from a supported file
     from virtual_ecosystem.core.readers import load_to_dataarray
-    data['temp'] = load_to_dataarray(
-        '/path/to/supported/format.nc', var_name='temperature'
+    results = load_to_dataarray(
+        '/path/to/supported/format.nc', var_names=['temperature']
     )
+    data['temperature'] = results['temperature']
 
 Using a data configuration
 --------------------------
@@ -120,6 +122,7 @@ configurations across all files **must not** contain repeated data variable name
 
 """  # noqa: D205
 
+from itertools import groupby
 from pathlib import Path
 from typing import Any
 
@@ -295,8 +298,10 @@ class Data:
         This is a method is used to validate a provided user data configuration and
         populate the Data instance object from the provided data sources. The
         data_config dictionary can contain a 'variable' key containing an array of
-        dictionaries providing the path to the file (``file``) and the
-        name of the variable within the file (``var_name``).
+        dictionaries providing the path to the file (``file_path``) and the name of the
+        variable within the file (``var_name``). The function groups variables by their
+        source file path, so that each file is only opened once to load the requested
+        variables.
 
         Args:
             config: A validated Virtual Ecosystem model configuration object.
@@ -336,19 +341,29 @@ class Data:
                 LOGGER.error("Duplicate variable names in data configuration.")
                 clean_load = False
 
+            # Group variables by file
+            variables = data_config["variable"]
+            variables.sort(key=lambda v: v["file_path"])
+            file_groups = groupby(variables, key=lambda v: v["file_path"])
+
             # Load data from each data source
-            for each_var in data_config["variable"]:
+            for file, file_vars in file_groups:
                 # Attempt to load the file, trapping exceptions as critical logger
                 # messages and defer failure until the whole configuration has been
                 # processed
+
                 try:
-                    self[each_var["var_name"]] = load_to_dataarray(
-                        file=Path(each_var["file_path"]),
-                        var_name=each_var["var_name"],
+                    loaded_data = load_to_dataarray(
+                        file=Path(file),
+                        var_names=[var["var_name"] for var in file_vars],
                     )
+
                 except Exception as err:
                     LOGGER.error(str(err))
                     clean_load = False
+                else:
+                    for var_name, data_array in loaded_data.items():
+                        self[var_name] = data_array
 
         if "constant" in data_config:
             msg = "Data config for constants not yet implemented."
@@ -478,37 +493,6 @@ class Data:
         self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
 
         return out_path
-
-    def confirm_variables_form_data_frame(
-        self, var_names: list[str]
-    ) -> tuple[bool, str]:
-        """Check a list of named variables form a data frame.
-
-        This is a utility method to check if a set of named variables are present in the
-        Data object and that together they form a data frame: a set of equal length, one
-        dimensional arrays, providing consistent tuples of values across the variables.
-
-        Args:
-            var_names: A list of the variable names that form a data frame.
-        """
-
-        # All vars present
-        missing_var = [v for v in var_names if v not in self]
-
-        if missing_var:
-            return False, f"Missing variables: {', '.join(missing_var)}"
-
-        # All vars one dimensional
-        data_not_one_d = [var for var in var_names if self[var].ndim > 1]
-        if data_not_one_d:
-            return False, f"Variables not one dimensional: {', '.join(data_not_one_d)}"
-
-        # All vars equal sized
-        shapes = sorted(set(str(self[var].shape[0]) for var in var_names))
-        if len(shapes) != 1:
-            return False, f"Variables of unequal length: {', '.join(shapes)}"
-
-        return True, "Variables form a data frame"
 
 
 def merge_continuous_data_files(

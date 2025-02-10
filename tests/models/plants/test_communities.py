@@ -20,7 +20,7 @@ from tests.conftest import log_check
                 (
                     CRITICAL,
                     "Cannot initialise plant communities. Missing variables: "
-                    "plant_cohorts_pft, plant_cohorts_cell_id, plant_cohorts_dbh",
+                    "plant_cohorts_cell_id, plant_cohorts_dbh, plant_cohorts_pft",
                 ),
             ),
             None,
@@ -56,8 +56,8 @@ from tests.conftest import log_check
                 (
                     CRITICAL,
                     "Cannot initialise plant communities. Variables not one "
-                    "dimensional: plant_cohorts_n, plant_cohorts_pft, "
-                    "plant_cohorts_cell_id, plant_cohorts_dbh",
+                    "dimensional: plant_cohorts_cell_id, plant_cohorts_dbh, "
+                    "plant_cohorts_n, plant_cohorts_pft",
                 ),
             ),
             None,
@@ -121,7 +121,7 @@ def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log, exp_n_co
 
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
 

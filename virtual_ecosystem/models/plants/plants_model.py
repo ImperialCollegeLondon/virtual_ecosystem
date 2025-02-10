@@ -26,7 +26,7 @@ from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
 )
-from virtual_ecosystem.models.plants.community import PlantCommunities
+from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
@@ -83,6 +83,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
+        "nitrogen_fixation_carbon_supply",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -102,41 +103,45 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
+        "nitrogen_fixation_carbon_supply",
     ),
 ):
-    """A class defining the plants model.
+    """Representation of plants in the Virtual Ecosystem.
 
-    When a model instance is created, the model attributes are validated and set.
-    The initial canopy structure for each grid cell is then generated from provided
-    plant cohort data using the
-    :meth:`~virtual_ecosystem.models.plants.plants_model.PlantsModel.update_canopy_layers`
-    method. This includes the irradiance absorbed within each canopy layer and reaching
-    ground level, which at present is estimated using the first time step of the
-    provided photosynthetic photon flux density (PPFD).
+    The plants model is initialised from data describing inventories for each grid cell
+    in the simulation of size-structured cohorts. Each cohort belongs to a plant
+    functional type, from a set of functional types defined in the model configuration.
+    The inventory data is provided within the data configuration of the simulation and
+    requires the following variables:
 
-    When the model is updated, the P Model **will be** used to calculate the light use
-    efficiency given the conditions within canopy layers, and the PPFD at the top of the
-    canopy and the canopy layer extinction profile is used to estimate gross primary
-    productivity across plant cohorts. An allocation model is then used to estimate
-    growth and then update the canopy model.
+    * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
+    * ``plant_cohorts_pft``: The plant functional type of the cohort
+    * ``plant_cohorts_n``: The number of individuals in the cohort
+    * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in metres.
 
-    Required Variables:
+    These data are used to setup the plant communities within each grid cell, using the
+    :class:`~virtual_ecosystem.models.plants.communities.PlantCommunities` class to
+    maintain a lookup dictionary of communities by grid cell.
 
-        The following variables must be provided in the ``data`` instance to initialise
-        an instance of this model:
+    The model setup then initialises the canopy layer data within the
+    :class:`virtual_ecosystem.core.data.Data` instance for the simulation and populates
+    these data layers with the calculated community canopy structure for each grid cell.
+    The community canopy representation is calculated using the perfect plasticticy
+    approximation, implemented in the `pyrealm` package. The canoppy variables populated
+    at this stage are:
 
-        * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
-        * ``plant_cohorts_pft``: The plant functional type of the cohort
-        * ``plant_cohorts_n``: The number of individuals in the cohort
-        * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in
-          metres.
-        * ``photosynthetic_photon_flux_density``: The above canopy photosynthetic photon
-          flux density in µmol m-2 s-1.
+    * the canopy layer closure heights (``layer_heights``),
+    * the canopy layer leaf area indices (``leaf_area_index``),
+    * the fraction of absorbed photosynthetically active radation in each canopy layer
+        (``layer_fapar``), and
+    * the whole canopy leaf mass within the layers (``layer_leaf_mass``)
 
-    Warning:
-        The current implementation defines the main interfaces between the plants model
-        and other models and accesses and updates the expected data to be used in the
-        full model. The actual predictions of the model are placeholder values.
+    The model update process filters the photosynthetic photon flux density at the top
+    of canopy through the community canopy representation. This allows the gross primary
+    productivity (GPP) within canopy layers to be estimated, giving the total expected
+    GPP for individual stems within cohorts. The predicted GPP is then allocated between
+    plant respiration, turnover and growth and the resulting allocation to growth is
+    used to predict the change in stem diameter expected during the update interval.
 
     Args:
         data: The data object to be used in the model.
@@ -235,7 +240,7 @@ class PlantsModel(
         model_constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ) -> None:
-        """Placeholder function to set up the plants model.
+        """Setup implementation for the Plants Model.
 
         Args:
             flora: A flora containing the plant functional types used in the plants
@@ -600,7 +605,8 @@ class PlantsModel(
         This function calculates the turnover rate for each plant biomass pool (wood,
         leaves, roots, and reproductive tissues). As well as this the lignin
         concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
-        turnover flow is calculated.
+        turnover flow is calculated. It also returns the rate at which plants supply
+        carbon to their nitrogen fixing symbionts in the soil.
 
         Warning:
             At present, this function literally just returns constant values for each of
@@ -637,4 +643,8 @@ class PlantsModel(
         )
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], 656.7
+        )
+
+        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
+            self.data["elevation"], 0.01
         )

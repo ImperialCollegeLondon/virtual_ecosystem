@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.constants import convert_temperature
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -20,6 +21,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_leaching_rate,
     calculate_nitrification_moisture_factor,
     calculate_nitrification_temperature_factor,
+    calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
 )
 
@@ -42,7 +44,7 @@ class MicrobialChanges:
     Units of [kg N m^-3 day^-1]."""
 
     ammonium_change: NDArray[np.float32]
-    """Total change in the ammonium pool due to microbial activity [kg P m^-3 day^-1].
+    """Total change in the ammonium pool due to microbial activity [kg N m^-3 day^-1].
     
     This change arises from the balance of immobilisation and mineralisation of
     ammonium. A positive value indicates a net immobilisation (uptake) of ammonium."""
@@ -227,10 +229,10 @@ class PoolData:
     """
 
     soil_n_pool_ammonium: NDArray[np.float32]
-    """Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
+    r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
 
     soil_n_pool_nitrate: NDArray[np.float32]
-    """Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
+    r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
 
     soil_p_pool_dop: NDArray[np.float32]
     """Organic phosphorus content of the low molecular weight carbon pool [kg P m^-3].
@@ -485,6 +487,21 @@ class SoilPools:
             * self.pools.soil_n_pool_ammonium
         )
 
+        # Calculate rate at which nitrogen is fixed
+        symbiotic_nitrogen_fixation = calculate_symbiotic_nitrogen_fixation(
+            carbon_supply=self.data["nitrogen_fixation_carbon_supply"].to_numpy(),
+            soil_temp=soil_temperature,
+            active_depth=self.max_depth_of_microbial_activity,
+            constants=self.constants,
+        )
+        free_living_nitrogen_fixation = calculate_free_living_nitrogen_fixation(
+            soil_temp=soil_temperature,
+            fixation_at_reference=self.constants.free_living_N_fixation_reference_rate,
+            reference_temperature=self.constants.free_living_N_fixation_reference_temp,
+            q10_nitrogen_fixation=self.constants.free_living_N_fixation_q10_coefficent,
+            active_depth=self.max_depth_of_microbial_activity,
+        )
+
         primary_phosphorus_breakdown = (
             self.constants.primary_phosphorus_breakdown_rate
             * self.pools.soil_p_pool_primary
@@ -560,6 +577,8 @@ class SoilPools:
         delta_pools_ordered["soil_n_pool_ammonium"] = (
             ammonium_deposition
             + litter_mineralisation_flux.ammonium
+            + symbiotic_nitrogen_fixation
+            + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
@@ -1649,6 +1668,89 @@ def calculate_rate_of_denitrification(
         * temp_factor
         * moisture_factor
         * soil_n_pool_nitrate
+    )
+
+
+def calculate_symbiotic_nitrogen_fixation(
+    carbon_supply: NDArray[np.float32],
+    soil_temp: NDArray[np.float32],
+    active_depth: float,
+    constants: SoilConsts,
+) -> NDArray[np.float32]:
+    """Calculate rate of nitrogen fixation by plant symbionts.
+
+    The nitrogen is considered to be fixed solely in the form of ammonium. This function
+    also converts from the per area units the carbon supply (coming from the plant)
+    model is defined in, to the per volume units used by the soil model.
+
+    Args:
+        carbon_supply: The rate at which carbon is supplied to symbiotic partners by
+            plants for the purpose of nitrogen fixation [kg C m^-2 day^-1]
+        soil_temp: Temperature of the relevant soil zone [C]
+        active_depth: The depth to which the soil is considered to be biologically
+            active [m]
+        constants: Set of constants for the soil model.
+
+    Returns:
+        The rate at which nitrogen is fixed by plant associated microbial symbionts [kg
+        N m^-3 day^-1]
+    """
+
+    fixation_carbon_cost = calculate_symbiotic_nitrogen_fixation_carbon_cost(
+        soil_temp=soil_temp,
+        cost_at_zero_celsius=constants.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=constants.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=constants.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=constants.nitrogen_fixation_cost_equality_temperature,
+    )
+
+    carbon_supply_per_volume = carbon_supply / active_depth
+
+    return carbon_supply_per_volume / fixation_carbon_cost
+
+
+def calculate_free_living_nitrogen_fixation(
+    soil_temp: NDArray[np.float32],
+    fixation_at_reference: float,
+    reference_temperature: float,
+    q10_nitrogen_fixation: float,
+    active_depth: float,
+) -> NDArray[np.float32]:
+    """Calculate rate of nitrogen fixation by free living microbes.
+
+    These are microbes not in a symbiotic association with plants. They are considered
+    to fix nitrogen solely in the form of ammonium. The functional form used is taken
+    from :cite:t:`lin_modelling_2000`.
+
+    TODO: At the moment this function takes in soil temperatures in Celsius and
+    converts them to Kelvin, this should be reviewed as part of the soil-abiotic links
+    review.
+
+    Args:
+        soil_temp: Temperature of the relevant soil zone [C]
+        fixation_at_reference: Rate of nitrogen fixation at the reference temperature
+            [kg N m^-2 day^-1]
+        reference_temperature: Reference temperature [K]
+        q10_nitrogen_fixation: Q10 temperature coefficient for free-living nitrogen
+            fixation [unitless]
+        active_depth: The depth to which the soil is considered to be biologically
+            active [m]
+
+    Returns:
+        The rate at which nitrogen is fixed by free living (i.e. non-symbiotic) microbes
+        [kg N m^-3 day^-1]
+    """
+
+    soil_temp_in_kelvin = convert_temperature(
+        soil_temp, old_scale="Celsius", new_scale="Kelvin"
+    )
+
+    # Convert the fixation rate from per area to per volume units based on the active
+    # soil depth
+    fixation_at_reference_volume = fixation_at_reference / active_depth
+
+    return fixation_at_reference_volume * q10_nitrogen_fixation ** (
+        (soil_temp_in_kelvin - reference_temperature) / 10.0
     )
 
 

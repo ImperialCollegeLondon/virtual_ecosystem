@@ -93,7 +93,7 @@ def test_calculate_canopies(
     from pyrealm.demography.canopy import Canopy
 
     from virtual_ecosystem.models.plants.canopy import calculate_canopies
-    from virtual_ecosystem.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     communities = PlantCommunities(
         data=plants_data, flora=flora, grid=fixture_core_components.grid
