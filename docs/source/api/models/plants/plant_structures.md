@@ -42,10 +42,10 @@ This page documents three submodules of the `plants` module:
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.community` module
+## The plants {mod}`~virtual_ecosystem.models.plants.communities` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.community
+.. automodule:: virtual_ecosystem.models.plants.communities
     :autosummary:
     :members:
 ```

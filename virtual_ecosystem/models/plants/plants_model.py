@@ -25,7 +25,7 @@ from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
 )
-from virtual_ecosystem.models.plants.community import PlantCommunities
+from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
@@ -117,7 +117,7 @@ class PlantsModel(
     * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in metres.
 
     These data are used to setup the plant communities within each grid cell, using the
-    :class:`~virtual_ecosystem.models.plants.community.PlantCommunities` class to
+    :class:`~virtual_ecosystem.models.plants.communities.PlantCommunities` class to
     maintain a lookup dictionary of communities by grid cell.
 
     The model setup then initialises the canopy layer data within the

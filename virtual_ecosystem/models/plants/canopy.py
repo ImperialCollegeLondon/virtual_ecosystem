@@ -13,7 +13,7 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.plants.community import PlantCommunities
+from virtual_ecosystem.models.plants.communities import PlantCommunities
 
 
 def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Data:

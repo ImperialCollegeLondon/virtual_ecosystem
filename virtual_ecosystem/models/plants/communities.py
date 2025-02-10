@@ -1,8 +1,13 @@
-"""The :mod:`~virtual_ecosystem.models.plants.community` submodule contains
-functionality to generate a dictionary of
-:class:`~pyrealm.demography.community.Community` instances for each grid cell, populated
-with size-structured :class:`~pyrealm.demography.community.Cohorts` instances from
-initial plant cohort inventories for a simulation.
+"""The :mod:`~virtual_ecosystem.models.plants.communities` submodule  provides the
+:class:`~virtual_ecosystem.models.plants.communities.PlantCommunities` class. This
+provides a dictionary mapping each grid cell id to the  plant community growing within
+the cell.
+
+There is a one-to-one mapping of grid cells to plant communities, with the individual
+community for a grid cell being represented as a
+:class:`pyrealm.demography.community.Community` instance. The community is then made up
+of size-structured plant cohorts using :class:`pyrealm.demography.community.Cohorts`
+instances.
 """  # noqa: D205
 
 from collections.abc import Mapping
@@ -17,16 +22,25 @@ from virtual_ecosystem.core.utils import split_arrays_by_grouping_variable
 
 
 class PlantCommunities(dict, Mapping[int, Community]):
-    """A dictionary of plant cohorts keyed by grid cell id.
+    """Records the plant community with each grid cell across a simulation.
 
-    An instance of this class is initialised from a
-    :class:`~virtual_ecosystem.core.data.Data` object that must contain the variables
-    ``plant_cohorts_cell_id``, ``plant_cohorts_pft``, ``plant_cohorts_n`` and
-    ``plant_cohorts_dbh``. These are required to be equal length, one-dimensional arrays
-    that provide the data to initialise each plant cohort. The data are validated and
-    then compiled into lists of cohorts keyed by grid cell id. The class provides a
-    __getitem__ method to allow the list of cohorts for a grid cell to be accessed using
-    ``plants_inst[cell_id]``.
+    A ``PlantCommunities`` instance provides a dictionary mapping each grid cell onto a
+    single :class:`pyrealm.demography.community.Community` instance, containing a set of
+    :class:`pyrealm.demography.community.Cohorts` instances.
+
+    A class instance must be initialised using a
+    :class:`~virtual_ecosystem.core.data.Data` object containing the data required to
+    define those cohort instances. The required variables are:
+
+    * ``plant_cohorts_cell_id``,
+    * ``plant_cohorts_pft``,
+    * ``plant_cohorts_n``, and
+    * ``plant_cohorts_dbh``.
+
+    These variables must be equal length, one-dimensional arrays. The data are validated
+    and then compiled into lists of cohorts keyed by grid cell id. The class is a
+    subclass of dictionary, so has the ``__get_item__`` method, allowing access to the
+    community for a given cell id using ``plants_inst[cell_id]``.
 
     Args:
         data: A data instance containing the required plant cohort data.

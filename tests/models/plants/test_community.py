@@ -121,7 +121,7 @@ def test_PlantCommunities__init__(caplog, flora, vars, raises, exp_log, exp_n_co
 
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.plants.community import PlantCommunities
+    from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     data = Data(grid=Grid(cell_ny=2, cell_nx=2))
 
