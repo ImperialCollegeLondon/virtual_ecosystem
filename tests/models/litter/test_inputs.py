@@ -1,5 +1,6 @@
 """Test module for models.litter.inputs.py."""
 
+from contextlib import nullcontext as does_not_raise
 from logging import ERROR
 
 import numpy as np
@@ -205,6 +206,80 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
             split_sensitivity_nitrogen=LitterConsts.metabolic_split_nitrogen_sensitivity,
             split_sensitivity_phosphorus=LitterConsts.metabolic_split_phosphorus_sensitivity,
         )
+
+    # Check the error reports
+    log_check(caplog, expected_log)
+
+
+@pytest.mark.parametrize(
+    argnames=[
+        "raises",
+        "turnover_chemical_proportion",
+        "herbivory_chemical_proportion",
+        "expected_proportions",
+        "expected_log",
+    ],
+    argvalues=[
+        pytest.param(
+            does_not_raise(),
+            np.array([0.05, 0.25, 0.3, 0.57]),
+            np.array([0.13, 0.08, 0.27, 0.22]),
+            [0.05008879, 0.10125, 0.29641509, 0.53971154],
+            (),
+            id="fine values",
+        ),
+        pytest.param(
+            pytest.raises(ValueError),
+            np.array([0.05, 0.25, np.inf, 0.57]),
+            np.array([0.13, 0.08, 0.27, 0.22]),
+            [],
+            (
+                (
+                    ERROR,
+                    "Litter input from plant turnover contains an infinite chemical "
+                    "proportion!",
+                ),
+            ),
+            id="infinite turnover proportion",
+        ),
+        pytest.param(
+            pytest.raises(ValueError),
+            np.array([0.05, 0.25, 0.3, 0.57]),
+            np.array([np.inf, 0.08, 0.27, 0.22]),
+            [],
+            (
+                (
+                    ERROR,
+                    "Litter input from animal herbivory waste contains an infinite "
+                    "chemical proportion!",
+                ),
+            ),
+            id="infinite herbivory waste proportion",
+        ),
+    ],
+)
+def test_merge_input_chemical_proportions(
+    dummy_litter_data,
+    caplog,
+    raises,
+    turnover_chemical_proportion,
+    herbivory_chemical_proportion,
+    expected_proportions,
+    expected_log,
+):
+    """Test that function to merge chemical proportions works as expected."""
+    from virtual_ecosystem.models.litter.inputs import merge_input_chemical_proportions
+
+    with raises:
+        actual_proportions = merge_input_chemical_proportions(
+            turnover_mass=dummy_litter_data["leaf_turnover"],
+            herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_carbon"],
+            total_mass=dummy_litter_data["leaf_turnover"]
+            + dummy_litter_data["herbivory_waste_leaf_carbon"],
+            turnover_chemical_proportion=turnover_chemical_proportion,
+            herbivory_waste_chemical_proportion=herbivory_chemical_proportion,
+        )
+        assert np.allclose(actual_proportions, expected_proportions)
 
     # Check the error reports
     log_check(caplog, expected_log)
