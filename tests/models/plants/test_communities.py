@@ -20,7 +20,7 @@ from tests.conftest import log_check
                 (
                     CRITICAL,
                     "Cannot initialise plant communities. Missing variables: "
-                    "plant_cohorts_pft, plant_cohorts_cell_id, plant_cohorts_dbh",
+                    "plant_cohorts_cell_id, plant_cohorts_dbh, plant_cohorts_pft",
                 ),
             ),
             None,
@@ -56,8 +56,8 @@ from tests.conftest import log_check
                 (
                     CRITICAL,
                     "Cannot initialise plant communities. Variables not one "
-                    "dimensional: plant_cohorts_n, plant_cohorts_pft, "
-                    "plant_cohorts_cell_id, plant_cohorts_dbh",
+                    "dimensional: plant_cohorts_cell_id, plant_cohorts_dbh, "
+                    "plant_cohorts_n, plant_cohorts_pft",
                 ),
             ),
             None,

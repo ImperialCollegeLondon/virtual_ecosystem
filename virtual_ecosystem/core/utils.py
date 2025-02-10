@@ -62,38 +62,98 @@ def check_outfile(merge_file_path: Path) -> None:
     return None
 
 
+def confirm_variables_form_data_frame(var_arrays: dict[str, NDArray]) -> None:
+    """Check a list of arrays form a data frame.
+
+    This is a utility method to check if a set of arrays form a data frame: a set of
+    equal length, one dimensional arrays, providing consistent tuples of values across
+    the variables.
+
+    .. note::
+
+        This function and
+        :meth:`~virtual_ecosystem.core.utils.split_arrays_by_grouping_variable` could
+        be methods of the
+        :class:`~virtual_ecosystem.core.data.Data` class, but then would only be
+        usable for arrays stored within a ``Data`` instance. At present, they are
+        provided within the :mod:`~virtual_ecosystem.core.utils` module so that they can
+        be used independently.
+
+    Args:
+        var_arrays: A dictionary of arrays keyed by variable name.
+
+    Raises:
+        ValueError: The input values do not form a data frame.
+    """
+
+    # All vars one dimensional
+    data_not_one_d = [ky for ky, val in var_arrays.items() if val.ndim > 1]
+    if data_not_one_d:
+        raise ValueError(
+            f"Variables not one dimensional: {', '.join(sorted(data_not_one_d))}"
+        )
+
+    # All vars equal sized
+    shapes = sorted(set(str(val.shape[0]) for val in var_arrays.values()))
+    if len(shapes) != 1:
+        raise ValueError(f"Variables of unequal length: {', '.join(shapes)}")
+
+
 def split_arrays_by_grouping_variable(
-    arrays: list[NDArray], group_by: NDArray
-) -> dict[Any, list[NDArray]]:
-    """Split equal length arrays by a grouping variable.
+    var_arrays: dict[str, NDArray], group_by: str
+) -> dict[Any, dict[str, NDArray]]:
+    """Split a data frame by a grouping variable.
 
     This function takes a set of one dimensional arrays of equal length - forming a data
     frame - and splits the values into lists of subarrays by a grouping variable. It
     sorts the arrays by the grouping variable before splitting the data.
 
+    .. note::
+
+        This function and
+        :meth:`~virtual_ecosystem.core.utils.confirm_variables_form_data_frame` could
+        be methods of the
+        :class:`~virtual_ecosystem.core.data.Data` class, but then would only be
+        usable for arrays stored within a ``Data`` instance. At present, they are
+        provided within the :mod:`~virtual_ecosystem.core.utils` module so that they can
+        be used independently.
+
     Args:
-        arrays: A list of equal length, one dimensional arrays to be split.
-        group_by: A grouping variable to be used to split the arrays.
+        var_arrays: A dictionary of arrays keyed by variable name.
+        group_by: The variable name to be used to split the arrays.
 
     Returns:
         A dictionary of lists of subarrays for each group, keyed by unique values in the
         grouping variable.
     """
 
+    # Validate the inputs form a data frame and that the grouping variable is provided
+    try:
+        confirm_variables_form_data_frame(var_arrays=var_arrays)
+    except ValueError:
+        raise
+
+    if group_by not in var_arrays:
+        raise ValueError(
+            f"Grouping variable {group_by} not found in: {', '.join(var_arrays)}"
+        )
+    group_var = var_arrays.pop(group_by)
+
     # Get a sort order for the arrays based on the split_on variable
-    sort_order = np.argsort(group_by)
+    sort_order = np.argsort(group_var)
 
     # Apply that sort order to all the arrays
-    arrays = [arr[sort_order] for arr in arrays]
+    var_arrays = {ky: arr[sort_order] for ky, arr in var_arrays.items()}
 
-    # Get the indices where the group_by array changes and then split
-    split_at = np.where(np.diff(group_by[sort_order]) > 0)[0] + 1
+    # Get the indices where the grouping array changes and the grouping variable value
+    split_at = np.where(np.diff(group_var[sort_order]) > 0)[0] + 1
+    group_values = group_var[sort_order][np.insert(split_at, 0, 0)]
 
-    # Split the arrays and then package them by the grouping values
-    split_arrays = [np.split(arr, split_at) for arr in arrays]
-    group_value = group_by[sort_order][np.insert(split_at, 0, 0)]
-    arrays_by_split_var = zip(*split_arrays)
+    split_data: dict[Any, dict[str, NDArray]] = {ky: dict() for ky in group_values}
 
-    return {
-        gp.item(): arr_list for gp, arr_list in zip(group_value, arrays_by_split_var)
-    }
+    for var_name, values in var_arrays.items():
+        split_values = np.split(values, split_at)
+        for group_id, group_vals in zip(group_values, split_values):
+            split_data[group_id][var_name] = group_vals
+
+    return split_data

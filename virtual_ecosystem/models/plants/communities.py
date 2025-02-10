@@ -42,6 +42,12 @@ class PlantCommunities(dict, Mapping[int, Community]):
     subclass of dictionary, so has the ``__get_item__`` method, allowing access to the
     community for a given cell id using ``plants_inst[cell_id]``.
 
+    .. todo::
+
+        This function will need updating if the grid cell area implementation is changed
+        to allow variable cell area .
+
+
     Args:
         data: A data instance containing the required plant cohort data.
         flora: A flora containing the plant functional types used in the cohorts.
@@ -58,22 +64,38 @@ class PlantCommunities(dict, Mapping[int, Community]):
         """
 
         # Validate the data being used to generate the Plants object form a dataframe
-        cohort_data_vars = [
+        cohort_data_vars = {
             "plant_cohorts_n",
             "plant_cohorts_pft",
             "plant_cohorts_cell_id",
             "plant_cohorts_dbh",
-        ]
+        }
+        missing_vars = cohort_data_vars.difference(data.data.keys())
 
-        is_df, msg = data.confirm_variables_form_data_frame(cohort_data_vars)
+        if missing_vars:
+            msg = (
+                f"Cannot initialise plant communities. Missing "
+                f"variables: {', '.join(sorted(list(missing_vars)))}"
+            )
+            LOGGER.critical(msg)
+            raise ValueError(msg)
 
-        if not is_df:
-            msg = "Cannot initialise plant communities. " + msg
+        # Split data into cell ids:
+        var_arrays = {ky: data[ky].to_numpy() for ky in cohort_data_vars}
+        try:
+            cohort_data_by_cell_id = split_arrays_by_grouping_variable(
+                var_arrays=var_arrays,
+                group_by="plant_cohorts_cell_id",
+            )
+        except ValueError as excep:
+            msg = "Cannot initialise plant communities. " + str(excep)
             LOGGER.critical(msg)
             raise ValueError(msg)
 
         # Check the grid cell id and pft values are all known
-        bad_cid = set(data["plant_cohorts_cell_id"].data).difference(data.grid.cell_id)
+        bad_cid = set(data["plant_cohorts_cell_id"].to_numpy()).difference(
+            data.grid.cell_id
+        )
         if bad_cid:
             msg = (
                 f"Plant cohort cell ids not in grid cell "
@@ -88,27 +110,16 @@ class PlantCommunities(dict, Mapping[int, Community]):
             LOGGER.critical(msg)
             raise ValueError(msg)
 
-        # Split data into cell ids:
-        cohort_data_by_cell_id = split_arrays_by_grouping_variable(
-            arrays=[
-                data["plant_cohorts_n"].to_numpy(),
-                data["plant_cohorts_pft"].to_numpy(),
-                data["plant_cohorts_dbh"].to_numpy(),
-            ],
-            group_by=data["plant_cohorts_cell_id"].to_numpy(),
-        )
-
         # Now build the pyrealm community objects for each cell
-        # TODO - note that this needs fixing if cell area is not constant.
         for cell_id, cell_cohort_data in cohort_data_by_cell_id.items():
-            self[cell_id] = Community(
-                cell_id=cell_id,
-                cell_area=grid.cell_area,
+            self[int(cell_id)] = Community(
+                cell_id=int(cell_id),
+                cell_area=grid.cell_area,  # Note this is constant
                 flora=flora,
                 cohorts=Cohorts(
-                    n_individuals=cell_cohort_data[0],
-                    pft_names=cell_cohort_data[1],
-                    dbh_values=cell_cohort_data[2],
+                    n_individuals=cell_cohort_data["plant_cohorts_n"],
+                    pft_names=cell_cohort_data["plant_cohorts_pft"],
+                    dbh_values=cell_cohort_data["plant_cohorts_dbh"],
                 ),
             )
 
