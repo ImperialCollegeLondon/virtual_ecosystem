@@ -164,20 +164,27 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
 def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
     """Test the allocate_gpp method."""
 
+    # Provide GPP values
     fxt_plants_model.stem_gpp = {
         cell_id: np.array([55]) for cell_id in fxt_plants_model.communities.keys()
     }
+    # Store previous dbh values
+    prev_dbh_values = {
+        cell_id: fxt_plants_model.communities[cell_id].cohorts.dbh_values.copy()
+        for cell_id in fxt_plants_model.communities.keys()
+    }
+
     # Allocate GPP
     fxt_plants_model.allocate_gpp()
 
-    for community in fxt_plants_model.communities.values():
-        # .. TODO: not sure what to test here? Main thing it does is change the
-        # dbh value, so maybe check that it has grown?
-        assert (community.cohorts.dbh_values > 0).all()
-
-    # Check that leaf_turnover and root_turnover are correctly calculated
     for cell_id in fxt_plants_model.communities.keys():
-        # .. TODO: same as above, this is a bit logic-less
+        # TODO: eventually have tests with more meaningful values
+        # Check that dbh is >= previous dbh (plants should not shrink!)
+        assert (
+            fxt_plants_model.communities[cell_id].cohorts.dbh_values
+            >= prev_dbh_values[cell_id]
+        ).all()
+        # Ensure that leaf and root turnover exist and are > 0
         assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
 

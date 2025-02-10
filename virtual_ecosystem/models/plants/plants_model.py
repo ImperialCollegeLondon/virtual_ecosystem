@@ -556,27 +556,27 @@ class PlantsModel(
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
 
-        This method will use the T Model to estimate the allocation of plant gross
+        This method uses the T Model to estimate the allocation of plant gross
         primary productivity to respiration, growth, maintenance and turnover costs.
         The method then simulates growth by increasing dbh and calculates leaf and root
         turnover values.
         """
 
-        # .. TODO: Move this functionality elsewhere / where are data vars initialised?
-        # For now, this should work because it is not cumulative so resetting each run
-        # is fine.
+        # Reset turnover to 0 as turnover from previous steps should have been allocated
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
 
-        # Loop over each cell
+        # Loop over each grid cell
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
+            # Calculate stem allometry for all cohorts in the grid cell
             cohort_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
 
+            # Calculate the allocation of GPP
             cohort_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=cohort_allometry,
@@ -584,11 +584,11 @@ class PlantsModel(
             )
 
             # Grow the plants by increasing cohort dbh
-            cohorts.dbh_values += cohort_allocation.delta_dbh[0]
+            cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
 
-            # .. TODO: move leaf/root turnover calculation to pyrealm & call here
+            # TODO: move leaf/root turnover calculation to pyrealm & call here
             leaf_turnover = cohort_allometry.foliage_mass / community.stem_traits.tau_f
-            # Turnover is provided as a total for all cohorts in the entire cell
+            # Calculate total turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(leaf_turnover)
             self.data["root_turnover"][cell_id] = np.sum(
                 cohort_allocation.turnover - leaf_turnover
