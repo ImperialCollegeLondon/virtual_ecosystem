@@ -168,7 +168,7 @@ egestas.
 :margin: 2 2 0 0
 :link:
 
-```{image} _static/images/people/sally_matson.jpg
+```{image} _static/images/people/sally_matson.png
 :alt: Sally Matson
 :class: team-photo
 ```
