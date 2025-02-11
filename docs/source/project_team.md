@@ -164,6 +164,20 @@ montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius him
 egestas.
 :::
 
+:::{grid-item-card} Sally Matson
+:margin: 2 2 0 0
+:link:
+
+```{image} _static/images/people/sally_matson.jpg
+:alt: Sally Matson
+:class: team-photo
+```
+
+Sally is a software engineer with an academic background that includes climate science
+and climate change. As a programmer working on the Virtual Ecosystem, she contributes to
+both the core strucutre and science models.
+:::
+
 ::::
 
 ## Model parameterisation and data science
