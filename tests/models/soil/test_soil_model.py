@@ -299,13 +299,13 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.10713339, 0.04665748, 0.2169521, 0.0198543], dims="cell_id"
+                        [0.10714899, 0.04687765, 0.21697935, 0.01985447], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
                     ),
                     soil_c_pool_microbe=DataArray(
-                        [5.77303027, 2.2888041, 11.24109943, 0.9964216],
+                        [5.77301132, 2.28872611, 11.24101287, 0.99642308],
                         dims="cell_id",
                     ),
                     soil_c_pool_pom=DataArray(
@@ -321,7 +321,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00136267, 0.00343679, 0.00275358, 0.00390604], dims="cell_id"
+                        [0.00136286, 0.00345323, 0.00275385, 0.00390608], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
                         [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
@@ -333,14 +333,15 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00053462, 0.01497485, 0.00043741, 0.00538484],
+                        [0.00043285, 0.01492311, 0.00041098, 0.00518662],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00189599, 0.00383864, 0.00031224, 0.01290542], dims="cell_id"
+                        [0.00056445, 0.00201929, -0.00015952, 0.01270619],
+                        dims="cell_id",
                     ),
                     soil_p_pool_dop=DataArray(
-                        [1.68926495e-4, 9.09105690e-5, 3.17059533e-4, 1.66120095e-4],
+                        [1.68943459e-4, 9.12472720e-5, 3.17089050e-4, 1.66121801e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_particulate=DataArray(
@@ -360,7 +361,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [8.31459749e-7, 1.87685255e-5, 1.38346316e-5, 1.93599936e-4],
+                        [-4.83245627e-6, -7.7008184e-5, 1.03175587e-5, 1.91604386e-4],
                         dims="cell_id",
                     ),
                 )
@@ -446,6 +447,9 @@ def test_order_independance(
         "litter_P_mineralisation_rate",
         "nitrogen_fixation_carbon_supply",
         "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -529,14 +533,14 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.01179891,
         0.01365197,
         0.0077315,
-        0.000952008,
-        0.019913667,
-        0.000505414,
-        0.000455603,
-        -0.000293386,
-        -1.292735e-5,
-        -3.576543e-5,
-        -0.000255954,
+        0.000752008,
+        0.019813667,
+        0.000465414,
+        5.5603e-5,
+        -0.003293386,
+        -0.004012927,
+        -0.001035765,
+        -0.000655954,
         0.000194453,
         7.1014337e-5,
         0.0001851685,
@@ -561,10 +565,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -2.77311e-6,
         -7.40324e-7,
         -2.187697e-7,
-        -3.772779e-6,
-        -1.947773e-5,
-        -7.260241e-5,
-        -1.591909e-7,
+        -1.577278e-5,
+        -0.0002194777,
+        -8.060241e-5,
+        -4.159191e-6,
     ]
 
     # make pools

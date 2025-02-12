@@ -572,6 +572,7 @@ class SoilPools:
             + symbiotic_nitrogen_fixation
             + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
+            - self.to_per_volume(self.data["plant_ammonium_uptake"].to_numpy())
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
             - nitrification_rate
@@ -580,6 +581,7 @@ class SoilPools:
             nitrification_rate
             - denitrification_rate
             - microbial_changes.nitrate_change
+            - self.to_per_volume(self.data["plant_nitrate_uptake"].to_numpy())
             - nutrient_leaching.nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
@@ -612,6 +614,7 @@ class SoilPools:
             + self.to_per_volume(self.constants.phosphorus_deposition_rate)
             + primary_phosphorus_breakdown
             - microbial_changes.labile_p_change
+            - self.to_per_volume(self.data["plant_phosphorus_uptake"].to_numpy())
             - net_formation_secondary_P
             - nutrient_leaching.labile_P
         )
