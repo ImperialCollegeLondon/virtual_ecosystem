@@ -482,9 +482,11 @@ class SoilPools:
         )
 
         # Calculate rate at which ammonium volatilises as ammonia
-        ammonia_volatilisation_rate = (
+        ammonia_volatilisation_rate = np.where(
+            self.pools.soil_n_pool_ammonium >= 0.0,
             self.constants.ammonia_volatilisation_rate_constant
-            * self.pools.soil_n_pool_ammonium
+            * self.pools.soil_n_pool_ammonium,
+            0.0,
         )
 
         # Calculate rate at which nitrogen is fixed
