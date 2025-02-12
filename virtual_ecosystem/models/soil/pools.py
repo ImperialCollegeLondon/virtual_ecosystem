@@ -1784,7 +1784,9 @@ def calculate_net_formation_of_secondary_P(
         phosphorus (this can be negative) [kg P m^-3 day^-1]
     """
 
-    association_rate = labile_p_sorption_rate * soil_p_pool_labile
+    association_rate = np.where(
+        soil_p_pool_labile >= 0.0, labile_p_sorption_rate * soil_p_pool_labile, 0.0
+    )
     breakdown_rate = secondary_p_breakdown_rate * soil_p_pool_secondary
 
     return association_rate - breakdown_rate
