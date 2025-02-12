@@ -1667,11 +1667,13 @@ def calculate_rate_of_denitrification(
     )
     moisture_factor = effective_saturation**2
 
-    return (
+    return np.where(
+        soil_n_pool_nitrate >= 0.0,
         constants.denitrification_rate_constant
         * temp_factor
         * moisture_factor
-        * soil_n_pool_nitrate
+        * soil_n_pool_nitrate,
+        0.0,
     )
 
 

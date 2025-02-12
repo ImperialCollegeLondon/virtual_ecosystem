@@ -747,6 +747,39 @@ def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_compo
     assert np.allclose(actual_rate, expected_rate)
 
 
+def test_negative_denitrification_rate_impossible(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test that negative denitrification rates can't occur."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_rate_of_denitrification
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * CoreConsts.soil_moisture_capacity
+    )
+    nitrate_data = dummy_carbon_data["soil_n_pool_nitrate"]
+    nitrate_data[1] = -0.0001
+    nitrate_data[2] = -7e-4
+
+    expected_rate = [2.89449367e-4, 0.0, 0.0, 9.71117584e-5]
+
+    actual_rate = calculate_rate_of_denitrification(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        effective_saturation=effective_saturation,
+        soil_n_pool_nitrate=nitrate_data,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
+
+
 def test_calculate_symbiotic_nitrogen_fixation(
     dummy_carbon_data, fixture_core_components
 ):
