@@ -686,6 +686,39 @@ def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_compone
     assert np.allclose(actual_rate, expected_rate)
 
 
+def test_negative_nitrification_rate_impossible(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test that negative nitrification rates can't occur."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * CoreConsts.soil_moisture_capacity
+    )
+    ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
+    ammonium_data[0] = -0.0001
+    ammonium_data[3] = -3e-4
+
+    expected_rate = [0.0, 0.000423915, 1.557907e-5, 0.0]
+
+    actual_rate = calculate_rate_of_nitrification(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        effective_saturation=effective_saturation,
+        soil_n_pool_ammonium=ammonium_data,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
+
+
 def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_components):
     """Test that calculation of the rate of denitrification is correct."""
     from virtual_ecosystem.core.constants import CoreConsts

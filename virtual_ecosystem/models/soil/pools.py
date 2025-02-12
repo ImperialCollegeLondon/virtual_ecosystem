@@ -1627,11 +1627,13 @@ def calculate_rate_of_nitrification(
         effective_saturation=effective_saturation
     )
 
-    return (
+    return np.where(
+        soil_n_pool_ammonium >= 0.0,
         constants.nitrification_rate_constant
         * temp_factor
         * moisture_factor
-        * soil_n_pool_ammonium
+        * soil_n_pool_ammonium,
+        0.0,
     )
 
 
