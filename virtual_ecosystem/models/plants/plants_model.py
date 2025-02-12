@@ -74,6 +74,7 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -94,6 +95,7 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
     ),
 ):
     """A class defining the plants model.
@@ -470,7 +472,8 @@ class PlantsModel(
         leaves, roots, and reproductive tissues). As well as this the lignin
         concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
         turnover flow is calculated. It also returns the rate at which plants supply
-        carbon to their nitrogen fixing symbionts in the soil.
+        carbon to their nitrogen fixing symbionts in the soil and the rate at which they
+        exude carbohydrates into the soil more generally.
 
         Warning:
             At present, this function literally just returns constant values for each of
@@ -510,7 +513,9 @@ class PlantsModel(
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], 656.7
         )
-
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
+        )
+        self.data["root_carbohydrate_exudation"] = xr.full_like(
+            self.data["elevation"], 0.025
         )

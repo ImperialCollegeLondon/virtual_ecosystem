@@ -299,7 +299,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.05713222, 0.02665739, 0.11689175, 0.01486035], dims="cell_id"
+                        [0.10713339, 0.04665748, 0.2169521, 0.0198543], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
@@ -321,7 +321,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00135906, 0.00340964, 0.00273513, 0.00390386], dims="cell_id"
+                        [0.00136267, 0.00343679, 0.00275358, 0.00390604], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
                         [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
@@ -333,14 +333,14 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.0005364, 0.01499882, 0.00044842, 0.00538707],
+                        [0.00053462, 0.01497485, 0.00043741, 0.00538484],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00189682, 0.0038413, 0.00031329, 0.01290568], dims="cell_id"
+                        [0.00189599, 0.00383864, 0.00031224, 0.01290542], dims="cell_id"
                     ),
                     soil_p_pool_dop=DataArray(
-                        [1.68559250e-4, 9.03050817e-5, 3.15038568e-4, 1.66029558e-4],
+                        [1.68926495e-4, 9.09105690e-5, 3.17059533e-4, 1.66120095e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_particulate=DataArray(
@@ -360,7 +360,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [8.87006017e-7, 1.92559822e-5, 1.37908411e-5, 1.93794964e-4],
+                        [8.31459749e-7, 1.87685255e-5, 1.38346316e-5, 1.93599936e-4],
                         dims="cell_id",
                     ),
                 )
@@ -445,6 +445,7 @@ def test_order_independance(
         "litter_N_mineralisation_rate",
         "litter_P_mineralisation_rate",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -484,10 +485,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     )
 
     delta_pools = [
-        0.014984117633,
-        0.0133384581,
-        0.03449812333,
-        0.02425546,
+        0.114984117633,
+        0.0533384581,
+        0.23449812333,
+        0.03425546,
         0.038767651,
         0.00829848,
         0.05982197,

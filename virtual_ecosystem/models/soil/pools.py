@@ -424,6 +424,12 @@ class SoilPools:
             constants=self.constants,
         )
 
+        # Rate of root exudation has to be converted into per volume terms
+        root_exudates_by_volume = (
+            self.data["root_carbohydrate_exudation"]
+            / self.max_depth_of_microbial_activity
+        )
+
         # Find mineralisation rates from POM
         pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
             pool_carbon=self.pools.soil_c_pool_pom,
@@ -529,6 +535,7 @@ class SoilPools:
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_flux.lmwc
+            + root_exudates_by_volume
             + enzyme_mediated.pom_to_lmwc
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc

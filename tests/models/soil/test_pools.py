@@ -42,7 +42,7 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.014984117633, 0.0133384581, 0.03449812333, 0.02425546],
+        "soil_c_pool_lmwc": [0.114984117633, 0.0533384581, 0.23449812333, 0.03425546],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
         "soil_c_pool_microbe": [-0.054361097, -0.022606231, -0.118911406, -0.007195167],
         "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],

@@ -1049,6 +1049,14 @@ unit = "kg C m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
+axis = ["spatial"]
+description = "Rate at which plants exude carbohydrates from their roots into the soil"
+name = "root_carbohydrate_exudation"
+unit = "kg C m^-2 day^-1"
+variable_type = "float"
+
+
+[[variable]]
 axis = [] # as_yet_undefined_cohort_setup_axis
 description = "Cell ID of plant cohorts"
 name = "plant_cohorts_cell_id"
