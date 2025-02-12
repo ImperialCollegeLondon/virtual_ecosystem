@@ -166,7 +166,6 @@ egestas.
 
 :::{grid-item-card} Sally Matson
 :margin: 2 2 0 0
-:link:
 
 ```{image} _static/images/people/sally_matson.png
 :alt: Sally Matson
