@@ -588,8 +588,9 @@ class PlantsModel(
                 at_potential_gpp=self.stem_gpp[cell_id],
             )
 
-            # Grow the plants by increasing cohort dbh
+            # Grow the plants by increasing cohort dbh and update communtiy allometry
             cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
+            community.stem_allometry = cohort_allometry
 
             # TODO: move leaf/root turnover calculation to pyrealm & call here
             leaf_turnover = cohort_allometry.foliage_mass / community.stem_traits.tau_f
