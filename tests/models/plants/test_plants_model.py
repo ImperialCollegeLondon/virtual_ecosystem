@@ -209,7 +209,7 @@ def test_PlantsModel_update(
             assert np.allclose(cohort.dbh, 0.13)
 
 
-def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_components):
+def test_PlantsModel_calculate_turnover(fxt_plants_model):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
@@ -240,3 +240,15 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_component
         fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"], 125.5
     )
     assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)
+
+
+def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
+    """Test the calculate_nutrient_uptake method of the plants model."""
+
+    # Check reset
+    fxt_plants_model.calculate_nutrient_uptake()
+
+    # Check that all expected variables are generated and have the correct value
+    assert np.allclose(fxt_plants_model.data["plant_ammonium_uptake"], 5.0e-5)
+    assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], 7.5e-4)
+    assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-6)

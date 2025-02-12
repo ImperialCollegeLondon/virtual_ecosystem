@@ -99,6 +99,9 @@ class SoilModel(
         "litter_P_mineralisation_rate",
         "nitrogen_fixation_carbon_supply",
         "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
     vars_updated=(
         "soil_c_pool_maom",
