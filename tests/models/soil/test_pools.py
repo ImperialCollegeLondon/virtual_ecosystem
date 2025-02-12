@@ -192,6 +192,41 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
             assert np.allclose(getattr(actual_leaching, attr), expected_leaching[attr])
 
 
+def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
+    """Test that negative leaching rates cannot occur."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+
+    # Add negative values to the inorganic nutrient pools
+    ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
+    ammonium_data[1] = -6.9619638e-5
+    nitrate_data = dummy_carbon_data["soil_n_pool_nitrate"]
+    nitrate_data[0] = -0.0024219014
+    labile_p_data = dummy_carbon_data["soil_p_pool_labile"]
+    labile_p_data[3] = -1.0582393e-5
+
+    expected_ammonium = [1.496453109e-9, 0.0, 2.271304008e-7, 5.461249320e-6]
+    expected_nitrate = [0.0, 1.128640314e-5, 6.798727493e-6, 0.00027625126]
+    expected_labile_P = [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0]
+
+    actual_leaching = calculate_nutrient_leaching(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_n_pool_ammonium=ammonium_data,
+        soil_n_pool_nitrate=nitrate_data,
+        soil_p_pool_labile=labile_p_data,
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_leaching.ammonium, expected_ammonium)
+    assert np.allclose(actual_leaching.nitrate, expected_nitrate)
+    assert np.allclose(actual_leaching.labile_P, expected_labile_P)
+
+
 def test_calculate_enzyme_changes(dummy_carbon_data):
     """Check that the determination of enzyme pool changes works correctly."""
 

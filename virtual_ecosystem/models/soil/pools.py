@@ -845,9 +845,11 @@ def calculate_nutrient_leaching(
         lmwc=labile_carbon_leaching,
         don=don_leaching,
         dop=dop_leaching,
-        ammonium=ammonium_leaching,
-        nitrate=nitrate_leaching,
-        labile_P=labile_phosphorus_leaching,
+        ammonium=np.where(ammonium_leaching >= 0.0, ammonium_leaching, 0.0),
+        nitrate=np.where(nitrate_leaching >= 0.0, nitrate_leaching, 0.0),
+        labile_P=np.where(
+            labile_phosphorus_leaching >= 0.0, labile_phosphorus_leaching, 0.0
+        ),
     )
 
 
