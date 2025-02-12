@@ -84,6 +84,46 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
+def test_to_per_volume(dummy_carbon_data, fixture_core_components):
+    """Test that the SoilPools.to_per_volume method converts correctly."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.pools import SoilPools
+    from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
+
+    # Find and store order of pools (this requires loads of steps because it needs to
+    # work with the integrator)
+    y0 = np.concatenate(
+        [
+            dummy_carbon_data[name].to_numpy()
+            for name in map(str, dummy_carbon_data.data.keys())
+            if name in SoilModel.vars_updated
+        ]
+    )
+    delta_pools_ordered = {
+        name: np.array([])
+        for name in map(str, dummy_carbon_data.data.keys())
+        if name in SoilModel.vars_updated
+    }
+    no_cells = 4
+    slices = make_slices(no_cells, len(delta_pools_ordered))
+    pools = {
+        str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
+    }
+    soil_pools = SoilPools(
+        data=dummy_carbon_data,
+        pools=pools,
+        constants=SoilConsts,
+        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+    )
+
+    # Test that it works for both floats and numpy arrays
+    assert np.isclose(soil_pools.to_per_volume(10.0), 40.0)
+    assert np.allclose(
+        soil_pools.to_per_volume(np.array([10.0, 25.0, 99.0, 34.7])),
+        [40.0, 100.0, 396.0, 138.8],
+    )
+
+
 def test_calculate_microbial_changes(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):

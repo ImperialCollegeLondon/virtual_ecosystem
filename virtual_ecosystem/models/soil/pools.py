@@ -424,12 +424,6 @@ class SoilPools:
             constants=self.constants,
         )
 
-        # Rate of root exudation has to be converted into per volume terms
-        root_exudates_by_volume = (
-            self.data["root_carbohydrate_exudation"]
-            / self.max_depth_of_microbial_activity
-        )
-
         # Find mineralisation rates from POM
         pom_n_mineralisation = calculate_soil_nutrient_mineralisation(
             pool_carbon=self.pools.soil_c_pool_pom,
@@ -520,22 +514,11 @@ class SoilPools:
             secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
             labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
         )
-        # Convert ammonium and phosphorus depositions from per area to per volume units,
-        # under the assumption the phosphorus just gets deposited in the very upper
-        # layer of the soil
-        ammonium_deposition = (
-            self.constants.ammonium_deposition_rate
-            / self.max_depth_of_microbial_activity
-        )
-        phosphorus_deposition = (
-            self.constants.phosphorus_deposition_rate
-            / self.max_depth_of_microbial_activity
-        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_flux.lmwc
-            + root_exudates_by_volume
+            + self.to_per_volume(self.data["root_carbohydrate_exudation"].to_numpy())
             + enzyme_mediated.pom_to_lmwc
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc
@@ -584,7 +567,7 @@ class SoilPools:
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
         delta_pools_ordered["soil_n_pool_ammonium"] = (
-            ammonium_deposition
+            self.to_per_volume(self.constants.ammonium_deposition_rate)
             + litter_mineralisation_flux.ammonium
             + symbiotic_nitrogen_fixation
             + free_living_nitrogen_fixation
@@ -626,7 +609,7 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
             litter_mineralisation_flux.labile_p
-            + phosphorus_deposition
+            + self.to_per_volume(self.constants.phosphorus_deposition_rate)
             + primary_phosphorus_breakdown
             - microbial_changes.labile_p_change
             - net_formation_secondary_P
@@ -635,6 +618,21 @@ class SoilPools:
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))
+
+    def to_per_volume(
+        self, input_rate: float | NDArray[np.float32]
+    ) -> float | NDArray[np.float32]:
+        """Method to convert an external input rate from per area to per volume units.
+
+        Args:
+            input_rate: Rate of input to convert [kg m^-2 day^-1].
+
+        Returns:
+            Input rate converted to per volume (of the microbial active layer) units [kg
+            m^-3 day^-1].
+        """
+
+        return input_rate / self.max_depth_of_microbial_activity
 
 
 def calculate_microbial_changes(
