@@ -576,24 +576,23 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate stem allometry for all cohorts in the grid cell
-            cohort_allometry = StemAllometry(
-                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
-            )
-
             # Calculate the allocation of GPP
             cohort_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
-                stem_allometry=cohort_allometry,
+                stem_allometry=community.stem_allometry,
                 at_potential_gpp=self.stem_gpp[cell_id],
             )
 
-            # Grow the plants by increasing cohort dbh and update communtiy allometry
+            # Grow the plants by increasing cohort dbh
             cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
-            community.stem_allometry = cohort_allometry
+            # Update community allometry with new dbh values
+            updated_allometry = StemAllometry(
+                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
+            )
+            community.stem_allometry = updated_allometry
 
             # TODO: move leaf/root turnover calculation to pyrealm & call here
-            leaf_turnover = cohort_allometry.foliage_mass / community.stem_traits.tau_f
+            leaf_turnover = updated_allometry.foliage_mass / community.stem_traits.tau_f
             # Calculate total turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(leaf_turnover)
             self.data["root_turnover"][cell_id] = np.sum(
