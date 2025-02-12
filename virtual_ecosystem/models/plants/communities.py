@@ -32,10 +32,10 @@ class PlantCommunities(dict, Mapping[int, Community]):
     :class:`~virtual_ecosystem.core.data.Data` object containing the data required to
     define those cohort instances. The required variables are:
 
-    * ``plant_cohorts_cell_id``,
-    * ``plant_cohorts_pft``,
-    * ``plant_cohorts_n``, and
-    * ``plant_cohorts_dbh``.
+    * the cell id in which a cohort is located (``plant_cohorts_cell_id``),
+    * the plant functional type of the cohort (``plant_cohorts_pft``),
+    * the number of individuals within the cohort (``plant_cohorts_n``), and
+    * the diameter at breast height of the individuals (``plant_cohorts_dbh``).
 
     These variables must be equal length, one-dimensional arrays. The data are validated
     and then compiled into lists of cohorts keyed by grid cell id. The class is a

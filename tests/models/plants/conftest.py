@@ -186,8 +186,8 @@ def fixture_canopy_layer_data():
                 ]
             )
             * 1000,
-            [1, 2, 3, 4, 11],
-            # index_filled_canopy, index_surface
+            [1, 2, 3, 4, 12],
+            # index_filled_canopy, index_topsoil
         ),
         "layer_leaf_mass": (
             "layer_leaf_mass",

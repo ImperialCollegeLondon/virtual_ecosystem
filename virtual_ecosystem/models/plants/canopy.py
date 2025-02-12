@@ -8,6 +8,7 @@ within each grid cell.
 from __future__ import annotations
 
 from pyrealm.demography.canopy import Canopy
+from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -16,7 +17,9 @@ from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 
 
-def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Data:
+def initialise_canopy_layers(
+    data: Data, layer_structure: LayerStructure
+) -> dict[str, DataArray]:
     """Initialise the canopy layer height and leaf area index data.
 
     This function initialises the following data arrays describing the plant canopy
@@ -56,20 +59,21 @@ def initialise_canopy_layers(data: Data, layer_structure: LayerStructure) -> Dat
         raise InitialisationError(msg)
 
     # Initialise a data array for each layer from the layer structure template
+    layers: dict[str, DataArray] = dict()
     for each_layer_name in layers_to_create:
-        data[each_layer_name] = layer_structure.from_template()
+        layers[each_layer_name] = layer_structure.from_template()
 
     # Initialise the fixed layer heights
     # TODO: See issue #442 about centralising the layer_heights variable initialisation
-    data["layer_heights"].loc[dict(layers=layer_structure.index_all_soil)] = (
+    layers["layer_heights"].loc[dict(layers=layer_structure.index_all_soil)] = (
         layer_structure.soil_layer_depths.reshape(-1, 1)
     )
 
-    data["layer_heights"].loc[dict(layers=layer_structure.index_surface)] = (
+    layers["layer_heights"].loc[dict(layers=layer_structure.index_surface)] = (
         layer_structure.surface_layer_height
     )
 
-    return data
+    return layers
 
 
 def calculate_canopies(
@@ -86,7 +90,9 @@ def calculate_canopies(
         max_canopy_layers: The maximum number of permitted canopy layers
 
     Returns:
-        A dictionary, keyed by cell id, of the canopy representations of each community.
+        A dictionary of :class:`pyrealm.demography.canopy.Canopy` instances, keyed by
+        grid cell id. There is a one-to-one mapping of canopy representations to grid
+        cells.
     """
 
     # TODO - this could be a method of PlantCommunities but creates circular import of
