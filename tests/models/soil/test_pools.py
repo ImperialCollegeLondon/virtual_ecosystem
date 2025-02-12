@@ -390,6 +390,36 @@ def test_calculate_highest_achievable_nutrient_uptake(
     assert np.allclose(actual_uptake, expected_uptake)
 
 
+def test_negative_highest_achievable_nutrient_uptake_are_impossible(
+    dummy_carbon_data, fixture_core_components, environmental_factors
+):
+    """Test to check that negative maximum uptake rates cannot be returned."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_highest_achievable_nutrient_uptake,
+    )
+
+    labile_carbon_data = dummy_carbon_data["soil_c_pool_lmwc"]
+    labile_carbon_data[1] = -0.0001
+    labile_carbon_data[3] = -3.7e-5
+
+    expected_uptake = [1.29159055e-2, 0.0, 5.77096991e-2, 0.0]
+
+    actual_uptake = calculate_highest_achievable_nutrient_uptake(
+        labile_nutrient_pool=labile_carbon_data,
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        max_uptake_rate=SoilConsts.max_uptake_rate_labile_C,
+        half_saturation_constant=SoilConsts.half_sat_labile_C_uptake,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_uptake, expected_uptake)
+
+
 def test_calculate_enzyme_mediated_decomposition(
     dummy_carbon_data, fixture_core_components, environmental_factors
 ):

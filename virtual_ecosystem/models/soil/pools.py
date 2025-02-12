@@ -1208,7 +1208,7 @@ def calculate_highest_achievable_nutrient_uptake(
         / (labile_nutrient_pool + saturation_constant)
     )
 
-    return uptake_rate
+    return np.where(uptake_rate >= 0.0, uptake_rate, 0.0)
 
 
 def calculate_enzyme_mediated_decomposition(

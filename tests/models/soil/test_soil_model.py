@@ -299,7 +299,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.05713292, 0.02665739, 0.11689175, 0.01486035], dims="cell_id"
+                        [0.05713222, 0.02665739, 0.11689175, 0.01486035], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
@@ -333,7 +333,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00053642, 0.01499882, 0.00044842, 0.00538707],
+                        [0.0005364, 0.01499882, 0.00044842, 0.00538707],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
@@ -360,7 +360,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [9.00903822e-7, 1.92559822e-5, 1.37908411e-5, 1.93794964e-4],
+                        [8.87006017e-7, 1.92559822e-5, 1.37908411e-5, 1.93794964e-4],
                         dims="cell_id",
                     ),
                 )
