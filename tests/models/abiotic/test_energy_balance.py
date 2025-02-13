@@ -183,44 +183,6 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_leaf_vapour_conductivity():
-    """Test calculate leaf vapour conductivity."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_leaf_vapour_conductivity,
-    )
-
-    air_heat_conductivity = np.tile([0.5, 1.0, 2.0], 4)
-    stomatal_conductivity = np.tile([0.2, 0.001, 1.0], 4)
-
-    exp_output = np.tile([0.142857, 0.000999, 0.666667], 4)
-
-    result = calculate_leaf_vapour_conductivity(
-        air_heat_conductivity, stomatal_conductivity
-    )
-
-    np.testing.assert_allclose(result, exp_output, rtol=1e-5, atol=1e-8)
-
-
-def test_calculate_latent_heat_flux():
-    """Test calculate latent heat flux from canopy or soil."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_latent_heat_flux,
-    )
-
-    result = calculate_latent_heat_flux(
-        latent_heat_vapourisation=2245.0,
-        leaf_vapour_conductivity=np.array([[0.142857, 0.0, 0.666667]] * 4),
-        effective_vapour_pressure_leaf=np.array([[0.8, 1.275543, 2.5]] * 4),
-        effective_vapour_pressure_air=np.array([[1.275543, 1.275448, 1.274309]] * 4),
-        atmospheric_pressure=np.full((4, 3), 96.0),
-    )
-
-    exp_result = np.array([[-1.58868, 0.0, 19.108873]] * 4)
-    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
-
-
 @pytest.mark.parametrize(
     "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp",
     [
@@ -335,3 +297,11 @@ def test_update_air_canopy_temperature():
     np.testing.assert_allclose(
         updated_air_temperature, expected_air_temperature, rtol=1e-4
     )
+
+
+# def test_update_humidity_vpd():
+#     """Test update atmospheric humidity."""
+
+#     from virtual_ecosystem.models.abiotic.energy_balance import (
+#         update_humidity_vpd,
+#     )

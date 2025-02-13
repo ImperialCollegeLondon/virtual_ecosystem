@@ -134,7 +134,6 @@ def run_microclimate(
     # )
 
     # Aerodynamic resistance soil, [s m-1]
-    # Currently not implemented, see canopy resistance above.
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
     #  Calculate atmospheric background variables using mean air temperature
@@ -256,20 +255,9 @@ def run_microclimate(
         #     gas_constant_water_vapour=core_constants.gas_constant_water_vapour,
         # )
 
-        # TODO Latent heat flux, [W m-2]
-        # The current implementation converts outputs from plant and hydrology model;
-        # the explicit equations don't quite work yet as we do not have leaf vapour
-        # pressure. Also, this ensures energy conservation between modules for now.
-
         # Latent heat flux canopy, [W m-2]
-        # latent_heat_flux_canopy = calculate_latent_heat_flux(
-        #     latent_heat_vapourisation=latent_heat_vapourisation,
-        #     leaf_vapour_conductivity=leaf_vapour_conductivity,
-        #     actual_vapour_pressure_leaf=actual_vapour_pressure_leaf,
-        #     actual_vapour_pressure_air=actual_vapour_pressure_air,
-        #     atmospheric_pressure=data["atmospheric_pressure"].to_numpy()
-        # )
-
+        # The current implementation converts outputs from plant and hydrology model to
+        # ensure energy conservation between modules for now.
         # TODO cross-check with plant model, time step currently month to second
         # TODO also there is a split between evaporation and transpiration, needs to be
         # fixed in 493 - hydrology and evaporation

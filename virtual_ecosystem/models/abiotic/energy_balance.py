@@ -21,16 +21,15 @@ emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{
 absolute temperature of the leaf, :math:`T_{A}` the absolute temperature of the air
 surrounding the leaf, :math:`\lambda` the latent heat of vapourisation of water,
 :math:`e_{L}` the effective vapour pressure of the leaf, :math:`e_{A}` the vapour
-pressure of air and :math:`p_{a}` atmospheric pressure.
-
-:math:`\rho_a` is the density of air, :math:`c_{p}` is the specific heat capacity of air
+pressure of air and :math:`p_{a}` atmospheric pressure. :math:`\rho_a` is the density of
+air, :math:`c_{p}` is the specific heat capacity of air
 at constant pressure, :math:`r_a` is the aerodynamic resistance of the surface (leaf or
 soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
 function of the stomatal conductivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. We use a linearisation approach to solve the equation for
-leaf temperature and air temperature simultaneously.
+radiation on leaf temperature. We use a Newton-Raphson approximation to update
+leaf temperature and air temperature.
 
 TODO the units of fluxes are in W m-2 and we need to make sure that the input energy
 over a time interval is coherent with the calculations of fluxes in that time interval.
@@ -303,6 +302,8 @@ def calculate_aerodynamic_resistance(
 ) -> NDArray[np.float32]:
     """Calculate aerodynamic resistance, [s m-1].
 
+    TODO https://www.fao.org/4/x0490e/x0490e06.htm#TopOfPage implementation
+
     Args:
         wind_heights: Heights below the canopy where wind speed is to be calculated [m].
         roughness_length: Momentum roughness length, [m]
@@ -323,68 +324,6 @@ def calculate_aerodynamic_resistance(
 
     return np.where(
         np.isinf(aero_resistance) | (aero_resistance <= 0.0), 0.001, aero_resistance
-    )
-
-
-def calculate_leaf_vapour_conductivity(
-    air_heat_conductivity: NDArray[np.float32],
-    stomatal_conductivity: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    """Calculate leaf vapour conductivity, [mol m-2 s-1].
-
-    Args:
-        air_heat_conductivity: Air heat conductivity, [mol m-2 s-1]
-        stomatal_conductivity: Stomatal conductivity, [mol m-2 s-1]
-
-    Returns:
-        leaf vapour conductivity, [mol m-2 s-1]
-    """
-    leaf_vapour_conductivity = 1 / (
-        1 / air_heat_conductivity + 1 / stomatal_conductivity
-    )
-
-    return np.where(stomatal_conductivity == 0.0, 0.001, leaf_vapour_conductivity)
-
-
-def calculate_latent_heat_flux(
-    latent_heat_vapourisation: NDArray[np.float32],
-    leaf_vapour_conductivity: NDArray[np.float32],
-    effective_vapour_pressure_leaf: NDArray[np.float32],
-    effective_vapour_pressure_air: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    r"""Calculate latent heat flux from canopy or soil, [W m-2].
-
-    The latent heat flux :math:`Q_{LE}` is calculated using the following equation:
-
-    .. math::
-        Q_{LE} = \lambda \cdot g_v \cdot
-        \left( \frac{e_{L} - e_{A}}{p_{a}} \right)
-
-    where :math:`\lambda` is the latent heat of vapourization, :math:`g_v` is the leaf
-    vapour conductivity, :math:`e_{L}` is the effective vapour pressure at the leaf
-    surface, :math:`e_{A}` is the effective vapour pressure in the air, and
-    :math:`p_{a}` is the atmospheric pressure.
-
-    Args:
-        latent_heat_vapourisation: Latent heat of vapourisation
-        leaf_vapour_conductivity: Conductance for vapour loss from leaves as a function
-            of stomatal conductance
-        effective_vapour_pressure_leaf: Effective vapour pressure in the leaf, [kPa]
-        effective_vapour_pressure_air: Effective vapour pressure in the air, [kPa]
-        atmospheric_pressure: Atmospheric pressure, [kPa]
-
-    Returns:
-        Latent heat flux, [W m-2]
-    """
-
-    return (
-        latent_heat_vapourisation
-        * leaf_vapour_conductivity
-        * (
-            (effective_vapour_pressure_leaf - effective_vapour_pressure_air)
-            / atmospheric_pressure
-        )
     )
 
 
@@ -548,3 +487,47 @@ def update_air_canopy_temperature(
     )
 
     return new_canopy_temperature, new_air_temperature
+
+
+# def update_humidity_vpd(
+#     evapotranspiration: NDArray[np.float32],
+#     saturated_vapour_pressure: NDArray[np.float32],
+#     specific_humidity: NDArray[np.float32],
+#     layer_thickness: NDArray[np.float32],
+#     atmospheric_pressure: NDArray[np.float32],
+#     cell_area: int,
+# ) -> list[NDArray[np.float32]]:
+#     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
+
+#     Note that timestep is not taken into account in the change in specific humidity.
+
+#     Args:
+#         evapotranspiration: Evapotranspiration, [mm]
+#         saturated_vapour_pressure: Saturated vapour pressure, [kPa]
+#         specific_humidity: specific humidity, [kg kg-1]
+#         layer_thickness: Layer thickness, [m]
+#         atmospheric_pressure: Atmospheric pressure, [kPa]
+#         density_air_kg: Density of air, [kg m-3]
+#         ratio_molecular_weights: Ratio of molecular weights (water vapour/dry air)
+
+#     Returns:
+#       list with updated specific_humidity, vapour pressure and vapour pressure deficit
+#     """
+
+#     # Convert evapotranspiration to [kg kg-1] account for cell area
+#     # (1 mm day-1 is equivalent to 10 m3 ha-1 day-1)
+#     evapotranspiration_kg = evapotranspiration*10*100/10000*cell_area
+
+#     # Compute change in specific humidity per layer (kg/kg) i.e. account for volume
+#     change_specific_humidity = evapotranspiration_kg / layer_thickness*cell_area
+
+#     # Updated specific humidity
+#     specific_humidity_updated = specific_humidity + change_specific_humidity
+
+#     # Compute new vapour pressure [kPa]
+
+
+#     # Compute new VPD [kPa]
+
+
+#     return [specific_humidity_updated, vapour_pressure_updated, vpd_updated]
