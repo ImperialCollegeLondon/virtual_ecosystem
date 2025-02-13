@@ -585,19 +585,18 @@ class PlantsModel(
 
             # Grow the plants by increasing cohort dbh
             cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
-            # Update community allometry with new dbh values
-            updated_allometry = StemAllometry(
-                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
-            )
-            community.stem_allometry = updated_allometry
-
             # TODO: move leaf/root turnover calculation to pyrealm & call here
-            leaf_turnover = updated_allometry.foliage_mass / community.stem_traits.tau_f
+            leaf_turnover = community.stem_allometry.foliage_mass / community.stem_traits.tau_f
             # Calculate total turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(leaf_turnover)
             self.data["root_turnover"][cell_id] = np.sum(
                 cohort_allocation.turnover - leaf_turnover
             )
+            # Update community allometry with new dbh values
+            community.stem_allometry = StemAllometry(
+                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
+            )
+ 
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
