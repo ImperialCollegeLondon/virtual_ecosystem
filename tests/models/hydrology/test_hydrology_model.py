@@ -86,8 +86,8 @@ def test_hydrology_model_initialization(
 
     # We patch the _setup step as it is tested separately
     with (
-        patch_run_update("hydrology"),
-        patch_bypass_setup("hydrology") as mock_bypass_setup,
+        patch_run_update(HydrologyModel),
+        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:
@@ -196,8 +196,8 @@ def test_generate_hydrology_model(
     # We patch the _setup step as it is tested separately
     expected_const = HydroConsts(soil_moisture_capacity=sm_capacity)
     with (
-        patch_run_update("hydrology"),
-        patch_bypass_setup("hydrology") as mock_bypass_setup,
+        patch_run_update(HydrologyModel),
+        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with patch(
@@ -253,8 +253,8 @@ def test_setup(
     lyr_strct = core_components.layer_structure
 
     with (
-        patch_run_update("hydrology"),
-        patch_bypass_setup("hydrology") as mock_bypass_setup,
+        patch_run_update(HydrologyModel),
+        patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:

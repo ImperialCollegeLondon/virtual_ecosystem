@@ -9,7 +9,12 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
+from tests.conftest import (
+    log_check,
+    patch_bypass_setup,
+    patch_run_update,
+    patch_static_config,
+)
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 REQUIRED_INIT_VAR_CHECKS = (
@@ -50,8 +55,8 @@ def test_abiotic_model_initialization(
 
     # Initialize model
     with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel) as mock_update,
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
@@ -200,8 +205,8 @@ def test_generate_abiotic_model(
     expected_constants = AbioticConsts(drag_coefficient=drag_coeff)
     object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel) as mock_update,
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
         mock_bypass_setup.return_value = False
@@ -264,8 +269,8 @@ def test_generate_abiotic_model_bounds_error(
 
     # Check whether model is initialised (or not) as expected
     with (
-        patch_run_update("abiotic"),
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel),
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:
@@ -288,8 +293,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     # initialise model
     with (
-        patch_run_update("abiotic"),
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel),
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
@@ -355,12 +360,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         xr.testing.assert_allclose(model.data[var], expected_vals)
 
     # initialise model
-    with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
-    ):
-        mock_update.return_value = False
-        mock_bypass_setup.return_value = False
+    with patch_static_config(AbioticModel) as mock_static_config:
+        mock_static_config.return_value = False, False
         model = AbioticModel(
             data=dummy_climate_data,
             core_components=fixture_core_components,
