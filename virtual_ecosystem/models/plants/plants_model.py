@@ -127,7 +127,7 @@ class PlantsModel(
     :class:`virtual_ecosystem.core.data.Data` instance for the simulation and populates
     these data layers with the calculated community canopy structure for each grid cell.
     The community canopy representation is calculated using the perfect plasticticy
-    approximation, implemented in the `pyrealm` package. The canoppy variables populated
+    approximation, implemented in the `pyrealm` package. The canopy variables populated
     at this stage are:
 
     * the canopy layer closure heights (``layer_heights``),
@@ -183,12 +183,12 @@ class PlantsModel(
         """A dictionary giving the canopy structure of each grid cell."""
         self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
-        self.stem_gpp: dict[int, NDArray[np.float32]]
-        """A dictionary keyed by cell id giving the stem GPP for each cohort in the cell
-        community"""
-        self.stem_transpiration: dict[int, NDArray[np.float32]]
-        """A dictionary keyed by cell id giving the stem transpiration for each cohort
-        in the cell community"""
+        self.per_stem_gpp: dict[int, NDArray[np.float32]]
+        """A dictionary keyed by cell id giving an array of per stem GPP values for each
+        cohort in the community."""
+        self.per_stem_transpiration: dict[int, NDArray[np.float32]]
+        """A dictionary keyed by cell id giving an array of per stem transpiration
+        values for each cohort in the cell community"""
         self.pmodel_consts: PModelConst
         """PModel constants used by pyrealm."""
         self.pmodel_core_consts: CoreConst
@@ -260,9 +260,11 @@ class PlantsModel(
 
         # Initialise the canopy layer arrays.
         # TODO - this initialisation step may move somewhere else at some point see #442
-        self.data = initialise_canopy_layers(
-            data=self.data,
-            layer_structure=self.layer_structure,
+        self.data.add_from_dict(
+            initialise_canopy_layers(
+                data=self.data,
+                layer_structure=self.layer_structure,
+            )
         )
 
         # Calculate the community canopy representations.
@@ -281,8 +283,8 @@ class PlantsModel(
         self.set_canopy_absorption(time_index=0)
 
         # Initialise other attributes
-        self.stem_gpp = {}
-        self.stem_transpiration = {}
+        self.per_stem_gpp = {}
+        self.per_stem_transpiration = {}
         self.filled_canopy_mask = np.full(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
@@ -422,7 +424,7 @@ class PlantsModel(
         # Calculate the fate of PPFD through the layers
         absorbed_irradiance = self.data["layer_fapar"] * canopy_top_ppfd
         # Add the remaining irradiance at the surface layer level
-        absorbed_irradiance[self.layer_structure.index_surface] = (
+        absorbed_irradiance[self.layer_structure.index_topsoil] = (
             canopy_top_ppfd - np.nansum(absorbed_irradiance, axis=0)
         )
 
@@ -512,7 +514,7 @@ class PlantsModel(
             #    = (n_active_layers, n_cohorts)
             # Units:
             #    gC mol-1  * µmol m-2 s-1 * (-) = µg m-2 s-1
-            stem_gpp_rate = (
+            per_stem_gpp_rate = (
                 pmodel.lue[active_layers, :][:, [cell_id]]
                 * canopy.cohort_data.stem_fapar
                 * canopy_top_ppfd[cell_id]
@@ -524,29 +526,31 @@ class PlantsModel(
             #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
             # Units:
             #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
-            stem_transpiration_rate = (
-                stem_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
+            per_stem_transpiration_rate = (
+                per_stem_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
             ) * pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Now scale up and aggregate those values
 
             # Per stem GPP since last update: sum GPP *  whole stem leaf area
             # and scale by elapsed time in seconds
-            self.stem_gpp[cell_id] = (
-                stem_gpp_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+            self.per_stem_gpp[cell_id] = (
+                per_stem_gpp_rate * canopy.cohort_data.stem_leaf_area * n_seconds
             ).sum(axis=0)
 
             # Calculate total stem transpiration in µmol per stem and total grid cell
             # transpiration in mm m-2 since last update
-            self.stem_transpiration[cell_id] = (
-                stem_transpiration_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+            self.per_stem_transpiration[cell_id] = (
+                per_stem_transpiration_rate
+                * canopy.cohort_data.stem_leaf_area
+                * n_seconds
             ).sum(axis=0)
 
             # Calculate the total transpiration per layer in mm m2 in mm, converted from
             # an initial value is in µmol m2 s1.abs
             transpiration[active_layers, cell_id] = (
                 community.cohorts.n_individuals
-                * stem_transpiration_rate
+                * per_stem_transpiration_rate
                 * n_seconds
                 * 1.8e-8
             ).sum(axis=1)

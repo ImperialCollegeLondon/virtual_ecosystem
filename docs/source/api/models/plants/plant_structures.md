@@ -26,7 +26,8 @@ language_info:
 
 # Plant structures for the {mod}`~virtual_ecosystem.models.plants` module
 
-This page documents three submodules of the `plants` module:
+This page documents submodules of the `plants` module used to support the central
+{mod}`~virtual_ecosystem.models.plants.plants_model` module:
 
 1. The plant functional types (PFTs) that make up the flora used in a simulation.
 2. The plant community structures, describing the cohorts of stems of different PFTs

@@ -146,11 +146,11 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
 
     # Are the stem properties dictionaries of arrays with the right length
     assert exp_stem_struct == {
-        cid: len(vals) for cid, vals in fxt_plants_model.stem_gpp.items()
+        cid: len(vals) for cid, vals in fxt_plants_model.per_stem_gpp.items()
     }
 
     assert exp_stem_struct == {
-        cid: len(vals) for cid, vals in fxt_plants_model.stem_transpiration.items()
+        cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
     }
 
     # Check the evapotranspiration shape
