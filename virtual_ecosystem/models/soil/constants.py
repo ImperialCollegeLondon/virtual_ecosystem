@@ -310,28 +310,28 @@ class SoilConsts(ConstantsDataclass):
     environmental conditions is a post release goal.
     """
 
-    litter_leaching_fraction_carbon = 0.0015
+    litter_leaching_fraction_carbon: float = 0.0015
     """Fraction of carbon mineralisation from litter that occurs by leaching [unitless].
     
     The remainder of the mineralisation consists of particulates. Value is an order of
     magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    litter_leaching_fraction_nitrogen = 0.0015
+    litter_leaching_fraction_nitrogen: float = 0.0015
     """Fraction of nitrogen mineralisation from litter that occurs by leaching.
     
     [unitless]. The remainder of the mineralisation consists of particulates. Value is
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    litter_leaching_fraction_phosphorus = 0.0001
+    litter_leaching_fraction_phosphorus: float = 0.0001
     """Fraction of phosphorus mineralisation from litter that occurs by leaching.
     
     [unitless]. The remainder of the mineralisation consists of particulates. Value is
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    organic_proportion_litter_nitrogen_leaching = 1.0
+    organic_proportion_litter_nitrogen_leaching: float = 1.0
     """Fraction of leached nitrogen from litter mineralisation that is organic form.
     
     [unitless]. The remainder of the leaching consists of ammonium. Value is taken from
@@ -339,7 +339,7 @@ class SoilConsts(ConstantsDataclass):
     litter solely in organic form.
     """
 
-    organic_proportion_litter_phosphorus_leaching = 1.0
+    organic_proportion_litter_phosphorus_leaching: float = 1.0
     """Fraction of leached phosphorus from litter mineralisation that is organic form.
     
     [unitless]. The remainder of the leaching consists of inorganic phosphorus. Value is
@@ -347,7 +347,7 @@ class SoilConsts(ConstantsDataclass):
     leaches from litter solely in organic form.
     """
 
-    microbial_c_n_ratio = 5.2
+    microbial_c_n_ratio: float = 5.2
     """Ratio of carbon to nitrogen in microbial biomass [unitless].
     
     Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
@@ -355,7 +355,7 @@ class SoilConsts(ConstantsDataclass):
     added this constant needs to be split.
     """
 
-    microbial_c_p_ratio = 16
+    microbial_c_p_ratio: float = 16
     """Ratio of carbon to phosphorus in microbial biomass [unitless].
     
     Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
@@ -363,7 +363,7 @@ class SoilConsts(ConstantsDataclass):
     added this constant needs to be split.
     """
 
-    ammonium_mineralisation_proportion = 0.9
+    ammonium_mineralisation_proportion: float = 0.9
     """Proportion of microbially mineralised nitrogen that takes the form of ammonium.
     
     [unitless]. The remainder gets mineralised as nitrate. Estimate taken from
@@ -371,7 +371,7 @@ class SoilConsts(ConstantsDataclass):
     particularly clear.
     """
 
-    max_uptake_rate_ammonium = 5e-3
+    max_uptake_rate_ammonium: float = 5e-3
     """Maximum possible rate for ammonium uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
@@ -393,7 +393,7 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    max_uptake_rate_nitrate = 5e-4
+    max_uptake_rate_nitrate: float = 5e-4
     """Maximum possible rate for nitrate uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
@@ -415,7 +415,7 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    max_uptake_rate_labile_p = 0.0025
+    max_uptake_rate_labile_p: float = 0.0025
     """Maximum possible rate for labile inorganic phosphorus uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
