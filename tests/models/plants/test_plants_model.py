@@ -165,7 +165,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
     """Test the allocate_gpp method."""
 
     # Provide GPP values
-    fxt_plants_model.stem_gpp = {
+    fxt_plants_model.per_stem_gpp = {
         cell_id: np.array([55]) for cell_id in fxt_plants_model.communities.keys()
     }
     # Store previous dbh values
