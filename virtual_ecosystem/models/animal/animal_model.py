@@ -22,7 +22,7 @@ from math import ceil, sqrt
 from random import choice, random
 from typing import Any
 
-from numpy import array, timedelta64, zeros
+from numpy import array, inf, timedelta64, zeros
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -33,6 +33,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import DevelopmentType, DietType
+from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -274,25 +275,18 @@ class AnimalModel(
         self.excrement_pools = {
             cell_id: [
                 ExcrementPool(
-                    scavengeable_cnp={
-                        "carbon": 1e-3,
-                        "nitrogen": 1e-4,
-                        "phosphorus": 1e-6,
-                    },
-                    decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                    scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
+                    decomposed_cnp=CNP(0.0, 0.0, 0.0),
                 )
             ]
             for cell_id in self.data.grid.cell_id
         }
+
         self.carcass_pools = {
             cell_id: [
                 CarcassPool(
-                    scavengeable_cnp={
-                        "carbon": 1e-3,
-                        "nitrogen": 1e-4,
-                        "phosphorus": 1e-6,
-                    },
-                    decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                    scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
+                    decomposed_cnp=CNP(0.0, 0.0, 0.0),
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -494,21 +488,24 @@ class AnimalModel(
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"] / self.data.grid.cell_area
             for cell_id in self.data.grid.cell_id
         ]
-        # Find the chemistry of the pools as well
+
+        # Find the chemistry of the pools, handling different cases properly
         leaf_c_n = [
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
             / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
             if self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"] > 0
-            else 0.0
+            else (inf if self.leaf_waste_pools[cell_id].mass_cnp["carbon"] > 0 else 0.0)
             for cell_id in self.data.grid.cell_id
         ]
+
         leaf_c_p = [
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
             / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
             if self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"] > 0
-            else 0.0
+            else (inf if self.leaf_waste_pools[cell_id].mass_cnp["carbon"] > 0 else 0.0)
             for cell_id in self.data.grid.cell_id
         ]
+
         leaf_lignin = [
             self.leaf_waste_pools[cell_id].lignin_proportion
             for cell_id in self.data.grid.cell_id
@@ -781,46 +778,66 @@ class AnimalModel(
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new cohort.
         """
-        # Semelparous organisms use a portion of their non-reproductive mass to make
-        # offspring and then die
-        non_reproductive_mass_loss_cnp = {
-            "carbon": 0.0,
-            "nitrogen": 0.0,
-            "phosphorus": 0.0,
-        }
+        # Handle semelparous reproduction (where parents die after reproduction)
+        non_reproductive_mass_loss_c = non_reproductive_mass_loss_n = (
+            non_reproductive_mass_loss_p
+        ) = 0.0
+
         if parent_cohort.functional_group.reproductive_type == "semelparous":
-            for nutrient in parent_cohort.mass_cnp:
-                loss = (
-                    parent_cohort.mass_cnp[nutrient]
-                    * parent_cohort.constants.semelparity_mass_loss
-                )
-                non_reproductive_mass_loss_cnp[nutrient] = min(
-                    loss, parent_cohort.mass_cnp[nutrient]
-                )  # Cap loss
-                parent_cohort.mass_cnp[nutrient] -= non_reproductive_mass_loss_cnp[
-                    nutrient
-                ]
-            parent_cohort.is_alive = False  # Kill semelparous parent cohort
+            loss_c = (
+                parent_cohort.mass_cnp.carbon
+                * parent_cohort.constants.semelparity_mass_loss
+            )
+            loss_n = (
+                parent_cohort.mass_cnp.nitrogen
+                * parent_cohort.constants.semelparity_mass_loss
+            )
+            loss_p = (
+                parent_cohort.mass_cnp.phosphorus
+                * parent_cohort.constants.semelparity_mass_loss
+            )
 
-        # Calculate the total reproductive mass available (including semelparous loss)
-        total_reproductive_mass_cnp = {
-            nutrient: parent_cohort.reproductive_mass_cnp[nutrient]
-            + non_reproductive_mass_loss_cnp[nutrient]
-            for nutrient in parent_cohort.reproductive_mass_cnp
-        }
+            # Cap loss to available mass
+            non_reproductive_mass_loss_c = min(loss_c, parent_cohort.mass_cnp.carbon)
+            non_reproductive_mass_loss_n = min(loss_n, parent_cohort.mass_cnp.nitrogen)
+            non_reproductive_mass_loss_p = min(
+                loss_p, parent_cohort.mass_cnp.phosphorus
+            )
 
-        # Generate birth_mass_cnp from birth_mass and functional group proportions
+            # Reduce parent's mass in-place
+            parent_cohort.mass_cnp.subtract(
+                non_reproductive_mass_loss_c,
+                non_reproductive_mass_loss_n,
+                non_reproductive_mass_loss_p,
+            )
+
+            # Kill semelparous parent cohort
+            parent_cohort.is_alive = False
+
+        # Calculate total available reproductive mass
+        total_reproductive_mass_c = (
+            parent_cohort.reproductive_mass_cnp.carbon + non_reproductive_mass_loss_c
+        )
+        total_reproductive_mass_n = (
+            parent_cohort.reproductive_mass_cnp.nitrogen + non_reproductive_mass_loss_n
+        )
+        total_reproductive_mass_p = (
+            parent_cohort.reproductive_mass_cnp.phosphorus
+            + non_reproductive_mass_loss_p
+        )
+
+        # Generate birth mass using functional group proportions
         birth_mass = parent_cohort.functional_group.birth_mass
-        birth_mass_cnp = {
-            nutrient: birth_mass * parent_cohort.cnp_proportions[nutrient]
-            for nutrient in parent_cohort.cnp_proportions
-        }
+        birth_mass_c = birth_mass * parent_cohort.cnp_proportions["carbon"]
+        birth_mass_n = birth_mass * parent_cohort.cnp_proportions["nitrogen"]
+        birth_mass_p = birth_mass * parent_cohort.cnp_proportions["phosphorus"]
 
-        # Ensure enough reproductive mass is available
+        # Determine max possible offspring (minimum across all elements)
         max_possible_offspring = int(
             min(
-                round(total_reproductive_mass_cnp[nutrient] / birth_mass_cnp[nutrient])
-                for nutrient in total_reproductive_mass_cnp
+                total_reproductive_mass_c / birth_mass_c,
+                total_reproductive_mass_n / birth_mass_n,
+                total_reproductive_mass_p / birth_mass_p,
             )
         )
 
@@ -830,18 +847,16 @@ class AnimalModel(
             return  # No offspring can be created
 
         # Calculate the total mass used for reproduction
-        total_mass_used_cnp = {
-            nutrient: number_offspring * birth_mass_cnp[nutrient]
-            for nutrient in birth_mass_cnp
-        }
+        total_mass_used_c = number_offspring * birth_mass_c
+        total_mass_used_n = number_offspring * birth_mass_n
+        total_mass_used_p = number_offspring * birth_mass_p
 
-        # Ensure the parent's reproductive mass never goes negative
-        for nutrient in parent_cohort.reproductive_mass_cnp:
-            parent_cohort.reproductive_mass_cnp[nutrient] = max(
-                0.0,
-                parent_cohort.reproductive_mass_cnp[nutrient]
-                - total_mass_used_cnp[nutrient],
-            )
+        # Ensure parent's reproductive mass never goes negative
+        parent_cohort.reproductive_mass_cnp.subtract(
+            min(total_mass_used_c, parent_cohort.reproductive_mass_cnp.carbon),
+            min(total_mass_used_n, parent_cohort.reproductive_mass_cnp.nitrogen),
+            min(total_mass_used_p, parent_cohort.reproductive_mass_cnp.phosphorus),
+        )
 
         # Get the functional group for the offspring
         offspring_functional_group = get_functional_group_by_name(
@@ -852,7 +867,7 @@ class AnimalModel(
         # Create the offspring cohort
         offspring_cohort = AnimalCohort(
             functional_group=offspring_functional_group,
-            mass=sum(birth_mass_cnp.values()),  # Use the total birth mass
+            mass=birth_mass,  # Use total birth mass
             age=0.0,  # Offspring start at age 0
             individuals=number_offspring,
             centroid_key=parent_cohort.centroid_key,

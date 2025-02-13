@@ -3,6 +3,8 @@ managing pools of stoichiometric explicit mass: carbon (C), nitrogen (N), and ph
 (P).
 """  # noqa: D205
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -50,78 +52,29 @@ class CNP:
             )
         return getattr(self, key)
 
-    def scale(self, proportions: dict[str, float]) -> "CNP":
-        """Redistribute the total mass according to specified proportions.
-
-        This method scales the carbon, nitrogen, and phosphorus masses such that their
-        new values sum to the original total mass, following the given proportions.
+    def add(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
+        """Add the provided amounts of C, N, and P to the current CNP object.
 
         Args:
-            proportions (dict[str, float]): A dictionary specifying the desired
-                proportions for "carbon", "nitrogen", and "phosphorus". These should
-                  sum to 1.
-
-        Returns:
-            CNP: A new CNP instance with masses adjusted to match the proportions.
-
-        Raises:
-            KeyError: If `proportions` is missing any required keys.
-            ValueError: If the proportions do not sum to 1 (allowing small
-              floating-point errors).
+            carbon (float): The mass of carbon to add.
+            nitrogen (float): The mass of nitrogen to add.
+            phosphorus (float): The mass of phosphorus to add.
         """
-        required_keys = {"carbon", "nitrogen", "phosphorus"}
+        self.carbon += carbon
+        self.nitrogen += nitrogen
+        self.phosphorus += phosphorus
 
-        # Ensure all required keys are present
-        if not required_keys.issubset(proportions):
-            raise KeyError(
-                f"Missing required proportion keys: "
-                f"{required_keys - proportions.keys()}"
-            )
-
-        # Sum of proportions must be 1 (allowing a small floating-point error)
-        total_proportion = sum(proportions.values())
-        if not (0.999 <= total_proportion <= 1.001):
-            raise ValueError(
-                f"Proportions must sum to 1.0, but got {total_proportion:.6f}"
-            )
-
-        # Redistribute mass according to the given proportions
-        total_mass = self.total
-        return CNP(
-            carbon=total_mass * proportions["carbon"],
-            nitrogen=total_mass * proportions["nitrogen"],
-            phosphorus=total_mass * proportions["phosphorus"],
-        )
-
-    def add(self, other: "CNP") -> "CNP":
-        """Perform element-wise addition with another CNP object.
+    def subtract(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
+        """Subtract the provided amounts of C, N, and P from the current CNP object.
 
         Args:
-            other (CNP): Another CNP instance.
-
-        Returns:
-            CNP: A new CNP instance representing the sum of both.
+            carbon (float): The mass of carbon to subtract.
+            nitrogen (float): The mass of nitrogen to subtract.
+            phosphorus (float): The mass of phosphorus to subtract.
         """
-        return CNP(
-            carbon=self.carbon + other.carbon,
-            nitrogen=self.nitrogen + other.nitrogen,
-            phosphorus=self.phosphorus + other.phosphorus,
-        )
-
-    def subtract(self, other: "CNP") -> "CNP":
-        """Perform element-wise subtraction with another CNP object.
-
-        Args:
-            other (CNP): Another CNP instance.
-
-        Returns:
-            CNP: A new CNP instance representing the element-wise difference.
-        """
-        return CNP(
-            carbon=self.carbon - other.carbon,
-            nitrogen=self.nitrogen - other.nitrogen,
-            phosphorus=self.phosphorus - other.phosphorus,
-        )
+        self.carbon -= carbon
+        self.nitrogen -= nitrogen
+        self.phosphorus -= phosphorus
 
     def to_dict(self) -> dict[str, float]:
         """Convert the CNP object to a dictionary representation.
@@ -137,7 +90,7 @@ class CNP:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, float]) -> "CNP":
+    def from_dict(cls, data: dict[str, float]) -> CNP:
         """Create a CNP instance from a dictionary.
 
         Args:
