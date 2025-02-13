@@ -22,8 +22,8 @@ def fixture_litter_model(dummy_litter_data, fixture_core_components):
     core_components = CoreComponents(config)
 
     with (
-        patch_run_update("litter"),
-        patch_bypass_setup("litter") as mock_bypass_setup,
+        patch_run_update(LitterModel),
+        patch_bypass_setup(LitterModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         return LitterModel.from_config(
