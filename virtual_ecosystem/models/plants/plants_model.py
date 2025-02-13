@@ -584,6 +584,7 @@ class PlantsModel(
             )
 
             # Grow the plants by increasing cohort dbh
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
             cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
             # TODO: move leaf/root turnover calculation to pyrealm & call here
             leaf_turnover = (
