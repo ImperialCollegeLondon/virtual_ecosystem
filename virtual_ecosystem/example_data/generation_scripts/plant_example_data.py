@@ -39,8 +39,8 @@ data["plant_cohorts_dbh"] = DataArray(
 )
 
 # Spatio-temporal data
-data["photosynthetic_photon_flux_density"] = DataArray(
-    data=np.full((n_cells, n_dates), fill_value=1000),
+data["downward_shortwave_radiation"] = DataArray(
+    data=np.full((n_cells, n_dates), fill_value=2040),
     coords={"cell_id": cell_id, "time_index": time_index},
 )
 

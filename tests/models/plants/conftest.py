@@ -30,8 +30,8 @@ def plants_data(fixture_core_components):
     data["plant_cohorts_dbh"] = DataArray(np.array([0.1] * n_cells))
 
     # Spatio-temporal data
-    data["photosynthetic_photon_flux_density"] = DataArray(
-        data=np.full((n_cells, 12), fill_value=1000),
+    data["downward_shortwave_radiation"] = DataArray(
+        data=np.full((n_cells, 12), fill_value=2040),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
             "time_index": np.arange(12),

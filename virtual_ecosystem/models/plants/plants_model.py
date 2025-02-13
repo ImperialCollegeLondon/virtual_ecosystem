@@ -34,7 +34,7 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "photosynthetic_photon_flux_density",
+        "downward_shortwave_radiation",
     ),
     vars_populated_by_init=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -48,7 +48,7 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "photosynthetic_photon_flux_density",
+        "downward_shortwave_radiation",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -125,8 +125,8 @@ class PlantsModel(
         * ``plant_cohorts_n``: The number of individuals in the cohort
         * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in
           metres.
-        * ``photosynthetic_photon_flux_density``: The above canopy photosynthetic photon
-          flux density in µmol m-2 s-1.
+        * ``downward_shortwave_radiation``: The above canopy radiation flux density in
+          W m-2 s-1.
 
     Warning:
         The current implementation defines the main interfaces between the plants model
@@ -227,6 +227,11 @@ class PlantsModel(
         self.flora = flora
         self.model_constants = model_constants
         self.communities = PlantCommunities(self.data, self.flora)
+
+        # Calculate PPFD from SWDown
+        self.data["photosynthetic_photon_flux_density"] = (
+            self.data["downward_shortwave_radiation"] / 2.04
+        )
 
         # Update canopy layers
         # TODO - this initialisation step may move somewhere else at some point.
