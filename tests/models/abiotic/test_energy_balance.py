@@ -102,12 +102,12 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "canopy_absorption",
+        "shortwave_absorption",
     ]:
         assert var in result
 
     np.testing.assert_allclose(
-        result["canopy_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
+        result["shortwave_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 4)))
