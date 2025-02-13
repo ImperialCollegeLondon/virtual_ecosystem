@@ -133,9 +133,9 @@ def run_microclimate(
     #     von_karman_constant=core_constants.von_karmans_constant,
     # )
 
-    #   TODO  Aerodynamic resistance soil, [s m-1]
+    # Aerodynamic resistance soil, [s m-1]
     # Currently not implemented, see canopy resistance above.
-    aerodynamic_resistance_soil = 100.0
+    aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
     #  Calculate atmospheric background variables using mean air temperature
     # TODO this could take values for each layer
@@ -348,7 +348,7 @@ def run_microclimate(
         canopy_temperature = new_canopy_temperature - core_constants.zero_Celsius
         surface_temperature = new_surface_temperature - core_constants.zero_Celsius
 
-        # TODO Update amospheric humidity/VPD
+        # TODO Update atmospheric humidity/VPD
 
     # Write in output dictionary
     # Mean atmospheric pressure profile, [kPa]
@@ -403,7 +403,6 @@ def run_microclimate(
         layer_structure.index_above
     ]
     air_temperature_out[layer_structure.index_filled_canopy] = air_temperature
-    # TODO update near surface temperature with soil fluxes
     air_temperature_out[layer_structure.index_surface] = surface_temperature
     output["air_temperature"] = air_temperature_out
 

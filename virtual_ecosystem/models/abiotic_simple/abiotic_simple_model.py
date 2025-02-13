@@ -66,6 +66,7 @@ class AbioticSimpleModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
     ),
 ):
     """A class describing the abiotic simple model.

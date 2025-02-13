@@ -28,7 +28,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_longwave_emission = lyr_str.from_template()
     exp_longwave_emission[lyr_str.index_flux_layers] = np.array(
-        [424.66886, 420.013465, 412.137266, 380.272748]
+        [424.66886, 420.013465, 412.137266, 391.685362]
     )[:, None]
     np.testing.assert_allclose(
         result["longwave_emission"][lyr_str.index_flux_layers],
@@ -76,7 +76,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     # )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([14.744163, 19.938459])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.133329, 19.96334])[:, None]
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
@@ -97,11 +97,11 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 26.296876, 25.447228, 23.99418, 20.794113]
+        [30.0, 26.296876, 25.447228, 23.99418, 19.54894]
     )[:, None]
     np.testing.assert_allclose(
-        result["air_temperature"][11],
-        exp_airtemp[11],
+        result["air_temperature"],
+        exp_airtemp,
         rtol=1e-04,
         atol=1e-04,
     )

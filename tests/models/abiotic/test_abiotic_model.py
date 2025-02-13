@@ -368,25 +368,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
         model.update(time_index=0)
 
-    # Check that updated vars are in data object
-    for var in [
-        #         "air_temperature",
-        #         "canopy_temperature",
-        #         "soil_temperature",
-        #         "vapour_pressure",
-        #         "vapour_pressure_deficit",
-        #         "wind_speed",
-        #         "sensible_heat_flux",
-        #         "latent_heat_flux",
-        #         "ground_heat_flux",
-        "longwave_emission",
-        #         "molar_density_air",
-        #         "specific_heat_air",
-    ]:
-        assert var in model.data
-
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([15.555145, 19.957183])[
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.374506, 19.98967])[
         :, None
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp1)

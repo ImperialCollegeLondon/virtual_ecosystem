@@ -51,8 +51,9 @@ class AbioticModel(
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        # "molar_density_air",
-        # "specific_heat_air",
+        "molar_density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -66,6 +67,7 @@ class AbioticModel(
         "topofcanopy_radiation",
         "stomatal_conductance",
         "canopy_absorption",
+        "aerodynamic_resistance_surface",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -82,7 +84,12 @@ class AbioticModel(
         "latent_heat_flux",
         "ground_heat_flux",
     ),
-    vars_populated_by_first_update=("longwave_emission",),
+    vars_populated_by_first_update=(
+        "longwave_emission",
+        "molar_density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+    ),
 ):
     """A class describing the abiotic model.
 
