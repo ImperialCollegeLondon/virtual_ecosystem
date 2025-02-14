@@ -58,68 +58,54 @@ class TestCarcassPool:
             carcasses.decomposed_nutrient_per_area("molybdenum", 10000)
 
     @pytest.mark.parametrize(
-        "input_mass_dict, expected_c, expected_n, expected_p, raises_exception",
+        "carbon, nitrogen, phosphorus, expected_c, expected_n, expected_p,"
+        "raises_exception",
         [
-            (
-                dict(carbon=5.0, nitrogen=1.0, phosphorus=0.5),
-                5.0,
-                1.0,
-                0.5,
-                False,
-            ),  # Normal case
-            (
-                dict(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
-                0.0,
-                0.0,
-                0.0,
-                False,
-            ),  # Zero mass
-            (
-                dict(carbon=-1.0, nitrogen=1.0, phosphorus=0.5),
-                None,
-                None,
-                None,
-                True,
-            ),  # Negative value
+            (5.0, 1.0, 0.5, 5.0, 1.0, 0.5, False),  # Normal case
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False),  # Zero mass
+            (-1.0, 1.0, 0.5, None, None, None, True),  # Negative value
         ],
     )
     def test_add_carcass(
-        self, input_mass_dict, expected_c, expected_n, expected_p, raises_exception
+        self,
+        carbon,
+        nitrogen,
+        phosphorus,
+        expected_c,
+        expected_n,
+        expected_p,
+        raises_exception,
     ):
         """Test adding carcass mass to the pool with various inputs."""
-
-        from virtual_ecosystem.models.animal.cnp import CNP
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
-        input_mass_cnp = CNP.from_dict(input_mass_dict)
         carcasses = CarcassPool()
 
         if raises_exception:
             with pytest.raises(ValueError):
-                carcasses.add_carcass(input_mass_cnp)
+                carcasses.add_carcass(carbon, nitrogen, phosphorus)
         else:
-            carcasses.add_carcass(input_mass_cnp)
+            carcasses.add_carcass(carbon, nitrogen, phosphorus)
+            assert carcasses.scavengeable_cnp.carbon == pytest.approx(expected_c)
+            assert carcasses.scavengeable_cnp.nitrogen == pytest.approx(expected_n)
+            assert carcasses.scavengeable_cnp.phosphorus == pytest.approx(expected_p)
 
-            assert carcasses.scavengeable_cnp.carbon == expected_c
-            assert carcasses.scavengeable_cnp.nitrogen == expected_n
-            assert carcasses.scavengeable_cnp.phosphorus == expected_p
+        def test_reset(self):
+            """Test resetting of the carcass pool."""
+            from virtual_ecosystem.models.animal.decay import CarcassPool
 
-    def test_reset(self):
-        """Test resetting of the carcass pool."""
-        from virtual_ecosystem.models.animal.decay import CarcassPool
+            carcasses = CarcassPool(
+                decomposed_cnp={
+                    "carbon": 2.5e-5,
+                    "nitrogen": 3.3333333e-6,
+                    "phosphorus": 3.3333333e-8,
+                }
+            )
+            carcasses.reset()
 
-        carcasses = CarcassPool(
-            decomposed_cnp={
-                "carbon": 2.5e-5,
-                "nitrogen": 3.3333333e-6,
-                "phosphorus": 3.3333333e-8,
-            }
-        )
-        carcasses.reset()
-
-        assert carcasses.decomposed_cnp["carbon"] == 0.0
-        assert carcasses.decomposed_cnp["nitrogen"] == 0.0
-        assert carcasses.decomposed_cnp["phosphorus"] == 0.0
+            assert carcasses.decomposed_cnp["carbon"] == 0.0
+            assert carcasses.decomposed_cnp["nitrogen"] == 0.0
+            assert carcasses.decomposed_cnp["phosphorus"] == 0.0
 
 
 class TestExcrementPool:
@@ -146,52 +132,37 @@ class TestExcrementPool:
         assert pytest.approx(excrement.decomposed_cnp.phosphorus) == 3.3333333e-8
 
     @pytest.mark.parametrize(
-        "input_mass, expected_c, expected_n, expected_p, raises_exception",
+        "carbon, nitrogen, phosphorus, expected_c, expected_n, expected_p,"
+        "raises_exception",
         [
-            (
-                dict(carbon=5.0, nitrogen=1.0, phosphorus=0.5),
-                5.0,
-                1.0,
-                0.5,
-                False,
-            ),  # Normal case
-            (
-                dict(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
-                0.0,
-                0.0,
-                0.0,
-                False,
-            ),  # Zero mass
-            (
-                dict(carbon=-1.0, nitrogen=1.0, phosphorus=0.5),
-                None,
-                None,
-                None,
-                True,
-            ),  # Negative value
+            (5.0, 1.0, 0.5, 5.0, 1.0, 0.5, False),  # Normal case
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, False),  # Zero mass
+            (-1.0, 1.0, 0.5, None, None, None, True),  # Negative value
         ],
     )
     def test_add_excrement(
-        self, input_mass, expected_c, expected_n, expected_p, raises_exception
+        self,
+        carbon,
+        nitrogen,
+        phosphorus,
+        expected_c,
+        expected_n,
+        expected_p,
+        raises_exception,
     ):
         """Test adding excrement mass to the pool with various inputs."""
-
-        from virtual_ecosystem.models.animal.cnp import CNP
         from virtual_ecosystem.models.animal.decay import ExcrementPool
 
         excrement = ExcrementPool()
 
-        input_mass_cnp = CNP.from_dict(input_mass)
-
         if raises_exception:
             with pytest.raises(ValueError):
-                excrement.add_excrement(input_mass_cnp)
+                excrement.add_excrement(carbon, nitrogen, phosphorus)
         else:
-            excrement.add_excrement(input_mass_cnp)
-
-            assert excrement.scavengeable_cnp.carbon == expected_c
-            assert excrement.scavengeable_cnp.nitrogen == expected_n
-            assert excrement.scavengeable_cnp.phosphorus == expected_p
+            excrement.add_excrement(carbon, nitrogen, phosphorus)
+            assert excrement.scavengeable_cnp.carbon == pytest.approx(expected_c)
+            assert excrement.scavengeable_cnp.nitrogen == pytest.approx(expected_n)
+            assert excrement.scavengeable_cnp.phosphorus == pytest.approx(expected_p)
 
     def test_reset(self):
         """Test resetting of the excrement pool."""

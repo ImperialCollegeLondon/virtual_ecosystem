@@ -40,25 +40,45 @@ class TestCNP:
         with pytest.raises(KeyError):
             _ = cnp["oxygen"]
 
-    def test_add(self):
-        """Test element-wise addition of two CNP objects."""
-        cnp1 = CNP(10.0, 5.0, 2.0)
-        cnp2 = CNP(3.0, 2.0, 1.0)
-        result = cnp1.add(cnp2)
+    @pytest.mark.parametrize(
+        "initial, values, expected",
+        [
+            ((10.0, 5.0, 2.0), (3.0, 2.0, 1.0), (13.0, 7.0, 3.0)),  # Regular addition
+            ((10.0, 5.0, 2.0), (-3.0, -2.0, -1.0), (7.0, 3.0, 1.0)),  # Adding negatives
+        ],
+    )
+    def test_add(self, initial, values, expected):
+        """Test in-place addition for CNP objects."""
+        from virtual_ecosystem.models.animal.cnp import CNP
 
-        assert result.carbon == pytest.approx(13.0)
-        assert result.nitrogen == pytest.approx(7.0)
-        assert result.phosphorus == pytest.approx(3.0)
+        cnp = CNP(*initial)
+        cnp.add(*values)
 
-    def test_subtract(self):
-        """Test element-wise subtraction of two CNP objects."""
-        cnp1 = CNP(10.0, 5.0, 2.0)
-        cnp2 = CNP(3.0, 2.0, 1.0)
-        result = cnp1.subtract(cnp2)
+        assert cnp.carbon == pytest.approx(expected[0])
+        assert cnp.nitrogen == pytest.approx(expected[1])
+        assert cnp.phosphorus == pytest.approx(expected[2])
 
-        assert result.carbon == pytest.approx(7.0)
-        assert result.nitrogen == pytest.approx(3.0)
-        assert result.phosphorus == pytest.approx(1.0)
+    @pytest.mark.parametrize(
+        "initial, values, expected",
+        [
+            ((10.0, 5.0, 2.0), (3.0, 2.0, 1.0), (7.0, 3.0, 1.0)),  # Regular subtraction
+            (
+                (2.0, 2.0, 2.0),
+                (3.0, 3.0, 3.0),
+                (-1.0, -1.0, -1.0),
+            ),  # Subtraction below zero
+        ],
+    )
+    def test_subtract(self, initial, values, expected):
+        """Test in-place subtraction for CNP objects."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        cnp = CNP(*initial)
+        cnp.subtract(*values)
+
+        assert cnp.carbon == pytest.approx(expected[0])
+        assert cnp.nitrogen == pytest.approx(expected[1])
+        assert cnp.phosphorus == pytest.approx(expected[2])
 
     def test_to_dict(self):
         """Test conversion of CNP object to dictionary."""
