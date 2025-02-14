@@ -33,8 +33,8 @@ def fixture_soil_model(
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     with (
-        patch_run_update("soil"),
-        patch_bypass_setup("soil") as mock_bypass_setup,
+        patch_run_update(SoilModel),
+        patch_bypass_setup(SoilModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         return SoilModel.from_config(
