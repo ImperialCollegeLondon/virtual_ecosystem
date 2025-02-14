@@ -47,7 +47,7 @@ class PlantsModel(
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "canopy_absorption",
+        "shortwave_absorption",
     ),
     vars_required_for_update=(
         "plant_cohorts_cell_id",
@@ -65,7 +65,7 @@ class PlantsModel(
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "canopy_absorption",
+        "shortwave_absorption",
         "evapotranspiration",
         "deadwood_production",
         "leaf_turnover",
@@ -280,7 +280,7 @@ class PlantsModel(
         # Create and populate the canopy data layers and set the absorption from the
         # first time index
         self.update_canopy_layers()
-        self.set_canopy_absorption(time_index=0)
+        self.set_shortwave_absorption(time_index=0)
 
         # Initialise other attributes
         self.per_stem_gpp = {}
@@ -309,7 +309,7 @@ class PlantsModel(
 
         # Update the canopy layers
         self.update_canopy_layers()
-        self.set_canopy_absorption(time_index=time_index)
+        self.set_shortwave_absorption(time_index=time_index)
 
         # Estimate the GPP and growth with the updated this update
         self.estimate_gpp(time_index=time_index)
@@ -332,6 +332,8 @@ class PlantsModel(
         * the fraction of absorbed photosynthetically active radation in each layer
           (``layer_fapar``), and
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
+        * the proportion of shortwave radiation absorbed, including both by leaves in
+          canopy layers and by light reaching the topsoil  (``shortwave_absorption``).
         """
 
         canopy_array_shape = (self.layer_structure.n_canopy_layers, self.grid.n_cells)
@@ -399,13 +401,13 @@ class PlantsModel(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
 
-    def set_canopy_absorption(self, time_index: int) -> None:
-        """Set the absorbed irradiance across the canopy.
+    def set_shortwave_absorption(self, time_index: int) -> None:
+        """Set the shortwave radiation absorption across the vertical layers.
 
-        This method takes the photosynthetic photon flux density at the top of the
-        canopy for a particular time index and uses the ``layer_fapar`` data calculated
-        by the canopy model to estimate the irradiance absorbed by each layer and the
-        remaining irradiance at ground level.
+        This method takes the shortwave radiation at the top of the canopy for a
+        particular time index and uses the ``layer_fapar`` data calculated by the canopy
+        model to estimate the amount of radiation absorbed by each canopy layer and the
+        remaining radiation absorbed by the top soil layer.
 
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
@@ -428,7 +430,7 @@ class PlantsModel(
             canopy_top_ppfd - np.nansum(absorbed_irradiance, axis=0)
         )
 
-        self.data["canopy_absorption"] = absorbed_irradiance
+        self.data["shortwave_absorption"] = absorbed_irradiance
 
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.

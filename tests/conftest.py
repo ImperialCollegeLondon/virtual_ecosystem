@@ -407,8 +407,8 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
-    data["canopy_absorption"] = from_template()
-    data["canopy_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_filled_canopy] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -613,15 +613,20 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     return dummy_climate_data
 
 
-def patch_run_update(model: str):
-    """Patch the run_update_check udring the init of the model."""
-    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
-    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
-    return patch(f"{object_to_patch}._run_update_due_to_static_configuration")
+def patch_run_update(model: type):
+    """Patch the run update check during the init of the model."""
+    return patch(
+        f"{model.__module__}.{model.__name__}._run_update_due_to_static_configuration"
+    )
 
 
-def patch_bypass_setup(model: str):
-    """Patch the run_update_check udring the init of the model."""
-    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
-    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
-    return patch(f"{object_to_patch}._bypass_setup_due_to_static_configuration")
+def patch_bypass_setup(model: type):
+    """Patch the bypass setup check during the init of the model."""
+    return patch(
+        f"{model.__module__}.{model.__name__}._bypass_setup_due_to_static_configuration"
+    )
+
+
+def patch_static_config(model: type):
+    """Patch the check static config during the init of the model."""
+    return patch(f"{model.__module__}.{model.__name__}._check_static_config")

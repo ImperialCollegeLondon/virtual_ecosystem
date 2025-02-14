@@ -366,8 +366,8 @@ def dummy_animal_data(animal_fixture_core_components):
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
-    data["canopy_absorption"] = from_template()
-    data["canopy_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_filled_canopy] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(

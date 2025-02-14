@@ -111,7 +111,7 @@ def fixture_canopy_layer_data():
     """Shared canopy layer data.
 
     The fixture supplies a dictionary of data values expected from the cohort data in
-    the plants_data fixture. Each enntry provides a tuple of the variable name to be
+    the plants_data fixture. Each entry provides a tuple of the variable name to be
     tested, the data itself and then the vertical layer indices into which to insert the
     data.
     """
@@ -174,8 +174,8 @@ def fixture_canopy_layer_data():
             [1, 2, 3, 4],
             # index_filled_canopy,
         ),
-        "canopy_absorption": (
-            "canopy_absorption",
+        "shortwave_absorption": (
+            "shortwave_absorption",
             np.array(
                 [
                     [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
