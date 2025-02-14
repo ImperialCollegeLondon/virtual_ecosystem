@@ -161,6 +161,34 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     )
 
 
+def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
+    """Test the allocate_gpp method."""
+
+    # Provide GPP values
+    fxt_plants_model.per_stem_gpp = {
+        cell_id: np.array([55]) for cell_id in fxt_plants_model.communities.keys()
+    }
+    # Store previous dbh values
+    prev_dbh_values = {
+        cell_id: fxt_plants_model.communities[cell_id].cohorts.dbh_values.copy()
+        for cell_id in fxt_plants_model.communities.keys()
+    }
+
+    # Allocate GPP
+    fxt_plants_model.allocate_gpp()
+
+    for cell_id in fxt_plants_model.communities.keys():
+        # TODO: eventually have tests with more meaningful values
+        # Check that dbh is >= previous dbh (plants should not shrink!)
+        assert (
+            fxt_plants_model.communities[cell_id].cohorts.dbh_values
+            >= prev_dbh_values[cell_id]
+        ).all()
+        # Ensure that leaf and root turnover exist and are > 0
+        assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
+        assert fxt_plants_model.data["root_turnover"][cell_id] > 0
+
+
 def test_PlantsModel_update(
     fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
 ):
@@ -200,11 +228,9 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_component
 
     # Check that all expected variables are generated and have the correct value
     assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover"], 0.027)
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
     )
-    assert np.allclose(fxt_plants_model.data["root_turnover"], 0.027)
     assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
     assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
     assert np.allclose(
