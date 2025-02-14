@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.demography.canopy import Canopy
 from pyrealm.demography.flora import Flora
+from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -566,20 +567,44 @@ class PlantsModel(
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
 
-        This method will use the T Model to estimate the allocation of plant gross
+        This method uses the T Model to estimate the allocation of plant gross
         primary productivity to respiration, growth, maintenance and turnover costs.
-
-        Warning:
-            At present, this asserts a constant fixed increment in diameter at breast
-            height, rather than calculating the actual predictions of the T Model.
+        The method then simulates growth by increasing dbh and calculates leaf and root
+        turnover values.
         """
 
-        pass
-        # for community in self.communities.values():
-        #     for cohort in community:
-        #         # arbitrarily use the ceiling of the gpp in kilos as a cm increase in
-        #         # dbh to provide an annual increment that relates to GPP.
-        #         cohort.dbh += np.ceil(cohort.gpp / (1e6 * 1e3)) / 1e2
+        # Reset turnover to 0 as turnover from previous steps should have been allocated
+        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
+        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
+
+        # Loop over each grid cell
+        for cell_id in self.communities.keys():
+            community = self.communities[cell_id]
+            cohorts = community.cohorts
+
+            # Calculate the allocation of GPP
+            cohort_allocation = StemAllocation(
+                stem_traits=community.stem_traits,
+                stem_allometry=community.stem_allometry,
+                at_potential_gpp=self.per_stem_gpp[cell_id],
+            )
+
+            # Grow the plants by increasing cohort dbh
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
+            cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
+            # TODO: move leaf/root turnover calculation to pyrealm & call here
+            leaf_turnover = (
+                community.stem_allometry.foliage_mass / community.stem_traits.tau_f
+            )
+            # Calculate total turnover from all cohorts in a grid cell
+            self.data["leaf_turnover"][cell_id] = np.sum(leaf_turnover)
+            self.data["root_turnover"][cell_id] = np.sum(
+                cohort_allocation.turnover - leaf_turnover
+            )
+            # Update community allometry with new dbh values
+            community.stem_allometry = StemAllometry(
+                stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
+            )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -597,11 +622,9 @@ class PlantsModel(
 
         # All outputs are just constants at the moment
         self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
-        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0.027)
         self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
             self.data["elevation"], 0.003
         )
-        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0.027)
         self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
         self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
