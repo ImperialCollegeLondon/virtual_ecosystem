@@ -160,20 +160,3 @@ var_name = "c_p_ratio_below_metabolic"
 [[core.data.variable]]
 file_path = "../data/example_litter_data.nc"
 var_name = "c_p_ratio_below_structural"
-
-# Plants
-[[core.data.variable]]
-file_path = "../data/example_plant_data.nc"
-var_name = "plant_cohorts_n"
-[[core.data.variable]]
-file_path = "../data/example_plant_data.nc"
-var_name = "plant_cohorts_pft"
-[[core.data.variable]]
-file_path = "../data/example_plant_data.nc"
-var_name = "plant_cohorts_cell_id"
-[[core.data.variable]]
-file_path = "../data/example_plant_data.nc"
-var_name = "plant_cohorts_dbh"
-[[core.data.variable]]
-file_path = "../data/example_plant_data.nc"
-var_name = "photosynthetic_photon_flux_density"

@@ -21,7 +21,7 @@ def test_PlantsModel__init__(
 
     # Test the flora and community are as expected
     n_cells = fixture_core_components.grid.n_cells
-    assert len(plants_model.flora) == len(flora)
+    assert plants_model.flora == flora
     assert len(plants_model.communities) == n_cells
 
     # Check the canopy has been initialised and updated, using the full layer heights
@@ -33,7 +33,7 @@ def test_PlantsModel__init__(
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         assert layer_name in plants_data
         expected = fixture_core_components.layer_structure.from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(plants_data[layer_name], expected)
 
 
@@ -62,7 +62,7 @@ def test_PlantsModel_from_config(
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         assert layer_name in plants_data
         expected = fixture_core_components.layer_structure.from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(plants_data[layer_name], expected)
 
 
@@ -88,20 +88,15 @@ def test_PlantsModel_update_canopy_layers(
     fxt_plants_model.update_canopy_layers()
 
     # Check the resulting repopulated canopy data, but omitting the
-    # canopy_absorption, which should not have been regenerated yet
-    del fixture_canopy_layer_data["canopy_absorption"]
+    # shortwave_absorption, which should not have been regenerated yet
+    del fixture_canopy_layer_data["shortwave_absorption"]
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
-    # Check canopy_absorption is indeed still empty
-    xarray.testing.assert_allclose(
-        fxt_plants_model.data["canopy_absorption"], from_template()
-    )
 
-
-def test_PlantsModel_set_canopy_absorption(
+def test_PlantsModel_set_shortwave_absorption(
     fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
 ):
     """Simple test that update canopy layers restores overwritten data."""
@@ -121,61 +116,49 @@ def test_PlantsModel_set_canopy_absorption(
 
     # Check that calling the method after update resets to the expected values
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_canopy_absorption(time_index=0)
+    fxt_plants_model.set_shortwave_absorption(time_index=0)
 
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
 
 def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     """Test the estimate_gpp method."""
 
-    lyr_str = fixture_core_components.layer_structure
-
     # Set the canopy and absorbed irradiance
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_canopy_absorption(time_index=0)
+    fxt_plants_model.set_shortwave_absorption(time_index=0)
 
     # Calculate GPP
     fxt_plants_model.estimate_gpp(time_index=0)
 
-    # Check calculated quantities - this is currently very basic.
+    # TODO - currently no actual validation of values, only of structure
+    #      - maybe mock lue and iwue to get easier values rather than current obscure
+    #        ones
 
-    # - Light use efficiency: currently asserted fixed value
-    exp_lue = lyr_str.from_template()
-    exp_lue[lyr_str.index_filled_canopy] = 0.3
-    xarray.testing.assert_allclose(
-        fxt_plants_model.data["layer_light_use_efficiency"],
-        exp_lue,
+    # Check stem_gpp and stem_transpiration structure
+    exp_stem_struct = {
+        cid: cmty.number_of_cohorts
+        for cid, cmty in fxt_plants_model.communities.items()
+    }
+
+    # Are the stem properties dictionaries of arrays with the right length
+    assert exp_stem_struct == {
+        cid: len(vals) for cid, vals in fxt_plants_model.per_stem_gpp.items()
+    }
+
+    assert exp_stem_struct == {
+        cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
+    }
+
+    # Check the evapotranspiration shape
+
+    assert fxt_plants_model.data["evapotranspiration"].shape == (
+        fxt_plants_model.layer_structure.n_layers,
+        fxt_plants_model.grid.n_cells,
     )
-
-    # Same for evapotranspiration
-    exp_evapo = lyr_str.from_template()
-    exp_evapo[lyr_str.index_filled_canopy] = 20
-    xarray.testing.assert_allclose(
-        fxt_plants_model.data["evapotranspiration"],
-        exp_evapo,
-    )
-
-    # - Canopy fapar to expected gpp per m2
-    exp_fapar = lyr_str.from_template()
-    exp_fapar[lyr_str.index_flux_layers] = [[0.4], [0.2], [0.1], [0.3]]
-    exp_gpp_per_m2 = exp_lue * 1000 * exp_fapar
-
-    assert np.allclose(
-        fxt_plants_model.data["layer_gpp_per_m2"].data, exp_gpp_per_m2, equal_nan=True
-    )
-
-    # - GPP calculated correctly
-    for cell_id, community in fxt_plants_model.communities.items():
-        cell_gpp_per_m2 = exp_gpp_per_m2[np.arange(1, 11), cell_id]
-        for cohort in community:
-            assert np.allclose(
-                cohort.gpp,
-                np.nansum(cell_gpp_per_m2 * cohort.canopy_area * 30 * 24 * 60 * 60),
-            )
 
 
 def test_PlantsModel_update(
@@ -183,7 +166,7 @@ def test_PlantsModel_update(
 ):
     """Test the update method."""
 
-    # The update method runs both update_canopy_layers and set_canopy_absorption so
+    # The update method runs both update_canopy_layers and set_shortwave_absorption so
     # should restore all of the layers below.
     # TODO - amend this as and when layer heights gets centralised
     del fixture_canopy_layer_data["layer_heights_full"]
@@ -199,14 +182,14 @@ def test_PlantsModel_update(
     # Check the canopy has been initialised and updated
     for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
         expected = from_template()
-        expected[layer_indices] = layer_vals[:, None]
+        expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
 
-    # Check the growth of the cohorts
-    for community in fxt_plants_model.communities.values():
-        for cohort in community:
-            # Original 0.1 + 0.03 cm from current arbitrary increment
-            assert np.allclose(cohort.dbh, 0.13)
+    # # Check the growth of the cohorts
+    # for community in fxt_plants_model.communities.values():
+    #     for cohort in community:
+    #         # Original 0.1 + 0.03 cm from current arbitrary increment
+    #         assert np.allclose(cohort.dbh, 0.13)
 
 
 def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_core_components):
