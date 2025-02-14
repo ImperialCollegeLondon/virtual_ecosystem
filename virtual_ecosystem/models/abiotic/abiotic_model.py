@@ -98,7 +98,7 @@ class AbioticModel(
         "layer_heights",
         "topofcanopy_radiation",
         "stomatal_conductance",
-        "canopy_absorption",
+        "shortwave_absorption",
     ),
     vars_populated_by_init=(  # TODO move functions from setup() to __init__
         "soil_temperature",
@@ -109,7 +109,7 @@ class AbioticModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "canopy_absorption",  # DAVID This is assuming that abiotic runs before plants
+        "shortwave_absorption",  # DAVID This assumes that abiotic runs before plants
         "canopy_temperature",
         "sensible_heat_flux",
         "latent_heat_flux",

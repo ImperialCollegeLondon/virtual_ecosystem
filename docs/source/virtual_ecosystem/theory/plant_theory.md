@@ -24,3 +24,11 @@ language_info:
 ---
 
 # Theory of the plants
+
+:::{figure} ../../\_static/images/Plant_Model_Flow.png
+:name: fig_plant_model_flow
+:alt: Plant Model workflow
+:width: 650px
+
+The workflow of the Plant Model.
+:::
