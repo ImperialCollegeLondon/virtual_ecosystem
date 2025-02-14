@@ -259,7 +259,7 @@ class PlantsModel(
 
         # Calculate PPFD from DSR
         self.data["photosynthetic_photon_flux_density"] = (
-            self.data["downward_shortwave_radiation"] / 2.04
+            self.data["downward_shortwave_radiation"] / model_constants.ppfd_to_dsr
         )
 
         # Initialise the canopy layer arrays.
