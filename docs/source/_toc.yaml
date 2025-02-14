@@ -153,6 +153,8 @@ subtrees:
                 title: The animal_traits submodule
               - file: api/models/animal/constants
                 title: The constants submodule
+              - file: api/models/animal/cnp
+                title: The CNP submodule
               - file: api/models/animal/decay
                 title: The decay submodule
               - file: api/models/animal/functional_group

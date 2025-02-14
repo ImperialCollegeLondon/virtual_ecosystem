@@ -78,7 +78,7 @@ class CarcassPool:
 
         This function sets the decomposed carbon, nitrogen, and phosphorus to zero.
         It should only be called after transfers to the soil model due to decomposition
-          have been calculated.
+        have been calculated.
         """
         self.decomposed_cnp = CNP(0.0, 0.0, 0.0)
 
@@ -174,35 +174,23 @@ class LitterPool:
 
     This class acts as the interface between litter model data stored in the core data
     object and the animal model.
-
-    This class is designed to be reused for all five of the litter pools used in the
-    litter model, as all of these pools are consumable by animals.
-
-    Args:
-        pool_name: The name of the litter pool being accessed.
-        data: A Data object containing information from the litter model.
-        cell_area: The size of the cell, used to convert from density to mass units
-            [m^2].
     """
 
     def __init__(self, pool_name: str, data: "Data", cell_area: float) -> None:
         self.pool_name = pool_name
-        """Name of the pool."""
 
-        # Extract carbon mass and ensure valid ratios
         carbon_mass = data[f"litter_pool_{pool_name}"].to_numpy() * cell_area
-        c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
-        c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
+        self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
+        self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
 
-        # Validate ratios to prevent division errors
-        if (c_n_ratio <= 0).any() or (c_p_ratio <= 0).any():
+        if (self.c_n_ratio <= 0).any() or (self.c_p_ratio <= 0).any():
             raise ValueError(f"Invalid C:N or C:P ratios in {self.pool_name} pool.")
 
         self.mass_cnp = [
             CNP(
                 carbon=carbon_mass[i],
-                nitrogen=carbon_mass[i] / c_n_ratio[i],
-                phosphorus=carbon_mass[i] / c_p_ratio[i],
+                nitrogen=carbon_mass[i] / self.c_n_ratio[i],
+                phosphorus=carbon_mass[i] / self.c_p_ratio[i],
             )
             for i in range(len(carbon_mass))
         ]
@@ -212,52 +200,43 @@ class LitterPool:
 
     @property
     def mass_current(self) -> DataArray:
-        """Dynamically calculate the current total carbon mass.
-
-        Returns:
-            DataArray: The total carbon mass for each grid cell.
-        """
+        """Property returning the total mass of carbon in the litter pool."""
         carbon_values = [cnp.carbon for cnp in self.mass_cnp]
         return DataArray(carbon_values, dims=["cell_id"])
 
     def get_eaten(
         self, consumed_mass: float, detritivore: "Consumer", grid_cell_id: int
     ) -> dict[str, float]:
-        """Handle litter detritivory with mechanical efficiency and CNP updates.
-
-        Args:
-            consumed_mass (float): The mass the detritivore attempts to consume.
-            detritivore (Consumer): The consuming animal cohort.
-            grid_cell_id (int): The grid cell ID where consumption occurs.
-
-        Returns:
-            dict[str, float]: Amount of each nutrient consumed.
-        """
+        """Method for handling a trophic interaction with detritivores."""
         if consumed_mass < 0:
             raise ValueError("Consumed mass cannot be negative.")
 
-        cell_cnp = self.mass_cnp[grid_cell_id]
+        cell_cnp = self.mass_cnp[
+            grid_cell_id
+        ]  # Access CNP object for the given grid cell
         total_mass_available = cell_cnp.total
         actual_consumed_mass = (
             min(total_mass_available, consumed_mass)
             * detritivore.functional_group.mechanical_efficiency
         )
 
-        nutrient_proportions = cell_cnp.get_proportions()
-
-        # Calculate nutrient amounts consumed
-        carbon = actual_consumed_mass * nutrient_proportions["carbon"]
-        nitrogen = actual_consumed_mass * nutrient_proportions["nitrogen"]
-        phosphorus = actual_consumed_mass * nutrient_proportions["phosphorus"]
-
-        # Subtract consumed nutrients from the pool in-place
-        cell_cnp.subtract(carbon, nitrogen, phosphorus)
-
-        return {
-            "carbon": carbon,
-            "nitrogen": nitrogen,
-            "phosphorus": phosphorus,
+        nutrient_proportions = {
+            "carbon": cell_cnp.carbon / total_mass_available,
+            "nitrogen": cell_cnp.nitrogen / total_mass_available,
+            "phosphorus": cell_cnp.phosphorus / total_mass_available,
         }
+
+        consumed = {
+            nutrient: actual_consumed_mass * proportion
+            for nutrient, proportion in nutrient_proportions.items()
+        }
+
+        # Update the CNP object in place
+        cell_cnp.subtract(
+            consumed["carbon"], consumed["nitrogen"], consumed["phosphorus"]
+        )
+
+        return consumed
 
 
 class HerbivoryWaste:

@@ -329,15 +329,10 @@ class TestAnimalModel:
     @pytest.mark.parametrize(
         "density_values, expected_mass, c_n_ratio, c_p_ratio, expect_error",
         [
-            # Edge Case 1: Zero Density
             ("zeros", "zeros", "ones", "ones", False),
-            # Edge Case 2: Very Small Density Values
             ("small", "small", "tens", "twenties", False),
-            # Edge Case 3: Very Large Density Values
             ("large", "large", "fifties", "hundreds", False),
-            # Edge Case 4: Negative Values
             ("negative", "zeros", "tens", "twenties", True),
-            # Edge Case 5: Extremely High C:N and C:P Ratios
             ("medium", "medium", "huge", "huge", False),
         ],
     )
@@ -350,8 +345,7 @@ class TestAnimalModel:
         c_p_ratio,
         expect_error,
     ):
-        """Test that populate_litter_pools."""
-
+        """Test litter pool population."""
         import numpy as np
         import xarray as xr
 
@@ -399,7 +393,6 @@ class TestAnimalModel:
         else:
             litter_pools = animal_model_instance.populate_litter_pools()
 
-            # Ensure all expected pools are present
             expected_pools = [
                 "above_metabolic",
                 "above_structural",
@@ -411,7 +404,7 @@ class TestAnimalModel:
                 "Not all litter pools were initialized."
             )
 
-            # Check pool attributes and expected mass values
+            # Validate each pool
             for pool_name in expected_pools:
                 assert isinstance(litter_pools[pool_name], LitterPool), (
                     f"{pool_name} is not a LitterPool instance."
@@ -428,16 +421,24 @@ class TestAnimalModel:
                     atol=1e-8,
                 ), f"{pool_name} mass_current mismatch."
 
+                # Extract nitrogen and phosphorus from mass_cnp list
+                actual_nitrogen = np.array(
+                    [cnp.nitrogen for cnp in litter_pools[pool_name].mass_cnp]
+                )
+                actual_phosphorus = np.array(
+                    [cnp.phosphorus for cnp in litter_pools[pool_name].mass_cnp]
+                )
+
                 # Ensure nitrogen and phosphorus are calculated correctly
                 assert np.allclose(
-                    litter_pools[pool_name].mass_cnp["nitrogen"],
+                    actual_nitrogen,
                     (expected_mass / c_n_ratio).values,
                     rtol=1e-5,
                     atol=1e-8,
                 ), f"{pool_name} nitrogen mass is incorrect."
 
                 assert np.allclose(
-                    litter_pools[pool_name].mass_cnp["phosphorus"],
+                    actual_phosphorus,
                     (expected_mass / c_p_ratio).values,
                     rtol=1e-5,
                     atol=1e-8,
@@ -789,14 +790,21 @@ class TestAnimalModel:
         # Set up mock cohort with dynamic mass and age values
         cohort = herbivore_cohort_instance
         cohort.age = age
-
-        # Update mass_cnp instead of directly setting mass_current
-        for element in cohort.mass_cnp:
-            cohort.mass_cnp[element] = (
-                cohort.functional_group.adult_mass
-                * mass_ratio
-                * cohort.cnp_proportions[element]
-            )
+        cohort.mass_cnp.carbon = (
+            cohort.functional_group.adult_mass
+            * mass_ratio
+            * cohort.cnp_proportions["carbon"]
+        )
+        cohort.mass_cnp.nitrogen = (
+            cohort.functional_group.adult_mass
+            * mass_ratio
+            * cohort.cnp_proportions["nitrogen"]
+        )
+        cohort.mass_cnp.phosphorus = (
+            cohort.functional_group.adult_mass
+            * mass_ratio
+            * cohort.cnp_proportions["phosphorus"]
+        )
 
         cohort_id = cohort.id
         animal_model_instance.cohorts[cohort_id] = cohort
@@ -970,17 +978,27 @@ class TestAnimalModel:
             else butterfly_cohort_instance
         )
 
-        # Update reproductive_mass_cnp instead of directly setting reproductive_mass
-        for element in parent_cohort.reproductive_mass_cnp:
-            parent_cohort.reproductive_mass_cnp[element] = (
-                reproductive_mass * parent_cohort.cnp_proportions[element]
-            )
+        # Update reproductive_mass_cnp using direct attribute assignments
+        parent_cohort.reproductive_mass_cnp.carbon = (
+            reproductive_mass * parent_cohort.cnp_proportions["carbon"]
+        )
+        parent_cohort.reproductive_mass_cnp.nitrogen = (
+            reproductive_mass * parent_cohort.cnp_proportions["nitrogen"]
+        )
+        parent_cohort.reproductive_mass_cnp.phosphorus = (
+            reproductive_mass * parent_cohort.cnp_proportions["phosphorus"]
+        )
 
-        # Update mass_cnp instead of directly setting mass_current
-        for element in parent_cohort.mass_cnp:
-            parent_cohort.mass_cnp[element] = (
-                mass_current * parent_cohort.cnp_proportions[element]
-            )
+        # Update mass_cnp using direct attribute assignments
+        parent_cohort.mass_cnp.carbon = (
+            mass_current * parent_cohort.cnp_proportions["carbon"]
+        )
+        parent_cohort.mass_cnp.nitrogen = (
+            mass_current * parent_cohort.cnp_proportions["nitrogen"]
+        )
+        parent_cohort.mass_cnp.phosphorus = (
+            mass_current * parent_cohort.cnp_proportions["phosphorus"]
+        )
 
         # Set other attributes
         parent_cohort.functional_group.birth_mass = birth_mass
@@ -1012,7 +1030,7 @@ class TestAnimalModel:
             assert parent_cohort.is_alive is True
 
         # Check that reproductive mass is reset
-        assert sum(parent_cohort.reproductive_mass_cnp.values()) == 0.0
+        assert parent_cohort.reproductive_mass_cnp.total == 0.0
 
         # Check the number of offspring generated and added to the cohort list
         if is_semelparous:

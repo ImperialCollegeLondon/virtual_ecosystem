@@ -293,9 +293,17 @@ class AnimalCohort:
                 for nutrient in excreta_mass
             }
 
-            # Use CNP methods for updates
-            excrement_pool.scavengeable_cnp.add(**scavengeable_mass)
-            excrement_pool.decomposed_cnp.add(**decomposed_mass)
+            # Fixed method calls to pass individual values
+            excrement_pool.scavengeable_cnp.add(
+                scavengeable_mass["carbon"],
+                scavengeable_mass["nitrogen"],
+                scavengeable_mass["phosphorus"],
+            )
+            excrement_pool.decomposed_cnp.add(
+                decomposed_mass["carbon"],
+                decomposed_mass["nitrogen"],
+                decomposed_mass["phosphorus"],
+            )
 
     def respire(self, excreta_mass: dict[str, float]) -> float:
         """Transfers carbonaceous metabolic wastes to the atmosphere.

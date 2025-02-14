@@ -705,28 +705,26 @@ def butterfly_cohort_instance(
 @pytest.fixture
 def excrement_pool_instance():
     """Fixture for an excrement pool used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
-        decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
     )
 
 
 @pytest.fixture
 def excrement_pools_instance():
     """Fixture for excrement pools used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return {
         1: [
             ExcrementPool(
-                scavengeable_cnp={
-                    "carbon": 500.0,
-                    "nitrogen": 100.0,
-                    "phosphorus": 50.0,
-                },
-                decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
             )
         ]
     }
@@ -781,28 +779,26 @@ def animal_list_instance(
 @pytest.fixture
 def carcass_pool_instance():
     """Fixture for a carcass pool used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(
-        scavengeable_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
-        decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
     )
 
 
 @pytest.fixture
 def carcass_pools_instance():
     """Fixture for carcass pools used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return {
         cell_id: [
             CarcassPool(
-                scavengeable_cnp={
-                    "carbon": 500.0,
-                    "nitrogen": 100.0,
-                    "phosphorus": 50.0,
-                },
-                decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
             )
         ]
         for cell_id in range(0, 9)  # Creates carcass pools for cells 0 to 8

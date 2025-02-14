@@ -116,7 +116,6 @@ class TestAnimalCohort:
         "cohort_type, dt, initial_mass, temperature, expected_final_mass, error_type,"
         "metabolic_rate_return_value",
         [
-            # Endotherm cases
             (
                 "herbivore",
                 timedelta64(1, "D"),
@@ -125,16 +124,8 @@ class TestAnimalCohort:
                 998.5205247106326,
                 None,
                 1.4794752893674,
-            ),  # normal case
-            (
-                "herbivore",
-                timedelta64(1, "D"),
-                0.0,
-                298.0,
-                0.0,
-                None,
-                0.0,
-            ),  # edge case: zero mass
+            ),
+            ("herbivore", timedelta64(1, "D"), 0.0, 298.0, 0.0, None, 0.0),
             (
                 "herbivore",
                 timedelta64(3, "D"),
@@ -143,8 +134,7 @@ class TestAnimalCohort:
                 995.5615741318977,
                 None,
                 1.4794752893674,
-            ),  # 3 days
-            # Ectotherm cases
+            ),
             (
                 "ectotherm",
                 timedelta64(1, "D"),
@@ -153,16 +143,8 @@ class TestAnimalCohort:
                 99.95896219913648,
                 None,
                 0.04103780086352,
-            ),  # normal case
-            (
-                "ectotherm",
-                timedelta64(1, "D"),
-                0.0,
-                20.0,
-                0.0,
-                None,
-                0.0,
-            ),  # edge case: zero mass
+            ),
+            ("ectotherm", timedelta64(1, "D"), 0.0, 20.0, 0.0, None, 0.0),
             (
                 "ectotherm",
                 timedelta64(1, "D"),
@@ -171,26 +153,9 @@ class TestAnimalCohort:
                 99.99436706014961,
                 None,
                 0.00563293985039,
-            ),  # edge case: zero temperature
-            # Invalid input cases
-            (
-                "herbivore",
-                timedelta64(-1, "D"),
-                100.0,
-                298.0,
-                None,
-                ValueError,
-                1.0,
-            ),  # negative dt
-            (
-                "herbivore",
-                timedelta64(1, "D"),
-                -100.0,
-                298.0,
-                None,
-                ValueError,
-                1.0,
-            ),  # negative mass
+            ),
+            ("herbivore", timedelta64(-1, "D"), 100.0, 298.0, None, ValueError, 1.0),
+            ("herbivore", timedelta64(1, "D"), -100.0, 298.0, None, ValueError, 1.0),
         ],
         ids=[
             "endotherm_normal",
@@ -217,22 +182,19 @@ class TestAnimalCohort:
         metabolic_rate_return_value,
     ):
         """Testing metabolize method for various scenarios."""
+        from virtual_ecosystem.models.animal.cnp import CNP
 
         # Select the appropriate cohort instance
-        if cohort_type == "herbivore":
-            cohort_instance = herbivore_cohort_instance
-        elif cohort_type == "ectotherm":
-            cohort_instance = ectotherm_cohort_instance
-        else:
-            raise ValueError("Invalid cohort type provided.")
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
 
-        # Update mass_cnp instead of mass_current
-        cohort_instance.mass_cnp = {
-            element: initial_mass * proportion
-            for element, proportion in cohort_instance.cnp_proportions.items()
-        }
+        # Set initial mass using CNP object
+        cohort_instance.mass_cnp = CNP(initial_mass, 0.0, 0.0)
 
-        # Mocking the sf.metabolic_rate function to return a specific value
+        # Mock metabolic_rate to return a specific value
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
             return_value=metabolic_rate_return_value,
@@ -243,7 +205,9 @@ class TestAnimalCohort:
                 cohort_instance.metabolize(temperature, dt)
         else:
             cohort_instance.metabolize(temperature, dt)
-            assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
+            assert isclose(
+                cohort_instance.mass_cnp.carbon, expected_final_mass, rtol=1e-9
+            )
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass, num_pools",
@@ -268,7 +232,6 @@ class TestAnimalCohort:
         excrement_pools_instance,
     ):
         """Testing excrete method for various scenarios using the fixture."""
-
         # Select the appropriate cohort instance
         cohort_instance = (
             herbivore_cohort_instance
@@ -281,11 +244,15 @@ class TestAnimalCohort:
 
         # Store initial values before excretion
         initial_scavengeable_cnp = {
-            nutrient: sum(pool.scavengeable_cnp[nutrient] for pool in excrement_pools)
+            nutrient: sum(
+                getattr(pool.scavengeable_cnp, nutrient) for pool in excrement_pools
+            )
             for nutrient in excreta_mass
         }
         initial_decomposed_cnp = {
-            nutrient: sum(pool.decomposed_cnp[nutrient] for pool in excrement_pools)
+            nutrient: sum(
+                getattr(pool.decomposed_cnp, nutrient) for pool in excrement_pools
+            )
             for nutrient in excreta_mass
         }
 
@@ -298,7 +265,6 @@ class TestAnimalCohort:
         }
         decay_fraction = cohort_instance.decay_fraction_excrement
 
-        # Calculate expected decomposed and scavengeable fractions
         expected_decomposed_cnp = {
             nutrient: initial_decomposed_cnp[nutrient]
             + decay_fraction * excreta_mass_per_community[nutrient] * num_pools
@@ -312,12 +278,12 @@ class TestAnimalCohort:
 
         for excrement_pool in excrement_pools:
             for nutrient in excreta_mass:
-                assert excrement_pool.decomposed_cnp[nutrient] == pytest.approx(
-                    expected_decomposed_cnp[nutrient], rel=1e-3
-                )
-                assert excrement_pool.scavengeable_cnp[nutrient] == pytest.approx(
-                    expected_scavengeable_cnp[nutrient], rel=1e-3
-                )
+                assert getattr(
+                    excrement_pool.decomposed_cnp, nutrient
+                ) == pytest.approx(expected_decomposed_cnp[nutrient], rel=1e-3)
+                assert getattr(
+                    excrement_pool.scavengeable_cnp, nutrient
+                ) == pytest.approx(expected_scavengeable_cnp[nutrient], rel=1e-3)
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass",
@@ -509,14 +475,20 @@ class TestAnimalCohort:
         # Check the number of individuals after death
         assert herbivore_cohort_instance.individuals == expected_final_individuals
 
-        # Compute expected total mass lost (mass per individual * deaths)
         expected_mass_lost = {
-            nutrient: herbivore_cohort_instance.mass_cnp[nutrient] * number_of_deaths
-            for nutrient in herbivore_cohort_instance.mass_cnp
+            "carbon": herbivore_cohort_instance.mass_cnp.carbon * number_of_deaths,
+            "nitrogen": herbivore_cohort_instance.mass_cnp.nitrogen * number_of_deaths,
+            "phosphorus": herbivore_cohort_instance.mass_cnp.phosphorus
+            * number_of_deaths,
         }
 
         # Ensure update_carcass_pool was called with the correct total mass lost
-        mock_update_carcass_pool.assert_called_once_with(expected_mass_lost, [])
+        mock_update_carcass_pool.assert_called_once_with(
+            expected_mass_lost["carbon"],
+            expected_mass_lost["nitrogen"],
+            expected_mass_lost["phosphorus"],
+            [],
+        )
 
     @pytest.mark.parametrize(
         "carcass_mass, num_pools, decay_fraction, should_raise",
@@ -583,18 +555,13 @@ class TestAnimalCohort:
         should_raise,
     ):
         """Test carcass mass distribution in update_carcass_pool()."""
-
+        from virtual_ecosystem.models.animal.cnp import CNP
         from virtual_ecosystem.models.animal.decay import CarcassPool
 
-        # Create carcass pools from fixture
         carcass_pools = [
             CarcassPool(
-                scavengeable_cnp={
-                    "carbon": 500.0,
-                    "nitrogen": 100.0,
-                    "phosphorus": 50.0,
-                },
-                decomposed_cnp={"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
             )
             for _ in range(num_pools)
         ]
@@ -616,12 +583,19 @@ class TestAnimalCohort:
         if should_raise:
             with pytest.raises(ValueError):
                 herbivore_cohort_instance.update_carcass_pool(
-                    carcass_mass, carcass_pools
+                    carcass_mass["carbon"],
+                    carcass_mass["nitrogen"],
+                    carcass_mass["phosphorus"],
+                    carcass_pools,
                 )
             return
 
-        # Call method
-        herbivore_cohort_instance.update_carcass_pool(carcass_mass, carcass_pools)
+        herbivore_cohort_instance.update_carcass_pool(
+            carcass_mass["carbon"],
+            carcass_mass["nitrogen"],
+            carcass_mass["phosphorus"],
+            carcass_pools,
+        )
 
         # Adjust expected values to correctly distribute across pools
         expected_scavengeable_cnp = {
@@ -673,14 +647,20 @@ class TestAnimalCohort:
     ):
         """Test that get_eaten updates individuals and properly distributes mass."""
 
+        from virtual_ecosystem.models.animal.cnp import CNP
+
         # Given a herbivore cohort with the specified number of individuals
         herbivore_cohort_instance.individuals = initial_individuals
 
         # Ensure mass_current correctly reflects individual mass
-        herbivore_cohort_instance.mass_cnp = {
-            element: individual_mass * proportion
-            for element, proportion in herbivore_cohort_instance.cnp_proportions.items()
-        }
+        herbivore_cohort_instance.mass_cnp = CNP(
+            carbon=individual_mass
+            * herbivore_cohort_instance.cnp_proportions["carbon"],
+            nitrogen=individual_mass
+            * herbivore_cohort_instance.cnp_proportions["nitrogen"],
+            phosphorus=individual_mass
+            * herbivore_cohort_instance.cnp_proportions["phosphorus"],
+        )
 
         # Track initial total carcass pool mass for each nutrient
         initial_carcass_mass_c = sum(
@@ -963,9 +943,15 @@ class TestAnimalCohort:
     ):
         """Test `is_below_mass_threshold` for different mass and threshold values."""
 
+        from virtual_ecosystem.models.animal.cnp import CNP
+
         # Mock `mass_current` and `reproductive_mass` properties
-        herbivore_cohort_instance.mass_cnp = {"carbon": mass_current}
-        herbivore_cohort_instance.reproductive_mass_cnp = {"carbon": reproductive_mass}
+        herbivore_cohort_instance.mass_cnp = CNP(
+            carbon=mass_current, nitrogen=0.0, phosphorus=0.0
+        )
+        herbivore_cohort_instance.reproductive_mass_cnp = CNP(
+            carbon=reproductive_mass, nitrogen=0.0, phosphorus=0.0
+        )
 
         # Mock `adult_mass`
         herbivore_cohort_instance.functional_group.adult_mass = adult_mass
