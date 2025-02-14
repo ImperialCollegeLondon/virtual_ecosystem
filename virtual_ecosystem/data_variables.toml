@@ -85,7 +85,7 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Shortwave radiation absorbed by individual canopy layers"
-name = "canopy_absorption"
+name = "shortwave_absorption"
 unit = ""
 variable_type = "float"
 
