@@ -357,7 +357,7 @@ added for each of the 81 grid cells, giving 162 entries along the cohort axis.
   - C
 * - Downward shortwave radiation
   - `downward_shortwave_radiation`
-  - W m$^{-2}$ s$^{-1}$
+  - W m$^{-2}$
   - XYT
 ```
 
