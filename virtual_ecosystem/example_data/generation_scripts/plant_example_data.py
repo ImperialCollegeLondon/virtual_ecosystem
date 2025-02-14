@@ -51,7 +51,7 @@ data.to_netcdf("../data/example_plant_data.nc")
 
 # Write cohort data to CSV file as an alternative form of this data source
 df = data.drop_vars(
-    ["photosynthetic_photon_flux_density", "time", "time_index", "cell_id"]
+    ["downward_shortwave_radiation", "time", "time_index", "cell_id"]
 ).to_pandas()
 
 df.to_csv("../data/example_plant_cohorts.csv", index=False)

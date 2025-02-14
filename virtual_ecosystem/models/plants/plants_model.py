@@ -257,7 +257,7 @@ class PlantsModel(
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
 
-        # Calculate PPFD from SWDown
+        # Calculate PPFD from DSR
         self.data["photosynthetic_photon_flux_density"] = (
             self.data["downward_shortwave_radiation"] / 2.04
         )
