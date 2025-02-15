@@ -215,7 +215,7 @@ egestas.
 :margin: 2 2 0 0
 :link: https://hrlai.netlify.app/
 
-```{image} _static/images/people/photo_placeholder.png
+```{image} _static/images/people/hao_ran_lai.jpg
 :alt: Dr. Hao Ran Lai
 :class: team-photo
 ```
