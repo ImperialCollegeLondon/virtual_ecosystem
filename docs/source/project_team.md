@@ -54,12 +54,12 @@ egestas.
 
 :::
 
-:::{grid-item-card} Dr Anna Rallings
+:::{grid-item-card} Dr. Anna Rallings
 :margin: 2 2 0 0
 :link: project_team.html
 
 ```{image} _static/images/people/photo_placeholder.png
-:alt: Dr Anna Rallings
+:alt: Dr. Anna Rallings
 :class: team-photo
 ```
 
@@ -213,16 +213,16 @@ egestas.
 
 :::{grid-item-card} Dr. Hao Ran Lai
 :margin: 2 2 0 0
-:link: project_team.html
+:link: https://hrlai.netlify.app/
 
 ```{image} _static/images/people/photo_placeholder.png
 :alt: Dr. Hao Ran Lai
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Hao Ran is a (mostly plant) community ecologist who works on forest dynamics, 
+functional traits and statistical modelling. He helps with the soil models of 
+Virtual Ecosystem and is currently based in Aotearoa New Zealand.
 :::
 
 :::{grid-item-card} Nicholas Wei Cheng Tan
