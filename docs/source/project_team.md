@@ -220,8 +220,8 @@ egestas.
 :class: team-photo
 ```
 
-Hao Ran is a (mostly plant) community ecologist who works on forest dynamics, 
-functional traits and statistical modelling. He helps with the soil models of 
+Hao Ran is a (mostly plant) community ecologist who works on forest dynamics,
+functional traits and statistical modelling. He helps with the soil models of
 Virtual Ecosystem and is currently based in Aotearoa New Zealand.
 :::
 
