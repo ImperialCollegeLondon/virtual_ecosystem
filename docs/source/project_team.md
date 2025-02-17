@@ -243,14 +243,15 @@ egestas.
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/photo_placeholder.png
+```{image} _static/images/people/arne_scheire.jpg
 :alt: Arne Scheire
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Arne is a plant ecologist with an interest in the functioning, 
+conservation and management of tropical forests, particularly in Southeast Asia.
+He is one of the data scientists for the Virtual Ecosystem, focusing on the plant model.
+Arne is based at SEARRP in KK (Malaysia).
 :::
 
 ::::
