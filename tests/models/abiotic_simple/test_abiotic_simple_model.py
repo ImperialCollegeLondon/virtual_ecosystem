@@ -46,8 +46,8 @@ def test_abiotic_simple_model_initialization(
     )
 
     with (
-        patch_run_update("abiotic_simple"),
-        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
+        patch_run_update(AbioticSimpleModel),
+        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:
@@ -165,8 +165,8 @@ def test_generate_abiotic_simple_model(
         ".AbioticSimpleModel"
     )
     with (
-        patch_run_update("abiotic_simple"),
-        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
+        patch_run_update(AbioticSimpleModel),
+        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
         mock_bypass_setup.return_value = False
@@ -195,8 +195,8 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
 
     # initialise model
     with (
-        patch_run_update("abiotic_simple"),
-        patch_bypass_setup("abiotic_simple") as mock_bypass_setup,
+        patch_run_update(AbioticSimpleModel),
+        patch_bypass_setup(AbioticSimpleModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticSimpleModel(

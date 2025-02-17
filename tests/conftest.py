@@ -110,13 +110,45 @@ def fixture_config():
         surface_layer_height = 0.1
 
         [plants]
-        a_plant_integer = 12
-        [[plants.ftypes]]
-        pft_name = "shrub"
-        max_height = 1.0
-        [[plants.ftypes]]
-        pft_name = "broadleaf"
-        max_height = 50.0
+        [[plants.pft_definition]]
+        a_hd = 116.0
+        ca_ratio = 390.43
+        f_g = 0.02
+        h_max = 25.33
+        lai = 1.8
+        m = 2
+        n = 5
+        name = 'shrub'
+        par_ext = 0.5
+        resp_f = 0.1
+        resp_r = 0.913
+        resp_s = 0.044
+        rho_s = 200.0
+        sla = 14.0
+        tau_f = 4.0
+        tau_r = 1.04
+        yld = 0.17
+        zeta = 0.17
+
+        [[plants.pft_definition]]
+        a_hd = 116.0
+        ca_ratio = 390.43
+        f_g = 0.02
+        h_max = 30.33
+        lai = 1.8
+        m = 2
+        n = 5
+        name = 'broadleaf'
+        par_ext = 0.5
+        resp_f = 0.1
+        resp_r = 0.913
+        resp_s = 0.044
+        rho_s = 200.0
+        sla = 14.0
+        tau_f = 4.0
+        tau_r = 1.04
+        yld = 0.17
+        zeta = 0.17
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"
@@ -375,8 +407,8 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
-    data["canopy_absorption"] = from_template()
-    data["canopy_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_filled_canopy] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -581,15 +613,20 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     return dummy_climate_data
 
 
-def patch_run_update(model: str):
-    """Patch the run_update_check udring the init of the model."""
-    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
-    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
-    return patch(f"{object_to_patch}._run_update_due_to_static_configuration")
+def patch_run_update(model: type):
+    """Patch the run update check during the init of the model."""
+    return patch(
+        f"{model.__module__}.{model.__name__}._run_update_due_to_static_configuration"
+    )
 
 
-def patch_bypass_setup(model: str):
-    """Patch the run_update_check udring the init of the model."""
-    klass = "".join([w.capitalize() for w in model.split("_")] + ["Model"])
-    object_to_patch = f"virtual_ecosystem.models.{model}.{model}_model.{klass}"
-    return patch(f"{object_to_patch}._bypass_setup_due_to_static_configuration")
+def patch_bypass_setup(model: type):
+    """Patch the bypass setup check during the init of the model."""
+    return patch(
+        f"{model.__module__}.{model.__name__}._bypass_setup_due_to_static_configuration"
+    )
+
+
+def patch_static_config(model: type):
+    """Patch the check static config during the init of the model."""
+    return patch(f"{model.__module__}.{model.__name__}._check_static_config")

@@ -26,12 +26,14 @@ language_info:
 
 # Plant structures for the {mod}`~virtual_ecosystem.models.plants` module
 
-This page documents three submodules of the `plants` module:
+This page documents submodules of the `plants` module used to support the central
+{mod}`~virtual_ecosystem.models.plants.plants_model` module:
 
 1. The plant functional types (PFTs) that make up the flora used in a simulation.
 2. The plant community structures, describing the cohorts of stems of different PFTs
    with different diameters at breast height within a grid cell.
 3. The canopy structure generated in a grid cell by the plant community.
+4. The constants definitions required to run the model
 
 ## The plant {mod}`~virtual_ecosystem.models.plants.functional_types` module
 
@@ -41,10 +43,10 @@ This page documents three submodules of the `plants` module:
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.community` module
+## The plants {mod}`~virtual_ecosystem.models.plants.communities` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.community
+.. automodule:: virtual_ecosystem.models.plants.communities
     :autosummary:
     :members:
 ```
@@ -53,6 +55,14 @@ This page documents three submodules of the `plants` module:
 
 ```{eval-rst}
 .. automodule:: virtual_ecosystem.models.plants.canopy
+    :autosummary:
+    :members:
+```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.constants
     :autosummary:
     :members:
 ```
