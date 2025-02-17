@@ -145,9 +145,10 @@ based at the Silwood Park Campus at Imperial College London.
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Taran is a food-web ecologist with a focus on animal communities and paleoecology. He is
+one of the programmers for the Virtual Ecosystem, with a particular focus on the animal
+model and trophic interactions. Taran is based at the Silwood Park Campus of Imperial
+College London.
 :::
 
 :::{grid-item-card} Professor Priyanga Amarasekare
