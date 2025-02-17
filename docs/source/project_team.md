@@ -248,7 +248,7 @@ egestas.
 :class: team-photo
 ```
 
-Arne is a plant ecologist with an interest in the functioning, 
+Arne is a plant ecologist with an interest in the functioning,
 conservation and management of tropical forests, particularly in Southeast Asia.
 He is one of the data scientists for the Virtual Ecosystem, focusing on the plant model.
 Arne is based at SEARRP in KK (Malaysia).
