@@ -140,7 +140,7 @@ based at the Silwood Park Campus at Imperial College London.
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/photo_placeholder.png
+```{image} _static/images/people/taran_rallings.jpg
 :alt: Dr. Taran Rallings
 :class: team-photo
 ```
