@@ -241,7 +241,7 @@ def calculate_soil_heat_balance(
     # Calculate soil absorption of shortwave radiation, [W m-2]
     shortwave_radiation_surface = data["topofcanopy_radiation"].isel(
         time_index=time_index
-    ) - (data["canopy_absorption"].sum(dim="layers"))
+    ) - (data["shortwave_absorption"].sum(dim="layers"))
     soil_absorption = calculate_soil_absorption(
         shortwave_radiation_surface=shortwave_radiation_surface.to_numpy(),
         surface_albedo=abiotic_consts.surface_albedo,

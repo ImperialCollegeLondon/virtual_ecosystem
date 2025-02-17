@@ -35,11 +35,3 @@ language_info:
     :exclude-members: model_name
     :inherited-members:
 ```
-
-## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
-
-```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.constants
-    :autosummary:
-    :members:
-```
