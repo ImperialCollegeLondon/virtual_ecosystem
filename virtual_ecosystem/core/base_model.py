@@ -247,18 +247,65 @@ class BaseModel(ABC):
         """A list of attributes to be included in the class __repr__ output"""
         self._static = static
         """Flag indicating if the model is static, i.e. does not change with time."""
-        self._run_initial_static_update = self._run_update_due_to_static_configuration()
-        """Flag indicating if the update method should be run once.
-        
-        This is ignored if the model is not static."""
 
         # Check the required init variables
         self.check_init_data()
         # Check the configured update interval is within model bounds
         self._check_update_speed()
+        # Check static configuration
+        bypass_setup, run_initial = self._check_static_config()
 
-        if not self._bypass_setup_due_to_static_configuration():
+        self._run_initial_static_update = run_initial
+        """Flag indicating if the update method should be run once when model static."""
+
+        if not bypass_setup:
             self._setup(**kwargs)
+
+    def _check_static_config(self) -> tuple[bool, bool]:
+        """Check if the static configuration is valid.
+
+        Raises:
+            ConfigurationError: If there is any error in the static configuration of the
+            model.
+
+        Returns:
+            A tuple of two boolean flags indicating if the _setup method should be
+            bypassed and the update method should be run, respectively.
+        """
+        bypass = self._bypass_setup_due_to_static_configuration()
+        run = self._run_update_due_to_static_configuration()
+
+        # Bypassing the setup and running the update is not valid
+        if bypass and run:
+            raise ConfigurationError(
+                f"Static model {self.model_name} will not run the setup method, but "
+                "requires the update method to run once. This is an invalid "
+                "configuration. Please, make sure that either both methods are run once"
+                " by not providing any variables in vars_populated_by_first_update and "
+                "vars_updated or that both are bypassed by providing all variables in "
+                "vars_populated_by_init."
+            )
+
+        # Flag indicating if the setup method will setup any variable
+        any_var_to_setup = len(self.vars_populated_by_init) > 0
+        # Flag indicating if the update method will update any variable
+        any_var_to_update = (
+            len(self.vars_populated_by_first_update) > 0 or len(self.vars_updated) > 0
+        )
+
+        # Running the setup but not the update is only valid if
+        # - There are no variables to setup (setup is always run in this case), or
+        # - There are no variables to update (unusual case)
+        if not bypass and not run and any_var_to_setup and any_var_to_update:
+            raise ConfigurationError(
+                f"Static model {self.model_name} will run the setup method, but "
+                "not the update method. This is an invalid configuration. "
+                "Please, make sure that either both methods are run once"
+                " by not providing any variables in vars_populated_by_init or that both"
+                " are bypassed by providing all variables in "
+                "vars_populated_by_first_update and vars_updated."
+            )
+        return bypass, run
 
     def _bypass_setup_due_to_static_configuration(self) -> bool:
         """Decide if the setup should be bypassed based on the static flag.
@@ -300,7 +347,7 @@ class BaseModel(ABC):
                 # The case when static is true and no init vars provided
                 return False
             else:
-                # The case when static is true and all init vars provideed
+                # The case when static is true and all init vars provided
                 return True
 
         return False
@@ -338,7 +385,7 @@ class BaseModel(ABC):
             )
 
         elif self._static:
-            if found == 0:
+            if found == 0 and expected > 0:
                 return True
             elif found == expected:
                 return False
