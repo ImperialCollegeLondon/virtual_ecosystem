@@ -68,7 +68,11 @@ class SoilModel(
         "bulk_density",
         "clay_fraction",
     ),
-    vars_populated_by_init=(),
+    vars_populated_by_init=(
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
+    ),
     vars_required_for_update=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
@@ -124,6 +128,9 @@ class SoilModel(
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -189,7 +196,16 @@ class SoilModel(
         model_constants: SoilConsts,
         **kwargs: Any,
     ) -> None:
-        """Placeholder function to setup up the soil model."""
+        """Function to setup up the soil model."""
+
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        self.model_constants = model_constants
+
+        # Calculate dissolved amounts of each inorganic nutrient
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
 
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
@@ -198,10 +214,6 @@ class SoilModel(
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
-        self.model_constants = model_constants
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
@@ -275,7 +287,7 @@ class SoilModel(
             [
                 self.data[name].to_numpy()
                 for name in map(str, self.data.data.keys())
-                if name in self.vars_updated
+                if name in self.vars_updated and name not in self.vars_populated_by_init
             ]
         )
 
@@ -283,7 +295,7 @@ class SoilModel(
         delta_pools_ordered = {
             name: np.array([])
             for name in map(str, self.data.data.keys())
-            if name in self.vars_updated
+            if name in self.vars_updated and name not in self.vars_populated_by_init
         }
 
         # Carry out simulation

@@ -62,6 +62,9 @@ class PlantsModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles

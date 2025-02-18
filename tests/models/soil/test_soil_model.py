@@ -38,6 +38,12 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
 )
+POST_SETUP_LOG = (
+    *REQUIRED_INIT_VAR_LOG,
+    (INFO, "Adding data array for 'dissolved_nitrate'"),
+    (INFO, "Adding data array for 'dissolved_ammonium'"),
+    (INFO, "Adding data array for 'dissolved_phosphorus'"),
+)
 
 
 def test_soil_model_initialization(
@@ -66,7 +72,7 @@ def test_soil_model_initialization(
     # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=REQUIRED_INIT_VAR_LOG,
+        expected_log=POST_SETUP_LOG,
     )
 
 
@@ -141,7 +147,7 @@ def test_soil_model_initialization_bounds_error(
         caplog,
         expected_log=(
             (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
-            *REQUIRED_INIT_VAR_LOG,
+            *POST_SETUP_LOG,
             (ERROR, "Initial carbon pools contain at least one negative value!"),
         ),
     )
@@ -185,7 +191,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                *REQUIRED_INIT_VAR_LOG,
+                *POST_SETUP_LOG,
             ),
             id="default_config",
         ),
@@ -201,7 +207,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                *REQUIRED_INIT_VAR_LOG,
+                *POST_SETUP_LOG,
             ),
             id="modified_config_correct",
         ),
@@ -474,7 +480,10 @@ def test_order_independance(
 
     # Then extract soil carbon pool names from the fixture (in order)
     pool_names = [
-        name for name in dummy_carbon_data.data.keys() if name in SoilModel.vars_updated
+        name
+        for name in dummy_carbon_data.data.keys()
+        if name in SoilModel.vars_updated
+        and name not in SoilModel.vars_populated_by_init
     ]
 
     # Add pool values from object in reversed order
