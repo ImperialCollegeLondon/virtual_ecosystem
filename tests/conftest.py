@@ -483,7 +483,6 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     """
 
     index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
-    index_flux_layers = fixture_core_components.layer_structure.index_flux_layers
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -517,11 +516,14 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["shortwave_absorption"][index_flux_layers] = [
+    sw_indexes = [1, 2, 3, 13]
+    dummy_climate_data["shortwave_absorption"][sw_indexes] = [
         [10.0, 10.0, 10.0, 10.0],
         [10.0, 10.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
+        [0, 0, 0, 0],
     ]
+    dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],

@@ -153,7 +153,7 @@ def initialise_canopy_and_soil_fluxes(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="canopy_absorption",
+        name="shortwave_absorption",
     )
 
     # Calculate absorbed radiation
@@ -166,7 +166,8 @@ def initialise_canopy_and_soil_fluxes(
 
     # Replace np.nan with new values and write in output dict
     absorbed_radiation[layer_heights_canopy.indexes] = initial_absorbed_radiation
-    output["canopy_absorption"] = absorbed_radiation
+    absorbed_radiation[layer_structure.index_topsoil] = 0.0
+    output["shortwave_absorption"] = absorbed_radiation
 
     # Initialize canopy temperature DataArray
     canopy_temperature = DataArray(
@@ -489,45 +490,81 @@ def update_air_canopy_temperature(
     return new_canopy_temperature, new_air_temperature
 
 
-# def update_humidity_vpd(
-#     evapotranspiration: NDArray[np.float32],
-#     saturated_vapour_pressure: NDArray[np.float32],
-#     specific_humidity: NDArray[np.float32],
-#     layer_thickness: NDArray[np.float32],
-#     atmospheric_pressure: NDArray[np.float32],
-#     cell_area: int,
-# ) -> list[NDArray[np.float32]]:
-#     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
+def update_humidity_vpd(
+    evapotranspiration: NDArray[np.float32],
+    soil_evaporation: NDArray[np.float32],
+    saturated_vapour_pressure: NDArray[np.float32],
+    specific_humidity: NDArray[np.float32],
+    layer_thickness: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+    water_to_air_mass_ratio: float,
+    dry_air_factor: float,
+    cell_area: float,
+) -> dict[str, NDArray[np.float32]]:
+    """Update specific humidity and vapour pressure deficit for a multilayer canopy.
 
-#     Note that timestep is not taken into account in the change in specific humidity.
+    TODO at the moment we get 100% relative humididty and VPD=0, likely because the
+    timestep is not taken into account and there is no mixing and removal of water.
+    This should be added in a separate function in a following step.
 
-#     Args:
-#         evapotranspiration: Evapotranspiration, [mm]
-#         saturated_vapour_pressure: Saturated vapour pressure, [kPa]
-#         specific_humidity: specific humidity, [kg kg-1]
-#         layer_thickness: Layer thickness, [m]
-#         atmospheric_pressure: Atmospheric pressure, [kPa]
-#         density_air_kg: Density of air, [kg m-3]
-#         ratio_molecular_weights: Ratio of molecular weights (water vapour/dry air)
+    Args:
+        evapotranspiration: Evapotranspiration, [mm]
+        soil_evaporation: Soil evaporation to surface layer, [mm]
+        saturated_vapour_pressure: Saturated vapour pressure, [kPa]
+        specific_humidity: specific humidity, [kg kg-1]
+        layer_thickness: Layer thickness, [m]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        water_to_air_mass_ratio: Ratio of water vapour to dry air mass
+        dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
+        cell_area: Grid cell area, [m2]
 
-#     Returns:
-#       list with updated specific_humidity, vapour pressure and vapour pressure deficit
-#     """
+    Returns:
+      list with updated specific_humidity, vapour pressure and vapour pressure deficit
+    """
 
-#     # Convert evapotranspiration to [kg kg-1] account for cell area
-#     # (1 mm day-1 is equivalent to 10 m3 ha-1 day-1)
-#     evapotranspiration_kg = evapotranspiration*10*100/10000*cell_area
+    # Convert evapotranspiration and soil evaporation from [mm] to [kg/m^3]
+    cell_area_in_ha = cell_area / 10000  # convert m² to hectares
+    additional_water = np.zeros_like(layer_thickness)
+    additional_water[1 : len(evapotranspiration) + 1] = (
+        evapotranspiration * 1000 / cell_area_in_ha
+    )  # [kg m^-3]
+    additional_water[-1] = soil_evaporation * 1000 / cell_area_in_ha  # [kg m^-3]
 
-#     # Compute change in specific humidity per layer (kg/kg) i.e. account for volume
-#     change_specific_humidity = evapotranspiration_kg / layer_thickness*cell_area
+    # Volume of air for each layer [m^3]
+    layer_volumes = layer_thickness * cell_area
 
-#     # Updated specific humidity
-#     specific_humidity_updated = specific_humidity + change_specific_humidity
+    # Water mass in air before update [kg m^-3]
+    water_mass_in_air = specific_humidity * layer_volumes
 
-#     # Compute new vapour pressure [kPa]
+    # Update water mass in air by adding evapotranspiration and soil evaporation
+    new_water_mass_in_air = water_mass_in_air + additional_water * layer_volumes
 
+    # Update specific humidity [kg/kg]
+    specific_humidity_updated = new_water_mass_in_air / layer_volumes
 
-#     # Compute new VPD [kPa]
+    # Compute new vapor pressure [kPa]
+    # Vapor pressure is limited by the saturated vapor pressure
+    vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
+        water_to_air_mass_ratio * dry_air_factor + specific_humidity_updated
+    )
 
+    # Ensure vapor pressure doesn't exceed the saturated vapor pressure
+    # NOTE we need to make sure that we do not loose water here
+    vapour_pressure_updated = np.minimum(
+        vapour_pressure_updated, saturated_vapour_pressure
+    )
 
-#     return [specific_humidity_updated, vapour_pressure_updated, vpd_updated]
+    # Compute new relative humidity (%)
+    relative_humidity_updated = (
+        vapour_pressure_updated / saturated_vapour_pressure
+    ) * 100
+
+    # Compute new VPD (Vapor Pressure Deficit) [kPa]
+    vpd_updated = saturated_vapour_pressure - vapour_pressure_updated
+
+    # Return results
+    return {
+        "relative_humidity": relative_humidity_updated,
+        "vapour_pressure": vapour_pressure_updated,
+        "vapour_pressure_deficit": vpd_updated,
+    }

@@ -37,7 +37,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Replacing data array for 'soil_temperature'"),
-    (INFO, "Replacing data array for 'canopy_absorption'"),
+    (INFO, "Replacing data array for 'shortwave_absorption'"),
     (INFO, "Replacing data array for 'canopy_temperature'"),
     (INFO, "Replacing data array for 'sensible_heat_flux'"),
     (INFO, "Replacing data array for 'latent_heat_flux'"),
@@ -344,15 +344,14 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "canopy_absorption",
+        "shortwave_absorption",
     ]:
         assert var in model.data
 
-    exp_canopy_abs = lyr_strct.from_template()
-    exp_canopy_abs[lyr_strct.index_filled_canopy] = np.array(
-        [0.09995, 0.09985, 0.09975]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["canopy_absorption"], exp_canopy_abs)
+    exp_shortwave_abs = lyr_strct.from_template()
+    indices = [1, 2, 3, 12]
+    exp_shortwave_abs[indices] = np.array([0.09995, 0.09985, 0.09975, 0])[:, None]
+    xr.testing.assert_allclose(model.data["shortwave_absorption"], exp_shortwave_abs)
 
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         expected_vals = lyr_strct.from_template()
@@ -370,7 +369,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         model.update(time_index=0)
 
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.374506, 19.98967])[
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.701923, 19.994007])[
         :, None
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp1)

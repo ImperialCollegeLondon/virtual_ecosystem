@@ -132,3 +132,16 @@ class AbioticConsts(ConstantsDataclass):
         default_factory=lambda: [4098.0, 0.6108, 17.27, 237.3]
     )
     """List of parameters to calcualte the slope of saturated vapour pressure curve."""
+
+    water_to_air_mass_ratio: float = 0.622
+    """Ratio of the molecular mass of water vapour to dry air.
+    
+    This ratio is crucial because it determines how much water vapour contributes to
+    the total pressure in a given air parcel.
+
+    """
+    dry_air_factor: float = 0.378
+    """Dry air factor, complement of water_to_air_mass_ratio.
+
+    This term accounts for the proportion of dry air when computing the partitioning
+    of total air pressure."""

@@ -66,7 +66,7 @@ class AbioticModel(
         "layer_heights",
         "topofcanopy_radiation",
         "stomatal_conductance",
-        "canopy_absorption",
+        "shortwave_absorption",
         "aerodynamic_resistance_surface",
     ),
     vars_populated_by_init=(
@@ -78,7 +78,7 @@ class AbioticModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "canopy_absorption",  # DAVID This is assuming that abiotic runs before plants
+        "shortwave_absorption",
         "canopy_temperature",
         "sensible_heat_flux",
         "latent_heat_flux",
@@ -240,6 +240,7 @@ class AbioticModel(
             data=self.data,
             time_index=time_index,
             time_interval=3600,
+            cell_area=self.grid.cell_area,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             abiotic_simple_constants=self.simple_constants,

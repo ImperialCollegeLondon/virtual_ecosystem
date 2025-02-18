@@ -87,12 +87,12 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "canopy_absorption",
+        "shortwave_absorption",
     ]:
         assert var in result
 
     np.testing.assert_allclose(
-        result["canopy_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
+        result["shortwave_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         np.testing.assert_allclose(result[var][1:4].to_numpy(), np.full((3, 4), 0.001))
@@ -299,9 +299,48 @@ def test_update_air_canopy_temperature():
     )
 
 
-# def test_update_humidity_vpd():
-#     """Test update atmospheric humidity."""
+def test_update_humidity_vpd():
+    """Test update atmospheric humidity."""
 
-#     from virtual_ecosystem.models.abiotic.energy_balance import (
-#         update_humidity_vpd,
-#     )
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        update_humidity_vpd,
+    )
+
+    # Input values for a tropical rainforest
+    evapotranspiration = np.full((3, 4), 4.5)  # mm/day
+    soil_evaporation = np.repeat(1.2, 4)  # mm/day
+    saturated_vapour_pressure = np.full((5, 4), 3.8)  # kPa (for ~28°C)
+    specific_humidity = np.full((5, 4), 0.020)  # kg/kg (high humidity)
+    layer_thickness = np.array([np.full(4, layer) for layer in [20, 10, 5, 1, 0.1]])
+    atmospheric_pressure = np.full((5, 4), 100)  # kPa
+    water_to_air_mass_ratio = 0.622  # Constant
+    dry_air_factor = 1 - water_to_air_mass_ratio  # 0.378
+    cell_area = 10_000  # m² (1 ha)
+
+    # Call the function
+    result = update_humidity_vpd(
+        evapotranspiration,
+        soil_evaporation,
+        saturated_vapour_pressure,
+        specific_humidity,
+        layer_thickness,
+        atmospheric_pressure,
+        water_to_air_mass_ratio,
+        dry_air_factor,
+        cell_area,
+    )
+    exp_vpd = np.array([np.full(4, layer) for layer in [0, 0, 0, 0, 0]])
+    np.testing.assert_allclose(
+        result["vapour_pressure_deficit"],
+        exp_vpd,
+        rtol=1e-04,
+        atol=1e-04,
+    )
+
+    exp_relhum = np.array([np.full(4, layer) for layer in [100, 100, 100, 100, 100]])
+    np.testing.assert_allclose(
+        result["relative_humidity"],
+        exp_relhum,
+        rtol=1e-04,
+        atol=1e-04,
+    )
