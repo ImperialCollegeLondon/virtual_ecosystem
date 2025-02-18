@@ -55,9 +55,6 @@ class PlantsModel(
         "plant_cohorts_n",
         "plant_cohorts_dbh",
         "photosynthetic_photon_flux_density",
-        "soil_n_pool_ammonium",
-        "soil_n_pool_nitrate",
-        "soil_p_pool_labile",
         "air_temperature",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
@@ -690,17 +687,17 @@ class PlantsModel(
         # Assume plants can take 0.1% of the available nutrient per day, uptake stops
         # (rather than goes negative) if the soil nutrient concentrations go negative
         self.data["plant_ammonium_uptake"] = xr.where(
-            self.data["soil_n_pool_ammonium"] > 0.0,
-            self.data["soil_n_pool_ammonium"] * 0.001,
+            self.data["dissolved_ammonium"] > 0.0,
+            self.data["dissolved_ammonium"] * 0.01,
             0.0,
         )
         self.data["plant_nitrate_uptake"] = xr.where(
-            self.data["soil_n_pool_nitrate"] > 0.0,
-            self.data["soil_n_pool_nitrate"] * 0.001,
+            self.data["dissolved_nitrate"] > 0.0,
+            self.data["dissolved_nitrate"] * 0.01,
             0.0,
         )
         self.data["plant_phosphorus_uptake"] = xr.where(
-            self.data["soil_p_pool_labile"] > 0.0,
-            self.data["soil_p_pool_labile"] * 0.001,
+            self.data["dissolved_phosphorus"] > 0.0,
+            self.data["dissolved_phosphorus"] * 0.01,
             0.0,
         )
