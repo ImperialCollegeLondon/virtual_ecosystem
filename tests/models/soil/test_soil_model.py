@@ -259,11 +259,20 @@ def test_generate_soil_model(
 def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     """Test to check that the update step works and increments the update step."""
 
+    # Set of pools to be returned to test that update does use (mocked) integrator
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_microbe = [5.8, 2.3, 11.3, 1.0]
     end_pom = [0.25, 2.34, 0.746, 0.3467]
     end_necromass = [0.058, 0.015, 0.093, 0.105]
+
+    # Set nutrient values to test the dissolved nutrient values calculation step
+    end_nitrate = [0.05, 0.075, 0.09, 0.002]
+    end_ammonium = [0.1, 0.2, 0.3, 0.4]
+    end_phosphorus = [4e-3, 3e-3, 2e-3, 1e-3]
+    dissolved_nitrate = [0.05, 0.075, 0.09, 0.002]
+    dissolved_ammonium = [0.005, 0.01, 0.015, 0.02]
+    dissolved_phosphorus = [2.0e-5, 1.5e-5, 1.0e-5, 5.0e-6]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -274,6 +283,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
             soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
             soil_c_pool_necromass=DataArray(end_necromass, dims="cell_id"),
+            soil_n_pool_nitrate=DataArray(end_nitrate, dims="cell_id"),
+            soil_n_pool_ammonium=DataArray(end_ammonium, dims="cell_id"),
+            soil_p_pool_labile=DataArray(end_phosphorus, dims="cell_id"),
         )
     )
 
@@ -288,6 +300,12 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     assert np.allclose(dummy_carbon_data["soil_c_pool_microbe"], end_microbe)
     assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
     assert np.allclose(dummy_carbon_data["soil_c_pool_necromass"], end_necromass)
+
+    # Check that dissolved values are populated based on values supplied by (mocked)
+    # integrator
+    assert np.allclose(dummy_carbon_data["dissolved_nitrate"], dissolved_nitrate)
+    assert np.allclose(dummy_carbon_data["dissolved_ammonium"], dissolved_ammonium)
+    assert np.allclose(dummy_carbon_data["dissolved_phosphorus"], dissolved_phosphorus)
 
 
 @pytest.mark.parametrize(
@@ -477,6 +495,23 @@ def test_order_independance(
     # Compare each final pool
     for pool_name in pool_names:
         assert np.allclose(output[pool_name], output_reversed[pool_name])
+
+
+def test_calculate_dissolved_nutrient_concentrations(fixture_soil_model):
+    """Test that the dissolved nutrient concentrations are calculated correctly."""
+
+    expected_concs = {
+        "dissolved_ammonium": [3.4809819e-6, 0.0002495731, 1.145335e-5, 0.000259776695],
+        "dissolved_nitrate": [0.0024219014, 0.0044442996, 0.0003428348, 0.0131405173],
+        "dissolved_phosphorus": [5.2911965e-8, 1.6264805e-7, 3.4033725e-7, 9.728175e-7],
+    }
+
+    actual_concs = fixture_soil_model.calculate_dissolved_nutrient_concentrations()
+
+    assert expected_concs.keys() == actual_concs.keys()
+
+    for nutrient in expected_concs.keys():
+        assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
 
 
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):

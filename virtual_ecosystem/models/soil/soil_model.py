@@ -221,6 +221,11 @@ class SoilModel(
         # n.b. this also updates the data object automatically
         self.data.add_from_dict(updated_carbon_pools)
 
+        # Calculate dissolved amounts of each inorganic nutrients
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
+
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
@@ -317,6 +322,25 @@ class SoilModel(
         }
 
         return new_c_pools
+
+    def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
+        """Calculate the amount of each inorganic nutrient that is in dissolved form.
+
+        This calculates the nutrient concentration of the water in the topsoil layer.
+
+        Returns:
+            A data array containing the size of each dissolved nutrient pool [kg
+            nutrient m^-3].
+        """
+
+        return {
+            "dissolved_nitrate": self.model_constants.solubility_coefficient_nitrate
+            * self.data["soil_n_pool_nitrate"],
+            "dissolved_ammonium": self.model_constants.solubility_coefficient_ammonium
+            * self.data["soil_n_pool_ammonium"],
+            "dissolved_phosphorus": self.model_constants.solubility_coefficient_labile_p
+            * self.data["soil_p_pool_labile"],
+        }
 
 
 def construct_full_soil_model(
