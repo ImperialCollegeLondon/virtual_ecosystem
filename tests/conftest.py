@@ -375,8 +375,8 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
-    data["canopy_absorption"] = from_template()
-    data["canopy_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -411,8 +411,8 @@ def dummy_climate_data(fixture_core_components):
         [90.0, 90.341644, 92.488034, 96.157312, 100]
     )[:, None]
 
-    data["absorbed_radiation"] = from_template()
-    data["absorbed_radiation"][lyr_str.index_filled_canopy] = 10.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 10.0
 
     flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
 
@@ -483,6 +483,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     """
 
     index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
+    index_flux_layers = fixture_core_components.layer_structure.index_flux_layers
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -516,7 +517,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["absorbed_radiation"][index_filled_canopy] = [
+    dummy_climate_data["shortwave_absorption"][index_flux_layers] = [
         [10.0, 10.0, 10.0, 10.0],
         [10.0, 10.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
