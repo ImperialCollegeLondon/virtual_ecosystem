@@ -154,7 +154,6 @@ def initialise_canopy_and_soil_fluxes(
         dims=layer_heights.dims,
         coords=layer_heights.coords,
         name="shortwave_absorption",
-        name="shortwave_absorption",
     )
 
     # Calculate absorbed radiation
