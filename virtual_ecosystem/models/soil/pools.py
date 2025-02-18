@@ -1127,12 +1127,20 @@ def calculate_nutrient_uptake_rates(
     # stoichiometric demand and organic nitrogen uptake
     nitrogen_demand = actual_carbon_gain / constants.microbial_c_n_ratio
     inorganic_nitrogen_change = nitrogen_demand - actual_organic_nitrogen_uptake
+
     # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
-    # follows the proportion of the maximum uptake rates, for the mineralisation it is
-    # determined by a fixed constant.
+    # follows the proportion of the maximum uptake rates (if either is above zero)
+    ammonium_uptake_proportion = np.where(
+        (ammonium_uptake_rate_max > 0) | (nitrate_uptake_rate_max > 0),
+        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        0.0,
+    )
+
+    # Whether the uptake proportion or the mineralisation proportion is relevant depends
+    # whether inorganic nitrogen is being taken up or not
     ammonium_to_nitrate_proportion = np.where(
         inorganic_nitrogen_change > 0,
-        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        ammonium_uptake_proportion,
         constants.ammonium_mineralisation_proportion,
     )
     ammonium_change = inorganic_nitrogen_change * ammonium_to_nitrate_proportion
