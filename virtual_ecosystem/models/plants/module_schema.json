@@ -17,40 +17,111 @@
                   "PlantsConsts"
                ]
             },
-            "ftypes": {
-               "description": "Details of the plant functional types",
+            "pft_definition": {
+               "description": "An array of plant functional types definitions",
                "type": "array",
                "items": {
                   "type": "object",
                   "properties": {
-                     "pft_name": {
+                     "name": {
                         "type": "string"
                      },
-                     "max_height": {
-                        "type": "number",
-                        "exclusiveMinimum": 0.0
+                     "a_hd": {
+                        "type": "number"
+                     },
+                     "ca_ratio": {
+                        "type": "number"
+                     },
+                     "h_max": {
+                        "type": "number"
+                     },
+                     "lai": {
+                        "type": "number"
+                     },
+                     "par_ext": {
+                        "type": "number"
+                     },
+                     "resp_f": {
+                        "type": "number"
+                     },
+                     "resp_r": {
+                        "type": "number"
+                     },
+                     "resp_s": {
+                        "type": "number"
+                     },
+                     "rho_s": {
+                        "type": "number"
+                     },
+                     "sla": {
+                        "type": "number"
+                     },
+                     "tau_f": {
+                        "type": "number"
+                     },
+                     "tau_r": {
+                        "type": "number"
+                     },
+                     "yld": {
+                        "type": "number"
+                     },
+                     "zeta": {
+                        "type": "number"
+                     },
+                     "f_g": {
+                        "type": "number"
+                     },
+                     "m": {
+                        "type": "number"
+                     },
+                     "n": {
+                        "type": "number"
                      }
                   },
                   "required": [
-                     "pft_name",
-                     "max_height"
+                     "name",
+                     "a_hd",
+                     "ca_ratio",
+                     "h_max",
+                     "lai",
+                     "par_ext",
+                     "resp_f",
+                     "resp_r",
+                     "resp_s",
+                     "rho_s",
+                     "sla",
+                     "tau_f",
+                     "tau_r",
+                     "yld",
+                     "zeta",
+                     "f_g",
+                     "m",
+                     "n"
                   ]
                }
             },
-            "a_plant_integer": {
-               "description": "Integer relevant to the plant module",
-               "type": "integer",
-               "default": 1
+            "pft_definitions_path": {
+               "description": "A file path to a data file of plant functional type definitions",
+               "type": "string"
             },
             "static": {
-                "type": "boolean",
-                "default": false
+               "type": "boolean",
+               "default": false
             }
          },
          "default": {},
-         "required": [
-            "ftypes",
-            "a_plant_integer"
+         "required": [],
+         "oneOf": [
+            {
+               "required": [
+                  "pft_definition"
+               ]
+            },
+            {
+               "required": [
+                  "pft_definitions_path"
+               ]
+            }
          ]
       }
    },

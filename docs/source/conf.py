@@ -154,6 +154,12 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
     ("py:exc", "ParserError"),
     ("py:exc", "BadZipFile"),
+    # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
+    # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "Canopy"),
+    ("py:class", "Flora"),
+    ("py:class", "PModelConst"),
+    ("py:class", "CoreConst"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -162,6 +168,7 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!
