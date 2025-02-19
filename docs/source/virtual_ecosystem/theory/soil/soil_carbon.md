@@ -37,9 +37,6 @@ Virtual Ecosystem, and describe the processes that transfer carbon between pools
 
 ## Soil carbon pools
 
-TODO - Add something here about how we only consider chemical protection, and not
-physical protection.
-
 Historically, the predominant framework for modelling soil carbon has been the CENTURY
 model {cite}`parton_analysis_1987`, which divides soil organic matter into three pools
 (active, slow and passive). These pools are characterised primarily by their turnover
@@ -50,9 +47,21 @@ towards using soil carbon pool definitions that are based upon measurable physic
 chemical properties. The Millennial model combines the most commonly used of these soil
 carbon pools into a single model {cite}`abramoff_millennial_2018`. This model framework
 is both comprehensive and defines measurable pools, and for this reason we make use of
-it in our soil module.
+a variant of it in our soil model.
 
-The relevant pools are as follows:
+Where we differ from the Millennial model is that we only include pools that represent
+the chemical protection of carbon, and neglect the pool they include representing the
+physical protection of carbon (soil aggregates). We neglect physical protection of
+carbon entirely. This partly to avoid double counting of protection mechanisms, as it's
+pretty common for carbon that is protected chemically to also be protected physically.
+Additionally, pool models are appropriate setup to represent chemical transformations
+(through enzymatic kinetics), but are less appropriate for physical transformations
+(i.e. soil aggregates changing in size is hard to capture with a discrete set of pools).
+Properly capturing physical protection of carbon would involve introducing something to
+capture the distribution of particle sizes in soil, which is not something we plan to
+add in the immediate future.
+
+The pools that we use in our model are as follows:
 
 ### Particulate organic matter (POM)
 
