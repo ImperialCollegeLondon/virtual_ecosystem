@@ -47,11 +47,12 @@ about nutrient transformations within the soil. The two biggest uncertainties fo
 soil model are the long term fate of soil carbon and the impact of plant-microbe
 interactions on uptake rates of nutrients by plants. We believe that the soil related
 uncertainties are of greater consequence so have made the conscious choice to focus more
-detailed modelling effort soil processes than the litter model. The biggest way in which
-the soil model is more complex is that it explicitly represents [microbial community
-dynamics](./microbial_representation.md). The biggest obstacle our this model faces is
-data limitation, as soils are generally poorly characterised compared to the other
-constituent parts of terrestrial ecosystems.
+detailed modelling effort soil processes than the litter model. Therefore, the soil
+model explicitly represents the soil [microbial
+community](./microbial_representation.md), the main driver of decomposition in soils.
+Explicitly represented microbes presents major data limitation challenges, as soils are
+generally poorly characterised compared to the other constituent parts of terrestrial
+ecosystems.
 
 Most processes in the soil are effected by both the environmental temperature and the
 soil moisture. The specific of how we have implemented these known effects are provided
