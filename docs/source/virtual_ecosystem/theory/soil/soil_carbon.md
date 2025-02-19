@@ -23,7 +23,7 @@ language_info:
   version: 3.11.9
 ---
 
-# Representation of the soil carbon cycle
+# The soil carbon cycle
 
 Soils are one of the largest stores ecological stores of carbon. For this reason, there
 has been long term interest in modelling the soil carbon cycle. This is a massively
@@ -139,7 +139,16 @@ animal inputs to the soil go solely into the {term}`LMWC` pool.
 
 ### Microbial uptake and growth
 
-TODO - Populate this subsection
+Microbes take up {term}`LMWC` both as a source of energy and as a source of carbon.
+These resources are then used to synthesis new biomass, replace cells that have died and
+proteins that have degraded, and to produce extra-cellular enzymes. The net change in
+the size of the microbial pool is given by
+
+$$\frac{dM}{dt} = \lambda - d - P_E,$$
+
+where $\lambda$ is the rate of new biomass synthesis, $d$ is the rate at which biomass
+is lost to cell death and protein degradation and $P_E$ is the rate at which enzymes are
+produced.
 
 ### Enzyme mediated decomposition
 
