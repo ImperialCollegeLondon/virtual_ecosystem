@@ -30,11 +30,11 @@ to capture in the Virtual Ecosystem. This requires modelling soil specific proce
 well as litter decay processes that occur both within the topsoil (e.g. for dead roots)
 and within the above ground litter layer.
 
-This broad domain gets split into two separate models. The [litter
+This soil theme gets split into two separate models. The [litter
 model](./litter_theory.md) handles the breakdown of biomass that's still in an
 identifiable form, both in the above ground litter layer as well as below ground. The
-[soil model](./soil_theory.md) handles the processes that are specific to the soil,
-i.e. it includes a much broader set of nutrient transformations.
+soil model, handles the processes that are specific to the soil, i.e. the [soil
+carbon](./soil_carbon.md) and [macronutrient](./macronutrients.md) cycles.
 
 The litter model is significantly simpler than the soil model. The biggest uncertainty
 in this model are the rates at which different types of litter decay, and this can be
@@ -47,9 +47,11 @@ about nutrient transformations within the soil. The two biggest uncertainties fo
 soil model are the long term fate of soil carbon and the impact of plant-microbe
 interactions on uptake rates of nutrients by plants. We believe that the soil related
 uncertainties are of greater consequence so have made the conscious choice to focus more
-detailed modelling effort soil processes than the litter model. The biggest obstacle our
-this model faces is data limitation, as soils are generally poorly characterised
-compared to the other constituent parts of terrestrial ecosystems.
+detailed modelling effort soil processes than the litter model. The biggest way in which
+the soil model is more complex is that it explicitly represents [microbial community
+dynamics](./microbial_representation.md). The biggest obstacle our this model faces is
+data limitation, as soils are generally poorly characterised compared to the other
+constituent parts of terrestrial ecosystems.
 
 Most processes in the soil are effected by both the environmental temperature and the
 soil moisture. The specific of how we have implemented these known effects are provided

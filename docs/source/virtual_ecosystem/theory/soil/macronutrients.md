@@ -1,0 +1,107 @@
+---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.7
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
+language_info:
+  codemirror_mode:
+    name: ipython
+    version: 3
+  file_extension: .py
+  mimetype: text/x-python
+  name: python
+  nbconvert_exporter: python
+  pygments_lexer: ipython3
+  version: 3.11.9
+---
+
+# Soil macronutrient cycles
+
+TODO - Need to expand on why we focus on just nitrogen and phosphorus
+
+TODO - Once the carbon cycle stuff is finished, I really need to expand on the organic
+nutrients
+
+This page provides general details of the theory underlying the macronutrient cycles in
+the soil module, it is currently a bit of a work in progress as the soil model is being
+actively extended at present. This page provides a description of the inorganic
+[nitrogen](#nitrogen-pools), and [phosphorus](#phosphorus-pools) pools that are included
+in the soil model.
+
+## Nitrogen pools
+
+Nitrogen cycling in this module occurs primarily in an organic form. For this reason we
+track the stoichiometry of every soil carbon and litter pool. However, there are also
+significant nitrogen cycle processes that involve inorganic forms of nitrogen. For this
+reason a number of inorganic nitrogen pools are additionally defined. They are as
+follows:
+
+### Combined ammonia ($\ce{NH_{3}}$) and ammonium ($\ce{NH^{+}_{4}}$) pool
+
+Nitrogen fixation is a hugely significant process in tropical soils. It generally
+produces ammonia ($\ce{NH_{3}}$), which plants can directly take up. Ammonium
+($\ce{NH_{4}^{+}}$) is produced during organic matter decomposition by ammonifying
+microbes, and can also be directly taken up by plant roots. Transformation of ammonia to
+ammonium (and vice versa) is a frequent occurrence in soils, but the process would be
+tricky to parametrise and validate. So, for the sake of simplicity, only a single
+combined pool is used.
+
+### Nitrate ($\ce{NO^{-}_{3}}$)
+
+Nitrification results in production of nitrate ($\ce{NO^{-}_{3}}$) from ammonium. This
+nitrate can be lost due to leaching and volatilisation, or can be taken up by plant
+roots. We use a separate nitrate pool as it is the generally the preferred form of
+nitrogen for plant uptake, and so warrants detailed consideration.
+
+### Nitrite ($\ce{NO^{-}_{2}}$)
+
+Denitrification is a (microbially mediated) process that converts nitrate to gaseous
+forms of nitrogen, particularly nitrous oxide ($\ce{N_{2}O}$) and dinitrogen
+($\ce{N_{2}}$), which then escape the soil. In order to avoid modelling too many forms
+of nitrogen, we choose to only explicitly track the concentration of the intermediate
+product nitrite ($\ce{NO^{-}_{2}}$). Though nitrite is not generally taken up by
+plants, it can be converted back into nitrate which can be. However, the conversion of
+nitrite into nitrous oxide or dinitrogen represents a point of no return, with the
+nitrogen being irretrievably lost to the soil. Thus, including an explicit nitrite pool
+allows us to capture the key dynamics of nitrogen loss, whilst using a minimal number of
+nitrogen pools.
+
+## Phosphorus pools
+
+Most phosphorus in tropical forest soils is recycled from organic matter inputs. Thus,
+as with nitrogen we track the phosphorus stoichiometry of all litter and soil carbon
+pools. However, in other systems substantial quantities of phosphorus exist in inorganic
+forms, and so the following inorganic phosphorus pools are also included:
+
+### Primary mineral P
+
+Phosphorus can enter soils through weathering of primary minerals. Though this
+contribution to the overall phosphorus budget is likely to be small in our case, we
+include it for the sake of model completeness.
+
+### Labile P
+
+The inorganic phosphorus that can be taken up by plants is termed labile phosphorus.
+This type of phosphorus is formed either by breakdown of organic matter or by weathering
+of primary mineral phosphorus.
+
+### Secondary mineral P
+
+Labile phosphorus can form associations with minerals that prevent uptake by plants.
+This is termed secondary mineral phosphorus. This phosphorus can be liberated from its
+mineral association as labile phosphorus.
+
+### Occluded P
+
+Alternatively, secondary mineral phosphorus can become physically occluded, preventing
+its liberation. This phosphorus is termed occluded phosphorus, and is inaccessible to
+the wider system (at least on biological time scales). Measurements of total soil
+phosphorus include this pool, so it is important to model it explicitly.
