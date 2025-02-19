@@ -37,6 +37,9 @@ Virtual Ecosystem, and describe the processes that transfer carbon between pools
 
 ## Soil carbon pools
 
+TODO - Add something here about how we only consider chemical protection, and not
+physical protection.
+
 Historically, the predominant framework for modelling soil carbon has been the CENTURY
 model {cite}`parton_analysis_1987`, which divides soil organic matter into three pools
 (active, slow and passive). These pools are characterised primarily by their turnover
@@ -56,8 +59,7 @@ The relevant pools are as follows:
 Particulate organic matter (POM) derives from the decomposition and fragmentation of
 litter and other necromass. It can be formed from plant material, insect carcasses,
 aggregates, fungal matter, etc. Generally, the particulates are of sufficient size that
-their original source can still be determined. POM can associate with soil aggregates,
-or be further broken down by microbial activity. In most systems this is a pool with a
+their original source can still be determined. In most systems this is a pool with a
 reasonably fast turnover rate (order of months). However, in heavily waterlogged soils
 (i.e. peatlands) this pool turns over far more slowly and is a significant store of
 carbon.
@@ -66,34 +68,35 @@ carbon.
 
 Low molecular weight carbon (LMWC) consists of molecules that are simple, soluble and
 labile, i.e. those that are immediately utilisable by microbes. It is formed through the
-microbially mediated breakdown of POM, but is also directly supplied by plant roots.
-LMWC is commonly lost to leaching, or by microbial uptake. This pool turns over rapidly
-(order of days).
+microbially mediated breakdown of more complex carbon, but is also directly supplied by
+plant roots. LMWC is commonly lost to leaching, or by microbial uptake. This pool turns
+over rapidly (order of days).
 
 ### Mineral associated organic matter (MAOM)
 
 Carbon can be protected from microbial activity by mineral association, whereby
 mineral surfaces take up organic matter by adsorption, conferring chemical protection.
-It is generally microbial biomass and LMWC that gets absorbed in this way. Aggregates
-can form from MAOM, which they then release upon breakdown. When desorption occurs
-carbon is released from mineral association in the form of LMWC. This pool turns over
-very slowly (order of years to decades) and so in most soils it is the main form of
-(chemically) protected carbon.
+This pool turns over very slowly (order of years to decades) and so in most soils it is
+the main form of (chemically) protected carbon.
 
 ### Microbial biomass
 
 Microbial biomass accounts for a small fraction of total soil carbon. However, microbes
 are key drivers of soil carbon cycling, with significant flows of carbon through the
-microbial biomass pool. Microbes assist in the formation of {term}`LMWC` by excreting
-enzymes that breakdown {term}`POM`. They then utilise LMWC to form biomass. Microbial
-waste products and necromass either break down into LMWC, or form mineral associations.
-In addition, microbial respiration is one of the major sources of carbon loss to the
-system. This pool turns over rapidly (order of days) and only represents a very small
-fraction of total soil carbon. However, it is very important to track because many soil
-processes are driven by microbes, and so depend either implicitly or explicitly on the
-size of this pool.
+microbial biomass pool, with microbial respiration is one of the major sources of carbon
+loss to the system. This pool turns over rapidly (order of days) and only represents a
+very small fraction of total soil carbon. However, it is very important to track because
+many soil processes are driven by microbes, and so depend either implicitly or
+explicitly on the size of this pool.
 
-TODO - Necromass needs to be added as a pool
+### Microbial necromass
+
+When microbial cells die they breakdown forming what is termed microbial necromass. This
+consists of complex biochemicals that normally would be contained within cells, that are
+now exposed directly to the soil environment. This pools turns over rapidly (order of
+days), and is very small. However, it is important to track this pool as the
+biochemicals that it represents rapidly associated with soil minerals, so the size of
+this pool can effect how quickly new protected carbon is formed.
 
 TODO - Add inputs section
 
