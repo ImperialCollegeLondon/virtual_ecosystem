@@ -80,12 +80,6 @@ class TestCNP:
         assert cnp.nitrogen == pytest.approx(expected[1])
         assert cnp.phosphorus == pytest.approx(expected[2])
 
-    def test_to_dict(self):
-        """Test conversion of CNP object to dictionary."""
-        cnp = CNP(10.0, 5.0, 2.0)
-        expected_dict = {"carbon": 10.0, "nitrogen": 5.0, "phosphorus": 2.0}
-        assert cnp.to_dict() == expected_dict
-
     def test_from_dict(self):
         """Test creating CNP instance from a dictionary."""
         data = {"carbon": 10.0, "nitrogen": 5.0, "phosphorus": 2.0}

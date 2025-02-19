@@ -76,19 +76,6 @@ class CNP:
         self.nitrogen -= nitrogen
         self.phosphorus -= phosphorus
 
-    def to_dict(self) -> dict[str, float]:
-        """Convert the CNP object to a dictionary representation.
-
-        Returns:
-            dict[str, float]: A dictionary with 'carbon', 'nitrogen', and 'phosphorus'
-                as keys and their respective mass values as values.
-        """
-        return {
-            "carbon": self.carbon,
-            "nitrogen": self.nitrogen,
-            "phosphorus": self.phosphorus,
-        }
-
     @classmethod
     def from_dict(cls, data: dict[str, float]) -> CNP:
         """Create a CNP instance from a dictionary.
