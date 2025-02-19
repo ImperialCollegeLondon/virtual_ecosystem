@@ -111,10 +111,10 @@ this pool can effect how quickly new protected carbon is formed.
 
 ### Plant inputs
 
-All plant inputs come in via the [litter model](./litter_theory.md). A portion of this
-mineralisation of litter is assumed to have occurred due leaching of simple compounds
-from the litter down into the soil. This part of the litter mineralisation flux gets
-added to the {term}`LMWC` pool, and is calculated by
+Most plant inputs come in via the [litter model](./litter_theory.md), due to litter
+mineralisation. A portion of this is assumed to have occurred due leaching of simple
+compounds from the litter down into the soil. This part of the litter mineralisation
+flux gets added to the {term}`LMWC` pool, and is calculated by
 
 $$I_L = C_l * M_C,$$
 
@@ -123,7 +123,10 @@ $M_C$ is the total rate of carbon mineralisation from the litter. The remainder 
 litter mineralisation is assumed to be in a more complex form so gets added to the
 {term}`POM` pool with rate
 
-$$I_M = (1 - C_l) * M_C,$$
+$$I_M = (1 - C_l) * M_C.$$
+
+Plants also directly provide carbon to the soil in the form of root exudates. These root
+exudates are simple carbohydrates, so this input flux is added to the {term}`LMWC` pool.
 
 ### Animal inputs
 
@@ -134,4 +137,22 @@ animal inputs to the soil go solely into the {term}`LMWC` pool.
 
 ## Exchanges between soil pools
 
-TODO - Populate this section
+### Microbial uptake and growth
+
+TODO - Populate this subsection
+
+### Enzyme mediated decomposition
+
+TODO - Populate this subsection
+
+### Microbial death
+
+TODO - Populate this subsection
+
+### Mineral sorption and desorption
+
+TODO - Populate this subsection
+
+### Leaching of soil carbon
+
+TODO - Populate this subsection
