@@ -76,9 +76,9 @@ class CNP:
         """Update C, N, and P values. Positive values add; negative values subtract.
 
         Args:
-            carbon (float, optional): Amount of carbon to adjust. Defaults to 0.0.
-            nitrogen (float, optional): Amount of nitrogen to adjust. Defaults to 0.0.
-            phosphorus (float, optional): Amount of phosphorus to adjust. Defaults
+            carbon: Amount of carbon to adjust. Defaults to 0.0.
+            nitrogen: Amount of nitrogen to adjust. Defaults to 0.0.
+            phosphorus: Amount of phosphorus to adjust. Defaults
              to 0.0.
 
         """
