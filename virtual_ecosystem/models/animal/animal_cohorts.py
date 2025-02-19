@@ -201,7 +201,9 @@ class AnimalCohort:
         used_phosphorus = max_growth * self.cnp_proportions["phosphorus"]
 
         # Update the mass_cnp object using the new add method
-        self.mass_cnp.add(used_carbon, used_nitrogen, used_phosphorus)
+        self.mass_cnp.update(
+            carbon=used_carbon, nitrogen=used_nitrogen, phosphorus=used_phosphorus
+        )
 
         # Subtract the used mass from the resource intake to get waste
         resource_intake["carbon"] -= used_carbon
@@ -247,7 +249,7 @@ class AnimalCohort:
         )
 
         # Subtract metabolized carbon directly from mass_cnp
-        self.mass_cnp.subtract(actual_carbon_metabolized, 0.0, 0.0)
+        self.mass_cnp.update(carbon=-actual_carbon_metabolized)
 
         # Return the total metabolized carbon mass for the entire cohort
         return {
@@ -294,15 +296,15 @@ class AnimalCohort:
             }
 
             # Fixed method calls to pass individual values
-            excrement_pool.scavengeable_cnp.add(
-                scavengeable_mass["carbon"],
-                scavengeable_mass["nitrogen"],
-                scavengeable_mass["phosphorus"],
+            excrement_pool.scavengeable_cnp.update(
+                carbon=scavengeable_mass["carbon"],
+                nitrogen=scavengeable_mass["nitrogen"],
+                phosphorus=scavengeable_mass["phosphorus"],
             )
-            excrement_pool.decomposed_cnp.add(
-                decomposed_mass["carbon"],
-                decomposed_mass["nitrogen"],
-                decomposed_mass["phosphorus"],
+            excrement_pool.decomposed_cnp.update(
+                carbon=decomposed_mass["carbon"],
+                nitrogen=decomposed_mass["nitrogen"],
+                phosphorus=decomposed_mass["phosphorus"],
             )
 
     def respire(self, excreta_mass: dict[str, float]) -> float:
@@ -384,8 +386,8 @@ class AnimalCohort:
             }
 
             # Use CNP methods for in-place updates
-            excrement_pool.scavengeable_cnp.add(**scavengeable_mass)
-            excrement_pool.decomposed_cnp.add(**decomposed_mass)
+            excrement_pool.scavengeable_cnp.update(**scavengeable_mass)
+            excrement_pool.decomposed_cnp.update(**decomposed_mass)
 
     def increase_age(self, dt: timedelta64) -> None:
         """The function to modify cohort age as time passes and flag maturity.
@@ -484,15 +486,15 @@ class AnimalCohort:
         decomposed_factor = self.decay_fraction_carcasses
 
         for carcass_pool in carcass_pools:
-            carcass_pool.scavengeable_cnp.add(
-                carbon_per_pool * scavengeable_factor,
-                nitrogen_per_pool * scavengeable_factor,
-                phosphorus_per_pool * scavengeable_factor,
+            carcass_pool.scavengeable_cnp.update(
+                carbon=carbon_per_pool * scavengeable_factor,
+                nitrogen=nitrogen_per_pool * scavengeable_factor,
+                phosphorus=phosphorus_per_pool * scavengeable_factor,
             )
-            carcass_pool.decomposed_cnp.add(
-                carbon_per_pool * decomposed_factor,
-                nitrogen_per_pool * decomposed_factor,
-                phosphorus_per_pool * decomposed_factor,
+            carcass_pool.decomposed_cnp.update(
+                carbon=carbon_per_pool * decomposed_factor,
+                nitrogen=nitrogen_per_pool * decomposed_factor,
+                phosphorus=phosphorus_per_pool * decomposed_factor,
             )
 
     def get_eaten(

@@ -71,7 +71,9 @@ class CarcassPool:
                 f"nitrogen={nitrogen}, phosphorus={phosphorus}"
             )
 
-        self.scavengeable_cnp.add(carbon, nitrogen, phosphorus)
+        self.scavengeable_cnp.update(
+            carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
+        )
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed carcasses.
@@ -139,7 +141,9 @@ class ExcrementPool:
                 f"nitrogen={nitrogen}, phosphorus={phosphorus}"
             )
 
-        self.scavengeable_cnp.add(carbon, nitrogen, phosphorus)
+        self.scavengeable_cnp.update(
+            carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
+        )
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed excrement.
@@ -232,8 +236,10 @@ class LitterPool:
         }
 
         # Update the CNP object in place
-        cell_cnp.subtract(
-            consumed["carbon"], consumed["nitrogen"], consumed["phosphorus"]
+        cell_cnp.update(
+            carbon=-consumed["carbon"],
+            nitrogen=-consumed["nitrogen"],
+            phosphorus=-consumed["phosphorus"],
         )
 
         return consumed

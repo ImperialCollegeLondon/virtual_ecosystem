@@ -805,10 +805,10 @@ class AnimalModel(
             )
 
             # Reduce parent's mass in-place
-            parent_cohort.mass_cnp.subtract(
-                non_reproductive_mass_loss_c,
-                non_reproductive_mass_loss_n,
-                non_reproductive_mass_loss_p,
+            parent_cohort.mass_cnp.update(
+                carbon=-non_reproductive_mass_loss_c,
+                nitrogen=-non_reproductive_mass_loss_n,
+                phosphorus=-non_reproductive_mass_loss_p,
             )
 
             # Kill semelparous parent cohort
@@ -852,10 +852,14 @@ class AnimalModel(
         total_mass_used_p = number_offspring * birth_mass_p
 
         # Ensure parent's reproductive mass never goes negative
-        parent_cohort.reproductive_mass_cnp.subtract(
-            min(total_mass_used_c, parent_cohort.reproductive_mass_cnp.carbon),
-            min(total_mass_used_n, parent_cohort.reproductive_mass_cnp.nitrogen),
-            min(total_mass_used_p, parent_cohort.reproductive_mass_cnp.phosphorus),
+        parent_cohort.reproductive_mass_cnp.update(
+            carbon=-min(total_mass_used_c, parent_cohort.reproductive_mass_cnp.carbon),
+            nitrogen=-min(
+                total_mass_used_n, parent_cohort.reproductive_mass_cnp.nitrogen
+            ),
+            phosphorus=-min(
+                total_mass_used_p, parent_cohort.reproductive_mass_cnp.phosphorus
+            ),
         )
 
         # Get the functional group for the offspring

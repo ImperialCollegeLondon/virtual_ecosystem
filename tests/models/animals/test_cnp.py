@@ -41,44 +41,69 @@ class TestCNP:
             _ = cnp["oxygen"]
 
     @pytest.mark.parametrize(
-        "initial, values, expected",
+        "initial, update_values, expected, expect_error",
         [
-            ((10.0, 5.0, 2.0), (3.0, 2.0, 1.0), (13.0, 7.0, 3.0)),  # Regular addition
-            ((10.0, 5.0, 2.0), (-3.0, -2.0, -1.0), (7.0, 3.0, 1.0)),  # Adding negatives
-        ],
-    )
-    def test_add(self, initial, values, expected):
-        """Test in-place addition for CNP objects."""
-        from virtual_ecosystem.models.animal.cnp import CNP
-
-        cnp = CNP(*initial)
-        cnp.add(*values)
-
-        assert cnp.carbon == pytest.approx(expected[0])
-        assert cnp.nitrogen == pytest.approx(expected[1])
-        assert cnp.phosphorus == pytest.approx(expected[2])
-
-    @pytest.mark.parametrize(
-        "initial, values, expected",
-        [
-            ((10.0, 5.0, 2.0), (3.0, 2.0, 1.0), (7.0, 3.0, 1.0)),  # Regular subtraction
+            # Successful additions
+            (
+                (10.0, 5.0, 2.0),
+                {"carbon": 3.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                (13.0, 7.0, 3.0),
+                False,
+            ),  # Regular addition
+            # Successful subtractions
+            (
+                (10.0, 5.0, 2.0),
+                {"carbon": -3.0, "nitrogen": -2.0, "phosphorus": -1.0},
+                (7.0, 3.0, 1.0),
+                False,
+            ),  # Regular subtraction
             (
                 (2.0, 2.0, 2.0),
-                (3.0, 3.0, 3.0),
-                (-1.0, -1.0, -1.0),
-            ),  # Subtraction below zero
+                {"carbon": -1.0, "nitrogen": -1.0, "phosphorus": -1.0},
+                (1.0, 1.0, 1.0),
+                False,
+            ),  # No negative totals
+            # Error cases (negative totals)
+            (
+                (1.0, 1.0, 1.0),
+                {"carbon": -2.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                None,
+                True,
+            ),  # Carbon negative
+            (
+                (1.0, 1.0, 1.0),
+                {"carbon": 0.0, "nitrogen": -2.0, "phosphorus": 0.0},
+                None,
+                True,
+            ),  # Nitrogen negative
+            (
+                (1.0, 1.0, 1.0),
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": -2.0},
+                None,
+                True,
+            ),  # Phosphorus negative
+            (
+                (0.0, 0.0, 0.0),
+                {"carbon": -0.1, "nitrogen": -0.1, "phosphorus": -0.1},
+                None,
+                True,
+            ),  # All negative from zero
         ],
     )
-    def test_subtract(self, initial, values, expected):
-        """Test in-place subtraction for CNP objects."""
-        from virtual_ecosystem.models.animal.cnp import CNP
-
+    def test_update(self, initial, update_values, expected, expect_error):
+        """Test the update method for additions, subtractions, and errors."""
         cnp = CNP(*initial)
-        cnp.subtract(*values)
 
-        assert cnp.carbon == pytest.approx(expected[0])
-        assert cnp.nitrogen == pytest.approx(expected[1])
-        assert cnp.phosphorus == pytest.approx(expected[2])
+        if expect_error:
+            with pytest.raises(ValueError, match="mass cannot be negative"):
+                cnp.update(**update_values)
+        else:
+            cnp.update(**update_values)
+            assert cnp.carbon == pytest.approx(expected[0]), "Carbon mass mismatch"
+            assert cnp.nitrogen == pytest.approx(expected[1]), "Nitrogen mass mismatch"
+            assert cnp.phosphorus == pytest.approx(expected[2]), (
+                "Phosphorus mass mismatch"
+            )
 
     def test_from_dict(self):
         """Test creating CNP instance from a dictionary."""

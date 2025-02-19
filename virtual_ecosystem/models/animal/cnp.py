@@ -52,29 +52,41 @@ class CNP:
             )
         return getattr(self, key)
 
-    def add(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
-        """Add the provided amounts of C, N, and P to the current CNP object.
+    def _validate_non_negative(self) -> None:
+        """Ensure that no element becomes negative after an update.
+
+        Raises:
+            ValueError: If carbon, nitrogen, or phosphorus is negative.
+        """
+        for name, value in {
+            "carbon": self.carbon,
+            "nitrogen": self.nitrogen,
+            "phosphorus": self.phosphorus,
+        }.items():
+            if value < 0:
+                raise ValueError(
+                    f"{name.capitalize()} mass cannot be negative. Current values: "
+                    f"carbon={self.carbon}, nitrogen={self.nitrogen},"
+                    f"phosphorus={self.phosphorus}."
+                )
+
+    def update(
+        self, *, carbon: float = 0.0, nitrogen: float = 0.0, phosphorus: float = 0.0
+    ) -> None:
+        """Update C, N, and P values. Positive values add; negative values subtract.
 
         Args:
-            carbon (float): The mass of carbon to add.
-            nitrogen (float): The mass of nitrogen to add.
-            phosphorus (float): The mass of phosphorus to add.
+            carbon (float, optional): Amount of carbon to adjust. Defaults to 0.0.
+            nitrogen (float, optional): Amount of nitrogen to adjust. Defaults to 0.0.
+            phosphorus (float, optional): Amount of phosphorus to adjust. Defaults
+             to 0.0.
+
         """
+
         self.carbon += carbon
         self.nitrogen += nitrogen
         self.phosphorus += phosphorus
-
-    def subtract(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
-        """Subtract the provided amounts of C, N, and P from the current CNP object.
-
-        Args:
-            carbon (float): The mass of carbon to subtract.
-            nitrogen (float): The mass of nitrogen to subtract.
-            phosphorus (float): The mass of phosphorus to subtract.
-        """
-        self.carbon -= carbon
-        self.nitrogen -= nitrogen
-        self.phosphorus -= phosphorus
+        self._validate_non_negative()
 
     @classmethod
     def from_dict(cls, data: dict[str, float]) -> CNP:
