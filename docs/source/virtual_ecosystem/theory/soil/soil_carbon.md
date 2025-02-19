@@ -152,7 +152,23 @@ produced.
 
 ### Enzyme mediated decomposition
 
-TODO - Populate this subsection
+Both {term}`POM` and {term}`MAOM` are broken down into {term}`LMWC` using
+enzyme-mediated reactions. As mentioned above, these enzymes are produced by microbes,
+and are substrate specific (i.e. one enzyme class breaks down {term}`POM` and the other
+breaks down {term}`MAOM`). The rate of these decomposition processes is given by
+
+$$D_i = f_{T,r}*f_W*f_{p}*k_i*\frac{E_i*P_i}{f_{T,s}*f_{c}*K_i + P_i}$$
+
+where $P_i$ is the concentration of the resource type $i$, $E_i$ is the concentration of
+the relevant enzyme class, $k_i$ is the decomposition rate constant, $K_i$ is the
+decomposition saturation constant, $f_{T,r}$ is a factor capturing the impact of
+temperature on the process rate, $f_{T,s}$ is a factor capturing the impact of
+temperature on the concentration at which the enzyme saturates, $f_W$ is a factor
+capturing the impact of soil moisture on the process rate, $f_{p}$ is a factor
+capturing the impact of soil pH on the process rate, and $f_{c}$ is a factor capturing
+the impact of soil clay content on the concentration at which the enzyme saturates.
+Definitions of these environmental factors can be found
+[here](./environmental_links.md).
 
 ### Microbial death
 
