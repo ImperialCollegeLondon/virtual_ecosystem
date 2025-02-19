@@ -25,24 +25,29 @@ language_info:
 
 # Representation of the soil carbon cycle
 
-TODO - NEED A BETTER OPENING HERE, E.G. WHY USE POOLS AT ALL?
-
-This page explains how we have implemented the soil carbon cycle.
+Soils are one of the largest stores ecological stores of carbon. For this reason, there
+has been long term interest in modelling the soil carbon cycle. This is a massively
+complex task as carbon exists in the soil in a huge variety of forms. Because of this
+approaches to soil carbon modelling (starting with the CENTURY model
+{cite}`parton_analysis_1987`) have generally grouped carbon into a small set of pools
+with common properties. This is the broad approach that we take in the Virtual
+Ecosystem. In this page, we set out the set of pools that our model of the soil carbon
+cycle uses, explain the inputs that these pools receive from the other components of the
+Virtual Ecosystem, and describe the processes that transfer carbon between pools.
 
 ## Soil carbon pools
 
-The fundamental basis of this module are carbon pools. Historically, the predominant
-framework for modelling soil carbon has been the CENTURY model
-{cite}`parton_analysis_1987`, which divides soil organic matter into three pools
+Historically, the predominant framework for modelling soil carbon has been the CENTURY
+model {cite}`parton_analysis_1987`, which divides soil organic matter into three pools
 (active, slow and passive). These pools are characterised primarily by their turnover
 rates, but are also differentiated by lignin content of the organic matter that flows
 into each pool. This framework has come under sustained criticism as these pools are
 conceptual and not directly measurable. In response to this there has been a movement
 towards using soil carbon pool definitions that are based upon measurable physical and
 chemical properties. The Millennial model combines the most commonly used of these soil
-carbon pools into a single model {cite}`abramoff_millennial_2018`. This model
-framework is both comprehensive and defines measurable pools, and for this reason we
-make use of it in our soil module.
+carbon pools into a single model {cite}`abramoff_millennial_2018`. This model framework
+is both comprehensive and defines measurable pools, and for this reason we make use of
+it in our soil module.
 
 The relevant pools are as follows:
 
@@ -87,3 +92,9 @@ system. This pool turns over rapidly (order of days) and only represents a very 
 fraction of total soil carbon. However, it is very important to track because many soil
 processes are driven by microbes, and so depend either implicitly or explicitly on the
 size of this pool.
+
+TODO - Necromass needs to be added as a pool
+
+TODO - Add inputs section
+
+TODO - Add a section for exchange processes
