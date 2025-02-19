@@ -107,6 +107,31 @@ days), and is very small. However, it is important to track this pool as the
 biochemicals that it represents rapidly associated with soil minerals, so the size of
 this pool can effect how quickly new protected carbon is formed.
 
-TODO - Add inputs section
+## Soil carbon inputs
 
-TODO - Add a section for exchange processes
+### Plant inputs
+
+All plant inputs come in via the [litter model](./litter_theory.md). A portion of this
+mineralisation of litter is assumed to have occurred due leaching of simple compounds
+from the litter down into the soil. This part of the litter mineralisation flux gets
+added to the {term}`LMWC` pool, and is calculated by
+
+$$I_L = C_l * M_C,$$
+
+where $C_l$ is the fraction of litter carbon decomposition that happens by leaching and
+$M_C$ is the total rate of carbon mineralisation from the litter. The remainder of the
+litter mineralisation is assumed to be in a more complex form so gets added to the
+{term}`POM` pool with rate
+
+$$I_M = (1 - C_l) * M_C,$$
+
+### Animal inputs
+
+The animal model contains excrement and carcass pools which are available to scavengers.
+A certain portion of these pools is assumed to periodically decay into the soil. As
+breakdown is already implicitly modelled within the animal model, we assume that these
+animal inputs to the soil go solely into the {term}`LMWC` pool.
+
+## Exchanges between soil pools
+
+TODO - Populate this section
