@@ -58,11 +58,7 @@ class CNP:
         Raises:
             ValueError: If carbon, nitrogen, or phosphorus is negative.
         """
-        for name, value in {
-            "carbon": self.carbon,
-            "nitrogen": self.nitrogen,
-            "phosphorus": self.phosphorus,
-        }.items():
+        for name, value in self.as_dict().items():
             if value < 0:
                 raise ValueError(
                     f"{name.capitalize()} mass cannot be negative. Current values: "
