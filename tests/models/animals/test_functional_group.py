@@ -11,7 +11,7 @@ class TestFunctionalGroup:
             "name, taxa, diet, metabolic_type, reproductive_type, "
             "development_type, development_status, offspring_functional_group,"
             "excretion_type, birth_mass, adult_mass, dam_law_exp, dam_law_coef,"
-            "conv_eff"
+            "conv_eff, expected_cnp"
         ),
         [
             (
@@ -29,38 +29,7 @@ class TestFunctionalGroup:
                 -0.75,
                 4.23,
                 0.1,
-            ),
-            (
-                "carnivorous_mammal",
-                "mammal",
-                "carnivore",
-                "endothermic",
-                "iteroparous",
-                "direct",
-                "adult",
-                "carnivorous_mammal",
-                "ureotelic",
-                4.0,
-                40.0,
-                -0.75,
-                1.00,
-                0.25,
-            ),
-            (
-                "herbivorous_bird",
-                "bird",
-                "herbivore",
-                "endothermic",
-                "iteroparous",
-                "direct",
-                "adult",
-                "herbivorous_bird",
-                "uricotelic",
-                0.05,
-                0.5,
-                -0.75,
-                5.00,
-                0.1,
+                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
             ),
             (
                 "carnivorous_bird",
@@ -77,6 +46,7 @@ class TestFunctionalGroup:
                 -0.75,
                 2.00,
                 0.25,
+                {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
             ),
             (
                 "herbivorous_insect_iteroparous",
@@ -93,54 +63,7 @@ class TestFunctionalGroup:
                 -0.75,
                 5.00,
                 0.1,
-            ),
-            (
-                "carnivorous_insect_iteroparous",
-                "insect",
-                "carnivore",
-                "ectothermic",
-                "iteroparous",
-                "direct",
-                "adult",
-                "carnivorous_insect_iteroparous",
-                "uricotelic",
-                0.001,
-                0.01,
-                -0.75,
-                2.00,
-                0.25,
-            ),
-            (
-                "herbivorous_insect_semelparous",
-                "insect",
-                "herbivore",
-                "ectothermic",
-                "semelparous",
-                "direct",
-                "adult",
-                "herbivorous_insect_semelparous",
-                "uricotelic",
-                0.0005,
-                0.005,
-                -0.75,
-                5.00,
-                0.1,
-            ),
-            (
-                "carnivorous_insect_semelparous",
-                "insect",
-                "carnivore",
-                "ectothermic",
-                "semelparous",
-                "direct",
-                "adult",
-                "carnivorous_insect_semelparous",
-                "uricotelic",
-                0.001,
-                0.01,
-                -0.75,
-                2.00,
-                0.25,
+                {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
             ),
         ],
     )
@@ -160,9 +83,9 @@ class TestFunctionalGroup:
         dam_law_exp,
         dam_law_coef,
         conv_eff,
+        expected_cnp,
     ):
         """Testing initialization of derived parameters for animal cohorts."""
-
         from virtual_ecosystem.models.animal.animal_traits import (
             DietType,
             ExcretionType,
@@ -197,6 +120,16 @@ class TestFunctionalGroup:
         assert func_group.damuths_law_terms[0] == dam_law_exp
         assert func_group.damuths_law_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
+
+        assert hasattr(func_group, "cnp_proportions"), (
+            "cnp_proportions attribute missing!"
+        )
+
+        # Check CNP proportions
+        assert func_group.cnp_proportions == expected_cnp, (
+            f"Expected {expected_cnp} but got {func_group.cnp_proportions} for "
+            f"taxa {taxa}."
+        )
 
 
 @pytest.mark.parametrize(

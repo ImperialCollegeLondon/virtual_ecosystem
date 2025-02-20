@@ -326,46 +326,123 @@ class TestAnimalModel:
                     f"Expected: {expected_density}, Found: {calculated_density}"
                 )
 
+    @pytest.mark.parametrize(
+        "density_values, expected_mass, c_n_ratio, c_p_ratio, expect_error",
+        [
+            ("zeros", "zeros", "ones", "ones", False),
+            ("small", "small", "tens", "twenties", False),
+            ("large", "large", "fifties", "hundreds", False),
+            ("negative", "zeros", "tens", "twenties", True),
+            ("medium", "medium", "huge", "huge", False),
+        ],
+    )
     def test_populate_litter_pools(
         self,
-        litter_data_instance,
-        fixture_core_components,
-        functional_group_list_instance,
-        constants_instance,
+        animal_model_instance,
+        density_values,
+        expected_mass,
+        c_n_ratio,
+        c_p_ratio,
+        expect_error,
     ):
-        """Test function to populate animal consumable litter pool works properly."""
-        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        """Test litter pool population."""
+        import numpy as np
+        import xarray as xr
 
-        model = AnimalModel(
-            data=litter_data_instance,
-            core_components=fixture_core_components,
-            functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
+        from virtual_ecosystem.models.animal.decay import LitterPool
+
+        # Define values based on test case
+        value_map = {
+            "zeros": np.zeros(9),
+            "small": np.full(9, 1e-10),
+            "large": np.full(9, 1e5),
+            "negative": np.full(9, -1.0),
+            "medium": np.full(9, 10.0),
+            "ones": np.ones(9),
+            "tens": np.full(9, 10.0),
+            "twenties": np.full(9, 20.0),
+            "fifties": np.full(9, 50.0),
+            "hundreds": np.full(9, 100.0),
+            "huge": np.full(9, 1e6),
+        }
+
+        density_values = xr.DataArray(value_map[density_values], dims=["cell_id"])
+        expected_mass = xr.DataArray(
+            value_map[expected_mass] * animal_model_instance.data.grid.cell_area,
+            dims=["cell_id"],
         )
+        c_n_ratio = xr.DataArray(value_map[c_n_ratio], dims=["cell_id"])
+        c_p_ratio = xr.DataArray(value_map[c_p_ratio], dims=["cell_id"])
 
-        litter_pools = model.populate_litter_pools()
-        # Check that all five pools have been populated, with the correct values
-        pool_names = [
+        # Assign mock data to model
+        for pool_name in [
             "above_metabolic",
             "above_structural",
             "woody",
             "below_metabolic",
             "below_structural",
-        ]
-        for pool_name in pool_names:
-            assert np.allclose(
-                litter_pools[pool_name].mass_current,
-                litter_data_instance[f"litter_pool_{pool_name}"]
-                * fixture_core_components.grid.cell_area,
+        ]:
+            animal_model_instance.data[f"litter_pool_{pool_name}"] = density_values
+            animal_model_instance.data[f"c_n_ratio_{pool_name}"] = c_n_ratio
+            animal_model_instance.data[f"c_p_ratio_{pool_name}"] = c_p_ratio
+
+        # Populate litter pools
+        if expect_error:
+            with pytest.raises(ValueError):
+                litter_pools = animal_model_instance.populate_litter_pools()
+        else:
+            litter_pools = animal_model_instance.populate_litter_pools()
+
+            expected_pools = [
+                "above_metabolic",
+                "above_structural",
+                "woody",
+                "below_metabolic",
+                "below_structural",
+            ]
+            assert set(litter_pools.keys()) == set(expected_pools), (
+                "Not all litter pools were initialized."
             )
-            assert np.allclose(
-                litter_pools[pool_name].c_n_ratio,
-                litter_data_instance[f"c_n_ratio_{pool_name}"],
-            )
-            assert np.allclose(
-                litter_pools[pool_name].c_p_ratio,
-                litter_data_instance[f"c_p_ratio_{pool_name}"],
-            )
+
+            # Validate each pool
+            for pool_name in expected_pools:
+                assert isinstance(litter_pools[pool_name], LitterPool), (
+                    f"{pool_name} is not a LitterPool instance."
+                )
+                assert litter_pools[pool_name].pool_name == pool_name, (
+                    f"{pool_name} pool name mismatch."
+                )
+
+                # Ensure mass_current only tracks carbon and is correctly computed
+                assert np.allclose(
+                    litter_pools[pool_name].mass_current.values,
+                    expected_mass.values,
+                    rtol=1e-5,
+                    atol=1e-8,
+                ), f"{pool_name} mass_current mismatch."
+
+                # Extract nitrogen and phosphorus from mass_cnp list
+                actual_nitrogen = np.array(
+                    [cnp.nitrogen for cnp in litter_pools[pool_name].mass_cnp]
+                )
+                actual_phosphorus = np.array(
+                    [cnp.phosphorus for cnp in litter_pools[pool_name].mass_cnp]
+                )
+
+                # Ensure nitrogen and phosphorus are calculated correctly
+                assert np.allclose(
+                    actual_nitrogen,
+                    (expected_mass / c_n_ratio).values,
+                    rtol=1e-5,
+                    atol=1e-8,
+                ), f"{pool_name} nitrogen mass is incorrect."
+
+                assert np.allclose(
+                    actual_phosphorus,
+                    (expected_mass / c_p_ratio).values,
+                    rtol=1e-5,
+                    atol=1e-8,
+                ), f"{pool_name} phosphorus mass is incorrect."
 
     def test_calculate_total_litter_consumption(
         self,
@@ -694,15 +771,15 @@ class TestAnimalModel:
     )
     def test_migrate_community(
         self,
-        animal_model_instance,
-        herbivore_cohort_instance,
         mocker,
         mass_ratio,
         age,
         probability_output,
         should_migrate,
+        animal_model_instance,
+        herbivore_cohort_instance,
     ):
-        """Test migrate_community."""
+        """Test migrate_community method in the AnimalModel class."""
 
         # Empty the communities and cohorts before the test
         animal_model_instance.communities = {
@@ -711,24 +788,38 @@ class TestAnimalModel:
         animal_model_instance.cohorts = {}
 
         # Set up mock cohort with dynamic mass and age values
-        cohort_id = herbivore_cohort_instance.id
-        herbivore_cohort_instance.age = age
-        herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass * mass_ratio
+        cohort = herbivore_cohort_instance
+        cohort.age = age
+        cohort.mass_cnp.carbon = (
+            cohort.functional_group.adult_mass
+            * mass_ratio
+            * cohort.cnp_proportions["carbon"]
         )
-        animal_model_instance.cohorts[cohort_id] = herbivore_cohort_instance
+        cohort.mass_cnp.nitrogen = (
+            cohort.functional_group.adult_mass
+            * mass_ratio
+            * cohort.cnp_proportions["nitrogen"]
+        )
+        cohort.mass_cnp.phosphorus = (
+            cohort.functional_group.adult_mass
+            * mass_ratio
+            * cohort.cnp_proportions["phosphorus"]
+        )
+
+        cohort_id = cohort.id
+        animal_model_instance.cohorts[cohort_id] = cohort
 
         # Mock `is_below_mass_threshold` to simulate starvation
         is_starving = mass_ratio < 1.0
         mocker.patch.object(
-            herbivore_cohort_instance,
+            cohort,
             "is_below_mass_threshold",
             return_value=is_starving,
         )
 
         # Mock the juvenile migration probability based on the test parameter
         mocker.patch.object(
-            herbivore_cohort_instance,
+            cohort,
             "migrate_juvenile_probability",
             return_value=probability_output,
         )
@@ -742,13 +833,13 @@ class TestAnimalModel:
         # Check migration behavior
         if should_migrate:
             # Assert migrate was called with correct cohort
-            mock_migrate.assert_called_once_with(herbivore_cohort_instance, mocker.ANY)
+            mock_migrate.assert_called_once_with(cohort, mocker.ANY)
         else:
             # Assert migrate was NOT called
             mock_migrate.assert_not_called()
 
         # Assert that starvation check was applied
-        herbivore_cohort_instance.is_below_mass_threshold.assert_called_once()
+        cohort.is_below_mass_threshold.assert_called_once()
 
     @pytest.mark.parametrize(
         "is_cohort_in_model, expected_exception",
@@ -887,9 +978,29 @@ class TestAnimalModel:
             else butterfly_cohort_instance
         )
 
-        # Mock the attributes of the parent cohort for the test case
-        parent_cohort.reproductive_mass = reproductive_mass
-        parent_cohort.mass_current = mass_current
+        # Update reproductive_mass_cnp using direct attribute assignments
+        parent_cohort.reproductive_mass_cnp.carbon = (
+            reproductive_mass * parent_cohort.cnp_proportions["carbon"]
+        )
+        parent_cohort.reproductive_mass_cnp.nitrogen = (
+            reproductive_mass * parent_cohort.cnp_proportions["nitrogen"]
+        )
+        parent_cohort.reproductive_mass_cnp.phosphorus = (
+            reproductive_mass * parent_cohort.cnp_proportions["phosphorus"]
+        )
+
+        # Update mass_cnp using direct attribute assignments
+        parent_cohort.mass_cnp.carbon = (
+            mass_current * parent_cohort.cnp_proportions["carbon"]
+        )
+        parent_cohort.mass_cnp.nitrogen = (
+            mass_current * parent_cohort.cnp_proportions["nitrogen"]
+        )
+        parent_cohort.mass_cnp.phosphorus = (
+            mass_current * parent_cohort.cnp_proportions["phosphorus"]
+        )
+
+        # Set other attributes
         parent_cohort.functional_group.birth_mass = birth_mass
         parent_cohort.individuals = individuals
         parent_cohort.functional_group.reproductive_type = (
@@ -899,7 +1010,7 @@ class TestAnimalModel:
             parent_cohort.functional_group.name
         )
 
-        # Set a mock cohort ID
+        # Assign a cohort ID
         cohort_id = uuid4()
         parent_cohort.id = cohort_id
 
@@ -919,22 +1030,21 @@ class TestAnimalModel:
             assert parent_cohort.is_alive is True
 
         # Check that reproductive mass is reset
-        assert parent_cohort.reproductive_mass == 0.0
+        assert parent_cohort.reproductive_mass_cnp.total == 0.0
 
         # Check the number of offspring generated and added to the cohort list
         if is_semelparous:
-            # For semelparous organisms, the parent dies and the offspring cohort
-            # replaces it
+            # For semelparous organisms, the parent dies
             assert len(animal_model_instance.cohorts) == initial_num_cohorts, (
                 f"Expected {initial_num_cohorts} cohorts but"
+                f" found {len(animal_model_instance.cohorts)}"
             )
-            " found {len(animal_model_instance.cohorts)}"
         else:
             # For iteroparous organisms, the parent survives and the offspring is added
             assert len(animal_model_instance.cohorts) == initial_num_cohorts + 1, (
                 f"Expected {initial_num_cohorts + 1} cohorts but"
+                f" found {len(animal_model_instance.cohorts)}"
             )
-            " found {len(animal_model_instance.cohorts)}"
 
         # Get the offspring cohort (assuming it was added correctly)
         offspring_cohort = list(animal_model_instance.cohorts.values())[-1]

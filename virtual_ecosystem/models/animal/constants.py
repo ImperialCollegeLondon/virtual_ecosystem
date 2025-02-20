@@ -16,7 +16,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
-    """Dataclass to store all constants related to metabolic rates.
+    """Dataclass to store all constants related to animals.
 
     TODO: Remove unused constants.
 
@@ -83,6 +83,14 @@ class AnimalConsts(ConstantsDataclass):
                 TaxaType.BIRD: (1.0, 1.0),  # Toy values
             },
             MetabolicType.ECTOTHERMIC: {TaxaType.INSECT: (1.0, 1.0)},  # Toy values
+        }
+    )
+
+    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+            TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
+            TaxaType.INSECT: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
 
