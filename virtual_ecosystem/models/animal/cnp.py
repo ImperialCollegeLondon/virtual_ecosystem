@@ -5,7 +5,7 @@ managing pools of stoichiometric explicit mass: carbon (C), nitrogen (N), and ph
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 
 @dataclass
@@ -58,7 +58,7 @@ class CNP:
         Raises:
             ValueError: If carbon, nitrogen, or phosphorus is negative.
         """
-        for name, value in self.as_dict().items():
+        for name, value in asdict(self).items():
             if value < 0:
                 raise ValueError(
                     f"{name.capitalize()} mass cannot be negative. Current values: "
