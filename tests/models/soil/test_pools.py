@@ -44,7 +44,8 @@ def test_calculate_all_pool_updates(dummy_carbon_data, fixture_core_components):
     change_in_pools = {
         "soil_c_pool_lmwc": [0.014984117633, 0.0133384581, 0.03449812333, 0.02425546],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
-        "soil_c_pool_microbe": [-0.054361097, -0.022606231, -0.118911406, -0.007195167],
+        "soil_c_pool_bacteria": [-0.054361097, -0.022606231, -0.118911406, -0.00719517],
+        "soil_c_pool_fungi": [-0.054361097, -0.022606231, -0.118911406, -0.007195167],
         "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
         "soil_c_pool_necromass": [0.001137474, 0.009172067, 0.033573266, -0.08978050],
         "soil_enzyme_pom": [1.18e-8, 1.67e-8, 1.8e-9, -1.12e-8],
@@ -111,7 +112,7 @@ def test_calculate_microbial_changes(
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -226,7 +227,7 @@ def test_calculate_maintenance_biomass_synthesis(
     expected_loss = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
 
     actual_loss = calculate_maintenance_biomass_synthesis(
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
@@ -307,7 +308,7 @@ def test_calculate_nutrient_uptake_rates(
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -341,7 +342,7 @@ def test_calculate_highest_achievable_nutrient_uptake(
 
     actual_uptake = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_microbe"],
+        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=dummy_carbon_data["soil_temperature"][

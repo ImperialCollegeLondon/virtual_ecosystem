@@ -16,7 +16,8 @@ from virtual_ecosystem.models.soil.soil_model import IntegrationError
 REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
@@ -304,8 +305,12 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     soil_c_pool_maom=DataArray(
                         [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
                     ),
-                    soil_c_pool_microbe=DataArray(
+                    soil_c_pool_bacteria=DataArray(
                         [5.77303027, 2.2888041, 11.24109943, 0.9964216],
+                        dims="cell_id",
+                    ),
+                    soil_c_pool_fungi=DataArray(
+                        [0.86302169, 8.53880051, 2.15105403, 4.5364215],
                         dims="cell_id",
                     ),
                     soil_c_pool_pom=DataArray(
@@ -492,6 +497,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         0.00829848,
         0.05982197,
         0.07277182,
+        -0.054361097,
+        -0.022606231,
+        -0.118911406,
+        -0.007195167,
         -0.054361097,
         -0.022606231,
         -0.118911406,

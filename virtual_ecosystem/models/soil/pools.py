@@ -195,8 +195,11 @@ class PoolData:
     soil_c_pool_lmwc: NDArray[np.float32]
     """Low molecular weight carbon pool [kg C m^-3]."""
 
-    soil_c_pool_microbe: NDArray[np.float32]
-    """Microbial biomass pool [kg C m^-3]."""
+    soil_c_pool_bacteria: NDArray[np.float32]
+    """Bacterial biomass pool [kg C m^-3]."""
+
+    soil_c_pool_fungi: NDArray[np.float32]
+    """Fungal biomass pool [kg C m^-3]."""
 
     soil_c_pool_pom: NDArray[np.float32]
     """Particulate organic matter pool [kg C m^-3]."""
@@ -351,6 +354,7 @@ class SoilPools:
             clay_fraction=self.data["clay_fraction"].to_numpy(),
             constants=self.constants,
         )
+        # TODO - This needs to be changed to accept both fungi and bacteria
         # find changes related to microbial uptake, growth and decay
         microbial_changes = calculate_microbial_changes(
             soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
@@ -359,7 +363,7 @@ class SoilPools:
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_dop=self.pools.soil_p_pool_dop,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
-            soil_c_pool_microbe=self.pools.soil_c_pool_microbe,
+            soil_c_pool_microbe=self.pools.soil_c_pool_bacteria,
             soil_enzyme_pom=self.pools.soil_enzyme_pom,
             soil_enzyme_maom=self.pools.soil_enzyme_maom,
             soil_temp=soil_temperature,
@@ -542,8 +546,9 @@ class SoilPools:
             - enzyme_mediated.maom_to_lmwc
             - maom_desorption_to_lmwc
         )
-
-        delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
+        # TODO - Need to not just feed the same change to both
+        delta_pools_ordered["soil_c_pool_bacteria"] = microbial_changes.microbe_change
+        delta_pools_ordered["soil_c_pool_fungi"] = microbial_changes.microbe_change
         delta_pools_ordered["soil_c_pool_pom"] = (
             litter_mineralisation_flux.pom - enzyme_mediated.pom_to_lmwc
         )

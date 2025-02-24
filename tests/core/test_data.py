@@ -968,7 +968,8 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
         [
             "soil_c_pool_maom",
             "soil_c_pool_lmwc",
-            "soil_c_pool_microbe",
+            "soil_c_pool_bacteria",
+            "soil_c_pool_fungi",
             "soil_c_pool_pom",
             "soil_c_pool_necromass",
             "soil_enzyme_pom",
