@@ -99,7 +99,7 @@ def test_calculate_microbial_changes(
         "nitrate_change": [8.61302611e-6, -9.1219050e-7, 2.9529644e-5, -2.7662684e-6],
         "dop_uptake": [2.2120347e-8, 1.30853197e-6, 2.3069958e-6, 1.3196877e-6],
         "labile_p_change": [4.333041e-6, 2.230641e-5, 7.339138e-5, 4.124029e-7],
-        "microbe_change": [-0.054361097, -0.022606231, -0.118911406, -0.007195167],
+        "bacteria_change": [-0.054361097, -0.022606231, -0.118911406, -0.007195167],
         "pom_enzyme_change": [1.17571917e-8, 1.6744223e-8, 1.8331136e-9, -1.1167587e-8],
         "maom_enzyme_change": [-3.1009224e-4, -5.0959256e-5, 5.990658e-4, -3.721117e-5],
         "necromass_generation": [0.05474086, 0.02303502, 0.11952352, 0.00726011],
@@ -112,7 +112,7 @@ def test_calculate_microbial_changes(
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
+        soil_c_pool_bacteria=dummy_carbon_data["soil_c_pool_bacteria"],
         soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
         soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -227,11 +227,13 @@ def test_calculate_maintenance_biomass_synthesis(
     expected_loss = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
 
     actual_loss = calculate_maintenance_biomass_synthesis(
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
+        microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        constants=SoilConsts,
+        microbial_turnover_rate=SoilConsts.bacterial_turnover_rate,
+        activation_energy_turnover=SoilConsts.activation_energy_microbial_turnover,
+        reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
     assert np.allclose(actual_loss, expected_loss)
@@ -308,7 +310,7 @@ def test_calculate_nutrient_uptake_rates(
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_microbe=dummy_carbon_data["soil_c_pool_bacteria"],
+        soil_c_pool_bacteria=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -348,8 +350,8 @@ def test_calculate_highest_achievable_nutrient_uptake(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        max_uptake_rate=SoilConsts.max_uptake_rate_labile_C,
-        half_saturation_constant=SoilConsts.half_sat_labile_C_uptake,
+        max_uptake_rate=SoilConsts.max_bacterial_uptake_rate_labile_C,
+        half_saturation_constant=SoilConsts.half_sat_bacterial_labile_C_uptake,
         constants=SoilConsts,
     )
 
