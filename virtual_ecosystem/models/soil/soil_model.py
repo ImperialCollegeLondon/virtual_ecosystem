@@ -32,6 +32,10 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.constants import SoilConsts
+from virtual_ecosystem.models.soil.functional_groups import (
+    FunctionalGroup,
+    make_full_set_of_functional_groups,
+)
 from virtual_ecosystem.models.soil.pools import SoilPools
 
 
@@ -291,6 +295,7 @@ class SoilModel(
                 self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
+                make_full_set_of_functional_groups(self.model_constants),
                 self.core_constants.max_depth_of_microbial_activity,
                 self.core_constants.soil_moisture_capacity,
                 self.layer_structure.soil_layer_thickness[0],
@@ -326,6 +331,7 @@ def construct_full_soil_model(
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
+    functional_groups: dict[str, FunctionalGroup],
     max_depth_of_microbial_activity: float,
     soil_moisture_capacity: float,
     top_soil_layer_thickness: float,
@@ -343,6 +349,7 @@ def construct_full_soil_model(
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         model_constants: Set of constants for the soil model.
+        functional_groups: Set of microbial functional groups used by the soil model.
         max_depth_of_microbial_activity: Maximum depth of the soil profile where
             microbial activity occurs [m].
         soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
@@ -365,6 +372,7 @@ def construct_full_soil_model(
         data,
         pools=all_pools,
         constants=model_constants,
+        functional_groups=functional_groups,
         max_depth_of_microbial_activity=max_depth_of_microbial_activity,
     )
 

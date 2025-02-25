@@ -300,63 +300,63 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.05713292, 0.02665739, 0.11689175, 0.01486035], dims="cell_id"
+                        [0.05714338, 0.02206952, 0.11592186, 0.01538873], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
-                        [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
+                        [2.52007289, 1.71105702, 4.5340965, 0.53207841], dims="cell_id"
                     ),
                     soil_c_pool_bacteria=DataArray(
-                        [5.77303027, 2.2888041, 11.24109943, 0.9964216],
+                        [5.77302395, 2.28877945, 11.24105325, 0.99642196],
                         dims="cell_id",
                     ),
                     soil_c_pool_fungi=DataArray(
-                        [0.86302169, 8.53880051, 2.15105403, 4.5364215],
+                        [0.88590099, 8.509643, 2.19875113, 4.52376326],
                         dims="cell_id",
                     ),
                     soil_c_pool_pom=DataArray(
-                        [0.10088826, 0.99607827, 0.69401858, 0.35272508], dims="cell_id"
+                        [0.10088811, 0.99597975, 0.69401136, 0.35272452], dims="cell_id"
                     ),
                     soil_c_pool_necromass=DataArray(
-                        [0.05840102, 0.01864856, 0.10631116, 0.06904722], dims="cell_id"
+                        [0.06167057, 0.05209252, 0.11550511, 0.08189107], dims="cell_id"
                     ),
                     soil_enzyme_pom=DataArray(
-                        [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
+                        [0.02271979, 0.00999937, 0.0501659, 0.00317262], dims="cell_id"
                     ),
                     soil_enzyme_maom=DataArray(
-                        [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
+                        [0.03548666, 0.01209803, 0.02550264, 0.00470413], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00135906, 0.00340964, 0.00273513, 0.00390386], dims="cell_id"
+                        [0.00138664, 0.00297325, 0.00279915, 0.00393828], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
-                        [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
+                        [0.00714835, 0.00074622, 0.00292266, 0.014293], dims="cell_id"
                     ),
                     soil_n_pool_necromass=DataArray(
-                        [0.00602168, 0.01303568, 0.02189821, 0.00758444], dims="cell_id"
+                        [0.0065247, 0.01818108, 0.02331271, 0.00956047], dims="cell_id"
                     ),
                     soil_n_pool_maom=DataArray(
-                        [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
+                        [0.86680802, 0.4867186, 0.33433055, 0.09972284], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00053642, 0.01499882, 0.00044842, 0.00538707],
+                        [0.00053212, 0.01537305, 0.00040683, 0.00544821],
                         dims="cell_id",
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00189682, 0.0038413, 0.00031329, 0.01290568], dims="cell_id"
+                        [0.00189446, 0.00388282, 0.00030788, 0.01291297], dims="cell_id"
                     ),
                     soil_p_pool_dop=DataArray(
-                        [1.68559250e-4, 9.03050817e-5, 3.15038568e-4, 1.66029558e-4],
+                        [0.00017326, 0.00012043, 0.00032658, 0.00018222],
                         dims="cell_id",
                     ),
                     soil_p_pool_particulate=DataArray(
-                        [3.21780215e-5, 2.85147941e-4, 1.14676885e-4, 5.71721209e-4],
+                        [3.21779733e-5, 2.85119757e-4, 1.14675695e-4, 5.71720292e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_necromass=DataArray(
-                        [0.00187527, 0.00064763, 0.00343346, 0.00046239], dims="cell_id"
+                        [0.00195702, 0.00148389, 0.00366335, 0.00078355], dims="cell_id"
                     ),
                     soil_p_pool_maom=DataArray(
-                        [0.01355237, 0.03473323, 0.01997613, 0.00400384], dims="cell_id"
+                        [0.01356763, 0.03488897, 0.02001905, 0.0040638], dims="cell_id"
                     ),
                     soil_p_pool_primary=DataArray(
                         [0.0019594, 0.00535662, 0.00277434, 0.00059892], dims="cell_id"
@@ -365,7 +365,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [9.00903822e-7, 1.92559822e-5, 1.37908411e-5, 1.93794964e-4],
+                        [-5.39902139e-7, -1.35782323e-5, 4.95128072e-6, 1.94311546e-4],
                         dims="cell_id",
                     ),
                 )
@@ -479,7 +479,9 @@ def test_order_independance(
         assert np.allclose(output[pool_name], output_reversed[pool_name])
 
 
-def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
+def test_construct_full_soil_model(
+    dummy_carbon_data, fixture_core_components, functional_groups
+):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -489,10 +491,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     )
 
     delta_pools = [
-        0.014984117633,
-        0.0133384581,
-        0.03449812333,
-        0.02425546,
+        0.014909863,
+        0.0026977357,
+        0.03275147271,
+        0.023993336945,
         0.038767651,
         0.00829848,
         0.05982197,
@@ -501,62 +503,62 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -0.022606231,
         -0.118911406,
         -0.007195167,
-        -0.054361097,
-        -0.022606231,
-        -0.118911406,
-        -0.007195167,
+        -0.0083255777,
+        -0.0819293436,
+        -0.022969005,
+        -0.032666056,
         0.00177803841,
         -0.007860960795,
         -0.012016245,
         0.00545032,
-        0.001137474,
-        0.009172067,
-        0.033573266,
-        -0.08978050,
-        1.17571917e-8,
-        1.67442231e-8,
-        1.83311362e-9,
-        -1.11675865e-08,
-        -0.00031009,
-        -5.09593e-5,
-        0.0005990658,
-        -3.72112e-5,
-        0.00120201,
-        0.004654495,
-        0.005055088,
-        0.002542567,
+        0.00932274,
+        0.09290406,
+        0.05659641,
+        -0.05764445,
+        8.3534893e-5,
+        0.0008544245,
+        0.0002349318,
+        0.0003279076,
+        -0.000226569,
+        0.0008034485,
+        0.0008339958,
+        0.0002907076,
+        0.00120116138,
+        0.00389444416,
+        0.00505259291,
+        0.00239278244,
         1.102338e-5,
         6.422491e-5,
         0.000131687,
         1.461799e-5,
-        0.00786114,
-        -0.01209909,
-        0.00432363,
-        -0.00891218,
+        0.00912041,
+        0.000782751,
+        0.007865652,
+        -0.00396817,
         0.00148604,
         0.01179891,
         0.01365197,
         0.0077315,
-        0.000952008,
-        0.019913667,
-        0.000505414,
-        0.000455603,
-        -0.000293386,
-        -1.292735e-5,
-        -3.576543e-5,
-        -0.000255954,
-        0.000194453,
-        7.1014337e-5,
-        0.0001851685,
-        0.0001017010,
+        0.00095125671,
+        0.02011151359,
+        0.00043745,
+        0.000572988,
+        -0.000295899,
+        9.0556049e-6,
+        -4.592098e-5,
+        -0.000242911,
+        0.0001944445,
+        5.8853523e-5,
+        0.0001841704,
+        9.5709618e-5,
         7.22218e-6,
         -1.13464e-6,
         7.86083e-7,
         5.85634364e-7,
-        2.674836e-3,
-        1.333056e-3,
-        6.8090685e-3,
-        4.1429847e-5,
+        0.002879471,
+        0.003426353,
+        0.007384646,
+        0.000844827,
         5.52086672e-4,
         3.68566732e-5,
         4.7566130e-4,
@@ -569,10 +571,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -2.77311e-6,
         -7.40324e-7,
         -2.187697e-7,
-        -3.772779e-6,
-        -1.947773e-5,
-        -7.260241e-5,
-        -1.591909e-7,
+        -4.432585e-6,
+        -9.510288e-5,
+        -8.470421e-5,
+        2.6867148e-6,
     ]
 
     # make pools
@@ -599,6 +601,7 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
+        functional_groups=functional_groups,
         max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[

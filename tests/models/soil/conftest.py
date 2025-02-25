@@ -177,3 +177,16 @@ def maom_desorption(dummy_carbon_data):
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
         desorption_rate_constant=SoilConsts.maom_desorption_rate,
     )
+
+
+@pytest.fixture
+def functional_groups(
+    dummy_carbon_data, fixture_core_components, environmental_factors
+):
+    """Set of functional groups based on the soil model constants."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.functional_groups import (
+        make_full_set_of_functional_groups,
+    )
+
+    return make_full_set_of_functional_groups(constants=SoilConsts)

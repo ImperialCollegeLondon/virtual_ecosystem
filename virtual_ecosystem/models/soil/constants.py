@@ -57,8 +57,18 @@ class SoilConsts(ConstantsDataclass):
     the source of the activation energies and corresponding rates.
     """
 
-    # TODO - Split this and the following into 2 constants once fungi are introduced
     max_bacterial_uptake_rate_labile_C: float = 0.04
+    """Maximum rate at the reference temperature of labile carbon uptake [day^-1].
+
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - Source of this constant is not completely clear, investigate this further
+    once fungi are added.
+    """
+
+    max_fungal_uptake_rate_labile_C: float = 0.04
     """Maximum rate at the reference temperature of labile carbon uptake [day^-1].
 
     The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
@@ -80,6 +90,16 @@ class SoilConsts(ConstantsDataclass):
 
     half_sat_bacterial_labile_C_uptake: float = 0.364
     """Half saturation constant for bacterial uptake of labile carbon (LMWC).
+
+    [kg C m^-3]. This was calculated from the value provided in
+    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+    """
+
+    half_sat_fungal_labile_C_uptake: float = 0.364
+    """Half saturation constant for fungal uptake of labile carbon (LMWC).
 
     [kg C m^-3]. This was calculated from the value provided in
     :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
@@ -157,7 +177,6 @@ class SoilConsts(ConstantsDataclass):
     Units of [J K^-1]. Taken from :cite:t:`wang_development_2013`.
     """
 
-    # TODO - Split this and the following into 2 constants once fungi are introduced
     bacterial_turnover_rate: float = 0.005
     """Bacterial turnover rate at reference temperature [day^-1].
 
@@ -176,6 +195,17 @@ class SoilConsts(ConstantsDataclass):
     this activation energy corresponds to is given by :attr:`bacterial_turnover_rate`.
     """
 
+    fungal_turnover_rate: float = 0.005
+    """Fungal turnover rate at reference temperature [day^-1].
+
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_microbial_turnover`.
+
+    TODO - Source of this constant is not completely clear, investigate this further
+    once fungi are added.
+    """
+
     # TODO - At some point I need to split these enzyme constants into fungi and
     # bacteria specific constants
     pom_enzyme_turnover_rate: float = 2.4e-2
@@ -190,14 +220,26 @@ class SoilConsts(ConstantsDataclass):
     Value taken from :cite:t:`wang_development_2013`.
     """
 
-    maintenance_pom_enzyme: float = 1e-2
-    """Fraction of maintenance synthesis used to produce POM degrading enzymes.
+    bacterial_maintenance_pom_enzyme: float = 1e-2
+    """Fraction of bacterial maintenance used to produce POM degrading enzymes.
 
     [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
 
-    maintenance_maom_enzyme: float = 1e-2
-    """Fraction of maintenance synthesis used to produce MAOM degrading enzymes.
+    fungal_maintenance_pom_enzyme: float = 1e-2
+    """Fraction of fungal maintenance used to produce POM degrading enzymes.
+
+    [unitless]. Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    bacterial_maintenance_maom_enzyme: float = 1e-2
+    """Fraction of bacterial maintenance used to produce MAOM degrading enzymes.
+
+    [unitless]. Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    fungal_maintenance_maom_enzyme: float = 1e-2
+    """Fraction of bacterial maintenance used to produce MAOM degrading enzymes.
 
     [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
@@ -310,28 +352,28 @@ class SoilConsts(ConstantsDataclass):
     environmental conditions is a post release goal.
     """
 
-    litter_leaching_fraction_carbon = 0.0015
+    litter_leaching_fraction_carbon: float = 0.0015
     """Fraction of carbon mineralisation from litter that occurs by leaching [unitless].
     
     The remainder of the mineralisation consists of particulates. Value is an order of
     magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    litter_leaching_fraction_nitrogen = 0.0015
+    litter_leaching_fraction_nitrogen: float = 0.0015
     """Fraction of nitrogen mineralisation from litter that occurs by leaching.
     
     [unitless]. The remainder of the mineralisation consists of particulates. Value is
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    litter_leaching_fraction_phosphorus = 0.0001
+    litter_leaching_fraction_phosphorus: float = 0.0001
     """Fraction of phosphorus mineralisation from litter that occurs by leaching.
     
     [unitless]. The remainder of the mineralisation consists of particulates. Value is
     an order of magnitude estimate taken from :cite:t:`fatichi_mechanistic_2019`.
     """
 
-    organic_proportion_litter_nitrogen_leaching = 1.0
+    organic_proportion_litter_nitrogen_leaching: float = 1.0
     """Fraction of leached nitrogen from litter mineralisation that is organic form.
     
     [unitless]. The remainder of the leaching consists of ammonium. Value is taken from
@@ -339,7 +381,7 @@ class SoilConsts(ConstantsDataclass):
     litter solely in organic form.
     """
 
-    organic_proportion_litter_phosphorus_leaching = 1.0
+    organic_proportion_litter_phosphorus_leaching: float = 1.0
     """Fraction of leached phosphorus from litter mineralisation that is organic form.
     
     [unitless]. The remainder of the leaching consists of inorganic phosphorus. Value is
@@ -347,21 +389,35 @@ class SoilConsts(ConstantsDataclass):
     leaches from litter solely in organic form.
     """
 
-    bacterial_c_n_ratio = 5.2
+    bacterial_c_n_ratio: float = 5.2
     """Ratio of carbon to nitrogen in bacterial biomass [unitless].
     
     Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
     on previous literature.
     """
 
-    bacterial_c_p_ratio = 16
+    bacterial_c_p_ratio: float = 16
     """Ratio of carbon to phosphorus in bacterial biomass [unitless].
     
     Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
     on previous literature.
     """
 
-    ammonium_mineralisation_proportion = 0.9
+    fungal_c_n_ratio: float = 6.5
+    """Ratio of carbon to nitrogen in fungal biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature.
+    """
+
+    fungal_c_p_ratio: float = 40.0
+    """Ratio of carbon to phosphorus in fungal biomass [unitless].
+    
+    Estimate taken from :cite:t:`fatichi_mechanistic_2019`, which estimates this based
+    on previous literature.
+    """
+
+    ammonium_mineralisation_proportion: float = 0.9
     """Proportion of microbially mineralised nitrogen that takes the form of ammonium.
     
     [unitless]. The remainder gets mineralised as nitrate. Estimate taken from
@@ -369,7 +425,7 @@ class SoilConsts(ConstantsDataclass):
     particularly clear.
     """
 
-    max_bacterial_uptake_rate_ammonium = 5e-3
+    max_bacterial_uptake_rate_ammonium: float = 5e-3
     """Maximum possible rate for bacterial ammonium uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
@@ -381,7 +437,7 @@ class SoilConsts(ConstantsDataclass):
     """
 
     half_sat_bacterial_ammonium_uptake: float = 0.02275
-    """Half saturation constant for uptake of ammonium [kg N m^-3].
+    """Half saturation constant for bacterial uptake of ammonium [kg N m^-3].
     
     The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
     corresponding activation energy is given by
@@ -391,7 +447,7 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    max_bacterial_uptake_rate_nitrate = 5e-4
+    max_bacterial_uptake_rate_nitrate: float = 5e-4
     """Maximum possible rate for bacterial nitrate uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
@@ -413,8 +469,8 @@ class SoilConsts(ConstantsDataclass):
     be better pinned down.
     """
 
-    max_bacterial_uptake_rate_labile_p = 0.0025
-    """Maximum possible rate for labile inorganic phosphorus uptake [day^-1].
+    max_bacterial_uptake_rate_labile_p: float = 0.0025
+    """Maximum possible rate for bacterial labile inorganic phosphorus uptake [day^-1].
 
     This rate corresponds to the reference temperature given by
     :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
@@ -425,7 +481,73 @@ class SoilConsts(ConstantsDataclass):
     """
 
     half_sat_bacterial_labile_p_uptake: float = 0.02275
-    """Half saturation constant for uptake of labile inorganic phosphorus.
+    """Half saturation constant for bacterial uptake of labile inorganic phosphorus.
+
+    [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
+    and the corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    max_fungal_uptake_rate_ammonium = 5e-3
+    """Maximum possible rate for fungal ammonium uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_fungal_ammonium_uptake: float = 0.02275
+    """Half saturation constant for fungal uptake of ammonium [kg N m^-3].
+    
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    max_fungal_uptake_rate_nitrate = 5e-4
+    """Maximum possible rate for fungal nitrate uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_fungal_nitrate_uptake: float = 0.02275
+    """Half saturation constant for fungal uptake of nitrate [kg N m^-3].
+
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_uptake_saturation`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    max_fungal_uptake_rate_labile_p: float = 0.0025
+    """Maximum possible rate for fungal labile inorganic phosphorus uptake [day^-1].
+
+    This rate corresponds to the reference temperature given by
+    :attr:`arrhenius_reference_temp`, with the corresponding activation energy given by
+    :attr:`activation_energy_microbial_uptake`.
+
+    TODO - At present I've invented the value for this constant, so it really needs to
+    be better pinned down.
+    """
+
+    half_sat_fungal_labile_p_uptake: float = 0.02275
+    """Half saturation constant for fungal uptake of labile inorganic phosphorus.
 
     [kg P m^-3]. The reference temperature is given by :attr:`arrhenius_reference_temp`,
     and the corresponding activation energy is given by
