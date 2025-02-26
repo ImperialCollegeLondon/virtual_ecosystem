@@ -54,6 +54,11 @@ def plants_data(fixture_core_components):
         },
     )
 
+    # Adding soil variables
+    data["dissolved_ammonium"] = DataArray(np.array([5.0e-2] * n_cells))
+    data["dissolved_nitrate"] = DataArray(np.array([7.5e-1] * n_cells))
+    data["dissolved_phosphorus"] = DataArray(np.array([3.0e-3] * n_cells))
+
     # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
     # function works in testing. Once that function has been replaced with something
     # more realistic this should be deleted

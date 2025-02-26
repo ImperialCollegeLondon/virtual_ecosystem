@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
-from xarray import DataArray
+from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -68,7 +68,11 @@ class SoilModel(
         "bulk_density",
         "clay_fraction",
     ),
-    vars_populated_by_init=(),
+    vars_populated_by_init=(
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
+    ),
     vars_required_for_update=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
@@ -98,6 +102,10 @@ class SoilModel(
         "litter_N_mineralisation_rate",
         "litter_P_mineralisation_rate",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -120,6 +128,9 @@ class SoilModel(
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -185,7 +196,16 @@ class SoilModel(
         model_constants: SoilConsts,
         **kwargs: Any,
     ) -> None:
-        """Placeholder function to setup up the soil model."""
+        """Function to setup up the soil model."""
+
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        self.model_constants = model_constants
+
+        # Calculate dissolved amounts of each inorganic nutrient
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
 
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
@@ -194,10 +214,6 @@ class SoilModel(
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
-        self.model_constants = model_constants
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
@@ -216,6 +232,11 @@ class SoilModel(
         # Update carbon pools (attributes and data object)
         # n.b. this also updates the data object automatically
         self.data.add_from_dict(updated_carbon_pools)
+
+        # Calculate dissolved amounts of each inorganic nutrients
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
 
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
@@ -266,7 +287,7 @@ class SoilModel(
             [
                 self.data[name].to_numpy()
                 for name in map(str, self.data.data.keys())
-                if name in self.vars_updated
+                if name in self.vars_updated and name not in self.vars_populated_by_init
             ]
         )
 
@@ -274,7 +295,7 @@ class SoilModel(
         delta_pools_ordered = {
             name: np.array([])
             for name in map(str, self.data.data.keys())
-            if name in self.vars_updated
+            if name in self.vars_updated and name not in self.vars_populated_by_init
         }
 
         # Carry out simulation
@@ -313,6 +334,41 @@ class SoilModel(
         }
 
         return new_c_pools
+
+    def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
+        """Calculate the amount of each inorganic nutrient that is in dissolved form.
+
+        This calculates the nutrient concentration of the water in the topsoil layer.
+        Negative values are explicitly handled by this function to prevent them from
+        passing from the soil model (where they are unavoidable) into the plants model
+        (where they could break things). When soil nutrient concentrations are negative
+        it is assumed dissolved nutrient concentrations are taken to be zero.
+
+        Returns:
+            A data array containing the size of each dissolved nutrient pool [kg
+            nutrient m^-3].
+        """
+
+        return {
+            "dissolved_nitrate": where(
+                self.data["soil_n_pool_nitrate"] >= 0.0,
+                self.model_constants.solubility_coefficient_nitrate
+                * self.data["soil_n_pool_nitrate"],
+                0.0,
+            ),
+            "dissolved_ammonium": where(
+                self.data["soil_n_pool_ammonium"] >= 0.0,
+                self.model_constants.solubility_coefficient_ammonium
+                * self.data["soil_n_pool_ammonium"],
+                0.0,
+            ),
+            "dissolved_phosphorus": where(
+                self.data["soil_p_pool_labile"] >= 0.0,
+                self.model_constants.solubility_coefficient_labile_p
+                * self.data["soil_p_pool_labile"],
+                0.0,
+            ),
+        }
 
 
 def construct_full_soil_model(
