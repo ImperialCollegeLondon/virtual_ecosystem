@@ -170,13 +170,38 @@ the impact of soil clay content on the concentration at which the enzyme saturat
 Definitions of these environmental factors can be found
 [here](./environmental_links.md).
 
-### Microbial death
+### Microbial turnover
 
-TODO - Populate this subsection
+The microbial biomass that is lost to both cell death and protein degradation gets added
+to the necromass pool. This breakdown of this necromass pool to form {term}`LMWC` is
+modelled using linear kinetics as
+
+$$D_n = k_d * N,$$
+
+where $k_d$ is the rate constant for necromass breakdown and $N$ is the size of the
+necromass pool. The sorption of necromass to soil minerals to form {term}`MAOM` is also
+modelled using linear kinetics as
+
+$$S_n = k_s * N,$$
+
+where $k_s$ is the rate constant for necromass sorption. The ratio of $k_d$ and $k_s$
+will be the same as the ratio between the amount necromass that becomes {term}`LMWC` and
+the amount that becomes {term}`MAOM`.
 
 ### Mineral sorption and desorption
 
-TODO - Populate this subsection
+{term}`MAOM` can also be formed via sorption of {term}`LMWC`. The carbon associated with
+the soil surface can also desorb, this leads to a decrease in the size of the
+{term}`MAOM` pool and a corresponding production of {term}`LMWC`. We model both of these
+processes using linear kinetics, the resulting net change in the size of the
+{term}`LMWC` pool can be expressed as
+
+$$\Delta L = K_d * M - K_s * L,$$
+
+where $K_d$ is the rate constant for {term}`MAOM` desorption, $K_s$ is the rate constant
+for {term}`LMWC` sorption, $M$ is the size of the {term}`MAOM` pool and $L$ is the size
+of the {term}`LMWC` pool. Most {term}`MAOM` formation occurs via necromass sorption, and
+so the default value the model uses for $K_s$ is small relative to $k_s$.
 
 ### Leaching of soil carbon
 
