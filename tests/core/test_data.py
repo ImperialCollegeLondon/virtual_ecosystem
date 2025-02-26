@@ -987,6 +987,9 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
             "soil_p_pool_primary",
             "soil_p_pool_secondary",
             "soil_p_pool_labile",
+            "dissolved_nitrate",
+            "dissolved_ammonium",
+            "dissolved_phosphorus",
         ],
         time_index,
     )

@@ -45,7 +45,7 @@ def test_calculate_all_pool_updates(
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.014909863, 0.0026977357, 0.03275147271, 0.023993336945],
+        "soil_c_pool_lmwc": [0.114909863, 0.0426977357, 0.23275147271, 0.033993336945],
         "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
         "soil_c_pool_bacteria": [-0.054361097, -0.022606231, -0.118911406, -0.00719517],
         "soil_c_pool_fungi": [-0.0083255777, -0.0819293436, -0.022969005, -0.032666056],
@@ -57,15 +57,15 @@ def test_calculate_all_pool_updates(
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00912041, 0.000782751, 0.007865652, -0.00396817],
         "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_n_pool_ammonium": [0.00095125671, 0.02011151359, 0.00043745, 0.000572988],
-        "soil_n_pool_nitrate": [-0.000295899, 9.0556049e-6, -4.592098e-5, -0.000242911],
+        "soil_n_pool_ammonium": [0.00075125671, 0.02001151359, 0.00039745, 0.000172988],
+        "soil_n_pool_nitrate": [-0.003295899, -0.003990944, -0.001045921, -0.000642911],
         "soil_p_pool_dop": [0.0001944445, 5.8853523e-5, 0.0001841704, 9.5709618e-5],
         "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
         "soil_p_pool_necromass": [0.002879471, 0.003426353, 0.007384646, 0.000844827],
         "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
-        "soil_p_pool_labile": [-4.432585e-6, -9.510288e-5, -8.470421e-5, 2.6867148e-6],
+        "soil_p_pool_labile": [-1.643259e-5, -0.000295103, -9.270421e-5, -1.313285e-6],
     }
 
     # Make order of pools object
@@ -86,6 +86,47 @@ def test_calculate_all_pool_updates(
     # checks that the output order matches the input order.
     for i, pool in enumerate(change_in_pools.keys()):
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
+
+
+def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_groups):
+    """Test that the SoilPools.to_per_volume method converts correctly."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.pools import SoilPools
+    from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
+
+    # Find and store order of pools (this requires loads of steps because it needs to
+    # work with the integrator)
+    y0 = np.concatenate(
+        [
+            dummy_carbon_data[name].to_numpy()
+            for name in map(str, dummy_carbon_data.data.keys())
+            if name in SoilModel.vars_updated
+        ]
+    )
+    delta_pools_ordered = {
+        name: np.array([])
+        for name in map(str, dummy_carbon_data.data.keys())
+        if name in SoilModel.vars_updated
+    }
+    no_cells = 4
+    slices = make_slices(no_cells, len(delta_pools_ordered))
+    pools = {
+        str(pool): y0[slc] for slc, pool in zip(slices, delta_pools_ordered.keys())
+    }
+    soil_pools = SoilPools(
+        data=dummy_carbon_data,
+        pools=pools,
+        constants=SoilConsts,
+        functional_groups=functional_groups,
+        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+    )
+
+    # Test that it works for both floats and numpy arrays
+    assert np.isclose(soil_pools.to_per_volume(10.0), 40.0)
+    assert np.allclose(
+        soil_pools.to_per_volume(np.array([10.0, 25.0, 99.0, 34.7])),
+        [40.0, 100.0, 396.0, 138.8],
+    )
 
 
 def test_calculate_microbial_changes(
@@ -199,6 +240,41 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         if not attr.startswith("_"):
             assert attr in expected_leaching.keys(), f"Attribute {attr} not tested"
             assert np.allclose(getattr(actual_leaching, attr), expected_leaching[attr])
+
+
+def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
+    """Test that negative leaching rates cannot occur."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+
+    # Add negative values to the inorganic nutrient pools
+    ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
+    ammonium_data[1] = -6.9619638e-5
+    nitrate_data = dummy_carbon_data["soil_n_pool_nitrate"]
+    nitrate_data[0] = -0.0024219014
+    labile_p_data = dummy_carbon_data["soil_p_pool_labile"]
+    labile_p_data[3] = -1.0582393e-5
+
+    expected_ammonium = [1.496453109e-9, 0.0, 2.271304008e-7, 5.461249320e-6]
+    expected_nitrate = [0.0, 1.128640314e-5, 6.798727493e-6, 0.00027625126]
+    expected_labile_P = [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0]
+
+    actual_leaching = calculate_nutrient_leaching(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_n_pool_ammonium=ammonium_data,
+        soil_n_pool_nitrate=nitrate_data,
+        soil_p_pool_labile=labile_p_data,
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        soil_moisture=dummy_carbon_data["soil_moisture"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_leaching.ammonium, expected_ammonium)
+    assert np.allclose(actual_leaching.nitrate, expected_nitrate)
+    assert np.allclose(actual_leaching.labile_P, expected_labile_P)
 
 
 def test_calculate_enzyme_changes(dummy_carbon_data):
@@ -357,6 +433,38 @@ def test_calculate_highest_achievable_nutrient_uptake(
 
     actual_uptake = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=dummy_carbon_data["soil_c_pool_lmwc"],
+        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        max_uptake_rate=SoilConsts.max_bacterial_uptake_rate_labile_C,
+        activation_energy_uptake=SoilConsts.activation_energy_microbial_uptake,
+        half_saturation_constant=SoilConsts.half_sat_bacterial_labile_C_uptake,
+        activation_energy_uptake_saturation=SoilConsts.activation_energy_uptake_saturation,
+        reference_temperature=SoilConsts.arrhenius_reference_temp,
+    )
+
+    assert np.allclose(actual_uptake, expected_uptake)
+
+
+def test_negative_highest_achievable_nutrient_uptake_are_impossible(
+    dummy_carbon_data, fixture_core_components, environmental_factors
+):
+    """Test to check that negative maximum uptake rates cannot be returned."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_highest_achievable_nutrient_uptake,
+    )
+
+    labile_carbon_data = dummy_carbon_data["soil_c_pool_lmwc"]
+    labile_carbon_data[1] = -0.0001
+    labile_carbon_data[3] = -3.7e-5
+
+    expected_uptake = [1.29159055e-2, 0.0, 5.77096991e-2, 0.0]
+
+    actual_uptake = calculate_highest_achievable_nutrient_uptake(
+        labile_nutrient_pool=labile_carbon_data,
         microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
@@ -650,6 +758,39 @@ def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_compone
     assert np.allclose(actual_rate, expected_rate)
 
 
+def test_negative_nitrification_rate_impossible(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test that negative nitrification rates can't occur."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * CoreConsts.soil_moisture_capacity
+    )
+    ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
+    ammonium_data[0] = -0.0001
+    ammonium_data[3] = -3e-4
+
+    expected_rate = [0.0, 0.000423915, 1.557907e-5, 0.0]
+
+    actual_rate = calculate_rate_of_nitrification(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        effective_saturation=effective_saturation,
+        soil_n_pool_ammonium=ammonium_data,
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
+
+
 def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_components):
     """Test that calculation of the rate of denitrification is correct."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -672,6 +813,39 @@ def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_compo
         ],
         effective_saturation=effective_saturation,
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
+        constants=SoilConsts,
+    )
+
+    assert np.allclose(actual_rate, expected_rate)
+
+
+def test_negative_denitrification_rate_impossible(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test that negative denitrification rates can't occur."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_rate_of_denitrification
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * CoreConsts.soil_moisture_capacity
+    )
+    nitrate_data = dummy_carbon_data["soil_n_pool_nitrate"]
+    nitrate_data[1] = -0.0001
+    nitrate_data[2] = -7e-4
+
+    expected_rate = [2.89449367e-4, 0.0, 0.0, 9.71117584e-5]
+
+    actual_rate = calculate_rate_of_denitrification(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        effective_saturation=effective_saturation,
+        soil_n_pool_nitrate=nitrate_data,
         constants=SoilConsts,
     )
 

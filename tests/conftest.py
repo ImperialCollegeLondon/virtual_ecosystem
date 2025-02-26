@@ -315,6 +315,10 @@ def dummy_carbon_data(fixture_core_components):
         "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
         "vertical_flow": [0.1, 0.5, 2.5, 1.59],
         "nitrogen_fixation_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
+        "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
+        "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
+        "plant_nitrate_uptake": [7.5e-4, 1.0e-3, 2.5e-4, 1.0e-4],
+        "plant_phosphorus_uptake": [3.0e-6, 5e-5, 2.0e-6, 1.0e-6],
     }
 
     for var_name, var_values in data_values.items():

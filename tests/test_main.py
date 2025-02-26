@@ -55,7 +55,14 @@ INITIALISATION_LOG = [
             '[core.timing]\nupdate_interval = "7 days"\n[soil]\n',
             "SoilModel(update_interval=604800 seconds)",
             does_not_raise(),
-            tuple(INITIALISATION_LOG),
+            tuple(
+                [
+                    *INITIALISATION_LOG,
+                    (INFO, "Adding data array for 'dissolved_nitrate'"),
+                    (INFO, "Adding data array for 'dissolved_ammonium'"),
+                    (INFO, "Adding data array for 'dissolved_phosphorus'"),
+                ],
+            ),
             id="valid config",
         ),
         pytest.param(
