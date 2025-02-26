@@ -24,7 +24,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
 )
-from virtual_ecosystem.models.soil.functional_groups import FunctionalGroup
+from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroup
 
 # TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
 # think about adding these in future
@@ -289,7 +289,7 @@ class SoilPools:
         data: Data,
         pools: dict[str, NDArray[np.float32]],
         constants: SoilConsts,
-        functional_groups: dict[str, FunctionalGroup],
+        functional_groups: dict[str, MicrobialGroup],
         max_depth_of_microbial_activity: float,
     ):
         self.data = data
@@ -657,7 +657,7 @@ def calculate_microbial_changes(
     soil_temp: NDArray[np.float32],
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
-    functional_groups: dict[str, FunctionalGroup],
+    functional_groups: dict[str, MicrobialGroup],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
@@ -1064,7 +1064,7 @@ def calculate_nutrient_uptake_rates(
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
-    functional_group: FunctionalGroup,
+    functional_group: MicrobialGroup,
 ) -> tuple[NDArray[np.float32], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 

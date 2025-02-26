@@ -1,4 +1,4 @@
-"""The ``models.soil.functional_groups`` module contains the classes needed to define
+"""The ``models.soil.microbial_groups`` module contains the classes needed to define
 the different microbial functional groups used in the soil model.
 """  # noqa: D205
 
@@ -8,7 +8,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
 @dataclass
-class FunctionalGroup:
+class MicrobialGroup:
     """Base class for microbial functional groups.
 
     This sets out the constants which must be defined for each microbial functional
@@ -59,9 +59,9 @@ class FunctionalGroup:
     """Ratio of carbon to phosphorus in biomass [unitless]."""
 
 
-def make_full_set_of_functional_groups(
+def make_full_set_of_microbial_groups(
     constants: SoilConsts,
-) -> dict[str, FunctionalGroup]:
+) -> dict[str, MicrobialGroup]:
     """Make the full set of functional groups used in the soil model.
 
     Args:
@@ -78,18 +78,19 @@ def make_full_set_of_functional_groups(
     }
 
 
-def make_bacterial_functional_group(constants: SoilConsts) -> FunctionalGroup:
+def make_bacterial_functional_group(constants: SoilConsts) -> MicrobialGroup:
     """Collect the constants for the bacterial functional group.
 
     Args:
         constants: The constants for the soil model.
 
     Returns:
-        A ``FunctionalGroup`` object parameterized with the full set of constants needed
-        to define the bacterial functional group.
+        A :class:`~virtual_ecosystem.models.soil.microbial_groups.MicrobialGroup` object
+        parameterized with the full set of constants needed to define the bacterial
+        functional group.
     """
 
-    return FunctionalGroup(
+    return MicrobialGroup(
         max_uptake_rate_labile_C=constants.max_bacterial_uptake_rate_labile_C,
         activation_energy_uptake_rate=constants.activation_energy_microbial_uptake,
         half_sat_labile_C_uptake=constants.half_sat_bacterial_labile_C_uptake,
@@ -107,18 +108,19 @@ def make_bacterial_functional_group(constants: SoilConsts) -> FunctionalGroup:
     )
 
 
-def make_fungal_functional_group(constants: SoilConsts) -> FunctionalGroup:
+def make_fungal_functional_group(constants: SoilConsts) -> MicrobialGroup:
     """Collect the constants for the fungal functional group.
 
     Args:
         constants: The constants for the soil model.
 
     Returns:
-        A ``FunctionalGroup`` object parameterized with the full set of constants needed
-        to define the fungal functional group.
+        A :class:`~virtual_ecosystem.models.soil.microbial_groups.MicrobialGroup` object
+        parameterized with the full set of constants needed to define the fungal
+        functional group.
     """
 
-    return FunctionalGroup(
+    return MicrobialGroup(
         max_uptake_rate_labile_C=constants.max_fungal_uptake_rate_labile_C,
         activation_energy_uptake_rate=constants.activation_energy_microbial_uptake,
         half_sat_labile_C_uptake=constants.half_sat_fungal_labile_C_uptake,

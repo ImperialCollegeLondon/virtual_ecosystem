@@ -202,8 +202,8 @@ subtrees:
                 title: The constants submodule
               - file: api/models/soil/env_factors
                 title: The env_factors submodule
-              - file: api/models/soil/functional_groups
-                title: The functional_groups submodule
+              - file: api/models/soil/microbial_groups
+                title: The microbial_groups submodule
               - file: api/models/soil/soil_model
                 title: The soil_model submodule
           - file: api/models/plants

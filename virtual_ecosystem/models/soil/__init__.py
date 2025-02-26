@@ -10,7 +10,7 @@ Each of the soil sub-modules has its own API reference page:
   soil pools over time.
 * The :mod:`~virtual_ecosystem.models.soil.env_factors` provides functions that capture
   the impact of environmental factors on microbial rates.
-* The :mod:`~virtual_ecosystem.models.soil.functional_groups` provides the microbial
+* The :mod:`~virtual_ecosystem.models.soil.microbial_groups` provides the microbial
   functional groups used in the soil model.
 * The :mod:`~virtual_ecosystem.models.soil.constants` provides a set of dataclasses
   containing the constants required by the broader soil model.

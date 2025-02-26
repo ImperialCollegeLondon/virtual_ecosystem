@@ -24,10 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.models.soil.functional_groups` module
+# API documentation for the {mod}`~virtual_ecosystem.models.soil.microbial_groups` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.soil.functional_groups
+.. automodule:: virtual_ecosystem.models.soil.microbial_groups
     :autosummary:
     :members:
 ```
