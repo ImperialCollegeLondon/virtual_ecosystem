@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
-from xarray import DataArray
+from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -339,6 +339,10 @@ class SoilModel(
         """Calculate the amount of each inorganic nutrient that is in dissolved form.
 
         This calculates the nutrient concentration of the water in the topsoil layer.
+        Negative values are explicitly handled by this function to prevent them from
+        passing from the soil model (where they are unavoidable) into the plants model
+        (where they could break things). When soil nutrient concentrations are negative
+        it is assumed dissolved nutrient concentrations are taken to be zero.
 
         Returns:
             A data array containing the size of each dissolved nutrient pool [kg
@@ -346,12 +350,24 @@ class SoilModel(
         """
 
         return {
-            "dissolved_nitrate": self.model_constants.solubility_coefficient_nitrate
-            * self.data["soil_n_pool_nitrate"],
-            "dissolved_ammonium": self.model_constants.solubility_coefficient_ammonium
-            * self.data["soil_n_pool_ammonium"],
-            "dissolved_phosphorus": self.model_constants.solubility_coefficient_labile_p
-            * self.data["soil_p_pool_labile"],
+            "dissolved_nitrate": where(
+                self.data["soil_n_pool_nitrate"] >= 0.0,
+                self.model_constants.solubility_coefficient_nitrate
+                * self.data["soil_n_pool_nitrate"],
+                0.0,
+            ),
+            "dissolved_ammonium": where(
+                self.data["soil_n_pool_ammonium"] >= 0.0,
+                self.model_constants.solubility_coefficient_ammonium
+                * self.data["soil_n_pool_ammonium"],
+                0.0,
+            ),
+            "dissolved_phosphorus": where(
+                self.data["soil_p_pool_labile"] >= 0.0,
+                self.model_constants.solubility_coefficient_labile_p
+                * self.data["soil_p_pool_labile"],
+                0.0,
+            ),
         }
 
 

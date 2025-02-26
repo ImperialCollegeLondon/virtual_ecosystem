@@ -523,6 +523,28 @@ def test_calculate_dissolved_nutrient_concentrations(fixture_soil_model):
         assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
 
 
+def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model):
+    """Test that the dissolved nutrient concentrations handles negative values."""
+
+    # Overwrite specific data values with negative values
+    fixture_soil_model.data["soil_n_pool_ammonium"][1] = -6.9619638e-5
+    fixture_soil_model.data["soil_n_pool_nitrate"][2] = -0.0024219014
+    fixture_soil_model.data["soil_p_pool_labile"][0] = -1.0582393e-5
+
+    expected_concs = {
+        "dissolved_ammonium": [3.4809819e-6, 0.0, 1.145335e-5, 0.000259776695],
+        "dissolved_nitrate": [0.0024219014, 0.0044442996, 0.0, 0.0131405173],
+        "dissolved_phosphorus": [0.0, 1.6264805e-7, 3.4033725e-7, 9.728175e-7],
+    }
+
+    actual_concs = fixture_soil_model.calculate_dissolved_nutrient_concentrations()
+
+    assert expected_concs.keys() == actual_concs.keys()
+
+    for nutrient in expected_concs.keys():
+        assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
+
+
 def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts

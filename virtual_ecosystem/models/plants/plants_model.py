@@ -684,20 +684,7 @@ class PlantsModel(
             up function, and does not link to plant dynamics in any way.
         """
 
-        # Assume plants can take 0.1% of the available nutrient per day, uptake stops
-        # (rather than goes negative) if the soil nutrient concentrations go negative
-        self.data["plant_ammonium_uptake"] = xr.where(
-            self.data["dissolved_ammonium"] > 0.0,
-            self.data["dissolved_ammonium"] * 0.01,
-            0.0,
-        )
-        self.data["plant_nitrate_uptake"] = xr.where(
-            self.data["dissolved_nitrate"] > 0.0,
-            self.data["dissolved_nitrate"] * 0.01,
-            0.0,
-        )
-        self.data["plant_phosphorus_uptake"] = xr.where(
-            self.data["dissolved_phosphorus"] > 0.0,
-            self.data["dissolved_phosphorus"] * 0.01,
-            0.0,
-        )
+        # Assume plants can take 0.1% of the available nutrient per day
+        self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
+        self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
+        self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
