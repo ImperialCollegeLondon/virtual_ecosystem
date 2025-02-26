@@ -168,9 +168,11 @@ capturing the impact of soil moisture on the process rate, $f_{p}$ is a factor
 capturing the impact of soil pH on the process rate, and $f_{c}$ is a factor capturing
 the impact of soil clay content on the concentration at which the enzyme saturates.
 Definitions of these environmental factors can be found
-[here](./environmental_links.md).
+[here](./environmental_links.md#environmental-effects-on-enzymes).
 
 ### Microbial turnover
+
+TODO - Add something here about microbial turnover being temperature dependant
 
 The microbial biomass that is lost to both cell death and protein degradation gets added
 to the necromass pool. This breakdown of this necromass pool to form {term}`LMWC` is
@@ -209,6 +211,4 @@ Leaching of nutrients from the soil occurs when water passing downwards through 
 carries dissolved nutrients away with it. By definition, any organic matter that is
 simple enough to solubilise is included in the {term}`LMWC` pool, so this is the only
 soil carbon pool to be effected by leaching. The expression we use to calculate leaching
-rates can be found [here](./environmental_links.md).
-
-TODO - Add subsection link once the subsection is written.
+rates can be found [here](./environmental_links.md#leaching-rate).

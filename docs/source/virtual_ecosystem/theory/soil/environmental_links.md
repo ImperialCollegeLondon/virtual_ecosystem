@@ -33,6 +33,8 @@ of each litter pool. Processes that take place underground are also affected by 
 moisture. For the soil moisture response, an empirical relationship is used for both
 litter decay and soil organic matter breakdown.
 
+TODO - Expand this intro to cover the sections I am adding
+
 :::{admonition} In progress 🛠️
 
 The representation of soil microbial communities has still not been finalised. Once this
@@ -40,6 +42,12 @@ has happened this section of the documentation will be extended to detail the re
 thermal responses.
 
 :::
+
+## Arrhenius equation
+
+TODO - Need a better title
+
+TODO - Populate this section (mention that it holds for microbial rate)
 
 ## Soil moisture response
 
@@ -80,3 +88,31 @@ where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature u
 establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
 $\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
 changes.
+
+## Environmental effects on enzymes
+
+TODO - Add a broad intro here
+
+### Impact of clay on enzyme saturation
+
+TODO - Populate subsection
+
+### Impact of pH on enzyme rate
+
+TODO - Populate subsection
+
+### Impact of temperature on enzyme rate
+
+TODO - Populate subsection
+
+### Impact of temperature on enzyme saturation
+
+TODO - Populate subsection
+
+### Impact of soil moisture on enzyme saturation
+
+TODO - Populate subsection (? is this different from what I have already above)
+
+## Leaching rate
+
+TODO - Populate this section
