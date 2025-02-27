@@ -157,7 +157,7 @@ primary productivity (GPP). The P Model requires estimates of the following driv
 - Atmospheric pressure (Pa)
 - Atmospheric $\ce{CO_{2}}$ concentration (parts per million)
 - Fraction of absorbed photosynthetically active radiation ($F_{APAR}$, unitless)
-- Photosynthetic photon flux density (PPFD, $\mu \text{mol}, m^{-2}, s^{-1}$)
+- Downward shortwave radiation (DSR, $\text{W}, m^{-2}$)
 
 GPP is then allocated to plant maintenance, respiration and growth using the T Model
 {cite}`li_simulation_2014`.

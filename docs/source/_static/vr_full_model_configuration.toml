@@ -135,7 +135,7 @@ var_name = "plant_cohorts_dbh"
 
 [[core.data.variable]]
 file_path = "/private/tmp/ve_example/data/example_plant_data.nc"
-var_name = "photosynthetic_photon_flux_density"
+var_name = "downward_shortwave_radiation"
 
 [core.grid]
 cell_area = 8100
