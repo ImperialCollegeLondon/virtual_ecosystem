@@ -59,6 +59,9 @@ class PlantsModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -84,6 +87,10 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -104,6 +111,10 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -322,6 +333,9 @@ class PlantsModel(
 
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
+
+        # Calculate uptake from each inorganic soil nutrient pool
+        self.calculate_nutrient_uptake()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -618,7 +632,8 @@ class PlantsModel(
         leaves, roots, and reproductive tissues). As well as this the lignin
         concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
         turnover flow is calculated. It also returns the rate at which plants supply
-        carbon to their nitrogen fixing symbionts in the soil.
+        carbon to their nitrogen fixing symbionts in the soil and the rate at which they
+        exude carbohydrates into the soil more generally.
 
         Warning:
             At present, this function literally just returns constant values for each of
@@ -656,7 +671,25 @@ class PlantsModel(
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], 656.7
         )
-
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
+        self.data["root_carbohydrate_exudation"] = xr.full_like(
+            self.data["elevation"], 0.025
+        )
+
+    def calculate_nutrient_uptake(self) -> None:
+        """Calculate uptake of soil nutrients by the plant community.
+
+        This function calculates the rate a which plants take up inorganic nutrients
+        (ammonium, nitrate, and labile phosphorus) from the soil.
+
+        Warning:
+            At present, this function just calculates uptake based on an entirely made
+            up function, and does not link to plant dynamics in any way.
+        """
+
+        # Assume plants can take 0.1% of the available nutrient per day
+        self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
+        self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
+        self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01

@@ -24,10 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.models.soil.pools` module
+# API for the {mod}`~virtual_ecosystem.models.animal.cnp` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.soil.pools
+.. automodule:: virtual_ecosystem.models.animal.cnp
     :autosummary:
     :members:
-```
+    :exclude-members: model_name

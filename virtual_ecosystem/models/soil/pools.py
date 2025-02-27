@@ -482,9 +482,11 @@ class SoilPools:
         )
 
         # Calculate rate at which ammonium volatilises as ammonia
-        ammonia_volatilisation_rate = (
+        ammonia_volatilisation_rate = np.where(
+            self.pools.soil_n_pool_ammonium >= 0.0,
             self.constants.ammonia_volatilisation_rate_constant
-            * self.pools.soil_n_pool_ammonium
+            * self.pools.soil_n_pool_ammonium,
+            0.0,
         )
 
         # Calculate rate at which nitrogen is fixed
@@ -512,21 +514,11 @@ class SoilPools:
             secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
             labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
         )
-        # Convert ammonium and phosphorus depositions from per area to per volume units,
-        # under the assumption the phosphorus just gets deposited in the very upper
-        # layer of the soil
-        ammonium_deposition = (
-            self.constants.ammonium_deposition_rate
-            / self.max_depth_of_microbial_activity
-        )
-        phosphorus_deposition = (
-            self.constants.phosphorus_deposition_rate
-            / self.max_depth_of_microbial_activity
-        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_flux.lmwc
+            + self.to_per_volume(self.data["root_carbohydrate_exudation"].to_numpy())
             + enzyme_mediated.pom_to_lmwc
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc
@@ -575,11 +567,12 @@ class SoilPools:
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
         delta_pools_ordered["soil_n_pool_ammonium"] = (
-            ammonium_deposition
+            self.to_per_volume(self.constants.ammonium_deposition_rate)
             + litter_mineralisation_flux.ammonium
             + symbiotic_nitrogen_fixation
             + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
+            - self.to_per_volume(self.data["plant_ammonium_uptake"].to_numpy())
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
             - nitrification_rate
@@ -588,6 +581,7 @@ class SoilPools:
             nitrification_rate
             - denitrification_rate
             - microbial_changes.nitrate_change
+            - self.to_per_volume(self.data["plant_nitrate_uptake"].to_numpy())
             - nutrient_leaching.nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
@@ -617,15 +611,31 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
             litter_mineralisation_flux.labile_p
-            + phosphorus_deposition
+            + self.to_per_volume(self.constants.phosphorus_deposition_rate)
             + primary_phosphorus_breakdown
             - microbial_changes.labile_p_change
+            - self.to_per_volume(self.data["plant_phosphorus_uptake"].to_numpy())
             - net_formation_secondary_P
             - nutrient_leaching.labile_P
         )
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))
+
+    def to_per_volume(
+        self, input_rate: float | NDArray[np.float32]
+    ) -> float | NDArray[np.float32]:
+        """Method to convert an external input rate from per area to per volume units.
+
+        Args:
+            input_rate: Rate of input to convert [kg m^-2 day^-1].
+
+        Returns:
+            Input rate converted to per volume (of the microbial active layer) units [kg
+            m^-3 day^-1].
+        """
+
+        return input_rate / self.max_depth_of_microbial_activity
 
 
 def calculate_microbial_changes(
@@ -845,9 +855,11 @@ def calculate_nutrient_leaching(
         lmwc=labile_carbon_leaching,
         don=don_leaching,
         dop=dop_leaching,
-        ammonium=ammonium_leaching,
-        nitrate=nitrate_leaching,
-        labile_P=labile_phosphorus_leaching,
+        ammonium=np.where(ammonium_leaching >= 0.0, ammonium_leaching, 0.0),
+        nitrate=np.where(nitrate_leaching >= 0.0, nitrate_leaching, 0.0),
+        labile_P=np.where(
+            labile_phosphorus_leaching >= 0.0, labile_phosphorus_leaching, 0.0
+        ),
     )
 
 
@@ -1115,12 +1127,20 @@ def calculate_nutrient_uptake_rates(
     # stoichiometric demand and organic nitrogen uptake
     nitrogen_demand = actual_carbon_gain / constants.microbial_c_n_ratio
     inorganic_nitrogen_change = nitrogen_demand - actual_organic_nitrogen_uptake
+
     # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
-    # follows the proportion of the maximum uptake rates, for the mineralisation it is
-    # determined by a fixed constant.
+    # follows the proportion of the maximum uptake rates (if either is above zero)
+    ammonium_uptake_proportion = np.where(
+        (ammonium_uptake_rate_max > 0) | (nitrate_uptake_rate_max > 0),
+        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        0.0,
+    )
+
+    # Whether the uptake proportion or the mineralisation proportion is relevant depends
+    # whether inorganic nitrogen is being taken up or not
     ammonium_to_nitrate_proportion = np.where(
         inorganic_nitrogen_change > 0,
-        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        ammonium_uptake_proportion,
         constants.ammonium_mineralisation_proportion,
     )
     ammonium_change = inorganic_nitrogen_change * ammonium_to_nitrate_proportion
@@ -1206,7 +1226,7 @@ def calculate_highest_achievable_nutrient_uptake(
         / (labile_nutrient_pool + saturation_constant)
     )
 
-    return uptake_rate
+    return np.where(uptake_rate >= 0.0, uptake_rate, 0.0)
 
 
 def calculate_enzyme_mediated_decomposition(
@@ -1625,11 +1645,13 @@ def calculate_rate_of_nitrification(
         effective_saturation=effective_saturation
     )
 
-    return (
+    return np.where(
+        soil_n_pool_ammonium >= 0.0,
         constants.nitrification_rate_constant
         * temp_factor
         * moisture_factor
-        * soil_n_pool_ammonium
+        * soil_n_pool_ammonium,
+        0.0,
     )
 
 
@@ -1663,11 +1685,13 @@ def calculate_rate_of_denitrification(
     )
     moisture_factor = effective_saturation**2
 
-    return (
+    return np.where(
+        soil_n_pool_nitrate >= 0.0,
         constants.denitrification_rate_constant
         * temp_factor
         * moisture_factor
-        * soil_n_pool_nitrate
+        * soil_n_pool_nitrate,
+        0.0,
     )
 
 
@@ -1778,7 +1802,9 @@ def calculate_net_formation_of_secondary_P(
         phosphorus (this can be negative) [kg P m^-3 day^-1]
     """
 
-    association_rate = labile_p_sorption_rate * soil_p_pool_labile
+    association_rate = np.where(
+        soil_p_pool_labile >= 0.0, labile_p_sorption_rate * soil_p_pool_labile, 0.0
+    )
     breakdown_rate = secondary_p_breakdown_rate * soil_p_pool_secondary
 
     return association_rate - breakdown_rate
