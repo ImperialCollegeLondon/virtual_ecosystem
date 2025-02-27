@@ -13,3 +13,6 @@ class PlantsConsts(ConstantsDataclass):
 
     placeholder: float = 1.0
     """Placeholder constant."""
+
+    per_stem_annual_mortality_rate: float = 0.1
+    """Basic annual mortality rate for plants."""

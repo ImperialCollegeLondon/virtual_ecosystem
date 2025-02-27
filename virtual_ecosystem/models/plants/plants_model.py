@@ -62,6 +62,7 @@ class PlantsModel(
         "dissolved_nitrate",
         "dissolved_ammonium",
         "dissolved_phosphorus",
+        "per_update_interval_stem_mortality_rate",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -299,6 +300,9 @@ class PlantsModel(
         self.filled_canopy_mask = np.full(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
+
+        # TODO: this is a placeholder
+        self.per_update_interval_stem_mortality_rate = 0.01
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -619,6 +623,33 @@ class PlantsModel(
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
+
+    def apply_mortality(self) -> None:
+        """Apply mortality to plant cohorts.
+
+        This function applies the basic annual mortality rate to plant cohorts. The
+        mortality rate is currently a constant value for all cohorts. The function
+        calculates the number of individuals that have died in each cohort and updates
+        the cohort data accordingly. The function then updates deadwood production.
+
+        """
+
+        # Loop over each grid cell
+        for cell_id in self.communities.keys():
+            community = self.communities[cell_id]
+            cohorts = community.cohorts
+
+            # Calculate the number of individuals that have died in each cohort
+            mortality = (
+                cohorts.n_individuals
+                * self.model_constants.per_stem_annual_mortality_rate
+            )
+
+            # Update the cohort data
+            cohorts.n_individuals = cohorts.n_individuals - mortality
+
+            # Update deadwood production
+            self.data["deadwood_production"][cell_id] = np.sum(mortality)
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.

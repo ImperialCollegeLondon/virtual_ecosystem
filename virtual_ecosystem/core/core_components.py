@@ -89,6 +89,8 @@ class ModelTiming:
     """The configured update interval as a pint Quantity."""
     n_updates: int = field(init=False)
     """The total number of model updates in the configured run."""
+    years_per_update = np.float64 = field(init=False)
+    """The number of updates per year based on update_interval."""
     config: InitVar[Config]
     """A validated model configuration."""
 
@@ -150,6 +152,10 @@ class ModelTiming:
         self.reconciled_run_length = self.end_time - self.start_time
 
         self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
+
+        # Calculate the number (or more likely, fraction) of years per update interval
+        seconds_per_year = np.timedelta64(31536000, "s")
+        self.years_per_update = seconds_per_year / self.update_interval
 
         # Log the completed timing creation.
         LOGGER.info(
