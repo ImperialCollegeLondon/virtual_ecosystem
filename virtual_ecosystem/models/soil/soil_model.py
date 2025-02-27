@@ -33,7 +33,7 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.microbial_groups import (
-    MicrobialGroup,
+    MicrobialGroupConstants,
     make_full_set_of_microbial_groups,
 )
 from virtual_ecosystem.models.soil.pools import SoilPools
@@ -387,7 +387,7 @@ def construct_full_soil_model(
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
-    functional_groups: dict[str, MicrobialGroup],
+    functional_groups: dict[str, MicrobialGroupConstants],
     max_depth_of_microbial_activity: float,
     soil_moisture_capacity: float,
     top_soil_layer_thickness: float,
