@@ -256,6 +256,18 @@ class AnimalConsts(ConstantsDataclass):
     should be a constant, but as a simplifying assumption it is.
     """
 
+    migration_mortality: float = 0.1  # toy
+    """Proportion of mortality that occurs on return from a migration [unitless]."""
+
+    aquatic_mortality: float = 0.1  # toy
+    """Proportion of mortality that occurs on return from aquatic status [unitless]."""
+
+    aquatic_residence_time: float = 60.0  # toy
+    """Amount of time a new cohort spends living in aquatic environment [days]."""
+
+    migration_residence_time: float = 60.0  # toy
+    """Amount of time a migrated cohort spends away [days]."""
+
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 

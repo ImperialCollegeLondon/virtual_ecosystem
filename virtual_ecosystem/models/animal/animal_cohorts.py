@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from math import ceil, exp, sqrt
+from typing import Literal
 
 from numpy import timedelta64
 
@@ -60,6 +61,10 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.location_status: Literal["active", "migrated", "aquatic"] = "active"
+        """Location status of the cohort, active means present and participating."""
+        self.remaining_time_away: float = 0.0
+        """Remaining time that the cohort is frozen in a migrated or aquatic state."""
         self.id: uuid.UUID = uuid.uuid4()
         """A unique identifier for the cohort."""
         # self.damuth_density: int = sf.damuths_law(
