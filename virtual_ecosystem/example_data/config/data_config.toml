@@ -52,7 +52,10 @@ file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_maom"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_c_pool_microbe"
+var_name = "soil_c_pool_bacteria"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_fungi"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"

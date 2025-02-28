@@ -23,7 +23,8 @@ INITIALISATION_LOG = [
     ),
     (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
@@ -103,6 +104,7 @@ INITIALISATION_LOG = [
 def test_initialise_models(
     caplog,
     dummy_carbon_data,
+    microbial_groups_cfg,
     cfg_strings,
     output,
     raises,
@@ -116,7 +118,7 @@ def test_initialise_models(
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
+    config = Config(cfg_strings=[cfg_strings, microbial_groups_cfg])
     core_components = CoreComponents(config)
     caplog.clear()
 
