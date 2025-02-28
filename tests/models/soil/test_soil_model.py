@@ -48,7 +48,7 @@ POST_SETUP_LOG = (
 
 
 def test_soil_model_initialization(
-    caplog, dummy_carbon_data, fixture_soil_core_components
+    caplog, dummy_carbon_data, fixture_soil_core_components, functional_groups
 ):
     """Test `SoilModel` initialization with good data."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -60,6 +60,7 @@ def test_soil_model_initialization(
         data=dummy_carbon_data,
         core_components=fixture_soil_core_components,
         model_constants=SoilConsts(),
+        microbial_groups=functional_groups,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
@@ -122,7 +123,7 @@ def test_soil_model_initialization_no_data(
 
 
 def test_soil_model_initialization_bounds_error(
-    caplog, dummy_carbon_data, fixture_core_components
+    caplog, dummy_carbon_data, fixture_core_components, functional_groups
 ):
     """Test `SoilModel` initialization."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -140,6 +141,7 @@ def test_soil_model_initialization_bounds_error(
             data=dummy_carbon_data,
             core_components=fixture_core_components,
             model_constants=SoilConsts(),
+            microbial_groups=functional_groups,
             soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         )
 
@@ -154,7 +156,9 @@ def test_soil_model_initialization_bounds_error(
     )
 
 
-def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_components):
+def test_soil_model_all_pools_positive(
+    dummy_carbon_data, fixture_core_components, functional_groups
+):
     """Test `SoilModel` initialization."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -165,6 +169,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
         data=dummy_carbon_data,
         core_components=fixture_core_components,
         model_constants=SoilConsts(),
+        microbial_groups=functional_groups,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
@@ -182,7 +187,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
     "cfg_string,max_decomp,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]",
+            "",
             60.0,
             does_not_raise(),
             (
@@ -197,7 +202,6 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
             id="default_config",
         ),
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05",
             0.05,
             does_not_raise(),
@@ -213,7 +217,6 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
             id="modified_config_correct",
         ),
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
             None,
             pytest.raises(ConfigurationError),
@@ -229,6 +232,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
 def test_generate_soil_model(
     caplog,
     dummy_carbon_data,
+    microbial_groups_cfg,
     cfg_string,
     max_decomp,
     raises,
@@ -245,7 +249,13 @@ def test_generate_soil_model(
     register_module("virtual_ecosystem.models.soil")
 
     # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
+    config = Config(
+        cfg_strings=[
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            microbial_groups_cfg,
+            cfg_string,
+        ]
+    )
     core_components = CoreComponents(config)
     caplog.clear()
 

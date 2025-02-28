@@ -83,7 +83,47 @@ def reset_module_registry():
 
 
 @pytest.fixture
-def fixture_config():
+def microbial_groups_cfg():
+    """Configuration string containing full set of required microbial groups."""
+    return """
+        [[soil.microbial_group_definition]]
+        name = "bacteria"
+        max_uptake_rate_labile_C = 0.04
+        activation_energy_uptake_rate = 47000
+        half_sat_labile_C_uptake = 0.364
+        activation_energy_uptake_saturation = 30000
+        max_uptake_rate_ammonium = 5e-3
+        half_sat_ammonium_uptake = 0.02275
+        max_uptake_rate_nitrate = 5e-4
+        half_sat_nitrate_uptake = 0.02275
+        max_uptake_rate_labile_p = 0.0025
+        half_sat_labile_p_uptake = 0.02275
+        turnover_rate = 0.005
+        activation_energy_turnover = 20000
+        c_n_ratio = 5.2
+        c_p_ratio = 16
+
+        [[soil.microbial_group_definition]]
+        name = "fungi"
+        max_uptake_rate_labile_C = 0.04
+        activation_energy_uptake_rate = 47000
+        half_sat_labile_C_uptake = 0.364
+        activation_energy_uptake_saturation = 30000
+        max_uptake_rate_ammonium = 5e-3
+        half_sat_ammonium_uptake = 0.02275
+        max_uptake_rate_nitrate = 5e-4
+        half_sat_nitrate_uptake = 0.02275
+        max_uptake_rate_labile_p = 0.0025
+        half_sat_labile_p_uptake = 0.02275
+        turnover_rate = 0.005
+        activation_energy_turnover = 20000
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
+        """
+
+
+@pytest.fixture
+def fixture_config(microbial_groups_cfg):
     """Simple configuration fixture for use in tests."""
 
     from virtual_ecosystem.core.config import Config
@@ -250,7 +290,7 @@ def fixture_config():
         [hydrology]
     """
 
-    return Config(cfg_strings=cfg_string)
+    return Config(cfg_strings=[cfg_string, microbial_groups_cfg])
 
 
 @pytest.fixture

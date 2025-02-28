@@ -6,13 +6,15 @@ from virtual_ecosystem.models.soil.env_factors import EnvironmentalEffectFactors
 
 
 @pytest.fixture
-def fixture_soil_config():
+def fixture_soil_config(microbial_groups_cfg):
     """Create a soil config with faster update interval."""
     from virtual_ecosystem.core.config import Config
 
     return Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n"
-        "[hydrology]\n"
+        cfg_strings=[
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            microbial_groups_cfg,
+        ]
     )
 
 
@@ -180,13 +182,10 @@ def maom_desorption(dummy_carbon_data):
 
 
 @pytest.fixture
-def functional_groups(
-    dummy_carbon_data, fixture_core_components, environmental_factors
-):
+def functional_groups(fixture_config):
     """Set of functional groups based on the soil model constants."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.microbial_groups import (
         make_full_set_of_microbial_groups,
     )
 
-    return make_full_set_of_microbial_groups(constants=SoilConsts)
+    return make_full_set_of_microbial_groups(config=fixture_config)

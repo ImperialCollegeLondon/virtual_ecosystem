@@ -718,8 +718,7 @@ def calculate_microbial_changes(
     bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=soil_c_pool_bacteria,
         soil_temp=soil_temp,
-        microbial_turnover_rate=constants.bacterial_turnover_rate,
-        activation_energy_turnover=constants.activation_energy_microbial_turnover,
+        microbial_group=functional_groups["bacteria"],
         reference_temperature=constants.arrhenius_reference_temp,
     )
     fungal_growth, fungal_uptake = calculate_nutrient_uptake_rates(
@@ -739,8 +738,7 @@ def calculate_microbial_changes(
     fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=soil_c_pool_fungi,
         soil_temp=soil_temp,
-        microbial_turnover_rate=constants.fungal_turnover_rate,
-        activation_energy_turnover=constants.activation_energy_microbial_turnover,
+        microbial_group=functional_groups["fungi"],
         reference_temperature=constants.arrhenius_reference_temp,
     )
     # Find changes in each enzyme pool
@@ -771,7 +769,7 @@ def calculate_microbial_changes(
         bacterial_loss=true_bacterial_loss,
         fungal_loss=true_fungal_loss,
         enzyme_denaturation=enzyme_denaturation,
-        constants=constants,
+        microbial_groups=functional_groups,
     )
 
     return MicrobialChanges(
@@ -991,8 +989,7 @@ def calculate_enzyme_changes(
 def calculate_maintenance_biomass_synthesis(
     microbe_pool_size: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
-    microbial_turnover_rate: float,
-    activation_energy_turnover: float,
+    microbial_group: MicrobialGroupConstants,
     reference_temperature: float,
 ) -> NDArray[np.float32]:
     """Calculate biomass synthesis rate required to offset losses for a microbial pool.
@@ -1004,10 +1001,7 @@ def calculate_maintenance_biomass_synthesis(
     Args:
         microbe_pool_size: Size of the microbial pool of interest [kg C m^-3]
         soil_temp: soil temperature for each soil grid cell [degrees C]
-        microbial_turnover_rate: microbial biomass turnover rate at reference
-            temperature [day^-1]
-        activation_energy_turnover: Activation energy for microbial maintenance turnover
-            rate [J K^-1]
+        microbial_group: Constants associated with the microbial group of interest
         reference_temperature: The reference temperature of the Arrhenius equation [C]
 
     Returns:
@@ -1017,11 +1011,11 @@ def calculate_maintenance_biomass_synthesis(
 
     temp_factor = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=activation_energy_turnover,
+        activation_energy=microbial_group.activation_energy_turnover,
         reference_temperature=reference_temperature,
     )
 
-    return microbial_turnover_rate * temp_factor * microbe_pool_size
+    return microbial_group.turnover_rate * temp_factor * microbe_pool_size
 
 
 def calculate_carbon_use_efficiency(
@@ -1587,7 +1581,7 @@ def calculate_nutrient_flows_to_necromass(
     bacterial_loss: NDArray[np.float32],
     fungal_loss: NDArray[np.float32],
     enzyme_denaturation: NDArray[np.float32],
-    constants: SoilConsts,
+    microbial_groups: dict[str, MicrobialGroupConstants],
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
@@ -1599,7 +1593,7 @@ def calculate_nutrient_flows_to_necromass(
             day^-1]
         fungal_loss: Rate at which fungal biomass becomes necromass [kg C m^-3 day^-1]
         enzyme_denaturation: Rate at which enzymes denature [kg C m^-3 day^-1]
-        constants: Set of constants for the soil model.
+        microbial_groups: Set of microbial functional groups defined in the soil model
 
     Returns:
         A tuple containing the rates at which nitrogen [kg N m^-3 day^-1] and phosphorus
@@ -1611,12 +1605,12 @@ def calculate_nutrient_flows_to_necromass(
     # model is added (see issue #760)
 
     return (
-        (bacterial_loss / constants.bacterial_c_n_ratio)
-        + (fungal_loss / constants.fungal_c_n_ratio)
-        + (enzyme_denaturation / constants.bacterial_c_n_ratio),
-        (bacterial_loss / constants.bacterial_c_p_ratio)
-        + (fungal_loss / constants.fungal_c_p_ratio)
-        + (enzyme_denaturation / constants.bacterial_c_p_ratio),
+        (bacterial_loss / microbial_groups["bacteria"].c_n_ratio)
+        + (fungal_loss / microbial_groups["fungi"].c_n_ratio)
+        + (enzyme_denaturation / microbial_groups["bacteria"].c_n_ratio),
+        (bacterial_loss / microbial_groups["bacteria"].c_p_ratio)
+        + (fungal_loss / microbial_groups["fungi"].c_p_ratio)
+        + (enzyme_denaturation / microbial_groups["bacteria"].c_p_ratio),
     )
 
 

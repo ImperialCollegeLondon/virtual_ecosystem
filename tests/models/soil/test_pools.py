@@ -305,7 +305,7 @@ def test_calculate_enzyme_changes(dummy_carbon_data):
 
 
 def test_calculate_maintenance_biomass_synthesis(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, functional_groups
 ):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_ecosystem.models.soil.pools import (
@@ -319,8 +319,7 @@ def test_calculate_maintenance_biomass_synthesis(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        microbial_turnover_rate=SoilConsts.bacterial_turnover_rate,
-        activation_energy_turnover=SoilConsts.activation_energy_microbial_turnover,
+        microbial_group=functional_groups["bacteria"],
         reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
@@ -422,7 +421,7 @@ def test_calculate_nutrient_uptake_rates(
 
 
 def test_calculate_highest_achievable_nutrient_uptake(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
 ):
     """Check function to calculate maximum possible uptake rates works as intended."""
     from virtual_ecosystem.models.soil.pools import (
@@ -439,10 +438,14 @@ def test_calculate_highest_achievable_nutrient_uptake(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        max_uptake_rate=SoilConsts.max_bacterial_uptake_rate_labile_C,
-        activation_energy_uptake=SoilConsts.activation_energy_microbial_uptake,
-        half_saturation_constant=SoilConsts.half_sat_bacterial_labile_C_uptake,
-        activation_energy_uptake_saturation=SoilConsts.activation_energy_uptake_saturation,
+        max_uptake_rate=functional_groups["bacteria"].max_uptake_rate_labile_C,
+        activation_energy_uptake=functional_groups[
+            "bacteria"
+        ].activation_energy_uptake_rate,
+        half_saturation_constant=functional_groups["bacteria"].half_sat_labile_C_uptake,
+        activation_energy_uptake_saturation=functional_groups[
+            "bacteria"
+        ].activation_energy_uptake_saturation,
         reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
@@ -450,7 +453,7 @@ def test_calculate_highest_achievable_nutrient_uptake(
 
 
 def test_negative_highest_achievable_nutrient_uptake_are_impossible(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
 ):
     """Test to check that negative maximum uptake rates cannot be returned."""
     from virtual_ecosystem.models.soil.pools import (
@@ -471,10 +474,14 @@ def test_negative_highest_achievable_nutrient_uptake_are_impossible(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        max_uptake_rate=SoilConsts.max_bacterial_uptake_rate_labile_C,
-        activation_energy_uptake=SoilConsts.activation_energy_microbial_uptake,
-        half_saturation_constant=SoilConsts.half_sat_bacterial_labile_C_uptake,
-        activation_energy_uptake_saturation=SoilConsts.activation_energy_uptake_saturation,
+        max_uptake_rate=functional_groups["bacteria"].max_uptake_rate_labile_C,
+        activation_energy_uptake=functional_groups[
+            "bacteria"
+        ].activation_energy_uptake_rate,
+        half_saturation_constant=functional_groups["bacteria"].half_sat_labile_C_uptake,
+        activation_energy_uptake_saturation=functional_groups[
+            "bacteria"
+        ].activation_energy_uptake_saturation,
         reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
@@ -642,7 +649,7 @@ def test_calculate_soil_nutrient_mineralisation(
     assert np.allclose(actual_rate, expected_rate)
 
 
-def test_calculate_nutrient_flows_to_necromass():
+def test_calculate_nutrient_flows_to_necromass(functional_groups):
     """Test that the function to calculate nutrient flows to necromass works."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_nutrient_flows_to_necromass,
@@ -664,7 +671,7 @@ def test_calculate_nutrient_flows_to_necromass():
             bacterial_loss=bacterial_biomass_loss,
             fungal_loss=fungal_biomass_loss,
             enzyme_denaturation=enzyme_denaturation,
-            constants=SoilConsts,
+            microbial_groups=functional_groups,
         )
     )
 

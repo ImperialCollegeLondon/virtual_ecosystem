@@ -191,16 +191,20 @@ class SoilModel(
             "Information required to initialise the soil model successfully extracted."
         )
 
+        microbial_groups = make_full_set_of_microbial_groups(config)
+
         return cls(
             data=data,
             core_components=core_components,
             static=static,
             model_constants=model_constants,
+            microbial_groups=microbial_groups,
         )
 
     def _setup(
         self,
         model_constants: SoilConsts,
+        microbial_groups: dict[str, MicrobialGroupConstants],
         **kwargs: Any,
     ) -> None:
         """Function to setup up the soil model."""
@@ -208,6 +212,9 @@ class SoilModel(
         # TODO - At the moment the soil model only cares about the very top layer. As
         # both the soil and abiotic models get more complex this might well change.
         self.model_constants = model_constants
+
+        # Store set of microbial functional groups needed by the model
+        self.microbial_groups = microbial_groups
 
         # Calculate dissolved amounts of each inorganic nutrient
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -316,7 +323,7 @@ class SoilModel(
                 self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
-                make_full_set_of_microbial_groups(self.model_constants),
+                self.microbial_groups,
                 self.core_constants.max_depth_of_microbial_activity,
                 self.core_constants.soil_moisture_capacity,
                 self.layer_structure.soil_layer_thickness[0],
