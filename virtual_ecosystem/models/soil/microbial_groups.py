@@ -81,31 +81,35 @@ def make_full_set_of_microbial_groups(
         bacteria and fungi).
     """
 
-    expected_groups = ["fungi", "bacteria"]
-
     if "soil" not in config:
         msg = "Model configuration for soil model not found."
         LOGGER.critical(msg)
         raise ConfigurationError(msg)
 
-    defined_groups = [
+    expected_groups = {"fungi", "bacteria"}
+    defined_groups = {
         group["name"] for group in config["soil"]["microbial_group_definition"]
-    ]
+    }
 
-    if set(defined_groups) != set(expected_groups):
-        if not set(expected_groups).issubset(set(defined_groups)):
-            msg = (
-                "The following expected soil microbial groups are not defined: "
-                f"{', '.join(set(expected_groups) - set(defined_groups))}"
-            )
-            LOGGER.critical(msg)
-        if not set(defined_groups).issubset(set(expected_groups)):
-            msg = (
-                "The following microbial groups are not valid: "
-                f"{', '.join(set(defined_groups) - set(expected_groups))}"
-            )
-            LOGGER.critical(msg)
-        raise ConfigurationError(msg)
+    undefined_groups = expected_groups.difference(defined_groups)
+    unexpected_groups = defined_groups.difference(expected_groups)
+    if undefined_groups:
+        msg = (
+            "The following expected soil microbial groups are not defined: "
+            f"{', '.join(set(expected_groups) - set(defined_groups))}"
+        )
+        LOGGER.critical(msg)
+    if unexpected_groups:
+        msg = (
+            "The following microbial groups are not valid: "
+            f"{', '.join(set(defined_groups) - set(expected_groups))}"
+        )
+        LOGGER.critical(msg)
+    if undefined_groups or unexpected_groups:
+        raise ConfigurationError(
+            "The soil microbial group configuration contains errors. Please check the "
+            "log."
+        )
 
     return {
         group_name: MicrobialGroupConstants(
