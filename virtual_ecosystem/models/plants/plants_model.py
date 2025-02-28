@@ -40,7 +40,7 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "photosynthetic_photon_flux_density",
+        "downward_shortwave_radiation",
     ),
     vars_populated_by_init=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -54,7 +54,7 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "photosynthetic_photon_flux_density",
+        "downward_shortwave_radiation",
         "air_temperature",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
@@ -268,6 +268,11 @@ class PlantsModel(
         )
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
+
+        # Calculate PPFD from DSR
+        self.data["photosynthetic_photon_flux_density"] = (
+            self.data["downward_shortwave_radiation"] / model_constants.ppfd_to_dsr
+        )
 
         # Initialise the canopy layer arrays.
         # TODO - this initialisation step may move somewhere else at some point see #442

@@ -280,9 +280,9 @@ variable_type = ""
 
 [[variable]]
 axis = ["spatial", "time"]
-description = "Top of canopy photosynthetic photon flux density (PPFD)"
-name = "photosynthetic_photon_flux_density"
-unit = "umol m-2 s-1"
+description = "Top of canopy downward shortwave radiation (dsr)"
+name = "downward_shortwave_radiation"
+unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
