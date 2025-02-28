@@ -36,6 +36,13 @@ class ReproductiveType(Enum):
     NONREPRODUCTIVE = "nonreproductive"
 
 
+class ReproductiveEnvironment(Enum):
+    """Where and how reproduction happens: aquatic vs terrestrial."""
+
+    TERRESTRIAL = "terrestrial"
+    AQUATIC = "aquatic"
+
+
 class DevelopmentType(Enum):
     """Enumeration for development types."""
 
@@ -55,3 +62,10 @@ class ExcretionType(Enum):
 
     UREOTELIC = "ureotelic"
     URICOTELIC = "uricotelic"
+
+
+class MigrationType(Enum):
+    """Enumeration for external migration trait."""
+
+    NONE = "none"
+    SEASONAL = "seasonal"
