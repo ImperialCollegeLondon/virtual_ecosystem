@@ -119,16 +119,26 @@ class SoilConsts(ConstantsDataclass):
     Units of [J K^-1]. Taken from :cite:t:`wang_development_2013`.
     """
 
-    # TODO - At some point I need to split these enzyme constants into fungi and
-    # bacteria specific constants
-    pom_enzyme_turnover_rate: float = 2.4e-2
-    """Turnover rate for POM degrading enzymes [day^-1].
+    pom_enzyme_bacteria_turnover_rate: float = 2.4e-2
+    """Turnover rate for bacteria produced :term:`POM` degrading enzymes [day^-1].
 
     Value taken from :cite:t:`wang_development_2013`.
     """
 
-    maom_enzyme_turnover_rate: float = 2.4e-2
-    """Turnover rate for MAOM degrading enzymes [day^-1].
+    maom_enzyme_bacteria_turnover_rate: float = 2.4e-2
+    """Turnover rate for bacteria produced :term:`MAOM` degrading enzymes [day^-1].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    pom_enzyme_fungi_turnover_rate: float = 2.4e-2
+    """Turnover rate for fungi produced :term:`POM` degrading enzymes [day^-1].
+
+    Value taken from :cite:t:`wang_development_2013`.
+    """
+
+    maom_enzyme_fungi_turnover_rate: float = 2.4e-2
+    """Turnover rate for fungi produced :term:`MAOM` degrading enzymes [day^-1].
 
     Value taken from :cite:t:`wang_development_2013`.
     """

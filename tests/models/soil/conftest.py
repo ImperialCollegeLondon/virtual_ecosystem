@@ -189,3 +189,32 @@ def functional_groups(fixture_config):
     )
 
     return make_full_set_of_microbial_groups(config=fixture_config)
+
+
+@pytest.fixture
+def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components):
+    """Rates of biomass loss from each microbial pool."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_maintenance_biomass_synthesis,
+    )
+
+    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        microbial_group=functional_groups["bacteria"],
+        reference_temperature=SoilConsts.arrhenius_reference_temp,
+    )
+
+    fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=dummy_carbon_data["soil_c_pool_fungi"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        microbial_group=functional_groups["fungi"],
+        reference_temperature=SoilConsts.arrhenius_reference_temp,
+    )
+
+    return {"bacteria": bacterial_biomass_loss, "fungi": fungal_biomass_loss}

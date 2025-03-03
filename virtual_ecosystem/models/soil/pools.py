@@ -74,14 +74,26 @@ class MicrobialChanges:
     fungi_change: NDArray[np.float32]
     """Rate of change of fungal biomass pool [kg C m^-3 day^-1]."""
 
-    pom_enzyme_change: NDArray[np.float32]
-    """Rate of change of particulate organic matter degrading enzyme pool.
+    pom_enzyme_bacteria_change: NDArray[np.float32]
+    """Rate of change for the bacterially produced :term:`POM` degrading enzymes.
 
     Units of [kg C m^-3 day^-1].
     """
 
-    maom_enzyme_change: NDArray[np.float32]
-    """Rate of change of mineral associated organic matter degrading enzyme pool.
+    maom_enzyme_bacteria_change: NDArray[np.float32]
+    """Rate of change for the bacterially produced :term:`MAOM` degrading enzymes.
+    
+    Units of [kg C m^-3 day^-1].
+    """
+
+    pom_enzyme_fungi_change: NDArray[np.float32]
+    """Rate of change for the fungally produced :term:`POM` degrading enzymes.
+
+    Units of [kg C m^-3 day^-1].
+    """
+
+    maom_enzyme_fungi_change: NDArray[np.float32]
+    """Rate of change for the fungally produced :term:`MAOM` degrading enzymes.
     
     Units of [kg C m^-3 day^-1].
     """
@@ -137,6 +149,47 @@ class EnzymeMediatedRates:
     """Rate of mineral associated organic matter decomposition to LMWC.
 
     Units of [kg C m^-3 day^-1].
+    """
+
+
+@dataclass
+class EnzymePoolChanges:
+    """Changes to the different enzyme pools due to production and denaturation."""
+
+    net_change_pom_bacteria: NDArray[np.float32]
+    """Net change in the bacterially produced enzyme pool that breaks down :term:`POM`.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    net_change_maom_bacteria: NDArray[np.float32]
+    """Net change in the bacterially produced enzyme pool that breaks down :term:`MAOM`.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    net_change_pom_fungi: NDArray[np.float32]
+    """Net change in the fungally produced enzyme pool that breaks down :term:`POM`.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    net_change_maom_fungi: NDArray[np.float32]
+    """Net change in the fungally produced enzyme pool that breaks down :term:`MAOM`.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    denaturation_bacterial: NDArray[np.float32]
+    """Total denaturation rate for all the enzyme produced by bacteria.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    denaturation_fungal: NDArray[np.float32]
+    """Total denaturation rate for all the enzyme produced by fungi.
+    
+    Units of [kg C m^-3 day^-1]
     """
 
 
@@ -378,8 +431,10 @@ class SoilPools:
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
             soil_c_pool_bacteria=self.pools.soil_c_pool_bacteria,
             soil_c_pool_fungi=self.pools.soil_c_pool_fungi,
-            soil_enzyme_pom=self.pools.soil_enzyme_pom_bacteria,
-            soil_enzyme_maom=self.pools.soil_enzyme_maom_bacteria,
+            soil_enzyme_pom_bacteria=self.pools.soil_enzyme_pom_bacteria,
+            soil_enzyme_maom_bacteria=self.pools.soil_enzyme_maom_bacteria,
+            soil_enzyme_pom_fungi=self.pools.soil_enzyme_pom_fungi,
+            soil_enzyme_maom_fungi=self.pools.soil_enzyme_maom_fungi,
             soil_temp=soil_temperature,
             env_factors=env_factors,
             constants=self.constants,
@@ -560,16 +615,16 @@ class SoilPools:
             - necromass_sorption_to_maom
         )
         delta_pools_ordered["soil_enzyme_pom_bacteria"] = (
-            microbial_changes.pom_enzyme_change
+            microbial_changes.pom_enzyme_bacteria_change
         )
         delta_pools_ordered["soil_enzyme_maom_bacteria"] = (
-            microbial_changes.maom_enzyme_change
+            microbial_changes.maom_enzyme_bacteria_change
         )
-        delta_pools_ordered["soil_enzyme_pom_fungi"] = np.zeros_like(
-            delta_pools_ordered["soil_enzyme_pom_bacteria"]
+        delta_pools_ordered["soil_enzyme_pom_fungi"] = (
+            microbial_changes.pom_enzyme_fungi_change
         )
-        delta_pools_ordered["soil_enzyme_maom_fungi"] = np.zeros_like(
-            delta_pools_ordered["soil_enzyme_pom_bacteria"]
+        delta_pools_ordered["soil_enzyme_maom_fungi"] = (
+            microbial_changes.maom_enzyme_fungi_change
         )
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_flux.don
@@ -672,8 +727,10 @@ def calculate_microbial_changes(
     soil_p_pool_labile: NDArray[np.float32],
     soil_c_pool_bacteria: NDArray[np.float32],
     soil_c_pool_fungi: NDArray[np.float32],
-    soil_enzyme_pom: NDArray[np.float32],
-    soil_enzyme_maom: NDArray[np.float32],
+    soil_enzyme_pom_bacteria: NDArray[np.float32],
+    soil_enzyme_maom_bacteria: NDArray[np.float32],
+    soil_enzyme_pom_fungi: NDArray[np.float32],
+    soil_enzyme_maom_fungi: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
@@ -695,10 +752,14 @@ def calculate_microbial_changes(
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
         soil_c_pool_bacteria: Bacterial biomass (carbon) pool [kg C m^-3]
         soil_c_pool_fungi: Fungal biomass (carbon) pool [kg C m^-3]
-        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
-            matter [kg C m^-3]
-        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
-            organic matter [kg C m^-3]
+        soil_enzyme_pom_bacteria: Amount of bacterially produced enzyme class which
+            breaks down :term:`POM` [kg C m^-3]
+        soil_enzyme_maom_bacteria: Amount of bacteria produced enzyme class which
+            breaks down :term:`MAOM` [kg C m^-3]
+        soil_enzyme_pom_fungi: Amount of fungi produced enzyme class which breaks down
+            :term:`POM` [kg C m^-3]
+        soil_enzyme_maom_fungi: Amount of fungi produced enzyme class which breaks down
+            :term:`MAOM` [kg C m^-3]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
@@ -752,14 +813,14 @@ def calculate_microbial_changes(
         reference_temperature=constants.arrhenius_reference_temp,
     )
     # Find changes in each enzyme pool
-    pom_enzyme_net_change, maom_enzyme_net_change, enzyme_denaturation = (
-        calculate_enzyme_changes(
-            soil_enzyme_pom=soil_enzyme_pom,
-            soil_enzyme_maom=soil_enzyme_maom,
-            bacterial_biomass_loss=bacterial_biomass_loss,
-            fungal_biomass_loss=fungal_biomass_loss,
-            constants=constants,
-        )
+    enzyme_changes = calculate_enzyme_changes(
+        soil_enzyme_pom_bacteria=soil_enzyme_pom_bacteria,
+        soil_enzyme_maom_bacteria=soil_enzyme_maom_bacteria,
+        soil_enzyme_pom_fungi=soil_enzyme_pom_fungi,
+        soil_enzyme_maom_fungi=soil_enzyme_maom_fungi,
+        bacterial_biomass_loss=bacterial_biomass_loss,
+        fungal_biomass_loss=fungal_biomass_loss,
+        constants=constants,
     )
 
     # Find fraction of loss that isn't enzyme production
@@ -778,7 +839,8 @@ def calculate_microbial_changes(
     necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
         bacterial_loss=true_bacterial_loss,
         fungal_loss=true_fungal_loss,
-        enzyme_denaturation=enzyme_denaturation,
+        bacterial_enzyme_denaturation=enzyme_changes.denaturation_bacterial,
+        fungal_enzyme_denaturation=enzyme_changes.denaturation_fungal,
         microbial_groups=functional_groups,
     )
 
@@ -795,10 +857,15 @@ def calculate_microbial_changes(
         ),
         bacteria_change=bacterial_growth - bacterial_biomass_loss,
         fungi_change=fungal_growth - fungal_biomass_loss,
-        pom_enzyme_change=pom_enzyme_net_change,
-        maom_enzyme_change=maom_enzyme_net_change,
+        pom_enzyme_bacteria_change=enzyme_changes.net_change_pom_bacteria,
+        maom_enzyme_bacteria_change=enzyme_changes.net_change_maom_bacteria,
+        pom_enzyme_fungi_change=enzyme_changes.net_change_pom_fungi,
+        maom_enzyme_fungi_change=enzyme_changes.net_change_maom_fungi,
         necromass_generation=(
-            enzyme_denaturation + true_bacterial_loss + true_fungal_loss
+            enzyme_changes.denaturation_bacterial
+            + enzyme_changes.denaturation_fungal
+            + true_bacterial_loss
+            + true_fungal_loss
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
@@ -940,60 +1007,120 @@ def calculate_nutrient_leaching(
 
 
 def calculate_enzyme_changes(
-    soil_enzyme_pom: NDArray[np.float32],
-    soil_enzyme_maom: NDArray[np.float32],
+    soil_enzyme_pom_bacteria: NDArray[np.float32],
+    soil_enzyme_maom_bacteria: NDArray[np.float32],
+    soil_enzyme_pom_fungi: NDArray[np.float32],
+    soil_enzyme_maom_fungi: NDArray[np.float32],
     bacterial_biomass_loss: NDArray[np.float32],
     fungal_biomass_loss: NDArray[np.float32],
     constants: SoilConsts,
-) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]:
-    """Calculate the changes to the concentration of each enzyme pool.
-
-    Enzyme production rates are assumed to scale linearly with the total biomass loss
-    rate of the microbes. These are combined with turnover rates to find the net change
-    in each enzyme pool. The total enzyme denaturation rate is also calculated.
+) -> EnzymePoolChanges:
+    """Calculate the change in each of the soil enzyme pools.
 
     Args:
-        soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
-            matter [kg C m^-3]
-        soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
-            organic matter [kg C m^-3]
-        bacterial_biomass_loss: Rate a which the bacterial biomass pool loses biomass,
-            this is a combination of enzyme excretion, protein degradation, and cell
-            death [kg C m^-3 day^-1]
-        fungal_biomass_loss: Rate a which the fungal biomass pool loses biomass,
-            this is a combination of enzyme excretion, protein degradation, and cell
-            death [kg C m^-3 day^-1]
+        soil_enzyme_pom_bacteria: Amount of bacterially produced enzyme class which
+            breaks down :term:`POM` [kg C m^-3]
+        soil_enzyme_maom_bacteria: Amount of bacterially produced enzyme class which
+            breaks down :term:`MAOM` [kg C m^-3]
+        soil_enzyme_pom_fungi: Amount of fungally produced enzyme class which
+            breaks down :term:`POM` [kg C m^-3]
+        soil_enzyme_maom_fungi: Amount of fungally produced enzyme class which
+            breaks down :term:`MAOM` [kg C m^-3]
+        bacterial_biomass_loss: Total rate of loss of bacterial biomass due to cell
+            death, protein degradation and enzyme production [kg C m^-3 day^-1]
+        fungal_biomass_loss: Total rate of loss of fungal biomass due to cell death,
+            protein degradation and enzyme production [kg C m^-3 day^-1]
         constants: Set of constants for the soil model.
 
     Returns:
-        A tuple containing the net rate of change in the POM enzyme pool, the net rate
-        of change in the MAOM enzyme pool, and the total enzyme denaturation rate.
+        A dataclass containing the net changes in each enzyme class, as well as the
+        combined denaturation rates of the bacterial and fungal enzyme classes.
     """
 
-    # Calculate production an turnover of each enzyme class
-    pom_enzyme_production = (
-        constants.bacterial_maintenance_pom_enzyme * bacterial_biomass_loss
-        + constants.fungal_maintenance_pom_enzyme * fungal_biomass_loss
+    bacterial_pom_enzyme_net_change, bacterial_pom_enzyme_denaturation = (
+        calculate_net_enzyme_change(
+            enzyme_pool_size=soil_enzyme_pom_bacteria,
+            biomass_loss=bacterial_biomass_loss,
+            biomass_loss_to_enzyme_class=constants.bacterial_maintenance_pom_enzyme,
+            enzyme_turnover_rate=constants.pom_enzyme_bacteria_turnover_rate,
+        )
     )
-    maom_enzyme_production = (
-        constants.bacterial_maintenance_maom_enzyme * bacterial_biomass_loss
-        + constants.fungal_maintenance_maom_enzyme * fungal_biomass_loss
+    bacterial_maom_enzyme_net_change, bacterial_maom_enzyme_denaturation = (
+        calculate_net_enzyme_change(
+            enzyme_pool_size=soil_enzyme_maom_bacteria,
+            biomass_loss=bacterial_biomass_loss,
+            biomass_loss_to_enzyme_class=constants.bacterial_maintenance_maom_enzyme,
+            enzyme_turnover_rate=constants.maom_enzyme_bacteria_turnover_rate,
+        )
     )
-    pom_enzyme_turnover = calculate_enzyme_turnover(
-        enzyme_pool=soil_enzyme_pom,
-        turnover_rate=constants.pom_enzyme_turnover_rate,
+    fungal_pom_enzyme_net_change, fungal_pom_enzyme_denaturation = (
+        calculate_net_enzyme_change(
+            enzyme_pool_size=soil_enzyme_pom_fungi,
+            biomass_loss=fungal_biomass_loss,
+            biomass_loss_to_enzyme_class=constants.fungal_maintenance_pom_enzyme,
+            enzyme_turnover_rate=constants.pom_enzyme_fungi_turnover_rate,
+        )
     )
-    maom_enzyme_turnover = calculate_enzyme_turnover(
-        enzyme_pool=soil_enzyme_maom,
-        turnover_rate=constants.maom_enzyme_turnover_rate,
+    fungal_maom_enzyme_net_change, fungal_maom_enzyme_denaturation = (
+        calculate_net_enzyme_change(
+            enzyme_pool_size=soil_enzyme_maom_fungi,
+            biomass_loss=fungal_biomass_loss,
+            biomass_loss_to_enzyme_class=constants.fungal_maintenance_maom_enzyme,
+            enzyme_turnover_rate=constants.maom_enzyme_fungi_turnover_rate,
+        )
     )
 
-    # return net changes in the two enzyme pools and the necromass
-    return (
-        pom_enzyme_production - pom_enzyme_turnover,
-        maom_enzyme_production - maom_enzyme_turnover,
-        pom_enzyme_turnover + maom_enzyme_turnover,
+    total_bacterial_enzyme_denaturation = (
+        bacterial_pom_enzyme_denaturation + bacterial_maom_enzyme_denaturation
     )
+    total_fungal_enzyme_denaturation = (
+        fungal_pom_enzyme_denaturation + fungal_maom_enzyme_denaturation
+    )
+
+    return EnzymePoolChanges(
+        net_change_pom_bacteria=bacterial_pom_enzyme_net_change,
+        net_change_maom_bacteria=bacterial_maom_enzyme_net_change,
+        net_change_pom_fungi=fungal_pom_enzyme_net_change,
+        net_change_maom_fungi=fungal_maom_enzyme_net_change,
+        denaturation_bacterial=total_bacterial_enzyme_denaturation,
+        denaturation_fungal=total_fungal_enzyme_denaturation,
+    )
+
+
+def calculate_net_enzyme_change(
+    enzyme_pool_size: NDArray[np.float32],
+    biomass_loss: NDArray[np.float32],
+    biomass_loss_to_enzyme_class: float,
+    enzyme_turnover_rate: float,
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    """Calculate the change in concentration for a specific enzyme pool.
+
+    Enzyme production rates are assumed to scale linearly with the total biomass loss
+    rate of the microbes. These are combined with turnover rates to find the net change
+    in the enzyme pool of interest.
+
+    Args:
+        enzyme_pool_size: Amount of enzyme class of interest [kg C m^-3]
+        biomass_loss: Rate a which the microbial biomass pool of interest loses biomass,
+            this is a combination of enzyme excretion, protein degradation, and cell
+            death [kg C m^-3 day^-1]
+        biomass_loss_to_enzyme_class: Fraction of the biomass loss that goes to
+            producing the enzyme class of interest [unitless]
+        enzyme_turnover_rate: Rate at which the enzyme denatures [day^-1]
+
+    Returns:
+        A tuple containing the net rate of change in the enzyme pool, and the
+        denaturation rate of the enzyme of interest.
+    """
+
+    # Calculate production and turnover of each enzyme class
+    enzyme_production = biomass_loss_to_enzyme_class * biomass_loss
+    enzyme_turnover = calculate_enzyme_turnover(
+        enzyme_pool=enzyme_pool_size, turnover_rate=enzyme_turnover_rate
+    )
+
+    # return net changes in the enzyme and the necromass addition
+    return (enzyme_production - enzyme_turnover, enzyme_turnover)
 
 
 def calculate_maintenance_biomass_synthesis(
@@ -1590,7 +1717,8 @@ def calculate_soil_nutrient_mineralisation(
 def calculate_nutrient_flows_to_necromass(
     bacterial_loss: NDArray[np.float32],
     fungal_loss: NDArray[np.float32],
-    enzyme_denaturation: NDArray[np.float32],
+    bacterial_enzyme_denaturation: NDArray[np.float32],
+    fungal_enzyme_denaturation: NDArray[np.float32],
     microbial_groups: dict[str, MicrobialGroupConstants],
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
@@ -1602,7 +1730,10 @@ def calculate_nutrient_flows_to_necromass(
         bacterial_loss: Rate at which bacterial biomass becomes necromass [kg C m^-3
             day^-1]
         fungal_loss: Rate at which fungal biomass becomes necromass [kg C m^-3 day^-1]
-        enzyme_denaturation: Rate at which enzymes denature [kg C m^-3 day^-1]
+        bacterial_enzyme_denaturation: Rate at which enzymes produced by bacteria
+            denature [kg C m^-3 day^-1]
+        fungal_enzyme_denaturation: Rate at which enzymes produced by fungi denature [kg
+            C m^-3 day^-1]
         microbial_groups: Set of microbial functional groups defined in the soil model
 
     Returns:
@@ -1610,17 +1741,15 @@ def calculate_nutrient_flows_to_necromass(
         [kg P m^-3 day^-1] are added to the soil necromass pool
     """
 
-    # TODO - Enzymes are assumed to have the same stoichiometry as bacteria, this is a
-    # placeholder assumption that we will lose when a more realistic enzyme production
-    # model is added (see issue #760)
-
     return (
         (bacterial_loss / microbial_groups["bacteria"].c_n_ratio)
         + (fungal_loss / microbial_groups["fungi"].c_n_ratio)
-        + (enzyme_denaturation / microbial_groups["bacteria"].c_n_ratio),
+        + (bacterial_enzyme_denaturation / microbial_groups["bacteria"].c_n_ratio)
+        + (fungal_enzyme_denaturation / microbial_groups["fungi"].c_n_ratio),
         (bacterial_loss / microbial_groups["bacteria"].c_p_ratio)
         + (fungal_loss / microbial_groups["fungi"].c_p_ratio)
-        + (enzyme_denaturation / microbial_groups["bacteria"].c_p_ratio),
+        + (bacterial_enzyme_denaturation / microbial_groups["bacteria"].c_p_ratio)
+        + (fungal_enzyme_denaturation / microbial_groups["fungi"].c_p_ratio),
     )
 
 
