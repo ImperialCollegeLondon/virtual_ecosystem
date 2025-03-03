@@ -20,7 +20,7 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
+    (DEBUG, "abiotic model: required var 'downward_shortwave_radiation' checked"),
     (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic model: required var 'layer_heights' checked"),
     (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
@@ -114,7 +114,8 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
             ),
             (
                 ERROR,
-                "abiotic model: init data missing required var 'topofcanopy_radiation'",
+                "abiotic model: init data missing required var "
+                "'downward_shortwave_radiation'",
             ),
             (
                 ERROR,

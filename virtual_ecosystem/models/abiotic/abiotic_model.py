@@ -36,7 +36,7 @@ class AbioticModel(
     vars_required_for_init=(
         "air_temperature_ref",
         "relative_humidity_ref",
-        "topofcanopy_radiation",
+        "downward_shortwave_radiation",
         "leaf_area_index",
         "layer_heights",
         "wind_speed_ref",
@@ -64,7 +64,7 @@ class AbioticModel(
         "wind_speed_ref",
         "leaf_area_index",
         "layer_heights",
-        "topofcanopy_radiation",
+        "downward_shortwave_radiation",
         "stomatal_conductance",
         "shortwave_absorption",
         "aerodynamic_resistance_surface",
@@ -202,7 +202,9 @@ class AbioticModel(
         # canopy
         initial_canopy_and_soil = initialise_canopy_and_soil_fluxes(
             air_temperature=initial_microclimate["air_temperature"],
-            topofcanopy_radiation=self.data["topofcanopy_radiation"].isel(time_index=0),
+            topofcanopy_radiation=self.data["downward_shortwave_radiation"].isel(
+                time_index=0
+            ),
             leaf_area_index=self.data["leaf_area_index"],
             layer_heights=self.data["layer_heights"],
             layer_structure=self.layer_structure,

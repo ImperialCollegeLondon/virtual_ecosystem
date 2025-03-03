@@ -257,7 +257,7 @@ def run_microclimate(
 
         # TODO name absorption variable like plants - Net radiation topsoil, [W m-2]
         net_radiation_soil = energy_balance.calculate_net_radiation(
-            incoming_radiation=data["topofcanopy_radiation"]
+            incoming_radiation=data["downward_shortwave_radiation"]
             .isel(time_index=time_index)
             .to_numpy(),
             absorbed_radiation=data["shortwave_absorption"][

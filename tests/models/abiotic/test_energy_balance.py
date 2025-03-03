@@ -24,7 +24,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_componen
     ]
 
     result = initialise_absorbed_radiation(
-        topofcanopy_radiation=dummy_climate_data["topofcanopy_radiation"]
+        topofcanopy_radiation=dummy_climate_data["downward_shortwave_radiation"]
         .isel(time_index=0)
         .to_numpy(),
         leaf_area_index=leaf_area_index_true.to_numpy(),
@@ -71,7 +71,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
     result = initialise_canopy_and_soil_fluxes(
         air_temperature=dummy_climate_data["air_temperature"],
         topofcanopy_radiation=(
-            dummy_climate_data["topofcanopy_radiation"].isel(time_index=0)
+            dummy_climate_data["downward_shortwave_radiation"].isel(time_index=0)
         ),
         leaf_area_index=dummy_climate_data["leaf_area_index"],
         layer_heights=dummy_climate_data["layer_heights"],
