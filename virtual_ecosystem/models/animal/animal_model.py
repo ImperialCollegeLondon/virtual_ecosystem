@@ -22,7 +22,7 @@ from math import ceil, sqrt
 from random import choice, random
 from typing import Any
 
-from numpy import array, timedelta64, zeros
+from numpy import array, inf, timedelta64, zeros
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -33,6 +33,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import DevelopmentType, DietType
+from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -274,25 +275,18 @@ class AnimalModel(
         self.excrement_pools = {
             cell_id: [
                 ExcrementPool(
-                    scavengeable_carbon=1e-3,
-                    scavengeable_nitrogen=1e-4,
-                    scavengeable_phosphorus=1e-6,
-                    decomposed_carbon=0.0,
-                    decomposed_nitrogen=0.0,
-                    decomposed_phosphorus=0.0,
+                    scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
+                    decomposed_cnp=CNP(0.0, 0.0, 0.0),
                 )
             ]
             for cell_id in self.data.grid.cell_id
         }
+
         self.carcass_pools = {
             cell_id: [
                 CarcassPool(
-                    scavengeable_carbon=1e-3,
-                    scavengeable_nitrogen=1e-4,
-                    scavengeable_phosphorus=1e-6,
-                    decomposed_carbon=0.0,
-                    decomposed_nitrogen=0.0,
-                    decomposed_phosphorus=0.0,
+                    scavengeable_cnp=CNP(1e-3, 1e-4, 1e-6),
+                    decomposed_cnp=CNP(0.0, 0.0, 0.0),
                 )
             ]
             for cell_id in self.data.grid.cell_id
@@ -421,27 +415,27 @@ class AnimalModel(
             "above_metabolic": LitterPool(
                 pool_name="above_metabolic",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "above_structural": LitterPool(
                 pool_name="above_structural",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "woody": LitterPool(
                 pool_name="woody",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "below_metabolic": LitterPool(
                 pool_name="below_metabolic",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
             "below_structural": LitterPool(
                 pool_name="below_structural",
                 data=self.data,
-                cell_area=self.grid.cell_area,
+                cell_area=self.data.grid.cell_area,
             ),
         }
 
@@ -451,6 +445,9 @@ class AnimalModel(
         """Calculate total animal consumption of each litter pool.
 
         TODO: rework for merge
+
+        Note: will break if animals don't consume from litter in fixed stochiometric
+        proportions
 
         Args:
             litter_pools: The full set of animal accessible litter pools.
@@ -478,7 +475,6 @@ class AnimalModel(
 
         TODO - At present the only type of herbivory this works for is leaf herbivory,
         that should be changed once herbivory as a whole is fleshed out.
-        TODO: rework for merge
 
         Returns:
             A dictionary containing details of the leaf litter addition due to herbivory
@@ -489,18 +485,27 @@ class AnimalModel(
 
         # Find the size of the leaf waste pool (in carbon terms)
         leaf_addition = [
-            self.leaf_waste_pools[cell_id].mass_current / self.data.grid.cell_area
+            self.leaf_waste_pools[cell_id].mass_cnp["carbon"] / self.data.grid.cell_area
             for cell_id in self.data.grid.cell_id
         ]
-        # Find the chemistry of the pools as well
+
+        # Find the chemistry of the pools, handling different cases properly
         leaf_c_n = [
-            self.leaf_waste_pools[cell_id].c_n_ratio
+            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
+            / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
+            if self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"] > 0
+            else (inf if self.leaf_waste_pools[cell_id].mass_cnp["carbon"] > 0 else 0.0)
             for cell_id in self.data.grid.cell_id
         ]
+
         leaf_c_p = [
-            self.leaf_waste_pools[cell_id].c_p_ratio
+            self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
+            / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
+            if self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"] > 0
+            else (inf if self.leaf_waste_pools[cell_id].mass_cnp["carbon"] > 0 else 0.0)
             for cell_id in self.data.grid.cell_id
         ]
+
         leaf_lignin = [
             self.leaf_waste_pools[cell_id].lignin_proportion
             for cell_id in self.data.grid.cell_id
@@ -508,7 +513,9 @@ class AnimalModel(
 
         # Reset all of the herbivory waste pools to zero
         for waste in self.leaf_waste_pools.values():
-            waste.mass_current = 0.0
+            waste.mass_cnp["carbon"] = 0.0
+            waste.mass_cnp["nitrogen"] = 0.0
+            waste.mass_cnp["phosphorus"] = 0.0
 
         return {
             "herbivory_waste_leaf_carbon": DataArray(
@@ -766,68 +773,119 @@ class AnimalModel(
 
         A cohort can only reproduce if it has an excess of reproductive mass above a
         certain threshold. The offspring will be an identical cohort of adults
-        with age 0 and mass=birth_mass. A new territory, likely smaller b/c allometry,
-        is generated for the newborn cohort.
-
-        The science here follows Madingley.
-
-        TODO: Check whether Madingley discards excess reproductive mass.
-        TODO: Rework birth mass for indirect developers.
+        with age 0 and a mass determined by the functional group's birth mass.
 
         Args:
             parent_cohort: The AnimalCohort instance which is producing a new cohort.
         """
-        # semelparous organisms use a portion of their non-reproductive mass to make
-        # offspring and then they die
-        non_reproductive_mass_loss = 0.0
+        # Handle semelparous reproduction (where parents die after reproduction)
+        non_reproductive_mass_loss_c = non_reproductive_mass_loss_n = (
+            non_reproductive_mass_loss_p
+        ) = 0.0
+
         if parent_cohort.functional_group.reproductive_type == "semelparous":
-            non_reproductive_mass_loss = (
-                parent_cohort.mass_current
+            loss_c = (
+                parent_cohort.mass_cnp.carbon
                 * parent_cohort.constants.semelparity_mass_loss
             )
-            parent_cohort.mass_current -= non_reproductive_mass_loss
-            # kill the semelparous parent cohort
+            loss_n = (
+                parent_cohort.mass_cnp.nitrogen
+                * parent_cohort.constants.semelparity_mass_loss
+            )
+            loss_p = (
+                parent_cohort.mass_cnp.phosphorus
+                * parent_cohort.constants.semelparity_mass_loss
+            )
+
+            # Cap loss to available mass
+            non_reproductive_mass_loss_c = min(loss_c, parent_cohort.mass_cnp.carbon)
+            non_reproductive_mass_loss_n = min(loss_n, parent_cohort.mass_cnp.nitrogen)
+            non_reproductive_mass_loss_p = min(
+                loss_p, parent_cohort.mass_cnp.phosphorus
+            )
+
+            # Reduce parent's mass in-place
+            parent_cohort.mass_cnp.update(
+                carbon=-non_reproductive_mass_loss_c,
+                nitrogen=-non_reproductive_mass_loss_n,
+                phosphorus=-non_reproductive_mass_loss_p,
+            )
+
+            # Kill semelparous parent cohort
             parent_cohort.is_alive = False
 
-        number_offspring = (
-            int(
-                (parent_cohort.reproductive_mass + non_reproductive_mass_loss)
-                / parent_cohort.functional_group.birth_mass
-            )
-            * parent_cohort.individuals
+        # Calculate total available reproductive mass
+        total_reproductive_mass_c = (
+            parent_cohort.reproductive_mass_cnp.carbon + non_reproductive_mass_loss_c
+        )
+        total_reproductive_mass_n = (
+            parent_cohort.reproductive_mass_cnp.nitrogen + non_reproductive_mass_loss_n
+        )
+        total_reproductive_mass_p = (
+            parent_cohort.reproductive_mass_cnp.phosphorus
+            + non_reproductive_mass_loss_p
         )
 
-        # reduce reproductive mass by amount used to generate offspring
-        parent_cohort.reproductive_mass = 0.0
+        # Generate birth mass using functional group proportions
+        birth_mass = parent_cohort.functional_group.birth_mass
+        birth_mass_c = birth_mass * parent_cohort.cnp_proportions["carbon"]
+        birth_mass_n = birth_mass * parent_cohort.cnp_proportions["nitrogen"]
+        birth_mass_p = birth_mass * parent_cohort.cnp_proportions["phosphorus"]
+
+        # Determine max possible offspring (minimum across all elements)
+        max_possible_offspring = int(
+            min(
+                total_reproductive_mass_c / birth_mass_c,
+                total_reproductive_mass_n / birth_mass_n,
+                total_reproductive_mass_p / birth_mass_p,
+            )
+        )
+
+        number_offspring = int(max_possible_offspring * parent_cohort.individuals)
 
         if number_offspring <= 0:
-            print("No offspring created, exiting birth method.")
-            return
+            return  # No offspring can be created
 
+        # Calculate the total mass used for reproduction
+        total_mass_used_c = number_offspring * birth_mass_c
+        total_mass_used_n = number_offspring * birth_mass_n
+        total_mass_used_p = number_offspring * birth_mass_p
+
+        # Ensure parent's reproductive mass never goes negative
+        parent_cohort.reproductive_mass_cnp.update(
+            carbon=-min(total_mass_used_c, parent_cohort.reproductive_mass_cnp.carbon),
+            nitrogen=-min(
+                total_mass_used_n, parent_cohort.reproductive_mass_cnp.nitrogen
+            ),
+            phosphorus=-min(
+                total_mass_used_p, parent_cohort.reproductive_mass_cnp.phosphorus
+            ),
+        )
+
+        # Get the functional group for the offspring
         offspring_functional_group = get_functional_group_by_name(
             self.functional_groups,
             parent_cohort.functional_group.offspring_functional_group,
         )
 
+        # Create the offspring cohort
         offspring_cohort = AnimalCohort(
-            offspring_functional_group,
-            parent_cohort.functional_group.birth_mass,
-            0.0,
-            number_offspring,
-            parent_cohort.centroid_key,
-            parent_cohort.grid,
-            parent_cohort.constants,
+            functional_group=offspring_functional_group,
+            mass=birth_mass,  # Use total birth mass
+            age=0.0,  # Offspring start at age 0
+            individuals=number_offspring,
+            centroid_key=parent_cohort.centroid_key,
+            grid=parent_cohort.grid,
+            constants=parent_cohort.constants,
         )
 
-        # add a new cohort of the parental type to the community
+        # Add the new cohort to the community
         self.cohorts[offspring_cohort.id] = offspring_cohort
 
-        # Debug: Print cohorts after adding offspring
-        print(f"Total cohorts after adding offspring: {len(self.cohorts)}")
-
-        # add the new cohort to the community lists it occupies
+        # Update community occupancy
         self.update_community_occupancy(offspring_cohort, offspring_cohort.centroid_key)
 
+        # Remove the semelparous parent cohort if applicable
         if parent_cohort.functional_group.reproductive_type == "semelparous":
             self.remove_dead_cohort(parent_cohort)
 
