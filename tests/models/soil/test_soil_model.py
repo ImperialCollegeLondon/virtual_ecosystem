@@ -20,8 +20,10 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_maom_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_pom_fungi' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_maom_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
@@ -334,7 +336,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.10716745, 0.04243441, 0.21608526, 0.02032034], dims="cell_id"
+                        [0.10716744, 0.04243509, 0.21608488, 0.02032035], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
                         [2.52007289, 1.71105702, 4.5340965, 0.53207841], dims="cell_id"
@@ -353,14 +355,20 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                     soil_c_pool_necromass=DataArray(
                         [0.06167055, 0.05209188, 0.11550502, 0.0818911], dims="cell_id"
                     ),
-                    soil_enzyme_pom=DataArray(
+                    soil_enzyme_pom_bacteria=DataArray(
                         [0.02271979, 0.00999937, 0.0501659, 0.00317262], dims="cell_id"
                     ),
-                    soil_enzyme_maom=DataArray(
+                    soil_enzyme_maom_bacteria=DataArray(
                         [0.03548666, 0.01209803, 0.02550264, 0.00470413], dims="cell_id"
                     ),
+                    soil_enzyme_pom_fungi=DataArray(
+                        [0.02607, 0.00575, 0.00646, 0.00441], dims="cell_id"
+                    ),
+                    soil_enzyme_maom_fungi=DataArray(
+                        [0.008669, 0.006826, 0.003807, 0.002163], dims="cell_id"
+                    ),
                     soil_n_pool_don=DataArray(
-                        [0.00139199, 0.00327139, 0.00282787, 0.00394078], dims="cell_id"
+                        [0.00139199, 0.00327144, 0.00282787, 0.00394078], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
                         [0.00714835, 0.00074622, 0.00292266, 0.014293], dims="cell_id"
@@ -602,6 +610,14 @@ def test_construct_full_soil_model(
         0.0008034485,
         0.0008339958,
         0.0002907076,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
         0.00120116138,
         0.00389444416,
         0.00505259291,

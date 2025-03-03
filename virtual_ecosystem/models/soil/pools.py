@@ -217,11 +217,17 @@ class PoolData:
     soil_c_pool_necromass: NDArray[np.float32]
     """Microbial necromass pool [kg C m^-3]."""
 
-    soil_enzyme_pom: NDArray[np.float32]
-    """Enzyme class which breaks down particulate organic matter [kg C m^-3]."""
+    soil_enzyme_pom_bacteria: NDArray[np.float32]
+    """Bacteria produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
 
-    soil_enzyme_maom: NDArray[np.float32]
-    """Enzyme class which breaks down mineral associated organic matter [kg C m^-3]."""
+    soil_enzyme_maom_bacteria: NDArray[np.float32]
+    """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
+
+    soil_enzyme_pom_fungi: NDArray[np.float32]
+    """Fungi produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
+
+    soil_enzyme_maom_fungi: NDArray[np.float32]
+    """Fungi produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
 
     soil_n_pool_don: NDArray[np.float32]
     """Organic nitrogen content of the low molecular weight carbon pool [kg N m^-3].
@@ -236,10 +242,7 @@ class PoolData:
     """Organic nitrogen content of the microbial necromass pool [kg N m^-3]."""
 
     soil_n_pool_maom: NDArray[np.float32]
-    """Organic nitrogen content of the mineral associated organic matter pool
-    
-    Units of [kg N m^-3].
-    """
+    """Organic nitrogen content of the :term:`MAOM` pool [kg N m^-3]."""
 
     soil_n_pool_ammonium: NDArray[np.float32]
     r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
@@ -260,10 +263,7 @@ class PoolData:
     """Organic phosphorus content of the microbial necromass pool [kg P m^-3]."""
 
     soil_p_pool_maom: NDArray[np.float32]
-    """Organic phosphorus content of the mineral associated organic matter pool
-    
-    Units of[kg P m^-3].
-    """
+    """Organic phosphorus content of the :term:`MAOM` pool [kg P m^-3]."""
 
     soil_p_pool_primary: NDArray[np.float32]
     """Primary mineral phosphorus pool [kg P m^-3]."""
@@ -378,8 +378,8 @@ class SoilPools:
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
             soil_c_pool_bacteria=self.pools.soil_c_pool_bacteria,
             soil_c_pool_fungi=self.pools.soil_c_pool_fungi,
-            soil_enzyme_pom=self.pools.soil_enzyme_pom,
-            soil_enzyme_maom=self.pools.soil_enzyme_maom,
+            soil_enzyme_pom=self.pools.soil_enzyme_pom_bacteria,
+            soil_enzyme_maom=self.pools.soil_enzyme_maom_bacteria,
             soil_temp=soil_temperature,
             env_factors=env_factors,
             constants=self.constants,
@@ -387,8 +387,8 @@ class SoilPools:
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
-            soil_enzyme_pom=self.pools.soil_enzyme_pom,
-            soil_enzyme_maom=self.pools.soil_enzyme_maom,
+            soil_enzyme_pom=self.pools.soil_enzyme_pom_bacteria,
+            soil_enzyme_maom=self.pools.soil_enzyme_maom_bacteria,
             soil_c_pool_pom=self.pools.soil_c_pool_pom,
             soil_c_pool_maom=self.pools.soil_c_pool_maom,
             soil_temp=soil_temperature,
@@ -559,8 +559,18 @@ class SoilPools:
             - necromass_decay_to_lmwc
             - necromass_sorption_to_maom
         )
-        delta_pools_ordered["soil_enzyme_pom"] = microbial_changes.pom_enzyme_change
-        delta_pools_ordered["soil_enzyme_maom"] = microbial_changes.maom_enzyme_change
+        delta_pools_ordered["soil_enzyme_pom_bacteria"] = (
+            microbial_changes.pom_enzyme_change
+        )
+        delta_pools_ordered["soil_enzyme_maom_bacteria"] = (
+            microbial_changes.maom_enzyme_change
+        )
+        delta_pools_ordered["soil_enzyme_pom_fungi"] = np.zeros_like(
+            delta_pools_ordered["soil_enzyme_pom_bacteria"]
+        )
+        delta_pools_ordered["soil_enzyme_maom_fungi"] = np.zeros_like(
+            delta_pools_ordered["soil_enzyme_pom_bacteria"]
+        )
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation

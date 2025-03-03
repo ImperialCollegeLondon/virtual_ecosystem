@@ -51,8 +51,10 @@ def test_calculate_all_pool_updates(
         "soil_c_pool_fungi": [-0.0083255777, -0.0819293436, -0.022969005, -0.032666056],
         "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
         "soil_c_pool_necromass": [0.00932274, 0.09290406, 0.05659641, -0.05764445],
-        "soil_enzyme_pom": [8.3534893e-5, 0.0008544245, 0.0002349318, 0.0003279076],
-        "soil_enzyme_maom": [-0.000226569, 0.0008034485, 0.0008339958, 0.0002907076],
+        "soil_enzyme_pom_bacteria": [8.35349e-5, 0.00085442, 0.00023493, 0.00032791],
+        "soil_enzyme_maom_bacteria": [-0.00022657, 0.00080345, 0.000834, 0.00029071],
+        "soil_enzyme_pom_fungi": [0.0, 0.0, 0.0, 0.0],
+        "soil_enzyme_maom_fungi": [0.0, 0.0, 0.0, 0.0],
         "soil_n_pool_don": [0.00120116138, 0.00389444416, 0.00505259291, 0.00239278244],
         "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
         "soil_n_pool_necromass": [0.00912041, 0.000782751, 0.007865652, -0.00396817],
@@ -161,8 +163,8 @@ def test_calculate_microbial_changes(
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
         soil_c_pool_bacteria=dummy_carbon_data["soil_c_pool_bacteria"],
         soil_c_pool_fungi=dummy_carbon_data["soil_c_pool_fungi"],
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom_bacteria"],
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
@@ -192,8 +194,8 @@ def test_calculate_enzyme_mediated_rates(
     }
 
     actual_rates = calculate_enzyme_mediated_rates(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom_bacteria"],
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -292,8 +294,8 @@ def test_calculate_enzyme_changes(dummy_carbon_data):
     expected_denat = [0.0013987, 0.00051062, 0.00180338, 0.00018168]
 
     actual_pom, actual_maom, actual_denat = calculate_enzyme_changes(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom_bacteria"],
         bacterial_biomass_loss=bacterial_biomass_loss,
         fungal_biomass_loss=fungal_biomass_loss,
         constants=SoilConsts,
@@ -366,7 +368,8 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_turnover
 
     actual_decay = calculate_enzyme_turnover(
-        enzyme_pool=dummy_carbon_data["soil_enzyme_pom"], turnover_rate=turnover
+        enzyme_pool=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        turnover_rate=turnover,
     )
 
     assert np.allclose(actual_decay, expected_decay)
@@ -500,7 +503,7 @@ def test_calculate_enzyme_mediated_decomposition(
 
     actual_decomp = calculate_enzyme_mediated_decomposition(
         soil_c_pool=dummy_carbon_data["soil_c_pool_pom"],
-        soil_enzyme=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme=dummy_carbon_data["soil_enzyme_pom_bacteria"],
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
