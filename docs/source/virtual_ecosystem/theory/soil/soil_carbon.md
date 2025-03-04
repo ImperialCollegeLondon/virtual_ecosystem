@@ -172,11 +172,11 @@ Definitions of these environmental factors can be found
 
 ### Microbial turnover
 
-TODO - Add something here about microbial turnover being temperature dependant
-
-The microbial biomass that is lost to both cell death and protein degradation gets added
-to the necromass pool. This breakdown of this necromass pool to form {term}`LMWC` is
-modelled using linear kinetics as
+The rate at which microbial biomass is lost to both cell death and protein degradation
+($d$) is temperature dependant. This temperature dependence is modelled using the
+Arrhenius equation (described [here](./environmental_links.md#arrhenius-equation)). All
+of this loss gets added to the necromass pool. The breakdown of this necromass pool to
+form {term}`LMWC` is modelled using linear kinetics as
 
 $$D_n = k_d * N,$$
 
