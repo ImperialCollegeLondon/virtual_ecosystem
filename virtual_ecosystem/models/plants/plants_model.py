@@ -308,7 +308,7 @@ class PlantsModel(
 
         self.per_update_interval_stem_mortality_rate = (
             model_constants.per_stem_annual_mortality_rate
-            / self.model_timing.years_per_update
+            / self.model_timing.updates_per_year
         )
 
     def spinup(self) -> None:
@@ -662,8 +662,6 @@ class PlantsModel(
 
             # Update deadwood production
             total_deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
-            print("HAIIII")
-            print(total_deadwood_mass)
             self.data["deadwood_production"][cell_id] = total_deadwood_mass * (
                 1 - self.model_constants.percent_stem_mass_attributed_to_lignin
             )
