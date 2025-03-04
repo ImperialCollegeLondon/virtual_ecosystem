@@ -62,7 +62,6 @@ class PlantsModel(
         "dissolved_nitrate",
         "dissolved_ammonium",
         "dissolved_phosphorus",
-        "per_update_interval_stem_mortality_rate",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -205,6 +204,8 @@ class PlantsModel(
         """PModel constants used by pyrealm."""
         self.pmodel_core_consts: CoreConst
         """Core constants used by pyrealm."""
+        self.per_update_interval_stem_mortality_rate: np.float64
+        """The rate of stem mortality per update interval."""
 
     @classmethod
     def from_config(
