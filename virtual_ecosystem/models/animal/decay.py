@@ -5,34 +5,29 @@ in the animal module. This also includes plant litter which is mainly tracked in
 `litter` module, but is made available for animal consumption.
 """  # noqa: D205
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.protocols import Consumer
 
 
 @dataclass
 class CarcassPool:
-    """This class store information about the carcass biomass in each grid cell."""
+    """This class stores information about the carcass biomass in each grid cell."""
 
-    scavengeable_carbon: float
-    """The amount of animal accessible carbon in the carcass pool [kg C]."""
+    scavengeable_cnp: CNP = field(
+        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
+    )
+    """A CNP object storing animal-accessible nutrients in the carcass pool."""
 
-    decomposed_carbon: float
-    """The amount of decomposed carbon in the carcass pool [kg C]."""
-
-    scavengeable_nitrogen: float
-    """The amount of animal accessible nitrogen in the carcass pool [kg N]."""
-
-    decomposed_nitrogen: float
-    """The amount of decomposed nitrogen in the carcass pool [kg N]."""
-
-    scavengeable_phosphorus: float
-    """The amount of animal accessible phosphorus in the carcass pool [kg P]."""
-
-    decomposed_phosphorus: float
-    """The amount of decomposed phosphorus in the carcass pool [kg P]."""
+    decomposed_cnp: CNP = field(
+        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
+    )
+    """A CNP object storing decomposed nutrients in the carcass pool."""
 
     def decomposed_nutrient_per_area(
         self, nutrient: str, grid_cell_area: float
@@ -40,56 +35,69 @@ class CarcassPool:
         """Convert decomposed carcass nutrient content to mass per area units.
 
         Args:
-            nutrient: The name of the nutrient to calculate for
-            grid_cell_area: The size of the grid cell [m^2]
+            nutrient (str): The name of the nutrient to calculate for.
+            grid_cell_area (float): The size of the grid cell [m^2].
 
         Raises:
-            AttributeError: If a nutrient other than carbon, nitrogen, or phosphorus is
-                chosen
+            ValueError: If a nutrient other than carbon, nitrogen, or phosphorus is
+              chosen.
 
         Returns:
-            The nutrient content of the decomposed carcasses on a per area basis [kg
-            m^-2]
+            float: The nutrient content of the decomposed carcasses on a per area basis
+              [kg m^-2].
         """
+        if nutrient not in {"carbon", "nitrogen", "phosphorus"}:
+            raise ValueError(
+                f"{nutrient} is not a valid nutrient. Valid options: 'carbon', "
+                f"'nitrogen', or 'phosphorus'."
+            )
 
-        decomposed_nutrient = getattr(self, f"decomposed_{nutrient}")
+        return getattr(self.decomposed_cnp, nutrient) / grid_cell_area
 
-        return decomposed_nutrient / grid_cell_area
+    def add_carcass(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
+        """Add carcass mass to the pool based on the provided mass.
 
-    def reset(self):
+        Args:
+            carbon (float): The mass of carbon to add.
+            nitrogen (float): The mass of nitrogen to add.
+            phosphorus (float): The mass of phosphorus to add.
+
+        Raises:
+            ValueError: If any input mass is negative.
+        """
+        if carbon < 0 or nitrogen < 0 or phosphorus < 0:
+            raise ValueError(
+                f"CNP values must be non-negative. Provided values: carbon={carbon}, "
+                f"nitrogen={nitrogen}, phosphorus={phosphorus}"
+            )
+
+        self.scavengeable_cnp.update(
+            carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
+        )
+
+    def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed carcasses.
 
-        This function sets the amount of decomposed carbon, nitrogen and phosphorus to
-        zero. This function should only be called after transfers to the soil model due
-        to decomposition have been calculated.
+        This function sets the decomposed carbon, nitrogen, and phosphorus to zero.
+        It should only be called after transfers to the soil model due to decomposition
+        have been calculated.
         """
-
-        self.decomposed_carbon = 0.0
-        self.decomposed_nitrogen = 0.0
-        self.decomposed_phosphorus = 0.0
+        self.decomposed_cnp = CNP(0.0, 0.0, 0.0)
 
 
 @dataclass
 class ExcrementPool:
-    """This class store information about the amount of excrement in each grid cell."""
+    """This class stores information about the amount of excrement in each grid cell."""
 
-    scavengeable_carbon: float
-    """The amount of animal accessible carbon in the excrement pool [kg C]."""
+    scavengeable_cnp: CNP = field(
+        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
+    )
+    """A CNP object storing animal-accessible nutrients in the excrement pool."""
 
-    decomposed_carbon: float
-    """The amount of decomposed carbon in the excrement pool [kg C]."""
-
-    scavengeable_nitrogen: float
-    """The amount of animal accessible nitrogen in the excrement pool [kg N]."""
-
-    decomposed_nitrogen: float
-    """The amount of decomposed nitrogen in the excrement pool [kg N]."""
-
-    scavengeable_phosphorus: float
-    """The amount of animal accessible phosphorus in the excrement pool [kg P]."""
-
-    decomposed_phosphorus: float
-    """The amount of decomposed phosphorus in the excrement pool [kg P]."""
+    decomposed_cnp: CNP = field(
+        default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
+    )
+    """A CNP object storing decomposed nutrients in the excrement pool."""
 
     def decomposed_nutrient_per_area(
         self, nutrient: str, grid_cell_area: float
@@ -97,33 +105,54 @@ class ExcrementPool:
         """Convert decomposed excrement nutrient content to mass per area units.
 
         Args:
-            nutrient: The name of the nutrient to calculate for
-            grid_cell_area: The size of the grid cell [m^2]
+            nutrient (str): The name of the nutrient to calculate for.
+            grid_cell_area (float): The size of the grid cell [m^2].
 
         Raises:
-            AttributeError: If a nutrient other than carbon, nitrogen, or phosphorus is
-                chosen
+            ValueError: If a nutrient other than carbon, nitrogen, or phosphorus is
+              chosen.
 
         Returns:
-            The nutrient content of the decomposed excrement on a per area basis [kg
-            m^-2]
+            float: The nutrient content of the decomposed excrement on a per area basis
+              [kg m^-2].
         """
+        if nutrient not in {"carbon", "nitrogen", "phosphorus"}:
+            raise ValueError(
+                f"{nutrient} is not a valid nutrient. Valid options: 'carbon',"
+                f"'nitrogen', or 'phosphorus'."
+            )
 
-        decomposed_nutrient = getattr(self, f"decomposed_{nutrient}")
+        return getattr(self.decomposed_cnp, nutrient) / grid_cell_area
 
-        return decomposed_nutrient / grid_cell_area
+    def add_excrement(self, carbon: float, nitrogen: float, phosphorus: float) -> None:
+        """Add excrement mass to the pool based on the provided input mass.
 
-    def reset(self):
+        Args:
+            carbon (float): The mass of carbon to add.
+            nitrogen (float): The mass of nitrogen to add.
+            phosphorus (float): The mass of phosphorus to add.
+
+        Raises:
+            ValueError: If any input mass is negative.
+        """
+        if carbon < 0 or nitrogen < 0 or phosphorus < 0:
+            raise ValueError(
+                f"CNP values must be non-negative. Provided values: carbon={carbon}, "
+                f"nitrogen={nitrogen}, phosphorus={phosphorus}"
+            )
+
+        self.scavengeable_cnp.update(
+            carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
+        )
+
+    def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed excrement.
 
-        This function sets the amount of decomposed carbon, nitrogen and phosphorus to
-        zero. This function should only be called after transfers to the soil model due
-        to decomposition have been calculated.
+        This function sets the decomposed carbon, nitrogen, and phosphorus to zero.
+        It should only be called after transfers to the soil model due to decomposition
+        have been calculated.
         """
-
-        self.decomposed_carbon = 0.0
-        self.decomposed_nitrogen = 0.0
-        self.decomposed_phosphorus = 0.0
+        self.decomposed_cnp = CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
 
 
 def find_decay_consumed_split(
@@ -149,62 +178,71 @@ class LitterPool:
 
     This class acts as the interface between litter model data stored in the core data
     object and the animal model.
-
-    This class is designed to be reused for all five of the litter pools used in the
-    litter model, as all of these pools are consumable by animals.
-
-    Args:
-        pool_name: The name of the litter pool being accessed.
-        data: A Data object containing information from the litter model.
-        cell_area: The size of the cell, used to convert from density to mass units
-            [m^2]
     """
 
-    def __init__(self, pool_name: str, data: Data, cell_area: float) -> None:
+    def __init__(self, pool_name: str, data: "Data", cell_area: float) -> None:
         self.pool_name = pool_name
-        """Name of the pool."""
 
-        self.mass_current = (data[f"litter_pool_{pool_name}"].to_numpy()) * cell_area
-        """Mass of the litter pool in carbon terms [kg C]."""
-
+        carbon_mass = data[f"litter_pool_{pool_name}"].to_numpy() * cell_area
         self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
-        """Carbon nitrogen ratio of the litter pool [unitless]."""
-
         self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
-        """Carbon phosphorus ratio of the litter pool [unitless]."""
+
+        if (self.c_n_ratio <= 0).any() or (self.c_p_ratio <= 0).any():
+            raise ValueError(f"Invalid C:N or C:P ratios in {self.pool_name} pool.")
+
+        self.mass_cnp = [
+            CNP(
+                carbon=carbon_mass[i],
+                nitrogen=carbon_mass[i] / self.c_n_ratio[i],
+                phosphorus=carbon_mass[i] / self.c_p_ratio[i],
+            )
+            for i in range(len(carbon_mass))
+        ]
+
+        if any(cnp.total < 0 for cnp in self.mass_cnp):
+            raise ValueError(f"Negative values detected in {self.pool_name} pool.")
+
+    @property
+    def mass_current(self) -> DataArray:
+        """Property returning the total mass of carbon in the litter pool."""
+        carbon_values = [cnp.carbon for cnp in self.mass_cnp]
+        return DataArray(carbon_values, dims=["cell_id"])
 
     def get_eaten(
-        self, consumed_mass: float, detritivore: Consumer, grid_cell_id: int
-    ) -> float:
-        """This function handles litter detritivory.
+        self, consumed_mass: float, detritivore: "Consumer", grid_cell_id: int
+    ) -> dict[str, float]:
+        """Method for handling a trophic interaction with detritivores."""
+        if consumed_mass < 0:
+            raise ValueError("Consumed mass cannot be negative.")
 
-        Args:
-            consumed_mass: The mass intended to be consumed by the herbivore [kg].
-            detritivore: The Consumer (AnimalCohort) consuming the Litter.
-            grid_cell_id: The cell id of the cell the animal cohort is in.
-
-        Returns:
-            The actual mass consumed by the detritivore, adjusted for efficiencies [kg].
-        """
-
-        # Check if the requested consumed mass is more than the available mass
-        actually_available_mass = min(self.mass_current[grid_cell_id], consumed_mass)
-
-        # Calculate the mass of the consumed litter after mechanical efficiency
+        cell_cnp = self.mass_cnp[
+            grid_cell_id
+        ]  # Access CNP object for the given grid cell
+        total_mass_available = cell_cnp.total
         actual_consumed_mass = (
-            actually_available_mass * detritivore.functional_group.mechanical_efficiency
+            min(total_mass_available, consumed_mass)
+            * detritivore.functional_group.mechanical_efficiency
         )
 
-        # Update the litter pool mass to reflect the mass consumed
-        self.mass_current[grid_cell_id] -= actual_consumed_mass
+        nutrient_proportions = {
+            "carbon": cell_cnp.carbon / total_mass_available,
+            "nitrogen": cell_cnp.nitrogen / total_mass_available,
+            "phosphorus": cell_cnp.phosphorus / total_mass_available,
+        }
 
-        # Return the net mass gain of detritivory, after considering
-        # digestive efficiencies
-        net_mass_gain = (
-            actual_consumed_mass * detritivore.functional_group.conversion_efficiency
+        consumed = {
+            nutrient: actual_consumed_mass * proportion
+            for nutrient, proportion in nutrient_proportions.items()
+        }
+
+        # Update the CNP object in place
+        cell_cnp.update(
+            carbon=-consumed["carbon"],
+            nitrogen=-consumed["nitrogen"],
+            phosphorus=-consumed["phosphorus"],
         )
 
-        return net_mass_gain
+        return consumed
 
 
 class HerbivoryWaste:
@@ -245,17 +283,40 @@ class HerbivoryWaste:
         self.plant_matter_type = plant_matter_type
         """Type of plant matter this waste pool contains."""
 
-        self.mass_current = 0.0
-        """Mass of the herbivory waste pool in carbon terms [kg C]."""
-
-        # TODO - These are all hard coded, but once herbivory is properly implemented
-        # they should be updated based on the stoichiometry of the actual plant matter
-        # consumed.
-        self.c_n_ratio = 20.0
-        """Ratio of carbon to nitrogen of the herbivory waste pool [unitless]."""
-
-        self.c_p_ratio = 150.0
-        """Ratio of carbon to phosphorus of the herbivory waste pool [unitless]."""
+        self.mass_cnp: dict[str, float] = {
+            "carbon": 0.0,
+            "nitrogen": 0.0,
+            "phosphorus": 0.0,
+        }
+        """The mass of each stoichiometric element found in the plant resources,
+        {"carbon": value, "nitrogen": value, "phosphorus": value}."""
 
         self.lignin_proportion = 0.25
         """Proportion of the herbivory waste pool carbon that is lignin [unitless]."""
+
+    def add_waste(self, input_mass_cnp: dict[str, float]) -> None:
+        """Add waste to the pool based on the provided stoichiometric mass.
+
+        Args:
+            input_mass_cnp: Dictionary specifying the mass of each element in the waste
+                {"carbon": value, "nitrogen": value, "phosphorus": value}.
+
+        Raises:
+            ValueError: If the input dictionary is missing required elements or contains
+                negative values.
+        """
+        # Validate input structure and content
+        required_keys = {"carbon", "nitrogen", "phosphorus"}
+        if not required_keys.issubset(input_mass_cnp.keys()):
+            raise ValueError(
+                f"mass_cnp must contain all required keys {required_keys}. "
+                f"Provided keys: {input_mass_cnp.keys()}"
+            )
+        if any(value < 0 for value in input_mass_cnp.values()):
+            raise ValueError(
+                f"CNP values must be non-negative. Provided values: {input_mass_cnp}"
+            )
+
+        # Add the masses to the current pool
+        for element, value in input_mass_cnp.items():
+            self.mass_cnp[element] += value

@@ -355,9 +355,9 @@ added for each of the 81 grid cells, giving 162 entries along the cohort axis.
   - `plant_cohorts_dbh`
   - m
   - C
-* - Photosynthetic photon flux density
-  - `photosynthetic_photon_flux_density`
-  - µ mol m$^{-2}$ s$^{-1}$
+* - Downward shortwave radiation
+  - `downward_shortwave_radiation`
+  - W m$^{-2}$
   - XYT
 ```
 

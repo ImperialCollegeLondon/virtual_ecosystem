@@ -24,6 +24,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
 )
+from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
 
 # TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
 # think about adding these in future
@@ -67,8 +68,11 @@ class MicrobialChanges:
     and mineralisation of labile P. A positive value indicates a net immobilisation
     (uptake) of P. """
 
-    microbe_change: NDArray[np.float32]
-    """Rate of change of microbial biomass pool [kg C m^-3 day^-1]."""
+    bacteria_change: NDArray[np.float32]
+    """Rate of change of bacterial biomass pool [kg C m^-3 day^-1]."""
+
+    fungi_change: NDArray[np.float32]
+    """Rate of change of fungal biomass pool [kg C m^-3 day^-1]."""
 
     pom_enzyme_change: NDArray[np.float32]
     """Rate of change of particulate organic matter degrading enzyme pool.
@@ -84,6 +88,12 @@ class MicrobialChanges:
 
     necromass_generation: NDArray[np.float32]
     """Rate at which necromass is being produced [kg C m^-3 day^-1]."""
+
+    necromass_n_flow: NDArray[np.float32]
+    """Nitrogen flow associated with necromass generation [kg N m^-3 day^-1]."""
+
+    necromass_p_flow: NDArray[np.float32]
+    """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
 
 
 @dataclass
@@ -195,8 +205,11 @@ class PoolData:
     soil_c_pool_lmwc: NDArray[np.float32]
     """Low molecular weight carbon pool [kg C m^-3]."""
 
-    soil_c_pool_microbe: NDArray[np.float32]
-    """Microbial biomass pool [kg C m^-3]."""
+    soil_c_pool_bacteria: NDArray[np.float32]
+    """Bacterial biomass pool [kg C m^-3]."""
+
+    soil_c_pool_fungi: NDArray[np.float32]
+    """Fungal biomass pool [kg C m^-3]."""
 
     soil_c_pool_pom: NDArray[np.float32]
     """Particulate organic matter pool [kg C m^-3]."""
@@ -276,6 +289,7 @@ class SoilPools:
         data: Data,
         pools: dict[str, NDArray[np.float32]],
         constants: SoilConsts,
+        functional_groups: dict[str, MicrobialGroupConstants],
         max_depth_of_microbial_activity: float,
     ):
         self.data = data
@@ -289,6 +303,9 @@ class SoilPools:
         """
         self.constants = constants
         """Set of constants for the soil model."""
+
+        self.functional_groups = functional_groups
+        """Set of microbial functional groups used by the soil model."""
 
         self.max_depth_of_microbial_activity = max_depth_of_microbial_activity
         """Maximum depth of the soil profile where microbial activity occurs [m]."""
@@ -359,12 +376,14 @@ class SoilPools:
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_dop=self.pools.soil_p_pool_dop,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
-            soil_c_pool_microbe=self.pools.soil_c_pool_microbe,
+            soil_c_pool_bacteria=self.pools.soil_c_pool_bacteria,
+            soil_c_pool_fungi=self.pools.soil_c_pool_fungi,
             soil_enzyme_pom=self.pools.soil_enzyme_pom,
             soil_enzyme_maom=self.pools.soil_enzyme_maom,
             soil_temp=soil_temperature,
             env_factors=env_factors,
             constants=self.constants,
+            functional_groups=self.functional_groups,
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
@@ -436,10 +455,6 @@ class SoilPools:
             breakdown_rate=enzyme_mediated.pom_to_lmwc,
         )
 
-        # Find flow of nitrogen to necromass pool
-        necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
-            microbial_changes=microbial_changes, constants=self.constants
-        )
         # Find nitrogen released by necromass breakdown/sorption
         necromass_outflows = find_necromass_nutrient_outflows(
             necromass_carbon=self.pools.soil_c_pool_necromass,
@@ -482,9 +497,11 @@ class SoilPools:
         )
 
         # Calculate rate at which ammonium volatilises as ammonia
-        ammonia_volatilisation_rate = (
+        ammonia_volatilisation_rate = np.where(
+            self.pools.soil_n_pool_ammonium >= 0.0,
             self.constants.ammonia_volatilisation_rate_constant
-            * self.pools.soil_n_pool_ammonium
+            * self.pools.soil_n_pool_ammonium,
+            0.0,
         )
 
         # Calculate rate at which nitrogen is fixed
@@ -512,21 +529,11 @@ class SoilPools:
             secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
             labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
         )
-        # Convert ammonium and phosphorus depositions from per area to per volume units,
-        # under the assumption the phosphorus just gets deposited in the very upper
-        # layer of the soil
-        ammonium_deposition = (
-            self.constants.ammonium_deposition_rate
-            / self.max_depth_of_microbial_activity
-        )
-        phosphorus_deposition = (
-            self.constants.phosphorus_deposition_rate
-            / self.max_depth_of_microbial_activity
-        )
 
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_flux.lmwc
+            + self.to_per_volume(self.data["root_carbohydrate_exudation"].to_numpy())
             + enzyme_mediated.pom_to_lmwc
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc
@@ -542,8 +549,8 @@ class SoilPools:
             - enzyme_mediated.maom_to_lmwc
             - maom_desorption_to_lmwc
         )
-
-        delta_pools_ordered["soil_c_pool_microbe"] = microbial_changes.microbe_change
+        delta_pools_ordered["soil_c_pool_bacteria"] = microbial_changes.bacteria_change
+        delta_pools_ordered["soil_c_pool_fungi"] = microbial_changes.fungi_change
         delta_pools_ordered["soil_c_pool_pom"] = (
             litter_mineralisation_flux.pom - enzyme_mediated.pom_to_lmwc
         )
@@ -566,7 +573,7 @@ class SoilPools:
             litter_mineralisation_flux.particulate_n - pom_n_mineralisation
         )
         delta_pools_ordered["soil_n_pool_necromass"] = (
-            necromass_n_flow
+            microbial_changes.necromass_n_flow
             - necromass_outflows["decay_nitrogen"]
             - necromass_outflows["sorption_nitrogen"]
         )
@@ -575,11 +582,12 @@ class SoilPools:
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
         delta_pools_ordered["soil_n_pool_ammonium"] = (
-            ammonium_deposition
+            self.to_per_volume(self.constants.ammonium_deposition_rate)
             + litter_mineralisation_flux.ammonium
             + symbiotic_nitrogen_fixation
             + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
+            - self.to_per_volume(self.data["plant_ammonium_uptake"].to_numpy())
             - nutrient_leaching.ammonium
             - ammonia_volatilisation_rate
             - nitrification_rate
@@ -588,6 +596,7 @@ class SoilPools:
             nitrification_rate
             - denitrification_rate
             - microbial_changes.nitrate_change
+            - self.to_per_volume(self.data["plant_nitrate_uptake"].to_numpy())
             - nutrient_leaching.nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
@@ -602,7 +611,7 @@ class SoilPools:
             litter_mineralisation_flux.particulate_p - pom_p_mineralisation
         )
         delta_pools_ordered["soil_p_pool_necromass"] = (
-            necromass_p_flow
+            microbial_changes.necromass_p_flow
             - necromass_outflows["decay_phosphorus"]
             - necromass_outflows["sorption_phosphorus"]
         )
@@ -617,15 +626,31 @@ class SoilPools:
         delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
             litter_mineralisation_flux.labile_p
-            + phosphorus_deposition
+            + self.to_per_volume(self.constants.phosphorus_deposition_rate)
             + primary_phosphorus_breakdown
             - microbial_changes.labile_p_change
+            - self.to_per_volume(self.data["plant_phosphorus_uptake"].to_numpy())
             - net_formation_secondary_P
             - nutrient_leaching.labile_P
         )
 
         # Create output array of pools in desired order
         return np.concatenate(list(delta_pools_ordered.values()))
+
+    def to_per_volume(
+        self, input_rate: float | NDArray[np.float32]
+    ) -> float | NDArray[np.float32]:
+        """Method to convert an external input rate from per area to per volume units.
+
+        Args:
+            input_rate: Rate of input to convert [kg m^-2 day^-1].
+
+        Returns:
+            Input rate converted to per volume (of the microbial active layer) units [kg
+            m^-3 day^-1].
+        """
+
+        return input_rate / self.max_depth_of_microbial_activity
 
 
 def calculate_microbial_changes(
@@ -635,12 +660,14 @@ def calculate_microbial_changes(
     soil_n_pool_nitrate: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
     soil_p_pool_labile: NDArray[np.float32],
-    soil_c_pool_microbe: NDArray[np.float32],
+    soil_c_pool_bacteria: NDArray[np.float32],
+    soil_c_pool_fungi: NDArray[np.float32],
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
+    functional_groups: dict[str, MicrobialGroupConstants],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
@@ -656,7 +683,8 @@ def calculate_microbial_changes(
         soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        soil_c_pool_bacteria: Bacterial biomass (carbon) pool [kg C m^-3]
+        soil_c_pool_fungi: Fungal biomass (carbon) pool [kg C m^-3]
         soil_enzyme_pom: Amount of enzyme class which breaks down particulate organic
             matter [kg C m^-3]
         soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
@@ -665,6 +693,7 @@ def calculate_microbial_changes(
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
         constants: Set of constants for the soil model.
+        functional_groups: Set of microbial functional groups used by the soil model.
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
@@ -672,50 +701,97 @@ def calculate_microbial_changes(
     """
 
     # Calculate uptake, growth rate, and loss rate
-    biomass_growth, microbial_uptake = calculate_nutrient_uptake_rates(
+    bacterial_growth, bacterial_uptake = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_c_pool_lmwc,
         soil_n_pool_don=soil_n_pool_don,
         soil_n_pool_ammonium=soil_n_pool_ammonium,
         soil_n_pool_nitrate=soil_n_pool_nitrate,
         soil_p_pool_dop=soil_p_pool_dop,
         soil_p_pool_labile=soil_p_pool_labile,
-        soil_c_pool_microbe=soil_c_pool_microbe,
+        microbial_pool_size=soil_c_pool_bacteria,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
         constants=constants,
+        functional_group=functional_groups["bacteria"],
     )
-    biomass_loss = calculate_maintenance_biomass_synthesis(
-        soil_c_pool_microbe=soil_c_pool_microbe,
+    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=soil_c_pool_bacteria,
+        soil_temp=soil_temp,
+        microbial_group=functional_groups["bacteria"],
+        reference_temperature=constants.arrhenius_reference_temp,
+    )
+    fungal_growth, fungal_uptake = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_c_pool_lmwc,
+        soil_n_pool_don=soil_n_pool_don,
+        soil_n_pool_ammonium=soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_p_pool_dop,
+        soil_p_pool_labile=soil_p_pool_labile,
+        microbial_pool_size=soil_c_pool_fungi,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
         soil_temp=soil_temp,
         constants=constants,
+        functional_group=functional_groups["fungi"],
+    )
+    fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=soil_c_pool_fungi,
+        soil_temp=soil_temp,
+        microbial_group=functional_groups["fungi"],
+        reference_temperature=constants.arrhenius_reference_temp,
     )
     # Find changes in each enzyme pool
     pom_enzyme_net_change, maom_enzyme_net_change, enzyme_denaturation = (
         calculate_enzyme_changes(
             soil_enzyme_pom=soil_enzyme_pom,
             soil_enzyme_maom=soil_enzyme_maom,
-            biomass_loss=biomass_loss,
+            bacterial_biomass_loss=bacterial_biomass_loss,
+            fungal_biomass_loss=fungal_biomass_loss,
             constants=constants,
         )
     )
 
     # Find fraction of loss that isn't enzyme production
-    true_loss = (
-        1 - constants.maintenance_pom_enzyme - constants.maintenance_maom_enzyme
-    ) * biomass_loss
+    true_bacterial_loss = (
+        1
+        - constants.bacterial_maintenance_pom_enzyme
+        - constants.bacterial_maintenance_maom_enzyme
+    ) * bacterial_biomass_loss
+    true_fungal_loss = (
+        1
+        - constants.fungal_maintenance_pom_enzyme
+        - constants.fungal_maintenance_maom_enzyme
+    ) * fungal_biomass_loss
+
+    # Find flow of nitrogen to necromass pool
+    necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
+        bacterial_loss=true_bacterial_loss,
+        fungal_loss=true_fungal_loss,
+        enzyme_denaturation=enzyme_denaturation,
+        microbial_groups=functional_groups,
+    )
 
     return MicrobialChanges(
-        lmwc_uptake=microbial_uptake.carbon,
-        don_uptake=microbial_uptake.organic_nitrogen,
-        ammonium_change=microbial_uptake.ammonium,
-        nitrate_change=microbial_uptake.nitrate,
-        dop_uptake=microbial_uptake.organic_phosphorus,
-        labile_p_change=microbial_uptake.inorganic_phosphorus,
-        microbe_change=biomass_growth - biomass_loss,
+        lmwc_uptake=bacterial_uptake.carbon + fungal_uptake.carbon,
+        don_uptake=bacterial_uptake.organic_nitrogen + fungal_uptake.organic_nitrogen,
+        ammonium_change=bacterial_uptake.ammonium + fungal_uptake.ammonium,
+        nitrate_change=bacterial_uptake.nitrate + fungal_uptake.nitrate,
+        dop_uptake=(
+            bacterial_uptake.organic_phosphorus + fungal_uptake.organic_phosphorus
+        ),
+        labile_p_change=(
+            bacterial_uptake.inorganic_phosphorus + fungal_uptake.inorganic_phosphorus
+        ),
+        bacteria_change=bacterial_growth - bacterial_biomass_loss,
+        fungi_change=fungal_growth - fungal_biomass_loss,
         pom_enzyme_change=pom_enzyme_net_change,
         maom_enzyme_change=maom_enzyme_net_change,
-        necromass_generation=enzyme_denaturation + true_loss,
+        necromass_generation=(
+            enzyme_denaturation + true_bacterial_loss + true_fungal_loss
+        ),
+        necromass_n_flow=necromass_n_flow,
+        necromass_p_flow=necromass_p_flow,
     )
 
 
@@ -845,16 +921,19 @@ def calculate_nutrient_leaching(
         lmwc=labile_carbon_leaching,
         don=don_leaching,
         dop=dop_leaching,
-        ammonium=ammonium_leaching,
-        nitrate=nitrate_leaching,
-        labile_P=labile_phosphorus_leaching,
+        ammonium=np.where(ammonium_leaching >= 0.0, ammonium_leaching, 0.0),
+        nitrate=np.where(nitrate_leaching >= 0.0, nitrate_leaching, 0.0),
+        labile_P=np.where(
+            labile_phosphorus_leaching >= 0.0, labile_phosphorus_leaching, 0.0
+        ),
     )
 
 
 def calculate_enzyme_changes(
     soil_enzyme_pom: NDArray[np.float32],
     soil_enzyme_maom: NDArray[np.float32],
-    biomass_loss: NDArray[np.float32],
+    bacterial_biomass_loss: NDArray[np.float32],
+    fungal_biomass_loss: NDArray[np.float32],
     constants: SoilConsts,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the changes to the concentration of each enzyme pool.
@@ -868,9 +947,12 @@ def calculate_enzyme_changes(
             matter [kg C m^-3]
         soil_enzyme_maom: Amount of enzyme class which breaks down mineral associated
             organic matter [kg C m^-3]
-        biomass_loss: Rate a which the microbial biomass pool loses biomass, this is a
-            combination of enzyme excretion, protein degradation, and cell death [kg C
-            m^-3 day^-1]
+        bacterial_biomass_loss: Rate a which the bacterial biomass pool loses biomass,
+            this is a combination of enzyme excretion, protein degradation, and cell
+            death [kg C m^-3 day^-1]
+        fungal_biomass_loss: Rate a which the fungal biomass pool loses biomass,
+            this is a combination of enzyme excretion, protein degradation, and cell
+            death [kg C m^-3 day^-1]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -879,8 +961,14 @@ def calculate_enzyme_changes(
     """
 
     # Calculate production an turnover of each enzyme class
-    pom_enzyme_production = constants.maintenance_pom_enzyme * biomass_loss
-    maom_enzyme_production = constants.maintenance_maom_enzyme * biomass_loss
+    pom_enzyme_production = (
+        constants.bacterial_maintenance_pom_enzyme * bacterial_biomass_loss
+        + constants.fungal_maintenance_pom_enzyme * fungal_biomass_loss
+    )
+    maom_enzyme_production = (
+        constants.bacterial_maintenance_maom_enzyme * bacterial_biomass_loss
+        + constants.fungal_maintenance_maom_enzyme * fungal_biomass_loss
+    )
     pom_enzyme_turnover = calculate_enzyme_turnover(
         enzyme_pool=soil_enzyme_pom,
         turnover_rate=constants.pom_enzyme_turnover_rate,
@@ -899,20 +987,22 @@ def calculate_enzyme_changes(
 
 
 def calculate_maintenance_biomass_synthesis(
-    soil_c_pool_microbe: NDArray[np.float32],
+    microbe_pool_size: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
-    constants: SoilConsts,
+    microbial_group: MicrobialGroupConstants,
+    reference_temperature: float,
 ) -> NDArray[np.float32]:
-    """Calculate microbial biomass synthesis rate required to offset losses.
+    """Calculate biomass synthesis rate required to offset losses for a microbial pool.
 
     In order for a microbial population to not decline it must synthesise enough new
     biomass to offset losses. These losses mostly come from cell death and protein
     decay, but also include loses due to extracellular enzyme excretion.
 
     Args:
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        microbe_pool_size: Size of the microbial pool of interest [kg C m^-3]
         soil_temp: soil temperature for each soil grid cell [degrees C]
-        constants: Set of constants for the soil model.
+        microbial_group: Constants associated with the microbial group of interest
+        reference_temperature: The reference temperature of the Arrhenius equation [C]
 
     Returns:
         The rate of microbial biomass loss that must be matched to maintain a steady
@@ -921,11 +1011,11 @@ def calculate_maintenance_biomass_synthesis(
 
     temp_factor = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_microbial_turnover,
-        reference_temperature=constants.arrhenius_reference_temp,
+        activation_energy=microbial_group.activation_energy_turnover,
+        reference_temperature=reference_temperature,
     )
 
-    return constants.microbial_turnover_rate * temp_factor * soil_c_pool_microbe
+    return microbial_group.turnover_rate * temp_factor * microbe_pool_size
 
 
 def calculate_carbon_use_efficiency(
@@ -975,11 +1065,12 @@ def calculate_nutrient_uptake_rates(
     soil_n_pool_nitrate: NDArray[np.float32],
     soil_p_pool_dop: NDArray[np.float32],
     soil_p_pool_labile: NDArray[np.float32],
-    soil_c_pool_microbe: NDArray[np.float32],
+    microbial_pool_size: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     constants: SoilConsts,
+    functional_group: MicrobialGroupConstants,
 ) -> tuple[NDArray[np.float32], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 
@@ -1013,13 +1104,15 @@ def calculate_nutrient_uptake_rates(
         soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_dop: Dissolved organic phosphorus pool [kg P m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        microbial_pool_size: Amount of biomass for functional of interest [kg C m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
             [unitless]
         soil_temp: soil temperature for each soil grid cell [degrees C]
         constants: Set of constants for the soil model.
+        functional_group: A data class containing the parameters defining the microbial
+            functional group
 
     Returns:
         A tuple containing the rate at which microbial biomass increases due to nutrient
@@ -1031,43 +1124,51 @@ def calculate_nutrient_uptake_rates(
     # forms of nitrogen and phosphorus
     carbon_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_c_pool_lmwc,
-        soil_c_pool_microbe=soil_c_pool_microbe,
+        microbial_pool_size=microbial_pool_size,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        max_uptake_rate=constants.max_uptake_rate_labile_C,
-        half_saturation_constant=constants.half_sat_labile_C_uptake,
-        constants=constants,
+        max_uptake_rate=functional_group.max_uptake_rate_labile_C,
+        half_saturation_constant=functional_group.half_sat_labile_C_uptake,
+        activation_energy_uptake=functional_group.activation_energy_uptake_rate,
+        activation_energy_uptake_saturation=functional_group.activation_energy_uptake_saturation,
+        reference_temperature=constants.arrhenius_reference_temp,
     )
     ammonium_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_n_pool_ammonium,
-        soil_c_pool_microbe=soil_c_pool_microbe,
+        microbial_pool_size=microbial_pool_size,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        max_uptake_rate=constants.max_uptake_rate_ammonium,
-        half_saturation_constant=constants.half_sat_ammonium_uptake,
-        constants=constants,
+        max_uptake_rate=functional_group.max_uptake_rate_ammonium,
+        half_saturation_constant=functional_group.half_sat_ammonium_uptake,
+        activation_energy_uptake=functional_group.activation_energy_uptake_rate,
+        activation_energy_uptake_saturation=functional_group.activation_energy_uptake_saturation,
+        reference_temperature=constants.arrhenius_reference_temp,
     )
     nitrate_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_n_pool_nitrate,
-        soil_c_pool_microbe=soil_c_pool_microbe,
+        microbial_pool_size=microbial_pool_size,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        max_uptake_rate=constants.max_uptake_rate_nitrate,
-        half_saturation_constant=constants.half_sat_nitrate_uptake,
-        constants=constants,
+        max_uptake_rate=functional_group.max_uptake_rate_nitrate,
+        half_saturation_constant=functional_group.half_sat_nitrate_uptake,
+        activation_energy_uptake=functional_group.activation_energy_uptake_rate,
+        activation_energy_uptake_saturation=functional_group.activation_energy_uptake_saturation,
+        reference_temperature=constants.arrhenius_reference_temp,
     )
     inorganic_phosphorus_uptake_rate_max = calculate_highest_achievable_nutrient_uptake(
         labile_nutrient_pool=soil_p_pool_labile,
-        soil_c_pool_microbe=soil_c_pool_microbe,
+        microbial_pool_size=microbial_pool_size,
         water_factor=water_factor,
         pH_factor=pH_factor,
         soil_temp=soil_temp,
-        max_uptake_rate=constants.max_uptake_rate_labile_p,
-        half_saturation_constant=constants.half_sat_labile_p_uptake,
-        constants=constants,
+        max_uptake_rate=functional_group.max_uptake_rate_labile_p,
+        half_saturation_constant=functional_group.half_sat_labile_p_uptake,
+        activation_energy_uptake=functional_group.activation_energy_uptake_rate,
+        activation_energy_uptake_saturation=functional_group.activation_energy_uptake_saturation,
+        reference_temperature=constants.arrhenius_reference_temp,
     )
 
     # Calculate carbon use efficiency and use to determine maximum possible rate of
@@ -1092,13 +1193,13 @@ def calculate_nutrient_uptake_rates(
     actual_carbon_gain = np.minimum.reduce(
         [
             carbon_gain_max,
-            constants.microbial_c_n_ratio
+            functional_group.c_n_ratio
             * (
                 organic_nitrogen_uptake_rate_max
                 + ammonium_uptake_rate_max
                 + nitrate_uptake_rate_max
             ),
-            constants.microbial_c_p_ratio
+            functional_group.c_p_ratio
             * (
                 organic_phosphorus_uptake_rate_max
                 + inorganic_phosphorus_uptake_rate_max
@@ -1113,14 +1214,22 @@ def calculate_nutrient_uptake_rates(
 
     # Calculate uptake/release of inorganic nitrogen based on difference between
     # stoichiometric demand and organic nitrogen uptake
-    nitrogen_demand = actual_carbon_gain / constants.microbial_c_n_ratio
+    nitrogen_demand = actual_carbon_gain / functional_group.c_n_ratio
     inorganic_nitrogen_change = nitrogen_demand - actual_organic_nitrogen_uptake
+
     # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
-    # follows the proportion of the maximum uptake rates, for the mineralisation it is
-    # determined by a fixed constant.
+    # follows the proportion of the maximum uptake rates (if either is above zero)
+    ammonium_uptake_proportion = np.where(
+        (ammonium_uptake_rate_max > 0) | (nitrate_uptake_rate_max > 0),
+        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        0.0,
+    )
+
+    # Whether the uptake proportion or the mineralisation proportion is relevant depends
+    # whether inorganic nitrogen is being taken up or not
     ammonium_to_nitrate_proportion = np.where(
         inorganic_nitrogen_change > 0,
-        ammonium_uptake_rate_max / (ammonium_uptake_rate_max + nitrate_uptake_rate_max),
+        ammonium_uptake_proportion,
         constants.ammonium_mineralisation_proportion,
     )
     ammonium_change = inorganic_nitrogen_change * ammonium_to_nitrate_proportion
@@ -1128,7 +1237,7 @@ def calculate_nutrient_uptake_rates(
 
     # Calculate uptake/release of inorganic phosphorus based on difference between
     # stoichiometric demand and organic phosphorus uptake
-    phosphorus_demand = actual_carbon_gain / constants.microbial_c_p_ratio
+    phosphorus_demand = actual_carbon_gain / functional_group.c_p_ratio
     inorganic_phosphorus_change = phosphorus_demand - actual_organic_phosphorus_uptake
 
     consumption_rates = NetNutrientConsumption(
@@ -1149,24 +1258,28 @@ def calculate_nutrient_uptake_rates(
 
 def calculate_highest_achievable_nutrient_uptake(
     labile_nutrient_pool: NDArray[np.float32],
-    soil_c_pool_microbe: NDArray[np.float32],
+    microbial_pool_size: NDArray[np.float32],
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
     max_uptake_rate: float,
+    activation_energy_uptake: float,
     half_saturation_constant: float,
-    constants: SoilConsts,
+    activation_energy_uptake_saturation: float,
+    reference_temperature: float,
 ) -> NDArray[np.float32]:
     """Calculate highest achievable uptake rate for a specific nutrient.
 
     This function starts by calculating the impact that environmental factors have on
     the rate and saturation constants for microbial uptake. These constants are then
-    used to calculate the maximum possible uptake rate for the nutrient in question.
+    used to calculate the maximum possible uptake rate for the specific nutrient and
+    microbial group in question.
 
     Args:
         labile_nutrient_pool: Mass of nutrient that is in a readily uptakeable (labile)
             form [kg nut m^-3]
-        soil_c_pool_microbe: Microbial biomass (carbon) pool [kg C m^-3]
+        microbial_pool_size: Size of microbial biomass (carbon) pool of interest [kg C
+            m^-3]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
@@ -1174,9 +1287,13 @@ def calculate_highest_achievable_nutrient_uptake(
         soil_temp: soil temperature for each soil grid cell [degrees C]
         max_uptake_rate: Maximum possible uptake rate of the nutrient (at reference
             temperature) [day^-1]
+        activation_energy_uptake: Activation energy for nutrient uptake for the
+            microbial group in question [J K^-1].
         half_saturation_constant: Half saturation constant for nutrient uptake (at
             reference temperature) [kg nut m^-3]
-        constants: Set of constants for the soil model.
+        activation_energy_uptake_saturation: Activation energy for nutrient uptake
+            saturation for the microbial group in question [J K^-1].
+        reference_temperature: The reference temperature of the Arrhenius equation [C]
 
     Returns:
         The maximum uptake rate by the soil microbial biomass for the nutrient in
@@ -1186,13 +1303,13 @@ def calculate_highest_achievable_nutrient_uptake(
     # Calculate impact of temperature on the rate and saturation constants
     temp_factor_rate = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_microbial_uptake,
-        reference_temperature=constants.arrhenius_reference_temp,
+        activation_energy=activation_energy_uptake,
+        reference_temperature=reference_temperature,
     )
     temp_factor_saturation = calculate_temperature_effect_on_microbes(
         soil_temperature=soil_temp,
-        activation_energy=constants.activation_energy_uptake_saturation,
-        reference_temperature=constants.arrhenius_reference_temp,
+        activation_energy=activation_energy_uptake_saturation,
+        reference_temperature=reference_temperature,
     )
     # Rate and saturation constants are then adjusted based on these environmental
     # conditions
@@ -1202,11 +1319,11 @@ def calculate_highest_achievable_nutrient_uptake(
     # Calculate both the rate of carbon uptake, and the rate at which this carbon is
     # assimilated into microbial biomass.
     uptake_rate = rate_constant * (
-        (labile_nutrient_pool * soil_c_pool_microbe)
+        (labile_nutrient_pool * microbial_pool_size)
         / (labile_nutrient_pool + saturation_constant)
     )
 
-    return uptake_rate
+    return np.where(uptake_rate >= 0.0, uptake_rate, 0.0)
 
 
 def calculate_enzyme_mediated_decomposition(
@@ -1461,31 +1578,39 @@ def calculate_soil_nutrient_mineralisation(
 
 
 def calculate_nutrient_flows_to_necromass(
-    microbial_changes: MicrobialChanges, constants: SoilConsts
+    bacterial_loss: NDArray[np.float32],
+    fungal_loss: NDArray[np.float32],
+    enzyme_denaturation: NDArray[np.float32],
+    microbial_groups: dict[str, MicrobialGroupConstants],
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
     These flows comprise of the nitrogen and phosphorus content of the dead cells and
     denatured enzymes that flow into the necromass pool.
 
-    TODO - A core assumption here is that the stoichiometry of the enzymes are identical
-    to the microbial cells. This assumption works for now but will have to be revisited
-    when fungi are added (as they have different stoichiometric ratios but will
-    contribute to the same enzyme pools)
-
     Args:
-        microbial_changes: Full set of changes to the microbial population due to
-            growth, death enzyme production, etc
-        constants: Set of constants for the soil model.
+        bacterial_loss: Rate at which bacterial biomass becomes necromass [kg C m^-3
+            day^-1]
+        fungal_loss: Rate at which fungal biomass becomes necromass [kg C m^-3 day^-1]
+        enzyme_denaturation: Rate at which enzymes denature [kg C m^-3 day^-1]
+        microbial_groups: Set of microbial functional groups defined in the soil model
 
     Returns:
         A tuple containing the rates at which nitrogen [kg N m^-3 day^-1] and phosphorus
         [kg P m^-3 day^-1] are added to the soil necromass pool
     """
 
+    # TODO - Enzymes are assumed to have the same stoichiometry as bacteria, this is a
+    # placeholder assumption that we will lose when a more realistic enzyme production
+    # model is added (see issue #760)
+
     return (
-        microbial_changes.necromass_generation / constants.microbial_c_n_ratio,
-        microbial_changes.necromass_generation / constants.microbial_c_p_ratio,
+        (bacterial_loss / microbial_groups["bacteria"].c_n_ratio)
+        + (fungal_loss / microbial_groups["fungi"].c_n_ratio)
+        + (enzyme_denaturation / microbial_groups["bacteria"].c_n_ratio),
+        (bacterial_loss / microbial_groups["bacteria"].c_p_ratio)
+        + (fungal_loss / microbial_groups["fungi"].c_p_ratio)
+        + (enzyme_denaturation / microbial_groups["bacteria"].c_p_ratio),
     )
 
 
@@ -1625,11 +1750,13 @@ def calculate_rate_of_nitrification(
         effective_saturation=effective_saturation
     )
 
-    return (
+    return np.where(
+        soil_n_pool_ammonium >= 0.0,
         constants.nitrification_rate_constant
         * temp_factor
         * moisture_factor
-        * soil_n_pool_ammonium
+        * soil_n_pool_ammonium,
+        0.0,
     )
 
 
@@ -1663,11 +1790,13 @@ def calculate_rate_of_denitrification(
     )
     moisture_factor = effective_saturation**2
 
-    return (
+    return np.where(
+        soil_n_pool_nitrate >= 0.0,
         constants.denitrification_rate_constant
         * temp_factor
         * moisture_factor
-        * soil_n_pool_nitrate
+        * soil_n_pool_nitrate,
+        0.0,
     )
 
 
@@ -1778,7 +1907,9 @@ def calculate_net_formation_of_secondary_P(
         phosphorus (this can be negative) [kg P m^-3 day^-1]
     """
 
-    association_rate = labile_p_sorption_rate * soil_p_pool_labile
+    association_rate = np.where(
+        soil_p_pool_labile >= 0.0, labile_p_sorption_rate * soil_p_pool_labile, 0.0
+    )
     breakdown_rate = secondary_p_breakdown_rate * soil_p_pool_secondary
 
     return association_rate - breakdown_rate

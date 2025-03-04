@@ -41,10 +41,36 @@ class PlantResources:
         """The animal constants, including energy density."""
         self.is_alive = True
         """Indicating whether the plant cohort is alive [True] or dead [False]."""
+        self.cnp_proportions: dict[str, float] = {
+            "carbon": 0.7,
+            "nitrogen": 0.2,
+            "phosphorus": 0.1,
+        }
+        """Toy stoichiometric proportions of plants."""
+        self.mass_stoich: dict[str, float] = {}
+        """The mass of each stoichiometric element found in the plant resources,
+        {"carbon": value, "nitrogen": value, "phosphorus": value}."""
+
+        # Initialize stoichiometric masses
+        self.update_stoichiometric_mass()
+
+    def update_stoichiometric_mass(self) -> None:
+        """Updates the stoichiometric mass based on the current mass and proportions."""
+        self.mass_stoich = {
+            element: self.mass_current * proportion
+            for element, proportion in self.cnp_proportions.items()
+        }
+
+    def set_mass_current(self, new_mass: float) -> None:
+        """Sets a new mass for the resource and updates stoichiometric mass."""
+        if new_mass < 0:
+            raise ValueError("Mass cannot be negative.")
+        self.mass_current = new_mass
+        self.update_stoichiometric_mass()
 
     def get_eaten(
         self, consumed_mass: float, herbivore: Consumer
-    ) -> tuple[float, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """This function handles herbivory on PlantResources.
 
         TODO: the plant waste here is specifically leaf litter, alternative functions
@@ -52,19 +78,28 @@ class PlantResources:
         tissues (fruits and flowers).
 
         Args:
-            consumed_mass: The mass intended to be consumed by the herbivore.
+            consumed_mass: The total mass intended to be consumed by the herbivore.
             herbivore: The Consumer (AnimalCohort) consuming the PlantResources.
 
         Returns:
-            A tuple consisting of the actual mass consumed by the herbivore (adjusted
+            A tuple consisting of the stoich mass consumed by the herbivore (adjusted
             for efficiencies), and the mass removed from the plants by herbivory that
             isn't consumed and instead becomes litter.
         """
+
+        # Handle zero or invalid consumption
+        if consumed_mass <= 0:
+            return (
+                {element: 0.0 for element in self.cnp_proportions},
+                {element: 0.0 for element in self.cnp_proportions},
+            )
+
         # Check if the requested consumed mass is more than the available mass
         actual_consumed_mass = min(self.mass_current, consumed_mass)
 
         # Update the plant mass to reflect the mass consumed
-        self.mass_current -= actual_consumed_mass
+        # stoichio mass auto-updates through this call
+        self.set_mass_current(self.mass_current - actual_consumed_mass)
 
         # Calculate the energy value of the consumed plants after mechanical efficiency
         effective_mass_for_herbivore = (
@@ -84,4 +119,16 @@ class PlantResources:
             * herbivore.functional_group.conversion_efficiency
         )
 
-        return net_mass_gain, excess_mass
+        # Transform the net_mass_gain into stoichiometric mass
+        herbivore_gain_cnp = {
+            element: net_mass_gain * proportion
+            for element, proportion in self.cnp_proportions.items()
+        }
+
+        # Transform the excess mass into stoichiometric mass
+        plant_litter_cnp = {
+            element: excess_mass * proportion
+            for element, proportion in self.cnp_proportions.items()
+        }
+
+        return herbivore_gain_cnp, plant_litter_cnp

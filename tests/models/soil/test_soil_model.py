@@ -16,7 +16,8 @@ from virtual_ecosystem.models.soil.soil_model import IntegrationError
 REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
@@ -38,10 +39,16 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
 )
+POST_SETUP_LOG = (
+    *REQUIRED_INIT_VAR_LOG,
+    (INFO, "Adding data array for 'dissolved_nitrate'"),
+    (INFO, "Adding data array for 'dissolved_ammonium'"),
+    (INFO, "Adding data array for 'dissolved_phosphorus'"),
+)
 
 
 def test_soil_model_initialization(
-    caplog, dummy_carbon_data, fixture_soil_core_components
+    caplog, dummy_carbon_data, fixture_soil_core_components, functional_groups
 ):
     """Test `SoilModel` initialization with good data."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -53,6 +60,7 @@ def test_soil_model_initialization(
         data=dummy_carbon_data,
         core_components=fixture_soil_core_components,
         model_constants=SoilConsts(),
+        microbial_groups=functional_groups,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
@@ -66,7 +74,7 @@ def test_soil_model_initialization(
     # Final check that expected logging entries are produced
     log_check(
         caplog,
-        expected_log=REQUIRED_INIT_VAR_LOG,
+        expected_log=POST_SETUP_LOG,
     )
 
 
@@ -115,7 +123,7 @@ def test_soil_model_initialization_no_data(
 
 
 def test_soil_model_initialization_bounds_error(
-    caplog, dummy_carbon_data, fixture_core_components
+    caplog, dummy_carbon_data, fixture_core_components, functional_groups
 ):
     """Test `SoilModel` initialization."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -133,6 +141,7 @@ def test_soil_model_initialization_bounds_error(
             data=dummy_carbon_data,
             core_components=fixture_core_components,
             model_constants=SoilConsts(),
+            microbial_groups=functional_groups,
             soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         )
 
@@ -141,13 +150,15 @@ def test_soil_model_initialization_bounds_error(
         caplog,
         expected_log=(
             (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
-            *REQUIRED_INIT_VAR_LOG,
+            *POST_SETUP_LOG,
             (ERROR, "Initial carbon pools contain at least one negative value!"),
         ),
     )
 
 
-def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_components):
+def test_soil_model_all_pools_positive(
+    dummy_carbon_data, fixture_core_components, functional_groups
+):
     """Test `SoilModel` initialization."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -158,6 +169,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
         data=dummy_carbon_data,
         core_components=fixture_core_components,
         model_constants=SoilConsts(),
+        microbial_groups=functional_groups,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
@@ -175,7 +187,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
     "cfg_string,max_decomp,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]",
+            "",
             60.0,
             does_not_raise(),
             (
@@ -185,12 +197,11 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                *REQUIRED_INIT_VAR_LOG,
+                *POST_SETUP_LOG,
             ),
             id="default_config",
         ),
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate_pom = 0.05",
             0.05,
             does_not_raise(),
@@ -201,12 +212,11 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                *REQUIRED_INIT_VAR_LOG,
+                *POST_SETUP_LOG,
             ),
             id="modified_config_correct",
         ),
         pytest.param(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n"
             "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
             None,
             pytest.raises(ConfigurationError),
@@ -222,6 +232,7 @@ def test_soil_model_all_pools_positive(dummy_carbon_data, fixture_core_component
 def test_generate_soil_model(
     caplog,
     dummy_carbon_data,
+    microbial_groups_cfg,
     cfg_string,
     max_decomp,
     raises,
@@ -238,7 +249,13 @@ def test_generate_soil_model(
     register_module("virtual_ecosystem.models.soil")
 
     # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
+    config = Config(
+        cfg_strings=[
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            microbial_groups_cfg,
+            cfg_string,
+        ]
+    )
     core_components = CoreComponents(config)
     caplog.clear()
 
@@ -259,11 +276,20 @@ def test_generate_soil_model(
 def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     """Test to check that the update step works and increments the update step."""
 
+    # Set of pools to be returned to test that update does use (mocked) integrator
     end_lmwc = [0.04980117, 0.01999411, 0.09992829, 0.00499986]
     end_maom = [2.50019883, 1.70000589, 4.50007171, 0.50000014]
     end_microbe = [5.8, 2.3, 11.3, 1.0]
     end_pom = [0.25, 2.34, 0.746, 0.3467]
     end_necromass = [0.058, 0.015, 0.093, 0.105]
+
+    # Set nutrient values to test the dissolved nutrient values calculation step
+    end_nitrate = [0.05, 0.075, 0.09, 0.002]
+    end_ammonium = [0.1, 0.2, 0.3, 0.4]
+    end_phosphorus = [4e-3, 3e-3, 2e-3, 1e-3]
+    dissolved_nitrate = [0.05, 0.075, 0.09, 0.002]
+    dissolved_ammonium = [0.005, 0.01, 0.015, 0.02]
+    dissolved_phosphorus = [2.0e-5, 1.5e-5, 1.0e-5, 5.0e-6]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -274,6 +300,9 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             soil_c_pool_microbe=DataArray(end_microbe, dims="cell_id"),
             soil_c_pool_pom=DataArray(end_pom, dims="cell_id"),
             soil_c_pool_necromass=DataArray(end_necromass, dims="cell_id"),
+            soil_n_pool_nitrate=DataArray(end_nitrate, dims="cell_id"),
+            soil_n_pool_ammonium=DataArray(end_ammonium, dims="cell_id"),
+            soil_p_pool_labile=DataArray(end_phosphorus, dims="cell_id"),
         )
     )
 
@@ -289,6 +318,12 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
     assert np.allclose(dummy_carbon_data["soil_c_pool_pom"], end_pom)
     assert np.allclose(dummy_carbon_data["soil_c_pool_necromass"], end_necromass)
 
+    # Check that dissolved values are populated based on values supplied by (mocked)
+    # integrator
+    assert np.allclose(dummy_carbon_data["dissolved_nitrate"], dissolved_nitrate)
+    assert np.allclose(dummy_carbon_data["dissolved_ammonium"], dissolved_ammonium)
+    assert np.allclose(dummy_carbon_data["dissolved_phosphorus"], dissolved_phosphorus)
+
 
 @pytest.mark.parametrize(
     argnames=["mock_output", "raises", "final_pools", "expected_log"],
@@ -299,59 +334,62 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.05713292, 0.02665739, 0.11689175, 0.01486035], dims="cell_id"
+                        [0.10716745, 0.04243441, 0.21608526, 0.02032034], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
-                        [2.5194618, 1.70483236, 4.53238116, 0.52968038], dims="cell_id"
+                        [2.52007289, 1.71105702, 4.5340965, 0.53207841], dims="cell_id"
                     ),
-                    soil_c_pool_microbe=DataArray(
-                        [5.77303027, 2.2888041, 11.24109943, 0.9964216],
+                    soil_c_pool_bacteria=DataArray(
+                        [5.77302395, 2.28877945, 11.24105325, 0.99642196],
+                        dims="cell_id",
+                    ),
+                    soil_c_pool_fungi=DataArray(
+                        [0.88589732, 8.50953322, 2.19873017, 4.52379322],
                         dims="cell_id",
                     ),
                     soil_c_pool_pom=DataArray(
-                        [0.10088826, 0.99607827, 0.69401858, 0.35272508], dims="cell_id"
+                        [0.10088811, 0.99597975, 0.69401136, 0.35272452], dims="cell_id"
                     ),
                     soil_c_pool_necromass=DataArray(
-                        [0.05840102, 0.01864856, 0.10631116, 0.06904722], dims="cell_id"
+                        [0.06167055, 0.05209188, 0.11550502, 0.0818911], dims="cell_id"
                     ),
                     soil_enzyme_pom=DataArray(
-                        [0.02267842, 0.00957576, 0.05004963, 0.00300993], dims="cell_id"
+                        [0.02271979, 0.00999937, 0.0501659, 0.00317262], dims="cell_id"
                     ),
                     soil_enzyme_maom=DataArray(
-                        [0.0354453, 0.01167442, 0.02538637, 0.00454144], dims="cell_id"
+                        [0.03548666, 0.01209803, 0.02550264, 0.00470413], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00135906, 0.00340964, 0.00273513, 0.00390386], dims="cell_id"
+                        [0.00139199, 0.00327139, 0.00282787, 0.00394078], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
-                        [0.00714836, 0.00074629, 0.00292269, 0.01429302], dims="cell_id"
+                        [0.00714835, 0.00074622, 0.00292266, 0.014293], dims="cell_id"
                     ),
                     soil_n_pool_necromass=DataArray(
-                        [0.00602168, 0.01303568, 0.02189821, 0.00758444], dims="cell_id"
+                        [0.0065247, 0.01818108, 0.02331271, 0.00956047], dims="cell_id"
                     ),
                     soil_n_pool_maom=DataArray(
-                        [0.86671423, 0.48576345, 0.33406677, 0.09935391], dims="cell_id"
+                        [0.86680802, 0.4867186, 0.33433055, 0.09972284], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00053642, 0.01499882, 0.00044842, 0.00538707],
-                        dims="cell_id",
+                        [0.00042711, 0.01507407, 0.0003601, 0.00524337], dims="cell_id"
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00189682, 0.0038413, 0.00031329, 0.01290568], dims="cell_id"
-                    ),
-                    soil_p_pool_dop=DataArray(
-                        [1.68559250e-4, 9.03050817e-5, 3.15038568e-4, 1.66029558e-4],
+                        [0.00056236, 0.00203603, -0.00016227, 0.01271297],
                         dims="cell_id",
                     ),
+                    soil_p_pool_dop=DataArray(
+                        [0.00017381, 0.000129, 0.00032976, 0.00018233], dims="cell_id"
+                    ),
                     soil_p_pool_particulate=DataArray(
-                        [3.21780215e-5, 2.85147941e-4, 1.14676885e-4, 5.71721209e-4],
+                        [3.21779733e-5, 2.85119757e-4, 1.14675695e-4, 5.71720292e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_necromass=DataArray(
-                        [0.00187527, 0.00064763, 0.00343346, 0.00046239], dims="cell_id"
+                        [0.00195702, 0.00148389, 0.00366335, 0.00078355], dims="cell_id"
                     ),
                     soil_p_pool_maom=DataArray(
-                        [0.01355237, 0.03473323, 0.01997613, 0.00400384], dims="cell_id"
+                        [0.01356763, 0.03488897, 0.02001905, 0.0040638], dims="cell_id"
                     ),
                     soil_p_pool_primary=DataArray(
                         [0.0019594, 0.00535662, 0.00277434, 0.00059892], dims="cell_id"
@@ -360,7 +398,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705643, 0.03816757, 0.01152552, 0.00733096], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [9.00903822e-7, 1.92559822e-5, 1.37908411e-5, 1.93794964e-4],
+                        [-6.3944329e-6, -1.18639819e-4, 9.86215495e-7, 1.91352432e-4],
                         dims="cell_id",
                     ),
                 )
@@ -445,13 +483,20 @@ def test_order_independance(
         "litter_N_mineralisation_rate",
         "litter_P_mineralisation_rate",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
 
     # Then extract soil carbon pool names from the fixture (in order)
     pool_names = [
-        name for name in dummy_carbon_data.data.keys() if name in SoilModel.vars_updated
+        name
+        for name in dummy_carbon_data.data.keys()
+        if name in SoilModel.vars_updated
+        and name not in SoilModel.vars_populated_by_init
     ]
 
     # Add pool values from object in reversed order
@@ -474,7 +519,48 @@ def test_order_independance(
         assert np.allclose(output[pool_name], output_reversed[pool_name])
 
 
-def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
+def test_calculate_dissolved_nutrient_concentrations(fixture_soil_model):
+    """Test that the dissolved nutrient concentrations are calculated correctly."""
+
+    expected_concs = {
+        "dissolved_ammonium": [3.4809819e-6, 0.0002495731, 1.145335e-5, 0.000259776695],
+        "dissolved_nitrate": [0.0024219014, 0.0044442996, 0.0003428348, 0.0131405173],
+        "dissolved_phosphorus": [5.2911965e-8, 1.6264805e-7, 3.4033725e-7, 9.728175e-7],
+    }
+
+    actual_concs = fixture_soil_model.calculate_dissolved_nutrient_concentrations()
+
+    assert expected_concs.keys() == actual_concs.keys()
+
+    for nutrient in expected_concs.keys():
+        assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
+
+
+def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model):
+    """Test that the dissolved nutrient concentrations handles negative values."""
+
+    # Overwrite specific data values with negative values
+    fixture_soil_model.data["soil_n_pool_ammonium"][1] = -6.9619638e-5
+    fixture_soil_model.data["soil_n_pool_nitrate"][2] = -0.0024219014
+    fixture_soil_model.data["soil_p_pool_labile"][0] = -1.0582393e-5
+
+    expected_concs = {
+        "dissolved_ammonium": [3.4809819e-6, 0.0, 1.145335e-5, 0.000259776695],
+        "dissolved_nitrate": [0.0024219014, 0.0044442996, 0.0, 0.0131405173],
+        "dissolved_phosphorus": [0.0, 1.6264805e-7, 3.4033725e-7, 9.728175e-7],
+    }
+
+    actual_concs = fixture_soil_model.calculate_dissolved_nutrient_concentrations()
+
+    assert expected_concs.keys() == actual_concs.keys()
+
+    for nutrient in expected_concs.keys():
+        assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
+
+
+def test_construct_full_soil_model(
+    dummy_carbon_data, fixture_core_components, functional_groups
+):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -484,10 +570,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
     )
 
     delta_pools = [
-        0.014984117633,
-        0.0133384581,
-        0.03449812333,
-        0.02425546,
+        0.114909863,
+        0.0426977357,
+        0.23275147271,
+        0.033993336945,
         0.038767651,
         0.00829848,
         0.05982197,
@@ -496,58 +582,62 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -0.022606231,
         -0.118911406,
         -0.007195167,
+        -0.0083255777,
+        -0.0819293436,
+        -0.022969005,
+        -0.032666056,
         0.00177803841,
         -0.007860960795,
         -0.012016245,
         0.00545032,
-        0.001137474,
-        0.009172067,
-        0.033573266,
-        -0.08978050,
-        1.17571917e-8,
-        1.67442231e-8,
-        1.83311362e-9,
-        -1.11675865e-08,
-        -0.00031009,
-        -5.09593e-5,
-        0.0005990658,
-        -3.72112e-5,
-        0.00120201,
-        0.004654495,
-        0.005055088,
-        0.002542567,
+        0.00932274,
+        0.09290406,
+        0.05659641,
+        -0.05764445,
+        8.3534893e-5,
+        0.0008544245,
+        0.0002349318,
+        0.0003279076,
+        -0.000226569,
+        0.0008034485,
+        0.0008339958,
+        0.0002907076,
+        0.00120116138,
+        0.00389444416,
+        0.00505259291,
+        0.00239278244,
         1.102338e-5,
         6.422491e-5,
         0.000131687,
         1.461799e-5,
-        0.00786114,
-        -0.01209909,
-        0.00432363,
-        -0.00891218,
+        0.00912041,
+        0.000782751,
+        0.007865652,
+        -0.00396817,
         0.00148604,
         0.01179891,
         0.01365197,
         0.0077315,
-        0.000952008,
-        0.019913667,
-        0.000505414,
-        0.000455603,
-        -0.000293386,
-        -1.292735e-5,
-        -3.576543e-5,
-        -0.000255954,
-        0.000194453,
-        7.1014337e-5,
-        0.0001851685,
-        0.0001017010,
+        0.00075125671,
+        0.02001151359,
+        0.00039745,
+        0.000172988,
+        -0.003295899,
+        -0.003990944,
+        -0.001045921,
+        -0.000642911,
+        0.0001944445,
+        5.8853523e-5,
+        0.0001841704,
+        9.5709618e-5,
         7.22218e-6,
         -1.13464e-6,
         7.86083e-7,
         5.85634364e-7,
-        2.674836e-3,
-        1.333056e-3,
-        6.8090685e-3,
-        4.1429847e-5,
+        0.002879471,
+        0.003426353,
+        0.007384646,
+        0.000844827,
         5.52086672e-4,
         3.68566732e-5,
         4.7566130e-4,
@@ -560,10 +650,10 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         -2.77311e-6,
         -7.40324e-7,
         -2.187697e-7,
-        -3.772779e-6,
-        -1.947773e-5,
-        -7.260241e-5,
-        -1.591909e-7,
+        -1.643259e-5,
+        -0.000295103,
+        -9.270421e-5,
+        -1.313285e-6,
     ]
 
     # make pools
@@ -590,6 +680,7 @@ def test_construct_full_soil_model(dummy_carbon_data, fixture_core_components):
         top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
+        functional_groups=functional_groups,
         max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
