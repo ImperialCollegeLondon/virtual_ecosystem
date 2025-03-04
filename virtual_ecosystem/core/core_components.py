@@ -89,7 +89,7 @@ class ModelTiming:
     """The configured update interval as a pint Quantity."""
     n_updates: int = field(init=False)
     """The total number of model updates in the configured run."""
-    years_per_update = np.float64 = field(init=False)
+    years_per_update: np.float64 = field(init=False)
     """The number of updates per year based on update_interval."""
     config: InitVar[Config]
     """A validated model configuration."""

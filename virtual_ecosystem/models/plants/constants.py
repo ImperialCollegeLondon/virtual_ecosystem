@@ -14,6 +14,13 @@ class PlantsConsts(ConstantsDataclass):
     per_stem_annual_mortality_rate: float = 0.1
     """Basic annual mortality rate for plants."""
 
+    percent_stem_mass_attributed_to_lignin: float = 0.25
+    """Fraction of stem mass attributed to lignin.
+    
+    This value can vary from species to species, but here is assumed to be 25% for all
+    plants.
+    """
+
     ppfd_to_dsr: float = 2.04
     """Convert from downward shortwave radiation to photosynthetic photon flux density.
 

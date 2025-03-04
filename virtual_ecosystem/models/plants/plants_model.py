@@ -306,8 +306,10 @@ class PlantsModel(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
 
-        # TODO: this is a placeholder
-        self.per_update_interval_stem_mortality_rate = 0.01
+        self.per_update_interval_stem_mortality_rate = (
+            model_constants.per_stem_annual_mortality_rate
+            / self.model_timing.years_per_update
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -340,6 +342,9 @@ class PlantsModel(
 
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
+
+        # Apply mortality to plant cohorts
+        self.apply_mortality()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -639,22 +644,32 @@ class PlantsModel(
 
         """
 
+        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0)
+        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0)
+
         # Loop over each grid cell
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
             # Calculate the number of individuals that have died in each cohort
-            mortality = (
-                cohorts.n_individuals
-                * self.model_constants.per_stem_annual_mortality_rate
+            mortality = np.round(
+                cohorts.n_individuals * self.per_update_interval_stem_mortality_rate
             )
 
-            # Update the cohort data
+            # Decrease size of cohorts based on mortality
             cohorts.n_individuals = cohorts.n_individuals - mortality
 
             # Update deadwood production
-            self.data["deadwood_production"][cell_id] = np.sum(mortality)
+            total_deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
+            print("HAIIII")
+            print(total_deadwood_mass)
+            self.data["deadwood_production"][cell_id] = total_deadwood_mass * (
+                1 - self.model_constants.percent_stem_mass_attributed_to_lignin
+            )
+            self.data["deadwood_lignin"][cell_id] = total_deadwood_mass * (
+                self.model_constants.percent_stem_mass_attributed_to_lignin
+            )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -672,11 +687,9 @@ class PlantsModel(
         """
 
         # All outputs are just constants at the moment
-        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
         self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
             self.data["elevation"], 0.003
         )
-        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
         self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
             self.data["elevation"], 0.01
