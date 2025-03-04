@@ -306,6 +306,7 @@ class PlantsModel(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
 
+        # Calculate the per update interval stem mortality rate
         self.per_update_interval_stem_mortality_rate = (
             model_constants.per_stem_annual_mortality_rate
             / self.model_timing.updates_per_year
