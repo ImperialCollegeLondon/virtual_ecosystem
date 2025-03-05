@@ -91,11 +91,8 @@ def calculate_latent_heat_vapourisation(
         latent heat of vapourisation, [kJ kg-1]
     """
     temperature_kelvin = temperature + celsius_to_kelvin
-    return (
-        latent_heat_vap_equ_factors[0]
-        * (temperature_kelvin / (temperature_kelvin - latent_heat_vap_equ_factors[1]))
-        ** 2
-    ) / 1000.0
+    a, b = latent_heat_vap_equ_factors
+    return (a * (temperature_kelvin / (temperature_kelvin - b)) ** 2) / 1000.0
 
 
 def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
@@ -129,39 +126,6 @@ def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
     return np.array(new_row)
 
 
-def calculate_dewpoint_temperature(
-    air_temperature: NDArray[np.float32],
-    effective_vapour_pressure_air: NDArray[np.float32],
-) -> NDArray[np.float32]:
-    """Calculate the dewpoint temperature.
-
-    Args:
-        air_temperature: Air temperature, [C]
-        effective_vapour_pressure_air: Actual vapour pressure, [kPa]
-
-    Returns:
-        Dewpoint temperature, [C]
-    """
-
-    e0_positive = 611.2 / 1000  # e0 in kPa
-    latent_heat_vapourisation = (2.501 * 10**6) - (2340 * air_temperature)
-    dewpoint_temperature_positive = 1 / 273.15 - (
-        461.5 / latent_heat_vapourisation
-    ) * np.log(effective_vapour_pressure_air / e0_positive)
-
-    e0_negative = 610.78 / 1000
-    latent_heat_sublimation = 2.834 * 10**6
-    dewpoint_temperature_negative = 1 / 273.16 - (
-        461.5 / latent_heat_sublimation
-    ) * np.log(effective_vapour_pressure_air / e0_negative)
-
-    return np.where(
-        air_temperature >= 0,
-        1 / dewpoint_temperature_positive - 273.15,
-        1 / dewpoint_temperature_negative - 273.15,
-    )
-
-
 def calculate_slope_of_saturated_pressure_curve(
     temperature: NDArray[np.float32],
     saturated_pressure_slope_parameters: list[float],
@@ -177,17 +141,9 @@ def calculate_slope_of_saturated_pressure_curve(
         Slope of the saturated pressure curve, :math:`\Delta_{v}`
     """
 
+    a, b, c, d = saturated_pressure_slope_parameters
     return (
-        saturated_pressure_slope_parameters[0]
-        * (
-            saturated_pressure_slope_parameters[1]
-            * np.exp(
-                saturated_pressure_slope_parameters[2]
-                * temperature
-                / (temperature + saturated_pressure_slope_parameters[3])
-            )
-        )
-        / (temperature + saturated_pressure_slope_parameters[3]) ** 2
+        a * (b * np.exp(c * temperature / (temperature + d))) / (temperature + d) ** 2
     )
 
 
