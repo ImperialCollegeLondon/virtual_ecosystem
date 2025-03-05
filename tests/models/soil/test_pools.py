@@ -45,26 +45,26 @@ def test_calculate_all_pool_updates(
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.114909863, 0.0426977357, 0.23275147271, 0.033993336945],
-        "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
+        "soil_c_pool_lmwc": [0.1178918, 0.06892161, 0.24201873, 0.03425211],
+        "soil_c_pool_maom": [0.03734787, 0.00340136, 0.05698608, 0.07275546],
         "soil_c_pool_bacteria": [-0.054361097, -0.022606231, -0.118911406, -0.00719517],
         "soil_c_pool_fungi": [-0.0083255777, -0.0819293436, -0.022969005, -0.032666056],
-        "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
+        "soil_c_pool_pom": [0.00021589, -0.02918772, -0.01844761, 0.00520792],
         "soil_c_pool_necromass": [0.010156477, 0.093205884, 0.056842818, -0.057486698],
         "soil_enzyme_pom_bacteria": [1.18e-8, 1.67e-8, 1.78e-9, -1.12e-8],
         "soil_enzyme_maom_bacteria": [-0.0003101, -5.0959e-5, 0.00059907, -3.7211e-5],
         "soil_enzyme_pom_fungi": [-0.00054216, 0.000716408, 7.989000e-5, 0.000222079],
         "soil_enzyme_maom_fungi": [-0.00012453, 0.000690584, 0.000143562, 0.00027601],
-        "soil_n_pool_don": [0.00120116138, 0.00389444416, 0.00505259291, 0.00239278244],
-        "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
+        "soil_n_pool_don": [0.00180422, 0.00529461, 0.00528487, 0.00240583],
+        "soil_n_pool_particulate": [-1.005585e-4, 4.899227e-5, 1.05432e-4, 4.723906e-6],
         "soil_n_pool_necromass": [0.00924867, 0.00082919, 0.00790357, -0.00394389],
-        "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
+        "soil_n_pool_maom": [0.00099458, 0.01041398, 0.01344595, 0.00772835],
         "soil_n_pool_ammonium": [0.00075125671, 0.02001151359, 0.00039745, 0.000172988],
         "soil_n_pool_nitrate": [-0.003295899, -0.003990944, -0.001045921, -0.000642911],
-        "soil_p_pool_dop": [0.0001944445, 5.8853523e-5, 0.0001841704, 9.5709618e-5],
-        "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
+        "soil_p_pool_dop": [2.02317351e-4, 1.64662024e-4, 1.97339686e-4, 9.62312501e-5],
+        "soil_p_pool_particulate": [6.77587e-6, -7.228e-6, -2.639346e-7, 1.898709e-7],
         "soil_p_pool_necromass": [0.002900315, 0.003433899, 0.007390806, 0.000848771],
-        "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
+        "soil_p_pool_maom": [5.44660113e-4, -6.28584725e-5, 4.635421e-4, 3.0913116e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
         "soil_p_pool_labile": [-1.643259e-5, -0.000295103, -9.270421e-5, -1.313285e-6],
@@ -193,13 +193,15 @@ def test_calculate_enzyme_mediated_rates(
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
     expected_rates = {
-        "pom_to_lmwc": [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5],
-        "maom_to_lmwc": [1.45988485e-3, 2.10172756e-3, 4.69571604e-3, 8.62951373e-6],
+        "pom_to_lmwc": [0.001901992, 0.030246664, 0.018936876, 0.00028383],
+        "maom_to_lmwc": [0.00287967, 0.00699885, 0.00753161, 2.49959e-5],
     }
 
     actual_rates = calculate_enzyme_mediated_rates(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom_bacteria"],
+        soil_enzyme_pom_bacteria=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_enzyme_maom_bacteria=dummy_carbon_data["soil_enzyme_maom_bacteria"],
+        soil_enzyme_pom_fungi=dummy_carbon_data["soil_enzyme_pom_fungi"],
+        soil_enzyme_maom_fungi=dummy_carbon_data["soil_enzyme_maom_fungi"],
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -539,9 +541,9 @@ def test_calculate_enzyme_mediated_decomposition(
         ],
         env_factors=environmental_factors,
         reference_temp=SoilConsts.arrhenius_reference_temp,
-        max_decomp_rate=SoilConsts.max_decomp_rate_pom,
+        max_decomp_rate=SoilConsts.max_decomp_rate_pom_bacteria,
         activation_energy_rate=SoilConsts.activation_energy_pom_decomp_rate,
-        half_saturation=SoilConsts.half_sat_pom_decomposition,
+        half_saturation=SoilConsts.half_sat_pom_decomposition_bacteria,
         activation_energy_sat=SoilConsts.activation_energy_pom_decomp_saturation,
     )
 
@@ -671,7 +673,7 @@ def test_calculate_soil_nutrient_mineralisation(
         calculate_soil_nutrient_mineralisation,
     )
 
-    expected_rate = [2.42745875e-5, 6.371041e-6, 5.104285e-5, 1.690808e-6]
+    expected_rate = [0.00013585646, 2.16036801e-5, 7.72932884e-5, 1.15848952e-5]
 
     actual_rate = calculate_soil_nutrient_mineralisation(
         pool_carbon=dummy_carbon_data["soil_c_pool_pom"],
@@ -753,8 +755,8 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     )
 
     expected_transfers = {
-        "nitrogen": [5.13427177e-4, 5.97759087e-4, 3.44268148e-4, -2.36081562e-7],
-        "phosphorus": [7.76137416e-6, 4.31186485e-5, 2.02023283e-5, -9.44337153e-9],
+        "nitrogen": [0.001004891, 0.001982692, 0.000550295, 2.911293e-6],
+        "phosphorus": [1.51879334e-5, 0.00014283379, 3.23215351e-5, 1.16451482e-7],
     }
 
     actual_transfers = calculate_net_nutrient_transfers_from_maom_to_lmwc(

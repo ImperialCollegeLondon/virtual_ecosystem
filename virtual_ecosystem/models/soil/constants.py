@@ -57,13 +57,23 @@ class SoilConsts(ConstantsDataclass):
     the source of the activation energies and corresponding rates.
     """
 
-    half_sat_pom_decomposition: float = 70.0
-    """Half saturation constant for POM decomposition to LMWC [kg C m^-3].
+    half_sat_pom_decomposition_bacteria: float = 70.0
+    """Half saturation of bacterially produced :term:`POM` decomposition enzyme.
+    
+    Units of [kg C m^-3]. This was calculated from the value provided in
+    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_pom_decomp_saturation`.
+    """
 
-    This was calculated from the value provided in :cite:t:`wang_development_2013`
-    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
-    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
-    is given by :attr:`activation_energy_pom_decomp_saturation`.
+    half_sat_pom_decomposition_fungi: float = 35.0
+    """Half saturation of fungally produced :term:`POM` decomposition enzyme.
+    
+    Units of [kg C m^-3]. The reference temperature is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_pom_decomp_saturation`. The value is chosen to be half
+    the value of :attr:`half_sat_pom_decomposition_bacteria`.
     """
 
     activation_energy_pom_decomp_saturation: float = 30000
@@ -72,8 +82,8 @@ class SoilConsts(ConstantsDataclass):
     Taken from :cite:t:`wang_development_2013`.
     """
 
-    max_decomp_rate_pom: float = 60.0
-    """Maximum rate for particulate organic matter break down (at reference temp).
+    max_decomp_rate_pom_bacteria: float = 60.0
+    """Maximum rate for bacterially produced :term:`POM` decomposition enzyme.
 
     Units of [day^-1]. The reference temperature is given by
     :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
@@ -83,19 +93,38 @@ class SoilConsts(ConstantsDataclass):
     once lignin chemistry is added.
     """
 
+    max_decomp_rate_pom_fungi: float = 120.0
+    """Maximum rate for fungally produced :term:`POM` decomposition enzyme.
+
+    Units of [day^-1]. The reference temperature is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_pom_decomp_rate`. The value is chosen to be double the
+    value of :attr:`max_decomp_rate_pom_bacteria`.
+    """
+
     activation_energy_pom_decomp_rate: float = 37000
     """Activation energy for decomposition of particulate organic matter [J K^-1].
 
     Taken from :cite:t:`wang_development_2013`.
     """
 
-    half_sat_maom_decomposition: float = 350.0
-    """Half saturation constant for MAOM decomposition to LMWC [kg C m^-3].
+    half_sat_maom_decomposition_bacteria: float = 350.0
+    """Half saturation of bacterially produced :term:`MAOM` decomposition enzyme.
+    
+    Units of [kg C m^-3]. This was calculated from the value provided in
+    :cite:t:`wang_development_2013` assuming an average bulk density of 1400 [kg m^-3].
+    The reference temperature is given by :attr:`arrhenius_reference_temp`, and the
+    corresponding activation energy is given by
+    :attr:`activation_energy_maom_decomp_saturation`.
+    """
 
-    This was calculated from the value provided in :cite:t:`wang_development_2013`
-    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
-    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
-    is given by :attr:`activation_energy_maom_decomp_saturation`.
+    half_sat_maom_decomposition_fungi: float = 175.0
+    """Half saturation of fungally produced :term:`MAOM` decomposition enzyme.
+    
+    Units of [kg C m^-3]. The reference temperature is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_maom_decomp_saturation`. The value is chosen to be half
+    the value of :attr:`half_sat_maom_decomposition_bacteria`.
     """
 
     activation_energy_maom_decomp_saturation: float = 30000
@@ -104,13 +133,22 @@ class SoilConsts(ConstantsDataclass):
     Taken from :cite:t:`wang_development_2013`.
     """
 
-    max_decomp_rate_maom: float = 24.0
-    """Maximum rate for mineral associated organic matter decomposition enzyme.
+    max_decomp_rate_maom_bacteria: float = 24.0
+    """Maximum rate for bacterially produced :term:`MAOM` decomposition enzyme.
 
     Units of [day^-1]. The rate is for a reference temperature which is given by
     :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
     by :attr:`activation_energy_maom_decomp_rate`. The value is taken from
     :cite:t:`wang_development_2013`.
+    """
+
+    max_decomp_rate_maom_fungi: float = 48.0
+    """Maximum rate for fungally produced :term:`MAOM` decomposition enzyme.
+
+    Units of [day^-1]. The rate is for a reference temperature which is given by
+    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
+    by :attr:`activation_energy_maom_decomp_rate`. The value is chosen to be double the
+    value of :attr:`max_decomp_rate_maom_bacteria`.
     """
 
     activation_energy_maom_decomp_rate: float = 47000

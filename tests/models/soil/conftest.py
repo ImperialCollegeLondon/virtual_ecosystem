@@ -95,8 +95,10 @@ def enzyme_mediated_rates(
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
     return calculate_enzyme_mediated_rates(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom_bacteria"],
+        soil_enzyme_pom_bacteria=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        soil_enzyme_maom_bacteria=dummy_carbon_data["soil_enzyme_maom_bacteria"],
+        soil_enzyme_pom_fungi=dummy_carbon_data["soil_enzyme_pom_fungi"],
+        soil_enzyme_maom_fungi=dummy_carbon_data["soil_enzyme_maom_fungi"],
         soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
         soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
         soil_temp=dummy_carbon_data["soil_temperature"][
