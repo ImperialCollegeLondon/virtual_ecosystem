@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.16.6
 kernelspec:
   display_name: Python 3
   language: python
@@ -198,18 +198,19 @@ montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius him
 egestas.
 :::
 
-:::{grid-item-card} Lelavathy Samikan Mazilamani
+:::{grid-item-card} Dr. Lelavathy Samikan Mazilamani
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/photo_placeholder.png
-:alt: Lelavathy Samikan Mazilamani
+```{image} _static/images/people/lelavathy.png
+:alt: Dr. Lelavathy Samikan Mazilamani
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Lela is a hydrologist with a particular focus on the hydrological processes and
+water quality in tropical ecosystems, especially in Southeast Asia.
+As one of the data scientists for the Virtual Ecosystem, Lela contributes to the
+abiotic model. Lela is currently based at SEARRP in Kota Kinabalu (Malaysia).
 :::
 
 :::{grid-item-card} Dr. Hao Ran Lai
