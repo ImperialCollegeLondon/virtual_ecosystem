@@ -128,7 +128,7 @@ class AbioticConsts(ConstantsDataclass):
     saturated_pressure_slope_parameters: list[float] = field(
         default_factory=lambda: [4098.0, 0.6108, 17.27, 237.3]
     )
-    """List of parameters to calcualte the slope of saturated vapour pressure curve."""
+    """List of parameters to calculate the slope of saturated vapour pressure curve."""
 
     water_to_air_mass_ratio: float = 0.622
     """Ratio of the molecular mass of water vapour to dry air.
