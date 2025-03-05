@@ -77,7 +77,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     # )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.357065, 19.966271])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.357065, 19.959777])[:, None]
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],

@@ -193,5 +193,5 @@ def calculate_vapour_pressure_soil(
         saturated_vapour_pressure
         * np.exp(
             soil_matric_potential / (gas_constant_water_vapour * soil_temperature)
-        ).squeeze()
+        ).squeeze()  # TODO why squeeze?
     )

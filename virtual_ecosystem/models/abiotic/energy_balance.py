@@ -355,7 +355,6 @@ def update_soil_temperature(
     """
 
     n_layers = len(soil_temperature)
-    new_soil_temperature = soil_temperature.copy()
 
     # Soil thermal diffusivity, [m2 s-1]
     soil_thermal_diffusivity = soil_thermal_conductivity / (
@@ -364,7 +363,7 @@ def update_soil_temperature(
 
     # Update internal layers using diffusion
     for i in range(1, n_layers - 1):
-        new_soil_temperature[i, :] += (
+        soil_temperature[i, :] += (
             (time_interval / soil_layer_thickness[i] ** 2)
             * soil_thermal_diffusivity
             * (
@@ -375,7 +374,7 @@ def update_soil_temperature(
         )
 
     # Update top layer with ground heat flux
-    new_soil_temperature[0, :] += (
+    soil_temperature[0, :] += (
         (
             time_interval
             / (
@@ -388,13 +387,13 @@ def update_soil_temperature(
     ).squeeze()  # TODO check why squeeze needed
 
     # No heat flux boundary at the bottom (insulation assumption)
-    new_soil_temperature[-1, :] += (
+    soil_temperature[-1, :] += (
         (time_interval / soil_layer_thickness[-1] ** 2)
         * soil_thermal_diffusivity
         * (soil_temperature[-2, :] - soil_temperature[-1, :])
     )
 
-    return new_soil_temperature
+    return soil_temperature
 
 
 def update_air_canopy_temperature(
