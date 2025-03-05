@@ -337,9 +337,38 @@ def update_soil_temperature(
     specific_heat_capacity_soil: float | NDArray[np.float32],
     time_interval: int,
 ) -> NDArray[np.float32]:
-    """Update soil temperature using heat diffusion.
+    r"""Update soil temperature using heat diffusion.
 
-    TODO add description and equations
+    The function applies an explicit finite-difference approach to update
+    soil temperatures based on thermal diffusivity and heat flux.
+
+    Governing equations:
+
+    Soil thermal diffusivity:
+
+    .. math::
+        \alpha = \frac{\lambda}{\rho c}
+
+    where :math:`\lambda` is the soil thermal conductivity [W m-1 K-1],
+    :math:`\rho` is the soil bulk density [kg m-3], :math:`c` is the specific heat
+    capacity of soil [J kg-1 K-1].
+
+    Internal layer update:
+
+    .. math::
+        T_i^{t+\Delta t} = T_i^t + (\Delta t / \Delta z^2)
+        * \alpha * (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+
+    Top layer update with ground heat flux:
+
+    .. math::
+        T_0^{t+\Deltat} = T_0^t + (\Delta t / (\rho c \Delta z)) * G
+
+    No-heat-flux bottom boundary condition:
+
+    .. math::
+        T_{n-1}^{t+\Delta t} = T_{n-1}^t + (\Delta t / \Delta z^2)
+        * \alpha * (T_{n-2}^t - T_{n-1}^t)
 
     Args:
         ground_heat_flux: Ground heat flux at top soil, [W m-2]
@@ -375,16 +404,9 @@ def update_soil_temperature(
 
     # Update top layer with ground heat flux
     soil_temperature[0, :] += (
-        (
-            time_interval
-            / (
-                soil_bulk_density
-                * specific_heat_capacity_soil
-                * soil_layer_thickness[0]
-            )
-        )
-        * ground_heat_flux
-    ).squeeze()  # TODO check why squeeze needed
+        time_interval
+        / (soil_bulk_density * specific_heat_capacity_soil * soil_layer_thickness[0])
+    ) * ground_heat_flux
 
     # No heat flux boundary at the bottom (insulation assumption)
     soil_temperature[-1, :] += (
@@ -523,7 +545,7 @@ def update_humidity_vpd(
     """
 
     # Convert evapotranspiration and soil evaporation from [mm] to [kg/m^3]
-    cell_area_in_ha = cell_area / 10000  # convert m² to hectares
+    cell_area_in_ha = cell_area / 10000  # convert m2 to hectares
     additional_water = np.zeros_like(layer_thickness)
     additional_water[1 : len(evapotranspiration) + 1] = (
         evapotranspiration * 1000 / cell_area_in_ha

@@ -166,29 +166,3 @@ def calculate_actual_vapour_pressure(
         saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
-
-
-def calculate_vapour_pressure_soil(
-    soil_temperature: NDArray[np.float32],
-    soil_matric_potential: NDArray[np.float32],
-    saturated_vapour_pressure: NDArray[np.float32],
-    gas_constant_water_vapour: float,
-) -> NDArray[np.float32]:
-    """Calculate vapour pressure at soil surface.
-
-    Args:
-    soil_temperature: Topsoil temperature, [C]
-    soil_matric_potential: Soil matric potential, [kPa]
-    saturated_vapour_pressure: Saturated vapour pressure, [kPa]
-    gas_constant_water_vapour: Specific gas constant for water vapour, [J kg-1K-1]
-
-    Returns:
-        Vapour pressure at soil surface, [kPa]
-    """
-
-    return (
-        saturated_vapour_pressure
-        * np.exp(
-            soil_matric_potential / (gas_constant_water_vapour * soil_temperature)
-        ).squeeze()  # TODO why squeeze?
-    )

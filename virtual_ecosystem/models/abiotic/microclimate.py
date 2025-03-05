@@ -138,8 +138,8 @@ def run_microclimate(
     air_temperature_canopy = data["air_temperature"][
         layer_structure.index_filled_canopy
     ].to_numpy()
-    surface_temperature = data["air_temperature"][
-        layer_structure.index_surface
+    surface_air_temperature = data["air_temperature"][
+        layer_structure.index_surface_scalar
     ].to_numpy()
     canopy_temperature = data["canopy_temperature"][
         layer_structure.index_filled_canopy
@@ -210,7 +210,7 @@ def run_microclimate(
         sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
             density_air=density_air_kg,
             specific_heat_air=specific_heat_air_kg,
-            air_temperature=surface_temperature,
+            air_temperature=surface_air_temperature,
             surface_temperature=soil_temperature[0],
             aerodynamic_resistance=aerodynamic_resistance_soil,
         )
@@ -261,7 +261,7 @@ def run_microclimate(
             .isel(time_index=time_index)
             .to_numpy(),
             absorbed_radiation=data["shortwave_absorption"][
-                layer_structure.index_topsoil
+                layer_structure.index_topsoil_scalar
             ].to_numpy(),
             longwave_emission=longwave_emission_soil,
             albedo=abiotic_constants.surface_albedo,
@@ -311,7 +311,7 @@ def run_microclimate(
             density_air_kg * specific_heat_air_kg
         )
         new_surface_temperature = (
-            surface_temperature + core_constants.zero_Celsius
+            surface_air_temperature + core_constants.zero_Celsius
         ) + surface_temperature_change
 
         soil_temperature = new_soil_temperature
@@ -319,10 +319,10 @@ def run_microclimate(
             new_air_temperature_canopy - core_constants.zero_Celsius
         )
         canopy_temperature = new_canopy_temperature - core_constants.zero_Celsius
-        surface_temperature = new_surface_temperature - core_constants.zero_Celsius
+        surface_air_temperature = new_surface_temperature - core_constants.zero_Celsius
 
         all_air_temperature[1 : len(canopy_temperature) + 1] = canopy_temperature
-        all_air_temperature[-1] = surface_temperature
+        all_air_temperature[-1] = surface_air_temperature
 
         # TODO dimensions -  Update atmospheric humidity/VPD
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
@@ -369,9 +369,7 @@ def run_microclimate(
     # Combine sensible heat flux in one variable, TODO consider time interval
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
-    sensible_heat_flux[layer_structure.index_topsoil_scalar] = (
-        sensible_heat_flux_soil.squeeze()  # TODO check why squeeze needed
-    )
+    sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
     output["sensible_heat_flux"] = sensible_heat_flux  # * time_interval
 
     # Combine latent heat flux in one variable, TODO consider time interval
@@ -388,7 +386,7 @@ def run_microclimate(
     air_temperature_out = layer_structure.from_template()
     air_temperature_out[layer_structure.index_above] = all_air_temperature[0]
     air_temperature_out[layer_structure.index_filled_canopy] = air_temperature_canopy
-    air_temperature_out[layer_structure.index_surface] = surface_temperature
+    air_temperature_out[layer_structure.index_surface] = surface_air_temperature
     output["air_temperature"] = air_temperature_out
 
     canopy_temperature_out = layer_structure.from_template()
