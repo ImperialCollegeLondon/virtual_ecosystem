@@ -21,7 +21,7 @@ def setup_hydrology_input_current_timestep(
     soil_moisture_capacity: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
     core_constants: CoreConsts,
-    latent_heat_vap_equ_factors: list[float],
+    latent_heat_vap_equ_factors: tuple[float, float],
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 

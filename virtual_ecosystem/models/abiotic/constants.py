@@ -141,3 +141,6 @@ class AbioticConsts(ConstantsDataclass):
 
     This term accounts for the proportion of dry air when computing the partitioning
     of total air pressure."""
+
+    initial_flux_value: float = 0.001
+    """Initial non-zero fill value for energy fluxes, [W m-2]."""

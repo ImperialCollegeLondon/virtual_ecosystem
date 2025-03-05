@@ -78,6 +78,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         layer_structure=fixture_core_components.layer_structure,
         light_extinction_coefficient=0.01,
         canopy_temperature_ini_factor=0.01,
+        initial_flux_value=0.001,
     )
 
     exp_abs = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])

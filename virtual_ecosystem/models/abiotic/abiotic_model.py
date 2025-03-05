@@ -214,6 +214,7 @@ class AbioticModel(
             canopy_temperature_ini_factor=(
                 self.model_constants.canopy_temperature_ini_factor
             ),
+            initial_flux_value=self.model_constants.initial_flux_value,
         )
 
         # Update data object

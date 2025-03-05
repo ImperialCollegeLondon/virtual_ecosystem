@@ -119,6 +119,7 @@ def initialise_canopy_and_soil_fluxes(
     layer_structure: LayerStructure,
     light_extinction_coefficient: float,
     canopy_temperature_ini_factor: float,
+    initial_flux_value: float,
 ) -> dict[str, DataArray]:
     """Initialise canopy temperature and energy fluxes.
 
@@ -135,6 +136,7 @@ def initialise_canopy_and_soil_fluxes(
         light_extinction_coefficient: Light extinction coefficient for canopy
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
             function of air temperature and absorbed shortwave radiation
+        initial_flux_value: Initial non-zero flux, [W m-2]
 
     Returns:
         Dictionary with absorbed radiation (canopy), canopy temperature, sensible
@@ -193,8 +195,8 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="sensible_heat_flux",
     )
-    sensible_heat_flux[layer_structure.index_filled_canopy] = 0.001
-    sensible_heat_flux[layer_structure.index_topsoil] = 0.001
+    sensible_heat_flux[layer_structure.index_filled_canopy] = initial_flux_value
+    sensible_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["sensible_heat_flux"] = sensible_heat_flux
 
     # Initialise latent heat flux with non-zero mimimum values and write in output
@@ -207,7 +209,7 @@ def initialise_canopy_and_soil_fluxes(
         coords=layer_heights.coords,
         name="ground_heat_flux",
     )
-    ground_heat_flux[layer_structure.index_topsoil] = 0.001
+    ground_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["ground_heat_flux"] = ground_heat_flux
 
     return output
