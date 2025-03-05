@@ -647,7 +647,6 @@ class PlantsModel(
         """
 
         self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0)
-        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0)
 
         # Loop over each grid cell
         for cell_id in self.communities.keys():
@@ -663,12 +662,8 @@ class PlantsModel(
             cohorts.n_individuals = cohorts.n_individuals - mortality
 
             # Update deadwood production
-            total_deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
-            self.data["deadwood_production"][cell_id] = total_deadwood_mass * (
-                1 - self.model_constants.percent_stem_mass_attributed_to_lignin
-            )
-            self.data["deadwood_lignin"][cell_id] = total_deadwood_mass * (
-                self.model_constants.percent_stem_mass_attributed_to_lignin
+            self.data["deadwood_production"][cell_id] = np.sum(
+                mortality * community.stem_allometry.stem_mass
             )
 
     def calculate_turnover(self) -> None:
@@ -694,6 +689,7 @@ class PlantsModel(
         self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
             self.data["elevation"], 0.01
         )
+        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["root_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.2)
         self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
         self.data["leaf_turnover_c_n_ratio"] = xr.full_like(

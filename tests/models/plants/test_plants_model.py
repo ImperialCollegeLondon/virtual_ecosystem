@@ -247,6 +247,7 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
         fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"], 125.5
     )
     assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)
+    assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
 
 
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
@@ -275,15 +276,9 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
     for cell_id in fxt_plants_model.communities.keys():
         community = fxt_plants_model.communities[cell_id]
 
-        # Check that the deadwood production and lignin total the expected total
-        # deadwood mass
         mortality = (
             original_population[cell_id]
             - fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
         deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
-        assert (
-            fxt_plants_model.data["deadwood_production"][cell_id]
-            + fxt_plants_model.data["deadwood_lignin"][cell_id]
-            == deadwood_mass
-        )
+        assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
