@@ -127,6 +127,7 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
+    ("py:class", "numpy.float64"),
     # HACK - core_components docstrings are being odd.
     ("py:class", "NDArray"),
     ("py:class", "np.int_"),
