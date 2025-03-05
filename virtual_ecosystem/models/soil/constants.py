@@ -14,10 +14,11 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class SoilConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `soil` model."""
 
-    reference_cue: float = 0.6
-    """Carbon use efficiency of community at the reference temperature [no units].
-
-    Default value taken from :cite:t:`abramoff_millennial_2018`.
+    # TODO - Add value from data science repo
+    reference_cue_logit: float = 0.6
+    """Logit of of the carbon use efficiency of community at the reference temperature.
+    
+    [unitless]. TODO - Explain where this value comes from
     """
 
     cue_reference_temp: float = 15.0
@@ -26,10 +27,11 @@ class SoilConsts(ConstantsDataclass):
     Default value taken from :cite:t:`abramoff_millennial_2018`.
     """
 
-    cue_with_temperature: float = 0.012
-    """Change in carbon use efficiency with increasing temperature [degree C^-1].
-
-    Default value taken from :cite:t:`abramoff_millennial_2018`.
+    # TODO - Add value from data science repo
+    logit_cue_with_temperature: float = 0.012
+    """Change in the logit of carbon use efficiency with increasing temperature
+    
+    Units of [degree C^-1]. TODO - Explain where this value comes from
     """
 
     soil_microbe_water_potential_optimum: float = -3.0

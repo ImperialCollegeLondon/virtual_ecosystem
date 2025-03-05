@@ -333,12 +333,12 @@ def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_compone
     expected_cues = [0.36, 0.33, 0.3, 0.48]
 
     actual_cues = calculate_carbon_use_efficiency(
-        dummy_carbon_data["soil_temperature"][
+        soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        SoilConsts.reference_cue,
-        SoilConsts.cue_reference_temp,
-        SoilConsts.cue_with_temperature,
+        reference_cue_logit=SoilConsts.reference_cue_logit,
+        cue_reference_temp=SoilConsts.cue_reference_temp,
+        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
     )
 
     assert np.allclose(actual_cues, expected_cues)
