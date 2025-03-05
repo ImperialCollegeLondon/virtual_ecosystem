@@ -5,7 +5,7 @@ These parameters are constants in that they should not be changed during a parti
 simulation.
 """  # noqa: D205
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
@@ -28,16 +28,12 @@ class AbioticConsts(ConstantsDataclass):
     assume here that the reference height is above the canopy, please check the input
     data carefully and be aware of limitations."""
 
-    specific_heat_equ_factors: list[float] = field(
-        default_factory=lambda: [2e-05, 0.0002]
-    )
+    specific_heat_equ_factors: tuple[float, float] = 2e-05, 0.0002
     """Factors in calculation of molar specific heat of air.
 
     Implementation after :cite:t:`maclean_microclimc_2021`."""
 
-    latent_heat_vap_equ_factors: list[float] = field(
-        default_factory=lambda: [1.91846e6, 33.91]
-    )
+    latent_heat_vap_equ_factors: tuple[float, float] = 1.91846e6, 33.91
     """Factors in calculation of latent heat of vapourisation.
 
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
@@ -125,8 +121,11 @@ class AbioticConsts(ConstantsDataclass):
     soil_emissivity: float = 0.8
     """Soil emissivity, dimensionless."""
 
-    saturated_pressure_slope_parameters: list[float] = field(
-        default_factory=lambda: [4098.0, 0.6108, 17.27, 237.3]
+    saturated_pressure_slope_parameters: tuple[float, float, float, float] = (
+        4098.0,
+        0.6108,
+        17.27,
+        237.3,
     )
     """List of parameters to calculate the slope of saturated vapour pressure curve."""
 

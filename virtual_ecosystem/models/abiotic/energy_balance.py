@@ -518,7 +518,8 @@ def update_humidity_vpd(
         cell_area: Grid cell area, [m2]
 
     Returns:
-      A dictionary containing arrays of updated ``specific_humidity``, ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
+      A dictionary containing arrays of updated ``specific_humidity``,
+      ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
     """
 
     # Convert evapotranspiration and soil evaporation from [mm] to [kg/m^3]

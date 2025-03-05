@@ -50,7 +50,7 @@ def calculate_molar_density_air(
 def calculate_specific_heat_air(
     temperature: NDArray[np.float32],
     molar_heat_capacity_air: float,
-    specific_heat_equ_factors: list[float],
+    specific_heat_equ_factors: tuple[float, float],
 ) -> NDArray[np.float32]:
     """Calculate temperature-dependent specific heat of air.
 
@@ -64,17 +64,14 @@ def calculate_specific_heat_air(
     Returns:
         specific heat of air at constant pressure, [J mol-1 K-1]
     """
-    return (
-        specific_heat_equ_factors[0] * temperature**2
-        + specific_heat_equ_factors[1] * temperature
-        + molar_heat_capacity_air
-    )
+    factor_1, factor_2 = specific_heat_equ_factors
+    return factor_1 * temperature**2 + factor_2 * temperature + molar_heat_capacity_air
 
 
 def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,
-    latent_heat_vap_equ_factors: list[float],
+    latent_heat_vap_equ_factors: tuple[float, float],
 ) -> NDArray[np.float32]:
     """Calculate latent heat of vapourisation.
 
@@ -128,7 +125,7 @@ def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
 
 def calculate_slope_of_saturated_pressure_curve(
     temperature: NDArray[np.float32],
-    saturated_pressure_slope_parameters: list[float],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
 ) -> NDArray[np.float32]:
     r"""Calculate slope of the saturated pressure curve.
 
