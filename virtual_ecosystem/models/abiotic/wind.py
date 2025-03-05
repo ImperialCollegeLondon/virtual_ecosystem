@@ -113,7 +113,9 @@ def calculate_roughness_length_momentum(
 
     # If roughness length in nan, zero or below sero, set to minimum value
     roughness_length = np.nan_to_num(roughness_length, nan=min_roughness_length)
-    return np.where(roughness_length <= 0, min_roughness_length, roughness_length)
+    return np.where(
+        roughness_length <= min_roughness_length, min_roughness_length, roughness_length
+    )
 
 
 def calculate_wind_profile(
@@ -144,7 +146,7 @@ def calculate_wind_profile(
         roughness_length: Momentum roughness length, [m]
         zero_plane_displacement: Height above ground within the canopy where the wind
             profile extrapolates to zero, [m]
-        min_wind_speed: Minimum wind speed, [m s-1]
+        min_wind_speed: Minimum wind speed to avoid division by zero, [m s-1]
 
     Returns:
         Wind speed, [m s-1]
@@ -160,7 +162,7 @@ def calculate_wind_profile(
         * np.log((heights - zero_plane_displacement) / roughness_length)
         / np.log((reference_height - zero_plane_displacement) / roughness_length)
     )
-    return np.where(wind_speed >= 0, wind_speed, min_wind_speed)
+    return np.where(wind_speed >= min_wind_speed, wind_speed, min_wind_speed)
 
 
 def calculate_friction_velocity(
