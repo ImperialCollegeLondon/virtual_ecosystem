@@ -202,7 +202,7 @@ egestas.
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/lelavathy.png
+```{image} _static/images/people/lelavathy.jpg
 :alt: Dr. Lelavathy Samikan Mazilamani
 :class: team-photo
 ```
