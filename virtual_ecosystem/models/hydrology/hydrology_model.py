@@ -563,6 +563,7 @@ class HydrologyModel(
 
             # Update soil moisture by +/- vertical flow to each layer and remove root
             # water uptake by plants (transpiration), [mm]
+            # TODO combined input from evaporation and transpiration
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
                 vertical_flow=vertical_flow,  # mm
@@ -579,6 +580,7 @@ class HydrologyModel(
             daily_lists["soil_moisture"].append(soil_moisture_updated)
 
             # Convert soil moisture to matric potential
+            # TODO replace with van Genuchten implementation
             matric_potential = below_ground.convert_soil_moisture_to_water_potential(
                 soil_moisture=(
                     soil_moisture_updated / self.soil_layer_thickness_mm  # vol
