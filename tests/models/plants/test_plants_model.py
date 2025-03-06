@@ -230,6 +230,7 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
     )
+    assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
     assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover_lignin"], 0.01
@@ -247,7 +248,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
         fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"], 125.5
     )
     assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)
-    assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
 
 
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):

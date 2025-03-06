@@ -685,11 +685,11 @@ class PlantsModel(
         self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
             self.data["elevation"], 0.003
         )
+        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
         self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
             self.data["elevation"], 0.01
         )
-        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["root_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.2)
         self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
         self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
