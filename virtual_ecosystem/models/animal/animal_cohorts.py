@@ -63,10 +63,6 @@ class AnimalCohort:
         """Remaining time that the cohort is frozen in a migrated or aquatic state."""
         self.id: uuid.UUID = uuid.uuid4()
         """A unique identifier for the cohort."""
-        # self.damuth_density: int = sf.damuths_law(
-        #    self.functional_group.adult_mass, self.functional_group.damuths_law_terms
-        # )
-        """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.is_mature: bool = False

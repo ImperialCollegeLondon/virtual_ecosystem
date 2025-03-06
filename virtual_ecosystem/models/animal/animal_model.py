@@ -824,7 +824,7 @@ class AnimalModel(
     def calculate_offspring_count(
         self, parent: AnimalCohort, reproductive_mass: dict[str, float]
     ) -> int:
-        """Calculate the maximum number of offspring based on available mass.
+        """Calculate the maximum number of total offspring based on available mass.
 
         Each offspring has a defined birth mass, which must be split into C, N, and P.
         The limiting nutrient determines how many offspring can be made.
