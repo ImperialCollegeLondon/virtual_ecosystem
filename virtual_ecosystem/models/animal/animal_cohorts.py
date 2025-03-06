@@ -25,11 +25,7 @@ from virtual_ecosystem.models.animal.protocols import Resource
 
 
 class AnimalCohort:
-    """This is a class of animal cohorts.
-
-    TODO: Implement stoichiometric reproduction
-
-    """
+    """This is a class of animal cohorts."""
 
     def __init__(
         self,

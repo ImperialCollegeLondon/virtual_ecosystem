@@ -50,6 +50,10 @@ class AnimalConsts(ConstantsDataclass):
                 DietType.HERBIVORE: (-0.75, 5.00),
                 DietType.CARNIVORE: (-0.75, 2.00),
             },
+            TaxaType.AMPHIBIAN: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+            },
         }
     )
 
@@ -82,7 +86,10 @@ class AnimalConsts(ConstantsDataclass):
                 TaxaType.MAMMAL: (1.0, 1.0),  # Toy values
                 TaxaType.BIRD: (1.0, 1.0),  # Toy values
             },
-            MetabolicType.ECTOTHERMIC: {TaxaType.INSECT: (1.0, 1.0)},  # Toy values
+            MetabolicType.ECTOTHERMIC: {
+                TaxaType.INSECT: (1.0, 1.0),
+                TaxaType.AMPHIBIAN: (1.0, 1.0),
+            },  # Toy values
         }
     )
 
@@ -91,6 +98,7 @@ class AnimalConsts(ConstantsDataclass):
             TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
             TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
             TaxaType.INSECT: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
 

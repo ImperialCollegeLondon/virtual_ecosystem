@@ -26,6 +26,7 @@ class TaxaType(Enum):
     MAMMAL = "mammal"
     BIRD = "bird"
     INSECT = "insect"
+    AMPHIBIAN = "amphibian"
 
 
 class ReproductiveType(Enum):

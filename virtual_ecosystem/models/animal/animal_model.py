@@ -795,9 +795,7 @@ class AnimalModel(
             return  # Insufficient mass for offspring
 
         self.handle_offspring_creation(parent_cohort, number_offspring)
-        self.handle_post_birth_parent_updates(
-            parent_cohort, number_offspring, reproductive_mass
-        )
+        self.handle_post_birth_parent_updates(parent_cohort, number_offspring)
 
     def calculate_total_reproductive_mass(
         self, parent: AnimalCohort
@@ -813,12 +811,14 @@ class AnimalModel(
         Returns:
             Reproductive mass for carbon, nitrogen, phosphorus (kg).
         """
-        loss = self.calculate_semelparous_mass_loss(parent)
+        semelparous_loss = self.calculate_semelparous_mass_loss(parent)
 
         return {
-            "carbon": parent.reproductive_mass_cnp.carbon + loss["carbon"],
-            "nitrogen": parent.reproductive_mass_cnp.nitrogen + loss["nitrogen"],
-            "phosphorus": parent.reproductive_mass_cnp.phosphorus + loss["phosphorus"],
+            "carbon": parent.reproductive_mass_cnp.carbon + semelparous_loss["carbon"],
+            "nitrogen": parent.reproductive_mass_cnp.nitrogen
+            + semelparous_loss["nitrogen"],
+            "phosphorus": parent.reproductive_mass_cnp.phosphorus
+            + semelparous_loss["phosphorus"],
         }
 
     def calculate_offspring_count(
@@ -871,7 +871,6 @@ class AnimalModel(
         self,
         parent: AnimalCohort,
         offspring_count: int,
-        reproductive_mass: dict[str, float],
     ) -> None:
         """Update parent's reproductive mass and handle semelparous death if needed.
 
@@ -881,7 +880,6 @@ class AnimalModel(
         Args:
             parent: The parent cohort.
             offspring_count: Number of offspring produced.
-            reproductive_mass: Total available reproductive mass (C, N, P).
         """
         birth_mass = parent.functional_group.birth_mass
         birth_c, birth_n, birth_p = self.calculate_birth_mass_cnp(birth_mass, parent)
@@ -890,6 +888,7 @@ class AnimalModel(
         total_n = offspring_count * birth_n
         total_p = offspring_count * birth_p
 
+        # TODO: double check that total_c can't be more than available mass
         parent.reproductive_mass_cnp.update(
             carbon=-min(total_c, parent.reproductive_mass_cnp.carbon),
             nitrogen=-min(total_n, parent.reproductive_mass_cnp.nitrogen),
@@ -910,6 +909,7 @@ class AnimalModel(
         Args:
             parent: The parent cohort.
         """
+        # TODO: avoid recalculating this mass loss
         loss = self.calculate_semelparous_mass_loss(parent)
 
         parent.mass_cnp.update(
@@ -1244,8 +1244,10 @@ class AnimalModel(
             return self.is_migration_season()
         return False
 
-    def is_migration_season(self, cohort: AnimalCohort) -> bool:
+    def is_migration_season(self) -> bool:
         """Handles determination of whether it is time to migrate.
+
+        TODO: this needs actual content
 
         Args:
             cohort: The animal cohort being tested for migration season.

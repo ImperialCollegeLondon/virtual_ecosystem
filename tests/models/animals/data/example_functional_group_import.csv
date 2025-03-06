@@ -10,4 +10,4 @@ herbivorous_insect_semelparous,insect,herbivore,ectothermic,terrestrial,semelpar
 butterfly,insect,herbivore,ectothermic,terrestrial,semelparous,indirect,adult,caterpillar,uricotelic,none,0.0005,0.005
 caterpillar,insect,herbivore,ectothermic,terrestrial,nonreproductive,indirect,larval,butterfly,uricotelic,none,0.0005,0.005
 frog,amphibian,carnivore,ectothermic,aquatic,iteroparous,direct,adult,frog,ureotelic,none,0.005,0.5
-swallow,bird,carnivore,endotherm,terrestrial,iteroparous,direct,adult,swallow,uricotelic,seasonal,0.005,0.2
+swallow,bird,carnivore,endothermic,terrestrial,iteroparous,direct,adult,swallow,uricotelic,seasonal,0.005,0.2
