@@ -1159,10 +1159,3 @@ description = "Amount of enzyme class which breaks down mineral associated organ
 name = "soil_enzyme_maom"
 unit = "kg C m^-3"
 variable_type = "float"
-
-[[variable]]
-axis = []
-description = "Percent of stems that die in each update interval"
-name = "per_update_interval_stem_mortality_rate"
-unit = "percent mortality per update interval"
-variable_type = "float"
