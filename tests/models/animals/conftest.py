@@ -108,14 +108,46 @@ def animal_fixture_config():
         surface_layer_height = 0.1
 
         [plants]
-        a_plant_integer = 12
-        [[plants.ftypes]]
-        pft_name = "shrub"
-        max_height = 1.0
-        [[plants.ftypes]]
-        pft_name = "broadleaf"
-        max_height = 50.0
+        [[plants.pft_definition]]
+        a_hd = 116.0
+        ca_ratio = 390.43
+        f_g = 0.02
+        h_max = 25.33
+        lai = 1.8
+        m = 2
+        n = 5
+        name = 'shrub'
+        par_ext = 0.5
+        resp_f = 0.1
+        resp_r = 0.913
+        resp_s = 0.044
+        rho_s = 200.0
+        sla = 14.0
+        tau_f = 4.0
+        tau_r = 1.04
+        yld = 0.17
+        zeta = 0.17
 
+        [[plants.pft_definition]]
+        a_hd = 116.0
+        ca_ratio = 390.43
+        f_g = 0.02
+        h_max = 30.33
+        lai = 1.8
+        m = 2
+        n = 5
+        name = 'broadleaf'
+        par_ext = 0.5
+        resp_f = 0.1
+        resp_r = 0.913
+        resp_s = 0.044
+        rho_s = 200.0
+        sla = 14.0
+        tau_f = 4.0
+        tau_r = 1.04
+        yld = 0.17
+        zeta = 0.17
+        
         [[animal.functional_groups]]
         name = "carnivorous_bird"
         taxa = "bird"
@@ -334,8 +366,8 @@ def dummy_animal_data(animal_fixture_core_components):
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
-    data["canopy_absorption"] = from_template()
-    data["canopy_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_filled_canopy] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -672,17 +704,30 @@ def butterfly_cohort_instance(
 
 @pytest.fixture
 def excrement_pool_instance():
-    """Fixture for a soil pool used in tests."""
+    """Fixture for an excrement pool used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_carbon=0.0,
-        decomposed_carbon=0.0,
-        scavengeable_nitrogen=0.0,
-        decomposed_nitrogen=0.0,
-        scavengeable_phosphorus=0.0,
-        decomposed_phosphorus=0.0,
+        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
     )
+
+
+@pytest.fixture
+def excrement_pools_instance():
+    """Fixture for excrement pools used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
+    from virtual_ecosystem.models.animal.decay import ExcrementPool
+
+    return {
+        1: [
+            ExcrementPool(
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+            )
+        ]
+    }
 
 
 @pytest.fixture
@@ -734,34 +779,29 @@ def animal_list_instance(
 @pytest.fixture
 def carcass_pool_instance():
     """Fixture for a carcass pool used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(
-        scavengeable_carbon=0.0,
-        decomposed_carbon=0.0,
-        scavengeable_nitrogen=0.0,
-        decomposed_nitrogen=0.0,
-        scavengeable_phosphorus=0.0,
-        decomposed_phosphorus=0.0,
+        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
     )
 
 
 @pytest.fixture
 def carcass_pools_instance():
     """Fixture for carcass pools used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return {
-        1: [
+        cell_id: [
             CarcassPool(
-                scavengeable_carbon=500.0,
-                decomposed_carbon=0.0,
-                scavengeable_nitrogen=100.0,
-                decomposed_nitrogen=0.0,
-                scavengeable_phosphorus=50.0,
-                decomposed_phosphorus=0.0,
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
             )
         ]
+        for cell_id in range(0, 9)  # Creates carcass pools for cells 0 to 8
     }
 
 

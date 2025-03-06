@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.6
+    jupytext_version: 1.16.7
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -105,12 +105,16 @@ two methods:
    {class}`~virtual_ecosystem.core.data.Data` instance just using the standard
    dictionary assignment: ``data['var_name'] = data_array``. The Virtual Ecosystem
    {mod}`~virtual_ecosystem.core.readers` module provides the
-   function {func}`~virtual_ecosystem.core.readers.load_to_dataarray` to read data into
-   a DataArray from supported file formats. This can then be added directly to a Data
-   instance:
+   function {func}`~virtual_ecosystem.core.readers.load_to_dataarray` to read a list of
+   variables in a file into DataArrays from supported file formats. The returned value
+   is a dictionary of DataArrays keyed by the variable names and can then be added
+   directly to a Data instance:
 
 ```{code-block} ipython3
-data["var_name"] = load_to_dataarray("path/to/file.nc", var_name="temperature")
+loaded_data = load_to_dataarray("path/to/file.nc", var_names=["temperature"])
+# iterate over the dictionary of variable names and arrays
+for var_name, data_array in loaded_data.items():
+    data[var_name] = data_array
 ```
 
 1. The  {meth}`~virtual_ecosystem.core.data.Data.load_data_config` method takes a
@@ -186,7 +190,11 @@ configured grid.
 ```{code-cell} ipython3
 # Load data from a file
 file_path = Path("../../data/xy_dim.nc")
-data["temp"] = load_to_dataarray(file_path, var_name="temp")
+loaded_data = load_to_dataarray(file_path, var_names=["temp"])
+
+# iterate over the dictionary of variable names and arrays
+for var_name, data_array in loaded_data.items():
+    data[var_name] = data_array
 ```
 
 ```{code-cell} ipython3
@@ -206,14 +214,13 @@ like the example below for each variable to be loaded.
 
 ```toml
 [[core.data.variable]]
-file="'../../data/xy_dim.nc'"
-var_name="temp"
+file_path = "'../../data/xy_dim.nc'"
+var_name = "temp"
 ```
 
-**NOTE**: At the moment,
-`core.data.variable` tags cannot be used across multiple toml config files without
-causing `ConfigurationError: Duplicated entries in config files: core.data.variable` to
-be raised. This means that all variables need to be combined in one `config` file.
+You can include `core.data.variable` tags in different files. This can be useful to
+group model-specific data with other model configuration options, and allow
+configuration files to be swapped in a more modular fashion.
 
 To load configuration data , you will typically use the `cfg_paths` argument
 to pass one or more TOML formatted configuration files to create a
@@ -223,8 +230,8 @@ object:
 
 ```{code-cell} ipython3
 data_toml = """[[core.data.variable]]
-file="../../data/xy_dim.nc"
-var_name="temp"
+file_path = "../../data/xy_dim.nc"
+var_name = "temp"
 """
 
 config = Config(cfg_strings=data_toml)

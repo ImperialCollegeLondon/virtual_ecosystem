@@ -165,7 +165,7 @@ def initialise_canopy_and_soil_fluxes(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
         coords=layer_heights.coords,
-        name="canopy_absorption",
+        name="shortwave_absorption",
     )
 
     # Calculate absorbed radiation
@@ -178,7 +178,7 @@ def initialise_canopy_and_soil_fluxes(
 
     # Replace np.nan with new values and write in output dict
     absorbed_radiation[layer_heights_canopy.indexes] = initial_absorbed_radiation
-    output["canopy_absorption"] = absorbed_radiation
+    output["shortwave_absorption"] = absorbed_radiation
 
     # Initialize canopy temperature DataArray
     canopy_temperature = DataArray(

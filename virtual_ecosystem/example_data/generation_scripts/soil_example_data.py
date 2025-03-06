@@ -28,9 +28,13 @@ lmwc_values = 0.005 + 0.005 * gradient / 64.0
 # Generate a range of plausible values (1.0-3.0) for the maom pool [kg C m^-3].
 maom_values = 1.0 + 2.0 * gradient / 64.0
 
-# Generate a range of plausible values (0.0015-0.005) for the microbial C pool
+# Generate a range of plausible values (0.0015-0.005) for the bacterial C pool
 # [kg C m^-3].
-microbial_C_values = 0.0015 + 0.0035 * gradient / 64.0
+bacterial_C_values = 0.0015 + 0.0035 * gradient / 64.0
+
+# Generate a range of plausible values (0.0015-0.005) for the fungal C pool
+# [kg C m^-3].
+fungal_C_values = 0.0015 + 0.0035 * gradient / 64.0
 
 # Generate a range of plausible values (0.1-1.0) for the POM pool [kg C m^-3].
 pom_values = 0.1 + 0.9 * gradient / 64.0
@@ -54,6 +58,12 @@ particulate_n_values = 7.5e-4 + 7.5e-4 * gradient / 64.0
 
 # Generate a range of plausible values (0.2-0.6) for the maom nitrogen pool [kg N m^-3].
 maom_n_values = 0.2 + 0.4 * gradient / 64.0
+
+# Generate a range of plausible values (1e-3-5e-3) for the ammonium pool [kg N m^-3].
+ammonium_values = 1e-3 + 4e-3 * gradient / 64.0
+
+# Generate a range of plausible values (1e-3-5e-3) for the nitrate pool [kg N m^-3].
+nitrate_values = 1e-3 + 4e-3 * gradient / 64.0
 
 # Generate a range of plausible values (3e-5-0.0001) for the microbial necromass
 # nitrogen pool [kg N m^-3].
@@ -94,7 +104,8 @@ example_soil_data = Dataset(
         clay_fraction=(["x", "y"], clay_fraction_values),
         soil_c_pool_lmwc=(["x", "y"], lmwc_values),
         soil_c_pool_maom=(["x", "y"], maom_values),
-        soil_c_pool_microbe=(["x", "y"], microbial_C_values),
+        soil_c_pool_bacteria=(["x", "y"], bacterial_C_values),
+        soil_c_pool_fungi=(["x", "y"], fungal_C_values),
         soil_c_pool_pom=(["x", "y"], pom_values),
         soil_c_pool_necromass=(["x", "y"], necromass_values),
         soil_enzyme_pom=(["x", "y"], pom_enzyme_values),
@@ -103,6 +114,8 @@ example_soil_data = Dataset(
         soil_n_pool_particulate=(["x", "y"], particulate_n_values),
         soil_n_pool_maom=(["x", "y"], maom_n_values),
         soil_n_pool_necromass=(["x", "y"], necromass_n_values),
+        soil_n_pool_ammonium=(["x", "y"], ammonium_values),
+        soil_n_pool_nitrate=(["x", "y"], nitrate_values),
         soil_p_pool_dop=(["x", "y"], dop_values),
         soil_p_pool_particulate=(["x", "y"], particulate_p_values),
         soil_p_pool_maom=(["x", "y"], maom_p_values),

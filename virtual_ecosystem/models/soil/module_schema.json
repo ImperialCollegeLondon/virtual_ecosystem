@@ -17,29 +17,80 @@
                   "SoilConsts"
                ]
             },
-            "depends": {
-               "type": "object",
-               "default": {},
-               "properties": {
-                  "init": {
-                     "type": "array",
-                     "default": [],
-                     "items": {
+            "microbial_group_definition": {
+               "description": "An microbial functional group definitions",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "name": {
                         "type": "string"
+                     },
+                     "max_uptake_rate_labile_C": {
+                        "type": "number"
+                     },
+                     "activation_energy_uptake_rate": {
+                        "type": "number"
+                     },
+                     "half_sat_labile_C_uptake": {
+                        "type": "number"
+                     },
+                     "activation_energy_uptake_saturation": {
+                        "type": "number"
+                     },
+                     "max_uptake_rate_ammonium": {
+                        "type": "number"
+                     },
+                     "half_sat_ammonium_uptake": {
+                        "type": "number"
+                     },
+                     "max_uptake_rate_nitrate": {
+                        "type": "number"
+                     },
+                     "half_sat_nitrate_uptake": {
+                        "type": "number"
+                     },
+                     "max_uptake_rate_labile_p": {
+                        "type": "number"
+                     },
+                     "half_sat_labile_p_uptake": {
+                        "type": "number"
+                     },
+                     "turnover_rate": {
+                        "type": "number"
+                     },
+                     "activation_energy_turnover": {
+                        "type": "number"
+                     },
+                     "c_n_ratio": {
+                        "type": "number"
+                     },
+                     "c_p_ratio": {
+                        "type": "number"
                      }
                   },
-                  "update": {
-                     "type": "array",
-                     "default": [],
-                     "items": {
-                        "type": "string"
-                     }
-                  }
+                  "required": [
+                     "name",
+                     "max_uptake_rate_labile_C",
+                     "activation_energy_uptake_rate",
+                     "half_sat_labile_C_uptake",
+                     "activation_energy_uptake_saturation",
+                     "max_uptake_rate_ammonium",
+                     "half_sat_ammonium_uptake",
+                     "max_uptake_rate_nitrate",
+                     "half_sat_nitrate_uptake",
+                     "max_uptake_rate_labile_p",
+                     "half_sat_labile_p_uptake",
+                     "turnover_rate",
+                     "activation_energy_turnover",
+                     "c_n_ratio",
+                     "c_p_ratio"
+                  ]
                }
-            }, 
+            },
             "static": {
-                "type": "boolean",
-                "default": false
+               "type": "boolean",
+               "default": false
             }
          },
          "default": {},

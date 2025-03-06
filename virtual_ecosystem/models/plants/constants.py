@@ -11,5 +11,9 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class PlantsConsts(ConstantsDataclass):
     """Constants for the :mod:`~virtual_ecosystem.models.plants` model."""
 
-    placeholder: float = 1.0
-    """Placeholder constant."""
+    ppfd_to_dsr: float = 2.04
+    """Convert from downward shortwave radiation to photosynthetic photon flux density.
+
+    Converting units from umol m-2 s-1 to W m-2 (conversion = 4.57) and assuming 46% of
+    DSR is photosynthetically active results in an overall conversion factor of 2.04.
+    """

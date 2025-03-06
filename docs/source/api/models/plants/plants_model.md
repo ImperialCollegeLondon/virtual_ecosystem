@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.6
+    jupytext_version: 1.16.7
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -33,12 +33,5 @@ language_info:
     :autosummary:
     :members:
     :exclude-members: model_name
-```
-
-## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
-
-```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.constants
-    :autosummary:
-    :members:
+    :inherited-members:
 ```

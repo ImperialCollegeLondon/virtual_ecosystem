@@ -1,10 +1,20 @@
 [plants]
-a_plant_integer = 12
+pft_definitions_path = "../data/plant_pfts.csv"
 
-[[plants.ftypes]]
-pft_name = "shrub"
-max_height = 1.0
+# Plant data
 
-[[plants.ftypes]]
-pft_name = "broadleaf"
-max_height = 50.0
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "plant_cohorts_n"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "plant_cohorts_pft"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "plant_cohorts_cell_id"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "plant_cohorts_dbh"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "downward_shortwave_radiation"

@@ -1,15 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     cell_metadata_filter: all,-trusted
-#     notebook_metadata_filter: settings,mystnb,language_info
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.16.4
-# ---
-
 """Configuration file for the Sphinx documentation builder.
 
 This file only contains a selection of the most common options. For a full
@@ -32,19 +20,16 @@ from pathlib import Path
 # "Matplotlib is building the font cache; this may take a moment."
 import matplotlib.pyplot  # noqa: F401
 import sphinxcontrib.bibtex.plugin
-from sphinx.deprecation import RemovedInSphinx80Warning
+from sphinx.deprecation import RemovedInSphinx90Warning
 from sphinxcontrib.bibtex.style.referencing import BracketStyle
 from sphinxcontrib.bibtex.style.referencing.author_year import AuthorYearReferenceStyle
 
 import virtual_ecosystem as ve
 from virtual_ecosystem.core import variables
 
-# +
-# Silence sphinx 8 warnings.
-warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
+# Silence sphinx 9 warnings.
+warnings.filterwarnings("ignore", category=RemovedInSphinx90Warning)
 
-
-# +
 # This path is required for automodule to be able to find and render the docstring
 # example in the development section of the documentation. The path to the modules for
 # the virtual_ecosystem package itself do not needed to be included here, providing
@@ -52,22 +37,18 @@ warnings.filterwarnings("ignore", category=RemovedInSphinx80Warning)
 # as this conf.py file, where we currently run it from the parent `docs` folder, so
 # adding an absolute path is more reliable.
 sys.path.append(str(Path(__file__).parent / "development/documentation"))
-# -
 
 
 version = ve.__version__
 release = version
 
-# +
 # Update the variables file
 varfile = Path(__file__).parent / "variables.rst"
 variables.output_known_variables(varfile)
-# -
 
 
 # -- Project information -----------------------------------------------------
 
-# +
 project = "Virtual Ecosystem"
 copyright = (
     "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
@@ -77,12 +58,10 @@ author = (
     "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
     "Taran Rallings, Vivienne Groner"
 )
-# -
 
 
 # -- General configuration ---------------------------------------------------
 
-# +
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -94,6 +73,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.mermaid",
     "myst_nb",
@@ -101,16 +81,17 @@ extensions = [
     "sphinx_external_toc",
     "sphinx_design",
     "hoverxref.extension",
-    "sphinx_tabs.tabs",
 ]
 autodoc_default_flags = ["members"]
 autosummary_generate = True
-# -
 
 
 # Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
 external_toc_exclude_missing = False
+
+# Display TODO lists:
+todo_include_todos = True
 
 
 # Set up a bracketed citation style, register it with sphinxcontrib.bibtex, and then set
@@ -154,7 +135,9 @@ nitpick_ignore = [
     ("py:class", "numpy.bool_"),
     ("py:class", "np.float32"),
     ("py:class", "np.datetime64"),
+    ("py:class", "np.ndarray"),
     ("py:class", "np.timedelta64"),
+    ("py:class", "timedelta64"),
     ("py:class", "InitVar"),
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
@@ -171,6 +154,12 @@ nitpick_ignore = [
     ("py:obj", "virtual_ecosystem.core.grid.GRID_STRUCTURE_SIG.index"),
     ("py:exc", "ParserError"),
     ("py:exc", "BadZipFile"),
+    # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
+    # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "Canopy"),
+    ("py:class", "Flora"),
+    ("py:class", "PModelConst"),
+    ("py:class", "CoreConst"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -179,6 +168,7 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!

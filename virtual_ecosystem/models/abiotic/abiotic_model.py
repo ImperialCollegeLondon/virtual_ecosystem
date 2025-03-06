@@ -98,7 +98,7 @@ class AbioticModel(
         "layer_heights",
         "topofcanopy_radiation",
         "stomatal_conductance",
-        "canopy_absorption",
+        "shortwave_absorption",
     ),
     vars_populated_by_init=(  # TODO move functions from setup() to __init__
         "soil_temperature",
@@ -109,7 +109,7 @@ class AbioticModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "canopy_absorption",  # DAVID This is assuming that abiotic runs before plants
+        "shortwave_absorption",  # DAVID This assumes that abiotic runs before plants
         "canopy_temperature",
         "sensible_heat_flux",
         "latent_heat_flux",
@@ -146,6 +146,26 @@ class AbioticModel(
         core_components: The core components used across models.
         model_constants: Set of constants for the abiotic model.
     """
+
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Abiotic init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.abiotic.abiotic_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.model_constants: AbioticConsts
+        """Set of constants for the abiotic model."""
+        self.simple_constants: AbioticSimpleConsts
+        """Set of constants for simple abiotic model."""
 
     @classmethod
     def from_config(
@@ -193,10 +213,8 @@ class AbioticModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        self.model_constants: AbioticConsts = model_constants
-        """Set of constants for the abiotic model."""
-        self.simple_constants: AbioticSimpleConsts = AbioticSimpleConsts()
-        """Set of constants for simple abiotic model."""
+        self.model_constants = model_constants
+        self.simple_constants = AbioticSimpleConsts()
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()

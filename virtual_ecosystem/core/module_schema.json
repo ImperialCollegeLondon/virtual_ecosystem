@@ -96,7 +96,7 @@
                      "items": {
                         "type": "object",
                         "properties": {
-                           "file": {
+                           "file_path": {
                               "type": "string"
                            },
                            "var_name": {
@@ -104,7 +104,7 @@
                            }
                         },
                         "required": [
-                           "file",
+                           "file_path",
                            "var_name"
                         ]
                      }

@@ -9,7 +9,12 @@ import pytest
 import xarray as xr
 from xarray import DataArray
 
-from tests.conftest import log_check, patch_bypass_setup, patch_run_update
+from tests.conftest import (
+    log_check,
+    patch_bypass_setup,
+    patch_run_update,
+    patch_static_config,
+)
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 REQUIRED_INIT_VAR_CHECKS = (
@@ -32,7 +37,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Replacing data array for 'soil_temperature'"),
-    (INFO, "Replacing data array for 'canopy_absorption'"),
+    (INFO, "Replacing data array for 'shortwave_absorption'"),
     (INFO, "Replacing data array for 'canopy_temperature'"),
     (INFO, "Replacing data array for 'sensible_heat_flux'"),
     (INFO, "Replacing data array for 'latent_heat_flux'"),
@@ -53,8 +58,8 @@ def test_abiotic_model_initialization(
 
     # Initialize model
     with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel) as mock_update,
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
@@ -203,8 +208,8 @@ def test_generate_abiotic_model(
     expected_constants = AbioticConsts(drag_coefficient=drag_coeff)
     object_to_patch = "virtual_ecosystem.models.abiotic.abiotic_model.AbioticModel"
     with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel) as mock_update,
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
         patch(f"{object_to_patch}._setup") as mock_setup,
     ):
         mock_bypass_setup.return_value = False
@@ -267,8 +272,8 @@ def test_generate_abiotic_model_bounds_error(
 
     # Check whether model is initialised (or not) as expected
     with (
-        patch_run_update("abiotic"),
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel),
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         with raises:
@@ -291,8 +296,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     # initialise model
     with (
-        patch_run_update("abiotic"),
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
+        patch_run_update(AbioticModel),
+        patch_bypass_setup(AbioticModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
@@ -341,7 +346,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "canopy_absorption",
+        "shortwave_absorption",
         "air_heat_conductivity",
         "leaf_vapour_conductivity",
         "leaf_air_heat_conductivity",
@@ -352,7 +357,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     exp_canopy_abs[lyr_strct.index_filled_canopy] = np.array(
         [0.09995, 0.09985, 0.09975]
     )[:, None]
-    xr.testing.assert_allclose(model.data["canopy_absorption"], exp_canopy_abs)
+    xr.testing.assert_allclose(model.data["shortwave_absorption"], exp_canopy_abs)
 
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         expected_vals = lyr_strct.from_template()
@@ -368,12 +373,8 @@ def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
     lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
-    with (
-        patch_run_update("abiotic") as mock_update,
-        patch_bypass_setup("abiotic") as mock_bypass_setup,
-    ):
-        mock_update.return_value = False
-        mock_bypass_setup.return_value = False
+    with patch_static_config(AbioticModel) as mock_static_config:
+        mock_static_config.return_value = False, False
         model = AbioticModel(
             data=dummy_climate_data,
             core_components=fixture_core_components,

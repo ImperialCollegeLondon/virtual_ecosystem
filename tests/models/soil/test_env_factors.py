@@ -57,12 +57,12 @@ def test_calculate_environmental_effect_factors(
 @pytest.mark.parametrize(
     "activation_energy,expected_factors",
     [
-        (30000.0, [2.57153601, 2.82565326, 3.10021393, 1.73629781]),
-        (45000.0, [4.12371761, 4.74983258, 5.45867825, 2.28789625]),
-        (57000.0, [6.01680536, 7.19657491, 8.58309980, 2.85289648]),
+        (30000.0, [2.57140165, 2.82549088, 3.10001987, 1.73624481]),
+        (45000.0, [4.1233944, 4.7494232, 5.4581657, 2.2877915]),
+        (57000.0, [6.01620802, 7.19578916, 8.58207901, 2.85273102]),
     ],
 )
-def calculate_temperature_effect_on_microbes(
+def test_calculate_temperature_effect_on_microbes(
     dummy_carbon_data, fixture_core_components, activation_energy, expected_factors
 ):
     """Test function to calculate microbial temperature response."""
@@ -77,7 +77,6 @@ def calculate_temperature_effect_on_microbes(
         ],
         activation_energy=activation_energy,
         reference_temperature=SoilConsts.arrhenius_reference_temp,
-        gas_constant=SoilConsts.universal_gas_constant,
     )
 
     assert np.allclose(expected_factors, actual_factors)
@@ -201,6 +200,175 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
     )
 
     assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_nitrification_temperature_factor(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of nitrification temperature factor."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_nitrification_temperature_factor,
+    )
+
+    expected_factor = [0.95155852, 0.99855129, 0.97583452, 0.45663041]
+
+    actual_factor = calculate_nitrification_temperature_factor(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        optimum_temp=SoilConsts.nitrification_optimum_temperature,
+        max_temp=SoilConsts.nitrification_maximum_temperature,
+        thermal_sensitivity=SoilConsts.nitrification_thermal_sensitivity,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_nitrification_moisture_factor(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of nitrification moisture factor."""
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_nitrification_moisture_factor,
+    )
+
+    effective_saturation = dummy_carbon_data["soil_moisture"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ] / (
+        fixture_core_components.layer_structure.soil_layer_thickness[0]
+        * 1e3
+        * HydroConsts.soil_moisture_capacity
+    )
+
+    expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]
+
+    actual_factor = calculate_nitrification_moisture_factor(
+        effective_saturation=effective_saturation
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_denitrification_temperature_factor(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of nitrification temperature factor."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_denitrification_temperature_factor,
+    )
+
+    expected_factor = [2.0706664, 2.3206989, 2.5837455, 1.2112116]
+
+    actual_factor = calculate_denitrification_temperature_factor(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        factor_at_infinity=SoilConsts.denitrification_infinite_temperature_factor,
+        minimum_temp=SoilConsts.denitrification_minimum_temperature,
+        thermal_sensitivity=SoilConsts.denitrification_thermal_sensitivity,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
+def test_denitrification_temperature_factor_bad_temp(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check denitrification temperature factor handles bad temperature values."""
+    from scipy.constants import convert_temperature
+
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_denitrification_temperature_factor,
+    )
+
+    soil_temp = dummy_carbon_data["soil_temperature"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ]
+
+    # Modify some of the soil temps to be below the minimum
+    soil_temp[1] = convert_temperature(
+        SoilConsts.denitrification_minimum_temperature,
+        old_scale="Kelvin",
+        new_scale="Celsius",
+    )
+    soil_temp[3] = convert_temperature(
+        SoilConsts.denitrification_minimum_temperature,
+        old_scale="Kelvin",
+        new_scale="Celsius",
+    )
+
+    expected_factor = [2.0706664, 0.0, 2.5837455, 0.0]
+
+    actual_factor = calculate_denitrification_temperature_factor(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        factor_at_infinity=SoilConsts.denitrification_infinite_temperature_factor,
+        minimum_temp=SoilConsts.denitrification_minimum_temperature,
+        thermal_sensitivity=SoilConsts.denitrification_thermal_sensitivity,
+    )
+
+    assert np.allclose(expected_factor, actual_factor)
+
+
+def test_calculate_symbiotic_nitrogen_fixation_carbon_cost(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of symbiotic nitrogen fixation cost."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_symbiotic_nitrogen_fixation_carbon_cost,
+    )
+
+    expected_cost = [45.8029373, 49.464657, 52.689498, 36.073368]
+
+    actual_cost = calculate_symbiotic_nitrogen_fixation_carbon_cost(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        cost_at_zero_celsius=SoilConsts.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=SoilConsts.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=SoilConsts.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=SoilConsts.nitrogen_fixation_cost_equality_temperature,
+    )
+
+    assert np.allclose(expected_cost, actual_cost)
+
+
+def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check calculation of nitrogen fixation cost handles bad temperature values."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_symbiotic_nitrogen_fixation_carbon_cost,
+    )
+
+    soil_temp = dummy_carbon_data["soil_temperature"][
+        fixture_core_components.layer_structure.index_topsoil_scalar
+    ]
+
+    # Modify some of the soil temps to be below the minimum
+    soil_temp[1] = -23.3
+    soil_temp[3] = -200.0
+
+    expected_cost = [45.8029373, np.inf, 52.689498, np.inf]
+
+    actual_cost = calculate_symbiotic_nitrogen_fixation_carbon_cost(
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        cost_at_zero_celsius=SoilConsts.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=SoilConsts.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=SoilConsts.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=SoilConsts.nitrogen_fixation_cost_equality_temperature,
+    )
+
+    assert np.allclose(expected_cost, actual_cost)
 
 
 def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):

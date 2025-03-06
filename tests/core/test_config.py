@@ -135,6 +135,29 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
             ("b.bb.bbb.bbba.bbbaa",),
             id="conflict_complex",
         ),
+        pytest.param(
+            {"d1": {"d2": [1, 2, 3]}},
+            {"d1": {"d2": [4, 5]}},
+            {"d1": {"d2": [1, 2, 3, 4, 5]}},
+            (),
+            id="no_conflict_list_merge",
+        ),
+        # The next example passes just fine, which is intentional, but the test is here
+        # to highlight the behaviour
+        pytest.param(
+            {"d1": {"d2": [1, 2, 3]}},
+            {"d1": {"d2": [{"file": "a_path"}]}},
+            {"d1": {"d2": [1, 2, 3, {"file": "a_path"}]}},
+            (),
+            id="no_conflict_list_merge_dubious_content",
+        ),
+        pytest.param(
+            {"d1": {"d2": [1, 2, 3]}},
+            {"d1": {"d2": "a"}},
+            {"d1": {"d2": "a"}},
+            ("d1.d2",),
+            id="conflict_list_and_not_list",
+        ),
     ],
 )
 def test_config_merge(dest, source, exp_result, exp_conflicts):
@@ -192,7 +215,10 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
         ),
         pytest.param(
             None,
-            '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
+            """[[core.data.variable]]
+            file_path = "cellid_coords.nc
+            var_name = "temp"
+            """,
             [],
             does_not_raise(),
             None,
@@ -201,8 +227,14 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
         pytest.param(
             None,
             [
-                '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
-                '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "patm\n"',
+                """[[core.data.variable]]
+                file_path = "cellid_coords.nc
+                var_name = "temp"
+                """,
+                """[[core.data.variable]]
+                file_path = "cellid_coords.nc
+                var_name = "patm"
+                """,
             ],
             [],
             does_not_raise(),
@@ -219,7 +251,10 @@ def test_config_merge(dest, source, exp_result, exp_conflicts):
         ),
         pytest.param(
             "string1",
-            '[[core.data.variable]]\nfile = "cellid_coords.nc\nvar_name = "temp\n"',
+            """[[core.data.variable]]
+            file_path = "cellid_coords.nc
+            var_name = "temp"
+            """,
             [],
             pytest.raises(ValueError),
             "Do not use both cfg_paths and cfg_strings.",
@@ -570,19 +605,6 @@ def test_Config_build_schema(
     "cfg_strings,expected_exception,expected_log_entries",
     [
         pytest.param(
-            "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=10\n[plants]\n",
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Configuration error in ['plants']: "
-                    "'ftypes' is a required property",
-                ),
-                (CRITICAL, "Configuration contains schema violations: check log"),
-            ),
-            id="missing_required_property",
-        ),
-        pytest.param(
             "[core]\n[core.grid]\ncell_nx = 10\ncell_ny=-10",
             pytest.raises(ConfigurationError),
             (
@@ -732,52 +754,89 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
 @pytest.mark.parametrize("cfg_is_relative", (True, False))
 @pytest.mark.parametrize("filepath_is_relative", (True, False))
 @pytest.mark.parametrize(
-    "filepaths,expected",
+    "params_dict_source,expected",
     (
         pytest.param(
-            ["file.txt", "file2.txt"],
-            ["path/to/config/file.txt", "path/to/config/file2.txt"],
-            id="co-located",
+            {
+                "file1_path": "file.txt",
+                "other_path": "file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/to/config/file.txt",
+                "other_path": "path/to/config/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="colocated",
         ),
         pytest.param(
-            ["data/file.txt", "data/file2.txt"],
-            ["path/to/config/data/file.txt", "path/to/config/data/file2.txt"],
+            {
+                "file1_path": "data/file.txt",
+                "other_path": "data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/to/config/data/file.txt",
+                "other_path": "path/to/config/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
             id="inside_cfg_dir",
         ),
         pytest.param(
-            ["../data/file.txt", "../data/file2.txt"],
-            ["path/to/data/file.txt", "path/to/data/file2.txt"],
-            id="outside_cfg_dir",
+            {
+                "file1_path": "../data/file.txt",
+                "other_path": "../data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/to/data/file.txt",
+                "other_path": "path/to/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="parallel_to_cfg_dir",
         ),
         pytest.param(
-            ["../../../data/file.txt", "../../../data/file2.txt"],
-            ["data/file.txt", "data/file2.txt"],
-            id="moar_outside_cfg_dir",
+            {
+                "file1_path": "../../data/file.txt",
+                "other_path": "../../data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/data/file.txt",
+                "other_path": "path/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="below_cfg_dir",
         ),
-        # pytest.param(
-        #     False,
-        #     [{"file": str(_ABS_PATH / "file.txt"), "var_name": "my_path"}],
-        #     [{"file": str(_ABS_PATH / "file.txt"), "var_name": "my_path"}],
-        #     id="leave_abs_paths_unchanged",
-        # ),
-        # pytest.param(
-        #     False,
-        #     [{"var_name": "my_path"}],
-        #     [{"var_name": "my_path"}],
-        #     id="ignore_missing_file_key",
-        # ),
-        # pytest.param(
-        #     False,
-        #     {"file": "file.txt", "var_name": "my_path"},
-        #     {"file": "file.txt", "var_name": "my_path"},
-        #     id="variable_not_list",
-        # ),
+        pytest.param(
+            {
+                "file1_path": "../../data/file.txt",
+                "other_path": "data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            {
+                "file1_path": "path/data/file.txt",
+                "other_path": "path/to/config/data/file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            id="mixed",
+        ),
     ),
 )
-def test__resolve_config_paths(
-    tmpdir, cfg_is_relative, filepath_is_relative, filepaths, expected
+def test__resolve_config_paths_file_locations(
+    tmpdir, cfg_is_relative, filepath_is_relative, params_dict_source, expected
 ):
-    """Test the _fix_up_variable_entry_paths() function.
+    """Test the __resolve_config_paths() function can get relative paths correctly.
 
     This is using tmpdir to get an OS appropriate base file path - the location is not
     used for any actual file IO.
@@ -790,22 +849,111 @@ def test__resolve_config_paths(
     cfg_absolute = execution_root / cfg_relative
     cfg_path = cfg_relative if cfg_is_relative else cfg_absolute
 
-    # Package the inputs for testing
-    vars = [{"file": fn, "var_name": f"v_{idx}"} for idx, fn in enumerate(filepaths)]
-    params_dict = {"core": {"data": {"variable": vars}}}
+    # Clone the input to avoid editing the test environment
+    params_dict = params_dict_source.copy()
 
     # For absolute file path entries, construct from the inputs
     if not filepath_is_relative:
-        for entry in params_dict["core"]["data"]["variable"]:
-            entry["file"] = str(
-                (execution_root / cfg_relative / Path(entry["file"])).resolve()
-            )
+        for key, val in params_dict.items():
+            if key.endswith("_path"):
+                params_dict[key] = str(
+                    (execution_root / cfg_relative / Path(val)).resolve()
+                )
 
     # Run the function
     _resolve_config_paths(cfg_path, params_dict)
 
-    for result, expected in zip(params_dict["core"]["data"]["variable"], expected):
-        if cfg_is_relative and filepath_is_relative:
-            assert Path(result["file"]) == Path(expected)
-        else:
-            assert Path(result["file"]) == execution_root / expected
+    for key, val in params_dict.items():
+        # Test that paths have been resolved as expected
+        # but that the other entries have been left alone
+        if key.endswith("_path"):
+            if cfg_is_relative and filepath_is_relative:
+                assert Path(val) == Path(expected[key])
+            else:
+                assert Path(val) == execution_root / expected[key]
+
+        elif key == "foo":
+            assert val == "bar"
+        elif key == "baz":
+            assert val == 6
+
+
+@pytest.mark.parametrize(
+    "params_dict,raises,expected,err_msg",
+    # The str(Path(x)) pattern in the expected values below is to ensure that
+    # the expected paths are converted to the file system of the test machine.
+    (
+        pytest.param(
+            {
+                "file1_path": "file.txt",
+                "other_path": "file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            does_not_raise(),
+            {
+                "file1_path": str(Path("path/to/config/file.txt")),
+                "other_path": str(Path("path/to/config/file2.txt")),
+                "foo": "bar",
+                "baz": 6,
+            },
+            None,
+            id="all_good_flat_colocated",
+        ),
+        pytest.param(
+            {
+                "file1_path": "file.txt",
+                "other_path": "../../file2.txt",
+                "foo": "bar",
+                "baz": 6,
+            },
+            does_not_raise(),
+            {
+                "file1_path": str(Path("path/to/config/file.txt")),
+                "other_path": str(Path("path/file2.txt")),
+                "foo": "bar",
+                "baz": 6,
+            },
+            None,
+            id="all_good_flat_mixed",
+        ),
+        pytest.param(
+            {
+                "file1_path": "file.txt",
+                "nested": {"other_path": "../../file2.txt", "foo": "bar"},
+                "baz": 6,
+            },
+            does_not_raise(),
+            {
+                "file1_path": str(Path("path/to/config/file.txt")),
+                "nested": {"other_path": str(Path("path/file2.txt")), "foo": "bar"},
+                "baz": 6,
+            },
+            None,
+            id="all_good_nested_mixed",
+        ),
+        pytest.param(
+            {
+                "file1_path": 42,
+                "nested": {"other_path": "../../file2.txt", "foo": "bar"},
+                "baz": 6,
+            },
+            pytest.raises(ValueError),
+            None,
+            "The value for config key 'file1_path' is not a string: 42",
+            id="bad_path_value",
+        ),
+    ),
+)
+def test__resolve_config_paths_values(tmpdir, params_dict, raises, expected, err_msg):
+    """Test the _resolve_config_paths_values handles different inputs as expected."""
+    from virtual_ecosystem.core.config import _resolve_config_paths
+
+    with raises as excep:
+        # Run the function
+        _resolve_config_paths(Path("path/to/config"), params_dict)
+
+        assert params_dict == expected
+
+    if excep is not None:
+        assert str(excep.value) == err_msg

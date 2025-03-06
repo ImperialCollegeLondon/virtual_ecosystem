@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from scipy.integrate import solve_ivp
-from xarray import DataArray
+from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -32,6 +32,10 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.constants import SoilConsts
+from virtual_ecosystem.models.soil.microbial_groups import (
+    MicrobialGroupConstants,
+    make_full_set_of_microbial_groups,
+)
 from virtual_ecosystem.models.soil.pools import SoilPools
 
 
@@ -46,7 +50,8 @@ class SoilModel(
     vars_required_for_init=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
-        "soil_c_pool_microbe",
+        "soil_c_pool_bacteria",
+        "soil_c_pool_fungi",
         "soil_c_pool_pom",
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
@@ -55,6 +60,8 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_n_pool_ammonium",
+        "soil_n_pool_nitrate",
         "soil_p_pool_dop",
         "soil_p_pool_particulate",
         "soil_p_pool_necromass",
@@ -66,11 +73,16 @@ class SoilModel(
         "bulk_density",
         "clay_fraction",
     ),
-    vars_populated_by_init=(),
+    vars_populated_by_init=(
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
+    ),
     vars_required_for_update=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
-        "soil_c_pool_microbe",
+        "soil_c_pool_bacteria",
+        "soil_c_pool_fungi",
         "soil_c_pool_pom",
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
@@ -79,6 +91,8 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_n_pool_ammonium",
+        "soil_n_pool_nitrate",
         "soil_p_pool_dop",
         "soil_p_pool_particulate",
         "soil_p_pool_necromass",
@@ -93,11 +107,17 @@ class SoilModel(
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
         "litter_P_mineralisation_rate",
+        "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
     vars_updated=(
         "soil_c_pool_maom",
         "soil_c_pool_lmwc",
-        "soil_c_pool_microbe",
+        "soil_c_pool_bacteria",
+        "soil_c_pool_fungi",
         "soil_c_pool_pom",
         "soil_c_pool_necromass",
         "soil_enzyme_pom",
@@ -106,6 +126,8 @@ class SoilModel(
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
         "soil_n_pool_maom",
+        "soil_n_pool_ammonium",
+        "soil_n_pool_nitrate",
         "soil_p_pool_dop",
         "soil_p_pool_particulate",
         "soil_p_pool_necromass",
@@ -113,6 +135,9 @@ class SoilModel(
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
     ),
     vars_populated_by_first_update=(),
 ):
@@ -123,6 +148,24 @@ class SoilModel(
     wraps is quite simple (i.e. four soil carbon pools), but this will get more complex
     as the Virtual Ecosystem develops.
     """
+
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        **kwargs: Any,
+    ):
+        """Soil init function.
+
+        The init function is used only to define class attributes. Any logic should be
+        handeled in :fun:`~virtual_ecosystem.soil.soil_model._setup`.
+        """
+
+        super().__init__(data, core_components, static, **kwargs)
+
+        self.model_constants: SoilConsts
+        """Set of constants for the soil model."""
 
     @classmethod
     def from_config(
@@ -148,19 +191,35 @@ class SoilModel(
             "Information required to initialise the soil model successfully extracted."
         )
 
+        microbial_groups = make_full_set_of_microbial_groups(config)
+
         return cls(
             data=data,
             core_components=core_components,
             static=static,
             model_constants=model_constants,
+            microbial_groups=microbial_groups,
         )
 
     def _setup(
         self,
         model_constants: SoilConsts,
+        microbial_groups: dict[str, MicrobialGroupConstants],
         **kwargs: Any,
     ) -> None:
-        """Placeholder function to setup up the soil model."""
+        """Function to setup up the soil model."""
+
+        # TODO - At the moment the soil model only cares about the very top layer. As
+        # both the soil and abiotic models get more complex this might well change.
+        self.model_constants = model_constants
+
+        # Store set of microbial functional groups needed by the model
+        self.microbial_groups = microbial_groups
+
+        # Calculate dissolved amounts of each inorganic nutrient
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
 
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
@@ -169,11 +228,6 @@ class SoilModel(
             )
             LOGGER.error(to_raise)
             raise to_raise
-
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
-        self.model_constants: SoilConsts = model_constants
-        """Set of constants for the soil model."""
 
     def spinup(self) -> None:
         """Placeholder function to spin up the soil model."""
@@ -193,6 +247,11 @@ class SoilModel(
         # n.b. this also updates the data object automatically
         self.data.add_from_dict(updated_carbon_pools)
 
+        # Calculate dissolved amounts of each inorganic nutrients
+        dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
+        # Update the data object with these pools
+        self.data.add_from_dict(dissolved_nutrient_pools)
+
     def cleanup(self) -> None:
         """Placeholder function for soil model cleanup."""
 
@@ -200,7 +259,7 @@ class SoilModel(
         """Checks if all soil pools values greater than or equal to zero.
 
         Returns:
-            A bool specificing whether all pools updated by the model are postive or
+            A bool specifying whether all pools updated by the model are positive or
             not.
         """
 
@@ -242,7 +301,7 @@ class SoilModel(
             [
                 self.data[name].to_numpy()
                 for name in map(str, self.data.data.keys())
-                if name in self.vars_updated
+                if name in self.vars_updated and name not in self.vars_populated_by_init
             ]
         )
 
@@ -250,7 +309,7 @@ class SoilModel(
         delta_pools_ordered = {
             name: np.array([])
             for name in map(str, self.data.data.keys())
-            if name in self.vars_updated
+            if name in self.vars_updated and name not in self.vars_populated_by_init
         }
 
         # Carry out simulation
@@ -264,7 +323,10 @@ class SoilModel(
                 self.layer_structure.index_topsoil_scalar,
                 delta_pools_ordered,
                 self.model_constants,
+                self.microbial_groups,
                 self.core_constants.max_depth_of_microbial_activity,
+                self.core_constants.soil_moisture_capacity,
+                self.layer_structure.soil_layer_thickness[0],
             ),
         )
 
@@ -288,6 +350,41 @@ class SoilModel(
 
         return new_c_pools
 
+    def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
+        """Calculate the amount of each inorganic nutrient that is in dissolved form.
+
+        This calculates the nutrient concentration of the water in the topsoil layer.
+        Negative values are explicitly handled by this function to prevent them from
+        passing from the soil model (where they are unavoidable) into the plants model
+        (where they could break things). When soil nutrient concentrations are negative
+        it is assumed dissolved nutrient concentrations are taken to be zero.
+
+        Returns:
+            A data array containing the size of each dissolved nutrient pool [kg
+            nutrient m^-3].
+        """
+
+        return {
+            "dissolved_nitrate": where(
+                self.data["soil_n_pool_nitrate"] >= 0.0,
+                self.model_constants.solubility_coefficient_nitrate
+                * self.data["soil_n_pool_nitrate"],
+                0.0,
+            ),
+            "dissolved_ammonium": where(
+                self.data["soil_n_pool_ammonium"] >= 0.0,
+                self.model_constants.solubility_coefficient_ammonium
+                * self.data["soil_n_pool_ammonium"],
+                0.0,
+            ),
+            "dissolved_phosphorus": where(
+                self.data["soil_p_pool_labile"] >= 0.0,
+                self.model_constants.solubility_coefficient_labile_p
+                * self.data["soil_p_pool_labile"],
+                0.0,
+            ),
+        }
+
 
 def construct_full_soil_model(
     t: float,
@@ -297,7 +394,10 @@ def construct_full_soil_model(
     top_soil_layer_index: int,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
+    functional_groups: dict[str, MicrobialGroupConstants],
     max_depth_of_microbial_activity: float,
+    soil_moisture_capacity: float,
+    top_soil_layer_thickness: float,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
@@ -312,8 +412,12 @@ def construct_full_soil_model(
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         model_constants: Set of constants for the soil model.
+        functional_groups: Set of microbial functional groups used by the soil model.
         max_depth_of_microbial_activity: Maximum depth of the soil profile where
             microbial activity occurs [m].
+        soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
+            (volumetric) moisture the soil can hold [unitless].
+        top_soil_layer_thickness: Thickness of the topsoil layer [mm].
 
     Returns:
         The rate of change for each soil pool
@@ -331,12 +435,16 @@ def construct_full_soil_model(
         data,
         pools=all_pools,
         constants=model_constants,
+        functional_groups=functional_groups,
         max_depth_of_microbial_activity=max_depth_of_microbial_activity,
     )
 
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
         top_soil_layer_index=top_soil_layer_index,
+        # TODO - This needs to be reconsidered as part of the soil-abiotic links review
+        soil_moisture_capacity=soil_moisture_capacity,
+        top_soil_layer_thickness=top_soil_layer_thickness,
     )
 
 
