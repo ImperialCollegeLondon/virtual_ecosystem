@@ -220,7 +220,7 @@ def test_PlantsModel_update(
     #         assert np.allclose(cohort.dbh, 0.13)
 
 
-def test_PlantsModel_calculate_turnover(fxt_plants_model):
+def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_config):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
@@ -268,6 +268,22 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     assert np.allclose(
         fxt_plants_model.data["root_turnover_c_p_ratio"], consts.root_turnover_c_p_ratio
     )
+
+
+def test_PlantsModel_calculate_turnover_constant_override(
+    plants_data, fixture_config, fixture_core_components
+):
+    """Test that the turnover constants can be overridden by values in config."""
+
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+    fixture_config["plants"]["constants"] = {"PlantsConsts": {"leaf_lignin": 100.0}}
+    plants_model = PlantsModel.from_config(
+        data=plants_data, config=fixture_config, core_components=fixture_core_components
+    )
+    plants_model.calculate_turnover()
+
+    assert np.allclose(plants_model.data["leaf_lignin"], 100.0)
 
 
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
