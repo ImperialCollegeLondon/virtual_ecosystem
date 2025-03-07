@@ -88,10 +88,9 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
 
 @pytest.fixture
 def enzyme_mediated_rates(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
 ):
     """Enzyme mediated rates based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
     return calculate_enzyme_mediated_rates(
@@ -105,7 +104,7 @@ def enzyme_mediated_rates(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         env_factors=environmental_factors,
-        constants=SoilConsts,
+        enzyme_classes=enzyme_classes,
     )
 
 
@@ -194,9 +193,18 @@ def functional_groups(fixture_config):
 
 
 @pytest.fixture
+def enzyme_classes(fixture_config):
+    """Set of functional groups based on the soil model constants."""
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        make_full_set_of_enzymes,
+    )
+
+    return make_full_set_of_enzymes(config=fixture_config)
+
+
+@pytest.fixture
 def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components):
     """Rates of biomass loss from each microbial pool."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import (
         calculate_maintenance_biomass_synthesis,
     )
@@ -207,7 +215,6 @@ def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         microbial_group=functional_groups["bacteria"],
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
     fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
@@ -216,7 +223,6 @@ def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         microbial_group=functional_groups["fungi"],
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
     return {"bacteria": bacterial_biomass_loss, "fungi": fungal_biomass_loss}

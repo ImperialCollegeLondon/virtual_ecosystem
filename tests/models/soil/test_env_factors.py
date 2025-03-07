@@ -63,10 +63,13 @@ def test_calculate_environmental_effect_factors(
     ],
 )
 def test_calculate_temperature_effect_on_microbes(
-    dummy_carbon_data, fixture_core_components, activation_energy, expected_factors
+    dummy_carbon_data,
+    fixture_core_components,
+    activation_energy,
+    expected_factors,
+    functional_groups,
 ):
     """Test function to calculate microbial temperature response."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_temperature_effect_on_microbes,
     )
@@ -76,7 +79,7 @@ def test_calculate_temperature_effect_on_microbes(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         activation_energy=activation_energy,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
+        reference_temperature=functional_groups["bacteria"].reference_temperature,
     )
 
     assert np.allclose(expected_factors, actual_factors)

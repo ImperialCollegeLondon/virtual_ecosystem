@@ -10,7 +10,7 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
 def test_calculate_all_pool_updates(
-    dummy_carbon_data, fixture_core_components, functional_groups
+    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
 ):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -41,6 +41,7 @@ def test_calculate_all_pool_updates(
         pools=pools,
         constants=SoilConsts,
         functional_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
         max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
     )
 
@@ -90,7 +91,9 @@ def test_calculate_all_pool_updates(
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
-def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_groups):
+def test_to_per_volume(
+    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
+):
     """Test that the SoilPools.to_per_volume method converts correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
@@ -120,6 +123,7 @@ def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_gr
         pools=pools,
         constants=SoilConsts,
         functional_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
         max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
     )
 
@@ -132,7 +136,11 @@ def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_gr
 
 
 def test_calculate_microbial_changes(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
+    dummy_carbon_data,
+    fixture_core_components,
+    environmental_factors,
+    functional_groups,
+    enzyme_classes,
 ):
     """Check that calculation of microbe related changes works correctly."""
 
@@ -175,6 +183,7 @@ def test_calculate_microbial_changes(
         env_factors=environmental_factors,
         constants=SoilConsts,
         functional_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
     )
 
     for attr in dir(actual_mic_changes):
@@ -186,7 +195,7 @@ def test_calculate_microbial_changes(
 
 
 def test_calculate_enzyme_mediated_rates(
-    dummy_carbon_data, environmental_factors, fixture_core_components
+    dummy_carbon_data, environmental_factors, fixture_core_components, enzyme_classes
 ):
     """Check that calculation of enzyme mediated rates works as expected."""
 
@@ -208,7 +217,7 @@ def test_calculate_enzyme_mediated_rates(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         env_factors=environmental_factors,
-        constants=SoilConsts,
+        enzyme_classes=enzyme_classes,
     )
 
     for attr in dir(actual_rates):
@@ -285,7 +294,7 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
     assert np.allclose(actual_leaching.labile_P, expected_labile_P)
 
 
-def test_calculate_enzyme_changes(dummy_carbon_data, biomass_losses):
+def test_calculate_enzyme_changes(dummy_carbon_data, biomass_losses, enzyme_classes):
     """Check that the determination of enzyme pool changes works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_changes
@@ -307,6 +316,7 @@ def test_calculate_enzyme_changes(dummy_carbon_data, biomass_losses):
         bacterial_biomass_loss=biomass_losses["bacteria"],
         fungal_biomass_loss=biomass_losses["fungi"],
         constants=SoilConsts,
+        enzyme_classes=enzyme_classes,
     )
 
     for attr in dir(actual_enzyme_changes):
@@ -319,7 +329,7 @@ def test_calculate_enzyme_changes(dummy_carbon_data, biomass_losses):
             )
 
 
-def test_calculate_net_enzyme_change(dummy_carbon_data, biomass_losses):
+def test_calculate_net_enzyme_change(dummy_carbon_data, biomass_losses, enzyme_classes):
     """Check that the determination of net enzyme pool change works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_net_enzyme_change
@@ -331,7 +341,7 @@ def test_calculate_net_enzyme_change(dummy_carbon_data, biomass_losses):
         enzyme_pool_size=dummy_carbon_data["soil_enzyme_pom_bacteria"],
         biomass_loss=biomass_losses["bacteria"],
         biomass_loss_to_enzyme_class=SoilConsts.bacterial_maintenance_pom_enzyme,
-        enzyme_turnover_rate=SoilConsts.pom_enzyme_bacteria_turnover_rate,
+        enzyme_turnover_rate=enzyme_classes["bacteria_pom"].turnover_rate,
     )
 
     assert np.allclose(actual_net_change, expected_net_change)
@@ -354,7 +364,6 @@ def test_calculate_maintenance_biomass_synthesis(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         microbial_group=functional_groups["bacteria"],
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
     assert np.allclose(actual_loss, expected_loss)
@@ -481,7 +490,7 @@ def test_calculate_highest_achievable_nutrient_uptake(
         activation_energy_uptake_saturation=functional_groups[
             "bacteria"
         ].activation_energy_uptake_saturation,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
+        reference_temperature=functional_groups["bacteria"].reference_temperature,
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
@@ -517,14 +526,14 @@ def test_negative_highest_achievable_nutrient_uptake_are_impossible(
         activation_energy_uptake_saturation=functional_groups[
             "bacteria"
         ].activation_energy_uptake_saturation,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
+        reference_temperature=functional_groups["bacteria"].reference_temperature,
     )
 
     assert np.allclose(actual_uptake, expected_uptake)
 
 
 def test_calculate_enzyme_mediated_decomposition(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_ecosystem.models.soil.pools import (
@@ -540,11 +549,7 @@ def test_calculate_enzyme_mediated_decomposition(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         env_factors=environmental_factors,
-        reference_temp=SoilConsts.arrhenius_reference_temp,
-        max_decomp_rate=SoilConsts.max_decomp_rate_pom_bacteria,
-        activation_energy_rate=SoilConsts.activation_energy_pom_decomp_rate,
-        half_saturation=SoilConsts.half_sat_pom_decomposition_bacteria,
-        activation_energy_sat=SoilConsts.activation_energy_pom_decomp_saturation,
+        enzyme_class=enzyme_classes["bacteria_pom"],
     )
 
     assert np.allclose(actual_decomp, expected_decomp)

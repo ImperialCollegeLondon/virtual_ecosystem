@@ -50,7 +50,11 @@ POST_SETUP_LOG = (
 
 
 def test_soil_model_initialization(
-    caplog, dummy_carbon_data, fixture_soil_core_components, functional_groups
+    caplog,
+    dummy_carbon_data,
+    fixture_soil_core_components,
+    functional_groups,
+    enzyme_classes,
 ):
     """Test `SoilModel` initialization with good data."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -63,6 +67,7 @@ def test_soil_model_initialization(
         core_components=fixture_soil_core_components,
         model_constants=SoilConsts(),
         microbial_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
@@ -81,7 +86,10 @@ def test_soil_model_initialization(
 
 
 def test_soil_model_initialization_no_data(
-    caplog, dummy_carbon_data, fixture_core_components
+    caplog,
+    dummy_carbon_data,
+    fixture_core_components,
+    enzyme_classes,
 ):
     """Test `SoilModel` initialization with no data."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -125,7 +133,11 @@ def test_soil_model_initialization_no_data(
 
 
 def test_soil_model_initialization_bounds_error(
-    caplog, dummy_carbon_data, fixture_core_components, functional_groups
+    caplog,
+    dummy_carbon_data,
+    fixture_core_components,
+    functional_groups,
+    enzyme_classes,
 ):
     """Test `SoilModel` initialization."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -144,6 +156,7 @@ def test_soil_model_initialization_bounds_error(
             core_components=fixture_core_components,
             model_constants=SoilConsts(),
             microbial_groups=functional_groups,
+            enzyme_classes=enzyme_classes,
             soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         )
 
@@ -159,7 +172,7 @@ def test_soil_model_initialization_bounds_error(
 
 
 def test_soil_model_all_pools_positive(
-    dummy_carbon_data, fixture_core_components, functional_groups
+    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
 ):
     """Test `SoilModel` initialization."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -172,6 +185,7 @@ def test_soil_model_all_pools_positive(
         core_components=fixture_core_components,
         model_constants=SoilConsts(),
         microbial_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
@@ -186,11 +200,11 @@ def test_soil_model_all_pools_positive(
 
 
 @pytest.mark.parametrize(
-    "cfg_string,max_decomp,raises,expected_log_entries",
+    "cfg_string,solub_coeff,raises,expected_log_entries",
     [
         pytest.param(
             "",
-            60.0,
+            0.005,
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
@@ -204,7 +218,7 @@ def test_soil_model_all_pools_positive(
             id="default_config",
         ),
         pytest.param(
-            "[soil.constants.SoilConsts]\nmax_decomp_rate_pom_bacteria = 0.05",
+            "[soil.constants.SoilConsts]\nsolubility_coefficient_labile_p = 0.05",
             0.05,
             does_not_raise(),
             (
@@ -236,7 +250,7 @@ def test_generate_soil_model(
     dummy_carbon_data,
     microbial_groups_cfg,
     cfg_string,
-    max_decomp,
+    solub_coeff,
     raises,
     expected_log_entries,
 ):
@@ -268,7 +282,7 @@ def test_generate_soil_model(
             core_components=core_components,
             config=config,
         )
-        assert model.model_constants.max_decomp_rate_pom_bacteria == max_decomp
+        assert model.model_constants.solubility_coefficient_labile_p == solub_coeff
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -567,7 +581,7 @@ def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model
 
 
 def test_construct_full_soil_model(
-    dummy_carbon_data, fixture_core_components, functional_groups
+    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
 ):
     """Test that the function that creates the object to integrate exists and works."""
     from virtual_ecosystem.core.constants import CoreConsts
@@ -697,6 +711,7 @@ def test_construct_full_soil_model(
         delta_pools_ordered=delta_pools_ordered,
         model_constants=SoilConsts,
         functional_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
         max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[

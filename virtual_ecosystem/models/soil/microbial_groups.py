@@ -9,6 +9,39 @@ from virtual_ecosystem.core.logger import LOGGER
 
 
 @dataclass(frozen=True)
+class EnzymeConstants:
+    """Container for the set of constants associated with a specific enzyme."""
+
+    source: str
+    """The microbial group which produces the enzyme."""
+
+    substrate: str
+    """The substrate which the enzyme acts upon."""
+
+    maximum_rate: float
+    """The maximum rate of the enzyme at the reference temperature [day^-1]."""
+
+    half_saturation_constant: float
+    """The half saturation constant for the enzyme at the reference temperature.
+
+    Units of [kg C m^-3]."""
+
+    activation_energy_rate: float
+    """Activation energy for enzyme rate with temperature [J K^-1]."""
+
+    activation_energy_saturation: float
+    """Activation energy for enzyme saturation with temperature [J K^-1]."""
+
+    # TODO - This should change to Kelvin when we change the default units to Kelvin
+    reference_temperature: float
+    """The reference temperature that enzyme rate and saturation were measured at [C].
+    """
+
+    turnover_rate: float
+    """The turnover rate of the enzyme [day^-1]."""
+
+
+@dataclass(frozen=True)
 class MicrobialGroupConstants:
     """Container for the set of constants associated with a microbial functional group.
 
@@ -55,6 +88,10 @@ class MicrobialGroupConstants:
 
     activation_energy_turnover: float
     """Activation energy for microbial maintenance turnover rate [J K^-1]."""
+
+    reference_temperature: float
+    """The reference temperature that turnover and uptake rates were measured at [C].
+    """
 
     c_n_ratio: float
     """Ratio of carbon to nitrogen in biomass [unitless]."""
@@ -120,4 +157,72 @@ def make_full_set_of_microbial_groups(
             )
         )
         for group_name in expected_groups
+    }
+
+
+def make_full_set_of_enzymes(
+    config: Config,
+) -> dict[str, EnzymeConstants]:
+    """Make the full set of enzyme classes used in the soil model.
+
+    Args:
+        config: The complete virtual ecosystem config.
+
+    Raises:
+        ConfigurationError: If the soil model configuration is missing, if expected
+            enzyme classes are not defined, or if unexpected enzyme classes are
+            defined.
+
+    Returns:
+        A dictionary containing each enzyme class used in the soil model.
+    """
+
+    if "soil" not in config:
+        msg = "Model configuration for soil model not found."
+        LOGGER.critical(msg)
+        raise ConfigurationError(msg)
+
+    expected_classes = {
+        ("fungi", "pom"),
+        ("fungi", "maom"),
+        ("bacteria", "pom"),
+        ("bacteria", "maom"),
+    }
+    defined_classes = {
+        (group["source"], group["substrate"])
+        for group in config["soil"]["enzyme_class_definition"]
+    }
+
+    undefined_classes = expected_classes.difference(defined_classes)
+    unexpected_classes = defined_classes.difference(expected_classes)
+    if undefined_classes:
+        missing = set(expected_classes) - set(defined_classes)
+        msg = (
+            "The following expected enzyme classes are not defined: "
+            f"{', '.join(f'{source}_{substrate}' for source, substrate in missing)}"
+        )
+        LOGGER.critical(msg)
+    if unexpected_classes:
+        unexpected = set(defined_classes) - set(expected_classes)
+        msg = (
+            "The following enzyme classes are not valid: "
+            f"{', '.join(f'{source}_{substrate}' for source, substrate in unexpected)}"
+        )
+        LOGGER.critical(msg)
+    if undefined_classes or unexpected_classes:
+        raise ConfigurationError(
+            "The soil enzyme classes configuration contains errors. Please check the "
+            "log."
+        )
+
+    return {
+        f"{microbe}_{substrate}": EnzymeConstants(
+            **next(
+                enzyme_class
+                for enzyme_class in config["soil"]["enzyme_class_definition"]
+                if enzyme_class["source"] == microbe
+                and enzyme_class["substrate"] == substrate
+            )
+        )
+        for (microbe, substrate) in expected_classes
     }
