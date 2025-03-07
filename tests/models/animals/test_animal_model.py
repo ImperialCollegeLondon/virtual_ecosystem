@@ -1476,6 +1476,53 @@ class TestAnimalModel:
         else:
             assert offspring.remaining_time_away == 0.0
 
+    @pytest.mark.parametrize(
+        "cohort_id, is_below_mass_threshold, reproductive_type, expect_birth_call",
+        [
+            ("eligible", False, "iteroparous", True),  # Eligible - should reproduce
+            ("below_threshold", True, "iteroparous", False),  # Too small - skipped
+            (
+                "nonreproductive",
+                False,
+                "nonreproductive",
+                False,
+            ),  # Nonreproductive - skipped
+            ("edge_case_zero_mass", True, "nonreproductive", False),
+        ],
+    )
+    def test_birth_community(
+        self,
+        mocker,
+        animal_model_instance,
+        cohort_id,
+        is_below_mass_threshold,
+        reproductive_type,
+        expect_birth_call,
+    ):
+        """Test birth_community filters cohorts correctly."""
+        # Create a mock cohort
+        cohort = mocker.MagicMock()
+        cohort.is_below_mass_threshold.return_value = is_below_mass_threshold
+        cohort.functional_group.reproductive_type = reproductive_type
+
+        # Place this single cohort into the active cohorts dictionary
+        animal_model_instance.active_cohorts = {cohort_id: cohort}
+
+        # Patch `birth` so we only check whether it's called
+        mock_birth = mocker.patch.object(animal_model_instance, "birth")
+
+        # Run the method
+        animal_model_instance.birth_community()
+
+        # Check that `is_below_mass_threshold` was checked
+        cohort.is_below_mass_threshold.assert_called_once_with(1.5)
+
+        # Check if `birth` was called or not
+        if expect_birth_call:
+            mock_birth.assert_called_once_with(cohort)
+        else:
+            mock_birth.assert_not_called()
+
     def test_forage_community(
         self,
         animal_model_instance,
@@ -1843,3 +1890,178 @@ class TestAnimalModel:
 
         # Assert that the other cohorts did not trigger metamorphosis
         mock_metamorphose.assert_called_once()  # Ensure it was called exactly once
+
+    @pytest.mark.parametrize(
+        "cohort_type, initial_time_away, dt_days, expected_time_away,"
+        "expect_reintegration",
+        [
+            # Migrated cohort with plenty of time left - no reintegration
+            ("migrated", 10.0, 2.0, 8.0, False),
+            # Migrated cohort with exactly enough time left - reintegrate
+            ("migrated", 2.0, 2.0, 0.0, True),
+            # Aquatic cohort with excess time - no reintegration
+            ("aquatic", 5.0, 1.0, 4.0, False),
+            # Aquatic cohort ready for reintegration
+            ("aquatic", 1.5, 2.0, -0.5, True),
+        ],
+    )
+    def test_update_migrated_and_aquatic(
+        self,
+        mocker,
+        animal_model_instance,
+        cohort_type,
+        initial_time_away,
+        dt_days,
+        expected_time_away,
+        expect_reintegration,
+    ):
+        """Test timing updates and reintegration for migrated and aquatic cohorts."""
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+        # Create mock cohort
+        cohort = mocker.MagicMock(spec=AnimalCohort)
+        cohort.remaining_time_away = initial_time_away
+
+        # Place the cohort into the appropriate pool
+        if cohort_type == "migrated":
+            animal_model_instance.migrated_cohorts = {"cohort1": cohort}
+            animal_model_instance.aquatic_cohorts = {}
+        elif cohort_type == "aquatic":
+            animal_model_instance.aquatic_cohorts = {"cohort1": cohort}
+            animal_model_instance.migrated_cohorts = {}
+
+        # Patch reintegrate_cohort so we track if it's called
+        mock_reintegrate = mocker.patch.object(
+            animal_model_instance, "reintegrate_cohort"
+        )
+
+        # Run the method
+        dt = np.timedelta64(int(dt_days), "D")
+        animal_model_instance.update_migrated_and_aquatic(dt)
+
+        # Check time was reduced correctly
+        assert cohort.remaining_time_away == pytest.approx(expected_time_away)
+
+        # Check reintegration call
+        if expect_reintegration:
+            mock_reintegrate.assert_called_once_with(cohort, source=cohort_type)
+        else:
+            mock_reintegrate.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "source, initial_individuals, mortality_rate, expected_individuals,"
+        "expect_active, expect_dead",
+        [
+            # Migrated cohort with survival
+            ("migrated", 100, 0.1, 90, True, False),
+            # Migrated cohort with complete mortality
+            ("migrated", 10, 1.0, 0, False, True),
+            # Aquatic cohort with survival (fixed aquatic mortality at 0.1)
+            ("aquatic", 200, None, 180, True, False),
+            # Aquatic cohort with no individuals left
+            ("aquatic", 5, None, 5, True, False),
+        ],
+    )
+    def test_reintegrate_cohort(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        source,
+        initial_individuals,
+        mortality_rate,
+        expected_individuals,
+        expect_active,
+        expect_dead,
+    ):
+        """Test reintegration logic for migrated and aquatic cohorts."""
+
+        # Set initial conditions for the cohort
+        herbivore_cohort_instance.individuals = initial_individuals
+        herbivore_cohort_instance.id = "cohort1"
+        herbivore_cohort_instance.is_alive = True
+        herbivore_cohort_instance.location_status = "frozen"
+
+        # Set the correct mortality rate based on source
+        if source == "migrated":
+            herbivore_cohort_instance.constants = herbivore_cohort_instance.constants
+            object.__setattr__(
+                herbivore_cohort_instance.constants,
+                "migration_mortality",
+                mortality_rate,
+            )
+            animal_model_instance.migrated_cohorts = {
+                "cohort1": herbivore_cohort_instance
+            }
+            animal_model_instance.aquatic_cohorts = {}
+        elif source == "aquatic":
+            mortality_rate = 0.1  # Aquatic mortality is fixed at 0.1
+            animal_model_instance.aquatic_cohorts = {
+                "cohort1": herbivore_cohort_instance
+            }
+            animal_model_instance.migrated_cohorts = {}
+
+        # Run the method
+        animal_model_instance.reintegrate_cohort(herbivore_cohort_instance, source)
+
+        # Check individuals count after mortality applied
+        assert herbivore_cohort_instance.individuals == expected_individuals
+
+        # Check final cohort state
+        if expect_active:
+            assert herbivore_cohort_instance.location_status == "active"
+            assert "cohort1" in animal_model_instance.active_cohorts
+            assert (
+                animal_model_instance.active_cohorts["cohort1"]
+                == herbivore_cohort_instance
+            )
+            assert herbivore_cohort_instance.is_alive is True
+        elif expect_dead:
+            assert herbivore_cohort_instance.is_alive is False
+            assert "cohort1" not in animal_model_instance.active_cohorts
+
+        # Check cohort removal from the source pool
+        if source == "migrated":
+            assert "cohort1" not in animal_model_instance.migrated_cohorts
+        elif source == "aquatic":
+            assert "cohort1" not in animal_model_instance.aquatic_cohorts
+
+    @pytest.mark.parametrize(
+        "migration_type, is_migration_season, expected_result",
+        [
+            ("seasonal", True, True),  # Seasonal species during migration season
+            ("seasonal", False, False),  # Seasonal species outside migration season
+            (
+                "none",
+                True,
+                False,
+            ),  # Non-migratory species, even during migration season
+            ("none", False, False),  # Non-migratory species outside migration season
+        ],
+    )
+    def test_trigger_external_migration(
+        self,
+        mocker,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        migration_type,
+        is_migration_season,
+        expected_result,
+    ):
+        """Test external migration triggering logic."""
+        # Set cohort's migration type
+        herbivore_cohort_instance.functional_group.migration_type = migration_type
+
+        # Patch is_migration_season to control the seasonal check
+        mocker.patch.object(
+            animal_model_instance,
+            "is_migration_season",
+            return_value=is_migration_season,
+        )
+
+        # Run the method
+        result = animal_model_instance.trigger_external_migration(
+            herbivore_cohort_instance
+        )
+
+        # Check result
+        assert result == expected_result
