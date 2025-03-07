@@ -1132,6 +1132,350 @@ class TestAnimalModel:
         # Check result
         assert result == expected_offspring
 
+    @pytest.mark.parametrize(
+        "reproductive_environment, expected_aquatic, expected_active",
+        [
+            ("aquatic", True, False),  # Aquatic offspring go into aquatic pool
+            ("terrestrial", False, True),  # Terrestrial offspring go into active pool
+        ],
+    )
+    def test_handle_offspring_creation(
+        self,
+        mocker,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        reproductive_environment,
+        expected_aquatic,
+        expected_active,
+    ):
+        """Test that offspring are placed in the correct pool based on environment."""
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+        # Mock the parent cohort's functional group
+        herbivore_cohort_instance.functional_group.reproductive_environment = (
+            reproductive_environment
+        )
+
+        # Mock the offspring created by `create_offspring`
+        mock_offspring = mocker.create_autospec(AnimalCohort)
+        mock_offspring.id = "mock_offspring_id"
+        mock_offspring.centroid_key = herbivore_cohort_instance.centroid_key
+
+        # Patch `create_offspring` to return the mock offspring
+        mocker.patch.object(
+            animal_model_instance,
+            "create_offspring",
+            return_value=mock_offspring,
+        )
+
+        # Patch `update_community_occupancy` to track calls
+        mock_update_occupancy = mocker.patch.object(
+            animal_model_instance, "update_community_occupancy"
+        )
+
+        # Run the method
+        animal_model_instance.handle_offspring_creation(herbivore_cohort_instance, 3)
+
+        # Assertions
+        if expected_aquatic:
+            assert (
+                animal_model_instance.aquatic_cohorts["mock_offspring_id"]
+                == mock_offspring
+            )
+            assert "mock_offspring_id" not in animal_model_instance.active_cohorts
+            mock_update_occupancy.assert_not_called()
+
+        if expected_active:
+            assert (
+                animal_model_instance.active_cohorts["mock_offspring_id"]
+                == mock_offspring
+            )
+            assert "mock_offspring_id" not in animal_model_instance.aquatic_cohorts
+            mock_update_occupancy.assert_called_once_with(
+                mock_offspring, mock_offspring.centroid_key
+            )
+
+    @pytest.mark.parametrize(
+        "reproductive_type, initial_reproductive_mass, offspring_count, birth_mass_cnp,"
+        "expected_remaining_mass, expect_semelparous_death_called",
+        [
+            # Iteroparous parent - reproductive mass reduces but parent survives
+            (
+                "iteroparous",
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                2,
+                (0.5, 0.1, 0.05),  # Per offspring birth mass C, N, P
+                {"carbon": 1.0, "nitrogen": 0.3, "phosphorus": 0.1},
+                False,
+            ),
+            # Semelparous parent - reproductive mass reduces and parent dies
+            (
+                "semelparous",
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                2,
+                (0.5, 0.1, 0.05),
+                {"carbon": 1.0, "nitrogen": 0.3, "phosphorus": 0.1},
+                True,
+            ),
+            # More offspring than available reproductive mass - cap at available mass
+            (
+                "iteroparous",
+                {"carbon": 0.5, "nitrogen": 0.2, "phosphorus": 0.1},
+                5,
+                (0.5, 0.1, 0.05),
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                False,
+            ),
+            # No offspring at all - nothing should change
+            (
+                "iteroparous",
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                0,
+                (0.5, 0.1, 0.05),  # Doesn't matter since 0 offspring
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                False,
+            ),
+        ],
+    )
+    def test_handle_post_birth_parent_updates(
+        self,
+        mocker,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        reproductive_type,
+        initial_reproductive_mass,
+        offspring_count,
+        birth_mass_cnp,
+        expected_remaining_mass,
+        expect_semelparous_death_called,
+    ):
+        """Test reproductive mass update and parent death handling after birth."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        # Mock parent cohort's reproductive type and initial reproductive mass
+        herbivore_cohort_instance.functional_group.reproductive_type = reproductive_type
+        herbivore_cohort_instance.reproductive_mass_cnp = CNP(
+            **initial_reproductive_mass
+        )
+
+        # Mock `calculate_birth_mass_cnp`
+        mocker.patch.object(
+            animal_model_instance,
+            "calculate_birth_mass_cnp",
+            return_value=birth_mass_cnp,
+        )
+
+        # Mock `handle_semelparous_parent_death`
+        mock_semelparous_death = mocker.patch.object(
+            animal_model_instance, "handle_semelparous_parent_death"
+        )
+
+        # Run the method
+        animal_model_instance.handle_post_birth_parent_updates(
+            herbivore_cohort_instance, offspring_count
+        )
+
+        # Check that the reproductive mass was correctly updated (with float tolerance)
+        assert herbivore_cohort_instance.reproductive_mass_cnp.carbon == pytest.approx(
+            expected_remaining_mass["carbon"]
+        )
+        assert (
+            herbivore_cohort_instance.reproductive_mass_cnp.nitrogen
+            == pytest.approx(expected_remaining_mass["nitrogen"])
+        )
+        assert (
+            herbivore_cohort_instance.reproductive_mass_cnp.phosphorus
+            == pytest.approx(expected_remaining_mass["phosphorus"])
+        )
+
+        # Check if semelparous death was correctly triggered or skipped
+        if expect_semelparous_death_called:
+            mock_semelparous_death.assert_called_once_with(herbivore_cohort_instance)
+        else:
+            mock_semelparous_death.assert_not_called()
+
+    def test_handle_semelparous_parent_death(
+        self, mocker, animal_model_instance, herbivore_cohort_instance
+    ):
+        """Test mass loss, death flag, and removal for semelparous parent death."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        # Set initial CNP mass (arbitrary non-zero starting mass)
+        herbivore_cohort_instance.mass_cnp = CNP(
+            carbon=5.0, nitrogen=1.0, phosphorus=0.5
+        )
+
+        # Mock the loss from calculate_semelparous_mass_loss
+        semelparous_loss = {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2}
+        mocker.patch.object(
+            animal_model_instance,
+            "calculate_semelparous_mass_loss",
+            return_value=semelparous_loss,
+        )
+
+        # Mock remove_dead_cohort
+        mock_remove_dead = mocker.patch.object(
+            animal_model_instance, "remove_dead_cohort"
+        )
+
+        # Run the method
+        animal_model_instance.handle_semelparous_parent_death(herbivore_cohort_instance)
+
+        # Check mass was reduced correctly
+        assert herbivore_cohort_instance.mass_cnp.carbon == pytest.approx(3.0)
+        assert herbivore_cohort_instance.mass_cnp.nitrogen == pytest.approx(0.5)
+        assert herbivore_cohort_instance.mass_cnp.phosphorus == pytest.approx(0.3)
+
+        # Check parent marked as dead
+        assert herbivore_cohort_instance.is_alive is False
+
+        # Check parent was removed from population
+        mock_remove_dead.assert_called_once_with(herbivore_cohort_instance)
+
+    @pytest.mark.parametrize(
+        "reproductive_type, initial_mass_cnp, expected_loss",
+        [
+            # Case 1: Semelparous species with 50% loss applied
+            (
+                "semelparous",
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+            ),
+            # Case 2: Iteroparous species (no loss applied)
+            (
+                "iteroparous",
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),
+        ],
+    )
+    def test_calculate_semelparous_mass_loss(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        reproductive_type,
+        initial_mass_cnp,
+        expected_loss,
+    ):
+        """Test semelparous mass loss calculation with fixed 50% loss."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        # Set parent cohort's functional group and initial mass
+        herbivore_cohort_instance.functional_group.reproductive_type = reproductive_type
+        herbivore_cohort_instance.mass_cnp = CNP(**initial_mass_cnp)
+
+        # Run the method — since semelparity loss is fixed at 0.5, no need to mock
+        result = animal_model_instance.calculate_semelparous_mass_loss(
+            herbivore_cohort_instance
+        )
+
+        # Check result matches expected loss (with float tolerance)
+        assert result["carbon"] == pytest.approx(expected_loss["carbon"])
+        assert result["nitrogen"] == pytest.approx(expected_loss["nitrogen"])
+        assert result["phosphorus"] == pytest.approx(expected_loss["phosphorus"])
+
+    @pytest.mark.parametrize(
+        "birth_mass, cnp_proportions, expected_birth_cnp",
+        [
+            # Standard balanced case
+            (
+                1.0,
+                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+                (0.5, 0.3, 0.2),
+            ),
+            # Larger birth mass
+            (
+                10.0,
+                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+                (5.0, 3.0, 2.0),
+            ),
+            # Zero birth mass (should return all zeros)
+            (
+                0.0,
+                {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+                (0.0, 0.0, 0.0),
+            ),
+        ],
+    )
+    def test_calculate_birth_mass_cnp(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        birth_mass,
+        cnp_proportions,
+        expected_birth_cnp,
+    ):
+        """Test conversion of birth mass into carbon, nitrogen, and phosphorus."""
+        # Set parent cohort's stoichiometric proportions
+        herbivore_cohort_instance.cnp_proportions = cnp_proportions
+
+        # Run the method
+        result = animal_model_instance.calculate_birth_mass_cnp(
+            birth_mass, herbivore_cohort_instance
+        )
+
+        # Check result (with float tolerance)
+        assert result[0] == pytest.approx(expected_birth_cnp[0])
+        assert result[1] == pytest.approx(expected_birth_cnp[1])
+        assert result[2] == pytest.approx(expected_birth_cnp[2])
+
+    @pytest.mark.parametrize(
+        "parent_group_name, reproductive_environment",
+        [
+            (
+                "herbivorous_bird",
+                "terrestrial",
+            ),  # Terrestrial = no special residence time
+            ("frog", "aquatic"),  # Aquatic = residence time applied
+        ],
+    )
+    def test_create_offspring(
+        self,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        functional_group_list_instance,
+        parent_group_name,
+        reproductive_environment,
+    ):
+        """Test offspring creation uses correct functional group and properties."""
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Parent cohort setup
+        parent_group = get_functional_group_by_name(
+            functional_group_list_instance, parent_group_name
+        )
+        herbivore_cohort_instance.functional_group = parent_group
+        herbivore_cohort_instance.functional_group.reproductive_environment = (
+            reproductive_environment
+        )
+        herbivore_cohort_instance.centroid_key = 42
+
+        # Make sure the AnimalModel has the full list of functional groups
+        animal_model_instance.functional_groups = functional_group_list_instance
+
+        # Run the method
+        offspring = animal_model_instance.create_offspring(herbivore_cohort_instance, 5)
+
+        # Assertions - functional group & basic properties
+        assert isinstance(offspring, AnimalCohort)
+        assert offspring.functional_group == parent_group
+        assert offspring.mass_current == parent_group.birth_mass
+        assert offspring.age == 0.0
+        assert offspring.individuals == 5
+        assert offspring.centroid_key == 42
+
+        # Check aquatic residence time handling
+        if reproductive_environment == "aquatic":
+            assert (
+                offspring.remaining_time_away
+                == parent_group.constants.aquatic_residence_time
+            )
+        else:
+            assert offspring.remaining_time_away == 0.0
+
     def test_forage_community(
         self,
         animal_model_instance,
