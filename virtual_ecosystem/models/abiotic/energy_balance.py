@@ -436,6 +436,9 @@ def update_air_canopy_temperature(
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     r"""Update air and canopy temperature in steady state.
 
+    TODO this needs to be revisited, there seems to be a term missing and we need to
+    check if the linearisation needs to be applied in a wider context of the iteration.
+
     The method linearizes the energy balance of the canopy and air temperature updates
     using Newton-Raphson approximation for temperature adjustment.
 
