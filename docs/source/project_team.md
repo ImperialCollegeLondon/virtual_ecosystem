@@ -193,7 +193,12 @@ both the core strucutre and science models.
 :class: team-photo
 ```
 
-Siti Nor Baizurah is a herpetologist whose hands-on field research focuses on life history, animal ecology, taxonomy, and wildlife conservation in Borneo. She is currently one of the data scientists focusing on the animal module for the Virtual Ecosystem. Baizurah is based at SEARRP in Kota Kinabalu, Sabah.
+Baizurah is a herpetologist focusing on life history,
+animal ecology,
+taxonomy and wildlife conservation in Borneo.
+She is one of the data scientists focusing on animal model for the Virtual Ecosystem.
+She is based at SEARRP,
+Sabah (Malaysia). 
 :::
 
 :::{grid-item-card} Dr. Lelavathy Samikan Mazilamani
