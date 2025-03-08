@@ -198,7 +198,7 @@ animal ecology,
 taxonomy and wildlife conservation in Borneo.
 She is one of the data scientists focusing on animal model for the Virtual Ecosystem.
 She is based at SEARRP,
-Sabah (Malaysia). 
+Sabah (Malaysia).
 :::
 
 :::{grid-item-card} Dr. Lelavathy Samikan Mazilamani
