@@ -184,7 +184,7 @@ both the core strucutre and science models.
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} Siti Nor Baizurah Abdul Malik
+:::{grid-item-card} Dr. Siti Nor Baizurah Abdul Malik
 :margin: 2 2 0 0
 :link: project_team.html
 
