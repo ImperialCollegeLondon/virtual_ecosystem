@@ -231,14 +231,16 @@ Virtual Ecosystem and is currently based in Aotearoa New Zealand.
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/photo_placeholder.png
-:alt: Nicholas Wei Cheng Tan
+```{image} _static/images/people/nick_tan.jpg
+:alt: Dr. Nicholas Wei Cheng Tan
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Nicholas is an animal ecologist with interests in phenotypic evolution 
+and the effects of climate and land use change on biodiversity. 
+He is one of the data scientists for the Virtual Ecosystem, with a 
+focus on the animal model. Nicholas is currently based in Johannesburg, 
+South Africa.
 :::
 
 :::{grid-item-card} Arne Scheire
