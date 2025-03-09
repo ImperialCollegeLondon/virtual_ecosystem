@@ -188,7 +188,7 @@ both the core strucutre and science models.
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/sitinorbaizurah
+```{image} _static/images/people/sitinorbaizurah.png
 :alt: Dr. Siti Nor Baizurah Abdul Malik
 :class: team-photo
 ```
