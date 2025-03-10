@@ -239,10 +239,10 @@ Virtual Ecosystem and is currently based in Aotearoa New Zealand.
 :class: team-photo
 ```
 
-Nicholas is an animal ecologist with interests in phenotypic evolution 
-and the effects of climate and land use change on biodiversity. 
-He is one of the data scientists for the Virtual Ecosystem, with a 
-focus on the animal model. Nicholas is currently based in Johannesburg, 
+Nicholas is an animal ecologist with interests in phenotypic evolution
+and the effects of climate and land use change on biodiversity.
+He is one of the data scientists for the Virtual Ecosystem, with a
+focus on the animal model. Nicholas is currently based in Johannesburg,
 South Africa.
 :::
 
