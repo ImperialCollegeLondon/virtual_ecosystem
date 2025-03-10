@@ -195,7 +195,11 @@ def test_calculate_microbial_changes(
 
 
 def test_calculate_enzyme_mediated_rates(
-    dummy_carbon_data, environmental_factors, fixture_core_components, enzyme_classes
+    dummy_carbon_data,
+    soil_pool_data,
+    environmental_factors,
+    fixture_core_components,
+    enzyme_classes,
 ):
     """Check that calculation of enzyme mediated rates works as expected."""
 
@@ -207,12 +211,7 @@ def test_calculate_enzyme_mediated_rates(
     }
 
     actual_rates = calculate_enzyme_mediated_rates(
-        soil_enzyme_pom_bacteria=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        soil_enzyme_maom_bacteria=dummy_carbon_data["soil_enzyme_maom_bacteria"],
-        soil_enzyme_pom_fungi=dummy_carbon_data["soil_enzyme_pom_fungi"],
-        soil_enzyme_maom_fungi=dummy_carbon_data["soil_enzyme_maom_fungi"],
-        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        pools=soil_pool_data,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],

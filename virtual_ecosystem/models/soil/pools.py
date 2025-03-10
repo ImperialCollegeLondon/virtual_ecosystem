@@ -450,12 +450,7 @@ class SoilPools:
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
-            soil_enzyme_pom_bacteria=self.pools.soil_enzyme_pom_bacteria,
-            soil_enzyme_maom_bacteria=self.pools.soil_enzyme_maom_bacteria,
-            soil_enzyme_pom_fungi=self.pools.soil_enzyme_pom_fungi,
-            soil_enzyme_maom_fungi=self.pools.soil_enzyme_maom_fungi,
-            soil_c_pool_pom=self.pools.soil_c_pool_pom,
-            soil_c_pool_maom=self.pools.soil_c_pool_maom,
+            pools=self.pools,
             soil_temp=soil_temperature,
             env_factors=env_factors,
             enzyme_classes=self.enzyme_classes,
@@ -884,12 +879,7 @@ def calculate_microbial_changes(
 
 
 def calculate_enzyme_mediated_rates(
-    soil_enzyme_pom_bacteria: NDArray[np.float32],
-    soil_enzyme_maom_bacteria: NDArray[np.float32],
-    soil_enzyme_pom_fungi: NDArray[np.float32],
-    soil_enzyme_maom_fungi: NDArray[np.float32],
-    soil_c_pool_pom: NDArray[np.float32],
-    soil_c_pool_maom: NDArray[np.float32],
+    pools: PoolData,
     soil_temp: NDArray[np.float32],
     env_factors: EnvironmentalEffectFactors,
     enzyme_classes: dict[str, EnzymeConstants],
@@ -897,16 +887,7 @@ def calculate_enzyme_mediated_rates(
     """Calculate the rates of each enzyme mediated reaction.
 
     Args:
-        soil_enzyme_pom_bacteria: Amount of bacterially produced enzyme class
-            which breaks down :term:`POM` [kg C m^-3]
-        soil_enzyme_maom_bacteria: Amount of bacterially produced enzyme class which
-            breaks down :term:`MAOM` [kg C m^-3]
-        soil_enzyme_pom_fungi: Amount of fungally produced enzyme class which breaks
-            down :term:`POM` [kg C m^-3]
-        soil_enzyme_maom_fungi: Amount of fungally produced enzyme class which breaks
-            down :term:`MAOM` [kg C m^-3]
-        soil_c_pool_pom: Particulate organic matter pool [kg C m^-3]
-        soil_c_pool_maom: Mineral associated organic matter pool [kg C m^-3]
+        pools: Data class containing the various soil pools.
         soil_temp: soil temperature for each soil grid cell [degrees C]
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
@@ -917,42 +898,27 @@ def calculate_enzyme_mediated_rates(
         :term:`POM` and :term:`MAOM` pool.
     """
 
-    # TODO - I THINK THIS CALCULATION CAN PROBABLY BE LOOPED IN SOME WAY
-    pom_decomposition_to_lmwc_bacteria = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=soil_c_pool_pom,
-        soil_enzyme=soil_enzyme_pom_bacteria,
-        soil_temp=soil_temp,
-        env_factors=env_factors,
-        enzyme_class=enzyme_classes["bacteria_pom"],
-    )
-    maom_decomposition_to_lmwc_bacteria = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=soil_c_pool_maom,
-        soil_enzyme=soil_enzyme_maom_bacteria,
-        soil_temp=soil_temp,
-        env_factors=env_factors,
-        enzyme_class=enzyme_classes["bacteria_maom"],
-    )
-    pom_decomposition_to_lmwc_fungi = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=soil_c_pool_pom,
-        soil_enzyme=soil_enzyme_pom_fungi,
-        soil_temp=soil_temp,
-        env_factors=env_factors,
-        enzyme_class=enzyme_classes["fungi_pom"],
-    )
-    maom_decomposition_to_lmwc_fungi = calculate_enzyme_mediated_decomposition(
-        soil_c_pool=soil_c_pool_maom,
-        soil_enzyme=soil_enzyme_maom_fungi,
-        soil_temp=soil_temp,
-        env_factors=env_factors,
-        enzyme_class=enzyme_classes["fungi_maom"],
-    )
+    substrates = ["pom", "maom"]
+    sources = ["bacteria", "fungi"]
 
-    return EnzymeMediatedRates(
-        pom_to_lmwc=pom_decomposition_to_lmwc_bacteria
-        + pom_decomposition_to_lmwc_fungi,
-        maom_to_lmwc=maom_decomposition_to_lmwc_bacteria
-        + maom_decomposition_to_lmwc_fungi,
-    )
+    decomposition_rates = {
+        f"{substrate}_to_lmwc": np.sum(
+            [
+                calculate_enzyme_mediated_decomposition(
+                    soil_c_pool=getattr(pools, f"soil_c_pool_{substrate}"),
+                    soil_enzyme=getattr(pools, f"soil_enzyme_{substrate}_{source}"),
+                    soil_temp=soil_temp,
+                    env_factors=env_factors,
+                    enzyme_class=enzyme_classes[f"{source}_{substrate}"],
+                )
+                for source in sources
+            ],
+            axis=0,
+        )
+        for substrate in substrates
+    }
+
+    return EnzymeMediatedRates(**decomposition_rates)
 
 
 def calculate_nutrient_leaching(

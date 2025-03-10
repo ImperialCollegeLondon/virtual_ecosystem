@@ -87,19 +87,33 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
 
 
 @pytest.fixture
+def soil_pool_data(dummy_carbon_data):
+    """Fixture containing the soil data for all the pools that change."""
+    from virtual_ecosystem.models.soil.pools import PoolData
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
+
+    pools = {
+        var: pool
+        for var, pool in dummy_carbon_data.data.items()
+        if var in SoilModel.vars_updated
+    }
+
+    return PoolData(**pools)
+
+
+@pytest.fixture
 def enzyme_mediated_rates(
-    dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
+    dummy_carbon_data,
+    soil_pool_data,
+    fixture_core_components,
+    environmental_factors,
+    enzyme_classes,
 ):
     """Enzyme mediated rates based on dummy carbon data."""
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
     return calculate_enzyme_mediated_rates(
-        soil_enzyme_pom_bacteria=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        soil_enzyme_maom_bacteria=dummy_carbon_data["soil_enzyme_maom_bacteria"],
-        soil_enzyme_pom_fungi=dummy_carbon_data["soil_enzyme_pom_fungi"],
-        soil_enzyme_maom_fungi=dummy_carbon_data["soil_enzyme_maom_fungi"],
-        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        pools=soil_pool_data,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
