@@ -281,4 +281,9 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             - fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
         deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
+
+        assert np.all(
+            original_population[cell_id]
+            >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
+        )
         assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass

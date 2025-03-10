@@ -11,7 +11,7 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class PlantsConsts(ConstantsDataclass):
     """Constants for the :mod:`~virtual_ecosystem.models.plants` model."""
 
-    per_stem_annual_mortality_rate: float = 0.1
+    per_stem_annual_mortality_probability: float = 0.1
     """Basic annual mortality rate for plants."""
 
     ppfd_to_dsr: float = 2.04

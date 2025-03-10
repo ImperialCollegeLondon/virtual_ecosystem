@@ -204,7 +204,7 @@ class PlantsModel(
         """PModel constants used by pyrealm."""
         self.pmodel_core_consts: CoreConst
         """Core constants used by pyrealm."""
-        self.per_update_interval_stem_mortality_rate: np.float64
+        self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
 
     @classmethod
@@ -308,8 +308,8 @@ class PlantsModel(
         )
 
         # Calculate the per update interval stem mortality rate
-        self.per_update_interval_stem_mortality_rate = (
-            model_constants.per_stem_annual_mortality_rate
+        self.per_update_interval_stem_mortality_probability = (
+            model_constants.per_stem_annual_mortality_probability
             / self.model_timing.updates_per_year
         )
 
@@ -654,8 +654,9 @@ class PlantsModel(
             cohorts = community.cohorts
 
             # Calculate the number of individuals that have died in each cohort
-            mortality = np.round(
-                cohorts.n_individuals * self.per_update_interval_stem_mortality_rate
+            mortality = np.random.binomial(
+                cohorts.n_individuals,
+                self.per_update_interval_stem_mortality_probability,
             )
 
             # Decrease size of cohorts based on mortality
