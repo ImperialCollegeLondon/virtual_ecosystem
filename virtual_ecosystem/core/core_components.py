@@ -154,6 +154,7 @@ class ModelTiming:
         self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
 
         # Calculate the number of updates in one year
+        # TODO - this is not calendar aware - variable length months and leap years.
         seconds_per_year = np.timedelta64(31536000, "s")
         self.updates_per_year = seconds_per_year / self.update_interval
 
