@@ -184,18 +184,21 @@ both the core strucutre and science models.
 
 ::::{grid} 1 1 2 2
 
-:::{grid-item-card} Siti Nor Baizurah Abdul Malik
+:::{grid-item-card} Dr. Siti Nor Baizurah Abdul Malik
 :margin: 2 2 0 0
 :link: project_team.html
 
-```{image} _static/images/people/photo_placeholder.png
-:alt: Siti Nor Baizurah Abdul Malik
+```{image} _static/images/people/sitinorbaizurah.png
+:alt: Dr. Siti Nor Baizurah Abdul Malik
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Baizurah is a herpetologist focusing on life history,
+animal ecology,
+taxonomy and wildlife conservation in Borneo.
+She is one of the data scientists focusing on animal model for the Virtual Ecosystem.
+She is based at SEARRP,
+Sabah (Malaysia).
 :::
 
 :::{grid-item-card} Dr. Lelavathy Samikan Mazilamani
