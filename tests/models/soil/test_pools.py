@@ -138,6 +138,7 @@ def test_to_per_volume(
 def test_calculate_microbial_changes(
     dummy_carbon_data,
     fixture_core_components,
+    soil_pool_data,
     environmental_factors,
     functional_groups,
     enzyme_classes,
@@ -165,18 +166,7 @@ def test_calculate_microbial_changes(
     }
 
     actual_mic_changes = calculate_microbial_changes(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
-        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_bacteria=dummy_carbon_data["soil_c_pool_bacteria"],
-        soil_c_pool_fungi=dummy_carbon_data["soil_c_pool_fungi"],
-        soil_enzyme_pom_bacteria=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        soil_enzyme_maom_bacteria=dummy_carbon_data["soil_enzyme_maom_bacteria"],
-        soil_enzyme_pom_fungi=dummy_carbon_data["soil_enzyme_pom_fungi"],
-        soil_enzyme_maom_fungi=dummy_carbon_data["soil_enzyme_maom_fungi"],
+        pools=soil_pool_data,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
@@ -293,7 +283,9 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
     assert np.allclose(actual_leaching.labile_P, expected_labile_P)
 
 
-def test_calculate_enzyme_changes(dummy_carbon_data, biomass_losses, enzyme_classes):
+def test_calculate_enzyme_changes(
+    dummy_carbon_data, soil_pool_data, biomass_losses, enzyme_classes
+):
     """Check that the determination of enzyme pool changes works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_changes
@@ -308,12 +300,8 @@ def test_calculate_enzyme_changes(dummy_carbon_data, biomass_losses, enzyme_clas
     }
 
     actual_enzyme_changes = calculate_enzyme_changes(
-        soil_enzyme_pom_bacteria=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        soil_enzyme_maom_bacteria=dummy_carbon_data["soil_enzyme_maom_bacteria"],
-        soil_enzyme_pom_fungi=dummy_carbon_data["soil_enzyme_pom_fungi"],
-        soil_enzyme_maom_fungi=dummy_carbon_data["soil_enzyme_maom_fungi"],
-        bacterial_biomass_loss=biomass_losses["bacteria"],
-        fungal_biomass_loss=biomass_losses["fungi"],
+        pools=soil_pool_data,
+        biomass_losses=biomass_losses,
         constants=SoilConsts,
         enzyme_classes=enzyme_classes,
     )
@@ -339,7 +327,7 @@ def test_calculate_net_enzyme_change(dummy_carbon_data, biomass_losses, enzyme_c
     actual_net_change, actual_denat = calculate_net_enzyme_change(
         enzyme_pool_size=dummy_carbon_data["soil_enzyme_pom_bacteria"],
         biomass_loss=biomass_losses["bacteria"],
-        biomass_loss_to_enzyme_class=SoilConsts.bacterial_maintenance_pom_enzyme,
+        biomass_loss_to_enzyme_class=SoilConsts.maintenance_bacteria_pom_enzyme,
         enzyme_turnover_rate=enzyme_classes["bacteria_pom"].turnover_rate,
     )
 
