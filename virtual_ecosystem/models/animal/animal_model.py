@@ -1228,11 +1228,17 @@ class AnimalModel(
         if cohort.individuals > 0:
             cohort.location_status = "active"
             self.active_cohorts[cohort.id] = cohort
+
+            # Reintroduce cohort to its communities
+            self.update_community_occupancy(cohort, cohort.centroid_key)
+
         else:
             cohort.is_alive = False
 
     def trigger_external_migration(self, cohort: AnimalCohort) -> bool:
         """Handles the initiation of external migration events.
+
+        TODO: logic incomplete
 
         Args:
             cohort: The migrating cohort.
@@ -1240,8 +1246,20 @@ class AnimalModel(
         Returns: Bool of whether the migration occurs.
 
         """
-        if cohort.functional_group.migration_type == "seasonal":
-            return self.is_migration_season()
+        if (
+            cohort.functional_group.migration_type == "seasonal"
+            and self.is_migration_season()
+        ):
+            # Remove cohort from community occupancy
+            self.abandon_communities(cohort)
+
+            # Move cohort to migration pool
+            cohort.location_status = "migrated"
+            cohort.remaining_time_away = cohort.constants.migration_residence_time
+            self.migrated_cohorts[cohort.id] = cohort
+            self.active_cohorts.pop(cohort.id)
+            return True
+
         return False
 
     def is_migration_season(self) -> bool:
