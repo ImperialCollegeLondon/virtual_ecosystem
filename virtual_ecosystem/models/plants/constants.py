@@ -17,3 +17,9 @@ class PlantsConsts(ConstantsDataclass):
     Converting units from umol m-2 s-1 to W m-2 (conversion = 4.57) and assuming 46% of
     DSR is photosynthetically active results in an overall conversion factor of 2.04.
     """
+
+    gpp_allocated_to_fruit_production = 0.05
+    """Fraction of GPP allocated to fruit production."""
+
+    gpp_allocated_to_root_carbon_exudation = 0.05
+    """Fraction of GPP allocated to root carbon exudation."""

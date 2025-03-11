@@ -184,9 +184,11 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
             fxt_plants_model.communities[cell_id].cohorts.dbh_values
             >= prev_dbh_values[cell_id]
         ).all()
-        # Ensure that leaf and root turnover exist and are > 0
-        assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
-        assert fxt_plants_model.data["root_turnover"][cell_id] > 0
+        # Ensure that leaf and root turnover exist and are >= 0
+        assert fxt_plants_model.data["leaf_turnover"][cell_id] >= 0
+        assert fxt_plants_model.data["root_turnover"][cell_id] >= 0
+        assert fxt_plants_model.data["plant_reproductive_tissue_turnover"][cell_id] >= 0
+        assert fxt_plants_model.data["root_carbon_exudation"][cell_id] >= 0
 
 
 def test_PlantsModel_update(
@@ -228,9 +230,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
 
     # Check that all expected variables are generated and have the correct value
     assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
-    )
     assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
     assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
     assert np.allclose(

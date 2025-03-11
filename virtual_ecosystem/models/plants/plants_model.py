@@ -87,7 +87,7 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
-        "root_carbohydrate_exudation",
+        "root_carbon_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
@@ -111,7 +111,7 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
-        "root_carbohydrate_exudation",
+        "root_carbon_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
@@ -596,30 +596,54 @@ class PlantsModel(
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
 
+        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
+            self.data["elevation"], 0
+        )
+        self.data["root_carbon_exudation"] = xr.full_like(self.data["elevation"], 0)
+
         # Loop over each grid cell
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate the allocation of GPP
+            # Allocate GPP to fruit production and root exudation
+            self.data["plant_reproductive_tissue_turnover"][cell_id] = (
+                self.model_constants.gpp_allocated_to_fruit_production
+                * self.per_stem_gpp[cell_id]
+            )[0]
+            self.data["root_carbon_exudation"][cell_id] = (
+                self.model_constants.gpp_allocated_to_root_carbon_exudation
+                * self.per_stem_gpp[cell_id]
+            )[0]
+
+            # Update GPP to remove allocation to fruit and root exudation
+            self.per_stem_gpp[cell_id] = (
+                self.per_stem_gpp[cell_id]
+                - self.data["plant_reproductive_tissue_turnover"][cell_id].to_numpy()
+                - self.data["root_carbon_exudation"][cell_id].to_numpy()
+            )
+
+            # Use remaining GPP to calculate cohort growth and turnover
             cohort_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
                 at_potential_gpp=self.per_stem_gpp[cell_id],
             )
 
-            # Grow the plants by increasing cohort dbh
-            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
+            # Calculate leaf and root turnover, and sum across entire grid cell
             # TODO: move leaf/root turnover calculation to pyrealm & call here
             leaf_turnover = (
                 community.stem_allometry.foliage_mass / community.stem_traits.tau_f
             )
-            # Calculate total turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(leaf_turnover)
             self.data["root_turnover"][cell_id] = np.sum(
                 cohort_allocation.turnover - leaf_turnover
             )
+
+            # Grow the plants by increasing cohort dbh
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
+            cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
+
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
@@ -642,9 +666,6 @@ class PlantsModel(
 
         # All outputs are just constants at the moment
         self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
-        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
-            self.data["elevation"], 0.003
-        )
         self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
         self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
         self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
@@ -673,9 +694,6 @@ class PlantsModel(
         )
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
-        )
-        self.data["root_carbohydrate_exudation"] = xr.full_like(
-            self.data["elevation"], 0.025
         )
 
     def calculate_nutrient_uptake(self) -> None:

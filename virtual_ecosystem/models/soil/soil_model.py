@@ -108,7 +108,7 @@ class SoilModel(
         "litter_N_mineralisation_rate",
         "litter_P_mineralisation_rate",
         "nitrogen_fixation_carbon_supply",
-        "root_carbohydrate_exudation",
+        "root_carbon_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",

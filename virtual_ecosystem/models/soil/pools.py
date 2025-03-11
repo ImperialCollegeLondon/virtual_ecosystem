@@ -533,7 +533,7 @@ class SoilPools:
         # Determine net changes to the pools
         delta_pools_ordered["soil_c_pool_lmwc"] = (
             litter_mineralisation_flux.lmwc
-            + self.to_per_volume(self.data["root_carbohydrate_exudation"].to_numpy())
+            + self.to_per_volume(self.data["root_carbon_exudation"].to_numpy())
             + enzyme_mediated.pom_to_lmwc
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc
