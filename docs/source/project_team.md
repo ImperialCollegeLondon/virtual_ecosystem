@@ -54,19 +54,17 @@ egestas.
 
 :::
 
-:::{grid-item-card} Dr. Anna Rallings
+:::{grid-item-card} Anna Rallings
 :margin: 2 2 0 0
 :link: project_team.html
 
 ```{image} _static/images/people/photo_placeholder.png
-:alt: Dr. Anna Rallings
+:alt: Anna Rallings
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
-
+Anna is an environmental scientist with a focus on landscape management and applied ecology.
+She supports the data science team in development of model parameterization. Anna is based at the Silwood Park Campus of Imperial College London.
 :::
 
 ::::
