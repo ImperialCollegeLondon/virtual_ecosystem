@@ -35,19 +35,58 @@ litter decay and soil organic matter breakdown.
 
 TODO - Expand this intro to cover the sections I am adding
 
-:::{admonition} In progress 🛠️
+## Microbial response to temperature
 
-The representation of soil microbial communities has still not been finalised. Once this
-has happened this section of the documentation will be extended to detail the relevant
-thermal responses.
+Temperature is one of the most significant drivers of microbial processes. In the soil
+model, two different approaches are taken to model the effects of temperature on
+microbial process rates. While most processes are modelled using the Arrhenius equation,
+a different approach is taken to modelling the efficiency of microbial growth.
+
+### Arrhenius equation
+
+:::{admonition} Future directions 🔭
+
+The Arrhenius equation is a simple model for the impact of temperature on biological
+rates. We are using this equation as a simple initial approach to incorporate
+temperature in the model, and anticipate deprecating it in favour of more refined models
+in future.
 
 :::
 
-## Arrhenius equation
+We model the thermal variation of the following processes using the Arrhenius equation:
 
-TODO - Need a better title
+* microbial biomass loss
+* microbial uptake rate
+* microbial uptake saturation
+* enzyme rate
+* enzyme saturation
 
-TODO - Populate this section (mention that it holds for microbial rate)
+The form of the equation is as follows
+
+$$f(T) = \exp{\frac{-E_a}{R} * (\frac{1}{T} - \frac{1}{T_{\mathrm{ref}}})},$$
+
+where $E_a$ the activation energy of the process of interest, $R$ is the molar gas
+constant, $T$ is the environmental temperature, and $T_{\mathrm{ref}}$ the reference
+temperature.
+
+### Temperature impact on microbial growth efficiency
+
+TODO - When the CUE pull request is in this section will have to be updated
+
+The efficiency of microbial growth is often expressed in carbon terms as a carbon use
+efficiency. This is defined as the ratio of carbon used for the synthesis of new biomass
+to the total amount of carbon taken up. This is an emergent property that arises from a
+large number of underlying processes (e.g. basal respiration, DNA synthesis efficiency,
+etc), most of which would be expected to vary with temperature. Because of this carbon
+use efficiency does not follow anything like an exponential increase with temperature,
+and so the Arrhenius model is not an appropriate model to use. Instead we use a simple
+linear model to calculate carbon use efficiency
+
+$$\epsilon = \epsilon_{\mathrm{ref}} - \alpha * (T - T_{\mathrm{ref}}),$$
+
+where $\epsilon_{\mathrm{ref}}$ is the carbon use efficiency at the reference
+temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ is the
+environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature.
 
 ## Soil moisture response
 
@@ -101,13 +140,11 @@ TODO - Populate subsection
 
 TODO - Populate subsection
 
-### Impact of temperature on enzyme rate
+### Impact of temperature on enzyme rate and saturation
 
 TODO - Populate subsection
-
-### Impact of temperature on enzyme saturation
-
-TODO - Populate subsection
+TODO - Equation for this is already given in the Arrhenius section so I should just link
+back
 
 ### Impact of soil moisture on enzyme saturation
 
