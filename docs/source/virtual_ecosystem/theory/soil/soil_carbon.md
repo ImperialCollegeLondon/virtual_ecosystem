@@ -211,4 +211,4 @@ Leaching of nutrients from the soil occurs when water passing downwards through 
 carries dissolved nutrients away with it. By definition, any organic matter that is
 simple enough to solubilise is included in the {term}`LMWC` pool, so this is the only
 soil carbon pool to be effected by leaching. The expression we use to calculate leaching
-rates can be found [here](./environmental_links.md#leaching-rate).
+rates can be found [here](./environmental_links.md#soil-nutrient-leaching-rate).

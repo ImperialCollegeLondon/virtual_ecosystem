@@ -113,6 +113,26 @@ TODO - Populate subsection
 
 TODO - Populate subsection (? is this different from what I have already above)
 
-## Leaching rate
+## Soil nutrient leaching rate
 
-TODO - Populate this section
+Soil nutrient leaching occurs when the downwards movement of water though the soil
+carries away dissolved nutrients with it. As such, this process only applies to the
+soluble forms of nutrients, i.e. the simplest and most readily uptaken forms. To
+calculate the leaching rate for a given solute, we first have to calculate the amount of
+it that we would expect to find in a dissolved form using
+
+$$D_i = C_i * N_i,$$
+
+where $N_i$ is the density of solute $i$ in the soil and $C_i$ is the solubility
+coefficient for solute $i$. The solubility coefficient represents the proportion of the
+solute that you would expect to find in a dissolved form and ranges between zero and
+one. We then need to know the rate at which the water column gets completely replaced,
+this can be calculated as
+
+$$\mu = J / W,$$
+
+where $J$ is the rate of flow of water through the soil, and $W$ is the amount of water
+contained in the water column. We can then combine the above to calculate the leaching
+rate for substrate $i$ as
+
+$$L_i = \mu * D_i.$$
