@@ -130,25 +130,56 @@ changes.
 
 ## Environmental effects on enzymes
 
-TODO - Add a broad intro here
+Enzyme mediated processes in the soil are effected by a wide range of environmental
+factors: soil clay content, soil pH, soil temperature and soil moisture. These
+environmental factors can change the maximum rates of the processes or alternatively
+change the half saturation of the process. We will now discuss each of these factors in
+detail.
 
 ### Impact of clay on enzyme saturation
 
-TODO - Populate subsection
+Clay in the soil protects substrates from enzymatic activity, which increases enzyme
+saturation constants. The factor capturing this increase is calculated as
+
+$$f_{c} = P_b + P_c * c,$$
+
+where $c$ is the clay proportion of the soil, $P_b$ is the basic protection that the
+soil provides against enzymatic activity and $P_c$ is the rate at which that protection
+increases with increasing clay content.
 
 ### Impact of pH on enzyme rate
 
-TODO - Populate subsection
+pH values that lie outside the optimal range tend to inhibit microbial activities. We
+capture this as a factor that decreases maximum rate, it is calculated as
+
+$$
+f_p =
+\begin{cases}
+0, \quad pH < pH_\mathrm{min} \\
+\frac{pH - pH_\mathrm{min}}{pH_l - pH_\mathrm{min}}, \quad
+pH_\mathrm{min} < pH < pH_l \\
+1, \quad pH_l < pH < pH_u \\
+\frac{pH_\mathrm{max} - pH}{pH_\mathrm{max} - pH_u}, \quad
+pH_u < pH < pH_\mathrm{max} \\
+0, \quad pH > pH_\mathrm{max}
+\end{cases}
+$$
+
+where $pH$ is the soil pH, $pH_\mathrm{min}$ is the minimum pH at which enzymatic
+activity can occur, $pH_l$ is the lowest pH for which enzymatic activity is maximised,
+$pH_u$ is the highest pH for which enzymatic activity is maximised, and
+$pH_\mathrm{max}$ is the maximum pH at which enzymatic activity can occur.
 
 ### Impact of temperature on enzyme rate and saturation
 
-TODO - Populate subsection
-TODO - Equation for this is already given in the Arrhenius section so I should just link
-back
+The response of both enzyme rate and enzyme saturation to changing temperature is
+modelled using an Arrhenius function (see [here](#arrhenius-equation) for details).
 
 ### Impact of soil moisture on enzyme saturation
 
-TODO - Populate subsection (? is this different from what I have already above)
+The response of enzymatic rates to changing soil water potential is modelled using the
+same approach as for the below ground litter pools (described
+[here](#soil-moisture-response)).
 
 ## Soil nutrient leaching rate
 
