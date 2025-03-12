@@ -25,15 +25,16 @@ language_info:
 
 # Environmental impacts on soil processes
 
-Litter decay and soil nutrient transformations are both affected by temperature. As the
+Litter decay and soil nutrient transformations are both affected by environment. As the
 soil model explicitly includes microbes, temperature effects many different processes in
 the model, e.g. enzymatic rates and the carbon use efficiency of microbial growth.
 Temperature is more straightforward in the litter model and just effects the decay rate
 of each litter pool. Processes that take place underground are also affected by soil
 moisture. For the soil moisture response, an empirical relationship is used for both
-litter decay and soil organic matter breakdown.
-
-TODO - Expand this intro to cover the sections I am adding
+litter decay and soil organic matter breakdown. For the enzymes in the soil model, their
+action is also affected by soil pH and clay fraction. Finally, the rate at which
+nutrients leach from the soil is affected by the rate at which water flows downwards
+through the soil. We will now describe each of these in more detail.
 
 ## Microbial response to temperature
 
