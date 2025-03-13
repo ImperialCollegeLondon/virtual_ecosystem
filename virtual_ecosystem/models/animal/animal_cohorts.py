@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import random
 import uuid
 from math import ceil, exp, sqrt
-from random import random
 from typing import Literal
 
 from numpy import timedelta64
@@ -1411,6 +1411,10 @@ class AnimalCohort:
 
         Returns: A bool of whether it is time to migrate.
 
+
+        Notes:
+            This method uses Python's built-in :func:`random.random` function.
+
         """
 
-        return random() <= self.constants.seasonal_migration_probability
+        return random.random() <= self.constants.seasonal_migration_probability
