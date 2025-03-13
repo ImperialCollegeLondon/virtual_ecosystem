@@ -25,13 +25,20 @@ language_info:
 
 # Soil macronutrient cycles
 
-TODO - Need to expand on why we focus on just nitrogen and phosphorus.
-TODO - Also need to explain what the point of this whole page is
+In the Virtual Ecosystem, as well as tracking the flow of carbon through the system, we
+also track the flow of nitrogen and phosphorus. The reason for tracking these two is
+that they are generally though to be the two macronutrients that most limit ecosystem
+productivity. A significant portion of the cycling of these elements occurs associated
+with carbon. Beyond this organic macronutrient cycle, each element can also cycle
+independently of carbon. The processes involved in these inorganic nutrient cycles tend
+to be specific to the element of interest.
 
-## Organic nutrient cycling
+## Organic macronutrient cycling
 
 TODO - Fill this out with descriptions of how nitrogen and phosphorus cycle with the
 carbon + it's only true for rainforests that this should be the largest flow
+
+TODO - Make sure to add DON and DOP to the glossary.
 
 ## Inorganic nitrogen cycling
 
