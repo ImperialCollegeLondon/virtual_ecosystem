@@ -974,28 +974,28 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of deadwood"
-name = "deadwood_lignin"
+name = "stem_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of leaf turnover"
-name = "leaf_turnover_lignin"
+name = "senesced_leaf_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_lignin"
+name = "plant_reproductive_tissue_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of root turnover"
-name = "root_turnover_lignin"
+name = "root_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
