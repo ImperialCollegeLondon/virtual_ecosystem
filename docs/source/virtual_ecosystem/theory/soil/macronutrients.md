@@ -35,22 +35,52 @@ to be specific to the element of interest.
 
 ## Organic macronutrient cycling
 
-TODO - Fill this out with descriptions of how nitrogen and phosphorus cycle with the
-carbon + it's only true for rainforests that this should be the largest flow
+The soil and litter model track the nitrogen and phosphorus stoichiometry of each soil
+carbon pool. For the majority of processes, the nutrients are assumed to just follow the
+flow of carbon, e.g. when microbes die creating microbial necromass amount of
+nutrient added to the necromass pool is calculated as
 
-TODO - Make sure to add DON and DOP to the glossary.
+$$d_n = \frac{d_c}{r_{N,m}},$$
+
+where $d_c$ is the amount of necromass generated in carbon terms and $r_{N,m}$ is the
+carbon:nitrogen ratio of the microbial group. There are two processes that do not follow
+this pattern: litter decomposition and microbial uptake.
+
+Litter decomposition occurs through two pathways, fragmentation and leaching.
+Fragmentation results in large pieces of litter being broken up into smaller and smaller
+pieces until they are no longer recognisable as litter. Crucially these fragments are
+still organic molecules, so here the nutrient flow still follows the carbon flow.
+Leaching occurs when water travelling downwards through the litter layer into the soil
+proper carries small molecules with it. As these molecules are very small, they can be
+either organic or inorganic, and so the nutrients can escape the organic cycle. For
+example, the organic phosphorus gets added to the labile (inorganic) phosphorus pool due
+to litter decay with rate
+
+$$I_{l} = (1 - \delta_o) * \lambda_l * I_p,$$
+
+where $I_p$ is the total input of phosphorus from the litter to the soil, $\lambda_p$ is
+the fraction of the litter decay that occurs by leaching, and $\delta_o$ is the fraction
+of the leached phosphorus that enters the soil in an organic form.
+
+TODO - Add a microbial uptake paragraph
+
+TODO - Add a note about DON and DOP being LMWC stoichiometry but called something
+different
 
 ## Inorganic nitrogen cycling
+
+TODO - Add an overall introduction
 
 ### Inorganic nitrogen pools
 
 TODO - There's a lot of out of date pools here
 
-Nitrogen cycling in this module occurs primarily in an organic form. For this reason we
-track the stoichiometry of every soil carbon and litter pool. However, there are also
-significant nitrogen cycle processes that involve inorganic forms of nitrogen. For this
-reason a number of inorganic nitrogen pools are additionally defined. They are as
-follows:
+TODO - Should also add details of which pools are taken up by plants + microbes, which
+pools leach out of the soil, which pools are added to by litter decomp etc
+
+However, there are also significant nitrogen cycle processes that involve inorganic
+forms of nitrogen. For this reason a number of inorganic nitrogen pools are additionally
+defined. They are as follows:
 
 #### Combined ammonia ($\ce{NH_{3}}$) and ammonium ($\ce{NH^{+}_{4}}$) pool
 
@@ -94,9 +124,10 @@ TODO - Add a general intro
 
 TODO - I don't include occluded phosphorus and this should be justified
 
-Most phosphorus in tropical forest soils is recycled from organic matter inputs. Thus,
-as with nitrogen we track the phosphorus stoichiometry of all litter and soil carbon
-pools. However, in other systems substantial quantities of phosphorus exist in inorganic
+TODO - Should also add details of which pools are taken up by plants + microbes, which
+pools leach out of the soil, which pools are added to by litter decomp etc
+
+However, in other systems substantial quantities of phosphorus exist in inorganic
 forms, and so the following inorganic phosphorus pools are also included:
 
 #### Primary mineral P
