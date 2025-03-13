@@ -461,9 +461,7 @@ class HydrologyModel(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_capacity"],
                 available_water=precipitation_surface - surface_runoff,
-                infiltration_shape_parameter=(
-                    self.model_constants.infiltration_shape_parameter
-                ),
+                bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
 
@@ -555,7 +553,9 @@ class HydrologyModel(
                     self.model_constants.hydraulic_conductivity
                 ),  # m/s
                 hydraulic_gradient=self.model_constants.hydraulic_gradient,  # m/m
-                nonlinearily_parameter=self.model_constants.nonlinearily_parameter,
+                van_genuchten_nonlinearily_parameter=(
+                    self.model_constants.van_genuchten_nonlinearily_parameter
+                ),
                 groundwater_capacity=self.model_constants.groundwater_capacity,
                 seconds_to_day=self.core_constants.seconds_to_day,
             )
@@ -588,8 +588,8 @@ class HydrologyModel(
                 air_entry_water_potential=(
                     self.model_constants.air_entry_water_potential
                 ),
-                water_retention_curvature=(
-                    self.model_constants.water_retention_curvature
+                campbell_pore_size_distribution=(
+                    self.model_constants.campbell_pore_size_distribution
                 ),
                 soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
             )
