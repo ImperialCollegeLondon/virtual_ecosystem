@@ -140,7 +140,7 @@ def test_hydrology_model_initialization(
             "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
-            "[hydrology.constants.HydroConsts]\nsoil_moisture_capacity = 0.7\n",
+            "[core.constants.CoreConsts]\nsoil_moisture_capacity = 0.7\n",
             0.7,
             does_not_raise(),
             tuple(
@@ -194,7 +194,7 @@ def test_generate_hydrology_model(
 
     # Check whether model is initialised (or not) as expected
     # We patch the _setup step as it is tested separately
-    expected_const = HydroConsts(soil_moisture_capacity=sm_capacity)
+    expected_const = HydroConsts()
     with (
         patch_run_update(HydrologyModel),
         patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
