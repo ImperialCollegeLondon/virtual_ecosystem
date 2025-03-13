@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from math import ceil, exp, sqrt
+from random import random
 from typing import Literal
 
 from numpy import timedelta64
@@ -1400,3 +1401,16 @@ class AnimalCohort:
         for cell_id in intersecting_keys:
             intersecting_carcass_pools.extend(carcass_pools[cell_id])
         return intersecting_carcass_pools
+
+    def is_migration_season(self) -> bool:
+        """Handles determination of whether it is time to migrate.
+
+        Temporary probabilistic migration.
+
+        TODO: update when we have seasonality
+
+        Returns: A bool of whether it is time to migrate.
+
+        """
+
+        return random() < self.constants.seasonal_migration_probability

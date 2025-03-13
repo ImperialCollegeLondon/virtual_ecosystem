@@ -375,12 +375,12 @@ class AnimalModel(
         self.migrate_community()
         self.birth_community()
         self.metamorphose_community()
-        self.metabolize_community(
-            self.update_interval_timedelta,
-        )
+        self.migrate_external_community()
+        self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
-        self.remove_dead_cohort_community()
         self.update_migrated_and_aquatic(self.update_interval_timedelta)
+        self.reintegrate_community()
+        self.remove_dead_cohort_community()
         self.increase_age_community(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the
@@ -1235,42 +1235,42 @@ class AnimalModel(
         else:
             cohort.is_alive = False
 
-    def trigger_external_migration(self, cohort: AnimalCohort) -> bool:
+    def migrate_external(self, cohort: AnimalCohort) -> None:
         """Handles the initiation of external migration events.
-
-        TODO: logic incomplete
 
         Args:
             cohort: The migrating cohort.
-
-        Returns: Bool of whether the migration occurs.
-
         """
-        if (
-            cohort.functional_group.migration_type == "seasonal"
-            and self.is_migration_season()
-        ):
-            # Remove cohort from community occupancy
-            self.abandon_communities(cohort)
+        # Remove cohort from community occupancy
+        self.abandon_communities(cohort)
 
-            # Move cohort to migration pool
-            cohort.location_status = "migrated"
-            cohort.remaining_time_away = cohort.constants.migration_residence_time
-            self.migrated_cohorts[cohort.id] = cohort
-            self.active_cohorts.pop(cohort.id)
-            return True
+        # Move cohort to migration pool
+        cohort.location_status = "migrated"
+        cohort.remaining_time_away = cohort.constants.migration_residence_time
+        self.migrated_cohorts[cohort.id] = cohort
+        self.active_cohorts.pop(cohort.id)
 
-        return False
+    def migrate_external_community(self) -> None:
+        """Cycles through all active cohorts and checks for external migration.
 
-    def is_migration_season(self) -> bool:
-        """Handles determination of whether it is time to migrate.
-
-        TODO: this needs actual content
-
-        Args:
-            cohort: The animal cohort being tested for migration season.
-
-        Returns: A bool of whether it is time to migrate.
-
+        Only calls `trigger_external_migration` for cohorts that are seasonal migrators.
         """
-        return True
+        for cohort in list(self.active_cohorts.values()):
+            if (
+                cohort.functional_group.migration_type == "seasonal"
+                and cohort.is_migration_season()
+            ):
+                self.migrate_external(cohort)
+
+    def reintegrate_community(self) -> None:
+        """Cycles through all migrated and aquatic cohorts, checking for reintegration.
+
+        Only calls `reintegrate_cohort` when `remaining_time_away` is 0 or less.
+        """
+        for cohort in list(self.migrated_cohorts.values()):
+            if cohort.remaining_time_away <= 0:
+                self.reintegrate_cohort(cohort, source="migrated")
+
+        for cohort in list(self.aquatic_cohorts.values()):
+            if cohort.remaining_time_away <= 0:
+                self.reintegrate_cohort(cohort, source="aquatic")

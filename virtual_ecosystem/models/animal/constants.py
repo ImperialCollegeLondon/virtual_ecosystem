@@ -276,6 +276,9 @@ class AnimalConsts(ConstantsDataclass):
     migration_residence_time: float = 60.0  # toy
     """Amount of time a migrated cohort spends away [days]."""
 
+    seasonal_migration_probability: float = 0.083  # approx 1 seasonal migration per yr.
+    """The probability a seasonal migration event occurs per time step (month)."""
+
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
