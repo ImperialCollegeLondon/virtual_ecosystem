@@ -308,10 +308,9 @@ class PlantsModel(
         )
 
         # Calculate the per update interval stem mortality rate
-        self.per_update_interval_stem_mortality_probability = (
-            model_constants.per_stem_annual_mortality_probability
-            / self.model_timing.updates_per_year
-        )
+        self.per_update_interval_stem_mortality_probability = 1 - (
+            1 - model_constants.per_stem_annual_mortality_probability
+        ) ** (1 / self.model_timing.updates_per_year)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
