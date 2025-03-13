@@ -68,6 +68,7 @@ def calculate_vertical_flow(
     shape_parameter = 1 - 1 / nonlinearily_parameter
 
     # Calculate soil effective saturation in rel. vol. water content for each layer:
+    # TODO make this function a tool
     effective_saturation = (soil_moisture - soil_moisture_residual) / (
         soil_moisture_capacity - soil_moisture_residual
     )
@@ -186,6 +187,8 @@ def convert_soil_moisture_to_water_potential(
     where :math:`\Psi_{e}` is the air-entry, :math:`\Theta` is the volumetric water
     content, :math:`\Theta_{s}` is the saturated water content, and :math:`b` is the
     water retention curvature parameter.
+
+    TODO replace this with van Genuchten implementation
 
     Args:
         soil_moisture: Volumetric relative water content, [unitless]

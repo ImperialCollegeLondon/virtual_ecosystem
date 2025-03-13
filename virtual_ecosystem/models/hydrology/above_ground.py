@@ -406,6 +406,8 @@ def calculate_surface_runoff(
     moisture capacity value; if the top soil is not saturated, precipitation is
     added to the current soil moisture level and runoff is set to zero.
 
+    TODO adjust capacity to account for new set of soil layers #535
+
     Args:
         precipitation_surface: Precipitation that reaches surface, [mm]
         top_soil_moisture: Water content of top soil layer, [mm]

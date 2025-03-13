@@ -145,3 +145,6 @@ class HydroConsts(ConstantsDataclass):
 
     reservoir_const_lower_groundwater: float = 20
     """Reservoir constant for the lower groundwater layer, [days]"""
+
+    initial_aerodynamic_resistance_surface: float = 12.5
+    """Initial aeordynamic resistance at the soil surface, [s m-1]."""
