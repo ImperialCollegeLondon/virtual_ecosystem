@@ -44,16 +44,18 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour,
-        soil_surface_heat_transfer_coefficient=(
-            HydroConsts.soil_surface_heat_transfer_coefficient
-        ),
+        drag_coefficient_evaporation=HydroConsts.drag_coefficient_evaporation,
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
     )
 
-    exp_evap = np.array([0.745206, 0.092515, 0.135078])
+    exp_evap = np.array([1.863015, 0.462573, 3.37694])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
+    exp_ra = np.array([5.0, 10.0, 50.0])
+    np.testing.assert_allclose(
+        result["aerodynamic_resistance_surface"], exp_ra, rtol=0.01
+    )
 
 
 def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):

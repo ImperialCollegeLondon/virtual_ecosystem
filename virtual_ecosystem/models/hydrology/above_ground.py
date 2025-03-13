@@ -30,7 +30,7 @@ def calculate_soil_evaporation(
     density_air: float | NDArray[np.float32],
     latent_heat_vapourisation: float | NDArray[np.float32],
     gas_constant_water_vapour: float,
-    soil_surface_heat_transfer_coefficient: float,
+    drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
@@ -45,7 +45,9 @@ def calculate_soil_evaporation(
 
     where :math:`\Theta` is the available top soil moisture (relative volumetric water
     content), :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
-    density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
+    density of air (kg m-3), :math:`R_{a}=(C_{E}*u_{a})^-1` is the aerodynamic
+    resistance, with :math:`C_{E}` the drag coefficient for evaporation and
+    :math:`u_{a}` the wind speed near the surface,
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
     :math:`q_{g}` is the surface specific humidity (unitless).
 
@@ -70,13 +72,12 @@ def calculate_soil_evaporation(
         latent_heat_vapourisation: Latent heat of vapourisation, [MJ kg-1]
         leaf_area_index: Leaf area index [m m-1]
         gas_constant_water_vapour: Gas constant for water vapour, [J kg-1 K-1]
-        soil_surface_heat_transfer_coefficient: Heat transfer coefficient between soil
-            and air, [W m-2 K-1]
+        drag_coefficient_evaporation: Drag coefficient for evaporation, dimensionless
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
 
     Returns:
-        soil evaporation, [mm] and aerodynamic resistance near the surface [kg m-2 s-3]
+        soil evaporation, [mm] and aerodynamic resistance near the surface [s m-1]
     """
 
     output = {}
@@ -105,9 +106,7 @@ def calculate_soil_evaporation(
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = (
-        1 / wind_speed_surface**2
-    ) * soil_surface_heat_transfer_coefficient
+    aerodynamic_resistance = 1 / (wind_speed_surface * drag_coefficient_evaporation)
     output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
     evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
