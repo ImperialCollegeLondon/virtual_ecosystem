@@ -332,7 +332,7 @@ def calculate_bypass_flow(
     top_soil_moisture: NDArray[np.float32],
     sat_top_soil_moisture: NDArray[np.float32],
     available_water: NDArray[np.float32],
-    infiltration_shape_parameter: float,
+    bypass_flow_coefficient: float,
 ) -> NDArray[np.float32]:
     r"""Calculate preferential bypass flow.
 
@@ -358,7 +358,7 @@ def calculate_bypass_flow(
         top_soil_moisture: Soil moisture of top soil layer, [mm]
         sat_top_soil_moisture: Soil moisture of top soil layer at saturation, [mm]
         available_water: Amount of water available for infiltration, [mm]
-        infiltration_shape_parameter: Shape parameter for infiltration
+        bypass_flow_coefficient: Bypass flow coefficient
 
     Returns:
         preferential bypass flow, [mm]
@@ -366,7 +366,7 @@ def calculate_bypass_flow(
 
     return (
         available_water
-        * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
+        * (top_soil_moisture / sat_top_soil_moisture) ** bypass_flow_coefficient
     )
 
 

@@ -55,7 +55,7 @@ class HydroConsts(ConstantsDataclass):
     movement of water and indicates the direction in which water will flow.
     """
 
-    nonlinearily_parameter: float = 2.0
+    van_genuchten_nonlinearily_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
@@ -93,8 +93,8 @@ class HydroConsts(ConstantsDataclass):
     which affects the vertical flow of water and the horizontal sub-surface flow. This
     parameter is currently set to an arbitrary value and might."""
 
-    infiltration_shape_parameter: float = 1.0
-    """Empirical infiltration shape parameter, unitless.
+    bypass_flow_coefficient: float = 1.0
+    """Empirical bypass flow coefficient, unitless.
 
     This parameter affects how much of the water available for infiltration goes
     directly to groundwater via preferential bypass flow. A value of
@@ -111,8 +111,8 @@ class HydroConsts(ConstantsDataclass):
     texture.
     """
 
-    water_retention_curvature: float = -7.22
-    """Curvature of the water retention curve.
+    campbell_pore_size_distribution: float = -7.22
+    """Curvature of the water retention curve as indicator of pore size distribution.
 
     The value is the average across all soil types found in
     :cite:t:`cosby_statistical_1984`; see documentation for
