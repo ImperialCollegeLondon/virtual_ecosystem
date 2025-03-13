@@ -24,11 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-#  API for the {mod}`~virtual_ecosystem.models.abiotic.conductivities` module
+# API documentation for the {mod}`~virtual_ecosystem.models.soil.microbial_groups` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.abiotic.conductivities
+.. automodule:: virtual_ecosystem.models.soil.microbial_groups
     :autosummary:
     :members:
-    :special-members: __init__
 ```

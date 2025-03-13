@@ -24,19 +24,14 @@ Each of the abiotic sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.abiotic.energy_balance` submodule calculates the
   energy balance of the Virtual Ecosystem. The module returns vertical profiles of air
-  temperature, relative humidity, and vapour pressure deficit as well as the partitioned
-  energy and radiation fluxes at the leaf surface.
+  temperature, relative humidity, vapour pressure deficit, and soil temperature as well
+  as the partitioned energy and radiation fluxes at the leaf and soil surface.
 
-* The :mod:`~virtual_ecosystem.models.abiotic.soil_energy_balance` submodule calculates
-  the soil energy balance of the Virtual Ecosystem. The module returns vertical
-  profiles of soil temperature and the partitioned energy and radiation fluxes at the
-  surface.
-
-* The :mod:`~virtual_ecosystem.models.abiotic.conductivities` submodule calculates
-  the conductivities for the energy balance of the Virtual Ecosystem. Conductivities
-  describe how well heat or vapour are transferred by a medium such as air, water, or
-  leaves in mol m-2 s-1. We consider heat conductivity by turbulent convection in air,
-  leaf-air heat conductivity, and leaf-air vapour conductivity.
+* The :mod:`~virtual_ecosystem.models.abiotic.microclimate` submodule integrates all
+  processes and returns vertical profiles of air temperature, relative humidity, vapour
+  pressure deficit, soil temperature, and wind speed as well as the partitioned energy
+  fluxes. The model also provides vertical profiles of atmospheric pressure and
+  :math:`\ce{CO_{2}}`.
 """  # noqa: D205
 
 from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel  # noqa: F401

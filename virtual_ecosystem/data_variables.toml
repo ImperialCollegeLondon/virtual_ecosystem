@@ -231,15 +231,22 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from individual canopy layers"
+description = "Longwave emission from individual canopy layers"
 name = "longwave_canopy"
 unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from topsoil layer"
+description = "Longwave emission from topsoil layer"
 name = "longwave_emission_soil"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Longwave emission"
+name = "longwave_emission"
 unit = "W m-2"
 variable_type = "float"
 
@@ -553,8 +560,15 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil microbial biomass (carbon) pool"
-name = "soil_c_pool_microbe"
+description = "Soil bacterial biomass (carbon) pool"
+name = "soil_c_pool_bacteria"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Soil fungal biomass (carbon) pool"
+name = "soil_c_pool_fungi"
 unit = "kg C m^-3"
 variable_type = "float"
 
@@ -960,28 +974,28 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of deadwood"
-name = "deadwood_lignin"
+name = "stem_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of leaf turnover"
-name = "leaf_turnover_lignin"
+name = "senesced_leaf_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_lignin"
+name = "plant_reproductive_tissue_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of root turnover"
-name = "root_turnover_lignin"
+name = "root_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 

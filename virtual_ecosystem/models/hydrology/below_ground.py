@@ -14,7 +14,7 @@ def calculate_vertical_flow(
     soil_moisture_residual: float | NDArray[np.float32],
     hydraulic_conductivity: float | NDArray[np.float32],
     hydraulic_gradient: float | NDArray[np.float32],
-    nonlinearily_parameter: float | NDArray[np.float32],
+    van_genuchten_nonlinearily_parameter: float | NDArray[np.float32],
     groundwater_capacity: float | NDArray[np.float32],
     seconds_to_day: float,
 ) -> NDArray[np.float32]:
@@ -56,18 +56,19 @@ def calculate_vertical_flow(
         hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
         hydraulic_gradient: Hydraulic gradient (change in hydraulic head) along the flow
             path, positive values indicate downward flow, [m/m]
-        nonlinearily_parameter: Dimensionless parameter in van Genuchten model that
-            describes the degree of nonlinearity of the relationship between the
-            volumetric water content and the soil matric potential.
+        van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
+            model that describes the degree of nonlinearity of the relationship between
+            the volumetric water content and the soil matric potential.
         groundwater_capacity: Storage capacity of groundwater, [mm]
         seconds_to_day: Factor to convert between second and day
 
     Returns:
         volumetric flow rate of water, [mm d-1]
     """
-    shape_parameter = 1 - 1 / nonlinearily_parameter
+    shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
 
     # Calculate soil effective saturation in rel. vol. water content for each layer:
+    # TODO make this function a tool
     effective_saturation = (soil_moisture - soil_moisture_residual) / (
         soil_moisture_capacity - soil_moisture_residual
     )
@@ -173,7 +174,7 @@ def update_soil_moisture(
 def convert_soil_moisture_to_water_potential(
     soil_moisture: NDArray[np.float32],
     air_entry_water_potential: float,
-    water_retention_curvature: float,
+    campbell_pore_size_distribution: float,
     soil_moisture_capacity: float,
 ) -> NDArray[np.float32]:
     r"""Convert soil moisture into an estimate of water potential.
@@ -187,11 +188,14 @@ def convert_soil_moisture_to_water_potential(
     content, :math:`\Theta_{s}` is the saturated water content, and :math:`b` is the
     water retention curvature parameter.
 
+    TODO replace this with van Genuchten implementation
+
     Args:
         soil_moisture: Volumetric relative water content, [unitless]
         air_entry_water_potential: Water potential at which soil pores begin to aerate,
             [kPa]
-        water_retention_curvature: Curvature of water retention curve, [unitless]
+        campbell_pore_size_distribution: Curvature of water retention curve, an
+            indicator of pore size distribution, [unitless]
         soil_moisture_capacity: The relative water content at which the soil is fully
             saturated, [unitless].
 
@@ -200,7 +204,7 @@ def convert_soil_moisture_to_water_potential(
     """
 
     return air_entry_water_potential * (
-        (soil_moisture / soil_moisture_capacity) ** water_retention_curvature
+        (soil_moisture / soil_moisture_capacity) ** campbell_pore_size_distribution
     )
 
 
