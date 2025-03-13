@@ -18,9 +18,9 @@ jupyter:
 POM
   Particulate Organic Matter. A form of organic matter that derives from the
   decomposition and fragmentation of litter and other necromass. Generally, these
-  particulates are still in a state where the tissue they orginated from can be
+  particulates are still in a state where the tissue they originated from can be
   determined. This chemical complexity makes this a form of protected carbon, however this
-  is generally only a signifcant store of protected carbon in heavily waterlogged soils.
+  is generally only a signifiant store of protected carbon in heavily waterlogged soils.
 
 MAOM
   Mineral Associated Organic Matter. This is organic matter which has formed a strong
@@ -30,7 +30,17 @@ MAOM
 LMWC
   Low Molecular Weight Carbon. These are organic molecules that are simple and soluble,
   i.e. molecules that do not require further transformation to be transportable across
-  cell membranes. Thus, the avaliablity of this type of organic matter strongly determines
-  microbial growth rates.
+  cell membranes. Thus, the availability of this type of organic matter strongly
+  determines microbial growth rates.
+
+DON
+  Dissolved Organic Nitrogen. Nitrogen associated with soil carbon that is in a form
+  that can readily dissolve. The carbon in this form is considered to be low molecular
+  weight carbon and so this is essentially the nitrogen content of the {term}`LMWC` pool.
+
+DOP
+  Dissolved Organic Phosphorus. Phosphorus associated with soil carbon that is in a form
+  that can readily dissolve. The carbon in this form is considered to be low molecular
+  weight carbon and so this is essentially the phosphorus content of the {term}`LMWC` pool.
 
 ```
