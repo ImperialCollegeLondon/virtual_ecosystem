@@ -114,8 +114,9 @@ class HydroConsts(ConstantsDataclass):
     campbell_pore_size_distribution: float = -7.22
     """Curvature of the water retention curve as indicator of pore size distribution.
 
-    The value is the average across all soil types found in
-    :cite:t:`cosby_statistical_1984`; see documentation for
+    This constant is used to convert soil moisture to matric potential following
+    :cite:t:`campbell_simple_1974`. The value is the average across all soil types found
+    in :cite:t:`cosby_statistical_1984`; see documentation for
     :attr:`air_entry_water_potential` for further details.
     """
 
