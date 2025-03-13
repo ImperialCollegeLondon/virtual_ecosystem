@@ -231,15 +231,22 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from individual canopy layers"
+description = "Longwave emission from individual canopy layers"
 name = "longwave_canopy"
 unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from topsoil layer"
+description = "Longwave emission from topsoil layer"
 name = "longwave_emission_soil"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Longwave emission"
+name = "longwave_emission"
 unit = "W m-2"
 variable_type = "float"
 

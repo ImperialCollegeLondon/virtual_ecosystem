@@ -18,10 +18,13 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic_simple import microclimate
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
+)
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
+    calculate_vapour_pressure_deficit,
+    run_simple_microclimate,
 )
 
 
@@ -63,6 +66,7 @@ class AbioticSimpleModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
     ),
 ):
     """A class describing the abiotic simple model.
@@ -145,7 +149,7 @@ class AbioticSimpleModel(
         self.data["soil_temperature"] = self.layer_structure.from_template()
 
         # calculate vapour pressure deficit at reference height for all time steps
-        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
+        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
             saturation_vapour_pressure_factors=(
@@ -172,7 +176,7 @@ class AbioticSimpleModel(
 
         # This section performs a series of calculations to update the variables in the
         # abiotic model. The updated variables are then added to the data object.
-        output_variables = microclimate.run_microclimate(
+        output_variables = run_simple_microclimate(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=time_index,
