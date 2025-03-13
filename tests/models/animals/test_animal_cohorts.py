@@ -2013,7 +2013,7 @@ class TestAnimalCohort:
 
         # Mock the correct module where random() is called
         mocker.patch(
-            "virtual_ecosystem.models.animal.animal_cohorts.random",
+            "virtual_ecosystem.models.animal.animal_cohorts.random.random",
             return_value=mock_random,
         )
 
