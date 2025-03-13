@@ -74,10 +74,10 @@ class PlantsModel(
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
         "root_turnover",
-        "deadwood_lignin",
-        "leaf_turnover_lignin",
-        "plant_reproductive_tissue_turnover_lignin",
-        "root_turnover_lignin",
+        "stem_lignin",
+        "senesced_leaf_lignin",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
         "deadwood_c_n_ratio",
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
@@ -98,10 +98,10 @@ class PlantsModel(
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
         "root_turnover",
-        "deadwood_lignin",
-        "leaf_turnover_lignin",
-        "plant_reproductive_tissue_turnover_lignin",
-        "root_turnover_lignin",
+        "stem_lignin",
+        "senesced_leaf_lignin",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
         "deadwood_c_n_ratio",
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
@@ -640,36 +640,55 @@ class PlantsModel(
             the variables it returns.
         """
 
-        # All outputs are just constants at the moment
         self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
         self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
             self.data["elevation"], 0.003
         )
-        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
-        self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
-        self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
-            self.data["elevation"], 0.01
+
+        # Lignin concentrations
+        self.data["stem_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.stem_lignin
         )
-        self.data["root_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.2)
-        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
+        self.data["senesced_leaf_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.senesced_leaf_lignin
+        )
+        self.data["leaf_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.leaf_lignin
+        )
+        self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_lignin,
+        )
+        self.data["root_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.root_lignin
+        )
+
+        # C:N and C:P ratios
+        self.data["deadwood_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.deadwood_c_n_ratio
+        )
         self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 25.5
+            self.data["elevation"], self.model_constants.leaf_turnover_c_n_ratio
         )
         self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 12.5
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
         )
         self.data["root_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 45.6
+            self.data["elevation"], self.model_constants.root_turnover_c_n_ratio
         )
-        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 856.5)
+        self.data["deadwood_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.deadwood_c_p_ratio
+        )
         self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 415.0
+            self.data["elevation"], self.model_constants.leaf_turnover_c_p_ratio
         )
         self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 125.5
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
         )
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 656.7
+            self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
         )
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
