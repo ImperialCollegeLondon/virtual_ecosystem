@@ -1413,4 +1413,4 @@ class AnimalCohort:
 
         """
 
-        return random() < self.constants.seasonal_migration_probability
+        return random() <= self.constants.seasonal_migration_probability

@@ -2026,42 +2026,97 @@ class TestAnimalModel:
             assert "cohort1" not in animal_model_instance.aquatic_cohorts
 
     @pytest.mark.parametrize(
-        "migration_type, is_migration_season, expected_result",
+        "is_seasonal, migration_check, expected_migrations",
         [
-            ("seasonal", True, True),  # Seasonal species during migration season
-            ("seasonal", False, False),  # Seasonal species outside migration season
+            (True, True, 1),  # Seasonal migrator & migration season → Should migrate
             (
-                "none",
                 True,
                 False,
-            ),  # Non-migratory species, even during migration season
-            ("none", False, False),  # Non-migratory species outside migration season
+                0,
+            ),  # Seasonal migrator but not migration season → No migration
+            (False, True, 0),  # Non-seasonal → Should not migrate
+            (False, False, 0),  # Non-seasonal & not migration season → No migration
         ],
     )
-    def test_trigger_external_migration(
+    def test_migrate_external_community(
         self,
         mocker,
         animal_model_instance,
         herbivore_cohort_instance,
-        migration_type,
-        is_migration_season,
-        expected_result,
+        is_seasonal,
+        migration_check,
+        expected_migrations,
     ):
-        """Test external migration triggering logic."""
-        # Set cohort's migration type
-        herbivore_cohort_instance.functional_group.migration_type = migration_type
+        """Test whether migrate_external_community correctly triggers migration."""
 
-        # Patch is_migration_season to control the seasonal check
-        mocker.patch.object(
-            animal_model_instance,
-            "is_migration_season",
-            return_value=is_migration_season,
+        # Set up cohort attributes
+        cohort = herbivore_cohort_instance
+        cohort.functional_group.migration_type = "seasonal" if is_seasonal else "none"
+
+        # Mock is_migration_season to return the given test condition
+        mocker.patch.object(cohort, "is_migration_season", return_value=migration_check)
+
+        # Mock migrate_external so we can count how many times it's called
+        mock_migrate_external = mocker.patch.object(
+            animal_model_instance, "migrate_external"
         )
 
-        # Run the method
-        result = animal_model_instance.trigger_external_migration(
-            herbivore_cohort_instance
+        # Add the cohort to active cohorts
+        animal_model_instance.active_cohorts[cohort.id] = cohort
+
+        # Run function
+        animal_model_instance.migrate_external_community()
+
+        # Assert migrate_external was called the expected number of times
+        assert mock_migrate_external.call_count == expected_migrations, (
+            f"Expected {expected_migrations} migrations, but got"
+            f"{mock_migrate_external.call_count}"
         )
 
-        # Check result
-        assert result == expected_result
+    @pytest.mark.parametrize(
+        "remaining_time, is_migrated, is_aquatic, expected_reintegrations",
+        [
+            (0, True, False, 1),  # Migrated & ready for reintegration
+            (-1, True, False, 1),  # Migrated & overdue → Reintegration should happen
+            (5, True, False, 0),  # Migrated but still has time left → No reintegration
+            (0, False, True, 1),  # Aquatic & ready for reintegration
+            (-1, False, True, 1),  # Aquatic & overdue → Reintegration should happen
+            (5, False, True, 0),  # Aquatic but still has time left → No reintegration
+            (5, False, False, 0),  # Not migrated or aquatic → No reintegration
+        ],
+    )
+    def test_reintegrate_community(
+        self,
+        mocker,
+        animal_model_instance,
+        herbivore_cohort_instance,
+        remaining_time,
+        is_migrated,
+        is_aquatic,
+        expected_reintegrations,
+    ):
+        """Test whether reintegrate_community correctly triggers reintegration."""
+
+        # Set up cohort attributes
+        cohort = herbivore_cohort_instance
+        cohort.remaining_time_away = remaining_time
+
+        # Mock reintegrate_cohort so we can count how many times it's called
+        mock_reintegrate = mocker.patch.object(
+            animal_model_instance, "reintegrate_cohort"
+        )
+
+        # Add cohort to the correct list based on test case
+        if is_migrated:
+            animal_model_instance.migrated_cohorts[cohort.id] = cohort
+        elif is_aquatic:
+            animal_model_instance.aquatic_cohorts[cohort.id] = cohort
+
+        # Run function
+        animal_model_instance.reintegrate_community()
+
+        # Assert reintegrate_cohort was called the expected number of times
+        assert mock_reintegrate.call_count == expected_reintegrations, (
+            f"Expected {expected_reintegrations} reintegrations, "
+            f"but got {mock_reintegrate.call_count}"
+        )
