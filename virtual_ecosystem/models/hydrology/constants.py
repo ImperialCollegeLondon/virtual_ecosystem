@@ -17,16 +17,6 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class HydroConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `hydrology` model."""
 
-    soil_moisture_capacity: float = 0.9
-    """Soil moisture capacity, unitless.
-
-    The soil moisture capacity, also known as field capacity or water holding capacity,
-    refers to the maximum amount of water that a soil can retain against the force of
-    gravity after it has been saturated and excess water has drained away. The value is
-    soil type specific, the format here is volumentic relative water content (unitless,
-    between 0 and 1).
-    """
-
     soil_moisture_residual: float = 0.1
     """Residual soil moisture, unitless.
 
