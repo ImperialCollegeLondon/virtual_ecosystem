@@ -78,7 +78,7 @@ def test_calculate_all_pool_updates(
 
     delta_pools = soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=pool_order,
-        top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
+        layer_structure=fixture_core_components.layer_structure,
         soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
             0

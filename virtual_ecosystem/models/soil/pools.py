@@ -12,7 +12,11 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature
 
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.litter.env_factors import (
+    average_temperature_over_microbially_active_layers,
+)
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
@@ -373,7 +377,7 @@ class SoilPools:
     def calculate_all_pool_updates(
         self,
         delta_pools_ordered: dict[str, NDArray[np.float32]],
-        top_soil_layer_index: int,
+        layer_structure: LayerStructure,
         soil_moisture_capacity: float,
         top_soil_layer_thickness: float,
     ) -> NDArray[np.float32]:
@@ -396,8 +400,8 @@ class SoilPools:
         Args:
             delta_pools_ordered: Dictionary to store pool changes in the order that
                 pools are stored in the initial condition vector.
-            top_soil_layer_index: Index for layer in data object representing top soil
-                layer
+            layer_structure: The details of the layer structure used across the Virtual
+                Ecosystem.
             soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
                 (volumetric) moisture the soil can hold [unitless].
             top_soil_layer_thickness: Thickness of the topsoil layer [mm].
@@ -408,18 +412,24 @@ class SoilPools:
 
         # Find temperature and soil moisture values for the topsoil layer
         soil_water_potential = self.data["matric_potential"][
-            top_soil_layer_index
+            layer_structure.index_topsoil_scalar
         ].to_numpy()
-        soil_temperature = self.data["soil_temperature"][
-            top_soil_layer_index
+        soil_temperature = average_temperature_over_microbially_active_layers(
+            soil_temperatures=self.data["soil_temperature"],
+            surface_temperature=self.data["air_temperature"][
+                layer_structure.index_surface_scalar
+            ].to_numpy(),
+            layer_structure=layer_structure,
+        )
+        soil_moisture = self.data["soil_moisture"][
+            layer_structure.index_topsoil_scalar
         ].to_numpy()
-        soil_moisture = self.data["soil_moisture"][top_soil_layer_index].to_numpy()
         # Calculate the effective saturation of the soil (soil layer thickness needs to
         # be converted from m to mm here to be consistent with soil moisture units)
         # TODO - This needs to be reviewed as part of the soil abiotic links review
-        effective_saturation = self.data["soil_moisture"][
-            top_soil_layer_index
-        ].to_numpy() / (soil_moisture_capacity * top_soil_layer_thickness * 1e3)
+        effective_saturation = soil_moisture / (
+            soil_moisture_capacity * top_soil_layer_thickness * 1e3
+        )
 
         # Find environmental factors which impact biogeochemical soil processes
         env_factors = calculate_environmental_effect_factors(

@@ -427,6 +427,11 @@ def dummy_carbon_data(fixture_core_components):
         [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
     )
 
+    data["air_temperature"] = lyr_str.from_template()
+    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
+
     return data
 
 
