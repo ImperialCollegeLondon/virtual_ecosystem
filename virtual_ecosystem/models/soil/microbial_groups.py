@@ -133,13 +133,13 @@ def make_full_set_of_microbial_groups(
     if undefined_groups:
         msg = (
             "The following expected soil microbial groups are not defined: "
-            f"{', '.join(set(expected_groups) - set(defined_groups))}"
+            f"{', '.join(undefined_groups)}"
         )
         LOGGER.critical(msg)
     if unexpected_groups:
         msg = (
             "The following microbial groups are not valid: "
-            f"{', '.join(set(defined_groups) - set(expected_groups))}"
+            f"{', '.join(unexpected_groups)}"
         )
         LOGGER.critical(msg)
     if undefined_groups or unexpected_groups:
@@ -196,17 +196,13 @@ def make_full_set_of_enzymes(
     undefined_classes = expected_classes.difference(defined_classes)
     unexpected_classes = defined_classes.difference(expected_classes)
     if undefined_classes:
-        missing = set(expected_classes) - set(defined_classes)
-        msg = (
-            "The following expected enzyme classes are not defined: "
-            f"{', '.join(f'{source}_{substrate}' for source, substrate in missing)}"
+        msg = "The following expected enzyme classes are not defined: " + ", ".join(
+            f"{source}_{substrate}" for source, substrate in undefined_classes
         )
         LOGGER.critical(msg)
     if unexpected_classes:
-        unexpected = set(defined_classes) - set(expected_classes)
-        msg = (
-            "The following enzyme classes are not valid: "
-            f"{', '.join(f'{source}_{substrate}' for source, substrate in unexpected)}"
+        msg = "The following enzyme classes are not valid: " + ", ".join(
+            f"{source}_{substrate}" for source, substrate in unexpected_classes
         )
         LOGGER.critical(msg)
     if undefined_classes or unexpected_classes:
