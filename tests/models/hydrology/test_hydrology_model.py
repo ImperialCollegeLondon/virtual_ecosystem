@@ -140,7 +140,7 @@ def test_hydrology_model_initialization(
             "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
-            "[hydrology.constants.HydroConsts]\nsoil_moisture_capacity = 0.7\n",
+            "[core.constants.CoreConsts]\nsoil_moisture_capacity = 0.7\n",
             0.7,
             does_not_raise(),
             tuple(
@@ -194,7 +194,7 @@ def test_generate_hydrology_model(
 
     # Check whether model is initialised (or not) as expected
     # We patch the _setup step as it is tested separately
-    expected_const = HydroConsts(soil_moisture_capacity=sm_capacity)
+    expected_const = HydroConsts()
     with (
         patch_run_update(HydrologyModel),
         patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
@@ -296,12 +296,12 @@ def test_setup(
             # Test 2d variables
             expected_2d = {
                 "soil_moisture": [
-                    [67.0621, 67.0829, 67.05435, 67.04017],
-                    [209.8470, 209.8500, 209.8491, 209.8467],
+                    [260.608295, 260.72929, 260.601055, 260.425838],
+                    [228.163385, 228.240549, 228.143191, 228.079756],
                 ],
                 "matric_potential": [
-                    [-1.532961e07, -1.536408e07, -1.528976e07, -1.53231e07],
-                    [-1.250262e03, -1.250131e03, -1.250172e03, -1.250276e3],
+                    [-198.857517, -198.088532, -198.954992, -199.854294],
+                    [-544.207397, -542.72211, -544.539057, -546.00744],
                 ],
             }
 
@@ -310,19 +310,19 @@ def test_setup(
                 exp_var[soil_indices] = expected_vals
 
                 np.testing.assert_allclose(
-                    model.data[var_name],
-                    exp_var,
+                    model.data[var_name][soil_indices],
+                    exp_var[soil_indices],
                     rtol=1e-4,
                     atol=1e-4,
                 )
 
             # Test one dimensional variables
             expected_1d = {
-                "vertical_flow": [0.69471, 0.695691, 0.695682, 0.694436],
-                "total_river_discharge": [0, 0, 63361, 20925],
+                "vertical_flow": [1.112307, 1.115177, 1.115152, 1.111505],
+                "total_river_discharge": [0, 0, 64864, 21514],
                 "surface_runoff": [0, 0, 0, 0],
                 "surface_runoff_accumulated": [0, 0, 0, 0],
-                "soil_evaporation": [345.1148, 344.759928, 345.15422, 344.90802],
+                "soil_evaporation": [14.646242, 14.646242, 14.646242, 14.646242],
             }
 
             for var_name, expected_vals in expected_1d.items():

@@ -24,10 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-#  API for the {mod}`~virtual_ecosystem.models.abiotic.soil_energy_balance` module
+#  API for the {mod}`~virtual_ecosystem.models.abiotic_simple.microclimate_simple` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.abiotic.soil_energy_balance
+.. automodule:: virtual_ecosystem.models.abiotic_simple.microclimate_simple
     :autosummary:
     :members:
     :special-members: __init__

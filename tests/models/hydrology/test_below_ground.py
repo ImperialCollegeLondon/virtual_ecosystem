@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
@@ -10,11 +11,11 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
     "soilm_cap, soilm_res, hydr_con, hydr_grad, nonlin_par, gw_cap",
     [
         (
-            HydroConsts.soil_moisture_capacity,
+            CoreConsts.soil_moisture_capacity,
             HydroConsts.soil_moisture_residual,
             HydroConsts.hydraulic_conductivity,
             HydroConsts.hydraulic_gradient,
-            HydroConsts.nonlinearily_parameter,
+            HydroConsts.van_genuchten_nonlinearily_parameter,
             HydroConsts.groundwater_capacity,
         ),
         (
@@ -77,7 +78,7 @@ def test_update_soil_moisture():
         soil_moisture,
         vertical_flow,
         evapotranspiration,
-        HydroConsts.soil_moisture_capacity * layer_thickness,
+        CoreConsts.soil_moisture_capacity * layer_thickness,
         HydroConsts.soil_moisture_residual * layer_thickness,
     )
 
@@ -94,8 +95,8 @@ def test_convert_soil_moisture_to_water_potential():
     actual_potentials = convert_soil_moisture_to_water_potential(
         soil_moisture=np.repeat(0.2, 3),
         air_entry_water_potential=HydroConsts.air_entry_water_potential,
-        water_retention_curvature=HydroConsts.water_retention_curvature,
-        soil_moisture_capacity=HydroConsts.soil_moisture_capacity,
+        campbell_pore_size_distribution=HydroConsts.campbell_pore_size_distribution,
+        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
     )
 
     np.testing.assert_allclose(actual_potentials, expected_potentials)

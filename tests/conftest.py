@@ -453,7 +453,7 @@ def dummy_climate_data(fixture_core_components):
         "atmospheric_pressure_ref": 96.0,
         "atmospheric_co2_ref": 400.0,
         "precipitation": 200.0,
-        "topofcanopy_radiation": 100.0,
+        "downward_shortwave_radiation": 100.0,
     }
 
     for var, value in ref_values.items():
@@ -497,7 +497,7 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -516,19 +516,24 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [30.0, 29.844995, 28.87117, 27.206405, 21.145945]
     )[:, None]
 
     data["soil_temperature"] = from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = 20.0
+
+    data["matric_potential"] = from_template()
+    data["matric_potential"][lyr_str.index_topsoil] = np.array(
+        [-3.0, -10.0, -250.0, -10000.0]
+    )
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
         [90.0, 90.341644, 92.488034, 96.157312, 100]
     )[:, None]
 
-    data["absorbed_radiation"] = from_template()
-    data["absorbed_radiation"][lyr_str.index_filled_canopy] = 10.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 10.0
 
     flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
 
@@ -632,11 +637,14 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["absorbed_radiation"][index_filled_canopy] = [
+    sw_indexes = [1, 2, 3, 13]
+    dummy_climate_data["shortwave_absorption"][sw_indexes] = [
         [10.0, 10.0, 10.0, 10.0],
         [10.0, 10.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
+        [0, 0, 0, 0],
     ]
+    dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],

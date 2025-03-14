@@ -232,7 +232,7 @@ def test_calculate_nitrification_moisture_factor(
     dummy_carbon_data, fixture_core_components
 ):
     """Test calculation of nitrification moisture factor."""
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_nitrification_moisture_factor,
     )
@@ -242,7 +242,7 @@ def test_calculate_nitrification_moisture_factor(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * HydroConsts.soil_moisture_capacity
+        * CoreConsts.soil_moisture_capacity
     )
 
     expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]

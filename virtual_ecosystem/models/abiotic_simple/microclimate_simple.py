@@ -1,5 +1,5 @@
-r"""The ``models.abiotic_simple.microclimate`` module uses linear regressions from
-:cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
+r"""The ``models.abiotic_simple.microclimate_simple`` module uses linear regressions
+from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
 atmospheric temperature, relative humidity, and vapour pressure deficit at ground level
 (1.5 m) given the above canopy conditions and leaf area index of intervening canopy. A
 within canopy profile is then interpolated using a logarithmic curve between the above
@@ -24,7 +24,7 @@ from virtual_ecosystem.models.abiotic_simple.constants import (
 )
 
 
-def run_microclimate(
+def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
