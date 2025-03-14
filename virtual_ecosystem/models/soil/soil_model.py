@@ -33,7 +33,9 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.microbial_groups import (
+    EnzymeConstants,
     MicrobialGroupConstants,
+    make_full_set_of_enzymes,
     make_full_set_of_microbial_groups,
 )
 from virtual_ecosystem.models.soil.pools import SoilPools
@@ -54,8 +56,10 @@ class SoilModel(
         "soil_c_pool_fungi",
         "soil_c_pool_pom",
         "soil_c_pool_necromass",
-        "soil_enzyme_pom",
-        "soil_enzyme_maom",
+        "soil_enzyme_pom_bacteria",
+        "soil_enzyme_maom_bacteria",
+        "soil_enzyme_pom_fungi",
+        "soil_enzyme_maom_fungi",
         "soil_n_pool_don",
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
@@ -85,8 +89,10 @@ class SoilModel(
         "soil_c_pool_fungi",
         "soil_c_pool_pom",
         "soil_c_pool_necromass",
-        "soil_enzyme_pom",
-        "soil_enzyme_maom",
+        "soil_enzyme_pom_bacteria",
+        "soil_enzyme_maom_bacteria",
+        "soil_enzyme_pom_fungi",
+        "soil_enzyme_maom_fungi",
         "soil_n_pool_don",
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
@@ -120,8 +126,10 @@ class SoilModel(
         "soil_c_pool_fungi",
         "soil_c_pool_pom",
         "soil_c_pool_necromass",
-        "soil_enzyme_pom",
-        "soil_enzyme_maom",
+        "soil_enzyme_pom_bacteria",
+        "soil_enzyme_maom_bacteria",
+        "soil_enzyme_pom_fungi",
+        "soil_enzyme_maom_fungi",
         "soil_n_pool_don",
         "soil_n_pool_particulate",
         "soil_n_pool_necromass",
@@ -192,6 +200,7 @@ class SoilModel(
         )
 
         microbial_groups = make_full_set_of_microbial_groups(config)
+        enzyme_classes = make_full_set_of_enzymes(config)
 
         return cls(
             data=data,
@@ -199,12 +208,14 @@ class SoilModel(
             static=static,
             model_constants=model_constants,
             microbial_groups=microbial_groups,
+            enzyme_classes=enzyme_classes,
         )
 
     def _setup(
         self,
         model_constants: SoilConsts,
         microbial_groups: dict[str, MicrobialGroupConstants],
+        enzyme_classes: dict[str, EnzymeConstants],
         **kwargs: Any,
     ) -> None:
         """Function to setup up the soil model."""
@@ -213,8 +224,9 @@ class SoilModel(
         # both the soil and abiotic models get more complex this might well change.
         self.model_constants = model_constants
 
-        # Store set of microbial functional groups needed by the model
+        # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups
+        self.enzyme_classes = enzyme_classes
 
         # Calculate dissolved amounts of each inorganic nutrient
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -324,6 +336,7 @@ class SoilModel(
                 delta_pools_ordered,
                 self.model_constants,
                 self.microbial_groups,
+                self.enzyme_classes,
                 self.core_constants.max_depth_of_microbial_activity,
                 self.core_constants.soil_moisture_capacity,
                 self.layer_structure.soil_layer_thickness[0],
@@ -395,6 +408,7 @@ def construct_full_soil_model(
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
     functional_groups: dict[str, MicrobialGroupConstants],
+    enzyme_classes: dict[str, EnzymeConstants],
     max_depth_of_microbial_activity: float,
     soil_moisture_capacity: float,
     top_soil_layer_thickness: float,
@@ -413,6 +427,7 @@ def construct_full_soil_model(
             are stored in the initial condition vector.
         model_constants: Set of constants for the soil model.
         functional_groups: Set of microbial functional groups used by the soil model.
+        enzyme_classes: Set of enzyme classes used by the soil model.
         max_depth_of_microbial_activity: Maximum depth of the soil profile where
             microbial activity occurs [m].
         soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
@@ -436,6 +451,7 @@ def construct_full_soil_model(
         pools=all_pools,
         constants=model_constants,
         functional_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
         max_depth_of_microbial_activity=max_depth_of_microbial_activity,
     )
 

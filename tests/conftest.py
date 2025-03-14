@@ -100,6 +100,7 @@ def microbial_groups_cfg():
         half_sat_labile_p_uptake = 0.02275
         turnover_rate = 0.005
         activation_energy_turnover = 20000
+        reference_temperature = 12.0
         c_n_ratio = 5.2
         c_p_ratio = 16
 
@@ -117,8 +118,49 @@ def microbial_groups_cfg():
         half_sat_labile_p_uptake = 0.02275
         turnover_rate = 0.005
         activation_energy_turnover = 20000
+        reference_temperature = 12.0
         c_n_ratio = 6.5
         c_p_ratio = 40.0
+
+        [[soil.enzyme_class_definition]]
+        source = "bacteria"
+        substrate = "pom"
+        maximum_rate = 60.0
+        half_saturation_constant = 70.0
+        activation_energy_rate = 37000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
+
+        [[soil.enzyme_class_definition]]
+        source = "bacteria"
+        substrate = "maom"
+        maximum_rate = 24.0
+        half_saturation_constant = 350.0
+        activation_energy_rate = 47000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
+
+        [[soil.enzyme_class_definition]]
+        source = "fungi"
+        substrate = "pom"
+        maximum_rate = 120.0
+        half_saturation_constant = 35.0
+        activation_energy_rate = 37000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
+
+        [[soil.enzyme_class_definition]]
+        source = "fungi"
+        substrate = "maom"
+        maximum_rate = 48.0
+        half_saturation_constant = 175.0
+        activation_energy_rate = 47000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
         """
 
 
@@ -332,8 +374,10 @@ def dummy_carbon_data(fixture_core_components):
         "soil_c_pool_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
         "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
-        "soil_enzyme_pom": [0.022679, 0.009576, 0.050051, 0.003010],
-        "soil_enzyme_maom": [0.0356, 0.0117, 0.02509, 0.00456],
+        "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],
+        "soil_enzyme_maom_bacteria": [0.0356, 0.0117, 0.02509, 0.00456],
+        "soil_enzyme_pom_fungi": [0.02607, 0.00575, 0.00646, 0.00441],
+        "soil_enzyme_maom_fungi": [0.008669, 0.006826, 0.003807, 0.002163],
         "soil_n_pool_don": [0.000571428, 0.00142857, 0.00014285, 0.002857142],
         "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
         "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
