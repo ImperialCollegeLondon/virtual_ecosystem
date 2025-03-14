@@ -87,44 +87,51 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
 
 
 @pytest.fixture
+def soil_pool_data(dummy_carbon_data):
+    """Fixture containing the soil data for all the pools that change."""
+    from virtual_ecosystem.models.soil.pools import PoolData
+    from virtual_ecosystem.models.soil.soil_model import SoilModel
+
+    pools = {
+        var: pool
+        for var, pool in dummy_carbon_data.data.items()
+        if var in SoilModel.vars_updated
+    }
+
+    return PoolData(**pools)
+
+
+@pytest.fixture
 def enzyme_mediated_rates(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data,
+    soil_pool_data,
+    fixture_core_components,
+    environmental_factors,
+    enzyme_classes,
 ):
     """Enzyme mediated rates based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
     return calculate_enzyme_mediated_rates(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
-        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        pools=soil_pool_data,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         env_factors=environmental_factors,
-        constants=SoilConsts,
+        enzyme_classes=enzyme_classes,
     )
 
 
 @pytest.fixture
 def microbial_changes(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data, fixture_core_components, soil_pool_data, environmental_factors
 ):
     """Set of microbial changes based on dummy carbon data."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
     return calculate_microbial_changes(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
-        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_bacteria=dummy_carbon_data["soil_c_pool_bacteria"],
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
+        pools=soil_pool_data,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
@@ -189,3 +196,39 @@ def functional_groups(fixture_config):
     )
 
     return make_full_set_of_microbial_groups(config=fixture_config)
+
+
+@pytest.fixture
+def enzyme_classes(fixture_config):
+    """Set of functional groups based on the soil model constants."""
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        make_full_set_of_enzymes,
+    )
+
+    return make_full_set_of_enzymes(config=fixture_config)
+
+
+@pytest.fixture
+def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components):
+    """Rates of biomass loss from each microbial pool."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_maintenance_biomass_synthesis,
+    )
+
+    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        microbial_group=functional_groups["bacteria"],
+    )
+
+    fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=dummy_carbon_data["soil_c_pool_fungi"],
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        microbial_group=functional_groups["fungi"],
+    )
+
+    return {"bacteria": bacterial_biomass_loss, "fungi": fungal_biomass_loss}

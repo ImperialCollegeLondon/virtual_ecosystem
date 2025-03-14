@@ -1162,14 +1162,28 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of enzyme class which breaks down particulate organic matter"
-name = "soil_enzyme_pom"
+description = "Amount of bacterial enzyme class which breaks down particulate organic matter"
+name = "soil_enzyme_pom_bacteria"
 unit = "kg C m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of enzyme class which breaks down mineral associated organic matter"
-name = "soil_enzyme_maom"
+description = "Amount of bacterial enzyme class which breaks down mineral associated organic matter"
+name = "soil_enzyme_maom_bacteria"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of fungal enzyme class which breaks down particulate organic matter"
+name = "soil_enzyme_pom_fungi"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of fungal enzyme class which breaks down mineral associated organic matter"
+name = "soil_enzyme_maom_fungi"
 unit = "kg C m^-3"
 variable_type = "float"
