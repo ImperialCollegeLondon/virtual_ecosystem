@@ -149,3 +149,9 @@ class HydroConsts(ConstantsDataclass):
     
     Represents the efficiency of turbulent transport of water vapour from a surface to
     the atmosphere."""
+
+    intercept_residence_time: float = 86400.0
+    """Intecept residence time.
+    
+    The amound of time that water sits on the leaves before it evaporates or falls to
+    the ground."""

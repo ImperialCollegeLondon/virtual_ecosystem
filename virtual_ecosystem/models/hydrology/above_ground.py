@@ -5,7 +5,6 @@ runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
 
-TODO add canopy evaporation
 """  # noqa: D205
 
 from math import sqrt
@@ -15,6 +14,176 @@ from numpy.typing import NDArray
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    calculate_slope_of_saturated_pressure_curve,
+)
+
+
+def potential_evaporation_leaf(
+    net_radiation: NDArray[np.float32],
+    vapour_pressure_deficit: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    density_air_kg: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    aerodynamic_resistance: NDArray[np.float32],
+    stomatal_resistance: NDArray[np.float32],
+    latent_heat_vapourisation: NDArray[np.float32],
+    psychrometric_constant: NDArray[np.float32],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+):
+    """Calculate canopy potential evaporation rate using Penman-Monteith equation.
+
+    Args:
+        net_radiation: Net radiation at leaf surface, [W m-2]
+        vapour_pressure_deficit: Vapour pressure deficit, [kPa]
+        air_temperature: Air temperature, [C]
+        density_air_kg: Air density, [kg m-3]
+        specific_heat_air: Specific heat of air, [J kg-1 K-1]
+        aerodynamic_resistance: Aerodynamic resistance in canopy, [s m-1]
+        stomatal_resistance: Stomatal resistance, [s m-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
+        psychrometric_constant: Psychrometric constant, [kPa K-1]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+
+    Returns:
+        potential evaporation rate, [kg m-2 s-1]
+    """
+
+    # Slope of saturation vapour pressure curve (kPa/K)
+    delta = calculate_slope_of_saturated_pressure_curve(
+        temperature=air_temperature,
+        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
+    )
+
+    # Penman-Monteith equation
+    potential_evaporation = (
+        delta * net_radiation
+        + density_air_kg
+        * specific_heat_air
+        * (vapour_pressure_deficit / aerodynamic_resistance)
+    ) / (
+        latent_heat_vapourisation
+        * (
+            delta
+            + psychrometric_constant
+            * (1 + stomatal_resistance / aerodynamic_resistance)
+        )
+    )
+
+    return potential_evaporation
+
+
+def calculate_canopy_evaporation(
+    leaf_area_index: NDArray[np.float32],
+    interception: NDArray[np.float32],
+    net_radiation: NDArray[np.float32],
+    vapour_pressure_deficit: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    density_air_kg: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    aerodynamic_resistance: NDArray[np.float32],
+    stomatal_resistance: NDArray[np.float32],
+    latent_heat_vapourisation: NDArray[np.float32],
+    psychrometric_constant: NDArray[np.float32],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+    time_interval: float,
+    intercept_residence_time: float,
+    extinction_coefficient_global_radiation: float,
+) -> dict[str, NDArray[np.float32]]:
+    r"""Calculate evaporation of intercepted water from the canopy, [mm].
+
+    This function calculates evaporation of intercepted water from the canopy assuming
+    the potential evaporation rate from an open water surface :math:`EW_{0}` [mm] (
+    implementation after :cite:t:`van_der_knijff_lisflood_2010`).
+    The maximum evaporation per time step :math:`EW_{max}` [mm] is proportional to the
+    fraction of vegetated area (Supit et al.,1994):
+
+    :math:`EW_{max} = EW_{0} \cdot [1 - \exp(-\kappa_{gb} LAI] \Delta t)`
+
+    where the dimensionless constant :math:`\kappa_{gb}` is the extinction coefficient
+    for global solar radiation. In LISFLOOD, :math:`\kappa_{gb}` is given by the product
+    :math:`0.75 ⋅ \kappa_{df}`, where :math:`\kappa_{df}` is the extinction coefficient
+    for diffuse visible light: its value is provided as input to the model and it varies
+    between 0.4 and 1.1.
+
+    The actual amount of evaporation :math:`EW_{int}` [mm] is limited by the amount of
+    water stored on the leaves :math:`Int_{cum}`:
+
+    :math:`EW_{int} = min(EW_{max}\cdot \Delta t, Int_{cum})`
+
+    Another amount of water falls to the soil because of leaf drainage which is modelled
+    as a linear reservoir:
+
+    :math:`D_{int} = \frac{1}{T_{int} \cdot Int_{cum} \cdot \Delta t`
+
+    where :math:`D_{int}` is the amount of leaf drainage per time step [mm] and
+    :math:`T_{int}` is a time constant (or residence time) of the interception store
+    [days]. Setting :math:`T_{int} = 1` [day] is strongly recommended and means that all
+    the water in the interception store Intcum evaporates or falls to the soil surface
+    as leaf drainage within one day.
+
+    Args:
+        leaf_area_index: Leaf area index, [m2 m-2]
+        interception: Interception of water in canopy, [mm]
+        net_radiation: Net radiation in canopy, [W m-2]
+        vapour_pressure_deficit: Vapour pressure deficit, [kPa]
+        air_temperature: Air temperature in canopy, [C]
+        density_air_kg: Density of air, [kg m-3]
+        specific_heat_air: Specific heat of air, [J kg-1 K-1]
+        aerodynamic_resistance: Aerodynamic resistance of air in the canopy, [s m-1]
+        stomatal_resistance: Stomatal resistance, [s m-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
+        psychrometric_constant: Psychrometric constant, [kPa K-1]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+        time_interval: Time interval, [s]
+        intercept_residence_time: Intercept residence time, [s]
+        extinction_coefficient_global_radiation: Extinction coefficient for global
+            radiation
+
+    Returns:
+        leaf evaporation [mm], leaf drainage [mm]
+    """
+
+    output = {}
+
+    # Potential evaporation from open surface water
+    potential_evaporation = potential_evaporation_leaf(
+        net_radiation=net_radiation,
+        vapour_pressure_deficit=vapour_pressure_deficit,
+        air_temperature=air_temperature,
+        density_air_kg=density_air_kg,
+        specific_heat_air=specific_heat_air,
+        aerodynamic_resistance=aerodynamic_resistance,
+        stomatal_resistance=stomatal_resistance,
+        latent_heat_vapourisation=latent_heat_vapourisation,
+        psychrometric_constant=psychrometric_constant,
+        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
+    )
+
+    # Maximum evaporation from canopy interception pool
+    maximum_evaporation = (
+        potential_evaporation
+        * (1 - np.exp(-extinction_coefficient_global_radiation * leaf_area_index))
+        * time_interval
+    )
+
+    # Actual evaporation, mm
+    actual_evaporation = np.minimum(maximum_evaporation, interception)
+    output["canopy_evaporation"] = actual_evaporation
+
+    # Update interception pool after evaporation
+    # Ensure no negative interception
+    remaining_interception = np.maximum(interception - actual_evaporation, 0)
+
+    leaf_drainage = np.minimum(
+        (1 / intercept_residence_time) * remaining_interception * time_interval,
+        remaining_interception,
+    )
+    output["leaf_drainage"] = leaf_drainage
+
+    return output
 
 
 def calculate_soil_evaporation(
@@ -95,6 +264,7 @@ def calculate_soil_evaporation(
     barton_ratio = (1.8 * soil_moisture_free) / (soil_moisture_free + 0.3)
     alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
+    # TODO replace with tested function in abiotic simple
     saturation_vapour_pressure = 0.6112 * np.exp(
         (17.67 * (temperature_k)) / (temperature_k + 243.5)
     )

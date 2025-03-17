@@ -11,6 +11,68 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
+def test_potential_evaporation_leaf():
+    """Test potential evaporation from leaf."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        potential_evaporation_leaf,
+    )
+
+    # Expected shape should match input (2x2)
+    result = potential_evaporation_leaf(
+        net_radiation=np.array([[100.0, 120.0], [110.0, 130.0]]),
+        vapour_pressure_deficit=np.array([[800.0, 850.0], [820.0, 870.0]]),
+        air_temperature=np.array([[25.0, 26.0], [24.5, 27.0]]),
+        density_air_kg=np.array([[1.2, 1.2], [1.2, 1.2]]),
+        specific_heat_air=np.array([[1005.0, 1005.0], [1005.0, 1005.0]]),
+        aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, 58.0]]),
+        stomatal_resistance=np.array([[200.0, 220.0], [210.0, 230.0]]),
+        latent_heat_vapourisation=np.array([[2.45e6, 2.45e6], [2.45e6, 2.45e6]]),
+        psychrometric_constant=np.array([[66.0, 66.0], [66.0, 66.0]]),
+        saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
+    )
+
+    assert result.shape == (2, 2)
+    assert np.all(result >= 0)
+    assert np.all(np.isfinite(result))
+    exp_evap = np.array([[2.387024e-05, 2.305874e-05], [2.334741e-05, 2.253733e-05]])
+    np.testing.assert_allclose(result, exp_evap, rtol=1e-3)
+
+
+def test_calculate_canopy_evaporation():
+    """Test canopy evaporation."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_canopy_evaporation,
+    )
+
+    interception = np.array([0.5, 1.0])
+    # Run function
+    output = calculate_canopy_evaporation(
+        leaf_area_index=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        interception=interception,
+        net_radiation=np.array([100, 200]),
+        vapour_pressure_deficit=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        air_temperature=np.array([[21.0, 22.0], [18.0, 20.0]]),
+        density_air_kg=np.array([1.2, 1.2]),
+        specific_heat_air=np.array([1005.0, 1005.0]),
+        aerodynamic_resistance=np.array([50.0, 60.0]),
+        stomatal_resistance=np.array([150.0, 160.0]),
+        latent_heat_vapourisation=np.array([2.45e6, 2.45e6]),
+        psychrometric_constant=np.array([0.066, 0.067]),
+        saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
+        time_interval=3600.0,  # 1 hour in seconds
+        intercept_residence_time=86400.0,  # 1 day in seconds
+        extinction_coefficient_global_radiation=0.5,
+    )
+
+    # Check value constraints
+    assert np.all(output["canopy_evaporation"] >= 0)
+    assert np.all(output["leaf_drainage"] >= 0)
+    assert np.all(output["canopy_evaporation"] <= interception)
+    assert np.all(output["leaf_drainage"] <= interception)
+
+
 @pytest.mark.parametrize(
     "dens_air, latvap",
     [
