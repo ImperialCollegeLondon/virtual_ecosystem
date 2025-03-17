@@ -98,3 +98,11 @@ class CoreConsts(ConstantsDataclass):
 
     characteristic_dimension_leaf: float = 0.01
     """Characteristic dimension of leaf, typically around 0.7 * leaf width, [m]."""
+
+    molecular_weight_ratio_water_to_dry_air: float = 0.622
+    """The molecular weight ratio of water to dry air.
+    
+    The ratio of the molar mass of water vapour (18.015 g/mol) to the molar mass of dry
+    air (28.964 g/mol), which is approximately 0.622. This ratio is used in atmospheric
+    calculations, particularly in determining the mixing ratio of water vapour to dry
+    air."""

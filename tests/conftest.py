@@ -488,6 +488,11 @@ def dummy_climate_data(fixture_core_components):
         [90.0, 90.341644, 92.488034, 96.157312, 100]
     )[:, None]
 
+    data["vapour_pressure_deficit"] = from_template()
+    data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
+        [0.14, 0.2, 0.2, 0.2, 0.14]
+    )[:, None]
+
     data["shortwave_absorption"] = from_template()
     data["shortwave_absorption"][lyr_str.index_flux_layers] = 10.0
 

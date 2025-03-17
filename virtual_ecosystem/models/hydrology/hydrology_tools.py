@@ -8,6 +8,7 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic import abiotic_tools
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import above_ground
 
 
@@ -21,11 +22,12 @@ def setup_hydrology_input_current_timestep(
     soil_moisture_capacity: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
     core_constants: CoreConsts,
-    latent_heat_vap_equ_factors: tuple[float, float],
+    abiotic_constants: AbioticConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
-    The hydrology model currently loops over 30 days per month. Atmospheric variables
+    The hydrology model currently loops over 30 days per month. Atmospheric variables in
+    the canopy and
     near the surface are selected here and kept constant for the whole month. Daily
     timeseries of precipitation and evapotranspiration are generated from monthly
     values in `data` to be used in the daily loop. States of other hydrology variables
@@ -35,11 +37,17 @@ def setup_hydrology_input_current_timestep(
 
     * latent_heat_vapourisation
     * molar_density_air
+    * specific_heat_air
 
     * surface_temperature (TODO switch to subcanopy_temperature)
     * surface_humidity (TODO switch to subcanopy_humidity)
     * surface_pressure (TODO switch to subcanopy_pressure)
     * surface_wind_speed (TODO switch to subcanopy_wind_speed)
+
+    * atmospheric_pressure_canopy
+    * air_temperature_canopy
+    * vapour_pressure_deficit_canopy
+
     * leaf_area_index_sum
     * current_precipitation
     * current_evapotranspiration
@@ -61,8 +69,7 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_capacity: Soil moisture capacity, unitless
         soil_moisture_residual: Soil moisture residual, unitless
         core_constants: Set of core constants share across all models
-        latent_heat_vap_equ_factors: Factors in calculation of latent heat of
-            vapourisation.
+        abiotic_constants: Set of constants from abiotic model
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
@@ -81,7 +88,7 @@ def setup_hydrology_input_current_timestep(
         latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
             temperature=data["air_temperature"].to_numpy(),
             celsius_to_kelvin=core_constants.zero_Celsius,
-            latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+            latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
         )
         output["latent_heat_vapourisation"] = latent_heat_vapourisation
 
@@ -96,6 +103,16 @@ def setup_hydrology_input_current_timestep(
             celsius_to_kelvin=core_constants.zero_Celsius,
         )
         output["molar_density_air"] = molar_density_air
+
+    if "specific_heat_air" in data:
+        output["specific_heat_air"] = data["specific_heat_air"].to_numpy()
+    else:
+        specific_heat_air = abiotic_tools.calculate_specific_heat_air(
+            temperature=data["air_temperature"].to_numpy(),
+            molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
+            specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
+        )
+        output["specific_heat_air"] = specific_heat_air
 
     # Get atmospheric variables
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
@@ -114,6 +131,14 @@ def setup_hydrology_input_current_timestep(
         ("surface_pressure", "atmospheric_pressure"),
     ):
         output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
+
+    # 2D arrays of canopy variables
+    for out_var, in_var in (
+        ("air_temperature_canopy", "air_temperature"),
+        ("vapour_pressure_deficit_canopy", "vapour_pressure_deficit"),
+        ("atmospheric_pressure_canopy", "atmospheric_pressure"),
+    ):
+        output[out_var] = data[in_var][layer_structure.index_filled_canopy].to_numpy()
 
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
