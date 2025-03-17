@@ -174,3 +174,29 @@ def initialise_soil_moisture_mm(
     )
 
     return soil_moisture
+
+
+def calculate_psychrometric_constant(
+    atmospheric_pressure: NDArray[np.float32],
+    latent_heat_vapourization: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    molecular_weight_ratio_water_to_dry_air: float,
+):
+    """Calculate the psychrometric constant.
+
+    NOTE this might be replaced with pyrealm implementation
+
+    Args:
+        atmospheric_pressure: Atmospheric pressure, KPa.
+        latent_heat_vapourization: Latent heat of vaporization in J kg-1
+        specific_heat_air: Specific heat of air at constant pressure in J kg-1 K-1
+        molecular_weight_ratio_water_to_dry_air: Ratio of molecular weights of water to
+            dry air
+
+    Returns:
+        Psychrometric constant in [kPa K-1]
+    """
+
+    return (specific_heat_air * atmospheric_pressure) / (
+        latent_heat_vapourization * molecular_weight_ratio_water_to_dry_air
+    )

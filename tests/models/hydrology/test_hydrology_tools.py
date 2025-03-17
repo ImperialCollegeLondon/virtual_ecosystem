@@ -102,3 +102,30 @@ def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expect
     # The fixture is configured with soil layers [-0.25, -1.0]
     exp_result = DataArray(np.broadcast_to(expected, (2, 4)))
     np.testing.assert_allclose(result[layer_structure.index_all_soil], exp_result)
+
+
+def test_calculate_psychrometric_constant():
+    """Test psychrometric constant."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_psychrometric_constant,
+    )
+
+    atmospheric_pressure = np.array([101.3], dtype=np.float32)  # in kPa
+    latent_heat_vapourization = np.array([2.45e6], dtype=np.float32)  # in J/kg
+    specific_heat_air = np.array([1005], dtype=np.float32)  # in J/kg·K
+    molecular_weight_ratio_water_to_dry_air = 0.622  # dimensionless
+
+    # Expected result calculated manually or using a known value
+    expected_output = np.array([0.066807])
+
+    # Call the function
+    output = calculate_psychrometric_constant(
+        atmospheric_pressure,
+        latent_heat_vapourization,
+        specific_heat_air,
+        molecular_weight_ratio_water_to_dry_air,
+    )
+
+    # Assert that the output is as expected within a small tolerance
+    np.testing.assert_allclose(output, expected_output, rtol=1e-5)
