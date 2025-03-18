@@ -78,20 +78,7 @@ def setup_hydrology_input_current_timestep(
 
     output = {}
 
-    # Calculate latent heat of vapourisation and density of air for all layers
-    if "latent_heat_vapourisation" in data:
-        output["latent_heat_vapourisation"] = data[
-            "latent_heat_vapourisation"
-        ].to_numpy()
-
-    else:
-        latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-            temperature=data["air_temperature"].to_numpy(),
-            celsius_to_kelvin=core_constants.zero_Celsius,
-            latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
-        )
-        output["latent_heat_vapourisation"] = latent_heat_vapourisation
-
+    # Calculate density of air for all layers
     if "molar_density" in data:
         output["molar_density_air"] = data["molar_density_air"].to_numpy()
     else:
@@ -103,16 +90,6 @@ def setup_hydrology_input_current_timestep(
             celsius_to_kelvin=core_constants.zero_Celsius,
         )
         output["molar_density_air"] = molar_density_air
-
-    if "specific_heat_air" in data:
-        output["specific_heat_air"] = data["specific_heat_air"].to_numpy()
-    else:
-        specific_heat_air = abiotic_tools.calculate_specific_heat_air(
-            temperature=data["air_temperature"].to_numpy(),
-            molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
-            specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
-        )
-        output["specific_heat_air"] = specific_heat_air
 
     # Get atmospheric variables
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
@@ -131,20 +108,6 @@ def setup_hydrology_input_current_timestep(
         ("surface_pressure", "atmospheric_pressure"),
     ):
         output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
-
-    # 2D arrays of canopy variables
-    for out_var, in_var in (
-        ("air_temperature_canopy", "air_temperature"),
-        ("vapour_pressure_deficit_canopy", "vapour_pressure_deficit"),
-        ("atmospheric_pressure_canopy", "atmospheric_pressure"),
-        ("leaf_area_index", "leaf_area_index"),
-        ("specific_heat_air_canopy", "specific_heat_air"),
-        ("aerodynamic_resistance_canopy", "aerodynamic_resistance_canopy"),
-        ("stomatal_conductance", "stomatal_conductance"),
-        ("latent_heat_vapourisation_canopy", "latent_heat_vapourisation"),
-    ):
-        output[out_var] = data[in_var][layer_structure.index_filled_canopy].to_numpy()
-
     # Get inputs from plant model
     output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
     output["current_evapotranspiration"] = (

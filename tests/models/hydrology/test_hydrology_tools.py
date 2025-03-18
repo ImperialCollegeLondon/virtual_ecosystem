@@ -33,23 +33,12 @@ def test_setup_hydrology_input_current_timestep(
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
-        "latent_heat_vapourisation",
         "molar_density_air",
-        "specific_heat_air",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",
         "surface_pressure",
         "surface_wind_speed",
-        "air_temperature_canopy",
-        "vapour_pressure_deficit_canopy",
-        "atmospheric_pressure_canopy",
-        "leaf_area_index",
-        "specific_heat_air_canopy",
-        "aerodynamic_resistance_canopy",
-        "stomatal_conductance",
-        "latent_heat_vapourisation_canopy",
-        "atmospheric_pressure_canopy",
         "leaf_area_index_sum",
         "current_evapotranspiration",
         "top_soil_moisture_capacity",
@@ -86,14 +75,6 @@ def test_setup_hydrology_input_current_timestep(
     np.testing.assert_allclose(
         result["current_soil_moisture"],
         DataArray(np.tile([[5], [500]], fixture_core_components.grid.n_cells)),
-    )
-
-    # Test one of the canopy variable selections
-    np.testing.assert_allclose(
-        result["vapour_pressure_deficit_canopy"],
-        dummy_climate_data["vapour_pressure_deficit"][
-            fixture_core_components.layer_structure.index_filled_canopy
-        ],
     )
 
 
