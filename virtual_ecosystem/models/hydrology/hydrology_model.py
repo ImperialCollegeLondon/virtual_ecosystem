@@ -10,7 +10,6 @@ There are still a number of open TODOs related to process implementation and imp
 
     * spin up soil moisture and accumulated runoff
     * set boundaries for river discharge
-    * add canopy evaporation
     * update infiltration process
 
 .. TODO:: time step and model structure
@@ -23,6 +22,7 @@ There are still a number of open TODOs related to process implementation and imp
 .. TODO:: units and module coordination
 
     * change temperature to Kelvin
+    * plants need to return transpiration only
 
 """  # noqa: D205
 
@@ -61,9 +61,10 @@ class HydrologyModel(
         "elevation",
     ),
     vars_updated=(
+        "canopy_evaporation",
         "precipitation_surface",  # precipitation-interception loss
         "soil_moisture",
-        "surface_runoff",  # equivalent to SPLASH runoff
+        "surface_runoff",
         "vertical_flow",
         "soil_evaporation",
         "surface_runoff_accumulated",
@@ -81,14 +82,18 @@ class HydrologyModel(
         "air_temperature",
         "relative_humidity",
         "atmospheric_pressure",
+        "vapour_pressure_deficit",
         "precipitation",
         "wind_speed",
         "leaf_area_index",
         "layer_heights",
         "soil_moisture",
-        "evapotranspiration",
+        "evapotranspiration",  # TODO this needs to be transpiration
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
+        "aerodynamic_resistance_canopy",
+        "specific_heat_air",
+        "stomatal_conductance",
     ),
     vars_populated_by_init=(
         "soil_moisture",
@@ -96,9 +101,11 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_canopy",
+        "specific_heat_air",
     ),
     vars_populated_by_first_update=(
-        "precipitation_surface",  # precipitation-interception loss
+        "precipitation_surface",
         "surface_runoff",
         "bypass_flow",
         "soil_evaporation",
@@ -109,6 +116,7 @@ class HydrologyModel(
         "total_river_discharge",
         "river_discharge_rate",
         "latent_heat_vapourisation",
+        "canopy_evaporation",
     ),
 ):
     """A class describing the hydrology model.
@@ -210,7 +218,8 @@ class HydrologyModel(
 
         For the within grid cell hydrology, soil moisture is initialised homogenously
         for all soil layers and groundwater storage is set to the percentage of it's
-        capacity that was defined in the model configuration.
+        capacity that was defined in the model configuration. Soil and canopy
+        aerodynamic resistances are set to an initial constant value.
 
         For the hydrology across the grid, this function initialises the accumulated
         surface runoff variable and the subsurface accumulated flow variable. Both
@@ -295,7 +304,7 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Set initial aerodynamic resistance for surface, [s m-1]
+        # Set initial aerodynamic resistance for surface and canopy , [s m-1]
         self.data["aerodynamic_resistance_surface"] = DataArray(
             np.full_like(
                 self.data["elevation"],
@@ -304,6 +313,17 @@ class HydrologyModel(
             dims="cell_id",
             name=var,
             coords={"cell_id": self.grid.cell_id},
+        )
+
+        self.data["aerodynamic_resistance_canopy"] = (
+            self.layer_structure.from_template()
+        )
+        self.data["aerodynamic_resistance_canopy"][
+            self.layer_structure.index_filled_canopy
+        ] = self.model_constants.initial_aerodynamic_resistance_canopy
+        self.data["specific_heat_air"] = self.layer_structure.from_template()
+        self.data["specific_heat_air"][self.layer_structure.index_filled_atmosphere] = (
+            1.0
         )
 
     def spinup(self) -> None:
@@ -315,6 +335,7 @@ class HydrologyModel(
         This function calculates the main hydrological components of the Virtual
         Ecosystem and updates the following variables in the `data` object:
 
+        * canopy_evaporation, [mm]
         * precipitation_surface, [mm]
         * soil_moisture, [mm]
         * matric_potential, [kPa]
@@ -390,6 +411,7 @@ class HydrologyModel(
         * air temperature, [C]
         * relative humidity, []
         * atmospheric pressure, [kPa]
+        * vapour pressure deficit, [kPa]
         * precipitation, [mm]
         * wind speed, [m s-1]
         * leaf area index, [m m-2]
@@ -398,6 +420,7 @@ class HydrologyModel(
         * evapotranspiration (current time step), [mm]
         * accumulated surface runoff (previous time step), [mm]
         * accumulated subsurface flow (previous time step), [mm]
+        * aerodynamic_resistance_canopy, [s m-1]
 
         and a number of parameters that as described in detail in
         :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
@@ -425,7 +448,7 @@ class HydrologyModel(
             soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
-            latent_heat_vap_equ_factors=(abiotic_constants.latent_heat_vap_equ_factors),
+            abiotic_constants=abiotic_constants,
         )
 
         # Create lists for output variables to store daily data
@@ -440,11 +463,62 @@ class HydrologyModel(
                 veg_density_param=self.model_constants.veg_density_param,
             )
 
-            # TODO add canopy evaporation
+            # Calculate psychrometric constant
+            psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
+                atmospheric_pressure=hydro_input["atmospheric_pressure_canopy"],
+                latent_heat_vapourization=hydro_input["latent_heat_vapourisation"][
+                    self.layer_structure.index_filled_canopy
+                ],
+                specific_heat_air=hydro_input["specific_heat_air"][
+                    self.layer_structure.index_filled_canopy
+                ],
+                molecular_weight_ratio_water_to_dry_air=(
+                    self.core_constants.molecular_weight_ratio_water_to_dry_air
+                ),
+            )
+
+            # Calculate canopy evaporation and leaf drainage
+            # TODO net radiation is part of energy balance, check which inputs are
+            # required, in which order this is calculated, discuss also with plant model
+            net_radiation_canopy = np.full_like(
+                hydro_input["air_temperature_canopy"], 20.0
+            )
+            density_air_kg = hydro_input["molar_density_air"] * (
+                self.core_constants.molecular_weight_air / 1000.0
+            )
+
+            canopy_water_balance = above_ground.calculate_canopy_evaporation(
+                leaf_area_index=hydro_input["leaf_area_index"],
+                interception=interception,
+                net_radiation=net_radiation_canopy,
+                vapour_pressure_deficit=hydro_input["vapour_pressure_deficit_canopy"],
+                air_temperature=hydro_input["air_temperature_canopy"],
+                density_air_kg=density_air_kg[self.layer_structure.index_filled_canopy],
+                specific_heat_air=hydro_input["specific_heat_air_canopy"],
+                aerodynamic_resistance=hydro_input["aerodynamic_resistance_canopy"],
+                stomatal_resistance=1 / hydro_input["stomatal_conductance"],
+                latent_heat_vapourisation=hydro_input[
+                    "latent_heat_vapourisation_canopy"
+                ],
+                psychrometric_constant=psychrometric_constant,
+                saturated_pressure_slope_parameters=(
+                    abiotic_constants.saturated_pressure_slope_parameters
+                ),
+                time_interval=86400.0,  # TODO
+                intercept_residence_time=self.model_constants.intercept_residence_time,
+                extinction_coefficient_global_radiation=(
+                    self.model_constants.extinction_coefficient_global_radiation
+                ),
+            )
+            daily_lists["canopy_evaporation"].append(
+                canopy_water_balance["canopy_evaporation"]
+            )
 
             # Precipitation that reaches the surface per day, [mm]
             precipitation_surface = (
-                hydro_input["current_precipitation"][:, day] - interception
+                hydro_input["current_precipitation"][:, day]
+                - interception
+                + np.nansum(canopy_water_balance["leaf_drainage"], axis=0)
             )
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
@@ -486,11 +560,6 @@ class HydrologyModel(
                 hydro_input["latent_heat_vapourisation"][self.surface_layer_index]
                 / 1000.0
             )
-            density_air_kg = (
-                hydro_input["molar_density_air"][self.surface_layer_index]
-                * self.core_constants.molecular_weight_air
-                / 1000.0
-            )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
                 temperature=hydro_input["surface_temperature"],
@@ -502,7 +571,7 @@ class HydrologyModel(
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
-                density_air=density_air_kg,
+                density_air=density_air_kg[self.surface_layer_index],
                 latent_heat_vapourisation=latent_heat_vapourisation,
                 gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour,
                 drag_coefficient_evaporation=(
@@ -682,6 +751,11 @@ class HydrologyModel(
                 dims="cell_id",
                 coords={"cell_id": self.grid.cell_id},
             )
+
+        soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
+        soil_hydrology["canopy_evaporation"][
+            self.layer_structure.index_filled_canopy
+        ] = np.sum(np.stack(daily_lists["canopy_evaporation"], axis=0), axis=0)
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),

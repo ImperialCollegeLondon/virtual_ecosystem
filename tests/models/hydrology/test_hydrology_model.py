@@ -290,6 +290,12 @@ def test_setup(
                 atol=1e-3,
             )
 
+            exp_aero_resist_canopy = np.full((14, 4), np.nan)
+            np.testing.assert_allclose(
+                model.data["aerodynamic_resistance_canopy"],
+                exp_aero_resist_canopy,
+            )
+
             # Run the update step
             model.update(time_index=1, seed=42)
 
