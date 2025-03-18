@@ -103,6 +103,8 @@ class HydrologyModel(
         "aerodynamic_resistance_surface",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
+        "stomatal_conductance",
+        "latent_heat_vapourisation",
     ),
     vars_populated_by_first_update=(
         "precipitation_surface",
@@ -115,7 +117,6 @@ class HydrologyModel(
         "baseflow",
         "total_river_discharge",
         "river_discharge_rate",
-        "latent_heat_vapourisation",
         "canopy_evaporation",
     ),
 ):
@@ -260,6 +261,16 @@ class HydrologyModel(
             grid=self.data.grid,
             elevation=np.array(self.data["elevation"]),
         )
+
+        # TODO these two variables should probably be initialised elsewhere
+        self.data["stomatal_conductance"] = self.layer_structure.from_template()
+        self.data["stomatal_conductance"][self.layer_structure.index_filled_canopy] = (
+            1000.0
+        )
+        self.data["latent_heat_vapourisation"] = self.layer_structure.from_template()
+        self.data["latent_heat_vapourisation"][
+            self.layer_structure.index_filled_atmosphere
+        ] = 2254.0
 
         # Calculate layer thickness for soil moisture unit conversion and set structures
         # and tile across grid cells

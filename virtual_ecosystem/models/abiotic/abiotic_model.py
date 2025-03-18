@@ -77,6 +77,7 @@ class AbioticModel(
         "air_temperature",
         "relative_humidity",
         "vapour_pressure_deficit",
+        "wind_speed",
         "atmospheric_pressure",
         "atmospheric_co2",
         "shortwave_absorption",
@@ -89,7 +90,6 @@ class AbioticModel(
         "longwave_emission",
         "molar_density_air",
         "specific_heat_air",
-        # "latent_heat_vapourisation",
     ),
 ):
     """A class describing the abiotic model.
