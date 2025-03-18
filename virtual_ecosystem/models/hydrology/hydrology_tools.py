@@ -137,6 +137,11 @@ def setup_hydrology_input_current_timestep(
         ("air_temperature_canopy", "air_temperature"),
         ("vapour_pressure_deficit_canopy", "vapour_pressure_deficit"),
         ("atmospheric_pressure_canopy", "atmospheric_pressure"),
+        ("leaf_area_index", "leaf_area_index"),
+        ("specific_heat_air_canopy", "specific_heat_air"),
+        ("aerodynamic_resistance_canopy", "aerodynamic_resistance_canopy"),
+        ("stomatal_conductance", "stomatal_conductance"),
+        ("latent_heat_vapourisation_canopy", "latent_heat_vapourisation"),
     ):
         output[out_var] = data[in_var][layer_structure.index_filled_canopy].to_numpy()
 
