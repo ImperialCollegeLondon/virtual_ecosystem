@@ -115,6 +115,39 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
+def test_calculate_sensible_heat_flux(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of sensible heat flux."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_sensible_heat_flux,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    index = fixture_core_components.layer_structure.index_filled_canopy
+    # Compute flux
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["molar_density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
+    )
+
+    # Expected result (manually calculated)
+    expected_flux = np.array(
+        [
+            [-427.134759, -427.134759, -427.134759, -427.134759],
+            [-341.282347, -341.282347, np.nan, np.nan],
+            [-194.516665, np.nan, np.nan, np.nan],
+        ]
+    )
+
+    # Assert all elements are close
+    np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
+
+
 @pytest.mark.parametrize(
     "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
     [
@@ -176,9 +209,9 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
     exp_ra = np.array(
         [
-            [142.134882, 122.08445, 98.78846, 71.045725],
-            [129.620527, 101.934823, 71.04573, np.nan],
-            [108.227096, 0.001, np.nan, np.nan],
+            [1.636388e03, 1.281797e03, 9.661568e02, 4.997020e02],
+            [1.360920e03, 8.936009e02, 4.997020e02, np.nan],
+            [9.487614e02, 0.001, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
@@ -269,9 +302,9 @@ def test_update_air_canopy_temperature():
     canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
     specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])
 
-    # Expected outputs (calculated manually)
+    # Expected outputs
     expected_canopy_temperature = np.array(
-        [[306.998597, 302.5214], [298.045954, 293.572175]]
+        [[328.184734, 329.833646], [331.752748, 333.944948]]
     )
     expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
 
@@ -285,8 +318,8 @@ def test_update_air_canopy_temperature():
         canopy_temperature=canopy_temperature,
         emissivity_leaf=0.8,
         specific_heat_air=specific_heat_air,
-        density_air=1.293,
-        aerodynamic_resistance=10.0,
+        density_air=np.full((2, 2), 1.293),
+        aerodynamic_resistance=np.full((2, 2), 200.0),
         relaxation_factor=0.1,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
     )

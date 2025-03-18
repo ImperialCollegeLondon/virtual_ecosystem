@@ -323,7 +323,7 @@ def calculate_aerodynamic_resistance(
 
     aero_resistance = np.log(
         (wind_heights - zero_plane_displacement) / roughness_length
-    ) / (von_karman_constant * friction_velocity)
+    ) ** 2 / (von_karman_constant**2 * friction_velocity)
 
     return np.where(
         np.isinf(aero_resistance) | (aero_resistance <= 0.0), 0.001, aero_resistance
