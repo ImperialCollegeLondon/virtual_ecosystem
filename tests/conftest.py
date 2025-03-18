@@ -467,6 +467,9 @@ def dummy_climate_data(fixture_core_components):
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
 
+    data["aerodynamic_resistance_canopy"] = from_template()
+    data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
+
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
 
@@ -606,6 +609,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0, 0, 0, 0],
     ]
     dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
+
+    dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
+        [12.5, 12.5, 12.5, 12.5],
+        [12.5, 12.5, np.nan, np.nan],
+        [12.5, np.nan, np.nan, np.nan],
+    ]
 
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
