@@ -87,7 +87,7 @@ class AbioticConsts(ConstantsDataclass):
     the fluid flow and the reference area of the object.
     Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
-    min_windspeed_below_canopy: float = 0.001
+    min_windspeed_below_canopy: float = 0.1
     """Minimum wind speed below the canopy or in absence of vegetation, [m s-1]."""
 
     min_roughness_length: float = 0.01
