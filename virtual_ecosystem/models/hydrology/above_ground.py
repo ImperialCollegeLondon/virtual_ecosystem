@@ -451,7 +451,7 @@ def calculate_interception(
         + intercept_parameters[1] * leaf_area_index
         - intercept_parameters[2] * leaf_area_index**2
     )
-    max_capacity = np.where(leaf_area_index > 0.1, capacity, 0)
+    max_capacity = np.where(leaf_area_index > 0.1, capacity, 0.001)
 
     canopy_density_factor = veg_density_param * leaf_area_index
 
