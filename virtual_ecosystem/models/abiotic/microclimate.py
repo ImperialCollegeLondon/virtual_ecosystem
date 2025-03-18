@@ -119,18 +119,41 @@ def run_microclimate(
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
     )
 
+    #   Friction velocity, [m s-1]
+    # friction_velocity = wind.calculate_friction_velocity(
+    #     reference_wind_speed=data["wind_speed_ref"]
+    #     .isel(time_index=time_index)
+    #     .to_numpy(),
+    #     reference_height=(
+    #         data["layer_heights"][0].to_numpy()
+    #         + abiotic_constants.wind_reference_height
+    #     ),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+
     #   TODO Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = 10.0
+    aerodynamic_resistance_canopy = np.full_like(
+        data["leaf_area_index"][layer_structure.index_filled_canopy], 10.0
+    )
     #  The current implementation of logarithmic wind profile breaks down when the
     #  canopy layer height falls below the zero displacement height. A more sophistcated
     #  implementation is needed, e.g. Monin-Obukov theory, or a constant value across
     #  the canopy. For now empirical value for homogenous canopy.
+    # aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
+    #     wind_heights=wind_heights[1:-1],  # drop above and surface layers
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     friction_velocity=friction_velocity,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
 
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
     # Initialise variables to iterate energy balance to update temperatures
-    # TODO check if it actually makes sense to preselect inddices, seems messy
+    # TODO check if it actually makes sense to preselect indices, seems messy
 
     all_air_temperature = data["air_temperature"][
         layer_structure.index_filled_atmosphere
@@ -153,13 +176,10 @@ def run_microclimate(
 
     iterations = 10  # TODO input var iterations (or convergence criteria)
     for _ in range(iterations):
-        #  Calculate atmospheric background variables using mean air temperature
-        mean_air_temperature = np.nanmean(all_air_temperature, axis=0)
-
-        # TODO this could take values for each layer instead of bulk
+        #  Calculate atmospheric background variables
         molar_density_air = abiotic_tools.calculate_molar_density_air(
-            temperature=mean_air_temperature,
-            atmospheric_pressure=atmospheric_pressure[0],  # all layers identical
+            temperature=all_air_temperature,
+            atmospheric_pressure=atmospheric_pressure,  # all layers identical
             standard_mole=core_constants.standard_mole,
             standard_pressure=core_constants.standard_pressure,
             celsius_to_kelvin=core_constants.zero_Celsius,
@@ -169,7 +189,7 @@ def run_microclimate(
         )
 
         specific_heat_air = abiotic_tools.calculate_specific_heat_air(
-            temperature=mean_air_temperature,
+            temperature=all_air_temperature,
             molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
             specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
         )
@@ -179,7 +199,7 @@ def run_microclimate(
 
         #   Latent heat of vapourisation, [kJ kg-1]
         latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-            temperature=mean_air_temperature,
+            temperature=all_air_temperature,
             celsius_to_kelvin=core_constants.zero_Celsius,
             latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
         )
@@ -199,8 +219,8 @@ def run_microclimate(
 
         #  Sensible heat flux from canopy layers, [W m-2]
         sensible_heat_flux_canopy = energy_balance.calculate_sensible_heat_flux(
-            density_air=density_air_kg,
-            specific_heat_air=specific_heat_air_kg,
+            density_air=density_air_kg[1:-1],
+            specific_heat_air=specific_heat_air_kg[1:-1],
             air_temperature=air_temperature_canopy,
             surface_temperature=canopy_temperature,
             aerodynamic_resistance=aerodynamic_resistance_canopy,
@@ -208,8 +228,8 @@ def run_microclimate(
 
         #  Sensible heat flux from topsoil, [W m-2]
         sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
-            density_air=density_air_kg,
-            specific_heat_air=specific_heat_air_kg,
+            density_air=density_air_kg[-1],
+            specific_heat_air=specific_heat_air_kg[-1],
             air_temperature=surface_air_temperature,
             surface_temperature=soil_temperature[0],
             aerodynamic_resistance=aerodynamic_resistance_soil,
@@ -247,12 +267,14 @@ def run_microclimate(
         latent_heat_flux_canopy = (
             data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
             / 2.628e6
-        ) * latent_heat_vapourisation
+        ) * latent_heat_vapourisation[1:-1]
 
         # Latent heat flux topsoil, [W m-2]
         # TODO cross-check with hydrology model, time step currently month to second
         latent_heat_flux_soil = (
-            data["soil_evaporation"].to_numpy() / 2.628e6 * latent_heat_vapourisation
+            data["soil_evaporation"].to_numpy()
+            / 2.628e6
+            * latent_heat_vapourisation[-1]
         )
 
         # TODO name absorption variable like plants - Net radiation topsoil, [W m-2]
@@ -297,8 +319,8 @@ def run_microclimate(
                 air_temperature=air_temperature_canopy + core_constants.zero_Celsius,
                 canopy_temperature=canopy_temperature + core_constants.zero_Celsius,
                 emissivity_leaf=abiotic_constants.leaf_emissivity,
-                specific_heat_air=specific_heat_air_kg,
-                density_air=density_air_kg,
+                specific_heat_air=specific_heat_air_kg[1:-1],
+                density_air=density_air_kg[1:-1],
                 aerodynamic_resistance=aerodynamic_resistance_canopy,
                 relaxation_factor=0.1,
                 stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
@@ -308,7 +330,7 @@ def run_microclimate(
         #  TODO check Update surface/soil temperature, use same function as canopy?
         # TODO add vertical mixing, not urgent
         surface_temperature_change = sensible_heat_flux_soil / (
-            density_air_kg * specific_heat_air_kg
+            density_air_kg[-1] * specific_heat_air_kg[-1]
         )
         new_surface_temperature = (
             surface_air_temperature + core_constants.zero_Celsius
@@ -363,8 +385,25 @@ def run_microclimate(
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
     output["longwave_emission"] = longwave_emission
 
-    output["molar_density_air"] = DataArray(molar_density_air, dims="cell_id")
-    output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")
+    aero_resistance_canopy_out = layer_structure.from_template()
+    aero_resistance_canopy_out[layer_structure.index_filled_canopy] = (
+        aerodynamic_resistance_canopy
+    )
+    output["aerodynamic_resistance_canopy"] = aero_resistance_canopy_out
+
+    molar_density_air_out = layer_structure.from_template()
+    molar_density_air_out[layer_structure.index_filled_atmosphere] = molar_density_air
+    output["molar_density_air"] = molar_density_air_out
+
+    specific_heat_air_out = layer_structure.from_template()
+    specific_heat_air_out[layer_structure.index_filled_atmosphere] = specific_heat_air
+    output["specific_heat_air"] = specific_heat_air_out
+
+    latent_heat_vapourisation_out = layer_structure.from_template()
+    latent_heat_vapourisation_out[layer_structure.index_filled_atmosphere] = (
+        latent_heat_vapourisation
+    )
+    output["latent_heat_vapourisation"] = latent_heat_vapourisation_out
 
     # Combine sensible heat flux in one variable, TODO consider time interval
     sensible_heat_flux = layer_structure.from_template()
