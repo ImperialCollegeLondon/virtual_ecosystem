@@ -63,10 +63,13 @@ def test_calculate_environmental_effect_factors(
     ],
 )
 def test_calculate_temperature_effect_on_microbes(
-    dummy_carbon_data, fixture_core_components, activation_energy, expected_factors
+    dummy_carbon_data,
+    fixture_core_components,
+    activation_energy,
+    expected_factors,
+    functional_groups,
 ):
     """Test function to calculate microbial temperature response."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_temperature_effect_on_microbes,
     )
@@ -76,7 +79,7 @@ def test_calculate_temperature_effect_on_microbes(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         activation_energy=activation_energy,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
+        reference_temperature=functional_groups["bacteria"].reference_temperature,
     )
 
     assert np.allclose(expected_factors, actual_factors)
@@ -229,7 +232,7 @@ def test_calculate_nitrification_moisture_factor(
     dummy_carbon_data, fixture_core_components
 ):
     """Test calculation of nitrification moisture factor."""
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_nitrification_moisture_factor,
     )
@@ -239,7 +242,7 @@ def test_calculate_nitrification_moisture_factor(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * HydroConsts.soil_moisture_capacity
+        * CoreConsts.soil_moisture_capacity
     )
 
     expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]

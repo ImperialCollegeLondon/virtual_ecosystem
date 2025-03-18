@@ -445,7 +445,7 @@ class HydrologyModel(
             seed=seed,
             layer_structure=self.layer_structure,
             soil_layer_thickness_mm=self.soil_layer_thickness_mm,
-            soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
+            soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
             abiotic_constants=abiotic_constants,
@@ -567,7 +567,7 @@ class HydrologyModel(
                 atmospheric_pressure=hydro_input["surface_pressure"],
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.model_constants.soil_moisture_residual,
-                soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
+                soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
@@ -613,7 +613,7 @@ class HydrologyModel(
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm,  # mm
                 soil_moisture_capacity=(
-                    self.model_constants.soil_moisture_capacity
+                    self.core_constants.soil_moisture_capacity
                 ),  # vol
                 soil_moisture_residual=(
                     self.model_constants.soil_moisture_residual
@@ -638,7 +638,7 @@ class HydrologyModel(
                 vertical_flow=vertical_flow,  # mm
                 evapotranspiration=hydro_input["current_evapotranspiration"],  # mm
                 soil_moisture_capacity=(  # mm
-                    self.model_constants.soil_moisture_capacity
+                    self.core_constants.soil_moisture_capacity
                     * self.soil_layer_thickness_mm
                 ),
                 soil_moisture_residual=(  # mm
@@ -660,7 +660,7 @@ class HydrologyModel(
                 campbell_pore_size_distribution=(
                     self.model_constants.campbell_pore_size_distribution
                 ),
-                soil_moisture_capacity=self.model_constants.soil_moisture_capacity,
+                soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
             )
             daily_lists["matric_potential"].append(matric_potential)
 

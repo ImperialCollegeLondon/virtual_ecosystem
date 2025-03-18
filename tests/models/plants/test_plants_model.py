@@ -228,7 +228,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_config):
     consts = fxt_plants_model.model_constants
 
     # Check that all expected variables are generated and have the correct value
-    assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
     )
@@ -296,3 +295,30 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["plant_ammonium_uptake"], 5.0e-4)
     assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], 7.5e-3)
     assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-5)
+
+
+def test_PlantsModel_apply_mortality(fxt_plants_model):
+    """Test the apply_mortality method of the plants model."""
+
+    original_population = {
+        cell_id: fxt_plants_model.communities[cell_id].cohorts.n_individuals.copy()
+        for cell_id in fxt_plants_model.communities.keys()
+    }
+
+    # Check reset
+    fxt_plants_model.apply_mortality()
+
+    for cell_id in fxt_plants_model.communities.keys():
+        community = fxt_plants_model.communities[cell_id]
+
+        mortality = (
+            original_population[cell_id]
+            - fxt_plants_model.communities[cell_id].cohorts.n_individuals
+        )
+        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
+
+        assert np.all(
+            original_population[cell_id]
+            >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
+        )
+        assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
