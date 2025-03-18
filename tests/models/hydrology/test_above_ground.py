@@ -71,6 +71,8 @@ def test_calculate_canopy_evaporation():
     assert np.all(output["leaf_drainage"] >= 0)
     assert np.all(output["canopy_evaporation"] <= interception)
     assert np.all(output["leaf_drainage"] <= interception)
+    assert output["canopy_evaporation"].shape == (2, 2)
+    assert output["leaf_drainage"].shape == (2, 2)
 
 
 @pytest.mark.parametrize(
