@@ -247,6 +247,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "bacteria"
@@ -257,7 +259,9 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
-
+            c_n_ratio = 5.2
+            c_p_ratio = 16
+            
             [[soil.enzyme_class_definition]]
             source = "fungi"
             substrate = "pom"
@@ -267,6 +271,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
             """,
             [
                 (
@@ -274,7 +280,7 @@ def test_make_full_set_of_enzymes(fixture_config):
                     "The following expected enzyme classes are not defined: fungi_maom",
                 )
             ],
-            id="missing_most_fungi_maom",
+            id="missing_fungi_maom",
         ),
         pytest.param(  # archaea included but they shouldn't be
             """
@@ -287,6 +293,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "bacteria"
@@ -297,6 +305,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -307,6 +317,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -317,6 +329,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -327,6 +341,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
             """,
             [
                 (
@@ -347,6 +363,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -357,6 +375,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
             """,
             [
                 (

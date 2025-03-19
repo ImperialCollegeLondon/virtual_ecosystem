@@ -40,6 +40,12 @@ class EnzymeConstants:
     turnover_rate: float
     """The turnover rate of the enzyme [day^-1]."""
 
+    c_n_ratio: float
+    """Ratio of carbon to nitrogen for the enzyme [unitless]."""
+
+    c_p_ratio: float
+    """Ratio of carbon to phosphorus for the enzyme [unitless]."""
+
 
 @dataclass(frozen=True)
 class MicrobialGroupConstants:

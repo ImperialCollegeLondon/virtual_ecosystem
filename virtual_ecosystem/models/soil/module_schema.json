@@ -46,6 +46,12 @@
                      },
                      "turnover_rate": {
                         "type": "number"
+                     },
+                     "c_n_ratio": {
+                        "type": "number"
+                     },
+                     "c_p_ratio": {
+                        "type": "number"
                      }
                   },
                   "required": [
@@ -56,7 +62,9 @@
                      "activation_energy_rate",
                      "activation_energy_saturation",
                      "reference_temperature",
-                     "turnover_rate"
+                     "turnover_rate",
+                     "c_n_ratio",
+                     "c_p_ratio"
                   ]
                }
             },
