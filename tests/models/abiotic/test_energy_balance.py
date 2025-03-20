@@ -115,6 +115,39 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
+def test_calculate_sensible_heat_flux(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of sensible heat flux."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_sensible_heat_flux,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    index = fixture_core_components.layer_structure.index_filled_canopy
+    # Compute flux
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["molar_density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
+    )
+
+    # Expected result (manually calculated)
+    expected_flux = np.array(
+        [
+            [-427.134759, -427.134759, -427.134759, -427.134759],
+            [-341.282347, -341.282347, np.nan, np.nan],
+            [-194.516665, np.nan, np.nan, np.nan],
+        ]
+    )
+
+    # Assert all elements are close
+    np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
+
+
 @pytest.mark.parametrize(
     "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
     [
@@ -158,7 +191,9 @@ def test_calculate_net_radiation(
     np.testing.assert_allclose(result, expected, rtol=1e-5)
 
 
-def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_components):
+def test_calculate_aerodynamic_resistance(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test calculate aerodynamic resistance."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -166,9 +201,10 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
 
     lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
 
     result = calculate_aerodynamic_resistance(
-        wind_heights=dummy_climate_data["layer_heights"][lyr_str.index_filled_canopy],
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
         roughness_length=np.repeat(0.3, 4),
         zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
         friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
@@ -176,9 +212,9 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
     exp_ra = np.array(
         [
-            [142.134882, 122.08445, 98.78846, 71.045725],
-            [129.620527, 101.934823, 71.04573, np.nan],
-            [108.227096, 0.001, np.nan, np.nan],
+            [1636.388306, 1281.796711, 966.156818, 499.702011],
+            [1360.919965, 893.600893, np.nan, np.nan],
+            [948.761442, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
