@@ -76,6 +76,7 @@ class HydrologyModel(
         "baseflow",
         "bypass_flow",
         "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_canopy",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -96,6 +97,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_canopy",
     ),
     vars_populated_by_first_update=(
         "precipitation_surface",  # precipitation-interception loss
@@ -210,7 +212,8 @@ class HydrologyModel(
 
         For the within grid cell hydrology, soil moisture is initialised homogenously
         for all soil layers and groundwater storage is set to the percentage of it's
-        capacity that was defined in the model configuration.
+        capacity that was defined in the model configuration. Soil and canopy
+        aerodynamic resistances are set to an initial constant value.
 
         For the hydrology across the grid, this function initialises the accumulated
         surface runoff variable and the subsurface accumulated flow variable. Both
@@ -295,16 +298,21 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Set initial aerodynamic resistance for surface, [s m-1]
-        self.data["aerodynamic_resistance_surface"] = DataArray(
-            np.full_like(
-                self.data["elevation"],
+        # Set initial aerodynamic resistance for surface and canopy , [s m-1]
+        for key, index, value in [
+            (
+                "aerodynamic_resistance_surface",
+                self.layer_structure.index_surface_scalar,
                 self.model_constants.initial_aerodynamic_resistance_surface,
             ),
-            dims="cell_id",
-            name=var,
-            coords={"cell_id": self.grid.cell_id},
-        )
+            (
+                "aerodynamic_resistance_canopy",
+                self.layer_structure.index_filled_canopy,
+                self.model_constants.initial_aerodynamic_resistance_canopy,
+            ),
+        ]:
+            self.data[key] = self.layer_structure.from_template()
+            self.data[key][index] = value
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""

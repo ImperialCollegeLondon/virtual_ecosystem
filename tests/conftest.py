@@ -511,6 +511,9 @@ def dummy_climate_data(fixture_core_components):
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
 
+    data["aerodynamic_resistance_canopy"] = from_template()
+    data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
+
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
 
@@ -530,6 +533,11 @@ def dummy_climate_data(fixture_core_components):
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
         [90.0, 90.341644, 92.488034, 96.157312, 100]
+    )[:, None]
+
+    data["vapour_pressure_deficit"] = from_template()
+    data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
+        [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
@@ -604,6 +612,9 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     """
 
     index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
+    index_filled_atmosphere = (
+        fixture_core_components.layer_structure.index_filled_atmosphere
+    )
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -646,6 +657,19 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
     dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
+    dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
+        [12.5, 12.5, 12.5, 12.5],
+        [12.5, 12.5, np.nan, np.nan],
+        [12.5, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
+        [0.14, 0.14, 0.14, 0.14],
+        [0.2, 0.2, 0.2, 0.2],
+        [0.2, 0.2, np.nan, np.nan],
+        [0.2, np.nan, np.nan, np.nan],
+        [0.14, 0.14, 0.14, 0.14],
+    ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, np.nan, np.nan],

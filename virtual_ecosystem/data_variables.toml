@@ -338,7 +338,21 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Aerodynamic resistance surface"
 name = "aerodynamic_resistance_surface"
-unit = "kg m2 s-3"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Aerodynamic resistance canopy"
+name = "aerodynamic_resistance_canopy"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Canopy evaporation"
+name = "canopy_evaporation"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]

@@ -251,6 +251,7 @@ def test_setup(
     fixture_config["core"]["timing"]["update_interval"] = update_interval
     core_components = CoreComponents(fixture_config)
     lyr_strct = core_components.layer_structure
+    soil_indices = lyr_strct.index_all_soil
 
     with (
         patch_run_update(HydrologyModel),
@@ -265,18 +266,18 @@ def test_setup(
                 config=fixture_config,
             )
 
-            # Test soil moisture
+            # Probe initialised variables
+            expected_values = {
+                "soil_moisture": (soil_indices, np.array([[250], [250]])),
+                "aerodynamic_resistance_canopy": (lyr_strct.index_filled_canopy, 12.5),
+            }
 
-            exp_soilm_setup = lyr_strct.from_template()
-            soil_indices = lyr_strct.index_all_soil
-            exp_soilm_setup[soil_indices] = np.array([[250], [250]])
-
-            np.testing.assert_allclose(
-                model.data["soil_moisture"],
-                exp_soilm_setup,
-                rtol=1e-3,
-                atol=1e-3,
-            )
+            for var_name, (indices, values) in expected_values.items():
+                exp_var = lyr_strct.from_template()
+                exp_var[indices] = values
+                np.testing.assert_allclose(
+                    model.data[var_name], exp_var, rtol=1e-3, atol=1e-3
+                )
 
             # Test groundwater storage
             exp_groundwater = DataArray(
