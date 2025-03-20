@@ -128,8 +128,8 @@ def test_calculate_sensible_heat_flux(
     index = fixture_core_components.layer_structure.index_filled_canopy
     # Compute flux
     computed_flux = calculate_sensible_heat_flux(
-        density_air=data["molar_density_air"][index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        density_air=data["molar_density_air"][index].to_numpy() * (28.96 / 1000.0),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy() * (28.96 / 1000),
         air_temperature=data["air_temperature"][index].to_numpy(),
         surface_temperature=data["canopy_temperature"][index].to_numpy(),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
@@ -138,9 +138,9 @@ def test_calculate_sensible_heat_flux(
     # Expected result (manually calculated)
     expected_flux = np.array(
         [
-            [-427.134759, -427.134759, -427.134759, -427.134759],
-            [-341.282347, -341.282347, np.nan, np.nan],
-            [-194.516665, np.nan, np.nan, np.nan],
+            [-0.35823, -0.35823, -0.35823, -0.35823],
+            [-0.286227, -0.286227, np.nan, np.nan],
+            [-0.163138, np.nan, np.nan, np.nan],
         ]
     )
 
