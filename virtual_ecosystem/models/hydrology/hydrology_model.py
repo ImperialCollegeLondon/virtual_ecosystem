@@ -43,6 +43,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import (
     above_ground,
@@ -255,22 +256,13 @@ class HydrologyModel(
         self.initial_soil_moisture = initial_soil_moisture
         self.initial_groundwater_saturation = initial_groundwater_saturation
         self.model_constants = model_constants
+        self.abiotic_constants = AbioticConsts()
         self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
             grid=self.data.grid,
             elevation=np.array(self.data["elevation"]),
         )
-
-        # TODO these two variables should probably be initialised elsewhere
-        self.data["stomatal_conductance"] = self.layer_structure.from_template()
-        self.data["stomatal_conductance"][self.layer_structure.index_filled_canopy] = (
-            1000.0
-        )
-        self.data["latent_heat_vapourisation"] = self.layer_structure.from_template()
-        self.data["latent_heat_vapourisation"][
-            self.layer_structure.index_filled_atmosphere
-        ] = 2254.0
 
         # Calculate layer thickness for soil moisture unit conversion and set structures
         # and tile across grid cells
@@ -316,15 +308,12 @@ class HydrologyModel(
             )
 
         # Set initial aerodynamic resistance for surface and canopy , [s m-1]
-        self.data["aerodynamic_resistance_surface"] = DataArray(
-            np.full_like(
-                self.data["elevation"],
-                self.model_constants.initial_aerodynamic_resistance_surface,
-            ),
-            dims="cell_id",
-            name=var,
-            coords={"cell_id": self.grid.cell_id},
+        self.data["aerodynamic_resistance_surface"] = (
+            self.layer_structure.from_template()
         )
+        self.data["aerodynamic_resistance_surface"][
+            self.layer_structure.index_surface_scalar
+        ] = self.model_constants.initial_aerodynamic_resistance_surface
 
         self.data["aerodynamic_resistance_canopy"] = (
             self.layer_structure.from_template()
@@ -332,10 +321,36 @@ class HydrologyModel(
         self.data["aerodynamic_resistance_canopy"][
             self.layer_structure.index_filled_canopy
         ] = self.model_constants.initial_aerodynamic_resistance_canopy
+
+        specific_heat_air = abiotic_tools.calculate_specific_heat_air(
+            temperature=self.data["air_temperature"][
+                self.layer_structure.index_filled_atmosphere
+            ].to_numpy(),
+            molar_heat_capacity_air=self.core_constants.molar_heat_capacity_air,
+            specific_heat_equ_factors=self.abiotic_constants.specific_heat_equ_factors,
+        )
         self.data["specific_heat_air"] = self.layer_structure.from_template()
         self.data["specific_heat_air"][self.layer_structure.index_filled_atmosphere] = (
-            1.0
+            specific_heat_air
         )
+
+        # TODO these two variables should probably be initialised elsewhere
+        self.data["stomatal_conductance"] = self.layer_structure.from_template()
+        self.data["stomatal_conductance"][self.layer_structure.index_filled_canopy] = (
+            1000.0
+        )
+
+        latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
+            temperature=self.data["air_temperature"][
+                self.layer_structure.index_filled_atmosphere
+            ].to_numpy(),
+            celsius_to_kelvin=self.core_constants.zero_Celsius,
+            latent_heat_vap_equ_factors=self.abiotic_constants.latent_heat_vap_equ_factors,
+        )
+        self.data["latent_heat_vapourisation"] = self.layer_structure.from_template()
+        self.data["latent_heat_vapourisation"][
+            self.layer_structure.index_filled_atmosphere
+        ] = latent_heat_vapourisation
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
@@ -448,7 +463,6 @@ class HydrologyModel(
         seed: None | int = kwargs.pop("seed", None)
 
         # Select variables at relevant heights for current time step
-        abiotic_constants = AbioticConsts()
         hydro_input = hydrology_tools.setup_hydrology_input_current_timestep(
             data=self.data,
             time_index=time_index,
@@ -459,7 +473,7 @@ class HydrologyModel(
             soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
-            abiotic_constants=abiotic_constants,
+            abiotic_constants=self.abiotic_constants,
         )
 
         # Create lists for output variables to store daily data
@@ -476,13 +490,11 @@ class HydrologyModel(
 
             # Calculate psychrometric constant
             psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
-                atmospheric_pressure=hydro_input["atmospheric_pressure_canopy"],
-                latent_heat_vapourization=hydro_input["latent_heat_vapourisation"][
-                    self.layer_structure.index_filled_canopy
-                ],
-                specific_heat_air=hydro_input["specific_heat_air"][
-                    self.layer_structure.index_filled_canopy
-                ],
+                atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy(),
+                latent_heat_vapourization=self.data[
+                    "latent_heat_vapourisation"
+                ].to_numpy(),
+                specific_heat_air=self.data["specific_heat_air"].to_numpy(),
                 molecular_weight_ratio_water_to_dry_air=(
                     self.core_constants.molecular_weight_ratio_water_to_dry_air
                 ),
@@ -491,29 +503,30 @@ class HydrologyModel(
             # Calculate canopy evaporation and leaf drainage
             # TODO net radiation is part of energy balance, check which inputs are
             # required, in which order this is calculated, discuss also with plant model
-            net_radiation_canopy = np.full_like(
-                hydro_input["air_temperature_canopy"], 20.0
-            )
+            net_radiation_canopy = self.layer_structure.from_template()
+            net_radiation_canopy[self.layer_structure.index_filled_canopy] = 20.0
             density_air_kg = hydro_input["molar_density_air"] * (
                 self.core_constants.molecular_weight_air / 1000.0
             )
 
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
-                leaf_area_index=hydro_input["leaf_area_index"],
+                leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
-                net_radiation=net_radiation_canopy,
-                vapour_pressure_deficit=hydro_input["vapour_pressure_deficit_canopy"],
-                air_temperature=hydro_input["air_temperature_canopy"],
-                density_air_kg=density_air_kg[self.layer_structure.index_filled_canopy],
-                specific_heat_air=hydro_input["specific_heat_air_canopy"],
-                aerodynamic_resistance=hydro_input["aerodynamic_resistance_canopy"],
-                stomatal_resistance=1 / hydro_input["stomatal_conductance"],
-                latent_heat_vapourisation=hydro_input[
-                    "latent_heat_vapourisation_canopy"
-                ],
+                net_radiation=net_radiation_canopy.to_numpy(),
+                vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
+                air_temperature=self.data["air_temperature"].to_numpy(),
+                density_air_kg=density_air_kg,
+                specific_heat_air=self.data["specific_heat_air"].to_numpy(),
+                aerodynamic_resistance=self.data[
+                    "aerodynamic_resistance_canopy"
+                ].to_numpy(),
+                stomatal_resistance=1.0 / self.data["stomatal_conductance"].to_numpy(),
+                latent_heat_vapourisation=self.data[
+                    "latent_heat_vapourisation"
+                ].to_numpy(),
                 psychrometric_constant=psychrometric_constant,
                 saturated_pressure_slope_parameters=(
-                    abiotic_constants.saturated_pressure_slope_parameters
+                    self.abiotic_constants.saturated_pressure_slope_parameters
                 ),
                 time_interval=86400.0,  # TODO
                 intercept_residence_time=self.model_constants.intercept_residence_time,
@@ -567,10 +580,6 @@ class HydrologyModel(
             top_soil_moisture_vol = (
                 soil_moisture_infiltrated / self.soil_layer_thickness_mm[0]
             )
-            latent_heat_vapourisation = (
-                hydro_input["latent_heat_vapourisation"][self.surface_layer_index]
-                / 1000.0
-            )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
                 temperature=hydro_input["surface_temperature"],
@@ -583,7 +592,12 @@ class HydrologyModel(
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
                 density_air=density_air_kg[self.surface_layer_index],
-                latent_heat_vapourisation=latent_heat_vapourisation,
+                latent_heat_vapourisation=(
+                    self.data["latent_heat_vapourisation"][
+                        self.surface_layer_index
+                    ].to_numpy()
+                    / 1000.0
+                ),
                 gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour,
                 drag_coefficient_evaporation=(
                     self.model_constants.drag_coefficient_evaporation
@@ -766,7 +780,8 @@ class HydrologyModel(
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
         soil_hydrology["canopy_evaporation"][
             self.layer_structure.index_filled_canopy
-        ] = np.sum(np.stack(daily_lists["canopy_evaporation"], axis=0), axis=0)
+            # ] = np.sum(np.array(daily_lists["canopy_evaporation"]), axis=0)
+        ] = np.array(daily_lists["canopy_evaporation"]).sum(axis=(0, 1))
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
