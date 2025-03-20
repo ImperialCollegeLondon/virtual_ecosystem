@@ -329,14 +329,13 @@ def calculate_aerodynamic_resistance(
         aerodynamic resistance in canopy, [s m-1]
     """
 
-    valid_condition = wind_heights > zero_plane_displacement
-
     # Compute only where valid
+    valid_condition = wind_heights > zero_plane_displacement
     aero_resistance = np.where(
         valid_condition,
         (np.log((wind_heights - zero_plane_displacement) / roughness_length)) ** 2
         / (von_karman_constant**2 * friction_velocity),
-        np.nan,  # Or another fill value
+        np.nan,
     )
 
     # Replace invalid values with a small fallback resistance

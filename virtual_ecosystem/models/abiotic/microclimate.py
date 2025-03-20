@@ -138,14 +138,14 @@ def run_microclimate(
     # layer with causes very cold temperatures, needs to be checked when fixing
     # temperature update function. Could have to do with low wind speeds.
     aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
-        wind_heights=wind_heights,
+        wind_heights=wind_heights[1:-1],
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
         friction_velocity=friction_velocity,
         von_karman_constant=core_constants.von_karmans_constant,
     )
     aerodynamic_resistance_canopy_out = layer_structure.from_template()
-    aerodynamic_resistance_canopy_out[layer_structure.index_filled_atmosphere] = (
+    aerodynamic_resistance_canopy_out[layer_structure.index_filled_canopy] = (
         aerodynamic_resistance_canopy
     )
     output["aerodynamic_resistance_canopy"] = aerodynamic_resistance_canopy_out
