@@ -135,7 +135,7 @@ def run_microclimate(
 
     # Aerodynamic resistance canopy, [s m-1]
     #  TODO The current implementation returns quite high values at the top canopy
-    # layer with causes very cold temperatures, needs to be checked when fixing
+    # layer needs to be checked when fixing
     # temperature update function. Could have to do with low wind speeds.
     aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
         wind_heights=wind_heights[1:-1],
