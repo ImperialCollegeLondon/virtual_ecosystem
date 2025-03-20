@@ -76,7 +76,6 @@ class HydrologyModel(
         "baseflow",
         "bypass_flow",
         "aerodynamic_resistance_surface",
-        "aerodynamic_resistance_canopy",
     ),
     vars_required_for_update=(
         "air_temperature",
@@ -338,7 +337,7 @@ class HydrologyModel(
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
-        * aerodynamic_resistance_surface, [kg m-2 s-3]
+        * aerodynamic_resistance_surface, [s m-2]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the

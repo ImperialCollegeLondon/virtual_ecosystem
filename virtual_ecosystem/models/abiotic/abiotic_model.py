@@ -54,6 +54,7 @@ class AbioticModel(
         "molar_density_air",
         "specific_heat_air",
         "latent_heat_vapourisation",
+        "aerodynamic_resistance_canopy",
     ),
     vars_required_for_update=(
         "air_temperature_ref",

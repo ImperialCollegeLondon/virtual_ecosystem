@@ -119,12 +119,36 @@ def run_microclimate(
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
     )
 
-    #   TODO Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = 10.0
-    #  The current implementation of logarithmic wind profile breaks down when the
-    #  canopy layer height falls below the zero displacement height. A more sophistcated
-    #  implementation is needed, e.g. Monin-Obukov theory, or a constant value across
-    #  the canopy. For now empirical value for homogenous canopy.
+    #   Friction velocity, [m s-1]
+    friction_velocity = wind.calculate_friction_velocity(
+        reference_wind_speed=data["wind_speed_ref"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        reference_height=(
+            data["layer_heights"][0].to_numpy()
+            + abiotic_constants.wind_reference_height
+        ),
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
+
+    # Aerodynamic resistance canopy, [s m-1]
+    #  TODO The current implementation returns quite high values at the top canopy
+    # layer with causes very cold temperatures, needs to be checked when fixing
+    # temperature update function. Could have to do with low wind speeds.
+    aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
+        wind_heights=wind_heights,
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+        friction_velocity=friction_velocity,
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
+    aerodynamic_resistance_canopy_out = layer_structure.from_template()
+    aerodynamic_resistance_canopy_out[layer_structure.index_filled_atmosphere] = (
+        aerodynamic_resistance_canopy
+    )
+    output["aerodynamic_resistance_canopy"] = aerodynamic_resistance_canopy_out
 
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
@@ -203,7 +227,7 @@ def run_microclimate(
             specific_heat_air=specific_heat_air_kg,
             air_temperature=air_temperature_canopy,
             surface_temperature=canopy_temperature,
-            aerodynamic_resistance=aerodynamic_resistance_canopy,
+            aerodynamic_resistance=aerodynamic_resistance_canopy[1:-1],
         )
 
         #  Sensible heat flux from topsoil, [W m-2]
@@ -299,7 +323,7 @@ def run_microclimate(
                 emissivity_leaf=abiotic_constants.leaf_emissivity,
                 specific_heat_air=specific_heat_air_kg,
                 density_air=density_air_kg,
-                aerodynamic_resistance=aerodynamic_resistance_canopy,
+                aerodynamic_resistance=aerodynamic_resistance_canopy[1:-1],
                 relaxation_factor=0.1,
                 stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             )
