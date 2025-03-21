@@ -61,6 +61,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
             """,
             [
                 (
@@ -90,6 +92,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
             name = "fungi"
@@ -108,6 +112,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -126,6 +132,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
             """,
             [
                 (
@@ -154,6 +162,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -172,6 +182,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
             """,
             [
                 (

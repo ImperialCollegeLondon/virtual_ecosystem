@@ -105,6 +105,23 @@ class MicrobialGroupConstants:
     c_p_ratio: float
     """Ratio of carbon to phosphorus in biomass [unitless]."""
 
+    enzyme_production: dict[str, float]
+    """Details of the enzymes produced by the microbial groups.
+    
+    The keys are the substrates for which enzymes are produced, and the values are the
+    allocation to enzyme production. This allocation is expressed as a fraction of the
+    (gross) cellular biomass growth.
+    """
+
+    def enzyme_substrates(self) -> list[str]:
+        """Substrates that the microbial group produces enzymes for."""
+
+        return [
+            substrate
+            for substrate, production in self.enzyme_production.items()
+            if production > 0.0
+        ]
+
 
 def make_full_set_of_microbial_groups(
     config: Config,

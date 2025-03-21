@@ -232,3 +232,62 @@ def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components
     )
 
     return {"bacteria": bacterial_biomass_loss, "fungi": fungal_biomass_loss}
+
+
+@pytest.fixture
+def growth_rates(
+    environmental_factors,
+    functional_groups,
+    soil_pool_data,
+    dummy_carbon_data,
+    fixture_core_components,
+):
+    """Fixture to store growth rates of all the microbial groups."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_uptake_rates
+
+    bacterial_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        constants=SoilConsts,
+        functional_group=functional_groups["bacteria"],
+    )
+    fungal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_fungi,
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        constants=SoilConsts,
+        functional_group=functional_groups["fungi"],
+    )
+
+    return {"bacteria": bacterial_growth, "fungi": fungal_growth}
+
+
+@pytest.fixture
+def enzyme_production(functional_groups, growth_rates):
+    """Fixture to store the total production rates for each enzyme class."""
+    from virtual_ecosystem.models.soil.pools import calculate_enzyme_production
+
+    return calculate_enzyme_production(
+        microbial_groups=functional_groups,
+        growth_rates=growth_rates,
+    )

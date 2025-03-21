@@ -283,9 +283,7 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
     assert np.allclose(actual_leaching.labile_P, expected_labile_P)
 
 
-def test_calculate_enzyme_changes(
-    dummy_carbon_data, soil_pool_data, biomass_losses, enzyme_classes
-):
+def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):
     """Check that the determination of enzyme pool changes works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_changes
@@ -301,8 +299,7 @@ def test_calculate_enzyme_changes(
 
     actual_enzyme_changes = calculate_enzyme_changes(
         pools=soil_pool_data,
-        biomass_losses=biomass_losses,
-        constants=SoilConsts,
+        enzyme_production=enzyme_production,
         enzyme_classes=enzyme_classes,
     )
 
@@ -316,7 +313,9 @@ def test_calculate_enzyme_changes(
             )
 
 
-def test_calculate_net_enzyme_change(dummy_carbon_data, biomass_losses, enzyme_classes):
+def test_calculate_net_enzyme_change(
+    dummy_carbon_data, enzyme_production, enzyme_classes
+):
     """Check that the determination of net enzyme pool change works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_net_enzyme_change
@@ -326,13 +325,33 @@ def test_calculate_net_enzyme_change(dummy_carbon_data, biomass_losses, enzyme_c
 
     actual_net_change, actual_denat = calculate_net_enzyme_change(
         enzyme_pool_size=dummy_carbon_data["soil_enzyme_pom_bacteria"],
-        biomass_loss=biomass_losses["bacteria"],
-        biomass_loss_to_enzyme_class=SoilConsts.maintenance_bacteria_pom_enzyme,
+        enzyme_production=enzyme_production["bacteria_pom"],
         enzyme_turnover_rate=enzyme_classes["bacteria_pom"].turnover_rate,
     )
 
     assert np.allclose(actual_net_change, expected_net_change)
     assert np.allclose(actual_denat, expected_denat)
+
+
+def test_calculate_enzyme_production(functional_groups, growth_rates):
+    """Test that the calculation of total enzyme production works as expected."""
+    from virtual_ecosystem.models.soil.pools import calculate_enzyme_production
+
+    expected_production = {
+        "bacteria_maom": [3.48412887e-7, 1.889194925e-6, 8.0744933e-6, 1.38567254e-7],
+        "bacteria_pom": [3.48412887e-7, 1.889194925e-6, 8.0744933e-6, 1.38567254e-7],
+        "fungi_maom": [1.33658392e-7, 1.755719195e-5, 3.49330124e-6, 6.29095335e-7],
+        "fungi_pom": [1.33658392e-7, 1.755719195e-5, 3.49330124e-6, 6.29095335e-7],
+    }
+
+    actual_production = calculate_enzyme_production(
+        microbial_groups=functional_groups, growth_rates=growth_rates
+    )
+
+    assert expected_production.keys() == actual_production.keys()
+
+    for enzyme in actual_production.keys():
+        assert np.allclose(actual_production[enzyme], expected_production[enzyme])
 
 
 def test_calculate_maintenance_biomass_synthesis(
@@ -676,7 +695,9 @@ def test_calculate_soil_nutrient_mineralisation(
     assert np.allclose(actual_rate, expected_rate)
 
 
-def test_calculate_nutrient_flows_to_necromass(functional_groups):
+def test_calculate_nutrient_flows_to_necromass(
+    functional_groups, enzyme_changes, enzyme_classes
+):
     """Test that the function to calculate nutrient flows to necromass works."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_nutrient_flows_to_necromass,
@@ -687,13 +708,6 @@ def test_calculate_nutrient_flows_to_necromass(functional_groups):
     )
     true_fungal_loss = np.array([0.008185263, 0.083731966, 0.023023140, 0.032136038])
 
-    bacterial_enzyme_denaturation = np.array(
-        [0.001398696, 0.000510624, 0.001803384, 0.00018168]
-    )
-    fungal_enzyme_denaturation = np.array(
-        [0.000833736, 0.000301824, 0.000246408, 0.000157752]
-    )
-
     expected_n_flow_to_necromass = [0.011914627, 0.017358086, 0.026565221, 0.006364449]
     expected_p_flow_to_necromass = [0.003646779, 0.003540533, 0.008051958, 0.001261101]
 
@@ -701,9 +715,9 @@ def test_calculate_nutrient_flows_to_necromass(functional_groups):
         calculate_nutrient_flows_to_necromass(
             bacterial_loss=true_bacterial_loss,
             fungal_loss=true_fungal_loss,
-            bacterial_enzyme_denaturation=bacterial_enzyme_denaturation,
-            fungal_enzyme_denaturation=fungal_enzyme_denaturation,
+            enzyme_changes=enzyme_changes,
             microbial_groups=functional_groups,
+            enzyme_classes=enzyme_classes,
         )
     )
 

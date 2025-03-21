@@ -121,6 +121,22 @@
                      },
                      "c_p_ratio": {
                         "type": "number"
+                     },
+                     "enzyme_production": {
+                        "description": "Allocation to production of each enzyme type",
+                        "type": "object",
+                        "properties": {
+                           "pom": {
+                              "type": "number"
+                           },
+                           "maom": {
+                              "type": "number"
+                           }
+                        },
+                        "required": [
+                           "pom",
+                           "maom"
+                        ]
                      }
                   },
                   "required": [
@@ -139,7 +155,8 @@
                      "activation_energy_turnover",
                      "reference_temperature",
                      "c_n_ratio",
-                     "c_p_ratio"
+                     "c_p_ratio",
+                     "enzyme_production"
                   ]
                }
             },
