@@ -8,7 +8,6 @@ from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import above_ground
 
 
@@ -22,7 +21,6 @@ def setup_hydrology_input_current_timestep(
     soil_moisture_capacity: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
     core_constants: CoreConsts,
-    abiotic_constants: AbioticConsts,
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
@@ -37,7 +35,7 @@ def setup_hydrology_input_current_timestep(
 
     * latent_heat_vapourisation
     * molar_density_air
-    * specific_heat_air
+    * specific_heat_air_kg
 
     * surface_temperature (TODO switch to subcanopy_temperature)
     * surface_humidity (TODO switch to subcanopy_humidity)
@@ -69,7 +67,6 @@ def setup_hydrology_input_current_timestep(
         soil_moisture_capacity: Soil moisture capacity, unitless
         soil_moisture_residual: Soil moisture residual, unitless
         core_constants: Set of core constants share across all models
-        abiotic_constants: Set of constants from abiotic model
 
     Returns:
         dictionary with all variables that are required to run one hydrology update()
@@ -90,6 +87,11 @@ def setup_hydrology_input_current_timestep(
             celsius_to_kelvin=core_constants.zero_Celsius,
         )
         output["molar_density_air"] = molar_density_air
+
+    specific_heat_air_kg = data["specific_heat_air"].to_numpy() / (
+        core_constants.molecular_weight_air / 1000.0
+    )
+    output["specific_heat_air_kg"] = specific_heat_air_kg
 
     # Get atmospheric variables
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
@@ -180,9 +182,9 @@ def calculate_psychrometric_constant(
     NOTE this might be replaced with pyrealm implementation
 
     Args:
-        atmospheric_pressure: Atmospheric pressure, KPa.
-        latent_heat_vapourization: Latent heat of vaporization in J kg-1
-        specific_heat_air: Specific heat of air at constant pressure in J kg-1 K-1
+        atmospheric_pressure: Atmospheric pressure, [KPa].
+        latent_heat_vapourization: Latent heat of vaporization, [kJ kg-1]
+        specific_heat_air: Specific heat of air at constant pressure, [kJ kg-1 K-1]
         molecular_weight_ratio_water_to_dry_air: Ratio of molecular weights of water to
             dry air
 

@@ -5,7 +5,6 @@ import pytest
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 def test_setup_hydrology_input_current_timestep(
@@ -28,12 +27,12 @@ def test_setup_hydrology_input_current_timestep(
         soil_moisture_capacity=0.9,
         soil_moisture_residual=0.1,
         core_constants=CoreConsts(),
-        abiotic_constants=AbioticConsts(),
     )
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
         "molar_density_air",
+        "specific_heat_air_kg",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",
@@ -112,12 +111,12 @@ def test_calculate_psychrometric_constant():
     )
 
     atmospheric_pressure = np.array([101.3], dtype=np.float32)  # in kPa
-    latent_heat_vapourization = np.array([2.45e6], dtype=np.float32)  # in J/kg
-    specific_heat_air = np.array([1005], dtype=np.float32)  # in J/kg·K
+    latent_heat_vapourization = np.array([2268.0], dtype=np.float32)  # in kJ/kg
+    specific_heat_air = np.array([1.005], dtype=np.float32)  # in kJ/kg·K
     molecular_weight_ratio_water_to_dry_air = 0.622  # dimensionless
 
     # Expected result calculated manually or using a known value
-    expected_output = np.array([0.066807])
+    expected_output = np.array([0.072168])
 
     # Call the function
     output = calculate_psychrometric_constant(

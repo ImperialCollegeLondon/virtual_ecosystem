@@ -21,13 +21,13 @@ def test_potential_evaporation_leaf():
     # Expected shape should match input (2x2)
     result = potential_evaporation_leaf(
         net_radiation=np.array([[100.0, 120.0], [110.0, 130.0]]),
-        vapour_pressure_deficit=np.array([[800.0, 850.0], [820.0, 870.0]]),
+        vapour_pressure_deficit=np.array([[0.8, 0.850], [0.82, 0.87]]),
         air_temperature=np.array([[25.0, 26.0], [24.5, 27.0]]),
         density_air_kg=np.array([[1.2, 1.2], [1.2, 1.2]]),
-        specific_heat_air=np.array([[1005.0, 1005.0], [1005.0, 1005.0]]),
+        specific_heat_air=np.array([[1.005, 1.005], [1.005, 1.005]]),
         aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, 58.0]]),
         stomatal_resistance=np.array([[200.0, 220.0], [210.0, 230.0]]),
-        latent_heat_vapourisation=np.array([[2.45e6, 2.45e6], [2.45e6, 2.45e6]]),
+        latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, 2268.0]]),
         psychrometric_constant=np.array([[66.0, 66.0], [66.0, 66.0]]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
     )
@@ -35,7 +35,7 @@ def test_potential_evaporation_leaf():
     assert result.shape == (2, 2)
     assert np.all(result >= 0)
     assert np.all(np.isfinite(result))
-    exp_evap = np.array([[2.387024e-05, 2.305874e-05], [2.334741e-05, 2.253733e-05]])
+    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.682281e-05, 3.658325e-05]])
     np.testing.assert_allclose(result, exp_evap, rtol=1e-3)
 
 
@@ -55,10 +55,10 @@ def test_calculate_canopy_evaporation():
         vapour_pressure_deficit=np.array([[1.0, 2.0], [1.0, 2.0]]),
         air_temperature=np.array([[21.0, 22.0], [18.0, 20.0]]),
         density_air_kg=np.array([1.2, 1.2]),
-        specific_heat_air=np.array([1005.0, 1005.0]),
+        specific_heat_air=np.array([1.005, 1.005]),
         aerodynamic_resistance=np.array([50.0, 60.0]),
         stomatal_resistance=np.array([150.0, 160.0]),
-        latent_heat_vapourisation=np.array([2.45e6, 2.45e6]),
+        latent_heat_vapourisation=np.array([2268.0, 2268.0]),
         psychrometric_constant=np.array([0.066, 0.067]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
         time_interval=3600.0,  # 1 hour in seconds
@@ -80,11 +80,11 @@ def test_calculate_canopy_evaporation():
     [
         (
             1.225,
-            2.45,
+            2268.0,
         ),
         (
             np.array([1.225, 1.225, 1.225]),
-            np.array([2.45, 2.45, 2.45]),
+            np.array([2268.0, 2268.0, 2268.0]),
         ),
     ],
 )
@@ -98,23 +98,23 @@ def test_calculate_soil_evaporation(dens_air, latvap):
     result = calculate_soil_evaporation(
         temperature=np.array([20.0, 20.0, 30.0]),
         wind_speed_surface=np.array([1.0, 0.5, 0.1]),
-        relative_humidity=np.array([80, 80, 90]),
-        atmospheric_pressure=np.array([90, 90, 90]),
+        relative_humidity=np.array([80.0, 80.0, 90.0]),
+        atmospheric_pressure=np.array([101.0, 101.0, 101.0]),
         soil_moisture=np.array([0.01, 0.1, 0.5]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
-        leaf_area_index=np.array([3, 4, 5]),
+        leaf_area_index=np.array([3.0, 4.0, 5.0]),
         celsius_to_kelvin=273.15,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour,
+        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour / 1000.0,
         drag_coefficient_evaporation=HydroConsts.drag_coefficient_evaporation,
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
     )
 
-    exp_evap = np.array([1.863015, 0.462573, 3.37694])
+    exp_evap = np.array([2.174014e-09, 5.397918e-10, 3.592170e-03])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
     np.testing.assert_allclose(

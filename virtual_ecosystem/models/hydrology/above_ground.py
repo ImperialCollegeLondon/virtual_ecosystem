@@ -38,10 +38,10 @@ def potential_evaporation_leaf(
         vapour_pressure_deficit: Vapour pressure deficit, [kPa]
         air_temperature: Air temperature, [C]
         density_air_kg: Air density, [kg m-3]
-        specific_heat_air: Specific heat of air, [J kg-1 K-1]
+        specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
         aerodynamic_resistance: Aerodynamic resistance in canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
-        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         psychrometric_constant: Psychrometric constant, [kPa K-1]
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
@@ -124,16 +124,16 @@ def calculate_canopy_evaporation(
     as leaf drainage within one day.
 
     Args:
-        leaf_area_index: Leaf area index, [m2 m-2]
+        leaf_area_index: Leaf area index, [m m-1]
         interception: Interception of water in canopy, [mm]
         net_radiation: Net radiation in canopy, [W m-2]
         vapour_pressure_deficit: Vapour pressure deficit, [kPa]
         air_temperature: Air temperature in canopy, [C]
         density_air_kg: Density of air, [kg m-3]
-        specific_heat_air: Specific heat of air, [J kg-1 K-1]
+        specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
         aerodynamic_resistance: Aerodynamic resistance of air in the canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
-        latent_heat_vapourisation: Latent heat of vapourisation, [J kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         psychrometric_constant: Psychrometric constant, [kPa K-1]
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
@@ -238,9 +238,9 @@ def calculate_soil_evaporation(
         wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
         celsius_to_kelvin: Factor to convert temperature from Celsius to Kelvin
         density_air: Density if air, [kg m-3]
-        latent_heat_vapourisation: Latent heat of vapourisation, [MJ kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         leaf_area_index: Leaf area index [m m-1]
-        gas_constant_water_vapour: Gas constant for water vapour, [J kg-1 K-1]
+        gas_constant_water_vapour: Gas constant for water vapour, [kJ kg-1 K-1]
         drag_coefficient_evaporation: Drag coefficient for evaporation, dimensionless
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
@@ -435,7 +435,7 @@ def calculate_interception(
     :math:`k=0.046 * LAI`
 
     Args:
-        leaf_area_index: Leaf area index summed over all canopy layers, [m2 m-2]
+        leaf_area_index: Leaf area index summed over all canopy layers, [m m-1]
         precipitation: Precipitation, [mm]
         intercept_parameters: Parameters for equation estimating maximum canopy
             interception capacity.
@@ -527,7 +527,7 @@ def calculate_bypass_flow(
         top_soil_moisture: Soil moisture of top soil layer, [mm]
         sat_top_soil_moisture: Soil moisture of top soil layer at saturation, [mm]
         available_water: Amount of water available for infiltration, [mm]
-        bypass_flow_coefficient: Bypass flow coefficient
+        bypass_flow_coefficient: Bypass flow coefficient, dimensionless
 
     Returns:
         preferential bypass flow, [mm]

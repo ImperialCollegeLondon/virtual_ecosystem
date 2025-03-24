@@ -323,9 +323,7 @@ class HydrologyModel(
         ] = self.model_constants.initial_aerodynamic_resistance_canopy
 
         specific_heat_air = abiotic_tools.calculate_specific_heat_air(
-            temperature=self.data["air_temperature"][
-                self.layer_structure.index_filled_atmosphere
-            ].to_numpy(),
+            temperature=self.data["air_temperature_ref"].isel(time_index=0).to_numpy(),
             molar_heat_capacity_air=self.core_constants.molar_heat_capacity_air,
             specific_heat_equ_factors=self.abiotic_constants.specific_heat_equ_factors,
         )
@@ -341,9 +339,7 @@ class HydrologyModel(
         )
 
         latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-            temperature=self.data["air_temperature"][
-                self.layer_structure.index_filled_atmosphere
-            ].to_numpy(),
+            temperature=self.data["air_temperature_ref"].isel(time_index=0).to_numpy(),
             celsius_to_kelvin=self.core_constants.zero_Celsius,
             latent_heat_vap_equ_factors=self.abiotic_constants.latent_heat_vap_equ_factors,
         )
@@ -473,7 +469,6 @@ class HydrologyModel(
             soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
-            abiotic_constants=self.abiotic_constants,
         )
 
         # Create lists for output variables to store daily data
@@ -494,7 +489,7 @@ class HydrologyModel(
                 latent_heat_vapourization=self.data[
                     "latent_heat_vapourisation"
                 ].to_numpy(),
-                specific_heat_air=self.data["specific_heat_air"].to_numpy(),
+                specific_heat_air=hydro_input["specific_heat_air_kg"],
                 molecular_weight_ratio_water_to_dry_air=(
                     self.core_constants.molecular_weight_ratio_water_to_dry_air
                 ),
@@ -516,7 +511,7 @@ class HydrologyModel(
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=density_air_kg,
-                specific_heat_air=self.data["specific_heat_air"].to_numpy(),
+                specific_heat_air=hydro_input["specific_heat_air_kg"],
                 aerodynamic_resistance=self.data[
                     "aerodynamic_resistance_canopy"
                 ].to_numpy(),
@@ -592,13 +587,11 @@ class HydrologyModel(
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
                 density_air=density_air_kg[self.surface_layer_index],
-                latent_heat_vapourisation=(
-                    self.data["latent_heat_vapourisation"][
-                        self.surface_layer_index
-                    ].to_numpy()
-                    / 1000.0
-                ),
-                gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour,
+                latent_heat_vapourisation=self.data["latent_heat_vapourisation"][
+                    self.surface_layer_index
+                ].to_numpy(),
+                gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour
+                / 1000.0,
                 drag_coefficient_evaporation=(
                     self.model_constants.drag_coefficient_evaporation
                 ),
