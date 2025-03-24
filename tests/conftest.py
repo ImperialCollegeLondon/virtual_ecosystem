@@ -560,7 +560,7 @@ def dummy_climate_data(fixture_core_components):
     )[:, None]
 
     data["latent_heat_vapourisation"] = from_template()
-    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2254.0
+    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0

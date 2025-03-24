@@ -67,7 +67,7 @@ def calculate_soil_evaporation(
         wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
         celsius_to_kelvin: Factor to convert temperature from Celsius to Kelvin
         density_air: Density if air, [kg m-3]
-        latent_heat_vapourisation: Latent heat of vapourisation, [MJ kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         leaf_area_index: Leaf area index [m m-1]
         gas_constant_water_vapour: Gas constant for water vapour, [J kg-1 K-1]
         soil_surface_heat_transfer_coefficient: Heat transfer coefficient between soil
