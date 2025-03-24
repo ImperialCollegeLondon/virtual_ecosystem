@@ -3,6 +3,7 @@ the different microbial functional groups used in the soil model.
 """  # noqa: D205
 
 from dataclasses import dataclass
+from typing import Any
 
 from virtual_ecosystem.core.config import Config, ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
@@ -106,14 +107,44 @@ class MicrobialGroupConstants:
     """Ratio of carbon to phosphorus in biomass [unitless]."""
 
     enzyme_production: dict[str, float]
-    """Details of the enzymes produced by the microbial groups.
+    """Details of the enzymes produced by the microbial group.
     
     The keys are the substrates for which enzymes are produced, and the values are the
     allocation to enzyme production. This allocation is expressed as a fraction of the
     (gross) cellular biomass growth.
     """
 
-    def enzyme_substrates(self) -> list[str]:
+    synthesis_nutrient_ratios: dict[str, float]
+    """Average carbon to nutrient ratios for the total synthesised biomass.
+    
+    Microbes have to synthesis both cellular biomass and extracellular enzymes. We
+    assume that this occurs in fixed unvarying proportion. This attribute stores the
+    carbon nutrient (nitrogen, phosphorus) ratios for the total synthesised biomass.
+    """
+
+    @classmethod
+    def build_microbial_group(
+        cls, group_config: dict[str, Any], enzyme_classes: dict[str, EnzymeConstants]
+    ):
+        """Class method to build the microbial group including enzyme information.
+
+        Args:
+            group_config: The config details for microbial group in question.
+            enzyme_classes: Details of the enzyme classes used by the soil model.
+        """
+
+        return cls(
+            **group_config,
+            synthesis_nutrient_ratios=calculate_new_biomass_average_nutrient_ratios(
+                name=group_config["name"],
+                c_n_ratio=group_config["c_n_ratio"],
+                c_p_ratio=group_config["c_p_ratio"],
+                enzyme_production=group_config["enzyme_production"],
+                enzyme_classes=enzyme_classes,
+            ),
+        )
+
+    def find_enzyme_substrates(self) -> list[str]:
         """Substrates that the microbial group produces enzymes for."""
 
         return [
@@ -123,13 +154,64 @@ class MicrobialGroupConstants:
         ]
 
 
+def calculate_new_biomass_average_nutrient_ratios(
+    name: str,
+    c_n_ratio: float,
+    c_p_ratio: float,
+    enzyme_production: dict[str, float],
+    enzyme_classes: dict[str, EnzymeConstants],
+) -> dict[str, float]:
+    """Calculate average carbon nutrient ratios of the newly synthesised biomass.
+
+    Microbes have to synthesise cellular biomass as well as extracellular enzymes. This
+    method calculates average nutrient ratio of this total biomass synthesis by
+    calculating the average weighted by the relative production allocation to each
+    enzyme class and cellular growth.
+
+    Args:
+        name: Name of the microbial group.
+        c_n_ratio: Ratio of carbon to nitrogen for the microbial group's cellular
+            biomass.
+        c_p_ratio: Ratio of carbon to nitrogen for the microbial group's cellular
+            biomass.
+        enzyme_production: Details of the enzymes produced by the microbial group, i.e.
+            which substrates are enzymes produced for, and how much (relative to
+            cellular synthesis)
+        enzyme_classes: Details of the enzyme classes used by the soil model.
+    """
+
+    total_enzyme_allocation = sum(enzyme_production.values())
+
+    enzyme_c_n_weighted = sum(
+        enzyme_classes[f"{name}_{substrate}"].c_n_ratio
+        * allocation
+        / total_enzyme_allocation
+        for substrate, allocation in enzyme_production.items()
+    )
+
+    enzyme_c_p_weighted = sum(
+        enzyme_classes[f"{name}_{substrate}"].c_p_ratio
+        * allocation
+        / total_enzyme_allocation
+        for substrate, allocation in enzyme_production.items()
+    )
+
+    return {
+        "nitrogen": (c_n_ratio + enzyme_c_n_weighted * total_enzyme_allocation)
+        / (1.0 + total_enzyme_allocation),
+        "phosphorus": (c_p_ratio + enzyme_c_p_weighted * total_enzyme_allocation)
+        / (1.0 + total_enzyme_allocation),
+    }
+
+
 def make_full_set_of_microbial_groups(
-    config: Config,
+    config: Config, enzyme_classes: dict[str, EnzymeConstants]
 ) -> dict[str, MicrobialGroupConstants]:
     """Make the full set of functional groups used in the soil model.
 
     Args:
         config: The complete virtual ecosystem config.
+        enzyme_classes: Details of the enzyme classes used by the soil model.
 
     Raises:
         ConfigurationError: If the soil model configuration is missing, if expected
@@ -172,12 +254,13 @@ def make_full_set_of_microbial_groups(
         )
 
     return {
-        group_name: MicrobialGroupConstants(
-            **next(
+        group_name: MicrobialGroupConstants.build_microbial_group(
+            group_config=next(
                 functional_group
                 for functional_group in config["soil"]["microbial_group_definition"]
                 if functional_group["name"] == group_name
-            )
+            ),
+            enzyme_classes=enzyme_classes,
         )
         for group_name in expected_groups
     }

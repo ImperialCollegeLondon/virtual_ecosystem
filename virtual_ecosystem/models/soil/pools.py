@@ -1073,7 +1073,7 @@ def calculate_enzyme_production(
             growth_rates[group.name] * group.enzyme_production[substrate]
         )
         for group in microbial_groups.values()
-        for substrate in group.enzyme_substrates()
+        for substrate in group.find_enzyme_substrates()
     }
 
 
@@ -1174,6 +1174,8 @@ def calculate_nutrient_uptake_rates(
     remain the same if nutrients are taken up following the same stoichiometry (with an
     adjustment made for carbon use efficiency).
 
+    TODO - Explain the assumptions underlying the new enzyme production model
+
     The balance of mineralisation and immobilisation rates of inorganic nitrogen and
     phosphorus are also calculated in this function. This is done by calculating the
     difference between the demand for nitrogen and phosphorus and their uptake due to
@@ -1268,7 +1270,6 @@ def calculate_nutrient_uptake_rates(
         constants.cue_reference_temp,
         constants.cue_with_temperature,
     )
-    # TODO - a portion of this should be allocated to enzyme production
     carbon_gain_max = carbon_uptake_rate_max * carbon_use_efficiency
 
     # Find stoichiometry of the LMWC pool and use to find maximum possible uptake rates
@@ -1283,15 +1284,13 @@ def calculate_nutrient_uptake_rates(
     actual_carbon_gain = np.minimum.reduce(
         [
             carbon_gain_max,
-            # TODO - This isn't the right ratio, it should be the (weighted) average of
-            # the functional group and the enzyme classes
-            functional_group.c_n_ratio
+            functional_group.synthesis_nutrient_ratios["nitrogen"]
             * (
                 organic_nitrogen_uptake_rate_max
                 + ammonium_uptake_rate_max
                 + nitrate_uptake_rate_max
             ),
-            functional_group.c_p_ratio
+            functional_group.synthesis_nutrient_ratios["phosphorus"]
             * (
                 organic_phosphorus_uptake_rate_max
                 + inorganic_phosphorus_uptake_rate_max
@@ -1306,9 +1305,9 @@ def calculate_nutrient_uptake_rates(
 
     # Calculate uptake/release of inorganic nitrogen based on difference between
     # stoichiometric demand and organic nitrogen uptake
-    # TODO - Again this isn't the right ratio, it should be the (weighted) average of
-    # the functional group and the enzyme classes
-    nitrogen_demand = actual_carbon_gain / functional_group.c_n_ratio
+    nitrogen_demand = (
+        actual_carbon_gain / functional_group.synthesis_nutrient_ratios["nitrogen"]
+    )
     inorganic_nitrogen_change = nitrogen_demand - actual_organic_nitrogen_uptake
 
     # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
@@ -1331,9 +1330,9 @@ def calculate_nutrient_uptake_rates(
 
     # Calculate uptake/release of inorganic phosphorus based on difference between
     # stoichiometric demand and organic phosphorus uptake
-    # TODO - Again this isn't the right ratio, it should be the (weighted) average of
-    # the functional group and the enzyme classes
-    phosphorus_demand = actual_carbon_gain / functional_group.c_p_ratio
+    phosphorus_demand = (
+        actual_carbon_gain / functional_group.synthesis_nutrient_ratios["phosphorus"]
+    )
     inorganic_phosphorus_change = phosphorus_demand - actual_organic_phosphorus_uptake
 
     consumption_rates = NetNutrientConsumption(
@@ -1349,6 +1348,8 @@ def calculate_nutrient_uptake_rates(
     # respired instead of being uptaken. This isn't currently of interest, but will be
     # in future
 
+    # TODO - consumption_rates are all still fine, but actual_carbon_gain now represents
+    # cell growth and enzyme production. This needs to change
     return actual_carbon_gain, consumption_rates
 
 

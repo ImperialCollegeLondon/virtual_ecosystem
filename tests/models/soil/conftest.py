@@ -189,13 +189,15 @@ def maom_desorption(dummy_carbon_data):
 
 
 @pytest.fixture
-def functional_groups(fixture_config):
+def functional_groups(fixture_config, enzyme_classes):
     """Set of functional groups based on the soil model constants."""
     from virtual_ecosystem.models.soil.microbial_groups import (
         make_full_set_of_microbial_groups,
     )
 
-    return make_full_set_of_microbial_groups(config=fixture_config)
+    return make_full_set_of_microbial_groups(
+        config=fixture_config, enzyme_classes=enzyme_classes
+    )
 
 
 @pytest.fixture
@@ -206,6 +208,20 @@ def enzyme_classes(fixture_config):
     )
 
     return make_full_set_of_enzymes(config=fixture_config)
+
+
+@pytest.fixture
+def enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):
+    """Changes for each each enzyme class."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_enzyme_changes,
+    )
+
+    return calculate_enzyme_changes(
+        pools=soil_pool_data,
+        enzyme_production=enzyme_production,
+        enzyme_classes=enzyme_classes,
+    )
 
 
 @pytest.fixture
