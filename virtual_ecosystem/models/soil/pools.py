@@ -1174,7 +1174,12 @@ def calculate_nutrient_uptake_rates(
     remain the same if nutrients are taken up following the same stoichiometry (with an
     adjustment made for carbon use efficiency).
 
-    TODO - Explain the assumptions underlying the new enzyme production model
+    Biomass synthesis is split between the synthesis of new cellular biomass and the
+    production of extracellular enzymes. We assume that extracellular enzymes are always
+    produced in fixed proportion to the rate at which new biomass is synthesised. As
+    such, we calculate the nutrient costs of synthesising new biomass based on a
+    weighted (by relative investment in production) average of the stoichiometry of the
+    different enzymes and the microbial group itself.
 
     The balance of mineralisation and immobilisation rates of inorganic nitrogen and
     phosphorus are also calculated in this function. This is done by calculating the
@@ -1206,9 +1211,9 @@ def calculate_nutrient_uptake_rates(
             functional group
 
     Returns:
-        A tuple containing the rate at which microbial biomass increases due to nutrient
-        uptake, as well as a dataclass containing the rate at which carbon, nitrogen and
-        phosphorus get taken up.
+        A tuple containing the rate at which microbial (cellular) biomass increases due
+        to nutrient uptake, as well as a dataclass containing the rate at which carbon,
+        nitrogen and phosphorus get taken up.
     """
 
     # Calculate highest possible microbial uptake rates for organic matter and inorganic
@@ -1348,9 +1353,9 @@ def calculate_nutrient_uptake_rates(
     # respired instead of being uptaken. This isn't currently of interest, but will be
     # in future
 
-    # TODO - consumption_rates are all still fine, but actual_carbon_gain now represents
-    # cell growth and enzyme production. This needs to change
-    return actual_carbon_gain, consumption_rates
+    return actual_carbon_gain / (
+        1 + sum(functional_group.enzyme_production.values())
+    ), consumption_rates
 
 
 def calculate_highest_achievable_nutrient_uptake(
