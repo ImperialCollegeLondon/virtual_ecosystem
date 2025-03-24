@@ -8,6 +8,11 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
+from xarray import DataArray
+
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
+    calculate_saturation_vapour_pressure,
+)
 
 
 def calculate_molar_density_air(
@@ -45,7 +50,7 @@ def calculate_molar_density_air(
 def calculate_specific_heat_air(
     temperature: NDArray[np.float32],
     molar_heat_capacity_air: float,
-    specific_heat_equ_factors: list[float],
+    specific_heat_equ_factors: tuple[float, float],
 ) -> NDArray[np.float32]:
     """Calculate temperature-dependent specific heat of air.
 
@@ -59,17 +64,14 @@ def calculate_specific_heat_air(
     Returns:
         specific heat of air at constant pressure, [J mol-1 K-1]
     """
-    return (
-        specific_heat_equ_factors[0] * temperature**2
-        + specific_heat_equ_factors[1] * temperature
-        + molar_heat_capacity_air
-    )
+    factor_1, factor_2 = specific_heat_equ_factors
+    return factor_1 * temperature**2 + factor_2 * temperature + molar_heat_capacity_air
 
 
 def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,
-    latent_heat_vap_equ_factors: list[float],
+    latent_heat_vap_equ_factors: tuple[float, float],
 ) -> NDArray[np.float32]:
     """Calculate latent heat of vapourisation.
 
@@ -86,11 +88,8 @@ def calculate_latent_heat_vapourisation(
         latent heat of vapourisation, [kJ kg-1]
     """
     temperature_kelvin = temperature + celsius_to_kelvin
-    return (
-        latent_heat_vap_equ_factors[0]
-        * (temperature_kelvin / (temperature_kelvin - latent_heat_vap_equ_factors[1]))
-        ** 2
-    ) / 1000.0
+    a, b = latent_heat_vap_equ_factors
+    return (a * (temperature_kelvin / (temperature_kelvin - b)) ** 2) / 1000.0
 
 
 def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
@@ -122,3 +121,48 @@ def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
             new_row.append(np.nan)
 
     return np.array(new_row)
+
+
+def calculate_slope_of_saturated_pressure_curve(
+    temperature: NDArray[np.float32],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+) -> NDArray[np.float32]:
+    r"""Calculate slope of the saturated pressure curve.
+
+    Args:
+        temperature: Temperature, [C]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+
+    Returns:
+        Slope of the saturated pressure curve, :math:`\Delta_{v}`
+    """
+
+    a, b, c, d = saturated_pressure_slope_parameters
+    return (
+        a * (b * np.exp(c * temperature / (temperature + d))) / (temperature + d) ** 2
+    )
+
+
+def calculate_actual_vapour_pressure(
+    air_temperature: DataArray,
+    relative_humidity: DataArray,
+    saturation_vapour_pressure_factors: list[float],
+) -> DataArray:
+    """Calculate actual vapour pressure, [kPa].
+
+    Args:
+        air_temperature: Air temperature, [C]
+        relative_humidity: Relative humidity, [-]
+        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
+            calculation
+
+    Returns:
+        actual vapour pressure, [kPa]
+    """
+
+    saturation_vapour_pressure_air = calculate_saturation_vapour_pressure(
+        temperature=air_temperature,
+        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    )
+    return saturation_vapour_pressure_air * relative_humidity / 100.0

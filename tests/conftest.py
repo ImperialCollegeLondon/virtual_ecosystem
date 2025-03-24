@@ -100,6 +100,7 @@ def microbial_groups_cfg():
         half_sat_labile_p_uptake = 0.02275
         turnover_rate = 0.005
         activation_energy_turnover = 20000
+        reference_temperature = 12.0
         c_n_ratio = 5.2
         c_p_ratio = 16
 
@@ -117,8 +118,49 @@ def microbial_groups_cfg():
         half_sat_labile_p_uptake = 0.02275
         turnover_rate = 0.005
         activation_energy_turnover = 20000
+        reference_temperature = 12.0
         c_n_ratio = 6.5
         c_p_ratio = 40.0
+
+        [[soil.enzyme_class_definition]]
+        source = "bacteria"
+        substrate = "pom"
+        maximum_rate = 60.0
+        half_saturation_constant = 70.0
+        activation_energy_rate = 37000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
+
+        [[soil.enzyme_class_definition]]
+        source = "bacteria"
+        substrate = "maom"
+        maximum_rate = 24.0
+        half_saturation_constant = 350.0
+        activation_energy_rate = 47000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
+
+        [[soil.enzyme_class_definition]]
+        source = "fungi"
+        substrate = "pom"
+        maximum_rate = 120.0
+        half_saturation_constant = 35.0
+        activation_energy_rate = 37000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
+
+        [[soil.enzyme_class_definition]]
+        source = "fungi"
+        substrate = "maom"
+        maximum_rate = 48.0
+        half_saturation_constant = 175.0
+        activation_energy_rate = 47000
+        activation_energy_saturation = 30000
+        reference_temperature = 12.0
+        turnover_rate = 2.4e-2
         """
 
 
@@ -376,8 +418,10 @@ def dummy_carbon_data(fixture_core_components):
         "soil_c_pool_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
         "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
-        "soil_enzyme_pom": [0.022679, 0.009576, 0.050051, 0.003010],
-        "soil_enzyme_maom": [0.0356, 0.0117, 0.02509, 0.00456],
+        "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],
+        "soil_enzyme_maom_bacteria": [0.0356, 0.0117, 0.02509, 0.00456],
+        "soil_enzyme_pom_fungi": [0.02607, 0.00575, 0.00646, 0.00441],
+        "soil_enzyme_maom_fungi": [0.008669, 0.006826, 0.003807, 0.002163],
         "soil_n_pool_don": [0.000571428, 0.00142857, 0.00014285, 0.002857142],
         "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
         "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
@@ -453,7 +497,7 @@ def dummy_climate_data(fixture_core_components):
         "atmospheric_pressure_ref": 96.0,
         "atmospheric_co2_ref": 400.0,
         "precipitation": 200.0,
-        "topofcanopy_radiation": 100.0,
+        "downward_shortwave_radiation": 100.0,
     }
 
     for var, value in ref_values.items():
@@ -480,7 +524,7 @@ def dummy_climate_data(fixture_core_components):
     spatially_constant = {
         "sensible_heat_flux_soil": 1,
         "latent_heat_flux_soil": 1,
-        "zero_displacement_height": 20.0,
+        "zero_plane_displacement": 20.0,
         "diabatic_correction_heat_above": 0.1,
         "diabatic_correction_heat_canopy": 1.0,
         "diabatic_correction_momentum_above": 0.1,
@@ -497,7 +541,7 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
     data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_filled_canopy] = 1.0
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 1.0
 
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
@@ -516,19 +560,24 @@ def dummy_climate_data(fixture_core_components):
 
     data["air_temperature"] = from_template()
     data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+        [30.0, 29.844995, 28.87117, 27.206405, 21.145945]
     )[:, None]
 
     data["soil_temperature"] = from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = 20.0
+
+    data["matric_potential"] = from_template()
+    data["matric_potential"][lyr_str.index_topsoil] = np.array(
+        [-3.0, -10.0, -250.0, -10000.0]
+    )
 
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
         [90.0, 90.341644, 92.488034, 96.157312, 100]
     )[:, None]
 
-    data["absorbed_radiation"] = from_template()
-    data["absorbed_radiation"][lyr_str.index_filled_canopy] = 10.0
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][lyr_str.index_flux_layers] = 10.0
 
     flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
 
@@ -632,11 +681,14 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
-    dummy_climate_data["absorbed_radiation"][index_filled_canopy] = [
+    sw_indexes = [1, 2, 3, 13]
+    dummy_climate_data["shortwave_absorption"][sw_indexes] = [
         [10.0, 10.0, 10.0, 10.0],
         [10.0, 10.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
+        [0, 0, 0, 0],
     ]
+    dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
