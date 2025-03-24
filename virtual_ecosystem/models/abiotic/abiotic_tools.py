@@ -47,6 +47,32 @@ def calculate_molar_density_air(
     )
 
 
+def calculate_air_density(
+    air_temperature: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+    specific_gas_constant_dry_air: float,
+    celsius_to_kelvin: float,
+):
+    """Calculate the density of air using the ideal gas law.
+
+    Args:
+        air_temperature: Air temperature, [C]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        specific_gas_constant_dry_air: Specific gas constant for dry air, [J kg-1 K-1]
+        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+            temperature in Kelvin
+    Returns:
+        density of air, [kg m-3].
+    """
+    # Convert temperature from Celsius to Kelvin
+    temperature_k = air_temperature + celsius_to_kelvin
+
+    # Calculate density using the ideal gas law
+    return (
+        atmospheric_pressure * 1000.0 / (temperature_k * specific_gas_constant_dry_air)
+    )
+
+
 def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,

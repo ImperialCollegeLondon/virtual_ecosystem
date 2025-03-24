@@ -158,17 +158,12 @@ def run_microclimate(
         mean_air_temperature = np.nanmean(all_air_temperature, axis=0)
 
         # TODO this could take values for each layer instead of bulk
-        molar_density_air = abiotic_tools.calculate_molar_density_air(
-            temperature=mean_air_temperature,
+        density_air = abiotic_tools.calculate_air_density(
+            air_temperature=mean_air_temperature,
             atmospheric_pressure=atmospheric_pressure[0],  # all layers identical
-            standard_mole=core_constants.standard_mole,
-            standard_pressure=core_constants.standard_pressure,
+            specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
             celsius_to_kelvin=core_constants.zero_Celsius,
         )
-        density_air_kg = molar_density_air * (
-            core_constants.molecular_weight_air / 1000.0
-        )
-
         specific_heat_air = calc_specific_heat(
             tc=mean_air_temperature,
         )
@@ -195,7 +190,7 @@ def run_microclimate(
 
         #  Sensible heat flux from canopy layers, [W m-2]
         sensible_heat_flux_canopy = energy_balance.calculate_sensible_heat_flux(
-            density_air=density_air_kg,
+            density_air=density_air,
             specific_heat_air=specific_heat_air,
             air_temperature=air_temperature_canopy,
             surface_temperature=canopy_temperature,
@@ -204,7 +199,7 @@ def run_microclimate(
 
         #  Sensible heat flux from topsoil, [W m-2]
         sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
-            density_air=density_air_kg,
+            density_air=density_air,
             specific_heat_air=specific_heat_air,
             air_temperature=surface_air_temperature,
             surface_temperature=soil_temperature[0],
@@ -294,7 +289,7 @@ def run_microclimate(
                 canopy_temperature=canopy_temperature + core_constants.zero_Celsius,
                 emissivity_leaf=abiotic_constants.leaf_emissivity,
                 specific_heat_air=specific_heat_air,
-                density_air=density_air_kg,
+                density_air=density_air,
                 aerodynamic_resistance=aerodynamic_resistance_canopy,
                 relaxation_factor=0.1,
                 stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
@@ -304,7 +299,7 @@ def run_microclimate(
         #  TODO check Update surface/soil temperature, use same function as canopy?
         # TODO add vertical mixing, not urgent
         surface_temperature_change = sensible_heat_flux_soil / (
-            density_air_kg * specific_heat_air
+            density_air * specific_heat_air
         )
         new_surface_temperature = (
             surface_air_temperature + core_constants.zero_Celsius
@@ -359,7 +354,7 @@ def run_microclimate(
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
     output["longwave_emission"] = longwave_emission
 
-    output["molar_density_air"] = DataArray(molar_density_air, dims="cell_id")
+    output["density_air"] = DataArray(density_air, dims="cell_id")
     output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")
 
     # Combine sensible heat flux in one variable, TODO consider time interval

@@ -273,8 +273,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Temperature-dependent molar density of air"
-name = "molar_density_air"
+description = "Temperature-dependent density of air"
+name = "density_air"
 unit = "kg m-3"
 variable_type = "float"
 
