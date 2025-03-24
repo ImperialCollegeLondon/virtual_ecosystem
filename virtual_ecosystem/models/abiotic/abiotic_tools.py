@@ -47,27 +47,6 @@ def calculate_molar_density_air(
     )
 
 
-def calculate_specific_heat_air(
-    temperature: NDArray[np.float32],
-    molar_heat_capacity_air: float,
-    specific_heat_equ_factors: tuple[float, float],
-) -> NDArray[np.float32]:
-    """Calculate temperature-dependent specific heat of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`.
-
-    Args:
-        temperature: Air temperature, [C]
-        molar_heat_capacity_air: Molar heat capacity of air, [J mol-1 C-1]
-        specific_heat_equ_factors: Factors in calculation of molar specific heat of air
-
-    Returns:
-        specific heat of air at constant pressure, [J mol-1 K-1]
-    """
-    factor_1, factor_2 = specific_heat_equ_factors
-    return factor_1 * temperature**2 + factor_2 * temperature + molar_heat_capacity_air
-
-
 def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,

@@ -3,6 +3,7 @@ balance in the Virtual Ecosystem.
 """  # noqa: D205
 
 import numpy as np
+from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
@@ -168,13 +169,8 @@ def run_microclimate(
             core_constants.molecular_weight_air / 1000.0
         )
 
-        specific_heat_air = abiotic_tools.calculate_specific_heat_air(
-            temperature=mean_air_temperature,
-            molar_heat_capacity_air=core_constants.molar_heat_capacity_air,
-            specific_heat_equ_factors=abiotic_constants.specific_heat_equ_factors,
-        )
-        specific_heat_air_kg = specific_heat_air / (
-            core_constants.molecular_weight_air / 1000.0
+        specific_heat_air = calc_specific_heat(
+            tc=mean_air_temperature,
         )
 
         #   Latent heat of vapourisation, [kJ kg-1]
@@ -200,7 +196,7 @@ def run_microclimate(
         #  Sensible heat flux from canopy layers, [W m-2]
         sensible_heat_flux_canopy = energy_balance.calculate_sensible_heat_flux(
             density_air=density_air_kg,
-            specific_heat_air=specific_heat_air_kg,
+            specific_heat_air=specific_heat_air,
             air_temperature=air_temperature_canopy,
             surface_temperature=canopy_temperature,
             aerodynamic_resistance=aerodynamic_resistance_canopy,
@@ -209,7 +205,7 @@ def run_microclimate(
         #  Sensible heat flux from topsoil, [W m-2]
         sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
             density_air=density_air_kg,
-            specific_heat_air=specific_heat_air_kg,
+            specific_heat_air=specific_heat_air,
             air_temperature=surface_air_temperature,
             surface_temperature=soil_temperature[0],
             aerodynamic_resistance=aerodynamic_resistance_soil,
@@ -297,7 +293,7 @@ def run_microclimate(
                 air_temperature=air_temperature_canopy + core_constants.zero_Celsius,
                 canopy_temperature=canopy_temperature + core_constants.zero_Celsius,
                 emissivity_leaf=abiotic_constants.leaf_emissivity,
-                specific_heat_air=specific_heat_air_kg,
+                specific_heat_air=specific_heat_air,
                 density_air=density_air_kg,
                 aerodynamic_resistance=aerodynamic_resistance_canopy,
                 relaxation_factor=0.1,
@@ -308,7 +304,7 @@ def run_microclimate(
         #  TODO check Update surface/soil temperature, use same function as canopy?
         # TODO add vertical mixing, not urgent
         surface_temperature_change = sensible_heat_flux_soil / (
-            density_air_kg * specific_heat_air_kg
+            density_air_kg * specific_heat_air
         )
         new_surface_temperature = (
             surface_air_temperature + core_constants.zero_Celsius

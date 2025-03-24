@@ -28,11 +28,6 @@ class AbioticConsts(ConstantsDataclass):
     assume here that the reference height is above the canopy, please check the input
     data carefully and be aware of limitations."""
 
-    specific_heat_equ_factors: tuple[float, float] = 2e-05, 0.0002
-    """Factors in calculation of molar specific heat of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`."""
-
     latent_heat_vap_equ_factors: tuple[float, float] = 1.91846e6, 33.91
     """Factors in calculation of latent heat of vapourisation.
 

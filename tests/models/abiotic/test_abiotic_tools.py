@@ -29,25 +29,6 @@ def test_calculate_molar_density_air():
     )
 
 
-def test_calculate_specific_heat_air():
-    """Test calculate specific heat of air."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        calculate_specific_heat_air,
-    )
-
-    constants = AbioticConsts()
-    result = calculate_specific_heat_air(
-        temperature=np.array([[25.0] * 3, [20.0] * 3, [18.0] * 3]),
-        molar_heat_capacity_air=CoreConsts.molar_heat_capacity_air,
-        specific_heat_equ_factors=constants.specific_heat_equ_factors,
-    )
-
-    exp_result = np.array([[29.2075] * 3, [29.202] * 3, [29.2] * 3])
-
-    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
-
-
 def test_calculate_latent_heat_vapourisation():
     """Test calculation of latent heat of vapourization."""
 

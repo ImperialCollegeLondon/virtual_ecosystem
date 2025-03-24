@@ -547,7 +547,7 @@ def dummy_climate_data(fixture_core_components):
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
 
     data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 29.0
+    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
 
     data["attenuation_coefficient"] = from_template()
     data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(

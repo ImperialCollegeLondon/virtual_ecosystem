@@ -429,7 +429,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Specific heat of air"
 name = "specific_heat_air"
-unit = "kJ kg-1"
+unit = "kJ kg-1 K-1"
 variable_type = "float"
 
 [[variable]]
