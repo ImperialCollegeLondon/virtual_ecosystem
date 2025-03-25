@@ -1,7 +1,7 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
 processes for the Virtual Ecosystem. At the moment, this includes rain water
-interception by the canopy, soil evaporation, and functions related to surface
-runoff, bypass flow, and river discharge.
+interception by the canopy, canopy evaporation and leaf drainage, soil evaporation,
+and functions related to surface runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
 
@@ -31,7 +31,25 @@ def potential_evaporation_leaf(
     psychrometric_constant: NDArray[np.float32],
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
 ):
-    """Calculate canopy potential evaporation rate using Penman-Monteith equation.
+    r"""Calculate canopy potential evaporation rate using Penman-Monteith equation.
+
+    the potential evaporation rate :math:`EW_{0}` is calculated as follows (note we do
+    NOT include ground heat flux in the consideration of canopy evaporation):
+
+    .. math::
+        EW_{0} =
+        \frac{\Delta R_n + \rho_a c_p \frac{vpd}{r_a}}
+        {\lambda_v \left(\Delta + \gamma \left(1 + \frac{r_s}{r_a}\right)\right)}
+
+    where :math:`\Delta` is the slope of the saturation vapour pressure curve,
+    :math:`R_n` is the net radiation,
+    :math:`\rho_a` is the density of air,
+    :math:`c_p` is the specific heat of air,
+    :math:`vpd` is the vapour pressure deficit,
+    :math:`r_a` is the aerodynamic resistance,
+    :math:`\lambda_v` is the latent heat of vaporization,
+    :math:`\gamma` is the psychrometric constant, and
+    :math:`r_s` is the stomatal resistance.
 
     Args:
         net_radiation: Net radiation at leaf surface, [W m-2]
@@ -93,29 +111,29 @@ def calculate_canopy_evaporation(
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate evaporation of intercepted water from the canopy, [mm].
 
-    This function calculates evaporation of intercepted water from the canopy assuming
-    the potential evaporation rate from an open water surface :math:`EW_{0}` [mm] (
-    implementation after :cite:t:`van_der_knijff_lisflood_2010`).
+    This function calculates evaporation of intercepted water from the canopy following
+    the LISFLOOD model :cite:t:`van_der_knijff_lisflood_2010`.
     The maximum evaporation per time step :math:`EW_{max}` [mm] is proportional to the
-    fraction of vegetated area (Supit et al.,1994):
+    fraction of vegetated area:
 
-    :math:`EW_{max} = EW_{0} \cdot [1 - \exp(-\kappa_{gb} LAI] \Delta t)`
+    .. math :: EW_{max} = EW_{0} [1 - e^{(-\kappa_{gb} LAI)}] \Delta t
 
-    where the dimensionless constant :math:`\kappa_{gb}` is the extinction coefficient
+    where :math:`EW_{0}` is the potential evaporation rate,
+    the dimensionless constant :math:`\kappa_{gb}` is the extinction coefficient
     for global solar radiation. In LISFLOOD, :math:`\kappa_{gb}` is given by the product
-    :math:`0.75 ⋅ \kappa_{df}`, where :math:`\kappa_{df}` is the extinction coefficient
-    for diffuse visible light: its value is provided as input to the model and it varies
-    between 0.4 and 1.1.
+    :math:`0.75 \cdot \kappa_{df}`, where :math:`\kappa_{df}` is the extinction
+    coefficient for diffuse visible light: its value is provided as input to the model
+    and it varies between 0.4 and 1.1.
 
     The actual amount of evaporation :math:`EW_{int}` [mm] is limited by the amount of
     water stored on the leaves :math:`Int_{cum}`:
 
-    :math:`EW_{int} = min(EW_{max}\cdot \Delta t, Int_{cum})`
+    .. math :: EW_{int} = min(EW_{max} \Delta t, Int_{cum})
 
     Another amount of water falls to the soil because of leaf drainage which is modelled
     as a linear reservoir:
 
-    :math:`D_{int} = \frac{1}{T_{int} \cdot Int_{cum} \cdot \Delta t`
+    .. math :: D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
 
     where :math:`D_{int}` is the amount of leaf drainage per time step [mm] and
     :math:`T_{int}` is a time constant (or residence time) of the interception store
@@ -208,13 +226,13 @@ def calculate_soil_evaporation(
     :cite:p:`mahfouf_comparative_1991`.
     We here use the implementation by :cite:t:`barton_parameterization_1979`:
 
-    :math:`\alpha = \frac{1.8 * \Theta}{\Theta + 0.3}`
+    .. math :: \alpha = \frac{1.8 \Theta}{\Theta + 0.3}
 
-    :math:`E_{g} = \frac{\rho_{air}}{R_{a}} * (\alpha * q_{sat}(T_{s}) - q_{g})`
+    .. math :: E_{g} = \frac{\rho_{air}}{R_{a}} (\alpha q_{sat}(T_{s}) - q_{g})
 
     where :math:`\Theta` is the available top soil moisture (relative volumetric water
     content), :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
-    density of air (kg m-3), :math:`R_{a}=(C_{E}*u_{a})^-1` is the aerodynamic
+    density of air (kg m-3), :math:`R_{a}=(C_{E} u_{a})^-1` is the aerodynamic
     resistance, with :math:`C_{E}` the drag coefficient for evaporation and
     :math:`u_{a}` the wind speed near the surface,
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
@@ -223,7 +241,7 @@ def calculate_soil_evaporation(
     In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
     :cite:t:`supit_system_1994`:
 
-    :math:`E_{act} = E_{g} * exp(-\kappa_{gb}*LAI)`
+    .. math :: E_{act} = E_{g} e^{(-\kappa_{gb} LAI)}
 
     where :math:`\kappa_{gb}` is the extinction coefficient for global radiation, and
     :math:`LAI` is the total leaf area index.
@@ -409,7 +427,7 @@ def calculate_interception(
     equation after :cite:t:`aston_rainfall_1979` and :cite:t:`merriam_note_1960` as
     implemented in :cite:t:`van_der_knijff_lisflood_2010` :
 
-    :math:`Int = S_{max} * [1 - e \frac{(-k*R*\delta t}{S_{max}})]`
+    .. math :: Int = S_{max} [1 - e^{\frac{-k R \Delta t}{S_{max}}}]
 
     where :math:`Int` [mm] is the interception per time step, :math:`S_{max}` [mm] is
     the maximum interception, :math:`R` is the rainfall intensity per time step [mm] and
@@ -432,7 +450,7 @@ def calculate_interception(
 
     where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
 
-    :math:`k=0.046 * LAI`
+    :math:`k=0.046 \cdot LAI`
 
     Args:
         leaf_area_index: Leaf area index summed over all canopy layers, [m m-1]
@@ -512,7 +530,7 @@ def calculate_bypass_flow(
     the relative saturation of the superficial and upper soil layers. This results in
     the following equation (after :cite:t:`van_der_knijff_lisflood_2010`):
 
-    :math:`D_{pref, gw} = W_{av} * (\frac{w_{1}}{w_{s1}})^{c_{pref}}`
+    .. math :: D_{pref, gw} = W_{av} (\frac{w_{1}}{w_{s1}})^{c_{pref}}
 
     where :math:`D_{pref, gw}` is the amount of preferential flow per time step [mm],
     :math:`W_{av}` is the amount of water that is available for infiltration, and

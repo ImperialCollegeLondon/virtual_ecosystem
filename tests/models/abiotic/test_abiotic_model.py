@@ -32,7 +32,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
     (INFO, "Replacing data array for 'air_temperature'"),
     (INFO, "Replacing data array for 'relative_humidity'"),
-    (INFO, "Adding data array for 'vapour_pressure_deficit'"),
+    (INFO, "Replacing data array for 'vapour_pressure_deficit'"),
     (INFO, "Replacing data array for 'wind_speed'"),
     (INFO, "Replacing data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
