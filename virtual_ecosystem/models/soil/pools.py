@@ -15,8 +15,8 @@ from scipy.constants import convert_temperature
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.litter.env_factors import (
-    average_soil_water_over_microbially_active_layers,
     average_temperature_over_microbially_active_layers,
+    average_water_potential_over_microbially_active_layers,
 )
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
@@ -412,8 +412,8 @@ class SoilPools:
         """
 
         # Find temperature and soil moisture values for the topsoil layer
-        soil_water_potential = average_soil_water_over_microbially_active_layers(
-            water_variable=self.data["matric_potential"],
+        soil_water_potential = average_water_potential_over_microbially_active_layers(
+            water_potentials=self.data["matric_potential"],
             layer_structure=layer_structure,
         )
         soil_temperature = average_temperature_over_microbially_active_layers(
@@ -423,9 +423,10 @@ class SoilPools:
             ].to_numpy(),
             layer_structure=layer_structure,
         )
-        soil_moisture = average_soil_water_over_microbially_active_layers(
-            water_variable=self.data["soil_moisture"], layer_structure=layer_structure
-        )
+        # TODO - Need a different averaging scheme here
+        soil_moisture = self.data["soil_moisture"][
+            layer_structure.index_topsoil_scalar
+        ].to_numpy()
         # Calculate the effective saturation of the soil (soil layer thickness needs to
         # be converted from m to mm here to be consistent with soil moisture units)
         # TODO - This needs to be reviewed as part of the soil abiotic links review

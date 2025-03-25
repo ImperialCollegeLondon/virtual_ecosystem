@@ -105,12 +105,12 @@ def test_average_temperature_over_microbially_active_layers(
         ),
     ],
 )
-def test_average_soil_water_over_microbially_active_layers(
+def test_average_water_potential_over_microbially_active_layers(
     dummy_litter_data, fixture_core_components, increased_depth, expected_water_pots
 ):
     """Check averaging of water potentials over soil layers works correctly."""
     from virtual_ecosystem.models.litter.env_factors import (
-        average_soil_water_over_microbially_active_layers,
+        average_water_potential_over_microbially_active_layers,
     )
 
     if increased_depth:
@@ -119,8 +119,8 @@ def test_average_soil_water_over_microbially_active_layers(
         )
         fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
 
-    actual_water_pots = average_soil_water_over_microbially_active_layers(
-        water_variable=dummy_litter_data["matric_potential"],
+    actual_water_pots = average_water_potential_over_microbially_active_layers(
+        water_potentials=dummy_litter_data["matric_potential"],
         layer_structure=fixture_core_components.layer_structure,
     )
 
