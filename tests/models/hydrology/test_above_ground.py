@@ -195,10 +195,11 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
 
     with raises:
         grid = Grid(grid_type, cell_nx=5, cell_ny=5)
-        result = calculate_drainage_map(grid, elevation)
+        drainage_map, accumulation_points = calculate_drainage_map(grid, elevation)
 
-        assert len(result) == grid.n_cells
-        assert result[1] == [2, 6]
+        assert len(drainage_map) == grid.n_cells
+        assert drainage_map[1] == [2, 6]
+        assert accumulation_points[0] == "corner"
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)

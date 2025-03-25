@@ -349,10 +349,15 @@ for each grid cell and creates a drainage map, i.e. a dictionary that contains f
 grid cell all upstream grid cells. For example, `cell_id = 56` has four upstream cells
 with the indices `[47, 56, 57, 65]`.
 
+The model also determines the cells in which water accumulates indicated by cells which
+have no downstream neighbours. These cells are labeled as "edge", "corner", or "middle",
+to ensure that water can be properly removed from these cells and does not accumulate
+indefintely.
+
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
 
-drainage_map = calculate_drainage_map(
+drainage_map, _ = calculate_drainage_map(
     grid=grid,
     elevation=np.array(data["elevation"]),
 )

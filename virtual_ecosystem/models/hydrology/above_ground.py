@@ -199,7 +199,9 @@ def accumulate_horizontal_flow(
     return previous_accumulated_flow
 
 
-def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:
+def calculate_drainage_map(
+    grid: Grid, elevation: np.ndarray
+) -> tuple[dict[int, list[int]], dict[int, str]]:
     """Calculate drainage map based on digital elevation model.
 
     This function finds the lowest neighbour for each grid cell, identifies all upstream
@@ -225,7 +227,19 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
     lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
     upstream_ids = find_upstream_cells(lowest_neighbours)
 
-    return dict(enumerate(upstream_ids))
+    accumulation_cells = np.where(
+        np.array(grid.cell_id, dtype=np.int64) == lowest_neighbours
+    )
+    accumulation_cell_types = {
+        int(cell): "middle"
+        if len(grid.neighbours[cell]) == 5
+        else "edge"
+        if len(grid.neighbours[cell]) == 4
+        else "corner"
+        for cell in accumulation_cells[0]
+    }
+
+    return dict(enumerate(upstream_ids)), accumulation_cell_types
 
 
 def calculate_interception(

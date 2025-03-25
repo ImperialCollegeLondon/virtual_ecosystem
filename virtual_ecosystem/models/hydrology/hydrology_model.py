@@ -159,6 +159,8 @@ class HydrologyModel(
         """Set of constants for the hydrology model"""
         self.drainage_map: dict
         """Upstream neighbours for the calculation of accumulated horizontal flow."""
+        self.accumulation_points: dict
+        """Water accumulation points and cell type (border, corner, or middle)."""
         self.soil_layer_thickness_mm: np.ndarray
         """Soil layer thickness in mm."""
         self.surface_layer_index: int
@@ -254,9 +256,11 @@ class HydrologyModel(
         self.model_constants = model_constants
         self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
         """Set neighbours."""
-        self.drainage_map = above_ground.calculate_drainage_map(
-            grid=self.data.grid,
-            elevation=np.array(self.data["elevation"]),
+        self.drainage_map, self.accumulation_points = (
+            above_ground.calculate_drainage_map(
+                grid=self.data.grid,
+                elevation=np.array(self.data["elevation"]),
+            )
         )
 
         # Calculate layer thickness for soil moisture unit conversion and set structures
