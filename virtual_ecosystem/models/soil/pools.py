@@ -28,6 +28,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_nitrification_temperature_factor,
     calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
+    find_total_soil_moisture_for_microbially_active_depth,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     EnzymeConstants,
@@ -411,7 +412,8 @@ class SoilPools:
             A vector containing net changes to each pool. Order [lmwc, maom].
         """
 
-        # Find temperature and soil moisture values for the topsoil layer
+        # Find temperature, soil water potential and soil moisture values for the
+        # microbially active depth
         soil_water_potential = average_water_potential_over_microbially_active_layers(
             water_potentials=self.data["matric_potential"],
             layer_structure=layer_structure,
@@ -423,10 +425,9 @@ class SoilPools:
             ].to_numpy(),
             layer_structure=layer_structure,
         )
-        # TODO - Need a different averaging scheme here
-        soil_moisture = self.data["soil_moisture"][
-            layer_structure.index_topsoil_scalar
-        ].to_numpy()
+        soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+            soil_moistures=self.data["soil_moisture"], layer_structure=layer_structure
+        )
         # Calculate the effective saturation of the soil (soil layer thickness needs to
         # be converted from m to mm here to be consistent with soil moisture units)
         # TODO - This needs to be reviewed as part of the soil abiotic links review
