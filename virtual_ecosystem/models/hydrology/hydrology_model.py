@@ -385,7 +385,8 @@ class HydrologyModel(
         minus canopy interception, which is estimated using a stroage-based approach,
         see
         :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_interception`
-        .
+        . The water from the canopy interception pool either evaporated back to the
+        atmosphere or drips through the canopy  reaching the surface with a delay.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`, see
@@ -403,6 +404,8 @@ class HydrologyModel(
         formulation, following the so-called ':math:`\alpha` method', see
         :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_soil_evaporation`
         , and reduced to actual evaporation as a function of leaf area index.
+
+        TODO update the following when code is updated:
 
         Vertical flow between soil layers is calculated using the Richards equation, see
         :func:`~virtual_ecosystem.models.hydrology.below_ground.calculate_vertical_flow`
@@ -471,6 +474,16 @@ class HydrologyModel(
             core_constants=self.core_constants,
         )
 
+        # Calculate psychrometric constant
+        psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
+            atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy(),
+            latent_heat_vapourization=self.data["latent_heat_vapourisation"].to_numpy(),
+            specific_heat_air=hydro_input["specific_heat_air_kg"],
+            molecular_weight_ratio_water_to_dry_air=(
+                self.core_constants.molecular_weight_ratio_water_to_dry_air
+            ),
+        )
+
         # Create lists for output variables to store daily data
         daily_lists: dict = {name: [] for name in self.vars_updated}
 
@@ -481,18 +494,6 @@ class HydrologyModel(
                 precipitation=hydro_input["current_precipitation"][:, day],
                 intercept_parameters=self.model_constants.intercept_parameters,
                 veg_density_param=self.model_constants.veg_density_param,
-            )
-
-            # Calculate psychrometric constant
-            psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
-                atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy(),
-                latent_heat_vapourization=self.data[
-                    "latent_heat_vapourisation"
-                ].to_numpy(),
-                specific_heat_air=hydro_input["specific_heat_air_kg"],
-                molecular_weight_ratio_water_to_dry_air=(
-                    self.core_constants.molecular_weight_ratio_water_to_dry_air
-                ),
             )
 
             # Calculate canopy evaporation and leaf drainage
