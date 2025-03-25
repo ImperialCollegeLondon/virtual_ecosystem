@@ -2,8 +2,6 @@
 
 import pytest
 
-from virtual_ecosystem.models.soil.env_factors import EnvironmentalEffectFactors
-
 
 @pytest.fixture
 def fixture_soil_config(microbial_groups_cfg):
@@ -51,38 +49,16 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
     """Environmental factors based on dummy carbon data."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
-        calculate_clay_impact_on_enzyme_saturation,
-        calculate_pH_suitability,
-        calculate_water_potential_impact_on_microbes,
+        calculate_environmental_effect_factors,
     )
 
-    soil_constants = SoilConsts()
-
-    water_factors = calculate_water_potential_impact_on_microbes(
-        water_potential=dummy_carbon_data["matric_potential"][
+    return calculate_environmental_effect_factors(
+        soil_water_potential=dummy_carbon_data["matric_potential"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        water_potential_halt=soil_constants.soil_microbe_water_potential_halt,
-        water_potential_opt=soil_constants.soil_microbe_water_potential_optimum,
-        response_curvature=soil_constants.microbial_water_response_curvature,
-    )
-
-    pH_factors = calculate_pH_suitability(
-        soil_pH=dummy_carbon_data["pH"].to_numpy(),
-        maximum_pH=soil_constants.max_pH_microbes,
-        minimum_pH=soil_constants.min_pH_microbes,
-        lower_optimum_pH=soil_constants.lowest_optimal_pH_microbes,
-        upper_optimum_pH=soil_constants.highest_optimal_pH_microbes,
-    )
-
-    clay_saturation_factors = calculate_clay_impact_on_enzyme_saturation(
+        pH=dummy_carbon_data["pH"].to_numpy(),
         clay_fraction=dummy_carbon_data["clay_fraction"].to_numpy(),
-        base_protection=soil_constants.base_soil_protection,
-        protection_with_clay=soil_constants.soil_protection_with_clay,
-    )
-
-    return EnvironmentalEffectFactors(
-        water=water_factors, pH=pH_factors, clay_saturation=clay_saturation_factors
+        constants=SoilConsts,
     )
 
 
