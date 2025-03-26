@@ -267,11 +267,10 @@ def test_update_air_canopy_temperature():
     latent_heat_flux_canopy = np.array([[-30.0, -40.0], [-50.0, -60.0]])
     air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
     canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
-    specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])
 
     # Expected outputs (calculated manually)
     expected_canopy_temperature = np.array(
-        [[306.998597, 302.5214], [298.045954, 293.572175]]
+        [[356.152399, 367.60412], [380.623964, 395.36695]]
     )
     expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
 
@@ -284,7 +283,7 @@ def test_update_air_canopy_temperature():
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
         emissivity_leaf=0.8,
-        specific_heat_air=specific_heat_air,
+        specific_heat_air=1.006,
         density_air=1.293,
         aerodynamic_resistance=10.0,
         relaxation_factor=0.1,
