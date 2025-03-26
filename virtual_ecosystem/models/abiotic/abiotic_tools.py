@@ -47,25 +47,30 @@ def calculate_molar_density_air(
     )
 
 
-def calculate_specific_heat_air(
-    temperature: NDArray[np.float32],
-    molar_heat_capacity_air: float,
-    specific_heat_equ_factors: tuple[float, float],
-) -> NDArray[np.float32]:
-    """Calculate temperature-dependent specific heat of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`.
+def calculate_air_density(
+    air_temperature: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+    specific_gas_constant_dry_air: float,
+    celsius_to_kelvin: float,
+):
+    """Calculate the density of air using the ideal gas law.
 
     Args:
-        temperature: Air temperature, [C]
-        molar_heat_capacity_air: Molar heat capacity of air, [J mol-1 C-1]
-        specific_heat_equ_factors: Factors in calculation of molar specific heat of air
-
+        air_temperature: Air temperature, [C]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        specific_gas_constant_dry_air: Specific gas constant for dry air, [J kg-1 K-1]
+        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+            temperature in Kelvin
     Returns:
-        specific heat of air at constant pressure, [J mol-1 K-1]
+        density of air, [kg m-3].
     """
-    factor_1, factor_2 = specific_heat_equ_factors
-    return factor_1 * temperature**2 + factor_2 * temperature + molar_heat_capacity_air
+    # Convert temperature from Celsius to Kelvin
+    temperature_k = air_temperature + celsius_to_kelvin
+
+    # Calculate density using the ideal gas law
+    return (
+        atmospheric_pressure * 1000.0 / (temperature_k * specific_gas_constant_dry_air)
+    )
 
 
 def calculate_latent_heat_vapourisation(

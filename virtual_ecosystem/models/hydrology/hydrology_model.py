@@ -43,6 +43,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import (
     above_ground,
@@ -89,6 +90,7 @@ class HydrologyModel(
         "evapotranspiration",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
+        "density_air",
     ),
     vars_populated_by_init=(
         "soil_moisture",
@@ -96,6 +98,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "aerodynamic_resistance_surface",
+        "density_air",
     ),
     vars_populated_by_first_update=(
         "precipitation_surface",  # precipitation-interception loss
@@ -306,6 +309,25 @@ class HydrologyModel(
             coords={"cell_id": self.grid.cell_id},
         )
 
+        # TODO this could take values for each layer instead of bulk
+        density_air = abiotic_tools.calculate_air_density(
+            air_temperature=np.nanmean(
+                self.data["air_temperature_ref"].isel(time_index=0).to_numpy(), axis=0
+            ),
+            atmospheric_pressure=np.nanmean(
+                self.data["atmospheric_pressure_ref"].isel(time_index=0).to_numpy(),
+                axis=0,
+            ),
+            specific_gas_constant_dry_air=(
+                self.core_constants.specific_gas_constant_dry_air
+            ),
+            celsius_to_kelvin=self.core_constants.zero_Celsius,
+        )
+        self.data["density_air"] = self.layer_structure.from_template()
+        self.data["density_air"][self.layer_structure.index_filled_atmosphere] = (
+            density_air
+        )
+
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
 
@@ -486,11 +508,6 @@ class HydrologyModel(
                 hydro_input["latent_heat_vapourisation"][self.surface_layer_index]
                 / 1000.0
             )
-            density_air_kg = (
-                hydro_input["molar_density_air"][self.surface_layer_index]
-                * self.core_constants.molecular_weight_air
-                / 1000.0
-            )
 
             soil_evaporation = above_ground.calculate_soil_evaporation(
                 temperature=hydro_input["surface_temperature"],
@@ -502,7 +519,9 @@ class HydrologyModel(
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
-                density_air=density_air_kg,
+                density_air=self.data["density_air"][
+                    self.surface_layer_index
+                ].to_numpy(),
                 latent_heat_vapourisation=latent_heat_vapourisation,
                 gas_constant_water_vapour=self.core_constants.gas_constant_water_vapour,
                 soil_surface_heat_transfer_coefficient=(
