@@ -180,26 +180,21 @@ def calculate_new_biomass_average_nutrient_ratios(
         enzyme_classes: Details of the enzyme classes used by the soil model.
     """
 
-    total_enzyme_allocation = sum(enzyme_production.values())
-
     enzyme_c_n_weighted = sum(
-        enzyme_classes[f"{name}_{substrate}"].c_n_ratio
-        * allocation
-        / total_enzyme_allocation
+        enzyme_classes[f"{name}_{substrate}"].c_n_ratio * allocation
         for substrate, allocation in enzyme_production.items()
     )
 
     enzyme_c_p_weighted = sum(
-        enzyme_classes[f"{name}_{substrate}"].c_p_ratio
-        * allocation
-        / total_enzyme_allocation
+        enzyme_classes[f"{name}_{substrate}"].c_p_ratio * allocation
         for substrate, allocation in enzyme_production.items()
     )
 
+    total_enzyme_allocation = sum(enzyme_production.values())
+
     return {
-        "nitrogen": (c_n_ratio + enzyme_c_n_weighted * total_enzyme_allocation)
-        / (1.0 + total_enzyme_allocation),
-        "phosphorus": (c_p_ratio + enzyme_c_p_weighted * total_enzyme_allocation)
+        "nitrogen": (c_n_ratio + enzyme_c_n_weighted) / (1.0 + total_enzyme_allocation),
+        "phosphorus": (c_p_ratio + enzyme_c_p_weighted)
         / (1.0 + total_enzyme_allocation),
     }
 
