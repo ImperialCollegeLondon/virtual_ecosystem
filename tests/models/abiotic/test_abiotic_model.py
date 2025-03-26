@@ -373,7 +373,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         model.update(time_index=0)
 
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.723989, 19.989436])[
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.727418, 19.989483])[
         :, None
     ]
     expected_soil_moist = lyr_strct.from_template()

@@ -27,12 +27,12 @@ def test_setup_hydrology_input_current_timestep(
         soil_moisture_capacity=0.9,
         soil_moisture_residual=0.1,
         core_constants=CoreConsts(),
+        latent_heat_vap_equ_factors=[1.91846e6, 33.91],
     )
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
-        "molar_density_air",
-        "specific_heat_air_kg",
+        "latent_heat_vapourisation",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",

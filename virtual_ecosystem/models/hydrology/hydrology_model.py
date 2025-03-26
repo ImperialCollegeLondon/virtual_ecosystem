@@ -34,6 +34,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
+from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -92,6 +93,7 @@ class HydrologyModel(
         "evapotranspiration",  # TODO this needs to be transpiration
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
+        "density_air",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
         "stomatal_conductance",
@@ -106,6 +108,7 @@ class HydrologyModel(
         "specific_heat_air",
         "stomatal_conductance",
         "latent_heat_vapourisation",
+        "density_air",
     ),
     vars_populated_by_first_update=(
         "precipitation_surface",
@@ -322,10 +325,25 @@ class HydrologyModel(
             self.layer_structure.index_filled_canopy
         ] = self.model_constants.initial_aerodynamic_resistance_canopy
 
-        specific_heat_air = abiotic_tools.calculate_specific_heat_air(
-            temperature=self.data["air_temperature_ref"].isel(time_index=0).to_numpy(),
-            molar_heat_capacity_air=self.core_constants.molar_heat_capacity_air,
-            specific_heat_equ_factors=self.abiotic_constants.specific_heat_equ_factors,
+        density_air = abiotic_tools.calculate_air_density(
+            air_temperature=np.nanmean(
+                self.data["air_temperature_ref"].isel(time_index=0).to_numpy(), axis=0
+            ),
+            atmospheric_pressure=np.nanmean(
+                self.data["atmospheric_pressure_ref"].isel(time_index=0).to_numpy(),
+                axis=0,
+            ),
+            specific_gas_constant_dry_air=(
+                self.core_constants.specific_gas_constant_dry_air
+            ),
+            celsius_to_kelvin=self.core_constants.zero_Celsius,
+        )
+        self.data["density_air"] = self.layer_structure.from_template()
+        self.data["density_air"][self.layer_structure.index_filled_atmosphere] = (
+            density_air
+        )
+        specific_heat_air = calc_specific_heat(
+            tc=self.data["air_temperature_ref"].isel(time_index=0).to_numpy(),
         )
         self.data["specific_heat_air"] = self.layer_structure.from_template()
         self.data["specific_heat_air"][self.layer_structure.index_filled_atmosphere] = (
@@ -472,13 +490,14 @@ class HydrologyModel(
             soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
             core_constants=self.core_constants,
+            latent_heat_vap_equ_factors=self.abiotic_constants.latent_heat_vap_equ_factors,
         )
 
         # Calculate psychrometric constant
         psychrometric_constant = hydrology_tools.calculate_psychrometric_constant(
             atmospheric_pressure=self.data["atmospheric_pressure"].to_numpy(),
             latent_heat_vapourization=self.data["latent_heat_vapourisation"].to_numpy(),
-            specific_heat_air=hydro_input["specific_heat_air_kg"],
+            specific_heat_air=self.data["specific_heat_air"].to_numpy(),
             molecular_weight_ratio_water_to_dry_air=(
                 self.core_constants.molecular_weight_ratio_water_to_dry_air
             ),
@@ -501,9 +520,6 @@ class HydrologyModel(
             # required, in which order this is calculated, discuss also with plant model
             net_radiation_canopy = self.layer_structure.from_template()
             net_radiation_canopy[self.layer_structure.index_filled_canopy] = 20.0
-            density_air_kg = hydro_input["molar_density_air"] * (
-                self.core_constants.molecular_weight_air / 1000.0
-            )
 
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
@@ -511,8 +527,8 @@ class HydrologyModel(
                 net_radiation=net_radiation_canopy.to_numpy(),
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
-                density_air_kg=density_air_kg,
-                specific_heat_air=hydro_input["specific_heat_air_kg"],
+                density_air_kg=self.data["density_air"].to_numpy(),
+                specific_heat_air=self.data["specific_heat_air"].to_numpy(),
                 aerodynamic_resistance=self.data[
                     "aerodynamic_resistance_canopy"
                 ].to_numpy(),
@@ -533,7 +549,6 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"].append(
                 canopy_water_balance["canopy_evaporation"]
             )
-
             # Precipitation that reaches the surface per day, [mm]
             precipitation_surface = (
                 hydro_input["current_precipitation"][:, day]
@@ -558,7 +573,6 @@ class HydrologyModel(
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
-
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
                 (
@@ -587,7 +601,9 @@ class HydrologyModel(
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 celsius_to_kelvin=self.core_constants.zero_Celsius,
-                density_air=density_air_kg[self.surface_layer_index],
+                density_air=self.data["density_air"][
+                    self.surface_layer_index
+                ].to_numpy(),
                 latent_heat_vapourisation=self.data["latent_heat_vapourisation"][
                     self.surface_layer_index
                 ].to_numpy(),

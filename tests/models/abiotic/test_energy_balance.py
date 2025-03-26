@@ -138,9 +138,9 @@ def test_calculate_sensible_heat_flux(
     # Expected result (manually calculated)
     expected_flux = np.array(
         [
-            [-427.134759, -427.134759, -427.134759, -427.134759],
-            [-341.282347, -341.282347, np.nan, np.nan],
-            [-194.516665, np.nan, np.nan, np.nan],
+            [-14.817158, -14.817158, -14.817158, -14.817158],
+            [-11.838967, -11.838967, np.nan, np.nan],
+            [-6.747716, np.nan, np.nan, np.nan],
         ]
     )
 
@@ -300,7 +300,6 @@ def test_update_air_canopy_temperature():
     latent_heat_flux_canopy = np.array([[-30.0, -40.0], [-50.0, -60.0]])
     air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
     canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
-    specific_heat_air = np.array([[1005.0, 1005.0], [1005.0, 1005.0]])
 
     # Expected outputs
     expected_canopy_temperature = np.array(
@@ -317,7 +316,7 @@ def test_update_air_canopy_temperature():
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
         emissivity_leaf=0.8,
-        specific_heat_air=specific_heat_air,
+        specific_heat_air=np.full((2, 2), 1005.0),
         density_air=np.full((2, 2), 1.293),
         aerodynamic_resistance=np.full((2, 2), 200.0),
         relaxation_factor=0.1,

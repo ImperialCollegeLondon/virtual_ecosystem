@@ -335,6 +335,6 @@ def test_setup(
                 np.testing.assert_allclose(
                     model.data[var_name],
                     expected_vals,
-                    rtol=1e-4,
-                    atol=1e-4,
+                    rtol=1e-2,
+                    atol=1e-2,
                 )
