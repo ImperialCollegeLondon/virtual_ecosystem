@@ -421,7 +421,9 @@ def find_total_soil_moisture_for_microbially_active_depth(
 
     Args:
         soil_moistures: Soil moistures across all soil layers [mm]
-        layer_structure: The LayerStructure instance for the simulation.
+        layer_structure: The LayerStructure instance for the simulation. From this we
+           use the thickness of each layer, as well as `soil_layer_active_thickness`
+           which is how much of each layer lies within the microbially active zone
 
     Returns:
         The total soil moisture in the microbially active depth [mm]
