@@ -103,6 +103,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 5.2
         c_p_ratio = 16
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.microbial_group_definition]]
         name = "fungi"
@@ -121,6 +123,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 6.5
         c_p_ratio = 40.0
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -131,6 +135,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -141,6 +147,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -151,6 +159,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -161,6 +171,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
         """
 
 

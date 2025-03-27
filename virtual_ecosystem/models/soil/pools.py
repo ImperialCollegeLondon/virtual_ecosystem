@@ -29,9 +29,6 @@ from virtual_ecosystem.models.soil.microbial_groups import (
     MicrobialGroupConstants,
 )
 
-# TODO - At this point in time I'm not adding specific phosphatase enzymes, need to
-# think about adding these in future
-
 
 @dataclass
 class MicrobialChanges:
@@ -183,14 +180,26 @@ class EnzymePoolChanges:
     Units of [kg C m^-3 day^-1]
     """
 
-    denaturation_bacterial: NDArray[np.float32]
-    """Total denaturation rate for all the enzyme produced by bacteria.
+    denaturation_pom_bacteria: NDArray[np.float32]
+    """Denaturation rate for the :term:`POM` degrading enzyme produced by bacteria.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    denaturation_fungal: NDArray[np.float32]
-    """Total denaturation rate for all the enzyme produced by fungi.
+    denaturation_maom_bacteria: NDArray[np.float32]
+    """Denaturation rate for the :term:`MAOM` degrading enzyme produced by bacteria.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    denaturation_pom_fungi: NDArray[np.float32]
+    """Denaturation rate for the :term:`POM` degrading enzyme produced by fungi.
+    
+    Units of [kg C m^-3 day^-1]
+    """
+
+    denaturation_maom_fungi: NDArray[np.float32]
+    """Denaturation rate for the :term:`MAOM` degrading enzyme produced by fungi.
     
     Units of [kg C m^-3 day^-1]
     """
@@ -780,36 +789,27 @@ def calculate_microbial_changes(
         soil_temp=soil_temp,
         microbial_group=functional_groups["fungi"],
     )
+
+    # Calculate the total production of each enzyme class
+    enzyme_production = calculate_enzyme_production(
+        microbial_groups=functional_groups,
+        growth_rates={"bacteria": bacterial_growth, "fungi": fungal_growth},
+    )
+
     # Find changes in each enzyme pool
     enzyme_changes = calculate_enzyme_changes(
         pools=pools,
-        biomass_losses={
-            "bacteria": bacterial_biomass_loss,
-            "fungi": fungal_biomass_loss,
-        },
-        constants=constants,
+        enzyme_production=enzyme_production,
         enzyme_classes=enzyme_classes,
     )
 
-    # Find fraction of loss that isn't enzyme production
-    true_bacterial_loss = (
-        1
-        - constants.maintenance_bacteria_pom_enzyme
-        - constants.maintenance_bacteria_maom_enzyme
-    ) * bacterial_biomass_loss
-    true_fungal_loss = (
-        1
-        - constants.maintenance_fungi_pom_enzyme
-        - constants.maintenance_fungi_maom_enzyme
-    ) * fungal_biomass_loss
-
     # Find flow of nitrogen to necromass pool
     necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
-        bacterial_loss=true_bacterial_loss,
-        fungal_loss=true_fungal_loss,
-        bacterial_enzyme_denaturation=enzyme_changes.denaturation_bacterial,
-        fungal_enzyme_denaturation=enzyme_changes.denaturation_fungal,
+        bacterial_loss=bacterial_biomass_loss,
+        fungal_loss=fungal_biomass_loss,
+        enzyme_changes=enzyme_changes,
         microbial_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
     )
 
     return MicrobialChanges(
@@ -830,10 +830,12 @@ def calculate_microbial_changes(
         pom_enzyme_fungi_change=enzyme_changes.net_change_pom_fungi,
         maom_enzyme_fungi_change=enzyme_changes.net_change_maom_fungi,
         necromass_generation=(
-            enzyme_changes.denaturation_bacterial
-            + enzyme_changes.denaturation_fungal
-            + true_bacterial_loss
-            + true_fungal_loss
+            enzyme_changes.denaturation_pom_bacteria
+            + enzyme_changes.denaturation_maom_bacteria
+            + enzyme_changes.denaturation_pom_fungi
+            + enzyme_changes.denaturation_maom_fungi
+            + bacterial_biomass_loss
+            + fungal_biomass_loss
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
@@ -963,16 +965,14 @@ def calculate_nutrient_leaching(
 
 def calculate_enzyme_changes(
     pools: PoolData,
-    biomass_losses: dict[str, NDArray[np.float32]],
-    constants: SoilConsts,
+    enzyme_production: dict[str, NDArray[np.float32]],
     enzyme_classes: dict[str, EnzymeConstants],
 ) -> EnzymePoolChanges:
     """Calculate the change in each of the soil enzyme pools.
 
     Args:
         pools: Data class containing the various soil pools.
-        biomass_losses: Total rate of loss of biomass for each functional group due to
-            cell death, protein degradation and enzyme production [kg C m^-3 day^-1]
+        enzyme_production: Production rates for each class of enzyme [kg C m^-3 day^-1]
         constants: Set of constants for the soil model.
         enzyme_classes: Details of the enzyme classes used in the soil model.
 
@@ -994,10 +994,7 @@ def calculate_enzyme_changes(
                         enzyme_pool_size=getattr(
                             pools, f"soil_enzyme_{substrate}_{source}"
                         ),
-                        biomass_loss=biomass_losses[source],
-                        biomass_loss_to_enzyme_class=getattr(
-                            constants, f"maintenance_{source}_{substrate}_enzyme"
-                        ),
+                        enzyme_production=enzyme_production[f"{source}_{substrate}"],
                         enzyme_turnover_rate=enzyme_classes[
                             f"{source}_{substrate}"
                         ].turnover_rate,
@@ -1009,31 +1006,21 @@ def calculate_enzyme_changes(
         for source in sources
     }
 
-    total_denaturation = {
-        source: np.sum(
-            [
-                enzyme_changes[source][substrate]["denaturation"]
-                for substrate in substrates
-            ],
-            axis=0,
-        )
-        for source in sources
-    }
-
     return EnzymePoolChanges(
         net_change_pom_bacteria=enzyme_changes["bacteria"]["pom"]["net_change"],
         net_change_maom_bacteria=enzyme_changes["bacteria"]["maom"]["net_change"],
         net_change_pom_fungi=enzyme_changes["fungi"]["pom"]["net_change"],
         net_change_maom_fungi=enzyme_changes["fungi"]["maom"]["net_change"],
-        denaturation_bacterial=total_denaturation["bacteria"],
-        denaturation_fungal=total_denaturation["fungi"],
+        denaturation_pom_bacteria=enzyme_changes["bacteria"]["pom"]["denaturation"],
+        denaturation_maom_bacteria=enzyme_changes["bacteria"]["maom"]["denaturation"],
+        denaturation_pom_fungi=enzyme_changes["fungi"]["pom"]["denaturation"],
+        denaturation_maom_fungi=enzyme_changes["fungi"]["maom"]["denaturation"],
     )
 
 
 def calculate_net_enzyme_change(
     enzyme_pool_size: NDArray[np.float32],
-    biomass_loss: NDArray[np.float32],
-    biomass_loss_to_enzyme_class: float,
+    enzyme_production: NDArray[np.float32],
     enzyme_turnover_rate: float,
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the change in concentration for a specific enzyme pool.
@@ -1044,11 +1031,7 @@ def calculate_net_enzyme_change(
 
     Args:
         enzyme_pool_size: Amount of enzyme class of interest [kg C m^-3]
-        biomass_loss: Rate a which the microbial biomass pool of interest loses biomass,
-            this is a combination of enzyme excretion, protein degradation, and cell
-            death [kg C m^-3 day^-1]
-        biomass_loss_to_enzyme_class: Fraction of the biomass loss that goes to
-            producing the enzyme class of interest [unitless]
+        enzyme_production: Production rate for the enzyme in question [kg C m^-3 day^-1]
         enzyme_turnover_rate: Rate at which the enzyme denatures [day^-1]
 
     Returns:
@@ -1057,13 +1040,41 @@ def calculate_net_enzyme_change(
     """
 
     # Calculate production and turnover of each enzyme class
-    enzyme_production = biomass_loss_to_enzyme_class * biomass_loss
     enzyme_turnover = calculate_enzyme_turnover(
         enzyme_pool=enzyme_pool_size, turnover_rate=enzyme_turnover_rate
     )
 
     # return net changes in the enzyme and the necromass addition
     return (enzyme_production - enzyme_turnover, enzyme_turnover)
+
+
+def calculate_enzyme_production(
+    microbial_groups: dict[str, MicrobialGroupConstants],
+    growth_rates: dict[str, NDArray[np.float32]],
+) -> dict[str, NDArray[np.float32]]:
+    """Calculate the total production of each enzyme class.
+
+    This function checks which substrates each functional group produces enzymes for,
+    and then calculates the enzyme productions based on the growth rates and the
+    proportional enzyme production.
+
+    Args:
+        microbial_groups: Set of microbial functional groups defined in the soil model
+        growth_rates: The (gross) growth rates of each microbial group [kg C m^-3
+            day^-1]
+
+    Returns:
+        A dictionary containing the total production rate of each enzyme class [kg C
+        m^-3 day^-1]
+    """
+
+    return {
+        f"{group.name}_{substrate}": (
+            growth_rates[group.name] * group.enzyme_production[substrate]
+        )
+        for group in microbial_groups.values()
+        for substrate in group.find_enzyme_substrates()
+    }
 
 
 def calculate_maintenance_biomass_synthesis(
@@ -1163,6 +1174,13 @@ def calculate_nutrient_uptake_rates(
     remain the same if nutrients are taken up following the same stoichiometry (with an
     adjustment made for carbon use efficiency).
 
+    Biomass synthesis is split between the synthesis of new cellular biomass and the
+    production of extracellular enzymes. We assume that extracellular enzymes are always
+    produced in fixed proportion to the rate at which new biomass is synthesised. As
+    such, we calculate the nutrient costs of synthesising new biomass based on a
+    weighted (by relative investment in production) average of the stoichiometry of the
+    different enzymes and the microbial group itself.
+
     The balance of mineralisation and immobilisation rates of inorganic nitrogen and
     phosphorus are also calculated in this function. This is done by calculating the
     difference between the demand for nitrogen and phosphorus and their uptake due to
@@ -1193,9 +1211,9 @@ def calculate_nutrient_uptake_rates(
             functional group
 
     Returns:
-        A tuple containing the rate at which microbial biomass increases due to nutrient
-        uptake, as well as a dataclass containing the rate at which carbon, nitrogen and
-        phosphorus get taken up.
+        A tuple containing the rate at which microbial (cellular) biomass increases due
+        to nutrient uptake, as well as a dataclass containing the rate at which carbon,
+        nitrogen and phosphorus get taken up.
     """
 
     # Calculate highest possible microbial uptake rates for organic matter and inorganic
@@ -1271,13 +1289,13 @@ def calculate_nutrient_uptake_rates(
     actual_carbon_gain = np.minimum.reduce(
         [
             carbon_gain_max,
-            functional_group.c_n_ratio
+            functional_group.synthesis_nutrient_ratios["nitrogen"]
             * (
                 organic_nitrogen_uptake_rate_max
                 + ammonium_uptake_rate_max
                 + nitrate_uptake_rate_max
             ),
-            functional_group.c_p_ratio
+            functional_group.synthesis_nutrient_ratios["phosphorus"]
             * (
                 organic_phosphorus_uptake_rate_max
                 + inorganic_phosphorus_uptake_rate_max
@@ -1292,7 +1310,9 @@ def calculate_nutrient_uptake_rates(
 
     # Calculate uptake/release of inorganic nitrogen based on difference between
     # stoichiometric demand and organic nitrogen uptake
-    nitrogen_demand = actual_carbon_gain / functional_group.c_n_ratio
+    nitrogen_demand = (
+        actual_carbon_gain / functional_group.synthesis_nutrient_ratios["nitrogen"]
+    )
     inorganic_nitrogen_change = nitrogen_demand - actual_organic_nitrogen_uptake
 
     # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
@@ -1315,7 +1335,9 @@ def calculate_nutrient_uptake_rates(
 
     # Calculate uptake/release of inorganic phosphorus based on difference between
     # stoichiometric demand and organic phosphorus uptake
-    phosphorus_demand = actual_carbon_gain / functional_group.c_p_ratio
+    phosphorus_demand = (
+        actual_carbon_gain / functional_group.synthesis_nutrient_ratios["phosphorus"]
+    )
     inorganic_phosphorus_change = phosphorus_demand - actual_organic_phosphorus_uptake
 
     consumption_rates = NetNutrientConsumption(
@@ -1331,7 +1353,9 @@ def calculate_nutrient_uptake_rates(
     # respired instead of being uptaken. This isn't currently of interest, but will be
     # in future
 
-    return actual_carbon_gain, consumption_rates
+    return actual_carbon_gain / (
+        1 + sum(functional_group.enzyme_production.values())
+    ), consumption_rates
 
 
 def calculate_highest_achievable_nutrient_uptake(
@@ -1651,9 +1675,9 @@ def calculate_soil_nutrient_mineralisation(
 def calculate_nutrient_flows_to_necromass(
     bacterial_loss: NDArray[np.float32],
     fungal_loss: NDArray[np.float32],
-    bacterial_enzyme_denaturation: NDArray[np.float32],
-    fungal_enzyme_denaturation: NDArray[np.float32],
+    enzyme_changes: EnzymePoolChanges,
     microbial_groups: dict[str, MicrobialGroupConstants],
+    enzyme_classes: dict[str, EnzymeConstants],
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
@@ -1664,26 +1688,39 @@ def calculate_nutrient_flows_to_necromass(
         bacterial_loss: Rate at which bacterial biomass becomes necromass [kg C m^-3
             day^-1]
         fungal_loss: Rate at which fungal biomass becomes necromass [kg C m^-3 day^-1]
-        bacterial_enzyme_denaturation: Rate at which enzymes produced by bacteria
-            denature [kg C m^-3 day^-1]
-        fungal_enzyme_denaturation: Rate at which enzymes produced by fungi denature [kg
-            C m^-3 day^-1]
+        enzyme_changes: Details of the rate change for the soil enzyme pools.
         microbial_groups: Set of microbial functional groups defined in the soil model
+        enzyme_classes: Details of the enzyme classes used by the soil model.
 
     Returns:
         A tuple containing the rates at which nitrogen [kg N m^-3 day^-1] and phosphorus
         [kg P m^-3 day^-1] are added to the soil necromass pool
     """
 
+    # Calculate nutrient flows due to cellular losses
+    necromass_n_cellular = (bacterial_loss / microbial_groups["bacteria"].c_n_ratio) + (
+        fungal_loss / microbial_groups["fungi"].c_n_ratio
+    )
+    necromass_p_cellular = (bacterial_loss / microbial_groups["bacteria"].c_p_ratio) + (
+        fungal_loss / microbial_groups["fungi"].c_p_ratio
+    )
+
+    necromass_n_enzyme = sum(
+        getattr(enzyme_changes, f"denaturation_{substrate}_{group}")
+        / enzyme_classes[f"{group}_{substrate}"].c_n_ratio
+        for group in ["bacteria", "fungi"]
+        for substrate in ["maom", "pom"]
+    )
+    necromass_p_enzyme = sum(
+        getattr(enzyme_changes, f"denaturation_{substrate}_{group}")
+        / enzyme_classes[f"{group}_{substrate}"].c_p_ratio
+        for group in ["bacteria", "fungi"]
+        for substrate in ["maom", "pom"]
+    )
+
     return (
-        (bacterial_loss / microbial_groups["bacteria"].c_n_ratio)
-        + (fungal_loss / microbial_groups["fungi"].c_n_ratio)
-        + (bacterial_enzyme_denaturation / microbial_groups["bacteria"].c_n_ratio)
-        + (fungal_enzyme_denaturation / microbial_groups["fungi"].c_n_ratio),
-        (bacterial_loss / microbial_groups["bacteria"].c_p_ratio)
-        + (fungal_loss / microbial_groups["fungi"].c_p_ratio)
-        + (bacterial_enzyme_denaturation / microbial_groups["bacteria"].c_p_ratio)
-        + (fungal_enzyme_denaturation / microbial_groups["fungi"].c_p_ratio),
+        necromass_n_cellular + necromass_n_enzyme,
+        necromass_p_cellular + necromass_p_enzyme,
     )
 
 

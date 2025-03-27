@@ -199,8 +199,10 @@ class SoilModel(
             "Information required to initialise the soil model successfully extracted."
         )
 
-        microbial_groups = make_full_set_of_microbial_groups(config)
         enzyme_classes = make_full_set_of_enzymes(config)
+        microbial_groups = make_full_set_of_microbial_groups(
+            config, enzyme_classes=enzyme_classes
+        )
 
         return cls(
             data=data,
