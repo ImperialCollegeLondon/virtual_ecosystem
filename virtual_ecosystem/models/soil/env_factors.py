@@ -8,7 +8,9 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature, gas_constant
+from xarray import DataArray
 
+from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.constants import SoilConsts
 
@@ -209,9 +211,9 @@ def calculate_pH_suitability(
         lower_optimum_pH - minimum_pH
     )
     # Linear decrease from the upper threshold to maximum pH
-    pH_factors[between_opt_and_max] = (
-        soil_pH[between_opt_and_max] - upper_optimum_pH
-    ) / (maximum_pH - upper_optimum_pH)
+    pH_factors[between_opt_and_max] = (maximum_pH - soil_pH[between_opt_and_max]) / (
+        maximum_pH - upper_optimum_pH
+    )
 
     return pH_factors
 
@@ -405,3 +407,32 @@ def calculate_leaching_rate(
     """
 
     return solubility_coefficient * solute_density * vertical_flow_rate / soil_moisture
+
+
+def find_total_soil_moisture_for_microbially_active_depth(
+    soil_moistures: DataArray,
+    layer_structure: LayerStructure,
+) -> NDArray[np.float32]:
+    """Find total soil moisture for the microbially active depth.
+
+    The proportion of each soil layer that lies within the microbially active zone is
+    first found. The soil moisture for each layer is then multiplied by this proportion
+    and summed, to find the total soil moisture in the microbially active zone.
+
+    Args:
+        soil_moistures: Soil moistures across all soil layers [mm]
+        layer_structure: The LayerStructure instance for the simulation. From this we
+           use the thickness of each layer, as well as `soil_layer_active_thickness`
+           which is how much of each layer lies within the microbially active zone
+
+    Returns:
+        The total soil moisture in the microbially active depth [mm]
+    """
+
+    # Find the fraction of each layer that lies within the microbially active zone
+    layer_weights = (
+        layer_structure.soil_layer_active_thickness
+        / layer_structure.soil_layer_thickness
+    )
+
+    return np.dot(layer_weights, soil_moistures[layer_structure.index_all_soil])
