@@ -50,30 +50,6 @@ class SoilConsts(ConstantsDataclass):
     [unitless]. Value is taken from :cite:t:`moyano_responses_2013`.
     """
 
-    maintenance_bacteria_pom_enzyme: float = 1e-2
-    """Fraction of bacterial maintenance used to produce POM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    maintenance_fungi_pom_enzyme: float = 1e-2
-    """Fraction of fungal maintenance used to produce POM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    maintenance_bacteria_maom_enzyme: float = 1e-2
-    """Fraction of bacterial maintenance used to produce MAOM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    maintenance_fungi_maom_enzyme: float = 1e-2
-    """Fraction of bacterial maintenance used to produce MAOM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
     # TODO - At some point, need to allow microbial and fungal environmental factors to
     # vary
     min_pH_microbes: float = 2.5

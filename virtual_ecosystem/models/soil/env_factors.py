@@ -211,9 +211,9 @@ def calculate_pH_suitability(
         lower_optimum_pH - minimum_pH
     )
     # Linear decrease from the upper threshold to maximum pH
-    pH_factors[between_opt_and_max] = (
-        soil_pH[between_opt_and_max] - upper_optimum_pH
-    ) / (maximum_pH - upper_optimum_pH)
+    pH_factors[between_opt_and_max] = (maximum_pH - soil_pH[between_opt_and_max]) / (
+        maximum_pH - upper_optimum_pH
+    )
 
     return pH_factors
 

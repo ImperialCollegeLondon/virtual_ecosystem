@@ -98,3 +98,6 @@ class CoreConsts(ConstantsDataclass):
 
     characteristic_dimension_leaf: float = 0.01
     """Characteristic dimension of leaf, typically around 0.7 * leaf width, [m]."""
+
+    specific_gas_constant_dry_air: float = 287.05
+    """Specific gas constant for dry air, [J kg-1 K-1]."""

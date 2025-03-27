@@ -37,7 +37,7 @@ def test_calculate_environmental_effect_factors(
     )
 
     expected_water = [1.0, 0.94414168, 0.62176357, 0.07747536]
-    expected_pH = [0.25, 1.0, 0.428571428, 1.0]
+    expected_pH = [0.25, 1.0, 0.57142857, 1.0]
     expected_clay_sat = [1.782, 1.102, 0.83, 1.918]
 
     env_factors = calculate_environmental_effect_factors(
@@ -131,8 +131,8 @@ def test_calculate_pH_suitability():
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
 
-    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
-    expected_inhib = [0.25, 1.0, 0.428571428, 1.0, 0.0, 0.0]
+    pH_values = np.array([3.0, 7.5, 9.0, 10.0, 5.7, 2.0, 11.5])
+    expected_inhib = [0.25, 1.0, 0.57142857, 0.28571428, 1.0, 0.0, 0.0]
 
     actual_inhib = calculate_pH_suitability(
         soil_pH=pH_values,

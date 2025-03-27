@@ -51,7 +51,7 @@ class AbioticModel(
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "molar_density_air",
+        "density_air",
         "specific_heat_air",
         "latent_heat_vapourisation",
     ),
@@ -86,7 +86,6 @@ class AbioticModel(
     ),
     vars_populated_by_first_update=(
         "longwave_emission",
-        "molar_density_air",
         "specific_heat_air",
         "latent_heat_vapourisation",
     ),

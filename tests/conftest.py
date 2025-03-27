@@ -103,6 +103,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 5.2
         c_p_ratio = 16
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.microbial_group_definition]]
         name = "fungi"
@@ -121,6 +123,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 6.5
         c_p_ratio = 40.0
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -131,6 +135,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -141,6 +147,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -151,6 +159,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -161,6 +171,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
         """
 
 
@@ -488,7 +500,7 @@ def dummy_climate_data(fixture_core_components):
     spatially_constant = {
         "sensible_heat_flux_soil": 1,
         "latent_heat_flux_soil": 1,
-        "zero_displacement_height": 20.0,
+        "zero_plane_displacement": 20.0,
         "diabatic_correction_heat_above": 0.1,
         "diabatic_correction_heat_canopy": 1.0,
         "diabatic_correction_momentum_above": 0.1,
@@ -554,8 +566,11 @@ def dummy_climate_data(fixture_core_components):
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
 
+    data["density_air"] = from_template()
+    data["density_air"][lyr_str.index_filled_atmosphere] = 1.255
+
     data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 29.0
+    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
 
     data["attenuation_coefficient"] = from_template()
     data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(
@@ -568,7 +583,7 @@ def dummy_climate_data(fixture_core_components):
     )[:, None]
 
     data["latent_heat_vapourisation"] = from_template()
-    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2254.0
+    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0

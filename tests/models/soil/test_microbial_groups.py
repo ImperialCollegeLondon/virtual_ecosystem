@@ -11,7 +11,7 @@ from tests.conftest import log_check
 from virtual_ecosystem.core.config import Config, ConfigurationError
 
 
-def test_make_full_set_of_microbial_groups(fixture_config):
+def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
     """Test that the function to make all the microbial group works."""
     from virtual_ecosystem.models.soil.microbial_groups import (
         MicrobialGroupConstants,
@@ -20,7 +20,9 @@ def test_make_full_set_of_microbial_groups(fixture_config):
 
     expected_groups = ["bacteria", "fungi"]
 
-    functional_groups = make_full_set_of_microbial_groups(fixture_config)
+    functional_groups = make_full_set_of_microbial_groups(
+        fixture_config, enzyme_classes=enzyme_classes
+    )
 
     assert set(expected_groups) == set(functional_groups.keys())
 
@@ -61,6 +63,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
             """,
             [
                 (
@@ -90,6 +94,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
             name = "fungi"
@@ -108,6 +114,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -126,6 +134,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
             """,
             [
                 (
@@ -154,6 +164,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -172,6 +184,8 @@ def test_make_full_set_of_microbial_groups(fixture_config):
             reference_temperature = 12.0
             c_n_ratio = 5.2
             c_p_ratio = 16
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
             """,
             [
                 (
@@ -188,7 +202,9 @@ def test_make_full_set_of_microbial_groups(fixture_config):
         ),
     ],
 )
-def test_make_full_set_of_microbial_groups_errors(caplog, cfg_strings, exp_log):
+def test_make_full_set_of_microbial_groups_errors(
+    caplog, enzyme_classes, cfg_strings, exp_log
+):
     """Check that bad configs generate errors during microbial group generation."""
     from virtual_ecosystem.models.soil.microbial_groups import (
         make_full_set_of_microbial_groups,
@@ -198,7 +214,7 @@ def test_make_full_set_of_microbial_groups_errors(caplog, cfg_strings, exp_log):
     caplog.clear()
 
     with pytest.raises(ConfigurationError):
-        _ = make_full_set_of_microbial_groups(config)
+        _ = make_full_set_of_microbial_groups(config, enzyme_classes=enzyme_classes)
 
     log_check(caplog, exp_log)
 
@@ -247,6 +263,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "bacteria"
@@ -257,7 +275,9 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
-
+            c_n_ratio = 5.2
+            c_p_ratio = 16
+            
             [[soil.enzyme_class_definition]]
             source = "fungi"
             substrate = "pom"
@@ -267,6 +287,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
             """,
             [
                 (
@@ -274,7 +296,7 @@ def test_make_full_set_of_enzymes(fixture_config):
                     "The following expected enzyme classes are not defined: fungi_maom",
                 )
             ],
-            id="missing_most_fungi_maom",
+            id="missing_fungi_maom",
         ),
         pytest.param(  # archaea included but they shouldn't be
             """
@@ -287,6 +309,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "bacteria"
@@ -297,6 +321,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -307,6 +333,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -317,6 +345,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -327,6 +357,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
             """,
             [
                 (
@@ -347,6 +379,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 5.2
+            c_p_ratio = 16
 
             [[soil.enzyme_class_definition]]
             source = "fungi"
@@ -357,6 +391,8 @@ def test_make_full_set_of_enzymes(fixture_config):
             activation_energy_saturation = 30000
             reference_temperature = 12.0
             turnover_rate = 2.4e-2
+            c_n_ratio = 6.5
+            c_p_ratio = 40.0
             """,
             [
                 (
@@ -385,3 +421,45 @@ def test_make_full_set_of_enzymes_errors(caplog, cfg_strings, exp_log):
         _ = make_full_set_of_enzymes(config)
 
     log_check(caplog, exp_log)
+
+
+def test_find_enzyme_substrates(fixture_config, enzyme_classes):
+    """Check method to find the full set of substrates a microbe can use works."""
+    from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
+
+    bacteria = MicrobialGroupConstants.build_microbial_group(
+        group_config=next(
+            functional_group
+            for functional_group in fixture_config["soil"]["microbial_group_definition"]
+            if functional_group["name"] == "bacteria"
+        ),
+        enzyme_classes=enzyme_classes,
+    )
+
+    assert set(bacteria.find_enzyme_substrates()) == set(["maom", "pom"])
+
+
+def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_classes):
+    """Check method to calculate average new biomass nutrient ratios works."""
+    import numpy as np
+
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        calculate_new_biomass_average_nutrient_ratios,
+    )
+
+    group_config = next(
+        functional_group
+        for functional_group in fixture_config["soil"]["microbial_group_definition"]
+        if functional_group["name"] == "bacteria"
+    )
+
+    averaged_nutrient_ratios = calculate_new_biomass_average_nutrient_ratios(
+        name=group_config["name"],
+        c_n_ratio=5.7,
+        c_p_ratio=15.5,
+        enzyme_production=group_config["enzyme_production"],
+        enzyme_classes=enzyme_classes,
+    )
+
+    assert np.isclose(averaged_nutrient_ratios["nitrogen"], 5.695)
+    assert np.isclose(averaged_nutrient_ratios["phosphorus"], 15.505)

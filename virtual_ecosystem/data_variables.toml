@@ -273,8 +273,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Temperature-dependent molar density of air"
-name = "molar_density_air"
+description = "Temperature-dependent density of air"
+name = "density_air"
 unit = "kg m-3"
 variable_type = "float"
 
@@ -429,7 +429,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Specific heat of air"
 name = "specific_heat_air"
-unit = "kJ kg-1"
+unit = "kJ kg-1 K-1"
 variable_type = "float"
 
 [[variable]]
@@ -539,8 +539,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Zero displacement height"
-name = "zero_displacement_height"
+description = "Zero plane displacement height"
+name = "zero_plane_displacement"
 unit = "m"
 variable_type = "float"
 
