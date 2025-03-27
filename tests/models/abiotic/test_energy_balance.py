@@ -115,6 +115,39 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
+def test_calculate_sensible_heat_flux(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of sensible heat flux."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_sensible_heat_flux,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    index = fixture_core_components.layer_structure.index_filled_canopy
+    # Compute flux
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
+    )
+
+    # Expected result (manually calculated)
+    expected_flux = np.array(
+        [
+            [-0.489356, -0.489356, -0.489356, -0.489356],
+            [-0.390997, -0.390997, np.nan, np.nan],
+            [-0.222852, np.nan, np.nan, np.nan],
+        ]
+    )
+
+    # Assert all elements are close
+    np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
+
+
 @pytest.mark.parametrize(
     "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
     [
