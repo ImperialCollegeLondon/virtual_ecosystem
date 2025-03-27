@@ -9,6 +9,8 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.10.14
+execution:
+  timeout: 60
 jupytext:
   formats: md:myst
   text_representation:
