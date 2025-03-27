@@ -392,3 +392,40 @@ def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
     )
 
     assert np.allclose(expected_rate, actual_rate)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_soil_moisture",
+    [
+        pytest.param(
+            True,
+            [265.73973825, 294.34301675, 186.715737, 101.65406175],
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            [116.307750625, 98.443665875, 63.0328985, 37.815975875],
+            id="normal depth",
+        ),
+    ],
+)
+def test_find_total_soil_moisture_for_microbially_active_depth(
+    dummy_carbon_data, fixture_core_components, increased_depth, expected_soil_moisture
+):
+    """Test that finding the total soil moisture works as expected."""
+    from virtual_ecosystem.models.soil.env_factors import (
+        find_total_soil_moisture_for_microbially_active_depth,
+    )
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.25]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+
+    actual_soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+        soil_moistures=dummy_carbon_data["soil_moisture"],
+        layer_structure=fixture_core_components.layer_structure,
+    )
+
+    assert np.allclose(actual_soil_moisture, expected_soil_moisture)

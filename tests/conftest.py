@@ -425,19 +425,27 @@ def dummy_carbon_data(fixture_core_components):
     lyr_str = fixture_core_components.layer_structure
 
     data["soil_moisture"] = lyr_str.from_template()
-    data["soil_moisture"][lyr_str.index_topsoil] = np.array(
-        [232.61550125, 196.88733175, 126.065797, 75.63195175]
+    data["soil_moisture"][lyr_str.index_all_soil] = np.array(
+        [
+            [232.61550125, 196.88733175, 126.065797, 75.63195175],
+            [66.248474, 194.91137, 121.29988, 52.04422],
+        ]
     )
 
     data["matric_potential"] = lyr_str.from_template()
-    data["matric_potential"][lyr_str.index_topsoil] = np.array(
-        [-3.0, -10.0, -250.0, -10000.0]
+    data["matric_potential"][lyr_str.index_all_soil] = np.array(
+        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
     )
 
     data["soil_temperature"] = lyr_str.from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = np.array(
         [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
     )
+
+    data["air_temperature"] = lyr_str.from_template()
+    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
 
     return data
 
