@@ -103,6 +103,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 5.2
         c_p_ratio = 16
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.microbial_group_definition]]
         name = "fungi"
@@ -121,6 +123,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 6.5
         c_p_ratio = 40.0
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -131,6 +135,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -141,6 +147,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -151,6 +159,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -161,6 +171,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
         """
 
 
@@ -457,19 +469,27 @@ def dummy_carbon_data(fixture_core_components):
     lyr_str = fixture_core_components.layer_structure
 
     data["soil_moisture"] = lyr_str.from_template()
-    data["soil_moisture"][lyr_str.index_topsoil] = np.array(
-        [232.61550125, 196.88733175, 126.065797, 75.63195175]
+    data["soil_moisture"][lyr_str.index_all_soil] = np.array(
+        [
+            [232.61550125, 196.88733175, 126.065797, 75.63195175],
+            [66.248474, 194.91137, 121.29988, 52.04422],
+        ]
     )
 
     data["matric_potential"] = lyr_str.from_template()
-    data["matric_potential"][lyr_str.index_topsoil] = np.array(
-        [-3.0, -10.0, -250.0, -10000.0]
+    data["matric_potential"][lyr_str.index_all_soil] = np.array(
+        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
     )
 
     data["soil_temperature"] = lyr_str.from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = np.array(
         [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
     )
+
+    data["air_temperature"] = lyr_str.from_template()
+    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
 
     return data
 
@@ -590,8 +610,11 @@ def dummy_climate_data(fixture_core_components):
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
 
+    data["density_air"] = from_template()
+    data["density_air"][lyr_str.index_filled_atmosphere] = 1.255
+
     data["specific_heat_air"] = from_template()
-    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 29.0
+    data["specific_heat_air"][lyr_str.index_filled_atmosphere] = 1.006
 
     data["attenuation_coefficient"] = from_template()
     data["attenuation_coefficient"][lyr_str.index_filled_atmosphere] = np.array(
@@ -604,7 +627,7 @@ def dummy_climate_data(fixture_core_components):
     )[:, None]
 
     data["latent_heat_vapourisation"] = from_template()
-    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2254.0
+    data["latent_heat_vapourisation"][lyr_str.index_filled_atmosphere] = 2442.0
 
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0

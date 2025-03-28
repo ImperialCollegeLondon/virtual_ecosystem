@@ -27,7 +27,7 @@ from xarray import DataArray, where
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
-from virtual_ecosystem.core.core_components import CoreComponents
+from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
@@ -199,8 +199,10 @@ class SoilModel(
             "Information required to initialise the soil model successfully extracted."
         )
 
-        microbial_groups = make_full_set_of_microbial_groups(config)
         enzyme_classes = make_full_set_of_enzymes(config)
+        microbial_groups = make_full_set_of_microbial_groups(
+            config, enzyme_classes=enzyme_classes
+        )
 
         return cls(
             data=data,
@@ -332,7 +334,7 @@ class SoilModel(
             args=(
                 self.data,
                 no_cells,
-                self.layer_structure.index_topsoil_scalar,
+                self.layer_structure,
                 delta_pools_ordered,
                 self.model_constants,
                 self.microbial_groups,
@@ -404,7 +406,7 @@ def construct_full_soil_model(
     pools: NDArray[np.float32],
     data: Data,
     no_cells: int,
-    top_soil_layer_index: int,
+    layer_structure: LayerStructure,
     delta_pools_ordered: dict[str, NDArray[np.float32]],
     model_constants: SoilConsts,
     functional_groups: dict[str, MicrobialGroupConstants],
@@ -422,7 +424,8 @@ def construct_full_soil_model(
         pools: An array containing all soil pools in a single vector
         data: The data object, used to populate the arguments i.e. pH and bulk density
         no_cells: Number of grid cells the integration is being performed over
-        top_soil_layer_index: Index for layer in data object representing top soil layer
+        layer_structure: The details of the layer structure used across the Virtual
+            Ecosystem.
         delta_pools_ordered: Dictionary to store pool changes in the order that pools
             are stored in the initial condition vector.
         model_constants: Set of constants for the soil model.
@@ -457,7 +460,7 @@ def construct_full_soil_model(
 
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
-        top_soil_layer_index=top_soil_layer_index,
+        layer_structure=layer_structure,
         # TODO - This needs to be reconsidered as part of the soil-abiotic links review
         soil_moisture_capacity=soil_moisture_capacity,
         top_soil_layer_thickness=top_soil_layer_thickness,

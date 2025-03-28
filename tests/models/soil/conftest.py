@@ -2,8 +2,6 @@
 
 import pytest
 
-from virtual_ecosystem.models.soil.env_factors import EnvironmentalEffectFactors
-
 
 @pytest.fixture
 def fixture_soil_config(microbial_groups_cfg):
@@ -51,38 +49,16 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
     """Environmental factors based on dummy carbon data."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
-        calculate_clay_impact_on_enzyme_saturation,
-        calculate_pH_suitability,
-        calculate_water_potential_impact_on_microbes,
+        calculate_environmental_effect_factors,
     )
 
-    soil_constants = SoilConsts()
-
-    water_factors = calculate_water_potential_impact_on_microbes(
-        water_potential=dummy_carbon_data["matric_potential"][
+    return calculate_environmental_effect_factors(
+        soil_water_potential=dummy_carbon_data["matric_potential"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        water_potential_halt=soil_constants.soil_microbe_water_potential_halt,
-        water_potential_opt=soil_constants.soil_microbe_water_potential_optimum,
-        response_curvature=soil_constants.microbial_water_response_curvature,
-    )
-
-    pH_factors = calculate_pH_suitability(
-        soil_pH=dummy_carbon_data["pH"].to_numpy(),
-        maximum_pH=soil_constants.max_pH_microbes,
-        minimum_pH=soil_constants.min_pH_microbes,
-        lower_optimum_pH=soil_constants.lowest_optimal_pH_microbes,
-        upper_optimum_pH=soil_constants.highest_optimal_pH_microbes,
-    )
-
-    clay_saturation_factors = calculate_clay_impact_on_enzyme_saturation(
+        pH=dummy_carbon_data["pH"].to_numpy(),
         clay_fraction=dummy_carbon_data["clay_fraction"].to_numpy(),
-        base_protection=soil_constants.base_soil_protection,
-        protection_with_clay=soil_constants.soil_protection_with_clay,
-    )
-
-    return EnvironmentalEffectFactors(
-        water=water_factors, pH=pH_factors, clay_saturation=clay_saturation_factors
+        constants=SoilConsts,
     )
 
 
@@ -189,13 +165,15 @@ def maom_desorption(dummy_carbon_data):
 
 
 @pytest.fixture
-def functional_groups(fixture_config):
+def functional_groups(fixture_config, enzyme_classes):
     """Set of functional groups based on the soil model constants."""
     from virtual_ecosystem.models.soil.microbial_groups import (
         make_full_set_of_microbial_groups,
     )
 
-    return make_full_set_of_microbial_groups(config=fixture_config)
+    return make_full_set_of_microbial_groups(
+        config=fixture_config, enzyme_classes=enzyme_classes
+    )
 
 
 @pytest.fixture
@@ -206,6 +184,20 @@ def enzyme_classes(fixture_config):
     )
 
     return make_full_set_of_enzymes(config=fixture_config)
+
+
+@pytest.fixture
+def enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):
+    """Changes for each each enzyme class."""
+    from virtual_ecosystem.models.soil.pools import (
+        calculate_enzyme_changes,
+    )
+
+    return calculate_enzyme_changes(
+        pools=soil_pool_data,
+        enzyme_production=enzyme_production,
+        enzyme_classes=enzyme_classes,
+    )
 
 
 @pytest.fixture
@@ -232,3 +224,62 @@ def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components
     )
 
     return {"bacteria": bacterial_biomass_loss, "fungi": fungal_biomass_loss}
+
+
+@pytest.fixture
+def growth_rates(
+    environmental_factors,
+    functional_groups,
+    soil_pool_data,
+    dummy_carbon_data,
+    fixture_core_components,
+):
+    """Fixture to store growth rates of all the microbial groups."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_uptake_rates
+
+    bacterial_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        constants=SoilConsts,
+        functional_group=functional_groups["bacteria"],
+    )
+    fungal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_fungi,
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=dummy_carbon_data["soil_temperature"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ],
+        constants=SoilConsts,
+        functional_group=functional_groups["fungi"],
+    )
+
+    return {"bacteria": bacterial_growth, "fungi": fungal_growth}
+
+
+@pytest.fixture
+def enzyme_production(functional_groups, growth_rates):
+    """Fixture to store the total production rates for each enzyme class."""
+    from virtual_ecosystem.models.soil.pools import calculate_enzyme_production
+
+    return calculate_enzyme_production(
+        microbial_groups=functional_groups,
+        growth_rates=growth_rates,
+    )
