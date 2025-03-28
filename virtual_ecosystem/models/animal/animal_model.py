@@ -765,7 +765,7 @@ class AnimalModel(
         """This handles remove_dead_cohort for all cohorts in a community."""
         # Collect cohorts to remove (to avoid modifying the dictionary during iteration)
         cohorts_to_remove = [
-            cohort for cohort in self.active_cohorts.values() if cohort.individuals <= 0
+            cohort for cohort in self.active_cohorts.values() if cohort.individuals == 0
         ]
 
         # Remove each cohort
@@ -791,7 +791,7 @@ class AnimalModel(
             parent_cohort, reproductive_mass
         )
 
-        if number_offspring <= 0:
+        if number_offspring == 0:
             return  # Insufficient mass for offspring
 
         self.handle_offspring_creation(parent_cohort, number_offspring)
@@ -1197,6 +1197,7 @@ class AnimalModel(
         """
 
         dt_float = float(dt / timedelta64(1, "D"))
+
         for cohort in list(self.migrated_cohorts.values()):
             cohort.remaining_time_away -= dt_float
             if cohort.remaining_time_away <= 0:
