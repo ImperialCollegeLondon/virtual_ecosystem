@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import random
 import uuid
 from math import ceil, exp, sqrt
+from typing import Literal
 
 from numpy import timedelta64
 
@@ -24,11 +26,7 @@ from virtual_ecosystem.models.animal.protocols import Resource
 
 
 class AnimalCohort:
-    """This is a class of animal cohorts.
-
-    TODO: Implement stoichiometric reproduction
-
-    """
+    """This is a class of animal cohorts."""
 
     def __init__(
         self,
@@ -60,12 +58,12 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.location_status: Literal["active", "migrated", "aquatic"] = "active"
+        """Location status of the cohort, active means present and participating."""
+        self.remaining_time_away: float = 0.0
+        """Remaining time that the cohort is frozen in a migrated or aquatic state."""
         self.id: uuid.UUID = uuid.uuid4()
         """A unique identifier for the cohort."""
-        # self.damuth_density: int = sf.damuths_law(
-        #    self.functional_group.adult_mass, self.functional_group.damuths_law_terms
-        # )
-        """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.is_mature: bool = False
@@ -1403,3 +1401,20 @@ class AnimalCohort:
         for cell_id in intersecting_keys:
             intersecting_carcass_pools.extend(carcass_pools[cell_id])
         return intersecting_carcass_pools
+
+    def is_migration_season(self) -> bool:
+        """Handles determination of whether it is time to migrate.
+
+        Temporary probabilistic migration.
+
+        TODO: update when we have seasonality
+
+        Returns: A bool of whether it is time to migrate.
+
+
+        Notes:
+            This method uses Python's built-in :func:`random.random` function.
+
+        """
+
+        return random.random() <= self.constants.seasonal_migration_probability

@@ -1994,3 +1994,33 @@ class TestAnimalCohort:
             "The calculated number of dead individuals doesn't match the expected "
             "value."
         )
+
+    @pytest.mark.parametrize(
+        "mock_random, expected_result",
+        [
+            (0.0, True),  # Always migrate (random value < probability)
+            (0.05, True),  # Should migrate (0.05 < 0.083)
+            (0.083, True),  # Edge case (should migrate)
+            (0.084, False),  # Just above threshold
+            (0.5, False),  # Should not migrate
+            (0.99, False),  # Almost certain not to migrate
+        ],
+    )
+    def test_is_migration_season(
+        self, mocker, herbivore_cohort_instance, mock_random, expected_result
+    ):
+        """Test whether is_migration_season correctly triggers based on probability."""
+
+        # Mock the correct module where random() is called
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.random.random",
+            return_value=mock_random,
+        )
+
+        # Run function
+        result = herbivore_cohort_instance.is_migration_season()
+
+        # Ensure print happens even if the test fails
+        assert result == expected_result, (
+            f"\n[ASSERT FAILED] Expected {expected_result} but got {result}\n"
+        )
