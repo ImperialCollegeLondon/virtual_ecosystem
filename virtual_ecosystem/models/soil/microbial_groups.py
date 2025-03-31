@@ -239,7 +239,12 @@ def make_full_set_of_microbial_groups(
         LOGGER.critical(msg)
         raise ConfigurationError(msg)
 
-    expected_groups = {"saprotrophic_fungi", "bacteria"}
+    expected_groups = {
+        "saprotrophic_fungi",
+        "ectomycorrhiza",
+        "arbuscular_mycorrhiza",
+        "bacteria",
+    }
     defined_groups = {
         group["name"] for group in config["soil"]["microbial_group_definition"]
     }

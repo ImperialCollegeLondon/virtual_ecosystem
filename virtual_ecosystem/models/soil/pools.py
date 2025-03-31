@@ -77,8 +77,15 @@ class MicrobialChanges:
     bacteria_change: NDArray[np.float32]
     """Rate of change of bacterial biomass pool [kg C m^-3 day^-1]."""
 
-    fungi_change: NDArray[np.float32]
-    """Rate of change of fungal biomass pool [kg C m^-3 day^-1]."""
+    saprotrophic_fungi_change: NDArray[np.float32]
+    """Rate of change of saprotrophic fungal biomass pool [kg C m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza_change: NDArray[np.float32]
+    """Rate of change of arbuscular mycorrhizal fungi biomass pool [kg C m^-3 day^-1].
+    """
+
+    ectomycorrhiza_change: NDArray[np.float32]
+    """Rate of change of ectomycorrhizal fungi biomass pool [kg C m^-3 day^-1]."""
 
     pom_enzyme_bacteria_change: NDArray[np.float32]
     """Rate of change for the bacterially produced :term:`POM` degrading enzymes.
@@ -221,6 +228,12 @@ class BiomassLosses:
     saprotrophic_fungi: NDArray[np.float32]
     """Rate of loss of saprotrophic fungal biomass [kg C m^-3 day^-1]."""
 
+    ectomycorrhiza: NDArray[np.float32]
+    """Rate of loss of ectomycorrhizal fungal biomass [kg C m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza: NDArray[np.float32]
+    """Rate of loss of arbuscular mycorrhizal fungal biomass [kg C m^-3 day^-1]."""
+
 
 @dataclass
 class LeachingRates:
@@ -291,7 +304,13 @@ class PoolData:
     """Bacterial biomass pool [kg C m^-3]."""
 
     soil_c_pool_saprotrophic_fungi: NDArray[np.float32]
-    """Fungal biomass pool [kg C m^-3]."""
+    """Saprotrophic fungi biomass pool [kg C m^-3]."""
+
+    soil_c_pool_arbuscular_mycorrhiza: NDArray[np.float32]
+    """Arbuscular mycorrhizal fungi biomass pool [kg C m^-3]."""
+
+    soil_c_pool_ectomycorrhiza: NDArray[np.float32]
+    """Ectomycorrhizal fungi biomass pool [kg C m^-3]."""
 
     soil_c_pool_pom: NDArray[np.float32]
     """Particulate organic matter pool [kg C m^-3]."""
@@ -634,7 +653,13 @@ class SoilPools:
         )
         delta_pools_ordered["soil_c_pool_bacteria"] = microbial_changes.bacteria_change
         delta_pools_ordered["soil_c_pool_saprotrophic_fungi"] = (
-            microbial_changes.fungi_change
+            microbial_changes.saprotrophic_fungi_change
+        )
+        delta_pools_ordered["soil_c_pool_arbuscular_mycorrhiza"] = (
+            microbial_changes.arbuscular_mycorrhiza_change
+        )
+        delta_pools_ordered["soil_c_pool_ectomycorrhiza"] = (
+            microbial_changes.ectomycorrhiza_change
         )
         delta_pools_ordered["soil_c_pool_pom"] = (
             litter_mineralisation_flux.pom - enzyme_mediated.pom_to_lmwc
@@ -794,7 +819,7 @@ def calculate_microbial_changes(
         constants=constants,
         functional_group=microbial_groups["bacteria"],
     )
-    fungal_growth, fungal_uptake = calculate_nutrient_uptake_rates(
+    saprotrophic_fungal_growth, fungal_uptake = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
         soil_n_pool_don=pools.soil_n_pool_don,
         soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
@@ -808,6 +833,36 @@ def calculate_microbial_changes(
         constants=constants,
         functional_group=microbial_groups["saprotrophic_fungi"],
     )
+    # TODO - These functions need to be changed (but this can stay for now)
+    # TODO - They also need to calculate uptake, but I'm not quite ready for that yet
+    arbuscular_mycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
+        soil_n_pool_don=pools.soil_n_pool_don,
+        soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
+        soil_p_pool_dop=pools.soil_p_pool_dop,
+        soil_p_pool_labile=pools.soil_p_pool_labile,
+        microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        soil_temp=soil_temp,
+        constants=constants,
+        functional_group=microbial_groups["arbuscular_mycorrhiza"],
+    )
+    ectomycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
+        soil_n_pool_don=pools.soil_n_pool_don,
+        soil_n_pool_ammonium=pools.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
+        soil_p_pool_dop=pools.soil_p_pool_dop,
+        soil_p_pool_labile=pools.soil_p_pool_labile,
+        microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
+        water_factor=env_factors.water,
+        pH_factor=env_factors.pH,
+        soil_temp=soil_temp,
+        constants=constants,
+        functional_group=microbial_groups["ectomycorrhiza"],
+    )
 
     biomass_losses = calculate_biomass_losses(
         pools=pools, microbial_groups=microbial_groups, soil_temp=soil_temp
@@ -818,7 +873,9 @@ def calculate_microbial_changes(
         microbial_groups=microbial_groups,
         growth_rates={
             "bacteria": bacterial_growth,
-            "saprotrophic_fungi": fungal_growth,
+            "saprotrophic_fungi": saprotrophic_fungal_growth,
+            "arbuscular_mycorrhiza": arbuscular_mycorrhizal_growth,
+            "ectomycorrhiza": ectomycorrhizal_growth,
         },
     )
 
@@ -849,7 +906,11 @@ def calculate_microbial_changes(
             bacterial_uptake.inorganic_phosphorus + fungal_uptake.inorganic_phosphorus
         ),
         bacteria_change=bacterial_growth - biomass_losses.bacteria,
-        fungi_change=fungal_growth - biomass_losses.saprotrophic_fungi,
+        saprotrophic_fungi_change=saprotrophic_fungal_growth
+        - biomass_losses.saprotrophic_fungi,
+        arbuscular_mycorrhiza_change=arbuscular_mycorrhizal_growth
+        - biomass_losses.arbuscular_mycorrhiza,
+        ectomycorrhiza_change=ectomycorrhizal_growth - biomass_losses.ectomycorrhiza,
         pom_enzyme_bacteria_change=enzyme_changes.net_change_pom_bacteria,
         maom_enzyme_bacteria_change=enzyme_changes.net_change_maom_bacteria,
         pom_enzyme_fungi_change=enzyme_changes.net_change_pom_fungi,
@@ -861,6 +922,8 @@ def calculate_microbial_changes(
             + enzyme_changes.denaturation_maom_fungi
             + biomass_losses.bacteria
             + biomass_losses.saprotrophic_fungi
+            + biomass_losses.arbuscular_mycorrhiza
+            + biomass_losses.ectomycorrhiza
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,

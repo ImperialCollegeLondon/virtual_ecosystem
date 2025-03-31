@@ -18,6 +18,8 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_saprotrophic_fungi' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_arbuscular_mycorrhiza' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_ectomycorrhiza' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
@@ -358,6 +360,14 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.88678846, 8.51959122, 2.2017577, 4.52566274],
                         dims="cell_id",
                     ),
+                    soil_c_pool_arbuscular_mycorrhiza=DataArray(
+                        [0.88678846, 8.51959122, 2.2017577, 4.52566274],
+                        dims="cell_id",
+                    ),
+                    soil_c_pool_ectomycorrhiza=DataArray(
+                        [0.88678846, 8.51959122, 2.2017577, 4.52566274],
+                        dims="cell_id",
+                    ),
                     soil_c_pool_pom=DataArray(
                         [0.10019111, 0.98701374, 0.68908282, 0.35261025], dims="cell_id"
                     ),
@@ -604,6 +614,14 @@ def test_construct_full_soil_model(
         -6.211968e-2,
         -1.680347e-2,
         -2.891271e-2,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
         3.73447584e-4,
         -2.62977207e-2,
         -2.214249e-2,

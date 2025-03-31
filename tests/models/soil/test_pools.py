@@ -55,6 +55,18 @@ def test_calculate_all_pool_updates(
             -1.680347e-2,
             -2.891271e-2,
         ],
+        "soil_c_pool_arbuscular_mycorrhiza": [
+            -6.507313e-3,
+            -6.211968e-2,
+            -1.680347e-2,
+            -2.891271e-2,
+        ],
+        "soil_c_pool_ectomycorrhiza": [
+            -6.507313e-3,
+            -6.211968e-2,
+            -1.680347e-2,
+            -2.891271e-2,
+        ],
         "soil_c_pool_pom": [3.73447584e-4, -2.62977207e-2, -2.214249e-2, 5.219897e-3],
         "soil_c_pool_necromass": [-2.296284e-3, 6.9255912e-2, 2.2051989e-2, -6.1268e-2],
         "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
@@ -198,6 +210,8 @@ def test_calculate_biomass_losses(
     expected_losses = {
         "bacteria": [0.04254605, 0.01744744, 0.08862048, 0.00639588],
         "saprotrophic_fungi": [0.00652862, 0.06485897, 0.01733197, 0.02903729],
+        "arbuscular_mycorrhiza": [0.00476809, 0.01115119, 0.03074268, 0.05781874],
+        "ectomycorrhiza": [0.0034477, 0.01001331, 0.03293859, 0.02411246],
     }
 
     actual_losses = calculate_biomass_losses(

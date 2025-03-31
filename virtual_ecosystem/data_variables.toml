@@ -574,6 +574,20 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Soil arbuscular mycorrhizal fungal biomass (carbon) pool"
+name = "soil_c_pool_arbuscular_mycorrhiza"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Soil ectomycorrhizal fungal biomass (carbon) pool"
+name = "soil_c_pool_ectomycorrhiza"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Particulate organic matter pool"
 name = "soil_c_pool_pom"
 unit = "kg C m^-3"

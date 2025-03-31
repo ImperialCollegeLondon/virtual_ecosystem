@@ -218,11 +218,7 @@ def biomass_losses(soil_pool_data, functional_groups, averaged_soil_temp):
 
 @pytest.fixture
 def growth_rates(
-    environmental_factors,
-    functional_groups,
-    soil_pool_data,
-    dummy_carbon_data,
-    fixture_core_components,
+    environmental_factors, functional_groups, soil_pool_data, averaged_soil_temp
 ):
     """Fixture to store growth rates of all the microbial groups."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -238,13 +234,11 @@ def growth_rates(
         microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         constants=SoilConsts,
         functional_group=functional_groups["bacteria"],
     )
-    fungal_growth, _ = calculate_nutrient_uptake_rates(
+    saprotrophic_fungal_growth, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
         soil_n_pool_don=soil_pool_data.soil_n_pool_don,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
@@ -254,14 +248,45 @@ def growth_rates(
         microbial_pool_size=soil_pool_data.soil_c_pool_saprotrophic_fungi,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         constants=SoilConsts,
         functional_group=functional_groups["saprotrophic_fungi"],
     )
+    arbuscular_mycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_arbuscular_mycorrhiza,
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=averaged_soil_temp,
+        constants=SoilConsts,
+        functional_group=functional_groups["arbuscular_mycorrhiza"],
+    )
+    ectomycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_ectomycorrhiza,
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=averaged_soil_temp,
+        constants=SoilConsts,
+        functional_group=functional_groups["ectomycorrhiza"],
+    )
 
-    return {"bacteria": bacterial_growth, "saprotrophic_fungi": fungal_growth}
+    return {
+        "bacteria": bacterial_growth,
+        "saprotrophic_fungi": saprotrophic_fungal_growth,
+        "arbuscular_mycorrhiza": arbuscular_mycorrhizal_growth,
+        "ectomycorrhiza": ectomycorrhizal_growth,
+    }
 
 
 @pytest.fixture

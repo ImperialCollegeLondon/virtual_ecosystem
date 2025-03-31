@@ -18,7 +18,12 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
         make_full_set_of_microbial_groups,
     )
 
-    expected_groups = ["bacteria", "saprotrophic_fungi"]
+    expected_groups = [
+        "bacteria",
+        "saprotrophic_fungi",
+        "arbuscular_mycorrhiza",
+        "ectomycorrhiza",
+    ]
 
     functional_groups = make_full_set_of_microbial_groups(
         fixture_config, enzyme_classes=enzyme_classes
@@ -70,8 +75,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             [
                 (
                     CRITICAL,
-                    "The following expected soil microbial groups are not defined: "
-                    "saprotrophic_fungi",
+                    "The following expected soil microbial groups are not defined: ",
                 )
             ],
             id="missing_fungi",
@@ -119,6 +123,48 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+
+            [[soil.microbial_group_definition]]
+            name = "arbuscular_mycorrhiza"
+            taxonomic_group = "fungi"
+            max_uptake_rate_labile_C = 0.04
+            activation_energy_uptake_rate = 47000
+            half_sat_labile_C_uptake = 0.364
+            activation_energy_uptake_saturation = 30000
+            max_uptake_rate_ammonium = 5e-3
+            half_sat_ammonium_uptake = 0.02275
+            max_uptake_rate_nitrate = 5e-4
+            half_sat_nitrate_uptake = 0.02275
+            max_uptake_rate_labile_p = 0.0025
+            half_sat_labile_p_uptake = 0.02275
+            turnover_rate = 0.005
+            activation_energy_turnover = 20000
+            reference_temperature = 12.0
+            c_n_ratio = 18.0
+            c_p_ratio = 120.0
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
+
+            [[soil.microbial_group_definition]]
+            name = "ectomycorrhiza"
+            taxonomic_group = "fungi"
+            max_uptake_rate_labile_C = 0.04
+            activation_energy_uptake_rate = 47000
+            half_sat_labile_C_uptake = 0.364
+            activation_energy_uptake_saturation = 30000
+            max_uptake_rate_ammonium = 5e-3
+            half_sat_ammonium_uptake = 0.02275
+            max_uptake_rate_nitrate = 5e-4
+            half_sat_nitrate_uptake = 0.02275
+            max_uptake_rate_labile_p = 0.0025
+            half_sat_labile_p_uptake = 0.02275
+            turnover_rate = 0.005
+            activation_energy_turnover = 20000
+            reference_temperature = 12.0
+            c_n_ratio = 18.0
+            c_p_ratio = 120.0
+            enzyme_production.pom = 0.02
+            enzyme_production.maom = 0.02
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -196,8 +242,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             [
                 (
                     CRITICAL,
-                    "The following expected soil microbial groups are not defined: "
-                    "saprotrophic_fungi",
+                    "The following expected soil microbial groups are not defined: ",
                 ),
                 (
                     CRITICAL,

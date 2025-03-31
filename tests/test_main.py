@@ -25,6 +25,8 @@ INITIALISATION_LOG = [
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_saprotrophic_fungi' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_arbuscular_mycorrhiza' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_ectomycorrhiza' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
