@@ -59,6 +59,9 @@ class MicrobialGroupConstants:
     name: str
     """The name of the microbial group functional type."""
 
+    taxonomic_group: str
+    """The high level taxonomic group that the microbial group belongs to."""
+
     max_uptake_rate_labile_C: float
     """Maximum rate at the reference temperature of labile carbon uptake [day^-1]."""
 
@@ -133,10 +136,20 @@ class MicrobialGroupConstants:
             enzyme_classes: Details of the enzyme classes used by the soil model.
         """
 
+        valid_taxonomic_groups = {"fungi", "bacteria"}
+
+        if group_config["taxonomic_group"] not in valid_taxonomic_groups:
+            msg = (
+                f"Taxonomic group {group_config['taxonomic_group']} not allowed. Must "
+                f"be one of {valid_taxonomic_groups}."
+            )
+            LOGGER.critical(msg)
+            raise ValueError(msg)
+
         return cls(
             **group_config,
             synthesis_nutrient_ratios=calculate_new_biomass_average_nutrient_ratios(
-                name=group_config["name"],
+                taxonomic_group=group_config["taxonomic_group"],
                 c_n_ratio=group_config["c_n_ratio"],
                 c_p_ratio=group_config["c_p_ratio"],
                 enzyme_production=group_config["enzyme_production"],
@@ -155,7 +168,7 @@ class MicrobialGroupConstants:
 
 
 def calculate_new_biomass_average_nutrient_ratios(
-    name: str,
+    taxonomic_group: str,
     c_n_ratio: float,
     c_p_ratio: float,
     enzyme_production: dict[str, float],
@@ -169,7 +182,7 @@ def calculate_new_biomass_average_nutrient_ratios(
     enzyme class and cellular growth.
 
     Args:
-        name: Name of the microbial group.
+        taxonomic_group: Taxonomic group that the microbe belongs to.
         c_n_ratio: Ratio of carbon to nitrogen for the microbial group's cellular
             biomass.
         c_p_ratio: Ratio of carbon to nitrogen for the microbial group's cellular
@@ -181,12 +194,12 @@ def calculate_new_biomass_average_nutrient_ratios(
     """
 
     enzyme_c_n_weighted = sum(
-        enzyme_classes[f"{name}_{substrate}"].c_n_ratio * allocation
+        enzyme_classes[f"{taxonomic_group}_{substrate}"].c_n_ratio * allocation
         for substrate, allocation in enzyme_production.items()
     )
 
     enzyme_c_p_weighted = sum(
-        enzyme_classes[f"{name}_{substrate}"].c_p_ratio * allocation
+        enzyme_classes[f"{taxonomic_group}_{substrate}"].c_p_ratio * allocation
         for substrate, allocation in enzyme_production.items()
     )
 

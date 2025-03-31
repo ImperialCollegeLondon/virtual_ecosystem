@@ -88,6 +88,7 @@ def microbial_groups_cfg():
     return """
         [[soil.microbial_group_definition]]
         name = "bacteria"
+        taxonomic_group = "bacteria"
         max_uptake_rate_labile_C = 0.04
         activation_energy_uptake_rate = 47000
         half_sat_labile_C_uptake = 0.364
@@ -108,6 +109,7 @@ def microbial_groups_cfg():
 
         [[soil.microbial_group_definition]]
         name = "fungi"
+        taxonomic_group = "fungi"
         max_uptake_rate_labile_C = 0.04
         activation_energy_uptake_rate = 47000
         half_sat_labile_C_uptake = 0.364

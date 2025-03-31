@@ -48,6 +48,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             """
             [[soil.microbial_group_definition]]
             name = "bacteria"
+            taxonomic_group = "bacteria"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -79,6 +80,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             """
             [[soil.microbial_group_definition]]
             name = "bacteria"
+            taxonomic_group = "bacteria"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -99,6 +101,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
 
             [[soil.microbial_group_definition]]
             name = "fungi"
+            taxonomic_group = "fungi"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -119,6 +122,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
 
             [[soil.microbial_group_definition]]
             name = "archaea"
+            taxonomic_group = "archaea"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -149,6 +153,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             """
             [[soil.microbial_group_definition]]
             name = "bacteria"
+            taxonomic_group = "bacteria"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -169,6 +174,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
 
             [[soil.microbial_group_definition]]
             name = "archaea"
+            taxonomic_group = "archaea"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -439,6 +445,44 @@ def test_find_enzyme_substrates(fixture_config, enzyme_classes):
     assert set(bacteria.find_enzyme_substrates()) == set(["maom", "pom"])
 
 
+def test_build_microbial_group_errors(caplog, enzyme_classes):
+    """Check that build_microbial_group factory method raises errors correctly."""
+    from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
+
+    group_config = {
+        "name": "archaea",
+        "taxonomic_group": "archaea",
+        "max_uptake_rate_labile_C": 0.04,
+        "activation_energy_uptake_rate": 47000,
+        "half_sat_labile_C_uptake": 0.364,
+        "activation_energy_uptake_saturation": 30000,
+        "max_uptake_rate_ammonium": 5e-3,
+        "half_sat_ammonium_uptake": 0.02275,
+        "max_uptake_rate_nitrate": 5e-4,
+        "half_sat_nitrate_uptake": 0.02275,
+        "max_uptake_rate_labile_p": 0.0025,
+        "half_sat_labile_p_uptake": 0.02275,
+        "turnover_rate": 0.005,
+        "activation_energy_turnover": 20000,
+        "reference_temperature": 12.0,
+        "c_n_ratio": 5.2,
+        "c_p_ratio": 16,
+        "enzyme_production": {"pom": 0.005, "maom": 0.005},
+    }
+
+    caplog.clear()
+
+    exp_log = ((CRITICAL, "Taxonomic group archaea not allowed. Must be one of "),)
+
+    with pytest.raises(ValueError):
+        _ = MicrobialGroupConstants.build_microbial_group(
+            group_config=group_config,
+            enzyme_classes=enzyme_classes,
+        )
+
+    log_check(caplog, exp_log)
+
+
 def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_classes):
     """Check method to calculate average new biomass nutrient ratios works."""
     import numpy as np
@@ -450,11 +494,11 @@ def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_cl
     group_config = next(
         functional_group
         for functional_group in fixture_config["soil"]["microbial_group_definition"]
-        if functional_group["name"] == "bacteria"
+        if functional_group["taxonomic_group"] == "bacteria"
     )
 
     averaged_nutrient_ratios = calculate_new_biomass_average_nutrient_ratios(
-        name=group_config["name"],
+        taxonomic_group=group_config["taxonomic_group"],
         c_n_ratio=5.7,
         c_p_ratio=15.5,
         enzyme_production=group_config["enzyme_production"],
