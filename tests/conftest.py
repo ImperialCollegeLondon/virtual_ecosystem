@@ -385,7 +385,7 @@ def dummy_carbon_data(fixture_core_components):
         "soil_c_pool_lmwc": [0.05, 0.02, 0.1, 0.005],
         "soil_c_pool_maom": [2.5, 1.7, 4.5, 0.5],
         "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
-        "soil_c_pool_fungi": [0.89, 8.55, 2.21, 4.54],
+        "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
         "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
         "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],

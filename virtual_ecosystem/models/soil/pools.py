@@ -212,6 +212,17 @@ class EnzymePoolChanges:
 
 
 @dataclass
+class BiomassLosses:
+    """Losses of biomass from each microbial functional group due to turnover."""
+
+    bacteria: NDArray[np.float32]
+    """Rate of loss of bacterial biomass [kg C m^-3 day^-1]."""
+
+    saprotrophic_fungi: NDArray[np.float32]
+    """Rate of loss of saprotrophic fungal biomass [kg C m^-3 day^-1]."""
+
+
+@dataclass
 class LeachingRates:
     """Leaching rate for each soluble nutrient pool."""
 
@@ -279,7 +290,7 @@ class PoolData:
     soil_c_pool_bacteria: NDArray[np.float32]
     """Bacterial biomass pool [kg C m^-3]."""
 
-    soil_c_pool_fungi: NDArray[np.float32]
+    soil_c_pool_saprotrophic_fungi: NDArray[np.float32]
     """Fungal biomass pool [kg C m^-3]."""
 
     soil_c_pool_pom: NDArray[np.float32]
@@ -457,7 +468,7 @@ class SoilPools:
             soil_temp=soil_temperature,
             env_factors=env_factors,
             constants=self.constants,
-            functional_groups=self.functional_groups,
+            microbial_groups=self.functional_groups,
             enzyme_classes=self.enzyme_classes,
         )
         # find changes driven by the enzyme pools
@@ -622,7 +633,9 @@ class SoilPools:
             - maom_desorption_to_lmwc
         )
         delta_pools_ordered["soil_c_pool_bacteria"] = microbial_changes.bacteria_change
-        delta_pools_ordered["soil_c_pool_fungi"] = microbial_changes.fungi_change
+        delta_pools_ordered["soil_c_pool_saprotrophic_fungi"] = (
+            microbial_changes.fungi_change
+        )
         delta_pools_ordered["soil_c_pool_pom"] = (
             litter_mineralisation_flux.pom - enzyme_mediated.pom_to_lmwc
         )
@@ -742,7 +755,7 @@ def calculate_microbial_changes(
     soil_temp: NDArray[np.float32],
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
-    functional_groups: dict[str, MicrobialGroupConstants],
+    microbial_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
@@ -758,7 +771,7 @@ def calculate_microbial_changes(
         env_factors: Data class containing the various factors through which the
             environment effects soil cycling rates.
         constants: Set of constants for the soil model.
-        functional_groups: Set of microbial functional groups used by the soil model.
+        microbial_groups: Set of microbial functional groups used by the soil model.
         enzyme_classes: Details of the enzyme classes used by the soil model.
 
     Returns:
@@ -779,7 +792,7 @@ def calculate_microbial_changes(
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
         constants=constants,
-        functional_group=functional_groups["bacteria"],
+        functional_group=microbial_groups["bacteria"],
     )
     fungal_growth, fungal_uptake = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
@@ -788,27 +801,21 @@ def calculate_microbial_changes(
         soil_n_pool_nitrate=pools.soil_n_pool_nitrate,
         soil_p_pool_dop=pools.soil_p_pool_dop,
         soil_p_pool_labile=pools.soil_p_pool_labile,
-        microbial_pool_size=pools.soil_c_pool_fungi,
+        microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
         constants=constants,
-        functional_group=functional_groups["saprotrophic_fungi"],
+        functional_group=microbial_groups["saprotrophic_fungi"],
     )
-    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
-        microbe_pool_size=pools.soil_c_pool_bacteria,
-        soil_temp=soil_temp,
-        microbial_group=functional_groups["bacteria"],
-    )
-    fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
-        microbe_pool_size=pools.soil_c_pool_fungi,
-        soil_temp=soil_temp,
-        microbial_group=functional_groups["saprotrophic_fungi"],
+
+    biomass_losses = calculate_biomass_losses(
+        pools=pools, microbial_groups=microbial_groups, soil_temp=soil_temp
     )
 
     # Calculate the total production of each enzyme class
     enzyme_production = calculate_enzyme_production(
-        microbial_groups=functional_groups,
+        microbial_groups=microbial_groups,
         growth_rates={
             "bacteria": bacterial_growth,
             "saprotrophic_fungi": fungal_growth,
@@ -824,10 +831,10 @@ def calculate_microbial_changes(
 
     # Find flow of nitrogen to necromass pool
     necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
-        bacterial_loss=bacterial_biomass_loss,
-        fungal_loss=fungal_biomass_loss,
+        bacterial_loss=biomass_losses.bacteria,
+        fungal_loss=biomass_losses.saprotrophic_fungi,
         enzyme_changes=enzyme_changes,
-        microbial_groups=functional_groups,
+        microbial_groups=microbial_groups,
         enzyme_classes=enzyme_classes,
     )
 
@@ -842,8 +849,8 @@ def calculate_microbial_changes(
         labile_p_change=(
             bacterial_uptake.inorganic_phosphorus + fungal_uptake.inorganic_phosphorus
         ),
-        bacteria_change=bacterial_growth - bacterial_biomass_loss,
-        fungi_change=fungal_growth - fungal_biomass_loss,
+        bacteria_change=bacterial_growth - biomass_losses.bacteria,
+        fungi_change=fungal_growth - biomass_losses.saprotrophic_fungi,
         pom_enzyme_bacteria_change=enzyme_changes.net_change_pom_bacteria,
         maom_enzyme_bacteria_change=enzyme_changes.net_change_maom_bacteria,
         pom_enzyme_fungi_change=enzyme_changes.net_change_pom_fungi,
@@ -853,11 +860,39 @@ def calculate_microbial_changes(
             + enzyme_changes.denaturation_maom_bacteria
             + enzyme_changes.denaturation_pom_fungi
             + enzyme_changes.denaturation_maom_fungi
-            + bacterial_biomass_loss
-            + fungal_biomass_loss
+            + biomass_losses.bacteria
+            + biomass_losses.saprotrophic_fungi
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
+    )
+
+
+def calculate_biomass_losses(
+    pools: PoolData,
+    microbial_groups: dict[str, MicrobialGroupConstants],
+    soil_temp: NDArray[np.float32],
+) -> BiomassLosses:
+    """Calculate the rate of biomass loss for each microbial group.
+
+    Args:
+        pools: Data class containing the various soil pools.
+        microbial_groups: Set of microbial functional groups defined in the soil model.
+        soil_temp: temperature of the microbially active soil [degrees C]
+
+    Returns:
+        The rate of biomass loss of each microbial functional group [kg C m^-3 day^-1]
+    """
+
+    return BiomassLosses(
+        **{
+            group.name: calculate_maintenance_biomass_synthesis(
+                microbe_pool_size=getattr(pools, f"soil_c_pool_{group.name}"),
+                soil_temp=soil_temp,
+                microbial_group=group,
+            )
+            for group in microbial_groups.values()
+        }
     )
 
 

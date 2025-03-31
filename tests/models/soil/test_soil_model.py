@@ -17,7 +17,7 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_saprotrophic_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
     (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
@@ -354,7 +354,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [5.77888792, 2.29150361, 11.25660944, 0.996833],
                         dims="cell_id",
                     ),
-                    soil_c_pool_fungi=DataArray(
+                    soil_c_pool_saprotrophic_fungi=DataArray(
                         [0.88678846, 8.51959122, 2.2017577, 4.52566274],
                         dims="cell_id",
                     ),

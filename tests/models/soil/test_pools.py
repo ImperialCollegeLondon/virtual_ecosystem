@@ -49,7 +49,12 @@ def test_calculate_all_pool_updates(
         "soil_c_pool_lmwc": [0.117290490, 6.96565834e-2, 0.247627966, 3.42642831e-2],
         "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.6793727e-2, 7.2757916e-2],
         "soil_c_pool_bacteria": [-4.24905e-2, -1.71527e-2, -8.74104e-2, -6.36844e-3],
-        "soil_c_pool_fungi": [-6.507313e-3, -6.211968e-2, -1.680347e-2, -2.891271e-2],
+        "soil_c_pool_saprotrophic_fungi": [
+            -6.507313e-3,
+            -6.211968e-2,
+            -1.680347e-2,
+            -2.891271e-2,
+        ],
         "soil_c_pool_pom": [3.73447584e-4, -2.62977207e-2, -2.214249e-2, 5.219897e-3],
         "soil_c_pool_necromass": [-2.296284e-3, 6.9255912e-2, 2.2051989e-2, -6.1268e-2],
         "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
@@ -172,7 +177,7 @@ def test_calculate_microbial_changes(
         ],
         env_factors=environmental_factors,
         constants=SoilConsts,
-        functional_groups=functional_groups,
+        microbial_groups=functional_groups,
         enzyme_classes=enzyme_classes,
     )
 
@@ -182,6 +187,29 @@ def test_calculate_microbial_changes(
             assert np.allclose(
                 getattr(actual_mic_changes, attr), expected_mic_changes[attr]
             )
+
+
+def test_calculate_biomass_losses(
+    soil_pool_data, functional_groups, averaged_soil_temp
+):
+    """Check that the calculation of biomass losses works as expected."""
+    from virtual_ecosystem.models.soil.pools import calculate_biomass_losses
+
+    expected_losses = {
+        "bacteria": [0.04254605, 0.01744744, 0.08862048, 0.00639588],
+        "saprotrophic_fungi": [0.00652862, 0.06485897, 0.01733197, 0.02903729],
+    }
+
+    actual_losses = calculate_biomass_losses(
+        pools=soil_pool_data,
+        microbial_groups=functional_groups,
+        soil_temp=averaged_soil_temp,
+    )
+
+    for attr in dir(actual_losses):
+        if not attr.startswith("_"):
+            assert attr in expected_losses.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_losses, attr), expected_losses[attr])
 
 
 def test_calculate_enzyme_mediated_rates(
@@ -357,20 +385,18 @@ def test_calculate_enzyme_production(functional_groups, growth_rates):
 
 
 def test_calculate_maintenance_biomass_synthesis(
-    dummy_carbon_data, fixture_core_components, functional_groups
+    dummy_carbon_data, averaged_soil_temp, functional_groups
 ):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_maintenance_biomass_synthesis,
     )
 
-    expected_loss = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
+    expected_loss = [0.04254605, 0.01744744, 0.08862048, 0.00639588]
 
     actual_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         microbial_group=functional_groups["bacteria"],
     )
 

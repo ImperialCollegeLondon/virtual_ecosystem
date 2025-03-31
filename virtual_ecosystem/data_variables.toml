@@ -567,8 +567,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil fungal biomass (carbon) pool"
-name = "soil_c_pool_fungi"
+description = "Soil saprotrophic fungal biomass (carbon) pool"
+name = "soil_c_pool_saprotrophic_fungi"
 unit = "kg C m^-3"
 variable_type = "float"
 

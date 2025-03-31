@@ -134,6 +134,9 @@ class MicrobialGroupConstants:
         Args:
             group_config: The config details for microbial group in question.
             enzyme_classes: Details of the enzyme classes used by the soil model.
+
+        Raises:
+            ValueError: If the taxonomic grouping provided isn't accepted.
         """
 
         valid_taxonomic_groups = {"fungi", "bacteria"}
