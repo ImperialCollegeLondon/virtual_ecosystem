@@ -831,8 +831,7 @@ def calculate_microbial_changes(
 
     # Find flow of nitrogen to necromass pool
     necromass_n_flow, necromass_p_flow = calculate_nutrient_flows_to_necromass(
-        bacterial_loss=biomass_losses.bacteria,
-        fungal_loss=biomass_losses.saprotrophic_fungi,
+        biomass_losses=biomass_losses,
         enzyme_changes=enzyme_changes,
         microbial_groups=microbial_groups,
         enzyme_classes=enzyme_classes,
@@ -1734,8 +1733,7 @@ def calculate_soil_nutrient_mineralisation(
 
 
 def calculate_nutrient_flows_to_necromass(
-    bacterial_loss: NDArray[np.float32],
-    fungal_loss: NDArray[np.float32],
+    biomass_losses: BiomassLosses,
     enzyme_changes: EnzymePoolChanges,
     microbial_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
@@ -1746,9 +1744,8 @@ def calculate_nutrient_flows_to_necromass(
     denatured enzymes that flow into the necromass pool.
 
     Args:
-        bacterial_loss: Rate at which bacterial biomass becomes necromass [kg C m^-3
-            day^-1]
-        fungal_loss: Rate at which fungal biomass becomes necromass [kg C m^-3 day^-1]
+        biomass_losses: Rate at which biomass of each microbial functional group becomes
+            necromass [kg C m^-3 day^-1]
         enzyme_changes: Details of the rate change for the soil enzyme pools.
         microbial_groups: Set of microbial functional groups defined in the soil model
         enzyme_classes: Details of the enzyme classes used by the soil model.
@@ -1758,15 +1755,16 @@ def calculate_nutrient_flows_to_necromass(
         [kg P m^-3 day^-1] are added to the soil necromass pool
     """
 
-    # TODO - THIS SHOULD LOOP RATHER THAN BE HARD CODED
     # Calculate nutrient flows due to cellular losses
-    necromass_n_cellular = (bacterial_loss / microbial_groups["bacteria"].c_n_ratio) + (
-        fungal_loss / microbial_groups["saprotrophic_fungi"].c_n_ratio
+    necromass_n_cellular = sum(
+        getattr(biomass_losses, group) / microbial_groups[group].c_n_ratio
+        for group in microbial_groups.keys()
     )
-    necromass_p_cellular = (bacterial_loss / microbial_groups["bacteria"].c_p_ratio) + (
-        fungal_loss / microbial_groups["saprotrophic_fungi"].c_p_ratio
+    necromass_p_cellular = sum(
+        getattr(biomass_losses, group) / microbial_groups[group].c_p_ratio
+        for group in microbial_groups.keys()
     )
-
+    # And those due to enzyme denaturation
     necromass_n_enzyme = sum(
         getattr(enzyme_changes, f"denaturation_{substrate}_{group}")
         / enzyme_classes[f"{group}_{substrate}"].c_n_ratio

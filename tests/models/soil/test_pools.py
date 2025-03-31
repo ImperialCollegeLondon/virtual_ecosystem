@@ -724,25 +724,19 @@ def test_calculate_soil_nutrient_mineralisation(
 
 
 def test_calculate_nutrient_flows_to_necromass(
-    functional_groups, enzyme_changes, enzyme_classes
+    functional_groups, enzyme_changes, enzyme_classes, biomass_losses
 ):
     """Test that the function to calculate nutrient flows to necromass works."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_nutrient_flows_to_necromass,
     )
 
-    true_bacterial_loss = np.array(
-        [0.0533421644, 0.0225243886, 0.1177201284, 0.0070784224]
-    )
-    true_fungal_loss = np.array([0.008185263, 0.083731966, 0.023023140, 0.032136038])
-
-    expected_n_flow_to_necromass = [0.011914627, 0.017358086, 0.026565221, 0.006364449]
-    expected_p_flow_to_necromass = [0.003646779, 0.003540533, 0.008051958, 0.001261101]
+    expected_n_flow_to_necromass = [0.00958358, 0.01347821, 0.02009357, 0.00575646]
+    expected_p_flow_to_necromass = [0.00293061, 0.0027514, 0.00609095, 0.00114097]
 
     actual_n_flow_to_necromass, actual_p_flow_to_necromass = (
         calculate_nutrient_flows_to_necromass(
-            bacterial_loss=true_bacterial_loss,
-            fungal_loss=true_fungal_loss,
+            biomass_losses=biomass_losses,
             enzyme_changes=enzyme_changes,
             microbial_groups=functional_groups,
             enzyme_classes=enzyme_classes,
