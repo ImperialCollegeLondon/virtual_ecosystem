@@ -781,11 +781,6 @@ def calculate_microbial_changes(
         constants=constants,
         functional_group=functional_groups["bacteria"],
     )
-    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
-        microbe_pool_size=pools.soil_c_pool_bacteria,
-        soil_temp=soil_temp,
-        microbial_group=functional_groups["bacteria"],
-    )
     fungal_growth, fungal_uptake = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=pools.soil_c_pool_lmwc,
         soil_n_pool_don=pools.soil_n_pool_don,
@@ -798,18 +793,26 @@ def calculate_microbial_changes(
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
         constants=constants,
-        functional_group=functional_groups["fungi"],
+        functional_group=functional_groups["saprotrophic_fungi"],
+    )
+    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
+        microbe_pool_size=pools.soil_c_pool_bacteria,
+        soil_temp=soil_temp,
+        microbial_group=functional_groups["bacteria"],
     )
     fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=pools.soil_c_pool_fungi,
         soil_temp=soil_temp,
-        microbial_group=functional_groups["fungi"],
+        microbial_group=functional_groups["saprotrophic_fungi"],
     )
 
     # Calculate the total production of each enzyme class
     enzyme_production = calculate_enzyme_production(
         microbial_groups=functional_groups,
-        growth_rates={"bacteria": bacterial_growth, "fungi": fungal_growth},
+        growth_rates={
+            "bacteria": bacterial_growth,
+            "saprotrophic_fungi": fungal_growth,
+        },
     )
 
     # Find changes in each enzyme pool
@@ -1720,12 +1723,13 @@ def calculate_nutrient_flows_to_necromass(
         [kg P m^-3 day^-1] are added to the soil necromass pool
     """
 
+    # TODO - THIS SHOULD LOOP RATHER THAN BE HARD CODED
     # Calculate nutrient flows due to cellular losses
     necromass_n_cellular = (bacterial_loss / microbial_groups["bacteria"].c_n_ratio) + (
-        fungal_loss / microbial_groups["fungi"].c_n_ratio
+        fungal_loss / microbial_groups["saprotrophic_fungi"].c_n_ratio
     )
     necromass_p_cellular = (bacterial_loss / microbial_groups["bacteria"].c_p_ratio) + (
-        fungal_loss / microbial_groups["fungi"].c_p_ratio
+        fungal_loss / microbial_groups["saprotrophic_fungi"].c_p_ratio
     )
 
     necromass_n_enzyme = sum(

@@ -268,10 +268,10 @@ def growth_rates(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         constants=SoilConsts,
-        functional_group=functional_groups["fungi"],
+        functional_group=functional_groups["saprotrophic_fungi"],
     )
 
-    return {"bacteria": bacterial_growth, "fungi": fungal_growth}
+    return {"bacteria": bacterial_growth, "saprotrophic_fungi": fungal_growth}
 
 
 @pytest.fixture

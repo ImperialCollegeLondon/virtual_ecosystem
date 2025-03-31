@@ -108,7 +108,7 @@ def microbial_groups_cfg():
         enzyme_production.maom = 0.005
 
         [[soil.microbial_group_definition]]
-        name = "fungi"
+        name = "saprotrophic_fungi"
         taxonomic_group = "fungi"
         max_uptake_rate_labile_C = 0.04
         activation_energy_uptake_rate = 47000

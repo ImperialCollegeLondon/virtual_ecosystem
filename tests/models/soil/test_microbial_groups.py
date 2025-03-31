@@ -18,7 +18,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
         make_full_set_of_microbial_groups,
     )
 
-    expected_groups = ["bacteria", "fungi"]
+    expected_groups = ["bacteria", "saprotrophic_fungi"]
 
     functional_groups = make_full_set_of_microbial_groups(
         fixture_config, enzyme_classes=enzyme_classes
@@ -31,7 +31,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
 
     # Only testing one value, as testing them all seems like overkill/hard to maintain
     assert functional_groups["bacteria"].c_n_ratio == 5.2
-    assert functional_groups["fungi"].c_n_ratio == 6.5
+    assert functional_groups["saprotrophic_fungi"].c_n_ratio == 6.5
 
 
 @pytest.mark.parametrize(
@@ -71,7 +71,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
                 (
                     CRITICAL,
                     "The following expected soil microbial groups are not defined: "
-                    "fungi",
+                    "saprotrophic_fungi",
                 )
             ],
             id="missing_fungi",
@@ -100,7 +100,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
-            name = "fungi"
+            name = "saprotrophic_fungi"
             taxonomic_group = "fungi"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
@@ -197,7 +197,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
                 (
                     CRITICAL,
                     "The following expected soil microbial groups are not defined: "
-                    "fungi",
+                    "saprotrophic_fungi",
                 ),
                 (
                     CRITICAL,
