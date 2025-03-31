@@ -735,6 +735,8 @@ class SoilPools:
         return input_rate / self.max_depth_of_microbial_activity
 
 
+# TODO - This functional really needs to be reworked if it's to take in 4 functional
+# groups rather than 2
 def calculate_microbial_changes(
     pools: PoolData,
     soil_temp: NDArray[np.float32],
@@ -1082,13 +1084,20 @@ def calculate_enzyme_production(
         m^-3 day^-1]
     """
 
-    return {
-        f"{group.name}_{substrate}": (
-            growth_rates[group.name] * group.enzyme_production[substrate]
-        )
-        for group in microbial_groups.values()
-        for substrate in group.find_enzyme_substrates()
-    }
+    production_rates: dict[str, NDArray[np.float32]] = {}
+
+    for group in microbial_groups.values():
+        for substrate in group.find_enzyme_substrates():
+            if f"{group.taxonomic_group}_{substrate}" in production_rates.keys():
+                production_rates[f"{group.taxonomic_group}_{substrate}"] += (
+                    growth_rates[group.name] * group.enzyme_production[substrate]
+                )
+            else:
+                production_rates[f"{group.taxonomic_group}_{substrate}"] = (
+                    growth_rates[group.name] * group.enzyme_production[substrate]
+                )
+
+    return production_rates
 
 
 def calculate_maintenance_biomass_synthesis(
