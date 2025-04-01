@@ -59,3 +59,9 @@ class PlantsConsts(ConstantsDataclass):
 
     root_turnover_c_p_ratio: float = 656.7
     """Carbon to Phosphorous ratio of root turnover."""
+
+    root_exudates: float = 0.5
+    """Fraction of GPP topslice allocated to root exudates."""
+
+    propagules_mass: float = 0.5
+    """Fraction of reprodutive tissue allocated to propagules."""
