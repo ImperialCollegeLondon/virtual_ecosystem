@@ -128,7 +128,7 @@ def test_calculate_sensible_heat_flux(
     index = fixture_core_components.layer_structure.index_filled_canopy
     # Compute flux
     computed_flux = calculate_sensible_heat_flux(
-        density_air=data["molar_density_air"][index].to_numpy(),
+        density_air=data["density_air"][index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][index].to_numpy(),
         air_temperature=data["air_temperature"][index].to_numpy(),
         surface_temperature=data["canopy_temperature"][index].to_numpy(),
@@ -138,9 +138,9 @@ def test_calculate_sensible_heat_flux(
     # Expected result (manually calculated)
     expected_flux = np.array(
         [
-            [-14.817158, -14.817158, -14.817158, -14.817158],
-            [-11.838967, -11.838967, np.nan, np.nan],
-            [-6.747716, np.nan, np.nan, np.nan],
+            [-0.489356, -0.489356, -0.489356, -0.489356],
+            [-0.390997, -0.390997, np.nan, np.nan],
+            [-0.222852, np.nan, np.nan, np.nan],
         ]
     )
 
@@ -191,7 +191,9 @@ def test_calculate_net_radiation(
     np.testing.assert_allclose(result, expected, rtol=1e-5)
 
 
-def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_components):
+def test_calculate_aerodynamic_resistance(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test calculate aerodynamic resistance."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -199,9 +201,10 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
 
     lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
 
     result = calculate_aerodynamic_resistance(
-        wind_heights=dummy_climate_data["layer_heights"][lyr_str.index_filled_canopy],
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
         roughness_length=np.repeat(0.3, 4),
         zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
         friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
@@ -209,9 +212,9 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
     exp_ra = np.array(
         [
-            [1.636388e03, 1.281797e03, 9.661568e02, 4.997020e02],
-            [1.360920e03, 8.936009e02, 4.997020e02, np.nan],
-            [9.487614e02, 0.001, np.nan, np.nan],
+            [1636.388306, 1281.796711, 966.156818, 499.702011],
+            [1360.919965, 893.600893, np.nan, np.nan],
+            [948.761442, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)

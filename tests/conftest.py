@@ -103,6 +103,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 5.2
         c_p_ratio = 16
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.microbial_group_definition]]
         name = "fungi"
@@ -121,6 +123,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 6.5
         c_p_ratio = 40.0
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -131,6 +135,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -141,6 +147,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 5.2
+        c_p_ratio = 16
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -151,6 +159,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
 
         [[soil.enzyme_class_definition]]
         source = "fungi"
@@ -161,6 +171,8 @@ def microbial_groups_cfg():
         activation_energy_saturation = 30000
         reference_temperature = 12.0
         turnover_rate = 2.4e-2
+        c_n_ratio = 6.5
+        c_p_ratio = 40.0
         """
 
 
@@ -237,11 +249,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "bird"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.1
         adult_mass = 1.0
         [[animal.functional_groups]]
@@ -249,11 +263,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "bird"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.05
         adult_mass = 0.5
         [[animal.functional_groups]]
@@ -261,11 +277,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "mammal"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
         birth_mass = 4.0
         adult_mass = 40.0
         [[animal.functional_groups]]
@@ -273,11 +291,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "mammal"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
         birth_mass = 1.0
         adult_mass = 10.0
         [[animal.functional_groups]]
@@ -285,11 +305,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "insect"
         diet = "carnivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.001
         adult_mass = 0.01
         [[animal.functional_groups]]
@@ -297,11 +319,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.0005
         adult_mass = 0.005
         [[animal.functional_groups]]
@@ -309,11 +333,13 @@ def fixture_config(microbial_groups_cfg):
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "indirect"
         development_status = "adult"
         offspring_functional_group = "caterpillar"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.0005
         adult_mass = 0.005
         [[animal.functional_groups]]
@@ -321,13 +347,43 @@ def fixture_config(microbial_groups_cfg):
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "nonreproductive"
         development_type = "indirect"
         development_status = "larval"
         offspring_functional_group = "butterfly"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.0005
         adult_mass = 0.005
+        [[animal.functional_groups]]
+        name = "frog"
+        taxa = "amphibian"
+        diet = "carnivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "aquatic"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "frog"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        birth_mass = 0.005
+        adult_mass = 0.5
+        [[animal.functional_groups]]
+        name = "swallow"
+        taxa = "bird"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "swallow"
+        excretion_type = "uricotelic"
+        migration_type = "seasonal"
+        birth_mass = 0.005
+        adult_mass = 0.2
 
         [hydrology]
     """
@@ -413,19 +469,27 @@ def dummy_carbon_data(fixture_core_components):
     lyr_str = fixture_core_components.layer_structure
 
     data["soil_moisture"] = lyr_str.from_template()
-    data["soil_moisture"][lyr_str.index_topsoil] = np.array(
-        [232.61550125, 196.88733175, 126.065797, 75.63195175]
+    data["soil_moisture"][lyr_str.index_all_soil] = np.array(
+        [
+            [232.61550125, 196.88733175, 126.065797, 75.63195175],
+            [66.248474, 194.91137, 121.29988, 52.04422],
+        ]
     )
 
     data["matric_potential"] = lyr_str.from_template()
-    data["matric_potential"][lyr_str.index_topsoil] = np.array(
-        [-3.0, -10.0, -250.0, -10000.0]
+    data["matric_potential"][lyr_str.index_all_soil] = np.array(
+        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
     )
 
     data["soil_temperature"] = lyr_str.from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = np.array(
         [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
     )
+
+    data["air_temperature"] = lyr_str.from_template()
+    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
 
     return data
 
@@ -514,6 +578,9 @@ def dummy_climate_data(fixture_core_components):
     data["aerodynamic_resistance_canopy"] = from_template()
     data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
 
+    data["aerodynamic_resistance_canopy"] = from_template()
+    data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
+
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
 
@@ -533,6 +600,11 @@ def dummy_climate_data(fixture_core_components):
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
         [90.0, 90.341644, 92.488034, 96.157312, 100]
+    )[:, None]
+
+    data["vapour_pressure_deficit"] = from_template()
+    data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
+        [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
     data["vapour_pressure_deficit"] = from_template()
@@ -615,6 +687,9 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     """
 
     index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
+    index_filled_atmosphere = (
+        fixture_core_components.layer_structure.index_filled_atmosphere
+    )
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -663,6 +738,13 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [12.5, np.nan, np.nan, np.nan],
     ]
 
+    dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
+        [0.14, 0.14, 0.14, 0.14],
+        [0.2, 0.2, 0.2, 0.2],
+        [0.2, 0.2, np.nan, np.nan],
+        [0.2, np.nan, np.nan, np.nan],
+        [0.14, 0.14, 0.14, 0.14],
+    ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, np.nan, np.nan],

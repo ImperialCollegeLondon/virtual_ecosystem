@@ -132,10 +132,10 @@ class HydroConsts(ConstantsDataclass):
     """Reservoir constant for the lower groundwater layer, [days]"""
 
     initial_aerodynamic_resistance_surface: float = 12.5
-    """Initial aeordynamic resistance at the soil surface, [s m-1]."""
+    """Initial aerodynamic resistance at the soil surface, [s m-1]."""
 
     initial_aerodynamic_resistance_canopy: float = 12.5
-    """Initial aeordynamic resistance of the canopy, [s m-1]."""
+    """Initial aerodynamic resistance of the canopy, [s m-1]."""
 
     drag_coefficient_evaporation: float = 0.2
     """Drag coefficient for evaporation, dimensionless.

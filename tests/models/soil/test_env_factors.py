@@ -37,7 +37,7 @@ def test_calculate_environmental_effect_factors(
     )
 
     expected_water = [1.0, 0.94414168, 0.62176357, 0.07747536]
-    expected_pH = [0.25, 1.0, 0.428571428, 1.0]
+    expected_pH = [0.25, 1.0, 0.57142857, 1.0]
     expected_clay_sat = [1.782, 1.102, 0.83, 1.918]
 
     env_factors = calculate_environmental_effect_factors(
@@ -131,8 +131,8 @@ def test_calculate_pH_suitability():
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
 
-    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
-    expected_inhib = [0.25, 1.0, 0.428571428, 1.0, 0.0, 0.0]
+    pH_values = np.array([3.0, 7.5, 9.0, 10.0, 5.7, 2.0, 11.5])
+    expected_inhib = [0.25, 1.0, 0.57142857, 0.28571428, 1.0, 0.0, 0.0]
 
     actual_inhib = calculate_pH_suitability(
         soil_pH=pH_values,
@@ -392,3 +392,40 @@ def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
     )
 
     assert np.allclose(expected_rate, actual_rate)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_soil_moisture",
+    [
+        pytest.param(
+            True,
+            [265.73973825, 294.34301675, 186.715737, 101.65406175],
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            [116.307750625, 98.443665875, 63.0328985, 37.815975875],
+            id="normal depth",
+        ),
+    ],
+)
+def test_find_total_soil_moisture_for_microbially_active_depth(
+    dummy_carbon_data, fixture_core_components, increased_depth, expected_soil_moisture
+):
+    """Test that finding the total soil moisture works as expected."""
+    from virtual_ecosystem.models.soil.env_factors import (
+        find_total_soil_moisture_for_microbially_active_depth,
+    )
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.25]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+
+    actual_soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+        soil_moistures=dummy_carbon_data["soil_moisture"],
+        layer_structure=fixture_core_components.layer_structure,
+    )
+
+    assert np.allclose(actual_soil_moisture, expected_soil_moisture)

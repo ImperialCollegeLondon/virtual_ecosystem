@@ -267,16 +267,17 @@ def test_setup(
 
             # Test soil moisture
 
-            exp_soilm_setup = lyr_strct.from_template()
             soil_indices = lyr_strct.index_all_soil
-            exp_soilm_setup[soil_indices] = np.array([[250], [250]])
-
-            np.testing.assert_allclose(
-                model.data["soil_moisture"],
-                exp_soilm_setup,
-                rtol=1e-3,
-                atol=1e-3,
-            )
+            expected_values = {
+                "soil_moisture": (soil_indices, np.array([[250], [250]])),
+                "aerodynamic_resistance_canopy": (lyr_strct.index_filled_canopy, 12.5),
+            }
+            for var_name, (indices, values) in expected_values.items():
+                exp_var = lyr_strct.from_template()
+                exp_var[indices] = values
+                np.testing.assert_allclose(
+                    model.data[var_name], exp_var, rtol=1e-3, atol=1e-3
+                )
 
             # Test groundwater storage
             exp_groundwater = DataArray(

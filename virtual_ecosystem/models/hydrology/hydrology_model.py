@@ -310,21 +310,23 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Set initial aerodynamic resistance for surface and canopy , [s m-1]
-        self.data["aerodynamic_resistance_surface"] = (
-            self.layer_structure.from_template()
-        )
-        self.data["aerodynamic_resistance_surface"][
-            self.layer_structure.index_surface_scalar
-        ] = self.model_constants.initial_aerodynamic_resistance_surface
+            # Set initial aerodynamic resistance for surface and canopy , [s m-1]
+        for key, index, value in [
+            (
+                "aerodynamic_resistance_surface",
+                self.layer_structure.index_surface_scalar,
+                self.model_constants.initial_aerodynamic_resistance_surface,
+            ),
+            (
+                "aerodynamic_resistance_canopy",
+                self.layer_structure.index_filled_canopy,
+                self.model_constants.initial_aerodynamic_resistance_canopy,
+            ),
+        ]:
+            self.data[key] = self.layer_structure.from_template()
+            self.data[key][index] = value
 
-        self.data["aerodynamic_resistance_canopy"] = (
-            self.layer_structure.from_template()
-        )
-        self.data["aerodynamic_resistance_canopy"][
-            self.layer_structure.index_filled_canopy
-        ] = self.model_constants.initial_aerodynamic_resistance_canopy
-
+        # TODO this could take values for each layer instead of bulk
         density_air = abiotic_tools.calculate_air_density(
             air_temperature=np.nanmean(
                 self.data["air_temperature_ref"].isel(time_index=0).to_numpy(), axis=0
@@ -391,7 +393,7 @@ class HydrologyModel(
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
-        * aerodynamic_resistance_surface, [kg m-2 s-3]
+        * aerodynamic_resistance_surface, [s m-1]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the

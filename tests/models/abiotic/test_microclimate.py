@@ -28,7 +28,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.378032, 19.960089])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.381122, 19.960125])[:, None]
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
@@ -38,7 +38,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [23.089618, 22.275915, 20.883681]
+        [21.661984, 20.863471, 19.496992]
     )[:, None]
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
@@ -49,7 +49,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 26.316878, 25.475022, 24.034913, 19.632308]
+        [30.0, 25.657778, 24.815103, 23.373881, 19.625]
     )[:, None]
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -71,11 +71,11 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_vp = lyr_str.from_template()
     exp_vp[lyr_str.index_filled_atmosphere] = np.array(
-        [1.41727, 1.195278, 1.170378, 1.128609, 1.088586]
+        [1.41727, 1.155315, 1.130964, 1.090143, 1.08858]
     )[:, None]
     np.testing.assert_allclose(
-        result["vapour_pressure"][-3],
-        exp_vp[-3],
+        result["vapour_pressure"],
+        exp_vp,
         rtol=1e-04,
         atol=1e-04,
     )
@@ -92,7 +92,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     # Sensible heat flux, canopy only
     exp_shc = lyr_str.from_template()
     exp_shc[lyr_str.index_filled_canopy] = np.array(
-        [-377.684007, -373.440197, -366.260491]
+        [-370.635892, -366.524782, -359.567395]
     )[:, None]
     np.testing.assert_allclose(
         result["sensible_heat_flux"][1:4],
