@@ -73,9 +73,6 @@ def test_abiotic_model_initialization(
     assert str(model) == "A abiotic model instance"
     assert repr(model) == "AbioticModel(update_interval=1209600 seconds)"
 
-    print("Captured logs:", caplog.text)
-    print(REQUIRED_INIT_VAR_CHECKS + SETUP_MANIPULATIONS)
-
     # Final check that expected logging entries are produced
     log_check(
         caplog,

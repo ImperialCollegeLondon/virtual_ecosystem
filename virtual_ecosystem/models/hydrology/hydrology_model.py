@@ -534,7 +534,10 @@ class HydrologyModel(
                 aerodynamic_resistance=self.data[
                     "aerodynamic_resistance_canopy"
                 ].to_numpy(),
-                stomatal_resistance=1.0 / self.data["stomatal_conductance"].to_numpy(),
+                stomatal_resistance=(
+                    self.core_constants.conductance_to_resistance_conversion_factor
+                    / self.data["stomatal_conductance"].to_numpy()
+                ),
                 latent_heat_vapourisation=self.data[
                     "latent_heat_vapourisation"
                 ].to_numpy(),

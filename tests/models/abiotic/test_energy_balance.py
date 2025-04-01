@@ -306,7 +306,7 @@ def test_update_air_canopy_temperature():
 
     # Expected outputs
     expected_canopy_temperature = np.array(
-        [[328.184734, 329.833646], [331.752748, 333.944948]]
+        [[357.378642, 369.30703], [382.892166, 398.304809]]
     )
     expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
 
@@ -319,7 +319,7 @@ def test_update_air_canopy_temperature():
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
         emissivity_leaf=0.8,
-        specific_heat_air=np.full((2, 2), 1005.0),
+        specific_heat_air=np.full((2, 2), 1.006),
         density_air=np.full((2, 2), 1.293),
         aerodynamic_resistance=np.full((2, 2), 200.0),
         relaxation_factor=0.1,
@@ -350,8 +350,8 @@ def test_update_humidity_vpd():
     layer_thickness = np.array([np.full(4, layer) for layer in [20, 10, 5, 1, 0.1]])
     atmospheric_pressure = np.full((5, 4), 100)  # kPa
     water_to_air_mass_ratio = 0.622  # Constant
-    dry_air_factor = 1 - water_to_air_mass_ratio  # 0.378
-    cell_area = 10_000  # m² (1 ha)
+    dry_air_factor = 1 - water_to_air_mass_ratio
+    cell_area = 10_000  # m2 (1 ha)
 
     # Call the function
     result = update_humidity_vpd(

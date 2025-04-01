@@ -109,3 +109,9 @@ class CoreConsts(ConstantsDataclass):
     air (28.964 g/mol), which is approximately 0.622. This ratio is used in atmospheric
     calculations, particularly in determining the mixing ratio of water vapour to dry
     air."""
+
+    conductance_to_resistance_conversion_factor: float = 40.9
+    """Conductance to resistance conversion factor.
+    
+    This factor is used to convert between stomatal conductance in mmol m-2 s-1 and
+    stomatal resistance in s m-1."""
