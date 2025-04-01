@@ -28,7 +28,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.378808, 19.9601])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.381122, 19.960125])[:, None]
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
@@ -38,7 +38,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [23.089618, 22.275915, 20.883682]
+        [21.661984, 20.863471, 19.496992]
     )[:, None]
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
@@ -49,7 +49,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 26.323, 25.473, 24.019, 19.625]
+        [30.0, 25.657778, 24.815103, 23.373881, 19.625]
     )[:, None]
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -71,7 +71,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_vp = lyr_str.from_template()
     exp_vp[lyr_str.index_filled_atmosphere] = np.array(
-        [1.417, 1.195, 1.170, 1.127, 1.088]
+        [1.417, 1.155315, 1.130964, 1.090143, 1.088]
     )[:, None]
     np.testing.assert_allclose(
         result["vapour_pressure"],

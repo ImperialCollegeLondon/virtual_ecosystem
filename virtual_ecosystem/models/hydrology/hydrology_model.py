@@ -98,6 +98,7 @@ class HydrologyModel(
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_canopy",
         "density_air",
     ),
     vars_populated_by_first_update=(
@@ -213,7 +214,8 @@ class HydrologyModel(
 
         For the within grid cell hydrology, soil moisture is initialised homogenously
         for all soil layers and groundwater storage is set to the percentage of it's
-        capacity that was defined in the model configuration.
+        capacity that was defined in the model configuration. Soil and canopy
+        aerodynamic resistances are set to an initial constant value.
 
         For the hydrology across the grid, this function initialises the accumulated
         surface runoff variable and the subsurface accumulated flow variable. Both
@@ -298,16 +300,21 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Set initial aerodynamic resistance for surface, [s m-1]
-        self.data["aerodynamic_resistance_surface"] = DataArray(
-            np.full_like(
-                self.data["elevation"],
+            # Set initial aerodynamic resistance for surface and canopy , [s m-1]
+        for key, index, value in [
+            (
+                "aerodynamic_resistance_surface",
+                self.layer_structure.index_surface_scalar,
                 self.model_constants.initial_aerodynamic_resistance_surface,
             ),
-            dims="cell_id",
-            name=var,
-            coords={"cell_id": self.grid.cell_id},
-        )
+            (
+                "aerodynamic_resistance_canopy",
+                self.layer_structure.index_filled_canopy,
+                self.model_constants.initial_aerodynamic_resistance_canopy,
+            ),
+        ]:
+            self.data[key] = self.layer_structure.from_template()
+            self.data[key][index] = value
 
         # TODO this could take values for each layer instead of bulk
         density_air = abiotic_tools.calculate_air_density(
@@ -352,7 +359,7 @@ class HydrologyModel(
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
-        * aerodynamic_resistance_surface, [kg m-2 s-3]
+        * aerodynamic_resistance_surface, [s m-1]
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
