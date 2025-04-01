@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pyrealm.constants import CoreConst as pyrealm_const
+
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
@@ -175,9 +177,7 @@ class AbioticModel(
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            saturation_vapour_pressure_factors=(
-                self.simple_constants.saturation_vapour_pressure_factors
-            ),
+            pyrealm_const=pyrealm_const(),
         )
         self.data["vapour_pressure_deficit_ref"] = (
             vapour_pressure_and_deficit["vapour_pressure_deficit"]
@@ -246,8 +246,8 @@ class AbioticModel(
             cell_area=self.grid.cell_area,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
-            abiotic_simple_constants=self.simple_constants,
             core_constants=self.core_constants,
+            pyrealm_const=pyrealm_const,
         )
 
         self.data.add_from_dict(output_dict=update_dict)

@@ -319,7 +319,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((4, 3), 0.141727),
+            np.full((4, 3), 0.423372),
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2, 3],

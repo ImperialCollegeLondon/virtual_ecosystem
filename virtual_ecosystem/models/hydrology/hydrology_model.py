@@ -34,6 +34,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
+from pyrealm.constants import CoreConst as pyrealm_const
 from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
@@ -605,7 +606,6 @@ class HydrologyModel(
                 soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
-                celsius_to_kelvin=self.core_constants.zero_Celsius,
                 density_air=self.data["density_air"][
                     self.surface_layer_index
                 ].to_numpy(),
@@ -620,6 +620,7 @@ class HydrologyModel(
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
+                pyrealm_const=pyrealm_const,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
             daily_lists["aerodynamic_resistance_surface"].append(

@@ -8,11 +8,9 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
-
-from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
-    calculate_saturation_vapour_pressure,
-)
 
 
 def calculate_molar_density_air(
@@ -152,22 +150,21 @@ def calculate_slope_of_saturated_pressure_curve(
 def calculate_actual_vapour_pressure(
     air_temperature: DataArray,
     relative_humidity: DataArray,
-    saturation_vapour_pressure_factors: list[float],
+    pyrealm_const: pyrealm_const,
 ) -> DataArray:
     """Calculate actual vapour pressure, [kPa].
 
     Args:
         air_temperature: Air temperature, [C]
         relative_humidity: Relative humidity, [-]
-        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
-            calculation
+        pyrealm_const: Set of constants from pyrealm
 
     Returns:
         actual vapour pressure, [kPa]
     """
 
-    saturation_vapour_pressure_air = calculate_saturation_vapour_pressure(
-        temperature=air_temperature,
-        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    saturation_vapour_pressure_air = calc_vp_sat(
+        ta=air_temperature.to_numpy(),
+        core_const=pyrealm_const(),
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0

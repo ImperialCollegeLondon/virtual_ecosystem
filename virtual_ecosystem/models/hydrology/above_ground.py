@@ -11,6 +11,8 @@ from math import sqrt
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.core.hygro import calc_vp_sat
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
@@ -33,8 +35,7 @@ def potential_evaporation_leaf(
 ):
     r"""Calculate canopy potential evaporation rate using Penman-Monteith equation.
 
-    the potential evaporation rate :math:`EW_{0}` is calculated as follows (note we do
-    NOT include ground heat flux in the consideration of canopy evaporation):
+    the potential evaporation rate :math:`EW_{0}` is calculated as follows:
 
     .. math::
         EW_{0} =
@@ -50,6 +51,9 @@ def potential_evaporation_leaf(
     :math:`\lambda_v` is the latent heat of vaporization,
     :math:`\gamma` is the psychrometric constant, and
     :math:`r_s` is the stomatal resistance.
+
+    Note that we do NOT include ground heat flux in the consideration of canopy
+    evaporation; TODO discuss where we use instead the energy flux into NPP
 
     Args:
         net_radiation: Net radiation at leaf surface, [W m-2]
@@ -213,12 +217,12 @@ def calculate_soil_evaporation(
     soil_moisture_capacity: float | NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
     wind_speed_surface: NDArray[np.float32],
-    celsius_to_kelvin: float,
     density_air: float | NDArray[np.float32],
     latent_heat_vapourisation: float | NDArray[np.float32],
     gas_constant_water_vapour: float,
     drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
+    pyrealm_const: pyrealm_const,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
@@ -254,7 +258,6 @@ def calculate_soil_evaporation(
         soil_moisture_residual: Residual soil moisture, [unitless]
         soil_moisture_capacity: Soil moisture capacity, [unitless]
         wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
-        celsius_to_kelvin: Factor to convert temperature from Celsius to Kelvin
         density_air: Density if air, [kg m-3]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         leaf_area_index: Leaf area index [m m-1]
@@ -262,14 +265,13 @@ def calculate_soil_evaporation(
         drag_coefficient_evaporation: Drag coefficient for evaporation, dimensionless
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
+        pyrealm_const: Constants from pyrealm package
 
     Returns:
         soil evaporation, [mm] and aerodynamic resistance near the surface [s m-1]
     """
 
     output = {}
-    # Convert temperature to Kelvin
-    temperature_k = temperature + celsius_to_kelvin
 
     # Available soil moisture
     soil_moisture_free = np.clip(
@@ -282,9 +284,10 @@ def calculate_soil_evaporation(
     barton_ratio = (1.8 * soil_moisture_free) / (soil_moisture_free + 0.3)
     alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
-    # TODO replace with tested function in abiotic simple
-    saturation_vapour_pressure = 0.6112 * np.exp(
-        (17.67 * (temperature_k)) / (temperature_k + 243.5)
+    # Calculate saturation vapour pressure, kPa
+    saturation_vapour_pressure = calc_vp_sat(
+        ta=temperature,
+        core_const=pyrealm_const(),
     )
 
     pressure_deficit = atmospheric_pressure - saturation_vapour_pressure

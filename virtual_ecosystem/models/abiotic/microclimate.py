@@ -3,7 +3,8 @@ balance in the Virtual Ecosystem.
 """  # noqa: D205
 
 import numpy as np
-from pyrealm.core.hygro import calc_specific_heat
+from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
@@ -11,10 +12,6 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
-from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
-    calculate_saturation_vapour_pressure,
-)
 
 
 def run_microclimate(
@@ -24,8 +21,8 @@ def run_microclimate(
     cell_area: float,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
-    abiotic_simple_constants: AbioticSimpleConsts,
     core_constants: CoreConsts,
+    pyrealm_const: pyrealm_const,
 ) -> dict[str, DataArray]:
     """Run microclimate model.
 
@@ -47,8 +44,8 @@ def run_microclimate(
         cell_area: Cell area, [m2]
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
-        abiotic_simple_constants: Set of constants for abiotic simple model
         core_constants: Set of constants that are shared across all models
+        pyrealm_const: Set of constants from pyrealm
 
     Returns:
         dictionary with updated microclimate variables
@@ -251,20 +248,16 @@ def run_microclimate(
         )
 
         # Saturated vapour pressure of air, [kPa]
-        saturated_vapour_pressure_air = calculate_saturation_vapour_pressure(
-            temperature=DataArray(all_air_temperature),
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
+        saturated_vapour_pressure_air = calc_vp_sat(
+            ta=all_air_temperature,
+            core_const=pyrealm_const(),
         )
 
         #  Actual vapour pressure of air, [kPa]
         actual_vapour_pressure_air = abiotic_tools.calculate_actual_vapour_pressure(
             air_temperature=DataArray(all_air_temperature),
             relative_humidity=DataArray(relative_humidity),
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
+            pyrealm_const=pyrealm_const,
         )
 
         # Specific humidity of air, [kg kg-1] TODO external function
@@ -368,7 +361,7 @@ def run_microclimate(
                 layer_structure.index_filled_canopy
             ].to_numpy(),
             soil_evaporation=data["soil_evaporation"].to_numpy(),
-            saturated_vapour_pressure=saturated_vapour_pressure_air.to_numpy(),
+            saturated_vapour_pressure=saturated_vapour_pressure_air,
             specific_humidity=specific_humidity_air.to_numpy(),
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,

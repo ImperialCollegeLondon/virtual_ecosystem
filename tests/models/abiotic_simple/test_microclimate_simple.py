@@ -2,6 +2,7 @@
 
 import numpy as np
 import xarray as xr
+from pyrealm.constants import CoreConst as pyrealm_const
 from xarray import DataArray
 
 
@@ -85,36 +86,9 @@ def test_varying_canopy_log_interpolation(
     xr.testing.assert_allclose(result, exp_air_temp)
 
 
-def test_calculate_saturation_vapour_pressure(dummy_climate_data):
-    """Test calculation of saturation vapour pressure."""
-
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
-    from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
-        calculate_saturation_vapour_pressure,
-    )
-
-    data = dummy_climate_data
-    constants = AbioticSimpleConsts()
-    # Extract saturation factors from constants
-    result = calculate_saturation_vapour_pressure(
-        data["air_temperature_ref"].isel(time_index=0),
-        saturation_vapour_pressure_factors=(
-            constants.saturation_vapour_pressure_factors
-        ),
-    )
-
-    exp_output = DataArray(
-        np.repeat(1.41727, 4),
-        dims=["cell_id"],
-        coords={"cell_id": [0, 1, 2, 3]},
-    )
-    xr.testing.assert_allclose(result, exp_output)
-
-
 def test_calculate_vapour_pressure_deficit(fixture_core_components):
     """Test calculation of VPD."""
 
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
     from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
         calculate_vapour_pressure_deficit,
     )
@@ -131,17 +105,14 @@ def test_calculate_vapour_pressure_deficit(fixture_core_components):
         [90.0, 90.341644, 92.488034, 96.157312, 100.0]
     )[:, None]
 
-    constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
         temperature=temperature,
         relative_humidity=rel_humidity,
-        saturation_vapour_pressure_factors=(
-            constants.saturation_vapour_pressure_factors
-        ),
+        pyrealm_const=pyrealm_const(),
     )
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = np.array(
-        [0.141727, 0.136357, 0.103501, 0.050763, 0.0]
+        [0.423372, 0.405282, 0.297993, 0.138345, 0.0]
     )[:, None]
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)
 
@@ -151,7 +122,6 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
 ):
     """Test calculation of VPD with different number of canopy layers."""
 
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
     from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
         calculate_vapour_pressure_deficit,
     )
@@ -159,20 +129,17 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
     lyr_strct = fixture_core_components.layer_structure
 
     data = dummy_climate_data_varying_canopy
-    constants = AbioticSimpleConsts()
     result = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature"],
         relative_humidity=data["relative_humidity"],
-        saturation_vapour_pressure_factors=(
-            constants.saturation_vapour_pressure_factors
-        ),
+        pyrealm_const=pyrealm_const(),
     )
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = [
-        [0.141727, 0.141727, 0.141727, 0.141727],
-        [0.136357, 0.136357, 0.136357, 0.136357],
-        [0.103501, 0.103501, np.nan, np.nan],
-        [0.050763, np.nan, np.nan, np.nan],
+        [0.423372, 0.423372, 0.423372, 0.423372],
+        [0.405282, 0.405282, 0.405282, 0.405282],
+        [0.297993, 0.297993, np.nan, np.nan],
+        [0.138345, np.nan, np.nan, np.nan],
         [0.0, 0.0, 0.0, 0.0],
     ]
     xr.testing.assert_allclose(result["vapour_pressure_deficit"], exp_output)

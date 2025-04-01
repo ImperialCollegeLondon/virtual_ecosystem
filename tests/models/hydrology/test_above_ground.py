@@ -5,6 +5,7 @@ from logging import ERROR
 
 import numpy as np
 import pytest
+from pyrealm.constants import CoreConst as pyrealm_const
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.constants import CoreConsts
@@ -95,17 +96,15 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         calculate_soil_evaporation,
     )
 
-    core_consts = CoreConsts()
     result = calculate_soil_evaporation(
         temperature=np.array([20.0, 20.0, 30.0]),
         wind_speed_surface=np.array([1.0, 0.5, 0.1]),
         relative_humidity=np.array([80.0, 80.0, 90.0]),
         atmospheric_pressure=np.array([101.0, 101.0, 101.0]),
-        soil_moisture=np.array([0.01, 0.1, 0.5]),
+        soil_moisture=np.array([1.0, 2.0, 5.0]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
         leaf_area_index=np.array([3.0, 4.0, 5.0]),
-        celsius_to_kelvin=core_consts.zero_Celsius,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
         gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour / 1000.0,
@@ -113,9 +112,10 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
+        pyrealm_const=pyrealm_const,
     )
 
-    exp_evap = np.array([1.877434e-09, 4.661530e-10, 3.336217e-03])
+    exp_evap = np.array([2.865767e-05, 7.115489e-06, 1.282660e-06])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
     np.testing.assert_allclose(
