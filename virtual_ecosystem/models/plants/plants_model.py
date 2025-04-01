@@ -86,7 +86,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
-        "nitrogen_fixation_carbon_supply",
+        "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
@@ -110,7 +110,7 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
-        "nitrogen_fixation_carbon_supply",
+        "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
@@ -730,7 +730,7 @@ class PlantsModel(
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
         )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
+        self.data["plant_symbiote_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
         self.data["root_carbohydrate_exudation"] = xr.full_like(

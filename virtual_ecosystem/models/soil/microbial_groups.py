@@ -5,6 +5,9 @@ the different microbial functional groups used in the soil model.
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+from numpy.typing import NDArray
+
 from virtual_ecosystem.core.config import Config, ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 
@@ -344,3 +347,52 @@ def make_full_set_of_enzymes(
         )
         for (microbe, substrate) in expected_classes
     }
+
+
+@dataclass
+class CarbonSupply:
+    """Rate of carbon supply to each of the plant symbiotic microbial groups."""
+
+    nitrogen_fixers: NDArray[np.float32]
+    """Carbon supply to the nitrogen fixing bacteria [kg C m^-3 day^-1]."""
+
+    ectomycorrhiza: NDArray[np.float32]
+    """Carbon supply to ectomycorrhizal fungi [kg C m^-3 day^-1]."""
+
+    arbuscular_mycorrhiza: NDArray[np.float32]
+    """Carbon supply to arbuscular mycorrhizal fungi [kg C m^-3 day^-1]."""
+
+
+def calculate_symbiotic_carbon_supply(
+    total_plant_supply: NDArray[np.float32],
+    nitrogen_fixer_fraction: float,
+    ectomycorrhiza_fraction: float,
+) -> CarbonSupply:
+    """Calculate supply of carbon from plants to each microbial symbiotic partner.
+
+    This function splits the total carbon supply from the plants between the different
+    symbiotic microbial groups based on (configurable) constant fractions.
+
+    Args:
+        total_plant_supply: Total supply of carbon from the plant to symbiotic microbial
+            partners [kg C m^-3 day^-1]
+        nitrogen_fixer_fraction: Fraction of carbon supplied by plants to symbiotes that
+            goes to nitrogen fixers [unitless]
+        ectomycorrhiza_fraction: Fraction of plant carbon supply to mycorrhizal fungi
+            that goes to ectomycorrhiza [unitless]
+
+    Returns:
+        The carbon supply to each symbiotic microbial partner [kg C m^-3 day^-1]
+    """
+
+    n_fixer_supply = total_plant_supply * nitrogen_fixer_fraction
+
+    mycorrhiza_supply = total_plant_supply * (1 - nitrogen_fixer_fraction)
+    ectomycorrhiza_supply = mycorrhiza_supply * ectomycorrhiza_fraction
+    arbuscular_mycorrhiza_supply = mycorrhiza_supply * (1 - ectomycorrhiza_fraction)
+
+    return CarbonSupply(
+        nitrogen_fixers=n_fixer_supply,
+        ectomycorrhiza=ectomycorrhiza_supply,
+        arbuscular_mycorrhiza=arbuscular_mycorrhiza_supply,
+    )

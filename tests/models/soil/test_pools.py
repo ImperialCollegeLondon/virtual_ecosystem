@@ -942,23 +942,19 @@ def test_negative_denitrification_rate_impossible(
 
 
 def test_calculate_symbiotic_nitrogen_fixation(
-    dummy_carbon_data, fixture_core_components
+    carbon_supply_from_plants, averaged_soil_temp
 ):
     """Check calculation of the rate of symbiotic nitrogen fixation is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import (
         calculate_symbiotic_nitrogen_fixation,
     )
 
-    expected_fixation = [0.000873306, 0.02021645, 0.00056937, 0.00052116]
+    expected_fixation = [0.0003324566937, 0.00823450715, 0.00024225401, 0.00014608985]
 
     actual_fixation = calculate_symbiotic_nitrogen_fixation(
-        carbon_supply=dummy_carbon_data["nitrogen_fixation_carbon_supply"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        active_depth=CoreConsts.max_depth_of_microbial_activity,
+        carbon_supply=carbon_supply_from_plants.nitrogen_fixers,
+        soil_temp=averaged_soil_temp,
         constants=SoilConsts,
     )
 
@@ -966,30 +962,24 @@ def test_calculate_symbiotic_nitrogen_fixation(
 
 
 def test_calculate_symbiotic_nitrogen_fixation_negative_temps(
-    dummy_carbon_data, fixture_core_components
+    carbon_supply_from_plants, averaged_soil_temp
 ):
     """Check symbiotic nitrogen fixation functions handles negative temperatures."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import (
         calculate_symbiotic_nitrogen_fixation,
     )
 
     # Modify some of the soil temps to be below the minimum
-    soil_temp = dummy_carbon_data["soil_temperature"][
-        fixture_core_components.layer_structure.index_topsoil_scalar
-    ]
+    soil_temp = averaged_soil_temp
     soil_temp[1] = -23.3
     soil_temp[3] = -200.0
 
-    expected_fixation = [0.000873306, 0.0, 0.00056937, 0.0]
+    expected_fixation = [0.0003324566937, 0.0, 0.00024225401, 0.0]
 
     actual_fixation = calculate_symbiotic_nitrogen_fixation(
-        carbon_supply=dummy_carbon_data["nitrogen_fixation_carbon_supply"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        active_depth=CoreConsts.max_depth_of_microbial_activity,
+        carbon_supply=carbon_supply_from_plants.nitrogen_fixers,
+        soil_temp=soil_temp,
         constants=SoilConsts,
     )
 

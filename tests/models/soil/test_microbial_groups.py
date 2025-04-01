@@ -5,6 +5,7 @@ This module tests the functions which generate microbial functional groups.
 
 from logging import CRITICAL
 
+import numpy as np
 import pytest
 
 from tests.conftest import log_check
@@ -552,3 +553,31 @@ def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_cl
 
     assert np.isclose(averaged_nutrient_ratios["nitrogen"], 5.695)
     assert np.isclose(averaged_nutrient_ratios["phosphorus"], 15.505)
+
+
+def test_calculate_symbiotic_carbon_supply(dummy_carbon_data):
+    """Test that calculation of splitting of carbon supply between symbiotes works."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        calculate_symbiotic_carbon_supply,
+    )
+
+    expected_supply = {
+        "nitrogen_fixers": [0.012, 0.3, 0.009, 0.00564],
+        "ectomycorrhiza": [0.007, 0.175, 0.00525, 0.00329],
+        "arbuscular_mycorrhiza": [0.021, 0.525, 0.01575, 0.00987],
+    }
+
+    actual_supply = calculate_symbiotic_carbon_supply(
+        dummy_carbon_data["plant_symbiote_carbon_supply"]
+        / CoreConsts.max_depth_of_microbial_activity,
+        nitrogen_fixer_fraction=SoilConsts.nitrogen_fixer_supply_fraction,
+        ectomycorrhiza_fraction=SoilConsts.ectomycorrhiza_supply_fraction,
+    )
+
+    # Check all (non-private) dataclass attributes against the dictionary
+    for attr in dir(actual_supply):
+        if not attr.startswith("_"):
+            assert attr in expected_supply.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_supply, attr), expected_supply[attr])

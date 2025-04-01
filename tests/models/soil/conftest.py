@@ -67,6 +67,23 @@ def environmental_factors(dummy_carbon_data, fixture_core_components):
 
 
 @pytest.fixture
+def carbon_supply_from_plants(dummy_carbon_data):
+    """Carbon supply from plants split between the different symbiotic groups."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        calculate_symbiotic_carbon_supply,
+    )
+
+    return calculate_symbiotic_carbon_supply(
+        total_plant_supply=dummy_carbon_data["plant_symbiote_carbon_supply"]
+        / CoreConsts.max_depth_of_microbial_activity,
+        nitrogen_fixer_fraction=SoilConsts.nitrogen_fixer_supply_fraction,
+        ectomycorrhiza_fraction=SoilConsts.ectomycorrhiza_supply_fraction,
+    )
+
+
+@pytest.fixture
 def averaged_soil_temp(dummy_carbon_data, fixture_core_components):
     """Soil temperature averaged over the microbially active layers."""
     from virtual_ecosystem.models.litter.env_factors import (

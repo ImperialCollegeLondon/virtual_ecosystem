@@ -1071,8 +1071,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate at which plants are supplying carbon to their soil-living nitrogen-fixing symbiotic partners"
-name = "nitrogen_fixation_carbon_supply"
+description = "Rate at which plants are supplying carbon to their soil-living symbiotic partners"
+name = "plant_symbiote_carbon_supply"
 unit = "kg C m^-2 day^-1"
 variable_type = "float"
 

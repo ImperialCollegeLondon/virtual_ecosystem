@@ -33,6 +33,7 @@ from virtual_ecosystem.models.soil.env_factors import (
 from virtual_ecosystem.models.soil.microbial_groups import (
     EnzymeConstants,
     MicrobialGroupConstants,
+    calculate_symbiotic_carbon_supply,
 )
 
 
@@ -473,6 +474,14 @@ class SoilPools:
         effective_saturation = soil_moisture / (
             soil_moisture_capacity * top_soil_layer_thickness * 1e3
         )
+        # Find supply rate to each plant symbiotic group
+        carbon_supply = calculate_symbiotic_carbon_supply(
+            total_plant_supply=self.to_per_volume(
+                self.data["plant_symbiote_carbon_supply"].to_numpy()
+            ),
+            nitrogen_fixer_fraction=self.constants.nitrogen_fixer_supply_fraction,
+            ectomycorrhiza_fraction=self.constants.ectomycorrhiza_supply_fraction,
+        )
 
         # Find environmental factors which impact biogeochemical soil processes
         env_factors = calculate_environmental_effect_factors(
@@ -608,9 +617,8 @@ class SoilPools:
 
         # Calculate rate at which nitrogen is fixed
         symbiotic_nitrogen_fixation = calculate_symbiotic_nitrogen_fixation(
-            carbon_supply=self.data["nitrogen_fixation_carbon_supply"].to_numpy(),
+            carbon_supply=carbon_supply.nitrogen_fixers,
             soil_temp=soil_temperature,
-            active_depth=self.max_depth_of_microbial_activity,
             constants=self.constants,
         )
         free_living_nitrogen_fixation = calculate_free_living_nitrogen_fixation(
@@ -759,7 +767,7 @@ class SoilPools:
 
     def to_per_volume(
         self, input_rate: float | NDArray[np.float32]
-    ) -> float | NDArray[np.float32]:
+    ) -> NDArray[np.float32]:
         """Method to convert an external input rate from per area to per volume units.
 
         Args:
@@ -770,7 +778,10 @@ class SoilPools:
             m^-3 day^-1].
         """
 
-        return input_rate / self.max_depth_of_microbial_activity
+        if isinstance(input_rate, float):
+            return np.array(input_rate / self.max_depth_of_microbial_activity)
+        else:
+            return input_rate / self.max_depth_of_microbial_activity
 
 
 # TODO - This functional really needs to be reworked if it's to take in 4 functional
@@ -2036,21 +2047,16 @@ def calculate_rate_of_denitrification(
 def calculate_symbiotic_nitrogen_fixation(
     carbon_supply: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
-    active_depth: float,
     constants: SoilConsts,
 ) -> NDArray[np.float32]:
     """Calculate rate of nitrogen fixation by plant symbionts.
 
-    The nitrogen is considered to be fixed solely in the form of ammonium. This function
-    also converts from the per area units the carbon supply (coming from the plant)
-    model is defined in, to the per volume units used by the soil model.
+    The nitrogen is considered to be fixed solely in the form of ammonium.
 
     Args:
         carbon_supply: The rate at which carbon is supplied to symbiotic partners by
-            plants for the purpose of nitrogen fixation [kg C m^-2 day^-1]
+            plants for the purpose of nitrogen fixation [kg C m^-3 day^-1]
         soil_temp: Temperature of the relevant soil zone [C]
-        active_depth: The depth to which the soil is considered to be biologically
-            active [m]
         constants: Set of constants for the soil model.
 
     Returns:
@@ -2066,9 +2072,7 @@ def calculate_symbiotic_nitrogen_fixation(
         cost_equality_temp=constants.nitrogen_fixation_cost_equality_temperature,
     )
 
-    carbon_supply_per_volume = carbon_supply / active_depth
-
-    return carbon_supply_per_volume / fixation_carbon_cost
+    return carbon_supply / fixation_carbon_cost
 
 
 def calculate_free_living_nitrogen_fixation(
