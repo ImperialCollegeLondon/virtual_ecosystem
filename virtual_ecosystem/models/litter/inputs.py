@@ -135,7 +135,7 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.float32]]:
     ).to_numpy()
     root_total = data["root_turnover"]
     deadwood_total = data["deadwood_production"]
-    reprod_total = data["plant_reproductive_tissue_turnover"]
+    reprod_total = data["fallen_propagule_c_mass"] + data["fallen_non_propagule_c_mass"]
 
     # Calculate lignin concentrations for each combined pool
     leaf_lignin = merge_input_chemical_proportions(
