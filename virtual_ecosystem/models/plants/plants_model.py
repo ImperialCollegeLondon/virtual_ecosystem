@@ -605,6 +605,17 @@ class PlantsModel(
         # Reset turnover to 0 as turnover from previous steps should have been allocated
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
+        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
+            self.data["elevation"], 0
+        )
+        self.data["propagule_c_mass"] = xr.full_like(self.data["elevation"], 0)
+        self.data["non_propagule_c_mass"] = xr.full_like(self.data["elevation"], 0)
+        self.data["root_carbohydrate_exudation"] = xr.full_like(
+            self.data["elevation"], 0
+        )
+        self.data["plant_symbiote_carbon_supply"] = xr.full_like(
+            self.data["elevation"], 0
+        )
 
         # Loop over each grid cell
         for cell_id in self.communities.keys():
@@ -622,12 +633,38 @@ class PlantsModel(
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
             cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
 
-            # Calculate total turnover from all cohorts in a grid cell
+            # Sum of turnover from all cohorts in a grid cell
+            # TODO: Pyrealm provides annual turnover values. Divide by 12 to get monthly
+            #       turnover values is naive and will overestimate turnover. This should
+            #       be updated eventually to a more sophisticated approach.
             self.data["leaf_turnover"][cell_id] = np.sum(
-                cohort_allocation.foliage_turnover
+                cohort_allocation.foliage_turnover / 12
             )
             self.data["root_turnover"][cell_id] = np.sum(
-                cohort_allocation.fine_root_turnover
+                cohort_allocation.fine_root_turnover / 12
+            )
+            self.data["plant_reproductive_tissue_turnover"][cell_id] = np.sum(
+                cohort_allocation.reproductive_tissue_turnover / 12
+            )
+
+            # Reproductive tissue mass allocation to fruit
+            self.data["propagule_c_mass"][cell_id] = np.sum(
+                community.stem_allometry.reproductive_tissue_mass
+                * self.model_constants.propagules_mass
+            )
+            self.data["non_propagule_c_mass"][cell_id] = np.sum(
+                community.stem_allometry.reproductive_tissue_mass
+                * (1 - self.model_constants.propagules_mass)
+            )
+
+            # Allocate the topsliced GPP to root exudates with remainder as active
+            # nutrient pathways
+            self.data["root_carbohydrate_exudation"][cell_id] = np.sum(
+                cohort_allocation.gpp_topslice * self.model_constants.root_exudates
+            )
+            self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
+                cohort_allocation.gpp_topslice
+                * (1 - self.model_constants.root_exudates)
             )
 
             # Update community allometry with new dbh values
@@ -681,10 +718,6 @@ class PlantsModel(
             the variables it returns.
         """
 
-        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
-            self.data["elevation"], 0.003
-        )
-
         # Lignin concentrations
         self.data["stem_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.stem_lignin
@@ -732,9 +765,6 @@ class PlantsModel(
         )
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
-        )
-        self.data["root_carbohydrate_exudation"] = xr.full_like(
-            self.data["elevation"], 0.025
         )
 
     def calculate_nutrient_uptake(self) -> None:

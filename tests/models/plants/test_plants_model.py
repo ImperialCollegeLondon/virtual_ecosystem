@@ -187,6 +187,11 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
         # Ensure that leaf and root turnover exist and are > 0
         assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
+        assert fxt_plants_model.data["plant_reproductive_tissue_turnover"][cell_id] > 0
+        assert fxt_plants_model.data["propagule_c_mass"][cell_id] > 0
+        assert fxt_plants_model.data["non_propagule_c_mass"][cell_id] > 0
+        assert fxt_plants_model.data["root_carbohydrate_exudation"][cell_id] > 0
+        assert fxt_plants_model.data["plant_symbiote_carbon_supply"][cell_id] > 0
 
 
 def test_PlantsModel_update(
@@ -228,9 +233,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_config):
     consts = fxt_plants_model.model_constants
 
     # Check that all expected variables are generated and have the correct value
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
-    )
     assert np.allclose(fxt_plants_model.data["stem_lignin"], consts.stem_lignin)
     assert np.allclose(
         fxt_plants_model.data["senesced_leaf_lignin"], consts.senesced_leaf_lignin
