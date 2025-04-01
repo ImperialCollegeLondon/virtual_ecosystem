@@ -2791,22 +2791,6 @@ test = ["hypothesis (>=6.46.1)", "pytest (>=7.3.2)", "pytest-xdist (>=2.2.0)"]
 xml = ["lxml (>=4.9.2)"]
 
 [[package]]
-name = "pandas-stubs"
-version = "2.2.3.241126"
-description = "Type annotations for pandas"
-optional = false
-python-versions = ">=3.10"
-groups = ["main"]
-files = [
-    {file = "pandas_stubs-2.2.3.241126-py3-none-any.whl", hash = "sha256:74aa79c167af374fe97068acc90776c0ebec5266a6e5c69fe11e9c2cf51f2267"},
-    {file = "pandas_stubs-2.2.3.241126.tar.gz", hash = "sha256:cf819383c6d9ae7d4dabf34cd47e1e45525bb2f312e6ad2939c2c204cb708acd"},
-]
-
-[package.dependencies]
-numpy = ">=1.23.5"
-types-pytz = ">=2022.1.1"
-
-[[package]]
 name = "pandocfilters"
 version = "1.5.1"
 description = "Utilities for writing pandoc filters in python"
@@ -3228,25 +3212,28 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyrealm"
-version = "2.0.0rc1"
+version = "2.0.0-rc.1"
 description = "Python tools for modelling plant productivity and demography."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-files = [
-    {file = "pyrealm-2.0.0rc1-py3-none-any.whl", hash = "sha256:63d573d41bfdfb3c041b966f94c7bbd836aff62476b7f842286bb43616bfa9ab"},
-    {file = "pyrealm-2.0.0rc1.tar.gz", hash = "sha256:adf9cadbad85642eefa09d7511a302ad1463ec7b3be3cd60a90c4084d2c8053c"},
-]
+files = []
+develop = false
 
 [package.dependencies]
-dacite = ">=1.6.0,<2.0.0"
-marshmallow = ">=3.22.0,<4.0.0"
-marshmallow-dataclass = ">=8.7.0,<9.0.0"
+dacite = ">1.6.0"
+marshmallow = ">=3.22.0"
+marshmallow-dataclass = ">=8.7.0"
 numpy = ">=2.1,<2.2"
-pandas = ">=2.2.2,<3.0.0"
-pandas-stubs = ">=2.2.2.240909,<3.0.0.0"
-scipy = ">=1.7.3,<2.0.0"
-tabulate = ">=0.8.10,<0.9.0"
+pandas = ">=2.2.2"
+scipy = ">=1.7.3"
+tabulate = ">=0.8.10"
+
+[package.source]
+type = "git"
+url = "https://github.com/imperialcollegelondon/pyrealm.git"
+reference = "develop"
+resolved_reference = "4b9d1457a9454309409aebf6bf57ef7281870e80"
 
 [[package]]
 name = "pytest"
@@ -4743,18 +4730,6 @@ files = [
 ]
 
 [[package]]
-name = "types-pytz"
-version = "2025.1.0.20250204"
-description = "Typing stubs for pytz"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "types_pytz-2025.1.0.20250204-py3-none-any.whl", hash = "sha256:32ca4a35430e8b94f6603b35beb7f56c32260ddddd4f4bb305fdf8f92358b87e"},
-    {file = "types_pytz-2025.1.0.20250204.tar.gz", hash = "sha256:00f750132769f1c65a4f7240bc84f13985b4da774bd17dfbe5d9cd442746bd49"},
-]
-
-[[package]]
 name = "types-requests"
 version = "2.32.0.20241016"
 description = "Typing stubs for requests"
@@ -4982,4 +4957,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "157e37d5db5e58bf3d42b07f57d2d70962608737fa8ffb62cfbe5aec94c5b170"
+content-hash = "0050fc70f1d68ea64d09f9a27b030723eba639aa4b7cf761d8b5c13c7ee39a0b"
