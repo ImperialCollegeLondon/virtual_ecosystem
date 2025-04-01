@@ -59,7 +59,7 @@ def run_microclimate(
     # Selection of often used subsets (could be moved to separate function, e.g. tools)
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
-    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers").to_numpy()
+    leaf_area_index_sum = np.nansum(data["leaf_area_index"].to_numpy(), axis=0)
 
     atmospheric_pressure_out = layer_structure.from_template()
     atmospheric_pressure_out[layer_structure.index_filled_atmosphere] = data[
@@ -120,12 +120,41 @@ def run_microclimate(
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
     )
 
-    #   TODO Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = 10.0
-    #  The current implementation of logarithmic wind profile breaks down when the
-    #  canopy layer height falls below the zero displacement height. A more sophistcated
-    #  implementation is needed, e.g. Monin-Obukov theory, or a constant value across
-    #  the canopy. For now empirical value for homogenous canopy.
+    #   Friction velocity, [m s-1]
+    # friction_velocity = wind.calculate_friction_velocity(
+    #     reference_wind_speed=data["wind_speed_ref"]
+    #     .isel(time_index=time_index)
+    #     .to_numpy(),
+    #     reference_height=(
+    #         data["layer_heights"][0].to_numpy()
+    #         + abiotic_constants.wind_reference_height
+    #     ),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+
+    # Aerodynamic resistance canopy, [s m-1]
+    #  TODO The current implementation returns quite high values at the top canopy
+    # There seems to be an issue with fluxes as, needs to be checked when fixing
+    # temperature update function. Could have to do with low wind speeds.
+    # aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
+    #     wind_heights=data["layer_heights"][
+    #         layer_structure.index_filled_canopy
+    #     ].to_numpy(),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     friction_velocity=friction_velocity,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+    aerodynamic_resistance_canopy = np.full_like(
+        data["leaf_area_index"][layer_structure.index_filled_canopy], 12.5
+    )
+    aerodynamic_resistance_canopy_out = layer_structure.from_template()
+    aerodynamic_resistance_canopy_out[layer_structure.index_filled_canopy] = (
+        aerodynamic_resistance_canopy
+    )
+    output["aerodynamic_resistance_canopy"] = aerodynamic_resistance_canopy_out
 
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()

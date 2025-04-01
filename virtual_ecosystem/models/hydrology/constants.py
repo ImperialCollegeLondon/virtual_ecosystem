@@ -139,3 +139,6 @@ class HydroConsts(ConstantsDataclass):
 
     initial_aerodynamic_resistance_surface: float = 12.5
     """Initial aeordynamic resistance at the soil surface, [s m-1]."""
+
+    initial_aerodynamic_resistance_canopy: float = 12.5
+    """Initial aeordynamic resistance of the canopy, [s m-1]."""
