@@ -959,8 +959,15 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Plant reproductive tissue (fruits and flowers) turnover since last update"
-name = "plant_reproductive_tissue_turnover"
+description = "Plant reproductive tissue propagule turnover since last update"
+name = "fallen_propagule_c_mass"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Plant reproductive tissue non-propagule turnover since last update"
+name = "fallen_non_propagule_c_mass"
 unit = "kg C m^-2"
 variable_type = "float"
 
