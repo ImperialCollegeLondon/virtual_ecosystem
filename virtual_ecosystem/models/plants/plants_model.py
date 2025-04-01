@@ -72,7 +72,8 @@ class PlantsModel(
         "evapotranspiration",
         "deadwood_production",
         "leaf_turnover",
-        "plant_reproductive_tissue_turnover",
+        "fallen_propagule_c_mass",
+        "fallen_non_propagule_c_mass",
         "root_turnover",
         "stem_lignin",
         "senesced_leaf_lignin",
@@ -96,7 +97,8 @@ class PlantsModel(
         "evapotranspiration",
         "deadwood_production",
         "leaf_turnover",
-        "plant_reproductive_tissue_turnover",
+        "fallen_propagule_c_mass",
+        "fallen_non_propagule_c_mass",
         "root_turnover",
         "stem_lignin",
         "senesced_leaf_lignin",
@@ -605,7 +607,8 @@ class PlantsModel(
         # Reset turnover to 0 as turnover from previous steps should have been allocated
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
-        self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
+        self.data["fallen_propagule_c_mass"] = xr.full_like(self.data["elevation"], 0)
+        self.data["fallen_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0
         )
         self.data["propagule_c_mass"] = xr.full_like(self.data["elevation"], 0)
@@ -643,18 +646,23 @@ class PlantsModel(
             self.data["root_turnover"][cell_id] = np.sum(
                 cohort_allocation.fine_root_turnover / 12
             )
-            self.data["plant_reproductive_tissue_turnover"][cell_id] = np.sum(
-                cohort_allocation.reproductive_tissue_turnover / 12
+            self.data["fallen_propagule_c_mass"][cell_id] = np.sum(
+                (cohort_allocation.reproductive_tissue_turnover / 12)
+                * self.model_constants.propagule_mass
+            )
+            self.data["fallen_non_propagule_c_mass"][cell_id] = np.sum(
+                (cohort_allocation.reproductive_tissue_turnover / 12)
+                * (1 - self.model_constants.propagule_mass)
             )
 
             # Reproductive tissue mass allocation to fruit
             self.data["propagule_c_mass"][cell_id] = np.sum(
                 community.stem_allometry.reproductive_tissue_mass
-                * self.model_constants.propagules_mass
+                * self.model_constants.propagule_mass
             )
             self.data["non_propagule_c_mass"][cell_id] = np.sum(
                 community.stem_allometry.reproductive_tissue_mass
-                * (1 - self.model_constants.propagules_mass)
+                * (1 - self.model_constants.propagule_mass)
             )
 
             # Allocate the topsliced GPP to root exudates with remainder as active
