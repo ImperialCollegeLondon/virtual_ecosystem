@@ -139,8 +139,12 @@ class AnimalModel(
 
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
-        self.cohorts: dict[uuid.UUID, AnimalCohort]
-        """A dictionary of all animal cohorts and their unique ids."""
+        self.active_cohorts: dict[uuid.UUID, AnimalCohort] = {}
+        """A dictionary of all active animal cohorts and their unique ids."""
+        self.migrated_cohorts: dict[uuid.UUID, AnimalCohort] = {}
+        """A dictionary of all migrated animal cohorts and their unique ids."""
+        self.aquatic_cohorts: dict[uuid.UUID, AnimalCohort] = {}
+        """A dictionary of all aquatic animal cohorts and their unique ids."""
         self.update_interval_timedelta: timedelta64
         """Convert pint update_interval to timedelta64 once during initialization."""
         self.functional_groups: list[FunctionalGroup]
@@ -195,7 +199,7 @@ class AnimalModel(
                     grid=self.data.grid,
                     constants=self.model_constants,
                 )
-                self.cohorts[cohort.id] = cohort
+                self.active_cohorts[cohort.id] = cohort
                 self.communities[cell_id].append(cohort)
 
     @classmethod
@@ -296,7 +300,7 @@ class AnimalModel(
             cell_id: HerbivoryWaste(plant_matter_type="leaf")
             for cell_id in self.data.grid.cell_id
         }
-        self.cohorts = {}
+        self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
         self._initialize_communities(functional_groups)
@@ -371,10 +375,11 @@ class AnimalModel(
         self.migrate_community()
         self.birth_community()
         self.metamorphose_community()
-        self.metabolize_community(
-            self.update_interval_timedelta,
-        )
+        self.migrate_external_community()
+        self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
+        self.update_migrated_and_aquatic(self.update_interval_timedelta)
+        self.reintegrate_community()
         self.remove_dead_cohort_community()
         self.increase_age_community(self.update_interval_timedelta)
 
@@ -714,7 +719,7 @@ class AnimalModel(
 
 
         """
-        for cohort in self.cohorts.values():
+        for cohort in self.active_cohorts.values():
             is_starving = cohort.is_below_mass_threshold(
                 self.model_constants.dispersal_mass_threshold
             )
@@ -744,15 +749,15 @@ class AnimalModel(
         Raises:
             KeyError: If the cohort ID does not exist in the model's cohorts.
         """
-        # Check if the cohort exists in self.cohorts
-        if cohort.id in self.cohorts:
+        # Check if the cohort exists in self.active_cohorts
+        if cohort.id in self.active_cohorts:
             # Iterate over all grid cell keys in the cohort's territory
             for cell_id in cohort.territory:
                 if cell_id in self.communities and cohort in self.communities[cell_id]:
                     self.communities[cell_id].remove(cohort)
 
             # Remove the cohort from the model's cohorts dictionary
-            del self.cohorts[cohort.id]
+            del self.active_cohorts[cohort.id]
         else:
             raise KeyError(f"Cohort with ID {cohort.id} does not exist.")
 
@@ -760,7 +765,7 @@ class AnimalModel(
         """This handles remove_dead_cohort for all cohorts in a community."""
         # Collect cohorts to remove (to avoid modifying the dictionary during iteration)
         cohorts_to_remove = [
-            cohort for cohort in self.cohorts.values() if cohort.individuals <= 0
+            cohort for cohort in self.active_cohorts.values() if cohort.individuals == 0
         ]
 
         # Remove each cohort
@@ -769,131 +774,231 @@ class AnimalModel(
             self.remove_dead_cohort(cohort)
 
     def birth(self, parent_cohort: AnimalCohort) -> None:
-        """Produce a new AnimalCohort through reproduction.
+        """Produce offspring for a parent cohort using helper methods.
 
-        A cohort can only reproduce if it has an excess of reproductive mass above a
-        certain threshold. The offspring will be an identical cohort of adults
-        with age 0 and a mass determined by the functional group's birth mass.
+        This orchestrates the reproduction process, including:
+        - Calculating total available reproductive mass.
+        - Determining number of offspring.
+        - Creating offspring and adding them to the population.
+        - Updating parent mass after reproduction.
+        - Removing semelparous parents if applicable.
 
         Args:
-            parent_cohort: The AnimalCohort instance which is producing a new cohort.
+            parent_cohort: The parent cohort giving birth.
         """
-        # Handle semelparous reproduction (where parents die after reproduction)
-        non_reproductive_mass_loss_c = non_reproductive_mass_loss_n = (
-            non_reproductive_mass_loss_p
-        ) = 0.0
-
-        if parent_cohort.functional_group.reproductive_type == "semelparous":
-            loss_c = (
-                parent_cohort.mass_cnp.carbon
-                * parent_cohort.constants.semelparity_mass_loss
-            )
-            loss_n = (
-                parent_cohort.mass_cnp.nitrogen
-                * parent_cohort.constants.semelparity_mass_loss
-            )
-            loss_p = (
-                parent_cohort.mass_cnp.phosphorus
-                * parent_cohort.constants.semelparity_mass_loss
-            )
-
-            # Cap loss to available mass
-            non_reproductive_mass_loss_c = min(loss_c, parent_cohort.mass_cnp.carbon)
-            non_reproductive_mass_loss_n = min(loss_n, parent_cohort.mass_cnp.nitrogen)
-            non_reproductive_mass_loss_p = min(
-                loss_p, parent_cohort.mass_cnp.phosphorus
-            )
-
-            # Reduce parent's mass in-place
-            parent_cohort.mass_cnp.update(
-                carbon=-non_reproductive_mass_loss_c,
-                nitrogen=-non_reproductive_mass_loss_n,
-                phosphorus=-non_reproductive_mass_loss_p,
-            )
-
-            # Kill semelparous parent cohort
-            parent_cohort.is_alive = False
-
-        # Calculate total available reproductive mass
-        total_reproductive_mass_c = (
-            parent_cohort.reproductive_mass_cnp.carbon + non_reproductive_mass_loss_c
-        )
-        total_reproductive_mass_n = (
-            parent_cohort.reproductive_mass_cnp.nitrogen + non_reproductive_mass_loss_n
-        )
-        total_reproductive_mass_p = (
-            parent_cohort.reproductive_mass_cnp.phosphorus
-            + non_reproductive_mass_loss_p
+        reproductive_mass = self.calculate_total_reproductive_mass(parent_cohort)
+        number_offspring = self.calculate_offspring_count(
+            parent_cohort, reproductive_mass
         )
 
-        # Generate birth mass using functional group proportions
-        birth_mass = parent_cohort.functional_group.birth_mass
-        birth_mass_c = birth_mass * parent_cohort.cnp_proportions["carbon"]
-        birth_mass_n = birth_mass * parent_cohort.cnp_proportions["nitrogen"]
-        birth_mass_p = birth_mass * parent_cohort.cnp_proportions["phosphorus"]
+        if number_offspring == 0:
+            return  # Insufficient mass for offspring
 
-        # Determine max possible offspring (minimum across all elements)
-        max_possible_offspring = int(
-            min(
-                total_reproductive_mass_c / birth_mass_c,
-                total_reproductive_mass_n / birth_mass_n,
-                total_reproductive_mass_p / birth_mass_p,
-            )
+        self.handle_offspring_creation(parent_cohort, number_offspring)
+        self.handle_post_birth_parent_updates(parent_cohort, number_offspring)
+
+    def calculate_total_reproductive_mass(
+        self, parent: AnimalCohort
+    ) -> dict[str, float]:
+        """Calculate total reproductive mass available for offspring.
+
+        For semelparous species, part of the parent's non-reproductive mass
+        is also transferred to reproduction as they die after reproducing.
+
+        Args:
+            parent: The parent cohort.
+
+        Returns:
+            Reproductive mass for carbon, nitrogen, phosphorus (kg).
+        """
+        semelparous_loss = self.calculate_semelparous_mass_loss(parent)
+
+        return {
+            "carbon": parent.reproductive_mass_cnp.carbon + semelparous_loss["carbon"],
+            "nitrogen": parent.reproductive_mass_cnp.nitrogen
+            + semelparous_loss["nitrogen"],
+            "phosphorus": parent.reproductive_mass_cnp.phosphorus
+            + semelparous_loss["phosphorus"],
+        }
+
+    def calculate_offspring_count(
+        self, parent: AnimalCohort, reproductive_mass: dict[str, float]
+    ) -> int:
+        """Calculate the maximum number of total offspring based on available mass.
+
+        Each offspring has a defined birth mass, which must be split into C, N, and P.
+        The limiting nutrient determines how many offspring can be made.
+
+        Args:
+            parent: The parent cohort.
+            reproductive_mass: Available reproductive mass (C, N, P).
+
+        Returns:
+            Number of offspring.
+        """
+        birth_mass = parent.functional_group.birth_mass
+        birth_c, birth_n, birth_p = self.calculate_birth_mass_cnp(birth_mass, parent)
+
+        # Find the limiting element — how many offspring can be made from each element?
+        max_per_parent = min(
+            reproductive_mass["carbon"] / birth_c,
+            reproductive_mass["nitrogen"] / birth_n,
+            reproductive_mass["phosphorus"] / birth_p,
+        )
+        # Total offspring is limited offspring per parent times the number of parents
+        return int(max_per_parent * parent.individuals)
+
+    def handle_offspring_creation(
+        self, parent: AnimalCohort, number_offspring: int
+    ) -> None:
+        """Create offspring and place them into the correct cohort pool.
+
+        Args:
+            parent: The parent cohort.
+            number_offspring: Number of offspring to create.
+        """
+        offspring = self.create_offspring(parent, number_offspring)
+
+        if parent.functional_group.reproductive_environment == "aquatic":
+            # Aquatic offspring start in the 'aquatic' holding pool
+            self.aquatic_cohorts[offspring.id] = offspring
+        else:
+            # Terrestrial offspring immediately join the active population
+            self.active_cohorts[offspring.id] = offspring
+            self.update_community_occupancy(offspring, offspring.centroid_key)
+
+    def handle_post_birth_parent_updates(
+        self,
+        parent: AnimalCohort,
+        offspring_count: int,
+    ) -> None:
+        """Update parent's reproductive mass and handle semelparous death if needed.
+
+        Reduces the parent's reproductive mass based on offspring produced.
+        Removes semelparous parents after reproduction.
+
+        Args:
+            parent: The parent cohort.
+            offspring_count: Number of offspring produced.
+        """
+        birth_mass = parent.functional_group.birth_mass
+        birth_c, birth_n, birth_p = self.calculate_birth_mass_cnp(birth_mass, parent)
+
+        total_c = offspring_count * birth_c
+        total_n = offspring_count * birth_n
+        total_p = offspring_count * birth_p
+
+        # TODO: double check that total_c can't be more than available mass
+        parent.reproductive_mass_cnp.update(
+            carbon=-min(total_c, parent.reproductive_mass_cnp.carbon),
+            nitrogen=-min(total_n, parent.reproductive_mass_cnp.nitrogen),
+            phosphorus=-min(total_p, parent.reproductive_mass_cnp.phosphorus),
         )
 
-        number_offspring = int(max_possible_offspring * parent_cohort.individuals)
+        if parent.functional_group.reproductive_type == "semelparous":
+            self.handle_semelparous_parent_death(parent)
 
-        if number_offspring <= 0:
-            return  # No offspring can be created
+    def handle_semelparous_parent_death(self, parent: AnimalCohort) -> None:
+        """Apply mass loss and remove parent cohort for semelparous species.
 
-        # Calculate the total mass used for reproduction
-        total_mass_used_c = number_offspring * birth_mass_c
-        total_mass_used_n = number_offspring * birth_mass_n
-        total_mass_used_p = number_offspring * birth_mass_p
+        Semelparous parents die after reproducing, so we:
+        - Apply a mass loss to the parent.
+        - Set parent to `is_alive = False`.
+        - Remove the parent from the population.
 
-        # Ensure parent's reproductive mass never goes negative
-        parent_cohort.reproductive_mass_cnp.update(
-            carbon=-min(total_mass_used_c, parent_cohort.reproductive_mass_cnp.carbon),
-            nitrogen=-min(
-                total_mass_used_n, parent_cohort.reproductive_mass_cnp.nitrogen
-            ),
-            phosphorus=-min(
-                total_mass_used_p, parent_cohort.reproductive_mass_cnp.phosphorus
-            ),
+        Args:
+            parent: The parent cohort.
+        """
+        # TODO: avoid recalculating this mass loss
+        loss = self.calculate_semelparous_mass_loss(parent)
+
+        parent.mass_cnp.update(
+            carbon=-loss["carbon"],
+            nitrogen=-loss["nitrogen"],
+            phosphorus=-loss["phosphorus"],
+        )
+        parent.is_alive = False
+        self.remove_dead_cohort(parent)
+
+    def calculate_semelparous_mass_loss(self, parent: AnimalCohort) -> dict[str, float]:
+        """Calculate the mass lost by a semelparous parent after reproduction.
+
+        If the species is not semelparous, returns zero loss.
+
+        Args:
+            parent: The parent cohort.
+
+        Returns:
+            Dictionary of mass loss (C, N, P).
+        """
+        if parent.functional_group.reproductive_type != "semelparous":
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+
+        loss_fraction = parent.constants.semelparity_mass_loss
+
+        return {
+            "carbon": parent.mass_cnp.carbon * loss_fraction,
+            "nitrogen": parent.mass_cnp.nitrogen * loss_fraction,
+            "phosphorus": parent.mass_cnp.phosphorus * loss_fraction,
+        }
+
+    def calculate_birth_mass_cnp(
+        self, birth_mass: float, parent: AnimalCohort
+    ) -> tuple[float, float, float]:
+        """Convert total birth mass into carbon, nitrogen, and phosphorus components.
+
+        Args:
+            birth_mass: Total birth mass per offspring.
+            parent: Parent cohort providing stoichiometry.
+
+        Returns:
+            Tuple of (birth_carbon, birth_nitrogen, birth_phosphorus).
+        """
+        proportions = parent.cnp_proportions
+        return (
+            birth_mass * proportions["carbon"],
+            birth_mass * proportions["nitrogen"],
+            birth_mass * proportions["phosphorus"],
         )
 
-        # Get the functional group for the offspring
+    def create_offspring(
+        self, parent: AnimalCohort, number_offspring: int
+    ) -> AnimalCohort:
+        """Create a new offspring cohort, handling both aquatic and terrestrial cases.
+
+        Args:
+            parent: The parent cohort.
+            number_offspring: Number of offspring to create.
+
+        Returns:
+            The newly created AnimalCohort.
+        """
         offspring_functional_group = get_functional_group_by_name(
             self.functional_groups,
-            parent_cohort.functional_group.offspring_functional_group,
+            parent.functional_group.offspring_functional_group,
         )
 
-        # Create the offspring cohort
-        offspring_cohort = AnimalCohort(
+        offspring = AnimalCohort(
             functional_group=offspring_functional_group,
-            mass=birth_mass,  # Use total birth mass
-            age=0.0,  # Offspring start at age 0
+            mass=offspring_functional_group.birth_mass,
+            age=0.0,
             individuals=number_offspring,
-            centroid_key=parent_cohort.centroid_key,
-            grid=parent_cohort.grid,
-            constants=parent_cohort.constants,
+            centroid_key=parent.centroid_key,
+            grid=parent.grid,
+            constants=parent.constants,
         )
 
-        # Add the new cohort to the community
-        self.cohorts[offspring_cohort.id] = offspring_cohort
+        if parent.functional_group.reproductive_environment == "aquatic":
+            # Aquatic offspring have a residence time before joining the active cohorts
+            offspring.remaining_time_away = parent.constants.aquatic_residence_time
 
-        # Update community occupancy
-        self.update_community_occupancy(offspring_cohort, offspring_cohort.centroid_key)
-
-        # Remove the semelparous parent cohort if applicable
-        if parent_cohort.functional_group.reproductive_type == "semelparous":
-            self.remove_dead_cohort(parent_cohort)
+        return offspring
 
     def birth_community(self) -> None:
         """This handles birth for all cohorts in a community."""
 
         # reproduction occurs for cohorts with sufficient reproductive mass
-        for cohort in self.cohorts.values():
+        for cohort in self.active_cohorts.values():
             if (
                 not cohort.is_below_mass_threshold(
                     self.model_constants.birth_mass_threshold
@@ -917,7 +1022,7 @@ class AnimalModel(
         Cohorts with no remaining individuals post-foraging are marked for death.
         """
 
-        for consumer_cohort in self.cohorts.values():
+        for consumer_cohort in self.active_cohorts.values():
             # Check that the cohort has a valid territory defined
             if consumer_cohort.territory is None:
                 raise ValueError("The cohort's territory hasn't been defined.")
@@ -1003,7 +1108,7 @@ class AnimalModel(
             dt: Number of days over which the metabolic costs should be calculated.
 
         """
-        for cohort in self.cohorts.values():
+        for cohort in self.active_cohorts.values():
             cohort.increase_age(dt)
 
     def inflict_non_predation_mortality_community(self, dt: timedelta64) -> None:
@@ -1017,7 +1122,7 @@ class AnimalModel(
 
         """
         number_of_days = float(dt / timedelta64(1, "D"))
-        for cohort in list(self.cohorts.values()):
+        for cohort in list(self.active_cohorts.values()):
             cohort.inflict_non_predation_mortality(
                 number_of_days, cohort.get_carcass_pools(self.carcass_pools)
             )
@@ -1063,7 +1168,7 @@ class AnimalModel(
         )
 
         # add a new cohort of the parental type to the community
-        self.cohorts[adult_cohort.id] = adult_cohort
+        self.active_cohorts[adult_cohort.id] = adult_cohort
 
         # add the new cohort to the community lists it occupies
         self.update_community_occupancy(adult_cohort, adult_cohort.centroid_key)
@@ -1076,9 +1181,97 @@ class AnimalModel(
         """Handle metamorphosis for all applicable cohorts in the community."""
 
         # Iterate over a static list of cohort values
-        for cohort in list(self.cohorts.values()):
+        for cohort in list(self.active_cohorts.values()):
             if (
                 cohort.functional_group.development_type == DevelopmentType.INDIRECT
                 and (cohort.mass_current >= cohort.functional_group.adult_mass)
             ):
                 self.metamorphose(cohort)
+
+    def update_migrated_and_aquatic(self, dt: timedelta64) -> None:
+        """Handles updating timing on frozen migrated and aquatic cohorts.
+
+        Args:
+            dt: The amount of time passed in the update (days).
+
+        """
+
+        dt_float = float(dt / timedelta64(1, "D"))
+
+        for cohort in list(self.migrated_cohorts.values()):
+            cohort.remaining_time_away -= dt_float
+            if cohort.remaining_time_away <= 0:
+                self.reintegrate_cohort(cohort, source="migrated")
+
+        for cohort in list(self.aquatic_cohorts.values()):
+            cohort.remaining_time_away -= dt_float
+            if cohort.remaining_time_away <= 0:
+                self.reintegrate_cohort(cohort, source="aquatic")
+
+    def reintegrate_cohort(self, cohort: AnimalCohort, source: str) -> None:
+        """Handles integration of cohorts from migrated/aquatic to active status.
+
+        Args:
+            cohort: The animal cohort changing to active status.
+            source: Whether the cohort was migrated or aquatic.
+
+        """
+        if source == "migrated":
+            mortality_rate = cohort.constants.migration_mortality
+            self.migrated_cohorts.pop(cohort.id)
+        elif source == "aquatic":
+            mortality_rate = cohort.constants.aquatic_mortality
+            self.aquatic_cohorts.pop(cohort.id)
+
+        deaths = int(cohort.individuals * mortality_rate)
+        cohort.individuals -= deaths
+
+        if cohort.individuals > 0:
+            cohort.location_status = "active"
+            self.active_cohorts[cohort.id] = cohort
+
+            # Reintroduce cohort to its communities
+            self.update_community_occupancy(cohort, cohort.centroid_key)
+
+        else:
+            cohort.is_alive = False
+
+    def migrate_external(self, cohort: AnimalCohort) -> None:
+        """Handles the initiation of external migration events.
+
+        Args:
+            cohort: The migrating cohort.
+        """
+        # Remove cohort from community occupancy
+        self.abandon_communities(cohort)
+
+        # Move cohort to migration pool
+        cohort.location_status = "migrated"
+        cohort.remaining_time_away = cohort.constants.migration_residence_time
+        self.migrated_cohorts[cohort.id] = cohort
+        self.active_cohorts.pop(cohort.id)
+
+    def migrate_external_community(self) -> None:
+        """Cycles through all active cohorts and checks for external migration.
+
+        Only calls `trigger_external_migration` for cohorts that are seasonal migrators.
+        """
+        for cohort in list(self.active_cohorts.values()):
+            if (
+                cohort.functional_group.migration_type == "seasonal"
+                and cohort.is_migration_season()
+            ):
+                self.migrate_external(cohort)
+
+    def reintegrate_community(self) -> None:
+        """Cycles through all migrated and aquatic cohorts, checking for reintegration.
+
+        Only calls `reintegrate_cohort` when `remaining_time_away` is 0 or less.
+        """
+        for cohort in list(self.migrated_cohorts.values()):
+            if cohort.remaining_time_away <= 0:
+                self.reintegrate_cohort(cohort, source="migrated")
+
+        for cohort in list(self.aquatic_cohorts.values()):
+            if cohort.remaining_time_away <= 0:
+                self.reintegrate_cohort(cohort, source="aquatic")

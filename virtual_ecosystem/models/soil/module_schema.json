@@ -17,8 +17,59 @@
                   "SoilConsts"
                ]
             },
+            "enzyme_class_definition": {
+               "description": "Microbial functional group definitions",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "source": {
+                        "type": "string"
+                     },
+                     "substrate": {
+                        "type": "string"
+                     },
+                     "maximum_rate": {
+                        "type": "number"
+                     },
+                     "half_saturation_constant": {
+                        "type": "number"
+                     },
+                     "activation_energy_rate": {
+                        "type": "number"
+                     },
+                     "activation_energy_saturation": {
+                        "type": "number"
+                     },
+                     "reference_temperature": {
+                        "type": "number"
+                     },
+                     "turnover_rate": {
+                        "type": "number"
+                     },
+                     "c_n_ratio": {
+                        "type": "number"
+                     },
+                     "c_p_ratio": {
+                        "type": "number"
+                     }
+                  },
+                  "required": [
+                     "source",
+                     "substrate",
+                     "maximum_rate",
+                     "half_saturation_constant",
+                     "activation_energy_rate",
+                     "activation_energy_saturation",
+                     "reference_temperature",
+                     "turnover_rate",
+                     "c_n_ratio",
+                     "c_p_ratio"
+                  ]
+               }
+            },
             "microbial_group_definition": {
-               "description": "An microbial functional group definitions",
+               "description": "Microbial functional group definitions",
                "type": "array",
                "items": {
                   "type": "object",
@@ -62,11 +113,30 @@
                      "activation_energy_turnover": {
                         "type": "number"
                      },
+                     "reference_temperature": {
+                        "type": "number"
+                     },
                      "c_n_ratio": {
                         "type": "number"
                      },
                      "c_p_ratio": {
                         "type": "number"
+                     },
+                     "enzyme_production": {
+                        "description": "Allocation to production of each enzyme type",
+                        "type": "object",
+                        "properties": {
+                           "pom": {
+                              "type": "number"
+                           },
+                           "maom": {
+                              "type": "number"
+                           }
+                        },
+                        "required": [
+                           "pom",
+                           "maom"
+                        ]
                      }
                   },
                   "required": [
@@ -83,8 +153,10 @@
                      "half_sat_labile_p_uptake",
                      "turnover_rate",
                      "activation_energy_turnover",
+                     "reference_temperature",
                      "c_n_ratio",
-                     "c_p_ratio"
+                     "c_p_ratio",
+                     "enzyme_production"
                   ]
                }
             },

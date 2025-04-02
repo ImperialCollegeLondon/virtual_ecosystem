@@ -1,16 +1,4 @@
 ---
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.16.7
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -21,6 +9,18 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.0rc1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 ---
 
 # The Virtual Ecosystem science models
@@ -57,6 +57,7 @@ variables at relevant vertical levels:
 - Soil temperature (°C)
 - Atmospheric $\ce{CO_{2}}$ concentration (ppm)
 - Atmospheric Pressure (kPa)
+- Wind speed (m s-1)
 
 ### Simple Abiotic Model
 
@@ -64,7 +65,7 @@ The [abiotic_simple](../../api/models/abiotic_simple.md) model is a one-column m
 that operates on a grid cell basis and does not consider horizontal exchange of energy,
 atmospheric water, and momentum. The model uses linear regressions from
 {cite}`hardwick_relationship_2015` and {cite}`jucker_canopy_2018` to predict
-atmospheric temperature, relative humidity, and vapour pressure deficit
+atmospheric temperature, relative humidity, wind speed, and vapour pressure deficit
 at ground level (1.5 m) given the above canopy conditions and leaf area index of
 intervening canopy. A vertical profile across all atmospheric layers is then
 interpolated using a logarithmic curve between the above canopy observation and ground
@@ -81,8 +82,7 @@ balance, and wind profiles. Submodules will be closely coupled to the hydrology 
 plants models through the exchange of energy and water. The model will also provides a
 constant vertical profile of atmospheric pressure and atmospheric $\ce{CO_{2}}$ based on
 external inputs. Most processes will be calculated on a per grid cell basis; horizontal
-exchange of properties will be considered at a later stage. The first model draft is
-loosely based on the 'microclimc' model by {cite}`maclean_microclimc_2021`.
+exchange of properties will be considered at a later stage.
 
 ```{note}
 Some of the features described here are not yet implemented.
@@ -90,7 +90,7 @@ Some of the features described here are not yet implemented.
 
 #### Radiation balance
 
-The radiation balance submodule will calculate location-specific solar irradiance
+The radiation balance will calculate location-specific solar irradiance
 (shortwave), reflection and scattering of shortwave radiation from canopy and surface, a
 vertical profile of net shortwave radiation, and outgoing longwave radiation from canopy
 and surface. A basic version of the surface and canopy radiation balance is currently
@@ -98,19 +98,17 @@ included in the energy balance submodule.
 
 #### Energy balance
 
-The [energy balance](../../api/models/abiotic/energy_balance.md) and
-[soil energy balance](../../api/models/abiotic/soil_energy_balance.md) submodules will
+The [microclimate](../../api/models/abiotic/microclimate.md) submodule will
 derive sensible and latent heat fluxes from canopy layers and surface to the atmosphere.
 Part of the net radiation will be converted into soil heat flux. Based on these
 turbulent fluxes, air temperature, canopy temperature, relative humidity, and soil
-temperature will be updated simultaneously at each level. The vertical mixing between
-layers is assumed to be driven by
-[heat conductance](../../api/models/abiotic/conductivities.md) because turbulence is
+temperature will be updated at each level. The vertical mixing between
+layers is assumed to be driven by heat conductance because turbulence is
 typically low below the canopy {cite}`maclean_microclimc_2021`.
 
 #### Wind
 
-The [wind](../../api/models/abiotic/wind.md) submodule will calculate the above- and
+The microclimate submodule will also calculate the above- and
 within-canopy wind profiles for the Virtual Ecosystem. These profiles determine the
 exchange of heat and water between soil and atmosphere below the canopy
 as well as the exchange with the atmosphere above the canopy.

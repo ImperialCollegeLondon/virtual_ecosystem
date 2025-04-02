@@ -17,16 +17,6 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class HydroConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `hydrology` model."""
 
-    soil_moisture_capacity: float = 0.9
-    """Soil moisture capacity, unitless.
-
-    The soil moisture capacity, also known as field capacity or water holding capacity,
-    refers to the maximum amount of water that a soil can retain against the force of
-    gravity after it has been saturated and excess water has drained away. The value is
-    soil type specific, the format here is volumentic relative water content (unitless,
-    between 0 and 1).
-    """
-
     soil_moisture_residual: float = 0.1
     """Residual soil moisture, unitless.
 
@@ -55,7 +45,7 @@ class HydroConsts(ConstantsDataclass):
     movement of water and indicates the direction in which water will flow.
     """
 
-    nonlinearily_parameter: float = 2.0
+    van_genuchten_nonlinearily_parameter: float = 2.0
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
@@ -93,8 +83,8 @@ class HydroConsts(ConstantsDataclass):
     which affects the vertical flow of water and the horizontal sub-surface flow. This
     parameter is currently set to an arbitrary value and might."""
 
-    infiltration_shape_parameter: float = 1.0
-    """Empirical infiltration shape parameter, unitless.
+    bypass_flow_coefficient: float = 1.0
+    """Empirical bypass flow coefficient, unitless.
 
     This parameter affects how much of the water available for infiltration goes
     directly to groundwater via preferential bypass flow. A value of
@@ -111,11 +101,12 @@ class HydroConsts(ConstantsDataclass):
     texture.
     """
 
-    water_retention_curvature: float = -7.22
-    """Curvature of the water retention curve.
+    campbell_pore_size_distribution: float = -7.22
+    """Curvature of the water retention curve as indicator of pore size distribution.
 
-    The value is the average across all soil types found in
-    :cite:t:`cosby_statistical_1984`; see documentation for
+    This constant is used to convert soil moisture to matric potential following
+    :cite:t:`campbell_simple_1974`. The value is the average across all soil types found
+    in :cite:t:`cosby_statistical_1984`; see documentation for
     :attr:`air_entry_water_potential` for further details.
     """
 
@@ -145,3 +136,9 @@ class HydroConsts(ConstantsDataclass):
 
     reservoir_const_lower_groundwater: float = 20
     """Reservoir constant for the lower groundwater layer, [days]"""
+
+    initial_aerodynamic_resistance_surface: float = 12.5
+    """Initial aeordynamic resistance at the soil surface, [s m-1]."""
+
+    initial_aerodynamic_resistance_canopy: float = 12.5
+    """Initial aeordynamic resistance of the canopy, [s m-1]."""

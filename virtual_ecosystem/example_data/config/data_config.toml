@@ -64,10 +64,16 @@ file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_necromass"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_enzyme_pom"
+var_name = "soil_enzyme_pom_bacteria"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_enzyme_maom"
+var_name = "soil_enzyme_maom_bacteria"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_pom_fungi"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_maom_fungi"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_don"

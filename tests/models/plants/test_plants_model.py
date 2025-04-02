@@ -220,35 +220,69 @@ def test_PlantsModel_update(
     #         assert np.allclose(cohort.dbh, 0.13)
 
 
-def test_PlantsModel_calculate_turnover(fxt_plants_model):
+def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_config):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
     fxt_plants_model.calculate_turnover()
+    consts = fxt_plants_model.model_constants
 
     # Check that all expected variables are generated and have the correct value
-    assert np.allclose(fxt_plants_model.data["deadwood_production"], 0.075)
     assert np.allclose(
         fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
     )
-    assert np.allclose(fxt_plants_model.data["deadwood_lignin"], 0.545)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_lignin"], 0.05)
+    assert np.allclose(fxt_plants_model.data["stem_lignin"], consts.stem_lignin)
     assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_lignin"], 0.01
+        fxt_plants_model.data["senesced_leaf_lignin"], consts.senesced_leaf_lignin
     )
-    assert np.allclose(fxt_plants_model.data["root_turnover_lignin"], 0.2)
-    assert np.allclose(fxt_plants_model.data["deadwood_c_n_ratio"], 56.5)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_n_ratio"], 25.5)
     assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"], 12.5
+        fxt_plants_model.data["plant_reproductive_tissue_lignin"],
+        consts.plant_reproductive_tissue_lignin,
     )
-    assert np.allclose(fxt_plants_model.data["root_turnover_c_n_ratio"], 45.6)
-    assert np.allclose(fxt_plants_model.data["deadwood_c_p_ratio"], 856.5)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_p_ratio"], 415.0)
+    assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
+    assert np.allclose(fxt_plants_model.data["leaf_lignin"], consts.leaf_lignin)
     assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"], 125.5
+        fxt_plants_model.data["deadwood_c_n_ratio"], consts.deadwood_c_n_ratio
     )
-    assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)
+    assert np.allclose(
+        fxt_plants_model.data["leaf_turnover_c_n_ratio"], consts.leaf_turnover_c_n_ratio
+    )
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"],
+        consts.plant_reproductive_tissue_turnover_c_n_ratio,
+    )
+    assert np.allclose(
+        fxt_plants_model.data["root_turnover_c_n_ratio"], consts.root_turnover_c_n_ratio
+    )
+    assert np.allclose(
+        fxt_plants_model.data["deadwood_c_p_ratio"], consts.deadwood_c_p_ratio
+    )
+    assert np.allclose(
+        fxt_plants_model.data["leaf_turnover_c_p_ratio"], consts.leaf_turnover_c_p_ratio
+    )
+    assert np.allclose(
+        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"],
+        consts.plant_reproductive_tissue_turnover_c_p_ratio,
+    )
+    assert np.allclose(
+        fxt_plants_model.data["root_turnover_c_p_ratio"], consts.root_turnover_c_p_ratio
+    )
+
+
+def test_PlantsModel_calculate_turnover_constant_override(
+    plants_data, fixture_config, fixture_core_components
+):
+    """Test that the turnover constants can be overridden by values in config."""
+
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+    fixture_config["plants"]["constants"] = {"PlantsConsts": {"leaf_lignin": 100.0}}
+    plants_model = PlantsModel.from_config(
+        data=plants_data, config=fixture_config, core_components=fixture_core_components
+    )
+    plants_model.calculate_turnover()
+
+    assert np.allclose(plants_model.data["leaf_lignin"], 100.0)
 
 
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
@@ -261,3 +295,30 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["plant_ammonium_uptake"], 5.0e-4)
     assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], 7.5e-3)
     assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-5)
+
+
+def test_PlantsModel_apply_mortality(fxt_plants_model):
+    """Test the apply_mortality method of the plants model."""
+
+    original_population = {
+        cell_id: fxt_plants_model.communities[cell_id].cohorts.n_individuals.copy()
+        for cell_id in fxt_plants_model.communities.keys()
+    }
+
+    # Check reset
+    fxt_plants_model.apply_mortality()
+
+    for cell_id in fxt_plants_model.communities.keys():
+        community = fxt_plants_model.communities[cell_id]
+
+        mortality = (
+            original_population[cell_id]
+            - fxt_plants_model.communities[cell_id].cohorts.n_individuals
+        )
+        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
+
+        assert np.all(
+            original_population[cell_id]
+            >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
+        )
+        assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass

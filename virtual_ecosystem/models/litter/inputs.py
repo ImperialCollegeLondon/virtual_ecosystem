@@ -32,7 +32,7 @@ class LitterInputs:
     """Lignin proportion of leaf input [unitless]"""
     root_lignin: NDArray[np.float32]
     """Lignin proportion of root input [unitless]"""
-    deadwood_lignin: NDArray[np.float32]
+    stem_lignin: NDArray[np.float32]
     """Lignin proportion of deadwood input [unitless]"""
     reprod_lignin: NDArray[np.float32]
     """Lignin proportion of reproductive tissue input [unitless]"""
@@ -142,14 +142,14 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.float32]]:
         turnover_mass=data["leaf_turnover"].to_numpy(),
         herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
         total_mass=leaf_total,
-        turnover_chemical_proportion=data["leaf_turnover_lignin"].to_numpy(),
+        turnover_chemical_proportion=data["senesced_leaf_lignin"].to_numpy(),
         herbivory_waste_chemical_proportion=data[
             "herbivory_waste_leaf_lignin"
         ].to_numpy(),
     )
-    root_lignin = data["root_turnover_lignin"]
-    deadwood_lignin = data["deadwood_lignin"]
-    reprod_lignin = data["plant_reproductive_tissue_turnover_lignin"]
+    root_lignin = data["root_lignin"]
+    stem_lignin = data["stem_lignin"]
+    reprod_lignin = data["plant_reproductive_tissue_lignin"]
 
     # Calculate leaf nitrogen concentrations for each combined pool
     leaf_nitrogen = merge_input_chemical_proportions(
@@ -186,7 +186,7 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.float32]]:
         "reprod_mass": reprod_total.to_numpy(),
         "leaf_lignin": leaf_lignin,
         "root_lignin": root_lignin.to_numpy(),
-        "deadwood_lignin": deadwood_lignin.to_numpy(),
+        "stem_lignin": stem_lignin.to_numpy(),
         "reprod_lignin": reprod_lignin.to_numpy(),
         "leaf_nitrogen": leaf_nitrogen,
         "root_nitrogen": root_nitrogen.to_numpy(),

@@ -231,15 +231,22 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from individual canopy layers"
+description = "Longwave emission from individual canopy layers"
 name = "longwave_canopy"
 unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Longwave radiation from topsoil layer"
+description = "Longwave emission from topsoil layer"
 name = "longwave_emission_soil"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Longwave emission"
+name = "longwave_emission"
 unit = "W m-2"
 variable_type = "float"
 
@@ -266,8 +273,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Temperature-dependent molar density of air"
-name = "molar_density_air"
+description = "Temperature-dependent density of air"
+name = "density_air"
 unit = "kg m-3"
 variable_type = "float"
 
@@ -331,7 +338,21 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Aerodynamic resistance surface"
 name = "aerodynamic_resistance_surface"
-unit = "kg m2 s-3"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Aerodynamic resistance canopy"
+name = "aerodynamic_resistance_canopy"
+unit = "s m-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Canopy evaporation"
+name = "canopy_evaporation"
+unit = "mm"
 variable_type = "float"
 
 [[variable]]
@@ -422,7 +443,7 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Specific heat of air"
 name = "specific_heat_air"
-unit = "kJ kg-1"
+unit = "kJ kg-1 K-1"
 variable_type = "float"
 
 [[variable]]
@@ -532,8 +553,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Zero displacement height"
-name = "zero_displacement_height"
+description = "Zero plane displacement height"
+name = "zero_plane_displacement"
 unit = "m"
 variable_type = "float"
 
@@ -967,28 +988,28 @@ variable_type = "float"
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of deadwood"
-name = "deadwood_lignin"
+name = "stem_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of leaf turnover"
-name = "leaf_turnover_lignin"
+name = "senesced_leaf_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of plant reproductive tissue turnover"
-name = "plant_reproductive_tissue_turnover_lignin"
+name = "plant_reproductive_tissue_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
 description = "Lignin proportion of root turnover"
-name = "root_turnover_lignin"
+name = "root_lignin"
 unit = "kg lignin kg C^-1"
 variable_type = "float"
 
@@ -1155,14 +1176,28 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of enzyme class which breaks down particulate organic matter"
-name = "soil_enzyme_pom"
+description = "Amount of bacterial enzyme class which breaks down particulate organic matter"
+name = "soil_enzyme_pom_bacteria"
 unit = "kg C m^-3"
 variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Amount of enzyme class which breaks down mineral associated organic matter"
-name = "soil_enzyme_maom"
+description = "Amount of bacterial enzyme class which breaks down mineral associated organic matter"
+name = "soil_enzyme_maom_bacteria"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of fungal enzyme class which breaks down particulate organic matter"
+name = "soil_enzyme_pom_fungi"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Amount of fungal enzyme class which breaks down mineral associated organic matter"
+name = "soil_enzyme_maom_fungi"
 unit = "kg C m^-3"
 variable_type = "float"

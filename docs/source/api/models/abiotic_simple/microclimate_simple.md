@@ -24,8 +24,11 @@ kernelspec:
   name: python3
 ---
 
-# API reference for `abiotic` modules
+#  API for the {mod}`~virtual_ecosystem.models.abiotic_simple.microclimate_simple` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.abiotic
+.. automodule:: virtual_ecosystem.models.abiotic_simple.microclimate_simple
+    :autosummary:
+    :members:
+    :special-members: __init__
 ```
