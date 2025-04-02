@@ -70,3 +70,13 @@ class MigrationType(Enum):
 
     NONE = "none"
     SEASONAL = "seasonal"
+
+
+class VerticalOccupancy(Enum):
+    """Enumeration for vertical occupancy trait."""
+
+    SOIL = "soil"
+    GROUND = "ground"
+    CANOPY = "canopy"
+    SOIL_GROUND = "soil_ground"
+    GROUND_CANOPY = "ground_canopy"

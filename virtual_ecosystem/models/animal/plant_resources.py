@@ -5,6 +5,7 @@ required for setting up and testing the early stages of the animal module.
 from __future__ import annotations
 
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 
 # from virtual_ecosystem.models.animal.decay import ExcrementPool
@@ -39,6 +40,8 @@ class PlantResources:
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animal constants, including energy density."""
+        self.vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND_CANOPY
+        """The vertical position of the plant resource pool: ground of canopy."""
         self.is_alive = True
         """Indicating whether the plant cohort is alive [True] or dead [False]."""
         self.cnp_proportions: dict[str, float] = {
