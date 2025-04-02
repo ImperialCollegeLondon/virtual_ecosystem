@@ -25,7 +25,8 @@ POM
 MAOM
   Mineral Associated Organic Matter. This is organic matter which has formed a strong
   association with soil minerals. This association impedes breakdown, making this a form
-  of protected carbon.
+  of protected carbon and typically accounts for for a large proportion of total carbon
+  stock in the soil.
 
 LMWC
   Low Molecular Weight Carbon. These are organic molecules that are simple and soluble,
