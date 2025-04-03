@@ -225,7 +225,9 @@ class HydrologyModel(
         For the within grid cell hydrology, soil moisture is initialised homogenously
         for all soil layers and groundwater storage is set to the percentage of it's
         capacity that was defined in the model configuration. Soil and canopy
-        aerodynamic resistances are set to an initial constant value.
+        aerodynamic resistances are set to an initial constant value. Some additional
+        atmospheric variables are initialised to ensure they are available for update
+        when the Virtual Ecosystem is run with the `abiotic_simple` model.
 
         For the hydrology across the grid, this function initialises the accumulated
         surface runoff variable and the subsurface accumulated flow variable. Both

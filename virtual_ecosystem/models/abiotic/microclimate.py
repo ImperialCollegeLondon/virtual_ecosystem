@@ -57,7 +57,6 @@ def run_microclimate(
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
     leaf_area_index_sum = np.nansum(data["leaf_area_index"].to_numpy(), axis=0)
-    leaf_area_index_sum = np.nansum(data["leaf_area_index"].to_numpy(), axis=0)
 
     atmospheric_pressure_out = layer_structure.from_template()
     atmospheric_pressure_out[layer_structure.index_filled_atmosphere] = data[
