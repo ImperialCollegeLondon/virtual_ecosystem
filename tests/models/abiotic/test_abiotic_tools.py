@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -128,7 +128,7 @@ def test_calculate_actual_vapour_pressure(dummy_climate_data, fixture_core_compo
     result = calculate_actual_vapour_pressure(
         air_temperature=dummy_climate_data["air_temperature"],
         relative_humidity=dummy_climate_data["relative_humidity"],
-        pyrealm_const=pyrealm_const,
+        pyrealm_const=PyrealmConst,
     )
 
     exp_result = lyr_str.from_template()

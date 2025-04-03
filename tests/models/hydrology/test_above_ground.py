@@ -5,7 +5,7 @@ from logging import ERROR
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.constants import CoreConsts
@@ -112,7 +112,7 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
-        pyrealm_const=pyrealm_const,
+        pyrealm_const=PyrealmConst,
     )
 
     exp_evap = np.array([2.865767e-05, 7.115489e-06, 1.282660e-06])

@@ -2,7 +2,7 @@
 
 import numpy as np
 import xarray as xr
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 from xarray import DataArray
 
 
@@ -108,7 +108,7 @@ def test_calculate_vapour_pressure_deficit(fixture_core_components):
     result = calculate_vapour_pressure_deficit(
         temperature=temperature,
         relative_humidity=rel_humidity,
-        pyrealm_const=pyrealm_const(),
+        pyrealm_const=PyrealmConst(),
     )
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = np.array(
@@ -132,7 +132,7 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
     result = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature"],
         relative_humidity=data["relative_humidity"],
-        pyrealm_const=pyrealm_const(),
+        pyrealm_const=PyrealmConst(),
     )
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = [

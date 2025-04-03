@@ -11,7 +11,7 @@ from math import sqrt
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_vp_sat
 
 from virtual_ecosystem.core.grid import Grid
@@ -222,7 +222,7 @@ def calculate_soil_evaporation(
     gas_constant_water_vapour: float,
     drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
-    pyrealm_const: pyrealm_const,
+    pyrealm_const: PyrealmConst,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 

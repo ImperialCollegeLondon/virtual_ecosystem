@@ -1,7 +1,7 @@
 """Test microclimate.py."""
 
 import numpy as np
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -24,7 +24,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
-        pyrealm_const=pyrealm_const,
+        pyrealm_const=PyrealmConst(),
     )
 
     exp_soiltemp = lyr_str.from_template()

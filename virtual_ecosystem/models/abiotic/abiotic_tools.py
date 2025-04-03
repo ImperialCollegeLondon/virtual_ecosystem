@@ -8,7 +8,7 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
@@ -150,7 +150,7 @@ def calculate_slope_of_saturated_pressure_curve(
 def calculate_actual_vapour_pressure(
     air_temperature: DataArray,
     relative_humidity: DataArray,
-    pyrealm_const: pyrealm_const,
+    pyrealm_const: PyrealmConst,
 ) -> DataArray:
     """Calculate actual vapour pressure, [kPa].
 

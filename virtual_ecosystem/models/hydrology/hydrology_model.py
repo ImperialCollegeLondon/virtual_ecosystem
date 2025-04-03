@@ -34,7 +34,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
@@ -548,7 +548,7 @@ class HydrologyModel(
                 saturated_pressure_slope_parameters=(
                     self.abiotic_constants.saturated_pressure_slope_parameters
                 ),
-                time_interval=86400.0,  # TODO
+                time_interval=86400.0,  # TODO currently per day
                 intercept_residence_time=self.model_constants.intercept_residence_time,
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
@@ -622,7 +622,7 @@ class HydrologyModel(
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
-                pyrealm_const=pyrealm_const,
+                pyrealm_const=PyrealmConst,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
             daily_lists["aerodynamic_resistance_surface"].append(

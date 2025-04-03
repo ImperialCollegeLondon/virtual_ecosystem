@@ -14,7 +14,7 @@ TODO change temperatures to Kelvin
 """  # noqa: D205
 
 import numpy as np
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
@@ -198,7 +198,7 @@ def log_interpolation(
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    pyrealm_const: pyrealm_const,
+    pyrealm_const: PyrealmConst,
 ) -> dict[str, DataArray]:
     """Calculate vapour pressure and vapour pressure deficit, kPa.
 
