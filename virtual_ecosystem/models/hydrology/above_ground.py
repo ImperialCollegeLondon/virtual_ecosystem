@@ -35,7 +35,7 @@ def potential_evaporation_leaf(
 ):
     r"""Calculate canopy potential evaporation rate using Penman-Monteith equation.
 
-    the potential evaporation rate :math:`EW_{0}` is calculated as follows:
+    The potential evaporation rate :math:`EW_{0}` is calculated as follows:
 
     .. math::
         EW_{0} =
@@ -170,7 +170,7 @@ def calculate_canopy_evaporation(
 
     output = {}
 
-    # Potential evaporation from open surface water
+    # Potential evaporation from open surface water, [kg m-2 s-1]
     potential_evaporation = potential_evaporation_leaf(
         net_radiation=net_radiation,
         vapour_pressure_deficit=vapour_pressure_deficit,
@@ -184,23 +184,23 @@ def calculate_canopy_evaporation(
         saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
     )
 
-    # Maximum evaporation from canopy interception pool
+    # Maximum evaporation from canopy interception pool, [mm day-1]
     maximum_evaporation = (
         potential_evaporation
-        * (1 - np.exp(-extinction_coefficient_global_radiation * leaf_area_index))
+        * (1.0 - np.exp(-extinction_coefficient_global_radiation * leaf_area_index))
         * time_interval
     )
 
-    # Actual evaporation, mm
+    # Actual evaporation, [mm day-1]
     actual_evaporation = np.minimum(maximum_evaporation, interception)
     output["canopy_evaporation"] = actual_evaporation
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    remaining_interception = np.maximum(interception - actual_evaporation, 0)
+    remaining_interception = np.maximum(interception - actual_evaporation, 0.0)
 
     leaf_drainage = np.minimum(
-        (1 / intercept_residence_time) * remaining_interception * time_interval,
+        (1.0 / intercept_residence_time) * remaining_interception * time_interval,
         remaining_interception,
     )
     output["leaf_drainage"] = leaf_drainage
