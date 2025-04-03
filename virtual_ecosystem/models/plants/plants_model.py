@@ -609,6 +609,7 @@ class PlantsModel(
         self.data["fallen_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0
         )
+        # Deliberately not partitioning fruit across canopy vertical layers
         self.data["canopy_n_propagules"] = xr.full_like(self.data["elevation"], 0)
         self.data["canopy_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0

@@ -325,3 +325,14 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
         assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
+
+
+def test_partition_reproductive_tissue(fxt_plants_model):
+    """Tests the partition reproductive tissue function."""
+
+    n_propagules, mass_non_propagules = fxt_plants_model.partition_reproductive_tissue(
+        reproductive_tissue_mass=10.5
+    )
+
+    assert n_propagules == 5
+    assert mass_non_propagules == 5.5
