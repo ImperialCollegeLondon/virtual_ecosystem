@@ -105,7 +105,6 @@ def prey_group_selection(
     be shifted into functional_group definitions.
 
     TODO: Implement real pred-prey mass ratio.
-    TODO: Remove if unused.
 
     Args:
         diet_type: A value from the DietType enumeration.
