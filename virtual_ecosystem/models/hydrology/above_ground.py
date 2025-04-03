@@ -165,7 +165,7 @@ def calculate_canopy_evaporation(
             radiation
 
     Returns:
-        leaf evaporation [mm], leaf drainage [mm]
+        canopy evaporation [mm per time interval], leaf drainage [mm per time interval]
     """
 
     output = {}
@@ -270,7 +270,7 @@ def calculate_soil_evaporation(
         pyrealm_const: Constants from pyrealm package
 
     Returns:
-        soil evaporation, [mm] and aerodynamic resistance near the surface [s m-1]
+        soil evaporation, [mm per time interval], aerodynamic resistance surface [s m-1]
     """
 
     output = {}

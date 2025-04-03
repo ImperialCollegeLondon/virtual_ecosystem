@@ -329,12 +329,7 @@ def test_setup(
                 "total_river_discharge": [0, 0, 64898, 21514],
                 "surface_runoff": [0, 0, 0, 0],
                 "surface_runoff_accumulated": [0, 0, 0, 0],
-                "soil_evaporation": [
-                    8.342561e-05,
-                    8.342561e-05,
-                    8.342561e-05,
-                    8.342561e-05,
-                ],
+                "soil_evaporation": [7.172842, 7.172842, 7.172842, 7.172842],
             }
 
             for var_name, expected_vals in expected_1d.items():
