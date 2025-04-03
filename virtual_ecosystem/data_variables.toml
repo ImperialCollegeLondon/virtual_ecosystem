@@ -1201,3 +1201,17 @@ description = "Amount of fungal enzyme class which breaks down mineral associate
 name = "soil_enzyme_maom_fungi"
 unit = "kg C m^-3"
 variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of vegetation growing underneath the canopy."
+name = "subcanopy_vegetation_biomass"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of subcanopy seedbank."
+name = "subcanopy_seedbank_biomass"
+unit = "kg C m^-2"
+variable_type = "float"

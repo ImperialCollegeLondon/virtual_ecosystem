@@ -59,3 +59,24 @@ class PlantsConsts(ConstantsDataclass):
 
     root_turnover_c_p_ratio: float = 656.7
     """Carbon to Phosphorous ratio of root turnover."""
+
+    subcanopy_vegetation_extinction_coef: float = 0.5
+    """The extinction coefficient of subcanopy vegation (unitless)."""
+
+    subcanopy_vegetation_specific_leaf_area: float = 14
+    """The specific leaf area of subcanopy vegetation (kg m-2)."""
+
+    subcanopy_respiration_fraction: float = 0.1
+    """The fraction of gross primary productivity used in respiration (unitless)."""
+
+    subcanopy_vegetation_sprout_rate: float = 0.1
+    """The rate at which new subcanopy biomass sprouts from the subcanopy seedbank mass
+    (kg m-2 y-1)."""
+
+    subcanopy_vegetation_sprout_yield: float = 0.5
+    """The fraction of subcanopy seedbank mass is realised as subcanopy vegetation mass
+    (unitless)."""
+
+    subcanopy_vegetation_reproductive_allocation: float = 0.1
+    """The fraction of subcanopy productivity that is allocated to subcanopy seedbank
+    mass (unitless)."""

@@ -40,6 +40,8 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
+        "subcanopy_vegetation_biomass",
+        "subcanopy_seedbank_biomass",
         "downward_shortwave_radiation",
     ),
     vars_populated_by_init=(
@@ -91,6 +93,8 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "subcanopy_vegetation_biomass",
+        "subcanopy_seedbank_biomass",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -346,6 +350,9 @@ class PlantsModel(
 
         # Apply mortality to plant cohorts
         self.apply_mortality()
+
+        # Calculate the subcanopy vegetation
+        self.calculate_subcanopy_vegetation_growth()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -752,3 +759,22 @@ class PlantsModel(
         self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
+
+    def calculate_subcanopy_vegetation_growth(self) -> None:
+        """Estimate the biomass increase of subcanopy vegetation.
+
+        This method calculates the increase in biomass of the subcanopy vegetation. The
+        subcanopy vegetation is represented as pure leaf biomass, with an associated
+        extinction coefficient and specific leaf area. This can be used to calculate the
+        leaf area index and hence the absorption fraction of the vegetation layer.
+
+        Given the subcanopy irradiance, the abiotic environment and the absorption
+        fraction, the P Model can then be used to estimate the gross primary
+        productivity.
+
+        The
+        increase consists of two components:
+
+        1. Regrowth of ne
+
+        """
