@@ -40,9 +40,8 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "subcanopy_vegetation_biomass",
-        "subcanopy_seedbank_biomass",
         "downward_shortwave_radiation",
+        "subcanopy_vegetation_biomass",
     ),
     vars_populated_by_init=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -50,6 +49,8 @@ class PlantsModel(
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "shortwave_absorption",
+        "subcanopy_leaf_area_index",
+        "subcanopy_fapar",
     ),
     vars_required_for_update=(
         "plant_cohorts_cell_id",
@@ -57,6 +58,8 @@ class PlantsModel(
         "plant_cohorts_n",
         "plant_cohorts_dbh",
         "downward_shortwave_radiation",
+        "subcanopy_vegetation_biomass",
+        "subcanopy_seedbank_biomass",
         "air_temperature",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
@@ -95,6 +98,8 @@ class PlantsModel(
         "plant_phosphorus_uptake",
         "subcanopy_vegetation_biomass",
         "subcanopy_seedbank_biomass",
+        "subcanopy_leaf_area_index",
+        "subcanopy_fapar",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -204,6 +209,9 @@ class PlantsModel(
         self.per_stem_transpiration: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving an array of per stem transpiration
         values for each cohort in the cell community"""
+        self.pmodel: PModel
+        """A P Model instance providing estimates of light use efficiency through the
+        canopy and across cells."""
         self.pmodel_consts: PModelConst
         """PModel constants used by pyrealm."""
         self.pmodel_core_consts: CoreConst
@@ -316,6 +324,10 @@ class PlantsModel(
             1 - model_constants.per_stem_annual_mortality_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
+        # Populate the leaf area index and light absorption associated with the
+        # subcanopy vegetation
+        self.calculate_subcanopy_leaf_area_and_absorption()
+
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 
@@ -339,6 +351,7 @@ class PlantsModel(
         self.set_shortwave_absorption(time_index=time_index)
 
         # Estimate the GPP and growth with the updated this update
+        self.calculate_light_use_efficiency()
         self.estimate_gpp(time_index=time_index)
         self.allocate_gpp()
 
@@ -352,7 +365,7 @@ class PlantsModel(
         self.apply_mortality()
 
         # Calculate the subcanopy vegetation
-        self.calculate_subcanopy_vegetation_growth()
+        self.calculate_subcanopy_leaf_area_and_absorption()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -468,15 +481,37 @@ class PlantsModel(
 
         self.data["shortwave_absorption"] = absorbed_irradiance
 
+    def calculate_light_use_efficiency(self) -> None:
+        """Calculate the light use efficiency across vertical layers.
+
+        This method uses the P Model to estimate the light use efficiency within
+        vertical layers, given the environmental conditions through the canopy
+        structure.
+        """
+
+        # Estimate the light use efficiency of leaves within each canopy layer within
+        # each grid cell. The LUE is set purely by the environmental conditions, which
+        # are shared across cohorts so we can calculate all layers in all cells.
+        pmodel_env = PModelEnvironment(
+            tc=self.data["air_temperature"].to_numpy(),
+            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
+            patm=self.data["atmospheric_pressure"].to_numpy(),
+            co2=self.data["atmospheric_co2"].to_numpy(),
+            core_const=self.pmodel_core_consts,
+            pmodel_const=self.pmodel_consts,
+        )
+
+        self.pmodel = PModel(pmodel_env)
+
     def estimate_gpp(self, time_index: int) -> None:
         """Estimate the gross primary productivity within plant cohorts.
 
-        This method uses the P Model to estimate the light use efficiency of leaves in
-        gC mol-1, given the environment (temperate, atmospheric pressure, vapour
-        pressure deficit and atmospheric CO2 concentration) within each canopy layer.
-        This is multiplied by the absorbed irradiance within each canopy layer to
-        predict the gross primary productivity (GPP, µg C m-2 s-1) for each canopy
-        layer.
+        This method uses estimated light use efficiency from the P Model to estimate the
+        light use efficiency of leaves in gC mol-1, given the environment (temperate,
+        atmospheric pressure, vapour pressure deficit and atmospheric CO2 concentration)
+        within each canopy layer. This is multiplied by the absorbed irradiance within
+        each canopy layer to predict the gross primary productivity (GPP, µg C m-2 s-1)
+        for each canopy layer.
 
         The GPP for each cohort is then estimated by mutiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
@@ -499,19 +534,6 @@ class PlantsModel(
 
 
         """
-
-        # Estimate the light use efficiency of leaves within each canopy layer within
-        # each grid cell. The LUE is set purely by the environmental conditions, which
-        # are shared across cohorts so we can calculate all layers in all cells.
-        pmodel_env = PModelEnvironment(
-            tc=self.data["air_temperature"].to_numpy(),
-            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
-            patm=self.data["atmospheric_pressure"].to_numpy(),
-            co2=self.data["atmospheric_co2"].to_numpy(),
-            core_const=self.pmodel_core_consts,
-            pmodel_const=self.pmodel_consts,
-        )
-        pmodel = PModel(pmodel_env)
 
         # Get the canopy top PPFD per grid cell for this time index
         canopy_top_ppfd = (
@@ -553,7 +575,7 @@ class PlantsModel(
             # Units:
             #    gC mol-1  * µmol m-2 s-1 * (-) = µg m-2 s-1
             per_stem_gpp_rate = (
-                pmodel.lue[active_layers, :][:, [cell_id]]
+                self.pmodel.lue[active_layers, :][:, [cell_id]]
                 * canopy.cohort_data.stem_fapar
                 * canopy_top_ppfd[cell_id]
             )
@@ -566,7 +588,7 @@ class PlantsModel(
             #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
             per_stem_transpiration_rate = (
                 per_stem_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
-            ) * pmodel.iwue[active_layers, :][:, [cell_id]]
+            ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Now scale up and aggregate those values
 
@@ -760,21 +782,51 @@ class PlantsModel(
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
 
-    def calculate_subcanopy_vegetation_growth(self) -> None:
-        """Estimate the biomass increase of subcanopy vegetation.
+    def calculate_subcanopy_leaf_area_and_absorption(self) -> None:
+        r"""Calculate the leaf area index and light absorption of subcanopy vegetation.
 
-        This method calculates the increase in biomass of the subcanopy vegetation. The
-        subcanopy vegetation is represented as pure leaf biomass, with an associated
-        extinction coefficient and specific leaf area. This can be used to calculate the
-        leaf area index and hence the absorption fraction of the vegetation layer.
+        The subcanopy vegetation is represented as pure leaf biomass (:math:`M_{SC}`, kg
+        m-2), with an associated extinction coefficient (:math:`k`) and specific leaf
+        area (:math:`\sigma`, kg m-2) set in the model constants. These can be used to
+        calculate the   leaf area index (:math:`L`) and hence the absorption fraction
+        (:math:`f_a`) of  the subcanopy vegetation layer via the Beer-Lambert law: 
+
+        .. math ::
+            :nowrap:
+
+            \[
+                \begin{align*}
+                    L &= M_{SC} \sigma \\
+                    f_a = e^{-kL}
+                \end{align*}
+            \]
+        """
+
+        # Calculate the leaf area index - values are already in kg m-2 so no need to
+        # account for the area occupied by the biomass
+        self.data["subcanopy_leaf_area_index"] = (
+            self.data["subcanopy_vegetation_biomass"]
+            * self.model_constants.subcanopy_vegetation_specific_leaf_area
+        )
+
+        self.data["subcanopy_fapar"] = self.data["subcanopy_leaf_area_index"].copy(
+            data=np.exp(
+                -self.model_constants.subcanopy_vegetation_extinction_coef
+                * self.data["subcanopy_leaf_area_index"]
+            )
+        )
+
+    def calculate_subcanopy_vegetation_growth(self) -> None:
+        r"""Estimate the biomass increase of subcanopy vegetation.
 
         Given the subcanopy irradiance, the abiotic environment and the absorption
         fraction, the P Model can then be used to estimate the gross primary
-        productivity.
+        productivity. That is partitioned into respiration, allocation to the subcaanopy
+        seedbank biomass and extra vegetative biomass.
 
-        The
-        increase consists of two components:
-
-        1. Regrowth of ne
-
+        At each update, new biomass is added to the biomass pool from the seedbank pool,
+        given the seedbank mass, the subcanopy sprouting rate and the yield fraction of
+        sprouted biomass from seedbank biomass.
         """
+
+        self.pmodel.lue
