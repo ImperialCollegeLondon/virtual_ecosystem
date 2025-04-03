@@ -14,24 +14,24 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class SoilConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `soil` model."""
 
-    # TODO - Add value from data science repo
-    reference_cue_logit: float = 0.6
-    """Logit of of the carbon use efficiency of community at the reference temperature.
+    reference_cue_logit: float = 0.094
+    """Logit of of the carbon use efficiency of microbial community at the reference temperature.
     
-    [unitless]. TODO - Explain where this value comes from
+    [unitless]. Parameter estimated from a beta-logit GLMM using the data 
+    from :cite:t:``.
     """
 
-    cue_reference_temp: float = 15.0
+    cue_reference_temp: float = 20.0
     """Reference temperature for carbon use efficiency [degrees C].
 
-    Default value taken from :cite:t:`abramoff_millennial_2018`.
+    Default value taken from :cite:t:``.
     """
 
-    # TODO - Add value from data science repo
-    logit_cue_with_temperature: float = 0.012
-    """Change in the logit of carbon use efficiency with increasing temperature
+    logit_cue_with_temperature: float = -0.039
+    """Change in the logit of carbon use efficiency with unit increase in temperature
     
-    Units of [degree C^-1]. TODO - Explain where this value comes from
+    Units of [degree C^-1]. Parameter estimated from a beta-logit GLMM 
+    using the data from :cite:t:``.
     """
 
     soil_microbe_water_potential_optimum: float = -3.0
