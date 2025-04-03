@@ -336,3 +336,7 @@ def test_partition_reproductive_tissue(fxt_plants_model):
 
     assert n_propagules == 5
     assert mass_non_propagules == 5.5
+    assert (
+        n_propagules * fxt_plants_model.model_constants.carbon_mass_per_propagule
+        + mass_non_propagules
+    )

@@ -605,6 +605,7 @@ class PlantsModel(
         # Reset turnover to 0 as turnover from previous steps should have been allocated
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
+        # TODO: Propagules should be stored in a cell x PFT array
         self.data["fallen_n_propagules"] = xr.full_like(self.data["elevation"], 0)
         self.data["fallen_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0
