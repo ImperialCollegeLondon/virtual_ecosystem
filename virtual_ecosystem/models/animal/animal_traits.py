@@ -80,3 +80,4 @@ class VerticalOccupancy(Enum):
     CANOPY = "canopy"
     SOIL_GROUND = "soil_ground"
     GROUND_CANOPY = "ground_canopy"
+    SOIL_GROUND_CANOPY = "soil_ground_canopy"

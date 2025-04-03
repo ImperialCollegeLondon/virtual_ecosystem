@@ -1478,6 +1478,14 @@ class AnimalCohort:
                 VerticalOccupancy.SOIL_GROUND,
                 VerticalOccupancy.GROUND_CANOPY,
             },
+            VerticalOccupancy.SOIL_GROUND_CANOPY: {
+                VerticalOccupancy.SOIL,
+                VerticalOccupancy.GROUND,
+                VerticalOccupancy.CANOPY,
+                VerticalOccupancy.SOIL_GROUND,
+                VerticalOccupancy.GROUND_CANOPY,
+                VerticalOccupancy.SOIL_GROUND_CANOPY,
+            },
         }
 
         return (
