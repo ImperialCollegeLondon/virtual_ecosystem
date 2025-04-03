@@ -112,10 +112,11 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
+        time_interval=86400,
         pyrealm_const=PyrealmConst,
     )
 
-    exp_evap = np.array([2.865767e-05, 7.115489e-06, 1.282660e-06])
+    exp_evap = np.array([2.466861, 0.612504, 0.110356])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
     np.testing.assert_allclose(

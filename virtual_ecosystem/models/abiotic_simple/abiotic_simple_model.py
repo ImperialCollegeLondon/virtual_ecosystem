@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pyrealm.constants import CoreConst as pyrealm_const
+from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
@@ -154,7 +154,7 @@ class AbioticSimpleModel(
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            pyrealm_const=pyrealm_const(),
+            pyrealm_const=PyrealmConst(),
         )
         self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
             "vapour_pressure_deficit"

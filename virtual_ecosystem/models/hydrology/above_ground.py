@@ -222,6 +222,7 @@ def calculate_soil_evaporation(
     gas_constant_water_vapour: float,
     drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
+    time_interval: float,
     pyrealm_const: PyrealmConst,
 ) -> dict[str, NDArray[np.float32]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
@@ -265,6 +266,7 @@ def calculate_soil_evaporation(
         drag_coefficient_evaporation: Drag coefficient for evaporation, dimensionless
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
+        time_interval: Time interval, [s]
         pyrealm_const: Constants from pyrealm package
 
     Returns:
@@ -290,23 +292,29 @@ def calculate_soil_evaporation(
         core_const=pyrealm_const(),
     )
 
-    pressure_deficit = atmospheric_pressure - saturation_vapour_pressure
     saturated_specific_humidity = (
-        gas_constant_water_vapour / latent_heat_vapourisation
-    ) * (saturation_vapour_pressure / pressure_deficit)
+        gas_constant_water_vapour * saturation_vapour_pressure
+    ) / (
+        atmospheric_pressure
+        - (1 - gas_constant_water_vapour) * saturation_vapour_pressure
+    )
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
     aerodynamic_resistance = 1 / (wind_speed_surface * drag_coefficient_evaporation)
     output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
-    evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
+    evaporative_flux = (density_air / aerodynamic_resistance) * (
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    output["soil_evaporation"] = (  # Return surface evaporation, [mm]
-        evaporative_flux / latent_heat_vapourisation
-    ).squeeze() * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+    output["soil_evaporation"] = (
+        (  # Return surface evaporation, [mm]
+            evaporative_flux / latent_heat_vapourisation
+        ).squeeze()
+        * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+        * time_interval
+    )
 
     return output
 

@@ -622,6 +622,7 @@ class HydrologyModel(
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
+                time_interval=86400,  # TODO currently per day
                 pyrealm_const=PyrealmConst,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
