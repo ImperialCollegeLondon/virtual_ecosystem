@@ -28,33 +28,33 @@ language_info:
 Litter decay and soil nutrient transformations are both affected by environment. As the
 soil model explicitly includes microbes, temperature effects many different processes in
 the model, e.g. enzymatic rates and the carbon use efficiency of microbial growth.
-Temperature is more straightforward in the litter model and just effects the decay rate
+Temperature is more straightforward in the litter model and just affects the decay rate
 of each litter pool. Processes that take place underground are also affected by soil
 moisture. For the soil moisture response, an empirical relationship is used for both
 litter decay and soil organic matter breakdown. For the enzymes in the soil model, their
 action is also affected by soil pH and clay fraction. Finally, the rate at which
-nutrients leach from the soil is affected by the rate at which water flows downwards
-through the soil. We will now describe each of these in more detail.
+nutrients leach from the soil is affected by the flow rate of water downwards
+through the soil. We will now describe each of these processes in more detail.
 
 ## Microbial response to temperature
 
-Temperature is one of the most significant drivers of microbial processes. In the soil
-model, two different approaches are taken to model the effects of temperature on
+Temperature is one of the most significant drivers of microbial processes. 
+Two different approaches are taken to model the effects of temperature on
 microbial process rates. While most processes are modelled using the Arrhenius equation,
-a different approach is taken to modelling the efficiency of microbial growth.
+a different approach is taken to modelling the microbial growth rate.
 
 ### Arrhenius equation
 
 :::{admonition} Future directions 🔭
 
 The Arrhenius equation is a simple model for the impact of temperature on biological
-rates. We are using this equation as a simple initial approach to incorporate
+rates. We use this equation as a simple initial approach to incorporating
 temperature in the model, and anticipate deprecating it in favour of more refined models
 in future.
 
 :::
 
-We model the thermal variation of the following processes using the Arrhenius equation:
+We model the thermal response of the following processes using the Arrhenius equation:
 
 * microbial biomass loss
 * microbial uptake rate
@@ -62,42 +62,42 @@ We model the thermal variation of the following processes using the Arrhenius eq
 * enzyme rate
 * enzyme saturation
 
-The form of the equation is as follows
+The form of the Arrhenius equation is as follows
 
 $$f(T) = \exp{\frac{-E_a}{R} * (\frac{1}{T} - \frac{1}{T_{\mathrm{ref}}})},$$
 
-where $E_a$ the activation energy of the process of interest, $R$ is the molar gas
+where $E_a$ is the activation energy of the process of interest, $R$ is the molar gas
 constant, $T$ is the environmental temperature, and $T_{\mathrm{ref}}$ the reference
 temperature.
 
 ### Temperature impact on microbial growth efficiency
 
-TODO - When the CUE pull request is in this section will have to be updated
-
 The efficiency of microbial growth is often expressed in carbon terms as a carbon use
-efficiency. This is defined as the ratio of carbon used for the synthesis of new biomass
+efficiency (CUE). This is defined as the proportion of carbon used for the synthesis of new biomass
 to the total amount of carbon taken up. This is an emergent property that arises from a
 large number of underlying processes (e.g. basal respiration, DNA synthesis efficiency,
-etc), most of which would be expected to vary with temperature. Because of this carbon
-use efficiency does not follow anything like an exponential increase with temperature,
-and so the Arrhenius model is not an appropriate model to use. Instead we use a simple
-linear model to calculate carbon use efficiency
+etc.), most of which would be expected to vary with temperature. Carbon
+use efficiency usually does not increase exponentially with temperature,
+therefore the Arrhenius model is rarely an appropriate model. Instead we use a simple
+logistic model to describe the temperature dependence of carbon use efficiency
 
-$$\epsilon = \epsilon_{\mathrm{ref}} - \alpha * (T - T_{\mathrm{ref}}),$$
+$$\mathrm{logit}\left(\epsilon\right) = \epsilon_{\mathrm{ref}} - \alpha * (T - T_{\mathrm{ref}}),$$
 
 where $\epsilon_{\mathrm{ref}}$ is the carbon use efficiency at the reference
 temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ is the
 environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature.
+The logit link function is used to ensure that carbon use efficiency $\epsilon$
+is bound between 0 and 1 as it is a proportion.
 
 ## Soil moisture response
 
-Breakdown rates for soil organic matter and breakdown rates for the below-ground litter
-pools are both impacted by how wet the soil is. In very dry soils rates are extremely
-slow, this is because microbial movement is restricted so microbes struggle to reach
+Breakdown rates for soil organic matter and below-ground litter
+pools are both impacted by soil moisture. In very dry soils, breakdown rates are extremely
+slow because microbial movement is restricted from reaching
 the substrate to break it down. As soils get wetter, microbial motility increases
-resulting in faster breakdown rates. However, increasing soil moisture makes it harder
-for oxygen to permeate the soil, so at a certain point breakdown rates begin to
-decrease with increasing soil moisture as oxygen availability has become limiting. The
+resulting in faster breakdown rates. However, further increasing soil moisture makes 
+oxygen less permeable in the soil, so after a certain peak breakdown rates begin to
+decrease with increasing soil moisture as oxygen becomes limiting. The
 "intrinsic" process rates are altered to capture the effect of soil moisture by
 multiplying them with a factor that takes the following form
 
@@ -115,7 +115,7 @@ which sets the curvature of the response to changing soil water potential.
 
 ## Litter decay temperature response
 
-The decay rates of all classes of litter are effected by temperature. For the
+The decay rates of all classes of litter are affected by temperature. For the
 above-ground pools, this temperature is simply the air temperature just above the soil
 surface. For the below ground pools, the temperature is an average of the temperatures
 for the biologically active soil layers. The "intrinsic" litter decay rates are altered
@@ -131,7 +131,7 @@ changes.
 
 ## Environmental effects on enzymes
 
-Enzyme mediated processes in the soil are effected by a wide range of environmental
+Enzyme mediated processes in the soil are effected by a wider range of environmental
 factors: soil clay content, soil pH, soil temperature and soil moisture. These
 environmental factors can change the maximum rates of the processes or alternatively
 change the half saturation of the process. We will now discuss each of these factors in
@@ -151,7 +151,7 @@ increases with increasing clay content.
 ### Impact of pH on enzyme rate
 
 pH values that lie outside the optimal range tend to inhibit microbial activities. We
-capture this as a factor that decreases maximum rate, it is calculated as
+capture this as
 
 $$
 f_p =
@@ -174,7 +174,7 @@ $pH_\mathrm{max}$ is the maximum pH at which enzymatic activity can occur.
 ### Impact of temperature on enzyme rate and saturation
 
 The response of both enzyme rate and enzyme saturation to changing temperature is
-modelled using an Arrhenius function (see [here](#arrhenius-equation) for details).
+modelled using an [Arrhenius function](#arrhenius-equation).
 
 ### Impact of soil moisture on enzyme saturation
 
