@@ -800,10 +800,6 @@ class PlantsModel(
         propagules and non-propagules. The number of propagules is calculated based on
         the mass of reproductive tissue and the mass of each propagule. The remaining
         mass is considered as non-propagule reproductive tissue.
-
-        Returns:
-            A tuple containing two arrays: the number of propagules and the mass of
-            non-propagule reproductive tissue.
         """
 
         n_propagules = np.sum(
