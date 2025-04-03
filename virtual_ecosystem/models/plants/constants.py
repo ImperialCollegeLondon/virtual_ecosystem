@@ -63,5 +63,8 @@ class PlantsConsts(ConstantsDataclass):
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
 
-    propagule_mass: float = 0.5
+    propagule_mass_portion: float = 0.5
     """Fraction of reprodutive tissue allocated to propagules."""
+
+    carbon_mass_per_propagule: float = 1
+    """Mass of carbon per propagule in g."""

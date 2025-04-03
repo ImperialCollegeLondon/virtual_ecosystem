@@ -94,7 +94,6 @@ class LitterModel(
         "c_p_ratio_below_structural",
         "deadwood_production",
         "leaf_turnover",
-        "fallen_propagule_c_mass",
         "fallen_non_propagule_c_mass",
         "root_turnover",
         "stem_lignin",
