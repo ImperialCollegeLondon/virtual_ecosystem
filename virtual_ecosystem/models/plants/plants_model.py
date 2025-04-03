@@ -610,7 +610,9 @@ class PlantsModel(
             self.data["elevation"], 0
         )
         self.data["canopy_n_propagules"] = xr.full_like(self.data["elevation"], 0)
-        self.data["canopy_non_prop_rt_mass"] = xr.full_like(self.data["elevation"], 0)
+        self.data["canopy_non_propagule_c_mass"] = xr.full_like(
+            self.data["elevation"], 0
+        )
         self.data["root_carbohydrate_exudation"] = xr.full_like(
             self.data["elevation"], 0
         )
@@ -657,7 +659,7 @@ class PlantsModel(
             # Partition reproductive tissue mass into propagules and non-propagules
             (
                 self.data["canopy_n_propagules"][cell_id],
-                self.data["canopy_non_prop_rt_mass"][cell_id],
+                self.data["canopy_non_propagule_c_mass"][cell_id],
             ) = self.partition_reproductive_tissue(
                 community.stem_allometry.reproductive_tissue_mass
             )
