@@ -23,39 +23,39 @@ language_info:
   version: 3.11.9
 ---
 
-# Soil theory
+# Overview
 
-The storage of carbon and cycling of nutrients within the soil are key processes we aim
+The storage and cycling of carbon and nutrients within the soil are key processes we aim
 to capture in the Virtual Ecosystem. This requires modelling soil specific processes, as
 well as litter decay processes that occur both within the topsoil (e.g. for dead roots)
 and within the above ground litter layer.
 
-This soil theme gets split into two separate models. The [litter
+The soil theme is split into two separate models. On one hand, the [litter
 model](./litter_theory.md) handles the breakdown of biomass that's still in an
-identifiable form, both in the above ground litter layer as well as below ground. The
-soil model, handles the processes that are specific to the soil, i.e. the [soil
-carbon](./soil_carbon.md) and [macronutrient](./macronutrients.md) cycles.
+identifiable form, both in the above-ground litter layer as well as below ground.
+On the other hand, the soil model handles the processes that are specific to the soil, 
+i.e. the [soil carbon](./soil_carbon.md) and [macronutrient](./macronutrients.md) cycles.
 
 The litter model is significantly simpler than the soil model. The biggest uncertainty
 in this model are the rates at which different types of litter decay, and this can be
-parameterised relatively well from commonly collected empirical data. The model
+parameterised relatively well from common empirical data. The model
 provides reasonably good estimates of the standing stocks of litter and the rates at
 which carbon, nitrogen and phosphorus enter the soil.
 
 In contrast, the soil model is more detailed in order to address deeper uncertainties
-about nutrient transformations within the soil. The two biggest uncertainties for the
-soil model are the long term fate of soil carbon and the impact of plant-microbe
-interactions on uptake rates of nutrients by plants. We believe that the soil related
-uncertainties are of greater consequence so have made the conscious choice to focus more
-detailed modelling effort soil processes than the litter model. Therefore, the soil
+about nutrient transformations within the soil. The two biggest uncertainties in the
+soil model are the long-term fate of soil carbon and the impact of plant--microbe
+interactions on uptake rates of nutrients by plants. We believe that the soil-related
+uncertainties are of greater consequence, so we have made the conscious choice to focus more
+detailed modelling of soil processes than the litter processes. Therefore, the soil
 model explicitly represents the soil [microbial
-community](./microbial_representation.md), the main driver of decomposition in soils.
-Explicitly represented microbes presents major data limitation challenges, as soils are
+community](./microbial_representation.md), which is the main driver of decomposition in soils.
+Explicitly represented microbes presents major data challenges, as soils are
 generally poorly characterised compared to the other constituent parts of terrestrial
 ecosystems.
 
 Most processes in the soil are effected by both the environmental temperature and the
-soil moisture. The specific of how we have implemented these known effects are provided
+soil moisture. The specifics of how we have implemented these known effects are provided
 [here](./environmental_links.md).
 
 :::{admonition} Future directions 🔭
