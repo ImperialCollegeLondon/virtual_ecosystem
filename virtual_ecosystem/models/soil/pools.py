@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature
+from scipy.special import expit
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -1146,9 +1147,8 @@ def calculate_carbon_use_efficiency(
         The carbon use efficiency (CUE) of the microbial community
     """
 
-    return 1 / (
-        1
-        + np.exp(
+    return expit(
+        np.exp(
             -reference_cue_logit
             - logit_cue_with_temp * (soil_temp - cue_reference_temp)
         )
