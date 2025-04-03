@@ -82,7 +82,8 @@ The default values are set for forest ecosystems.
 
 The vertical component of the hydrology model determines the water balance within each
 grid cell. This includes [above ground](../../api/models/hydrology/above_ground.md)
-processes such as rainfall, canopy interception, and surface runoff out of the grid cell.
+processes such as rainfall, canopy interception and evaporation, leaf drainage, and
+surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
 infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
 potential, horizontal sub-surface flow out of the grid cell, and changes in
@@ -114,10 +115,45 @@ where LAI is the average Leaf Area Index (m2 m-2). $k$ is estimated as:
 
 $$k=0.046 \cdot LAI$$
 
+### Canopy evaporation and leaf drainage
+
+Evaporation of intercepted water from the canopy following the LISFLOOD model
+{cite:t}`van_der_knijff_lisflood_2010`. The maximum evaporation per time step $EW_{max}$
+is proportional to the fraction of vegetated area:
+
+```{math}
+  EW_{max} = EW_{0} [1 - e^{(-\kappa_{gb} LAI)}] \Delta t
+```
+
+where $EW_{0}$ is the potential evaporation rate, the dimensionless constant
+$\kappa_{gb}$ is the extinction coefficient for global solar radiation. In LISFLOOD,
+$\kappa_{gb}$ is given by the product $0.75 \cdot \kappa_{df}$, where $\kappa_{df}$ is
+the extinction coefficient for diffuse visible light: its value is provided as input to
+the model and it varies between 0.4 and 1.1.
+
+The actual amount of evaporation $EW_{int}$ is limited by the amount of
+water stored on the leaves $Int_{cum}$:
+
+```{math}
+  EW_{int} = min(EW_{max} \Delta t, Int_{cum})
+```
+
+Another amount of water falls to the soil because of leaf drainage which is modelled
+as a linear reservoir:
+
+```{math}
+  D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
+```
+
+where $D_{int}$ is the amount of leaf drainage per time step and $T_{int}$ is a time
+constant (or residence time) of the interception store. Setting $T_{int} = 1$ day is
+strongly recommended and means that all the water in the interception store
+evaporates or falls to the soil surface as leaf drainage within one day.
+
 ### Water at the surface
 
 Precipitation that reaches the surface is defined as incoming precipitation minus canopy
-interception (throughfall and stemflow are currently not implemented). The water at the
+evaporation plus leaf drainage. The water at the
 surface can follow different trajectories: runoff at the surface,
 remain at the surface as searchable resource for animals, return to the atmosphere via
 evaporation, or infiltrate into the soil where it can be taken up by plants or percolate
