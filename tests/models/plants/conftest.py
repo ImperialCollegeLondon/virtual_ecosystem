@@ -54,6 +54,16 @@ def plants_data(fixture_core_components):
         },
     )
 
+    # Subcanopy vegetation masses kg C m2
+    data["subcanopy_vegetation_biomass"] = DataArray(
+        data=np.array([0.07] * n_cells),
+        coords={"cell_id": fixture_core_components.grid.cell_id},
+    )
+    data["subcanopy_seedbank_biomass"] = DataArray(
+        data=np.array([0.07] * n_cells),
+        coords={"cell_id": fixture_core_components.grid.cell_id},
+    )
+
     # Adding soil variables
     data["dissolved_ammonium"] = DataArray(np.array([5.0e-2] * n_cells))
     data["dissolved_nitrate"] = DataArray(np.array([7.5e-1] * n_cells))
@@ -115,10 +125,12 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
 def fixture_canopy_layer_data():
     """Shared canopy layer data.
 
-    The fixture supplies a dictionary of data values expected from the cohort data in
-    the plants_data fixture. Each entry provides a tuple of the variable name to be
-    tested, the data itself and then the vertical layer indices into which to insert the
-    data.
+    The fixture supplies a dictionary of data values expected from the canopy cohort
+    data and subcanopy biomasses in the plants_data fixture.
+
+    Each entry provides a tuple of the variable name to be tested, the data itself and
+    then the vertical layer indices into which to insert the data. For the subcanopy
+    masses, which only have a single layer, the vertical layer indices is set to None.
     """
 
     return {
@@ -206,5 +218,15 @@ def fixture_canopy_layer_data():
             ),
             [1, 2, 3, 4],
             # index_filled_canopy,
+        ),
+        "subcanopy_leaf_area_index": (
+            "subcanopy_leaf_area_index",
+            np.repeat([0.07 * 14], 4),
+            None,
+        ),
+        "subcanopy_fapar": (
+            "subcanopy_fapar",
+            np.repeat(np.exp(-0.5 * 0.07 * 14), 4),
+            None,
         ),
     }

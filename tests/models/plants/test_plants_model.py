@@ -6,6 +6,44 @@ import xarray
 # TODO: A lot of duplication in these tests, work out how to share code to make it DRYer
 
 
+def data_validator(model, validation_data, skip):
+    """Routine for validating that a test generated model matches validation data."""
+
+    to_validate = (val for ky, val in validation_data.items() if ky not in skip)
+
+    for layer_name, layer_vals, layer_indices in to_validate:
+        # Check the layer is present
+        assert layer_name in model.data
+
+        if layer_indices is not None:
+            # Build out the cut down layer data into a full height vertical layer array
+            expected = model.layer_structure.from_template()
+            expected[layer_indices] = layer_vals
+        else:
+            # pass the expected values as provided
+            expected = xarray.DataArray(
+                data=layer_vals, coords=model.data["elevation"].coords
+            )
+
+        # Check the values
+        xarray.testing.assert_allclose(model.data[layer_name], expected)
+
+
+def wipe_canopy_layers(model):
+    """Simple routine to reset canopy layers in the model to nan to test calculation.
+
+    Note this passes by reference - the model object is updated in place.
+    """
+
+    for layer in [
+        "layer_heights",
+        "leaf_area_index",
+        "layer_fapar",
+        "shortwave_absorption",
+    ]:
+        model.data[layer] = model.layer_structure.from_template()
+
+
 def test_PlantsModel__init__(
     plants_data, flora, fixture_core_components, fixture_canopy_layer_data
 ):
@@ -27,14 +65,12 @@ def test_PlantsModel__init__(
     # Check the canopy has been initialised and updated, using the full layer heights
     # data
     # TODO - amend this as and when layer heights gets centralised
-    del fixture_canopy_layer_data["layer_heights_canopy"]
-    del fixture_canopy_layer_data["layer_leaf_mass"]
 
-    for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        assert layer_name in plants_data
-        expected = fixture_core_components.layer_structure.from_template()
-        expected[layer_indices] = layer_vals
-        xarray.testing.assert_allclose(plants_data[layer_name], expected)
+    data_validator(
+        plants_model,
+        fixture_canopy_layer_data,
+        skip=["layer_heights_canopy", "layer_leaf_mass"],
+    )
 
 
 def test_PlantsModel_from_config(
@@ -56,75 +92,63 @@ def test_PlantsModel_from_config(
     # Check the canopy has been initialised and updated, using the full layer heights
     # data
     # TODO - amend this as and when layer heights gets centralised
-    del fixture_canopy_layer_data["layer_heights_canopy"]
-    del fixture_canopy_layer_data["layer_leaf_mass"]
 
-    for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        assert layer_name in plants_data
-        expected = fixture_core_components.layer_structure.from_template()
-        expected[layer_indices] = layer_vals
-        xarray.testing.assert_allclose(plants_data[layer_name], expected)
+    data_validator(
+        plants_model,
+        fixture_canopy_layer_data,
+        skip=["layer_heights_canopy", "layer_leaf_mass"],
+    )
 
 
-def test_PlantsModel_update_canopy_layers(
-    fixture_core_components, fxt_plants_model, fixture_canopy_layer_data
-):
+def test_PlantsModel_update_canopy_layers(fxt_plants_model, fixture_canopy_layer_data):
     """Simple test that update canopy layers restores overwritten data."""
-
-    from_template = fixture_core_components.layer_structure.from_template
 
     # Overwrite the existing canopy derived data in each layer - this also nukes the
     # soil and surface depths _which_ are not correctly regenerated in this test, so the
     # test makes use of the canopy only layer heights in the fixture_canopy_layer_data
+    # in testing.
     #
     # TODO - amend this as and when layer heights gets centralised
-    del fixture_canopy_layer_data["layer_heights_full"]
-    del fixture_canopy_layer_data["layer_leaf_mass"]
 
-    for layer, _, _ in fixture_canopy_layer_data.values():
-        fxt_plants_model.data[layer] = from_template()
+    wipe_canopy_layers(fxt_plants_model)
 
     # Calling the method resets to the expected values
     fxt_plants_model.update_canopy_layers()
 
     # Check the resulting repopulated canopy data, but omitting the
     # shortwave_absorption, which should not have been regenerated yet
-    del fixture_canopy_layer_data["shortwave_absorption"]
-    for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        expected = from_template()
-        expected[layer_indices] = layer_vals
-        xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
+    data_validator(
+        fxt_plants_model,
+        fixture_canopy_layer_data,
+        skip=["shortwave_absorption", "layer_heights_full", "layer_leaf_mass"],
+    )
 
 
 def test_PlantsModel_set_shortwave_absorption(
-    fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
+    fxt_plants_model, fixture_canopy_layer_data
 ):
     """Simple test that update canopy layers restores overwritten data."""
-
-    from_template = fixture_core_components.layer_structure.from_template
 
     # Overwrite the existing canopy derived data in each layer - this also nukes the
     # soil and surface depths _which_ are not correctly regenerated in this test, so the
     # test makes use of the canopy only layer heights in the fixture_canopy_layer_data
     #
     # TODO - amend this as and when layer heights gets centralised
-    del fixture_canopy_layer_data["layer_heights_full"]
-    del fixture_canopy_layer_data["layer_leaf_mass"]
 
-    for layer, _, _ in fixture_canopy_layer_data.values():
-        fxt_plants_model.data[layer] = from_template()
+    wipe_canopy_layers(fxt_plants_model)
 
     # Check that calling the method after update resets to the expected values
     fxt_plants_model.update_canopy_layers()
     fxt_plants_model.set_shortwave_absorption(time_index=0)
 
-    for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        expected = from_template()
-        expected[layer_indices] = layer_vals
-        xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
+    data_validator(
+        fxt_plants_model,
+        fixture_canopy_layer_data,
+        skip=["layer_heights_full", "layer_leaf_mass"],
+    )
 
 
-def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
+def test_PlantsModel_estimate_gpp(fxt_plants_model):
     """Test the estimate_gpp method."""
 
     # Set the canopy and absorbed irradiance
@@ -132,11 +156,15 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     fxt_plants_model.set_shortwave_absorption(time_index=0)
 
     # Calculate GPP
+    fxt_plants_model.calculate_light_use_efficiency()
     fxt_plants_model.estimate_gpp(time_index=0)
 
     # TODO - currently no actual validation of values, only of structure
     #      - maybe mock lue and iwue to get easier values rather than current obscure
     #        ones
+    #      - Actually, with the separation of the PModel fit into
+    #        calculate_light_use_efficiency, we can now overwrite the calculated GPP to
+    #        generate easier test values?
 
     # Check stem_gpp and stem_transpiration structure
     exp_stem_struct = {
@@ -161,7 +189,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model, fixture_core_components):
     )
 
 
-def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
+def test_PlantsModel_allocate_gpp(fxt_plants_model):
     """Test the allocate_gpp method."""
 
     # Provide GPP values
@@ -189,29 +217,22 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
 
 
-def test_PlantsModel_update(
-    fxt_plants_model, fixture_core_components, fixture_canopy_layer_data
-):
+def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
     """Test the update method."""
 
     # The update method runs both update_canopy_layers and set_shortwave_absorption so
     # should restore all of the layers below.
     # TODO - amend this as and when layer heights gets centralised
-    del fixture_canopy_layer_data["layer_heights_full"]
 
-    from_template = fixture_core_components.layer_structure.from_template
-
-    for layer, _, _ in fixture_canopy_layer_data.values():
-        fxt_plants_model.data[layer] = from_template()
+    wipe_canopy_layers(fxt_plants_model)
 
     # Check reset
     fxt_plants_model.update(time_index=0)
 
     # Check the canopy has been initialised and updated
-    for layer_name, layer_vals, layer_indices in fixture_canopy_layer_data.values():
-        expected = from_template()
-        expected[layer_indices] = layer_vals
-        xarray.testing.assert_allclose(fxt_plants_model.data[layer_name], expected)
+    data_validator(
+        fxt_plants_model, fixture_canopy_layer_data, skip=["layer_heights_full"]
+    )
 
     # # Check the growth of the cohorts
     # for community in fxt_plants_model.communities.values():

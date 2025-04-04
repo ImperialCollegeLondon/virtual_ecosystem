@@ -42,6 +42,7 @@ class PlantsModel(
         "plant_cohorts_dbh",
         "downward_shortwave_radiation",
         "subcanopy_vegetation_biomass",
+        "subcanopy_seedbank_biomass",
     ),
     vars_populated_by_init=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles

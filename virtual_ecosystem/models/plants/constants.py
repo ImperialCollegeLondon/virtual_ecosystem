@@ -64,7 +64,7 @@ class PlantsConsts(ConstantsDataclass):
     """The extinction coefficient of subcanopy vegation (unitless)."""
 
     subcanopy_vegetation_specific_leaf_area: float = 14
-    """The specific leaf area of subcanopy vegetation (kg m-2)."""
+    """The specific leaf area of subcanopy vegetation (m-2 kg)."""
 
     subcanopy_respiration_fraction: float = 0.1
     """The fraction of gross primary productivity used in respiration (unitless)."""
@@ -74,8 +74,8 @@ class PlantsConsts(ConstantsDataclass):
     (kg m-2 y-1)."""
 
     subcanopy_vegetation_sprout_yield: float = 0.5
-    """The fraction of subcanopy seedbank mass is realised as subcanopy vegetation mass
-    (unitless)."""
+    """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
+    mass (kg kg-1)."""
 
     subcanopy_vegetation_reproductive_allocation: float = 0.1
     """The fraction of subcanopy productivity that is allocated to subcanopy seedbank
