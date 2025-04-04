@@ -41,7 +41,7 @@ class PlantResources:
         self.constants = constants
         """The animal constants, including energy density."""
         self.vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND_CANOPY
-        """The vertical position of the plant resource pool: ground of canopy."""
+        """The vertical position of the plant resource pool."""
         self.is_alive = True
         """Indicating whether the plant cohort is alive [True] or dead [False]."""
         self.cnp_proportions: dict[str, float] = {

@@ -109,12 +109,13 @@ def test_carnivore_prey_group_selection():
 
     result = prey_group_selection(DietType.CARNIVORE, 10.0, (0.1, 1000.0))
     expected_output = {
-        "herbivorous_mammal": (0.1, 1000.0),
-        "carnivorous_mammal": (0.1, 1000.0),
-        "herbivorous_bird": (0.1, 1000.0),
-        "carnivorous_bird": (0.1, 1000.0),
-        "herbivorous_insect": (0.1, 1000.0),
-        "carnivorous_insect": (0.1, 1000.0),
+        "herbivorous_mammal": (0.0001, 1000.0),
+        "carnivorous_mammal": (0.0001, 1000.0),
+        "herbivorous_bird": (0.0001, 1000.0),
+        "carnivorous_bird": (0.0001, 1000.0),
+        "herbivorous_insect": (0.0001, 1000.0),
+        "carnivorous_insect": (0.0001, 1000.0),
+        "caterpillar": (0.0001, 1000.0),
     }
     assert result == expected_output
 

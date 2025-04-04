@@ -1254,7 +1254,7 @@ class AnimalCohort:
             True if the prey cohort meets size, identity, and vertical occupancy
               criteria, False otherwise.
         """
-        if prey_cohort.functional_group not in self.prey_groups:
+        if prey_cohort.functional_group.name not in self.prey_groups:
             return False
 
         min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
@@ -1456,27 +1456,32 @@ class AnimalCohort:
             VerticalOccupancy.SOIL: {
                 VerticalOccupancy.SOIL,
                 VerticalOccupancy.SOIL_GROUND,
+                VerticalOccupancy.SOIL_GROUND_CANOPY,
             },
             VerticalOccupancy.GROUND: {
                 VerticalOccupancy.GROUND,
                 VerticalOccupancy.SOIL_GROUND,
                 VerticalOccupancy.GROUND_CANOPY,
+                VerticalOccupancy.SOIL_GROUND_CANOPY,
             },
             VerticalOccupancy.CANOPY: {
                 VerticalOccupancy.CANOPY,
                 VerticalOccupancy.GROUND_CANOPY,
+                VerticalOccupancy.SOIL_GROUND_CANOPY,
             },
             VerticalOccupancy.SOIL_GROUND: {
                 VerticalOccupancy.SOIL,
                 VerticalOccupancy.GROUND,
                 VerticalOccupancy.SOIL_GROUND,
                 VerticalOccupancy.GROUND_CANOPY,
+                VerticalOccupancy.SOIL_GROUND_CANOPY,
             },
             VerticalOccupancy.GROUND_CANOPY: {
                 VerticalOccupancy.GROUND,
                 VerticalOccupancy.CANOPY,
                 VerticalOccupancy.SOIL_GROUND,
                 VerticalOccupancy.GROUND_CANOPY,
+                VerticalOccupancy.SOIL_GROUND_CANOPY,
             },
             VerticalOccupancy.SOIL_GROUND_CANOPY: {
                 VerticalOccupancy.SOIL,

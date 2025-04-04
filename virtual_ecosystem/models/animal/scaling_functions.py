@@ -121,12 +121,13 @@ def prey_group_selection(
         return {"plants": (0.0, 0.0)}
     elif diet_type == DietType.CARNIVORE:
         return {
-            "herbivorous_mammal": (0.1, 1000.0),
-            "carnivorous_mammal": (0.1, 1000.0),
-            "herbivorous_bird": (0.1, 1000.0),
-            "carnivorous_bird": (0.1, 1000.0),
-            "herbivorous_insect": (0.1, 1000.0),
-            "carnivorous_insect": (0.1, 1000.0),
+            "herbivorous_mammal": (0.0001, 1000.0),
+            "carnivorous_mammal": (0.0001, 1000.0),
+            "herbivorous_bird": (0.0001, 1000.0),
+            "carnivorous_bird": (0.0001, 1000.0),
+            "herbivorous_insect": (0.0001, 1000.0),
+            "carnivorous_insect": (0.0001, 1000.0),
+            "caterpillar": (0.0001, 1000.0),
         }
     else:
         raise ValueError("Invalid diet type: {diet_type}")
