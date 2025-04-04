@@ -3,11 +3,18 @@
 import numpy as np
 import xarray
 
-# TODO: A lot of duplication in these tests, work out how to share code to make it DRYer
-
 
 def data_validator(model, validation_data, skip):
-    """Routine for validating that a test generated model matches validation data."""
+    """Routine for validating that a test model state matches validation data.
+
+    This is deliberately untyped to avoid having to import VE objects outside of tests.
+
+    Args:
+        model: A PlantsModel instance
+        validation_data: A dictionary of validation data - see the
+            fixture_canopy_layer_data fixture for the structure
+        skip: A list of keys of validation data to be skipped in a given test.
+    """
 
     to_validate = (val for ky, val in validation_data.items() if ky not in skip)
 
@@ -31,6 +38,8 @@ def data_validator(model, validation_data, skip):
 
 def wipe_canopy_layers(model):
     """Simple routine to reset canopy layers in the model to nan to test calculation.
+
+    This is deliberately untyped to avoid having to import VE objects outside of tests.
 
     Note this passes by reference - the model object is updated in place.
     """

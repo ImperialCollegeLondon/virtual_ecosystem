@@ -367,6 +367,7 @@ class PlantsModel(
 
         # Calculate the subcanopy vegetation
         self.calculate_subcanopy_leaf_area_and_absorption()
+        self.calculate_subcanopy_vegetation_growth()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -514,6 +515,9 @@ class PlantsModel(
         each canopy layer to predict the gross primary productivity (GPP, µg C m-2 s-1)
         for each canopy layer.
 
+        This meethod requires that the calculate_light_use_efficiency method has been
+        run to populate the self.pmodel attribute.
+
         The GPP for each cohort is then estimated by mutiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
 
@@ -542,10 +546,6 @@ class PlantsModel(
             .isel(time_index=time_index)
             .to_numpy()
         )
-
-        # Get a floating point representation of the numner of seconds since last update
-        # TODO - move this attribute to model_timing.
-        n_seconds = self.model_timing.update_interval / np.timedelta64(1, "s")
 
         # Initialise transpiration array to collect per grid cell values
         # NOTE - #704, this is _not_ evapotranspiration, but we'll pretend it is for
@@ -596,7 +596,9 @@ class PlantsModel(
             # Per stem GPP since last update: sum GPP *  whole stem leaf area
             # and scale by elapsed time in seconds
             self.per_stem_gpp[cell_id] = (
-                per_stem_gpp_rate * canopy.cohort_data.stem_leaf_area * n_seconds
+                per_stem_gpp_rate
+                * canopy.cohort_data.stem_leaf_area
+                * self.model_timing.update_interval_seconds
             ).sum(axis=0)
 
             # Calculate total stem transpiration in µmol per stem and total grid cell
@@ -604,15 +606,15 @@ class PlantsModel(
             self.per_stem_transpiration[cell_id] = (
                 per_stem_transpiration_rate
                 * canopy.cohort_data.stem_leaf_area
-                * n_seconds
+                * self.model_timing.update_interval_seconds
             ).sum(axis=0)
 
             # Calculate the total transpiration per layer in mm m2 in mm, converted from
-            # an initial value is in µmol m2 s1.abs
+            # an initial value is in µmol m2 s1
             transpiration[active_layers, cell_id] = (
                 community.cohorts.n_individuals
                 * per_stem_transpiration_rate
-                * n_seconds
+                * self.model_timing.update_interval_seconds
                 * 1.8e-8
             ).sum(axis=1)
 
@@ -822,7 +824,7 @@ class PlantsModel(
 
         Given the subcanopy irradiance, the abiotic environment and the absorption
         fraction, the P Model can then be used to estimate the gross primary
-        productivity. That is partitioned into respiration, allocation to the subcaanopy
+        productivity. That is partitioned into respiration, allocation to the subcanopy
         seedbank biomass and extra vegetative biomass.
 
         At each update, new biomass is added to the biomass pool from the seedbank pool,
@@ -830,4 +832,31 @@ class PlantsModel(
         sprouted biomass from seedbank biomass.
         """
 
-        self.pmodel.lue
+        # Remove the portion of soil irradiance that is absorbed by subcanopy vegetation
+        initial_soil_absorbed_irradiance = (
+            self.data["shortwave_absorption"][self.layer_structure.index_topsoil]
+            .to_numpy()
+            .squeeze()
+        )
+
+        subcanopy_absorbed_irradiance = (
+            initial_soil_absorbed_irradiance * self.data["subcanopy_fapar"]
+        )
+
+        # Store the irradiance data
+        self.data["shortwave_absorption"][self.layer_structure.index_surface] = (
+            subcanopy_absorbed_irradiance
+        )
+
+        self.data["shortwave_absorption"][self.layer_structure.index_surface] = (
+            initial_soil_absorbed_irradiance - subcanopy_absorbed_irradiance
+        )
+
+        # Calculate the gross primary productivity and transpiration rates
+        subcanopy_gpp_rate = (
+            self.pmodel.lue[self.layer_structure.index_surface, :]
+            * subcanopy_absorbed_irradiance
+        )
+        subcanopy_transpiration_rate = (
+            subcanopy_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
+        ) * self.pmodel.iwue[self.layer_structure.index_surface, :]
