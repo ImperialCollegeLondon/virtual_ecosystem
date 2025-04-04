@@ -18,20 +18,20 @@ class SoilConsts(ConstantsDataclass):
     """Logit of of the carbon use efficiency of microbial community at the reference temperature.
     
     [unitless]. Parameter estimated from a beta-logit GLMM using the data 
-    from :cite:t:``.
+    from :cite:t:`Qiao2019`.
     """
 
     cue_reference_temp: float = 20.0
     """Reference temperature for carbon use efficiency [degrees C].
 
-    Default value taken from :cite:t:``.
+    Default value taken from :cite:t:`Qiao2019`.
     """
 
     logit_cue_with_temperature: float = -0.039
     """Change in the logit of carbon use efficiency with unit increase in temperature
     
     Units of [degree C^-1]. Parameter estimated from a beta-logit GLMM 
-    using the data from :cite:t:``.
+    using the data from :cite:t:`Qiao2019`.
     """
 
     soil_microbe_water_potential_optimum: float = -3.0
