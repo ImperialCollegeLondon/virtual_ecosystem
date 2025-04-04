@@ -2,6 +2,7 @@
 
 import numpy as np
 import xarray
+from numpy.testing import assert_allclose
 
 
 def data_validator(model, validation_data, skip):
@@ -34,6 +35,14 @@ def data_validator(model, validation_data, skip):
 
         # Check the values
         xarray.testing.assert_allclose(model.data[layer_name], expected)
+
+        # If we are checking shortwave absorption, the column totals should equal the
+        # canopy top downwelling radiation
+        if layer_name == "shortwave_absorption":
+            assert_allclose(
+                model.data[layer_name].sum(axis=0).to_numpy(),
+                np.repeat([1000 / 2.04], 4),
+            )
 
 
 def wipe_canopy_layers(model):

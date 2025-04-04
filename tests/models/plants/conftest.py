@@ -45,9 +45,10 @@ def plants_data(fixture_core_components):
     for var in cohorts:
         data["plant_cohorts_" + var] = cohorts[var]
 
-    # Spatio-temporal data
+    # Spatio-temporal data - DSR here is maintaining an earlier test value
+    # of PPFD = 1000
     data["downward_shortwave_radiation"] = DataArray(
-        data=np.full((n_cells, 12), fill_value=2040),
+        data=np.full((n_cells, 12), fill_value=1000 / 2.04),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
             "time_index": np.arange(12),
@@ -192,6 +193,9 @@ def fixture_canopy_layer_data():
             # index_filled_canopy,
         ),
         "shortwave_absorption": (
+            # So identical to the fapar but converted through to the DSR
+            # values and adding the remaining radiation absorbed by subcanopy vegetation
+            # and reaching the topsoil
             "shortwave_absorption",
             np.array(
                 [
@@ -199,11 +203,13 @@ def fixture_canopy_layer_data():
                     [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
                     [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
                     [4.11687555e-02, np.nan, np.nan, np.nan],
-                    [0.02976953, 0.0711809, 0.17496926, 0.40654856],
+                    [1.82376010e-02, 4.36072953e-02, 1.07190786e-01, 2.49062378e-01],
+                    [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
                 ]
             )
-            * 1000,
-            [1, 2, 3, 4, 12],
+            * 1000
+            / 2.04,
+            [1, 2, 3, 4, 11, 12],
             # index_filled_canopy, index_topsoil
         ),
         "layer_leaf_mass": (

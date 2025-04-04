@@ -287,7 +287,7 @@ variable_type = ""
 
 [[variable]]
 axis = ["spatial", "time"]
-description = "Top of canopy downward shortwave radiation (dsr)"
+description = "Top of canopy downward shortwave radiation (DSR)"
 name = "downward_shortwave_radiation"
 unit = "W m-2"
 variable_type = "float"
