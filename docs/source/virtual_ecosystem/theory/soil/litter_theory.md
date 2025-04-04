@@ -29,11 +29,11 @@ The litter model we use is based on the well established approach of
 {cite}`kirschbaum_modelling_2002`. In our model, litter is divided into a number of
 separate pools based on input material type, chemistry and spatial location (i.e. above-
 vs below-ground). These pools each have a characteristic decay rate, which gets modified
-by environmental conditions and for some of the pools by their lignin concentrations.
+by environmental conditions and, for some of the pools, by their lignin concentrations.
 Notably, these decay rates are not affected by the nitrogen and phosphorus
-concentrations of the pools. Instead, nitrogen and phosphorus concentrations effect the
+concentrations of the pools. Instead, nitrogen and phosphorus concentrations affect the
 partitioning of input organic matter between litter pools, i.e. if the nutrient
-concentrations of a particular input are low a higher proportion of the input goes into
+concentrations of a particular input are low, then a higher proportion of the input goes into
 slow decaying litter pools. This indirectly captures the impact of nitrogen and
 phosphorus chemistry on litter decay.
 
