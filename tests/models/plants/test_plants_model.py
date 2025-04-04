@@ -1,6 +1,7 @@
 """Tests for the model.plants.plants_model submodule."""
 
 import numpy as np
+import pytest
 import xarray
 from numpy.testing import assert_allclose
 
@@ -87,7 +88,12 @@ def test_PlantsModel__init__(
     data_validator(
         plants_model,
         fixture_canopy_layer_data,
-        skip=["layer_heights_canopy", "layer_leaf_mass"],
+        skip=[
+            "layer_heights_canopy",
+            "layer_leaf_mass",
+            "leaf_area_index_canopy_only",
+            "layer_fapar_canopy_only",
+        ],
     )
 
 
@@ -114,7 +120,12 @@ def test_PlantsModel_from_config(
     data_validator(
         plants_model,
         fixture_canopy_layer_data,
-        skip=["layer_heights_canopy", "layer_leaf_mass"],
+        skip=[
+            "layer_heights_canopy",
+            "layer_leaf_mass",
+            "leaf_area_index_canopy_only",
+            "layer_fapar_canopy_only",
+        ],
     )
 
 
@@ -134,11 +145,18 @@ def test_PlantsModel_update_canopy_layers(fxt_plants_model, fixture_canopy_layer
     fxt_plants_model.update_canopy_layers()
 
     # Check the resulting repopulated canopy data, but omitting the
-    # shortwave_absorption, which should not have been regenerated yet
+    # shortwave_absorption, which should not have been regenerated yet and also use the
+    # LAI and fAPAR data that omit the subcanopy vegetation layer
     data_validator(
         fxt_plants_model,
         fixture_canopy_layer_data,
-        skip=["shortwave_absorption", "layer_heights_full", "layer_leaf_mass"],
+        skip=[
+            "shortwave_absorption",
+            "layer_heights_full",
+            "layer_leaf_mass",
+            "leaf_area_index",
+            "layer_fapar",
+        ],
     )
 
 
@@ -155,14 +173,20 @@ def test_PlantsModel_set_shortwave_absorption(
 
     wipe_canopy_layers(fxt_plants_model)
 
-    # Check that calling the method after update resets to the expected values
+    # Check that calling the methods after update resets to the expected values
     fxt_plants_model.update_canopy_layers()
+    fxt_plants_model.set_subcanopy_light_capture()
     fxt_plants_model.set_shortwave_absorption(time_index=0)
 
     data_validator(
         fxt_plants_model,
         fixture_canopy_layer_data,
-        skip=["layer_heights_full", "layer_leaf_mass"],
+        skip=[
+            "layer_heights_full",
+            "layer_leaf_mass",
+            "leaf_area_index_canopy_only",
+            "layer_fapar_canopy_only",
+        ],
     )
 
 
@@ -171,6 +195,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
 
     # Set the canopy and absorbed irradiance
     fxt_plants_model.update_canopy_layers()
+    fxt_plants_model.set_subcanopy_light_capture()
     fxt_plants_model.set_shortwave_absorption(time_index=0)
 
     # Calculate GPP
@@ -249,7 +274,13 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
 
     # Check the canopy has been initialised and updated
     data_validator(
-        fxt_plants_model, fixture_canopy_layer_data, skip=["layer_heights_full"]
+        fxt_plants_model,
+        fixture_canopy_layer_data,
+        skip=[
+            "layer_heights_full",
+            "leaf_area_index_canopy_only",
+            "layer_fapar_canopy_only",
+        ],
     )
 
     # # Check the growth of the cohorts
@@ -259,7 +290,7 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
     #         assert np.allclose(cohort.dbh, 0.13)
 
 
-def test_PlantsModel_calculate_turnover(fxt_plants_model, fixture_config):
+def test_PlantsModel_calculate_turnover(fxt_plants_model):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
@@ -361,3 +392,46 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
         assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
+
+
+@pytest.mark.parametrize(
+    argnames="veg_biomass, seedbank_biomass, veg_comparator, seedbank_comparator",
+    argvalues=(
+        pytest.param(
+            np.ones(4), np.zeros(4), np.greater, np.greater, id="seedbank_repopulates"
+        ),
+        pytest.param(
+            np.zeros(4), np.ones(4), np.greater, np.greater, id="vegetation_repopulates"
+        ),
+        pytest.param(
+            np.zeros(4), np.zeros(4), np.equal, np.equal, id="no_biomass_persists"
+        ),
+    ),
+)
+def test_PlantsModel_subcanopy_vegetation_dynamics(
+    plants_data,
+    fixture_config,
+    fixture_core_components,
+    veg_biomass,
+    seedbank_biomass,
+    veg_comparator,
+    seedbank_comparator,
+):
+    """Test that the turnover constants can be overridden by values in config."""
+
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+    plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
+    plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
+
+    plants_model = PlantsModel.from_config(
+        data=plants_data, config=fixture_config, core_components=fixture_core_components
+    )
+    plants_model._update(time_index=0)
+
+    assert np.all(
+        veg_comparator(plants_data["subcanopy_vegetation_biomass"], np.zeros(4))
+    )
+    assert np.all(
+        seedbank_comparator(plants_data["subcanopy_seedbank_biomass"], np.zeros(4))
+    )

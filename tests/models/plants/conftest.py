@@ -166,7 +166,7 @@ def fixture_canopy_layer_data():
             [0, 1, 2, 3, 4],
             # index_above, index_filled_canopy),
         ),
-        "leaf_area_index": (
+        "leaf_area_index_canopy_only": (
             "leaf_area_index",
             np.array(
                 [
@@ -177,9 +177,23 @@ def fixture_canopy_layer_data():
                 ]
             ),
             [1, 2, 3, 4],
-            # index_filled_canopy,
+            # index_filled_canopy
         ),
-        "layer_fapar": (
+        "leaf_area_index": (
+            "leaf_area_index",
+            np.array(
+                [
+                    [1.76395258e00, 1.76394186e00, 1.76400479e00, 1.79998897e00],
+                    [1.76405508e00, 1.76443550e00, 1.72228517e00, 1.14824589e-04],
+                    [1.76388228e00, 1.75668428e00, np.nan, np.nan],
+                    [1.73664971e00, np.nan, np.nan, np.nan],
+                    [0.98, 0.98, 0.98, 0.98],
+                ]
+            ),
+            [1, 2, 3, 4, 11],
+            # index_filled_canopy, index_surface
+        ),
+        "layer_fapar_canopy_only": (
             "layer_fapar",
             np.array(
                 [
@@ -190,7 +204,21 @@ def fixture_canopy_layer_data():
                 ]
             ),
             [1, 2, 3, 4],
-            # index_filled_canopy,
+            # index_filled_canopy,index_surface
+        ),
+        "layer_fapar": (
+            "layer_fapar",
+            np.array(
+                [
+                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
+                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
+                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
+                    [4.11687555e-02, np.nan, np.nan, np.nan],
+                    [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
+                ]
+            ),
+            [1, 2, 3, 4, 11],
+            # index_filled_canopy,index_surface
         ),
         "shortwave_absorption": (
             # So identical to the fapar but converted through to the DSR
@@ -203,8 +231,8 @@ def fixture_canopy_layer_data():
                     [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
                     [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
                     [4.11687555e-02, np.nan, np.nan, np.nan],
-                    [1.82376010e-02, 4.36072953e-02, 1.07190786e-01, 2.49062378e-01],
                     [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
+                    [1.82376010e-02, 4.36072953e-02, 1.07190786e-01, 2.49062378e-01],
                 ]
             )
             * 1000
@@ -224,15 +252,5 @@ def fixture_canopy_layer_data():
             ),
             [1, 2, 3, 4],
             # index_filled_canopy,
-        ),
-        "subcanopy_leaf_area_index": (
-            "subcanopy_leaf_area_index",
-            np.repeat([0.07 * 14], 4),
-            None,
-        ),
-        "subcanopy_fapar": (
-            "subcanopy_fapar",
-            np.repeat(np.exp(-0.5 * 0.07 * 14), 4),
-            None,
         ),
     }

@@ -50,8 +50,6 @@ class PlantsModel(
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "shortwave_absorption",
-        "subcanopy_leaf_area_index",
-        "subcanopy_fapar",
     ),
     vars_required_for_update=(
         "plant_cohorts_cell_id",
@@ -99,8 +97,6 @@ class PlantsModel(
         "plant_phosphorus_uptake",
         "subcanopy_vegetation_biomass",
         "subcanopy_seedbank_biomass",
-        "subcanopy_leaf_area_index",
-        "subcanopy_fapar",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -877,7 +873,7 @@ class PlantsModel(
         subcanopy_sprouting_mass = self.data["subcanopy_seedbank_biomass"] * (
             1
             - np.exp(
-                self.model_constants.subcanopy_sprout_rate
+                -self.model_constants.subcanopy_sprout_rate
                 * (1 / self.model_timing.updates_per_year)
             )
         )
