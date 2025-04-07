@@ -14,6 +14,8 @@ TODO change temperatures to Kelvin
 """  # noqa: D205
 
 import numpy as np
+from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -193,36 +195,10 @@ def log_interpolation(
     return return_array
 
 
-def calculate_saturation_vapour_pressure(
-    temperature: DataArray,
-    saturation_vapour_pressure_factors: list[float],
-) -> DataArray:
-    r"""Calculate saturation vapour pressure, kPa.
-
-    Saturation vapour pressure :math:`e_{s} (T)` is here calculated as
-
-    :math:`e_{s}(T) = 0.61078 exp(\frac{7.5 T}{T + 237.3})`
-
-    where :math:`T` is temperature in degree C .
-
-    Args:
-        temperature: Air temperature, [C]
-        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
-            calculation
-
-    Returns:
-        saturation vapour pressure, [kPa]
-    """
-    factor1, factor2, factor3 = saturation_vapour_pressure_factors
-    return DataArray(
-        factor1 * np.exp((factor2 * temperature) / (temperature + factor3))
-    ).rename("saturation_vapour_pressure")
-
-
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    saturation_vapour_pressure_factors: list[float],
+    pyrealm_const: PyrealmConst,
 ) -> dict[str, DataArray]:
     """Calculate vapour pressure and vapour pressure deficit, kPa.
 
@@ -232,18 +208,19 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
-        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
-            calculation
+        pyrealm_const: Set of constants from pyrealm which include factors for
+            saturation vapour pressure calculation
 
     Return:
         vapour pressure, [kPa], vapour pressure deficit, [kPa]
     """
 
     output = {}
-    saturation_vapour_pressure = calculate_saturation_vapour_pressure(
-        temperature,
-        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    saturation_vapour_pressure_numpy = calc_vp_sat(
+        ta=temperature.to_numpy(),
+        core_const=pyrealm_const,
     )
+    saturation_vapour_pressure = saturation_vapour_pressure_numpy
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
     output["vapour_pressure"] = actual_vapour_pressure
     output["vapour_pressure_deficit"] = (
