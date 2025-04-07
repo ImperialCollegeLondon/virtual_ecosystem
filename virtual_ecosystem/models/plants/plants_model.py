@@ -264,18 +264,30 @@ class PlantsModel(
 
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
+        self.model_constants = model_constants
 
         # Adjust flora turnover rates to timestep
         # TODO: Pyrealm provides annual turnover rates. Dividing by the number of
         #       updates_per_year to get monthly turnover values is naive and will
         #       overestimate turnover. This should be updated eventually to a more
         #       sophisticated approach.
-        self.flora.tau_f = self.flora.tau_f / self.model_timing.updates_per_year
-        self.flora.tau_r = self.flora.tau_r / self.model_timing.updates_per_year
-        self.flora.tau_rt = self.flora.tau_rt / self.model_timing.updates_per_year
+        #
+        #       This is kinda hacky because the Flora instances is a frozen dataclass,
+        #       but we only bring the model timing and flora object together at this
+        #       point. We would have to pass the model timing in to the flora creation.
+        #       Potentially create a Flora.adjust_rate_timing() method, but we'd need to
+        #       be sure that the approach is sane first.
+        object.__setattr__(
+            self.flora, "tau_f", self.flora.tau_f / self.model_timing.updates_per_year
+        )
+        object.__setattr__(
+            self.flora, "tau_r", self.flora.tau_r / self.model_timing.updates_per_year
+        )
+        object.__setattr__(
+            self.flora, "tau_rt", self.flora.tau_rt / self.model_timing.updates_per_year
+        )
 
-        self.model_constants = model_constants
-
+        # Now build the communities with the updated rates
         self.communities = PlantCommunities(
             data=self.data, flora=self.flora, grid=self.grid
         )
@@ -613,29 +625,30 @@ class PlantsModel(
         turnover values.
         """
 
-        # Reset turnover to 0 as turnover from previous steps should have been allocated
+        # Allocate leaf and root turnover to per cell pools, merging across PFTs and
+        # cohorts.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
 
-        # Fallen propagules are stored per cell and per PFT, but fallen non-propagule
-        # reproductive tissue mass is lumped together
-        self.data["fallen_n_propagules"] = xr.DataArray(
+        # Allocate reproductive tissue mass turnover - fallen propagules are stored per
+        # cell and per PFT, but fallen non-propagule reproductive tissue mass is merged
+        # into a single pool.
+        pft_cell_template = xr.DataArray(
             data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
             coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
         )
+
+        self.data["fallen_n_propagules"] = pft_cell_template.copy()
         self.data["fallen_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0
         )
 
-        # Deliberately not partitioning fruit across canopy vertical layers
-        self.data["canopy_n_propagules"] = xr.DataArray(
-            data=np.zeros((4, 2)),
-            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
-        )
-        self.data["canopy_non_propagule_c_mass"] = xr.DataArray(
-            data=np.zeros((4, 2)),
-            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
-        )
+        # Allocate canopy reproductive tissue mass. This is deliberately not
+        # partitioning tissue across canopy vertical layers.
+        self.data["canopy_n_propagules"] = pft_cell_template.copy()
+        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
+
+        # Carbon supply to soil
         self.data["root_carbohydrate_exudation"] = xr.full_like(
             self.data["elevation"], 0
         )
