@@ -575,7 +575,7 @@ class PlantsModel(
             # Units:
             #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
             per_stem_transpiration_rate = (
-                per_stem_gpp_rate / (self.pmodel_core_consts.k_CtoK * 1e6)
+                per_stem_gpp_rate / (self.pmodel_core_consts.k_c_molmass * 1e6)
             ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Now scale up and aggregate those values
@@ -850,10 +850,8 @@ class PlantsModel(
         )
 
         # Calculate the transpiration associated with that GPP
-        # BUG: that CtoK constant is completely bogus and is repeated for the canopy
-        #      calculation of transpiration. SHould be carbon molar mass?
         subcanopy_transpiration = (
-            (subcanopy_gpp / (self.pmodel_core_consts.k_CtoK * 1e6))
+            (subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6))
             * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
             * self.model_timing.update_interval_seconds
         )
