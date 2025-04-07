@@ -726,7 +726,7 @@ class PlantsModel(
             ) in zip(
                 cohorts.pft_names,
                 stem_canopy_n_propagules.squeeze(),
-                stem_canopy_non_propagule_c_mass,
+                stem_canopy_non_propagule_c_mass.squeeze(),
                 cohorts.n_individuals,
             ):
                 self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (

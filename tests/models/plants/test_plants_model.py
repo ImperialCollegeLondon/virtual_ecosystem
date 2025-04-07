@@ -187,10 +187,12 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model, fixture_core_components):
         # Ensure that leaf and root turnover exist and are > 0
         assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
-        assert fxt_plants_model.data["fallen_n_propagules"][cell_id] >= 0
+        assert np.all(fxt_plants_model.data["fallen_n_propagules"][cell_id] >= 0)
         assert fxt_plants_model.data["fallen_non_propagule_c_mass"][cell_id] > 0
-        assert fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0
-        assert fxt_plants_model.data["canopy_non_propagule_c_mass"][cell_id] > 0
+        assert np.all(fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0)
+        assert np.all(
+            fxt_plants_model.data["canopy_non_propagule_c_mass"][cell_id] >= 0
+        )  # For cell_id = 1, only one of the two PFTs is present.
         assert fxt_plants_model.data["root_carbohydrate_exudation"][cell_id] > 0
         assert fxt_plants_model.data["plant_symbiote_carbon_supply"][cell_id] > 0
 
