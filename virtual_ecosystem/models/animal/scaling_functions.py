@@ -130,7 +130,7 @@ def prey_group_selection(
             "caterpillar": (0.0001, 1000.0),
         }
     else:
-        raise ValueError("Invalid diet type: {diet_type}")
+        raise ValueError(f"Invalid diet type: {diet_type}")
 
 
 def background_mortality(u_bg: float) -> float:
