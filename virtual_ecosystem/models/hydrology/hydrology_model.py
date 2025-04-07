@@ -35,7 +35,6 @@ import numpy as np
 from numpy.typing import NDArray
 from pint import Quantity
 from pyrealm.constants import CoreConst as PyrealmConst
-from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -45,7 +44,6 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import (
     above_ground,
@@ -313,63 +311,15 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-            # Set initial aerodynamic resistance for surface and canopy , [s m-1]
-        for key, index, value in [
-            (
-                "aerodynamic_resistance_surface",
-                self.layer_structure.index_surface_scalar,
-                self.model_constants.initial_aerodynamic_resistance_surface,
-            ),
-            (
-                "aerodynamic_resistance_canopy",
-                self.layer_structure.index_filled_canopy,
-                self.model_constants.initial_aerodynamic_resistance_canopy,
-            ),
-        ]:
-            self.data[key] = self.layer_structure.from_template()
-            self.data[key][index] = value
-
-        # TODO this could take values for each layer instead of bulk
-        density_air = abiotic_tools.calculate_air_density(
-            air_temperature=np.nanmean(
-                self.data["air_temperature_ref"].isel(time_index=0).to_numpy(), axis=0
-            ),
-            atmospheric_pressure=np.nanmean(
-                self.data["atmospheric_pressure_ref"].isel(time_index=0).to_numpy(),
-                axis=0,
-            ),
-            specific_gas_constant_dry_air=(
-                self.core_constants.specific_gas_constant_dry_air
-            ),
-            celsius_to_kelvin=self.core_constants.zero_Celsius,
+        # Initialise atmospheric variables required for update
+        atmosphere_setup = hydrology_tools.initialise_atmosphere_for_hydrology(
+            data=self.data,
+            model_constants=self.model_constants,
+            abiotic_constants=self.abiotic_constants,
+            core_constants=self.core_constants,
+            layer_structure=self.layer_structure,
         )
-        self.data["density_air"] = self.layer_structure.from_template()
-        self.data["density_air"][self.layer_structure.index_filled_atmosphere] = (
-            density_air
-        )
-        specific_heat_air = calc_specific_heat(
-            tc=self.data["air_temperature_ref"].isel(time_index=0).to_numpy(),
-        )
-        self.data["specific_heat_air"] = self.layer_structure.from_template()
-        self.data["specific_heat_air"][self.layer_structure.index_filled_atmosphere] = (
-            specific_heat_air
-        )
-
-        # TODO these two variables should probably be initialised elsewhere
-        self.data["stomatal_conductance"] = self.layer_structure.from_template()
-        self.data["stomatal_conductance"][self.layer_structure.index_filled_canopy] = (
-            1000.0
-        )
-
-        latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-            temperature=self.data["air_temperature_ref"].isel(time_index=0).to_numpy(),
-            celsius_to_kelvin=self.core_constants.zero_Celsius,
-            latent_heat_vap_equ_factors=self.abiotic_constants.latent_heat_vap_equ_factors,
-        )
-        self.data["latent_heat_vapourisation"] = self.layer_structure.from_template()
-        self.data["latent_heat_vapourisation"][
-            self.layer_structure.index_filled_atmosphere
-        ] = latent_heat_vapourisation
+        self.data.add_from_dict(output_dict=atmosphere_setup)
 
     def spinup(self) -> None:
         """Placeholder function to spin up the hydrology model."""
@@ -409,7 +359,7 @@ class HydrologyModel(
         see
         :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_interception`
         . The water from the canopy interception pool either evaporated back to the
-        atmosphere or drips through the canopy  reaching the surface with a delay.
+        atmosphere or drips through the canopy reaching the surface with a delay.
 
         Surface runoff is calculated with a simple bucket model based on
         :cite:t:`davis_simple_2017`, see
@@ -494,8 +444,6 @@ class HydrologyModel(
             soil_layer_thickness_mm=self.soil_layer_thickness_mm,
             soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
-            core_constants=self.core_constants,
-            latent_heat_vap_equ_factors=self.abiotic_constants.latent_heat_vap_equ_factors,
         )
 
         # Calculate psychrometric constant

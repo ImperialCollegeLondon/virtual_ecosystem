@@ -5,6 +5,40 @@ import pytest
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
+
+
+def test_initialise_atmosphere_for_hydrology(
+    dummy_climate_data, fixture_core_components
+):
+    """Test initialisation of atmospheric varibales for hydrology."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        initialise_atmosphere_for_hydrology,
+    )
+
+    data = dummy_climate_data
+    layer_structure = fixture_core_components.layer_structure
+    output = initialise_atmosphere_for_hydrology(
+        data=data,
+        model_constants=HydroConsts,
+        abiotic_constants=AbioticConsts,
+        core_constants=CoreConsts,
+        layer_structure=layer_structure,
+    )
+
+    # Check keys exist
+    expected_keys = [
+        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_canopy",
+        "stomatal_conductance",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+    ]
+    for key in expected_keys:
+        assert key in output
 
 
 def test_setup_hydrology_input_current_timestep(
@@ -26,13 +60,10 @@ def test_setup_hydrology_input_current_timestep(
         soil_layer_thickness_mm=lyr_strct.soil_layer_thickness * 1000,
         soil_moisture_capacity=0.9,
         soil_moisture_residual=0.1,
-        core_constants=CoreConsts(),
-        latent_heat_vap_equ_factors=[1.91846e6, 33.91],
     )
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
-        "latent_heat_vapourisation",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",
