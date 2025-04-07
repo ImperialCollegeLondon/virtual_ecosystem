@@ -39,16 +39,16 @@ def potential_evaporation_leaf(
 
     .. math::
         EW_{0} =
-        \frac{\Delta R_n + \rho_a c_p \frac{vpd}{r_a}}
+        \frac{\Delta R_n + \rho_a c_p \frac{D}{r_a}}
         {\lambda_v \left(\Delta + \gamma \left(1 + \frac{r_s}{r_a}\right)\right)}
 
     where :math:`\Delta` is the slope of the saturation vapour pressure curve,
     :math:`R_n` is the net radiation,
     :math:`\rho_a` is the density of air,
     :math:`c_p` is the specific heat of air,
-    :math:`vpd` is the vapour pressure deficit,
+    :math:`D` is the vapour pressure deficit,
     :math:`r_a` is the aerodynamic resistance,
-    :math:`\lambda_v` is the latent heat of vaporization,
+    :math:`\lambda_v` is the latent heat of vapourization,
     :math:`\gamma` is the psychrometric constant, and
     :math:`r_s` is the stomatal resistance.
 
