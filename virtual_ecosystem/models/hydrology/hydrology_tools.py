@@ -174,10 +174,12 @@ def setup_hydrology_input_current_timestep(
     ):
         output[out_var] = data[in_var][layer_structure.index_surface_scalar].to_numpy()
     # Get inputs from plant model
-    output["leaf_area_index_sum"] = data["leaf_area_index"].sum(dim="layers").to_numpy()
-    output["current_evapotranspiration"] = (
-        data["evapotranspiration"].sum(dim="layers") / days
-    ).to_numpy()
+    output["leaf_area_index_sum"] = np.nansum(
+        data["leaf_area_index"].to_numpy(), axis=0
+    )
+    output["current_evapotranspiration"] = np.nansum(
+        data["evapotranspiration"].to_numpy() / days, axis=0
+    )
 
     # Select soil variables
     output["top_soil_moisture_capacity"] = (

@@ -496,7 +496,7 @@ class HydrologyModel(
                 saturated_pressure_slope_parameters=(
                     self.abiotic_constants.saturated_pressure_slope_parameters
                 ),
-                time_interval=86400.0,  # TODO currently per day
+                time_interval=self.core_constants.seconds_to_day,
                 intercept_residence_time=self.model_constants.intercept_residence_time,
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
@@ -513,7 +513,7 @@ class HydrologyModel(
             )
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
-            # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
+            # Calculate daily surface runoff of each grid cell, [mm]
             surface_runoff = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
@@ -570,7 +570,7 @@ class HydrologyModel(
                 extinction_coefficient_global_radiation=(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
-                time_interval=86400,  # TODO currently per day
+                time_interval=self.core_constants.seconds_to_day,
                 pyrealm_const=PyrealmConst,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
@@ -747,7 +747,6 @@ class HydrologyModel(
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
         soil_hydrology["canopy_evaporation"][
             self.layer_structure.index_filled_canopy
-            # ] = np.sum(np.array(daily_lists["canopy_evaporation"]), axis=0)
         ] = np.array(daily_lists["canopy_evaporation"]).sum(axis=(0, 1))
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
