@@ -732,8 +732,8 @@ class PlantsModel(
                 self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
                     stem_n_propagules * cohort_n_stems
                 )
-                self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
-                    stem_n_propagules * cohort_n_stems
+                self.data["canopy_non_propagule_c_mass"].loc[cell_id, cohort_pft] += (
+                    stem_non_propagules * cohort_n_stems
                 )
 
             # Allocate the topsliced GPP to root exudates with remainder as active
