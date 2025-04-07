@@ -482,10 +482,11 @@ class PlantsModel(
         # Estimate the light use efficiency of leaves within each canopy layer within
         # each grid cell. The LUE is set purely by the environmental conditions, which
         # are shared across cohorts so we can calculate all layers in all cells.
+        # Some unit conversion needed - PATM and VPD in kPa to Pa.
         pmodel_env = PModelEnvironment(
             tc=self.data["air_temperature"].to_numpy(),
-            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
-            patm=self.data["atmospheric_pressure"].to_numpy(),
+            vpd=self.data["vapour_pressure_deficit"].to_numpy() * 1000,
+            patm=self.data["atmospheric_pressure"].to_numpy() * 1000,
             co2=self.data["atmospheric_co2"].to_numpy(),
             core_const=self.pmodel_core_consts,
             pmodel_const=self.pmodel_consts,
