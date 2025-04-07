@@ -65,7 +65,7 @@ class PlantsConsts(ConstantsDataclass):
     """The extinction coefficient of subcanopy vegation (unitless)."""
 
     subcanopy_specific_leaf_area: float = 14
-    """The specific leaf area of subcanopy vegetation (m-2 kg)."""
+    """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
 
     subcanopy_respiration_fraction: float = 0.1
     """The fraction of gross primary productivity used in respiration (unitless)."""

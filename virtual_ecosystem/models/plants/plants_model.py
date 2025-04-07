@@ -504,8 +504,10 @@ class PlantsModel(
         each canopy layer to predict the gross primary productivity (GPP, µg C m-2 s-1)
         for each canopy layer.
 
-        This meethod requires that the calculate_light_use_efficiency method has been
-        run to populate the self.pmodel attribute.
+        This method requires that the calculate_light_use_efficiency method has been run
+        to populate the
+        :attr:`~virtual_ecosystem.models.plants.plants_model.PlantsModel.pmodel`
+        attribute.
 
         The GPP for each cohort is then estimated by mutiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
