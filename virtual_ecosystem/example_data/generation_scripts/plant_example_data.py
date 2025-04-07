@@ -68,7 +68,7 @@ df = data.drop_vars(
         "time",
         "time_index",
         "cell_id",
-        "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
         "subcanopy_seedbank_biomass",
     ]
 ).to_pandas()
