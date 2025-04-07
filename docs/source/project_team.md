@@ -35,20 +35,21 @@ fussy about the formatting within the disable comment.
 
 Rob is a data scientist, specialising in biodiversity and whole-system ecology. He is
 the project lead for the Stability of Altered Forest Ecosystems (SAFE) Project in Borneo
-and principal investigator for the Virtual Ecosystem project.
+and principal investigator for the Virtual Ecosystem project. Rob is based at the
+Silwood Park campus of Imperial Collge London.
 :::
 
 :::{grid-item-card} Olivia Daniel
 :margin: 2 2 0 0
-:link: project_team.html
+:link: https://profiles.imperial.ac.uk/r.ewers
 
 ```{image} _static/images/people/olivia_daniel.png
 :alt: Olivia Daniel
 :class: team-photo
 ```
 
-Olivia is the project manager and administrator for the Virtual Ecosystem. She is a
-conservation scientist and is based at the Silwood Park campus of Imperial Collge
+Olivia is the Project Manager and Administrator for the Virtual Ecosystem project. She
+is a conservation scientist and is based at the Silwood Park campus of Imperial Collge
 London.
 
 :::
