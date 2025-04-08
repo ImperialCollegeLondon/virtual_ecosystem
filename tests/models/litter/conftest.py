@@ -66,7 +66,7 @@ def dummy_litter_data(fixture_core_components):
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
         "deadwood_production": [0.075, 0.099, 0.063, 0.033],
         "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
-        "plant_reproductive_tissue_turnover": [0.003, 0.0075, 0.00255, 0.00375],
+        "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
