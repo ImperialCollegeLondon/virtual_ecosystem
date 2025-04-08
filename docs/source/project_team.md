@@ -226,7 +226,7 @@ traits and statistical modelling. He helps with the soil models of Virtual Ecosy
 is currently based in Aotearoa New Zealand.
 :::
 
-:::{grid-item-card} Nicholas Wei Cheng Tan
+:::{grid-item-card} Dr. Nicholas Wei Cheng Tan
 :margin: 2 2 0 0
 :link: project_team.html
 
@@ -241,7 +241,7 @@ Virtual Ecosystem, with a focus on the animal model. Nicholas is currently based
 Johannesburg, South Africa.
 :::
 
-:::{grid-item-card} Arne Scheire
+:::{grid-item-card} Dr. Arne Scheire
 :margin: 2 2 0 0
 :link: project_team.html
 
