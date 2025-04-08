@@ -98,11 +98,24 @@ class TestAnimalCohort:
                 constants_instance,
             )
 
+    def test_mass_current(self, herbivore_cohort_instance):
+        """Test the mass_current property."""
+
+        expected_mass = sum(
+            herbivore_cohort_instance.mass_current * proportion
+            for proportion in (
+                herbivore_cohort_instance.functional_group.cnp_proportions.values()
+            )
+        )
+
+        assert herbivore_cohort_instance.mass_current == pytest.approx(
+            expected_mass, rel=1e-6
+        )
+
     @pytest.mark.parametrize(
         "cohort_type, dt, initial_mass, temperature, expected_final_mass, error_type,"
         "metabolic_rate_return_value",
         [
-            # Endotherm cases
             (
                 "herbivore",
                 timedelta64(1, "D"),
@@ -111,16 +124,8 @@ class TestAnimalCohort:
                 998.5205247106326,
                 None,
                 1.4794752893674,
-            ),  # normal case
-            (
-                "herbivore",
-                timedelta64(1, "D"),
-                0.0,
-                298.0,
-                0.0,
-                None,
-                0.0,
-            ),  # edge case: zero mass
+            ),
+            ("herbivore", timedelta64(1, "D"), 0.0, 298.0, 0.0, None, 0.0),
             (
                 "herbivore",
                 timedelta64(3, "D"),
@@ -129,8 +134,7 @@ class TestAnimalCohort:
                 995.5615741318977,
                 None,
                 1.4794752893674,
-            ),  # 3 days
-            # Ectotherm cases
+            ),
             (
                 "ectotherm",
                 timedelta64(1, "D"),
@@ -139,16 +143,8 @@ class TestAnimalCohort:
                 99.95896219913648,
                 None,
                 0.04103780086352,
-            ),  # normal case
-            (
-                "ectotherm",
-                timedelta64(1, "D"),
-                0.0,
-                20.0,
-                0.0,
-                None,
-                0.0,
-            ),  # edge case: zero mass
+            ),
+            ("ectotherm", timedelta64(1, "D"), 0.0, 20.0, 0.0, None, 0.0),
             (
                 "ectotherm",
                 timedelta64(1, "D"),
@@ -157,26 +153,9 @@ class TestAnimalCohort:
                 99.99436706014961,
                 None,
                 0.00563293985039,
-            ),  # edge case: zero temperature
-            # Invalid input cases
-            (
-                "herbivore",
-                timedelta64(-1, "D"),
-                100.0,
-                298.0,
-                None,
-                ValueError,
-                1.0,
-            ),  # negative dt
-            (
-                "herbivore",
-                timedelta64(1, "D"),
-                -100.0,
-                298.0,
-                None,
-                ValueError,
-                1.0,
-            ),  # negative mass
+            ),
+            ("herbivore", timedelta64(-1, "D"), 100.0, 298.0, None, ValueError, 1.0),
+            ("herbivore", timedelta64(1, "D"), -100.0, 298.0, None, ValueError, 1.0),
         ],
         ids=[
             "endotherm_normal",
@@ -203,19 +182,19 @@ class TestAnimalCohort:
         metabolic_rate_return_value,
     ):
         """Testing metabolize method for various scenarios."""
+        from virtual_ecosystem.models.animal.cnp import CNP
 
         # Select the appropriate cohort instance
-        if cohort_type == "herbivore":
-            cohort_instance = herbivore_cohort_instance
-        elif cohort_type == "ectotherm":
-            cohort_instance = ectotherm_cohort_instance
-        else:
-            raise ValueError("Invalid cohort type provided.")
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
 
-        # Set initial mass
-        cohort_instance.mass_current = initial_mass
+        # Set initial mass using CNP object
+        cohort_instance.mass_cnp = CNP(initial_mass, 0.0, 0.0)
 
-        # Mocking the sf.metabolic_rate function to return a specific value
+        # Mock metabolic_rate to return a specific value
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.metabolic_rate",
             return_value=metabolic_rate_return_value,
@@ -226,75 +205,33 @@ class TestAnimalCohort:
                 cohort_instance.metabolize(temperature, dt)
         else:
             cohort_instance.metabolize(temperature, dt)
-            assert isclose(cohort_instance.mass_current, expected_final_mass, rtol=1e-9)
+            assert isclose(
+                cohort_instance.mass_cnp.carbon, expected_final_mass, rtol=1e-9
+            )
 
     @pytest.mark.parametrize(
-        "cohort_type, excreta_mass, initial_pool_carbon, num_pools",
+        "cohort_type, excreta_mass, num_pools",
         [
-            ("herbivore", 100.0, 500.0, 1),  # normal case for herbivore with one pool
-            (
-                "herbivore",
-                0.0,
-                500.0,
-                1,
-            ),  # zero excreta mass for herbivore with one pool
-            ("ectotherm", 50.0, 300.0, 1),  # normal case for ectotherm with one pool
-            (
-                "ectotherm",
-                0.0,
-                300.0,
-                1,
-            ),  # zero excreta mass for ectotherm with one pool
-            (
-                "herbivore",
-                100.0,
-                500.0,
-                3,
-            ),  # normal case for herbivore with multiple pools
-            (
-                "herbivore",
-                0.0,
-                500.0,
-                3,
-            ),  # zero excreta mass for herbivore with multiple pools
-            (
-                "ectotherm",
-                50.0,
-                300.0,
-                3,
-            ),  # normal case for ectotherm with multiple pools
-            (
-                "ectotherm",
-                0.0,
-                300.0,
-                3,
-            ),  # zero excreta mass for ectotherm with multiple pools
-        ],
-        ids=[
-            "herbivore_normal_one_pool",
-            "herbivore_zero_excreta_one_pool",
-            "ectotherm_normal_one_pool",
-            "ectotherm_zero_excreta_one_pool",
-            "herbivore_normal_multiple_pools",
-            "herbivore_zero_excreta_multiple_pools",
-            "ectotherm_normal_multiple_pools",
-            "ectotherm_zero_excreta_multiple_pools",
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 1),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 1),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 3),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 3),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
         ],
     )
     def test_excrete(
         self,
-        mocker,
         herbivore_cohort_instance,
         ectotherm_cohort_instance,
         cohort_type,
         excreta_mass,
-        initial_pool_carbon,
         num_pools,
+        excrement_pools_instance,
     ):
-        """Testing excrete method for various scenarios."""
-
-        from virtual_ecosystem.models.animal.decay import ExcrementPool
-
+        """Testing excrete method for various scenarios using the fixture."""
         # Select the appropriate cohort instance
         cohort_instance = (
             herbivore_cohort_instance
@@ -302,61 +239,65 @@ class TestAnimalCohort:
             else ectotherm_cohort_instance
         )
 
-        # Mock the excrement pools
-        excrement_pools = []
-        for _ in range(num_pools):
-            excrement_pool = mocker.Mock(spec=ExcrementPool)
-            # Initialize the required attributes for the mock object
-            excrement_pool.decomposed_carbon = initial_pool_carbon
-            excrement_pool.scavengeable_carbon = initial_pool_carbon
-            excrement_pool.decomposed_nitrogen = 0.0
-            excrement_pool.scavengeable_nitrogen = 0.0
-            excrement_pool.decomposed_phosphorus = 0.0
-            excrement_pool.scavengeable_phosphorus = 0.0
-            excrement_pools.append(excrement_pool)
+        # Retrieve the excrement pools from the fixture
+        excrement_pools = excrement_pools_instance[1][:num_pools]
+
+        # Store initial values before excretion
+        initial_scavengeable_cnp = {
+            nutrient: sum(
+                getattr(pool.scavengeable_cnp, nutrient) for pool in excrement_pools
+            )
+            for nutrient in excreta_mass
+        }
+        initial_decomposed_cnp = {
+            nutrient: sum(
+                getattr(pool.decomposed_cnp, nutrient) for pool in excrement_pools
+            )
+            for nutrient in excreta_mass
+        }
 
         # Call the excrete method
         cohort_instance.excrete(excreta_mass, excrement_pools)
 
         # Expected results calculation
-        excreta_mass_per_community = excreta_mass / num_pools
-        nitrogen_mass_per_community = (
-            excreta_mass_per_community
-            * cohort_instance.constants.nitrogen_excreta_proportion
-        )
+        excreta_mass_per_community = {
+            nutrient: excreta_mass[nutrient] / num_pools for nutrient in excreta_mass
+        }
         decay_fraction = cohort_instance.decay_fraction_excrement
 
-        # Calculate expected decomposed and scavengeable carbon
-        expected_decomposed_carbon = (
-            initial_pool_carbon + decay_fraction * 0.5 * nitrogen_mass_per_community
-        )
-        expected_scavengeable_carbon = (
-            initial_pool_carbon
-            + (1 - decay_fraction) * 0.5 * nitrogen_mass_per_community
-        )
+        expected_decomposed_cnp = {
+            nutrient: initial_decomposed_cnp[nutrient]
+            + decay_fraction * excreta_mass_per_community[nutrient] * num_pools
+            for nutrient in excreta_mass
+        }
+        expected_scavengeable_cnp = {
+            nutrient: initial_scavengeable_cnp[nutrient]
+            + (1 - decay_fraction) * excreta_mass_per_community[nutrient] * num_pools
+            for nutrient in excreta_mass
+        }
 
-        # Check assertions for carbon
         for excrement_pool in excrement_pools:
-            assert excrement_pool.decomposed_carbon == pytest.approx(
-                expected_decomposed_carbon, rel=1e-3
-            )
-            assert excrement_pool.scavengeable_carbon == pytest.approx(
-                expected_scavengeable_carbon, rel=1e-3
-            )
+            for nutrient in excreta_mass:
+                assert getattr(
+                    excrement_pool.decomposed_cnp, nutrient
+                ) == pytest.approx(expected_decomposed_cnp[nutrient], rel=1e-3)
+                assert getattr(
+                    excrement_pool.scavengeable_cnp, nutrient
+                ) == pytest.approx(expected_scavengeable_cnp[nutrient], rel=1e-3)
 
     @pytest.mark.parametrize(
         "cohort_type, excreta_mass",
         [
-            ("herbivore", 100.0),  # normal case for herbivore
-            ("herbivore", 0.0),  # zero excreta mass for herbivore
-            ("ectotherm", 50.0),  # normal case for ectotherm
-            ("ectotherm", 0.0),  # zero excreta mass for ectotherm
-        ],
-        ids=[
-            "herbivore_normal",
-            "herbivore_zero_excreta",
-            "ectotherm_normal",
-            "ectotherm_zero_excreta",
+            ("herbivore", {"carbon": 100.0, "nitrogen": 0.0, "phosphorus": 0.0}),
+            (
+                "herbivore",
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),  # Zero excreta
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 0.0, "phosphorus": 0.0}),
+            (
+                "ectotherm",
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),  # Zero excreta
         ],
     )
     def test_respire(
@@ -366,23 +307,18 @@ class TestAnimalCohort:
         cohort_type,
         excreta_mass,
     ):
-        """Testing respire method for various scenarios.
-
-        This test is deliberately simple because it will be reworked with stoichiometry.
-
-        """
+        """Testing respire method for various scenarios."""
 
         # Select the appropriate cohort instance
-        if cohort_type == "herbivore":
-            cohort_instance = herbivore_cohort_instance
-        elif cohort_type == "ectotherm":
-            cohort_instance = ectotherm_cohort_instance
-        else:
-            raise ValueError("Invalid cohort type provided.")
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
 
         # Calculate the expected carbon waste based on the cohort's constants
         expected_carbon_waste = (
-            excreta_mass * cohort_instance.constants.carbon_excreta_proportion
+            excreta_mass["carbon"] * cohort_instance.constants.carbon_excreta_proportion
         )
 
         # Call the respire method
@@ -392,80 +328,86 @@ class TestAnimalCohort:
         assert carbon_waste == expected_carbon_waste
 
     @pytest.mark.parametrize(
-        "scav_initial, decomp_initial, consumed_mass, num_pools",
+        "cohort_type, mass_consumed, num_pools",
         [
-            (1000.0, 0.0, 1000.0, 1),  # Single pool, waste mass consumed
-            (0.0, 1000.0, 1000.0, 1),  # Single pool, initial decomposed
-            (1000.0, 0.0, 0.0, 1),  # No mass consumed, single pool
-            (0.0, 1000.0, 0.0, 1),  # No mass consumed, initial decomposed
-            (1000.0, 0.0, 1000.0, 3),  # Test with multiple pools
-            (
-                0.0,
-                1000.0,
-                1000.0,
-                3,
-            ),  # Test with multiple pools, initial decomposed
-        ],
-        ids=[
-            "single_pool_scenario_1",
-            "single_pool_scenario_2",
-            "single_pool_scenario_3",
-            "single_pool_scenario_4",
-            "multiple_pools_scenario_1",
-            "multiple_pools_scenario_2",
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 1),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 1),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 1),
+            ("herbivore", {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0}, 3),
+            ("herbivore", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
+            ("ectotherm", {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5}, 3),
+            ("ectotherm", {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, 3),
         ],
     )
     def test_defecate(
         self,
-        mocker,
         herbivore_cohort_instance,
-        scav_initial,
-        decomp_initial,
-        consumed_mass,
+        ectotherm_cohort_instance,
+        cohort_type,
+        mass_consumed,
         num_pools,
+        excrement_pools_instance,
     ):
-        """Testing defecate() for varying carbon mass levels and multiple pools."""
+        """Testing defecate method for various scenarios using the fixture."""
 
-        # Mock the excrement pools
-        excrement_pools = []
-        for _ in range(num_pools):
-            excrement_pool = mocker.Mock()
-            excrement_pool.scavengeable_carbon = scav_initial
-            excrement_pool.decomposed_carbon = decomp_initial
-            excrement_pool.scavengeable_nitrogen = 0.0
-            excrement_pool.decomposed_nitrogen = 0.0
-            excrement_pool.scavengeable_phosphorus = 0.0
-            excrement_pool.decomposed_phosphorus = 0.0
-            excrement_pools.append(excrement_pool)
+        # Select the appropriate cohort instance
+        cohort_instance = (
+            herbivore_cohort_instance
+            if cohort_type == "herbivore"
+            else ectotherm_cohort_instance
+        )
+
+        # Retrieve the excrement pools from the fixture
+        excrement_pools = excrement_pools_instance[1][:num_pools]
+
+        # Store initial values before defecation
+        initial_scavengeable_cnp = {
+            nutrient: sum(pool.scavengeable_cnp[nutrient] for pool in excrement_pools)
+            for nutrient in mass_consumed
+        }
+        initial_decomposed_cnp = {
+            nutrient: sum(pool.decomposed_cnp[nutrient] for pool in excrement_pools)
+            for nutrient in mass_consumed
+        }
 
         # Call the defecate method
-        herbivore_cohort_instance.defecate(excrement_pools, consumed_mass)
+        cohort_instance.defecate(excrement_pools, mass_consumed)
 
-        # Check the expected results
+        # Expected results calculation
+        total_waste_mass = {
+            nutrient: mass
+            * cohort_instance.functional_group.conversion_efficiency
+            * cohort_instance.individuals
+            for nutrient, mass in mass_consumed.items()
+        }
+
+        waste_mass_per_community = {
+            nutrient: total_waste_mass[nutrient] / num_pools
+            for nutrient in total_waste_mass
+        }
+        decay_fraction = cohort_instance.decay_fraction_excrement
+
+        # Calculate expected decomposed and scavengeable fractions
+        expected_decomposed_cnp = {
+            nutrient: initial_decomposed_cnp[nutrient]
+            + decay_fraction * waste_mass_per_community[nutrient] * num_pools
+            for nutrient in mass_consumed
+        }
+        expected_scavengeable_cnp = {
+            nutrient: initial_scavengeable_cnp[nutrient]
+            + (1 - decay_fraction) * waste_mass_per_community[nutrient] * num_pools
+            for nutrient in mass_consumed
+        }
+
         for excrement_pool in excrement_pools:
-            expected_scavengeable_carbon = (
-                scav_initial
-                + (1 - herbivore_cohort_instance.decay_fraction_excrement)
-                * consumed_mass
-                / num_pools
-                * herbivore_cohort_instance.functional_group.conversion_efficiency
-                * herbivore_cohort_instance.individuals
-            )
-            expected_decomposed_carbon = (
-                decomp_initial
-                + herbivore_cohort_instance.decay_fraction_excrement
-                * consumed_mass
-                / num_pools
-                * herbivore_cohort_instance.functional_group.conversion_efficiency
-                * herbivore_cohort_instance.individuals
-            )
-
-            assert excrement_pool.scavengeable_carbon == pytest.approx(
-                expected_scavengeable_carbon
-            )
-            assert excrement_pool.decomposed_carbon == pytest.approx(
-                expected_decomposed_carbon
-            )
+            for nutrient in mass_consumed:
+                assert excrement_pool.decomposed_cnp[nutrient] == pytest.approx(
+                    expected_decomposed_cnp[nutrient], rel=1e-3
+                )
+                assert excrement_pool.scavengeable_cnp[nutrient] == pytest.approx(
+                    expected_scavengeable_cnp[nutrient], rel=1e-3
+                )
 
     @pytest.mark.parametrize(
         "dt, initial_age, final_age",
@@ -483,30 +425,14 @@ class TestAnimalCohort:
         assert herbivore_cohort_instance.age == final_age
 
     @pytest.mark.parametrize(
-        argnames=[
-            "number_dead",
-            "initial_pop",
-            "final_pop",
-            "initial_scavengeable_carbon",
-            "final_scavengeable_carbon",
-            "decomp_carcass",
-            "num_pools",
-        ],
-        argvalues=[
-            (0, 0, 0, 0.0, 0.0, 0.0, 1),  # No deaths, empty population
-            (0, 1000, 1000, 0.0, 0.0, 0.0, 1),  # No deaths, non-empty population
-            (1, 1, 0, 1.0, 8001.0, 2000.0, 1),  # Single death, single pool
-            (100, 200, 100, 0.0, 800000.0, 200000.0, 1),  # Multiple deaths, single pool
-            (1, 1, 0, 1.0, 2667.6667, 666.67, 3),  # Single death, multiple pools
-            (
-                100,
-                200,
-                100,
-                0.0,
-                266666.67,
-                66666.67,
-                3,
-            ),  # Multiple deaths, multiple pools
+        "initial_individuals, number_of_deaths, expected_final_individuals",
+        [
+            (0, 0, 0),  # zero_death_empty_pop
+            (1000, 0, 1000),  # zero_death_non_empty_pop
+            (1, 1, 0),  # single_death_single_pool
+            (200, 100, 100),  # multiple_deaths_single_pool
+            (1, 1, 0),  # single_death_multiple_pools
+            (200, 100, 100),  # multiple_deaths_multiple_pools
         ],
         ids=[
             "zero_death_empty_pop",
@@ -520,232 +446,520 @@ class TestAnimalCohort:
     def test_die_individual(
         self,
         herbivore_cohort_instance,
-        carcass_pools_instance,
-        number_dead,
-        initial_pop,
-        final_pop,
-        initial_scavengeable_carbon,
-        final_scavengeable_carbon,
-        decomp_carcass,
-        num_pools,
-    ):
-        """Testing death and carcass mass transfer to pools."""
-
-        from virtual_ecosystem.models.animal.decay import CarcassPool
-
-        # Set the initial population for the herbivore cohort
-        herbivore_cohort_instance.individuals = initial_pop
-
-        # Use the `carcass_pools_instance` fixture
-        carcass_pools = {
-            key: [
-                CarcassPool(
-                    scavengeable_carbon=initial_scavengeable_carbon,
-                    decomposed_carbon=0.0,
-                    scavengeable_nitrogen=0.0,
-                    decomposed_nitrogen=0.0,
-                    scavengeable_phosphorus=0.0,
-                    decomposed_phosphorus=0.0,
-                )
-                for _ in range(num_pools)
-            ]
-            for key in carcass_pools_instance.keys()
-        }
-
-        # Call the die_individual method
-        herbivore_cohort_instance.die_individual(number_dead, carcass_pools[1])
-
-        # Check the population after death
-        assert herbivore_cohort_instance.individuals == final_pop
-
-        # Check the expected results for carcass mass distribution
-        for carcass_pool in carcass_pools[1]:
-            expected_scavengeable_carbon = (
-                initial_scavengeable_carbon
-                + (1 - herbivore_cohort_instance.decay_fraction_carcasses)
-                * (number_dead * herbivore_cohort_instance.mass_current)
-                / num_pools
-            )
-
-            assert carcass_pool.scavengeable_carbon == pytest.approx(
-                expected_scavengeable_carbon
-            )
-
-    @pytest.mark.parametrize(
-        "initial_individuals, potential_consumed_mass, mechanical_efficiency,"
-        "expected_consumed_mass",
-        [
-            (10, 100.0, 0.75, 100.0),
-            (5, 200.0, 0.5, 200.0),
-            (100, 50.0, 0.8, 50.0),
-            (1, 5.0, 0.9, 5.0),
-        ],
-        ids=[
-            "ten_individuals_consumed_100_mass_eff_0.75",
-            "five_individuals_consumed_200_mass_eff_0.5",
-            "hundred_individuals_consumed_50_mass_eff_0.8",
-            "one_individual_consumed_5_mass_eff_0.9",
-        ],
-    )
-    def test_get_eaten(
-        self,
-        mocker,
-        herbivore_cohort_instance,
-        predator_cohort_instance,
         initial_individuals,
-        potential_consumed_mass,
-        mechanical_efficiency,
-        expected_consumed_mass,
+        number_of_deaths,
+        expected_final_individuals,
+        mocker,
     ):
-        """Test the get_eaten method for accuracy in updating prey and carcass pool."""
+        """Testing `die_individual` for population reduction and mass calculation."""
 
-        from math import ceil
-
-        # Setup initial values
+        # Set the initial number of individuals
         herbivore_cohort_instance.individuals = initial_individuals
-        predator_cohort_instance.functional_group.mechanical_efficiency = (
-            mechanical_efficiency
-        )
 
-        # Mock find_intersecting_carcass_pools to return a list of mock carcass pools
-        carcass_pool_1 = mocker.Mock()
-        carcass_pool_2 = mocker.Mock()
-        mock_find_intersecting_carcass_pools = mocker.patch.object(
-            herbivore_cohort_instance,
-            "find_intersecting_carcass_pools",
-            return_value=[carcass_pool_1, carcass_pool_2],
-        )
-
-        # Mock update_carcass_pool to update the carcass pools
+        # Mock update_carcass_pool to prevent it from running
         mock_update_carcass_pool = mocker.patch.object(
             herbivore_cohort_instance, "update_carcass_pool"
         )
 
-        # Provide a mocked carcass_pools to pass to the get_eaten method
-        carcass_pools = {1: [carcass_pool_1, carcass_pool_2]}
+        # Handle zero-death cases separately
+        if number_of_deaths == 0:
+            with pytest.raises(
+                ValueError, match="Number of deaths must be a positive integer."
+            ):
+                herbivore_cohort_instance.die_individual(number_of_deaths, [])
+            return
 
-        # Execute the get_eaten method with test parameters
-        actual_consumed_mass = herbivore_cohort_instance.get_eaten(
-            potential_consumed_mass, predator_cohort_instance, carcass_pools
-        )
+        # Call the method
+        herbivore_cohort_instance.die_individual(number_of_deaths, [])
 
-        # Calculate expected individuals killed
-        individual_mass = herbivore_cohort_instance.mass_current
-        max_individuals_killed = ceil(potential_consumed_mass / individual_mass)
-        actual_individuals_killed = min(max_individuals_killed, initial_individuals)
-        expected_final_individuals = initial_individuals - actual_individuals_killed
-
-        # Assertions for if individuals were correctly removed and carcass pool updated
+        # Check the number of individuals after death
         assert herbivore_cohort_instance.individuals == expected_final_individuals
-        assert actual_consumed_mass == pytest.approx(expected_consumed_mass)
 
-        # Verify the update_carcass_pool call
-        carcass_mass = (
-            (actual_individuals_killed * individual_mass)
-            - actual_consumed_mass
-            + (actual_consumed_mass * (1 - mechanical_efficiency))
-        )
+        expected_mass_lost = {
+            "carbon": herbivore_cohort_instance.mass_cnp.carbon * number_of_deaths,
+            "nitrogen": herbivore_cohort_instance.mass_cnp.nitrogen * number_of_deaths,
+            "phosphorus": herbivore_cohort_instance.mass_cnp.phosphorus
+            * number_of_deaths,
+        }
+
+        # Ensure update_carcass_pool was called with the correct total mass lost
         mock_update_carcass_pool.assert_called_once_with(
-            carcass_mass, [carcass_pool_1, carcass_pool_2]
-        )
-
-        # Check if find_intersecting_carcass_pools was called correctly
-        mock_find_intersecting_carcass_pools.assert_called_once_with(
-            predator_cohort_instance.territory, carcass_pools
+            expected_mass_lost["carbon"],
+            expected_mass_lost["nitrogen"],
+            expected_mass_lost["phosphorus"],
+            [],
         )
 
     @pytest.mark.parametrize(
-        "below_threshold,expected_mass_current_increase,"
-        "expected_reproductive_mass_increase",
+        "carcass_mass, num_pools, decay_fraction, should_raise",
         [
             (
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                1,
                 0.5,
-                100,
-                0,
-            ),  # Scenario where the current total mass is below the threshold
+                False,
+            ),  # zero_mass
             (
-                1.5,
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
+                1,
+                0.5,
+                False,
+            ),  # single_pool_distribution
+            (
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
+                2,
+                0.5,
+                False,
+            ),  # multiple_pools_distribution
+            (
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
+                1,
+                1.0,
+                False,
+            ),  # high_decay_fraction
+            (
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
+                1,
+                0.0,
+                False,
+            ),  # low_decay_fraction
+            (
+                {"carbon": 1000.0, "nitrogen": 500.0, "phosphorus": 250.0},
                 0,
-                100,
-            ),  # Scenario where the current total mass is above the threshold
+                0.5,
+                True,
+            ),  # no_pools_provided
+            (
+                {"carbon": -100.0, "nitrogen": 500.0, "phosphorus": 250.0},
+                1,
+                0.5,
+                True,
+            ),  # negative_mass_values
+        ],
+        ids=[
+            "zero_mass",
+            "single_pool_distribution",
+            "multiple_pools_distribution",
+            "high_decay_fraction",
+            "low_decay_fraction",
+            "no_pools_provided",
+            "negative_mass_values",
+        ],
+    )
+    def test_update_carcass_pool(
+        self,
+        herbivore_cohort_instance,
+        carcass_mass,
+        num_pools,
+        decay_fraction,
+        should_raise,
+    ):
+        """Test carcass mass distribution in update_carcass_pool()."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+
+        carcass_pools = [
+            CarcassPool(
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+            )
+            for _ in range(num_pools)
+        ]
+
+        # Store initial values from the pools
+        initial_scavengeable_cnp = {
+            nutrient: sum(pool.scavengeable_cnp[nutrient] for pool in carcass_pools)
+            for nutrient in carcass_mass
+        }
+        initial_decomposed_cnp = {
+            nutrient: sum(pool.decomposed_cnp[nutrient] for pool in carcass_pools)
+            for nutrient in carcass_mass
+        }
+
+        # Set the decay fraction
+        herbivore_cohort_instance.decay_fraction_carcasses = decay_fraction
+
+        # If expected to raise an error, assert exception is raised
+        if should_raise:
+            with pytest.raises(ValueError):
+                herbivore_cohort_instance.update_carcass_pool(
+                    carcass_mass["carbon"],
+                    carcass_mass["nitrogen"],
+                    carcass_mass["phosphorus"],
+                    carcass_pools,
+                )
+            return
+
+        herbivore_cohort_instance.update_carcass_pool(
+            carcass_mass["carbon"],
+            carcass_mass["nitrogen"],
+            carcass_mass["phosphorus"],
+            carcass_pools,
+        )
+
+        # Adjust expected values to correctly distribute across pools
+        expected_scavengeable_cnp = {
+            nutrient: (initial_scavengeable_cnp[nutrient] / num_pools)
+            + ((1 - decay_fraction) * (carcass_mass[nutrient] / num_pools))
+            for nutrient in carcass_mass
+        }
+        expected_decomposed_cnp = {
+            nutrient: (initial_decomposed_cnp[nutrient] / num_pools)
+            + (decay_fraction * (carcass_mass[nutrient] / num_pools))
+            for nutrient in carcass_mass
+        }
+
+        # Check updated values
+        for carcass_pool in carcass_pools:
+            for nutrient in carcass_mass:
+                assert carcass_pool.scavengeable_cnp[nutrient] == pytest.approx(
+                    expected_scavengeable_cnp[nutrient], rel=1e-3
+                )
+                assert carcass_pool.decomposed_cnp[nutrient] == pytest.approx(
+                    expected_decomposed_cnp[nutrient], rel=1e-3
+                )
+
+    @pytest.mark.parametrize(
+        "initial_individuals, individual_mass, potential_consumed_mass,"
+        "expected_remaining_individuals",
+        [
+            (10, 10.0, 10.0, 9),  # One individual consumed
+            (10, 10.0, 50.0, 5),  # Five individuals consumed
+            (10, 10.0, 100.0, 0),  # All individuals consumed
+            (
+                10,
+                10.0,
+                200.0,
+                0,
+            ),  # Predator requests more than available, should consume all
+        ],
+    )
+    def test_get_eaten(
+        self,
+        mocker,  # Inject pytest's mocker
+        herbivore_cohort_instance,
+        predator_cohort_instance,
+        carcass_pools_instance,
+        initial_individuals,
+        individual_mass,
+        potential_consumed_mass,
+        expected_remaining_individuals,
+    ):
+        """Test that get_eaten updates individuals and properly distributes mass."""
+
+        from virtual_ecosystem.models.animal.cnp import CNP
+
+        # Given a herbivore cohort with the specified number of individuals
+        herbivore_cohort_instance.individuals = initial_individuals
+
+        # Ensure mass_current correctly reflects individual mass
+        herbivore_cohort_instance.mass_cnp = CNP(
+            carbon=individual_mass
+            * herbivore_cohort_instance.cnp_proportions["carbon"],
+            nitrogen=individual_mass
+            * herbivore_cohort_instance.cnp_proportions["nitrogen"],
+            phosphorus=individual_mass
+            * herbivore_cohort_instance.cnp_proportions["phosphorus"],
+        )
+
+        # Track initial total carcass pool mass for each nutrient
+        initial_carcass_mass_c = sum(
+            pool.scavengeable_cnp["carbon"]
+            for pools in carcass_pools_instance.values()
+            for pool in pools
+        )
+        initial_carcass_mass_n = sum(
+            pool.scavengeable_cnp["nitrogen"]
+            for pools in carcass_pools_instance.values()
+            for pool in pools
+        )
+        initial_carcass_mass_p = sum(
+            pool.scavengeable_cnp["phosphorus"]
+            for pools in carcass_pools_instance.values()
+            for pool in pools
+        )
+
+        # Get predators mechanical efficiency
+        mechanical_efficiency = (
+            predator_cohort_instance.functional_group.mechanical_efficiency
+        )
+
+        # Get decay fraction for carcasses
+        decay_fraction_carcasses = herbivore_cohort_instance.decay_fraction_carcasses
+
+        # **Get C, N, P proportions for the prey species (mammal)**
+        c_proportion = herbivore_cohort_instance.cnp_proportions["carbon"]
+        n_proportion = herbivore_cohort_instance.cnp_proportions["nitrogen"]
+        p_proportion = herbivore_cohort_instance.cnp_proportions["phosphorus"]
+
+        # **Mock `find_intersecting_carcass_pools` return only relevant carcass pools**
+        predator_cells = predator_cohort_instance.territory
+        intersecting_cells = [
+            cell for cell in predator_cells if cell in carcass_pools_instance
+        ]
+
+        mock_carcass_pools = [
+            pool for cell in intersecting_cells for pool in carcass_pools_instance[cell]
+        ]
+
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "find_intersecting_carcass_pools",
+            return_value=mock_carcass_pools,
+        )
+
+        # Get the number of actual intersecting carcass pools
+        number_carcass_pools = len(mock_carcass_pools)
+
+        # When get_eaten is called
+        actual_mass_consumed = herbivore_cohort_instance.get_eaten(
+            potential_consumed_mass, predator_cohort_instance, carcass_pools_instance
+        )
+
+        # Compute expected consumed and carcass mass
+        total_mass_killed = (
+            initial_individuals - expected_remaining_individuals
+        ) * individual_mass
+        expected_mass_consumed = (
+            min(total_mass_killed, potential_consumed_mass) * mechanical_efficiency
+        )
+
+        # **Fix: Adjust for correct stoichiometry (C, N, P)**
+        expected_carcass_mass_c = (
+            (total_mass_killed - expected_mass_consumed)
+            * (1 - decay_fraction_carcasses)
+            * c_proportion
+        )
+        expected_carcass_mass_n = (
+            (total_mass_killed - expected_mass_consumed)
+            * (1 - decay_fraction_carcasses)
+            * n_proportion
+        )
+        expected_carcass_mass_p = (
+            (total_mass_killed - expected_mass_consumed)
+            * (1 - decay_fraction_carcasses)
+            * p_proportion
+        )
+
+        # **Divide across the number of intersecting pools**
+        expected_carcass_mass_c_per_pool = (
+            expected_carcass_mass_c / number_carcass_pools
+        )
+        expected_carcass_mass_n_per_pool = (
+            expected_carcass_mass_n / number_carcass_pools
+        )
+        expected_carcass_mass_p_per_pool = (
+            expected_carcass_mass_p / number_carcass_pools
+        )
+
+        # Compute total expected carcass mass for each nutrient
+        expected_total_carcass_mass_c = (
+            expected_carcass_mass_c_per_pool * number_carcass_pools
+        )
+        expected_total_carcass_mass_n = (
+            expected_carcass_mass_n_per_pool * number_carcass_pools
+        )
+        expected_total_carcass_mass_p = (
+            expected_carcass_mass_p_per_pool * number_carcass_pools
+        )
+
+        # Track final total carcass pool mass for each nutrient
+        final_carcass_mass_c = sum(
+            pool.scavengeable_cnp["carbon"]
+            for pools in carcass_pools_instance.values()
+            for pool in pools
+        )
+        final_carcass_mass_n = sum(
+            pool.scavengeable_cnp["nitrogen"]
+            for pools in carcass_pools_instance.values()
+            for pool in pools
+        )
+        final_carcass_mass_p = sum(
+            pool.scavengeable_cnp["phosphorus"]
+            for pools in carcass_pools_instance.values()
+            for pool in pools
+        )
+
+        # Ensure the predator consumes the correct amount of mass
+        assert sum(actual_mass_consumed.values()) == pytest.approx(
+            expected_mass_consumed, rel=1e-6
+        ), (
+            f"Expected {expected_mass_consumed} mass consumed, but got"
+            f"{sum(actual_mass_consumed.values())}"
+        )
+
+        # Ensure carcass pools receive the correct mass for each nutrient
+        assert final_carcass_mass_c - initial_carcass_mass_c == pytest.approx(
+            expected_total_carcass_mass_c, rel=1e-6
+        )
+        assert final_carcass_mass_n - initial_carcass_mass_n == pytest.approx(
+            expected_total_carcass_mass_n, rel=1e-6
+        )
+        assert final_carcass_mass_p - initial_carcass_mass_p == pytest.approx(
+            expected_total_carcass_mass_p, rel=1e-6
+        )
+
+    @pytest.mark.parametrize(
+        "mass_consumed, expected_waste",
+        [
+            # Normal cases
+            (
+                {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0},
+                {"carbon": 20.0, "nitrogen": 2.0, "phosphorus": 0.2},
+            ),
+            (
+                {"carbon": 50.0, "nitrogen": 5.0, "phosphorus": 0.5},
+                {"carbon": 10.0, "nitrogen": 1.0, "phosphorus": 0.1},
+            ),
+            # Edge cases
+            (
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),  # Zero consumption
+            (
+                {"carbon": 1e9, "nitrogen": 1e9, "phosphorus": 1e9},
+                {"carbon": 2e8, "nitrogen": 2e8, "phosphorus": 2e8},
+            ),  # Extremely high consumption
+            (
+                {"carbon": 0.0000001, "nitrogen": 0.0000001, "phosphorus": 0.0000001},
+                {
+                    "carbon": 0.00000002,
+                    "nitrogen": 0.00000002,
+                    "phosphorus": 0.00000002,
+                },
+            ),  # Floating point precision
+            (
+                {"carbon": 1e-6, "nitrogen": 1e-6, "phosphorus": 1e-6},
+                {"carbon": 2e-7, "nitrogen": 2e-7, "phosphorus": 2e-7},
+            ),  # Minimum nonzero consumption
         ],
     )
     def test_eat(
         self,
+        mocker,
         herbivore_cohort_instance,
-        below_threshold,
-        expected_mass_current_increase,
-        expected_reproductive_mass_increase,
+        mass_consumed,
+        expected_waste,
+        excrement_pools_instance,
     ):
-        """Testing eat method adjusting for the mass threshold."""
-        mass_consumed = 100  # Define a test mass consumed
+        """Test that `eat` calls `grow` and `defecate` with correct arguments."""
 
-        # Set up the instance to reflect the test scenario
-        adult_mass = 200  # Assume an adult mass for calculation
-        herbivore_cohort_instance.functional_group.adult_mass = adult_mass
-        total_mass = adult_mass * below_threshold
-        herbivore_cohort_instance.mass_current = (
-            total_mass * 0.8
-        )  # 80% towards current mass
-        herbivore_cohort_instance.reproductive_mass = (
-            total_mass * 0.2
-        )  # 20% towards reproductive mass
+        # Mock the grow method to return expected waste mass
+        mock_grow = mocker.patch.object(
+            herbivore_cohort_instance, "grow", return_value=expected_waste
+        )
 
-        initial_mass_current = herbivore_cohort_instance.mass_current
-        initial_reproductive_mass = herbivore_cohort_instance.reproductive_mass
+        # Mock the defecate method
+        mock_defecate = mocker.patch.object(herbivore_cohort_instance, "defecate")
 
-        # Execute the eat method
-        herbivore_cohort_instance.eat(mass_consumed)
+        # Call eat method
+        herbivore_cohort_instance.eat(mass_consumed, excrement_pools_instance)
 
-        # Assertions
-        assert (
-            herbivore_cohort_instance.mass_current
-            == initial_mass_current + expected_mass_current_increase
-        ), "Current mass did not increase as expected."
-        assert (
-            herbivore_cohort_instance.reproductive_mass
-            == initial_reproductive_mass + expected_reproductive_mass_increase
-        ), "Reproductive mass did not increase as expected."
+        # Assert that grow was called once with the expected arguments
+        mock_grow.assert_called_once_with(mass_consumed)
 
+        # Assert that defecate was called once with the expected waste mass
+        mock_defecate.assert_called_once_with(excrement_pools_instance, expected_waste)
+
+    @pytest.mark.parametrize(
+        "mass_consumed, excrement_pools, expected_error_message",
+        [
+            # Missing required keys
+            (
+                {"carbon": 100.0, "nitrogen": 10.0},
+                ["mock_pool"],
+                "mass_consumed must contain all required keys",
+            ),
+            (
+                {"carbon": 100.0, "phosphorus": 1.0},
+                ["mock_pool"],
+                "mass_consumed must contain all required keys",
+            ),
+            (
+                {"nitrogen": 10.0, "phosphorus": 1.0},
+                ["mock_pool"],
+                "mass_consumed must contain all required keys",
+            ),
+            # Negative values
+            (
+                {"carbon": -100.0, "nitrogen": 10.0, "phosphorus": 1.0},
+                ["mock_pool"],
+                "Values in mass_consumed must be non-negative",
+            ),
+            (
+                {"carbon": 100.0, "nitrogen": -10.0, "phosphorus": 1.0},
+                ["mock_pool"],
+                "Values in mass_consumed must be non-negative",
+            ),
+            (
+                {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": -1.0},
+                ["mock_pool"],
+                "Values in mass_consumed must be non-negative",
+            ),
+            # No excrement pools
+            (
+                {"carbon": 100.0, "nitrogen": 10.0, "phosphorus": 1.0},
+                [],
+                "At least one excrement pool must be provided.",
+            ),
+        ],
+    )
+    def test_eat_errors(
+        self,
+        herbivore_cohort_instance,
+        mass_consumed,
+        excrement_pools,
+        expected_error_message,
+    ):
+        """Test that `eat` raises appropriate ValueErrors for invalid inputs."""
+        with pytest.raises(ValueError, match=expected_error_message):
+            herbivore_cohort_instance.eat(mass_consumed, excrement_pools)
+
+    @pytest.mark.parametrize(
+        "mass_current, reproductive_mass, adult_mass, threshold, expected_result",
+        [
+            (50.0, 5.0, 100.0, 0.6, True),  # Below threshold (55 / 100 < 0.6)
+            (60.0, 10.0, 100.0, 0.7, False),  # Below threshold (70 / 100 < 0.7)
+            (70.0, 10.0, 100.0, 0.8, False),  # Equal to threshold (80 / 100 == 0.8)
+            (80.0, 10.0, 100.0, 0.7, False),  # Above threshold (90 / 100 > 0.7)
+            (
+                0.0,
+                0.0,
+                100.0,
+                0.1,
+                True,
+            ),  # Zero mass, should return True for any threshold
+            (120.0, 20.0, 100.0, 1.0, False),  # Above adult mass, always False
+        ],
+    )
     def test_is_below_mass_threshold(
-        self, herbivore_cohort_instance, constants_instance
+        self,
+        herbivore_cohort_instance,
+        mass_current,
+        reproductive_mass,
+        adult_mass,
+        threshold,
+        expected_result,
     ):
-        """Test the can_reproduce method of AnimalCohort."""
+        """Test `is_below_mass_threshold` for different mass and threshold values."""
 
-        # TODO: test other mass thresholds
-        # 1. Test when stored_energy is exactly equal to the threshold
-        herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass
-            * constants_instance.birth_mass_threshold
-        )
-        assert not herbivore_cohort_instance.is_below_mass_threshold(
-            constants_instance.birth_mass_threshold
-        )
+        from virtual_ecosystem.models.animal.cnp import CNP
 
-        # 2. Test when stored_energy is just below the threshold
-        herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass
-            * constants_instance.birth_mass_threshold
-            - 0.01
+        # Mock `mass_current` and `reproductive_mass` properties
+        herbivore_cohort_instance.mass_cnp = CNP(
+            carbon=mass_current, nitrogen=0.0, phosphorus=0.0
         )
-        assert herbivore_cohort_instance.is_below_mass_threshold(
-            constants_instance.birth_mass_threshold
+        herbivore_cohort_instance.reproductive_mass_cnp = CNP(
+            carbon=reproductive_mass, nitrogen=0.0, phosphorus=0.0
         )
 
-        # 3. Test when stored_energy is above the threshold
-        herbivore_cohort_instance.mass_current = (
-            herbivore_cohort_instance.functional_group.adult_mass
-            * constants_instance.birth_mass_threshold
-            + 0.01
-        )
-        assert not herbivore_cohort_instance.is_below_mass_threshold(
-            constants_instance.birth_mass_threshold
-        )
+        # Mock `adult_mass`
+        herbivore_cohort_instance.functional_group.adult_mass = adult_mass
 
-        # 4. Test with stored_energy set to 0
-        herbivore_cohort_instance.mass_current = 0.0
-        assert herbivore_cohort_instance.is_below_mass_threshold(
-            constants_instance.birth_mass_threshold
+        # Call method and check result
+        assert (
+            herbivore_cohort_instance.is_below_mass_threshold(threshold)
+            == expected_result
         )
 
     @pytest.mark.parametrize(
@@ -802,73 +1016,81 @@ class TestAnimalCohort:
         )
 
     @pytest.mark.parametrize(
-        "alpha, mass_current, phi_herb_t, expected_biomass",
+        "target_plant_attrs, alpha, should_raise_error, expected_error_message",
         [
-            pytest.param(1.0e-11, 100, 0.1, 1, id="low_alpha_high_mass"),
-            pytest.param(2.0e-11, 100, 0.2, 2, id="high_alpha_high_mass"),
-            pytest.param(1.0e-11, 0.1, 0.1, 3, id="low_alpha_low_mass"),
-            pytest.param(2.0e-11, 0.1, 0.2, 4, id="high_alpha_low_mass"),
+            # Normal cases: ensure k_i_k is called correctly
+            ({"mass_current": 100.0}, 0.1, False, None),
+            ({"mass_current": 50.0}, 0.5, False, None),
+            ({"mass_current": 10.0}, 0.01, False, None),
+            # Error cases: ensure input validation works
+            (
+                {"mass_current": -10.0},
+                0.1,
+                True,
+                r"target_plant.mass_current must be non-negative",
+            ),
+            (
+                {},
+                0.1,
+                True,
+                r"target_plant.mass_current must be defined and non-negative",
+            ),
+            (
+                {"mass_current": 100.0},
+                -0.5,
+                True,
+                r"alpha must be positive",
+            ),
+            (
+                {"mass_current": 100.0},
+                0.0,
+                True,
+                r"alpha must be positive",
+            ),
         ],
     )
     def test_calculate_potential_consumed_biomass(
         self,
         mocker,
+        herbivore_cohort_instance,
+        target_plant_attrs,
         alpha,
-        mass_current,
-        phi_herb_t,
-        expected_biomass,
-        animal_data_for_cohorts_instance,
+        should_raise_error,
+        expected_error_message,
     ):
-        """Testing for calculate_potential_consumed_biomass."""
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.animal_traits import DietType
+        """Test `calculate_potential_consumed_biomass`."""
+
         from virtual_ecosystem.models.animal.protocols import Resource
 
-        # Mock the target plant
+        # Mock the target plant with given attributes
         target_plant = mocker.MagicMock(spec=Resource)
-        target_plant.mass_current = mass_current
+        target_plant.mass_current = target_plant_attrs.get("mass_current", None)
 
-        # Mock k_i_k to return the expected_biomass
-        k_i_k_mock = mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions.k_i_k",
-            return_value=expected_biomass,
+        # Mock `k_i_k` to check call parameters (not its return value)
+        mock_kik = mocker.patch(
+            "virtual_ecosystem.models.animal.scaling_functions.k_i_k"
         )
 
-        # Setup functional group mock to provide phi_herb_t
-        functional_group_mock = mocker.MagicMock()
-        functional_group_mock.diet = DietType("herbivore")
-        constants_mock = mocker.MagicMock()
-        constants_mock.phi_herb_t = phi_herb_t
-        functional_group_mock.constants = constants_mock
+        # Extract functional group parameter
+        phi_herb_t = herbivore_cohort_instance.functional_group.constants.phi_herb_t
+        A_cell = 1.0  # Temporary placeholder
 
-        # Mock the adult_mass attribute
-        functional_group_mock.adult_mass = 50.0  # Example mass, adjust as needed
+        if should_raise_error:
+            # Ensure the correct error is raised
+            with pytest.raises(ValueError, match=expected_error_message):
+                herbivore_cohort_instance.calculate_potential_consumed_biomass(
+                    target_plant, alpha
+                )
+        else:
+            # Call the method
+            herbivore_cohort_instance.calculate_potential_consumed_biomass(
+                target_plant, alpha
+            )
 
-        # Initialize the AnimalCohort instance with mocked functional group
-        cohort_instance = AnimalCohort(
-            functional_group=functional_group_mock,
-            mass=100.0,  # Arbitrary value since mass is not directly used in this test
-            age=1.0,  # Arbitrary value
-            individuals=1,  # Arbitrary value
-            centroid_key=1,  # Use centroid_key instead of centroid
-            grid=animal_data_for_cohorts_instance.grid,  # grid
-            constants=mocker.MagicMock(),
-        )
-
-        # Execute the method under test
-        result = cohort_instance.calculate_potential_consumed_biomass(
-            target_plant, alpha
-        )
-
-        # Verify that the result matches the expected outcome for the given scenario
-        assert result == expected_biomass, (
-            f"Failed scenario: alpha={alpha}, mass_current={mass_current}, "
-            f"phi_herb_t={phi_herb_t}"
-        )
-
-        # Verify that k_i_k was called with the correct parameters
-        A_cell = 1.0
-        k_i_k_mock.assert_called_once_with(alpha, phi_herb_t, mass_current, A_cell)
+            # Ensure `k_i_k` was called with correct parameters
+            mock_kik.assert_called_once_with(
+                alpha, phi_herb_t, target_plant.mass_current, A_cell
+            )
 
     def test_calculate_total_handling_time_for_herbivory(
         self, mocker, herbivore_cohort_instance, plant_list_instance
@@ -1184,162 +1406,399 @@ class TestAnimalCohort:
         assert theta == expected_theta
 
     @pytest.mark.parametrize(
-        "consumed_mass, expected_total_consumed_mass",
+        "animal_list, carcass_pools, should_raise_error, expected_error_message,"
+        "mock_consumed_mass, mock_actual_cnp, expected_total",
         [
-            (100.0, 300.0),  # Assuming three cohorts each consuming 100.0 units
+            # Normal case: Predation occurs with valid inputs, single prey
+            (
+                [{"mock": True}],
+                {1: [{"mock": True}]},
+                False,
+                None,
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
+            ),
+            # Normal case: Two prey cohorts, sum their values
+            (
+                [{"mock": True}, {"mock": True}],
+                {1: [{"mock": True}]},
+                False,
+                None,
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                {"carbon": 4.0, "nitrogen": 0.8, "phosphorus": 0.4},
+                {"carbon": 8.0, "nitrogen": 1.6, "phosphorus": 0.8},
+            ),
+            # No prey (should return zero mass)
+            (
+                [],
+                {1: [{"mock": True}]},
+                False,
+                None,
+                None,
+                None,
+                {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0},
+            ),
+            # animal_list is None
+            (
+                None,
+                {1: [{"mock": True}]},
+                True,
+                "animal_list cannot be None.",
+                None,
+                None,
+                None,
+            ),
+            # carcass_pools is None
+            (
+                [{"mock": True}],
+                None,
+                True,
+                "carcass_pools cannot be None.",
+                None,
+                None,
+                None,
+            ),
+            # calculate_consumed_mass_predation returns None
+            (
+                [{"mock": True}],
+                {1: [{"mock": True}]},
+                True,
+                "calculate_consumed_mass_predation.*returned None",
+                None,
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
+                None,
+            ),
+            # get_eaten returns None
+            (
+                [{"mock": True}],
+                {1: [{"mock": True}]},
+                True,
+                "get_eaten.*returned None",
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                None,
+                None,
+            ),
         ],
     )
     def test_delta_mass_predation(
         self,
         mocker,
-        predator_cohort_instance,
-        animal_list_instance,
-        excrement_pool_instance,
-        carcass_pool_instance,  # Add carcass_pool_instance
-        consumed_mass,
-        expected_total_consumed_mass,
+        herbivore_cohort_instance,
+        animal_list,
+        carcass_pools,
+        should_raise_error,
+        expected_error_message,
+        mock_consumed_mass,
+        mock_actual_cnp,
+        expected_total,
     ):
-        """Test the delta_mass_predation.
+        """Test `delta_mass_predation` for normal and error cases.."""
 
-        The expected total consumed mass is 300 because there are three cohorts in the
-        animal cohort instance.
-        """
+        # Import inside the method
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import CarcassPool
 
-        # Mock calculate_consumed_mass_predation to return a specific consumed mass
-        mocker.patch.object(
-            predator_cohort_instance,
+        # Mock the animal cohorts and carcass pools
+        if animal_list:
+            animal_list = [mocker.MagicMock(spec=AnimalCohort) for _ in animal_list]
+        if carcass_pools:
+            carcass_pools = {
+                k: [mocker.MagicMock(spec=CarcassPool) for _ in v]
+                for k, v in carcass_pools.items()
+            }
+
+        # Mock `calculate_consumed_mass_predation`
+        mock_calculate = mocker.patch.object(
+            herbivore_cohort_instance,
             "calculate_consumed_mass_predation",
-            return_value=consumed_mass,
+            return_value=mock_consumed_mass,
         )
 
-        # Mock AnimalCohort.get_eaten to simulate consumption behavior
-        mocker.patch(
-            "virtual_ecosystem.models.animal.animal_cohorts.AnimalCohort.get_eaten",
-            return_value=consumed_mass,
-        )
+        # Mock `get_eaten` on all prey cohorts
+        for prey in animal_list or []:
+            mocker.patch.object(prey, "get_eaten", return_value=mock_actual_cnp)
 
-        # Mock predator_cohort_instance.defecate to verify its call
-        mock_defecate = mocker.patch.object(predator_cohort_instance, "defecate")
+        if should_raise_error:
+            with pytest.raises(ValueError, match=expected_error_message):
+                herbivore_cohort_instance.delta_mass_predation(
+                    animal_list, carcass_pools
+                )
+        else:
+            # Call method
+            result = herbivore_cohort_instance.delta_mass_predation(
+                animal_list, carcass_pools
+            )
 
-        # Add carcass_pool_instance to the test call
-        total_consumed_mass = predator_cohort_instance.delta_mass_predation(
-            animal_list_instance, excrement_pool_instance, carcass_pool_instance
-        )
+            # Ensure correct mass summation
+            assert result == expected_total, (
+                f"Expected {expected_total}, but got {result}"
+            )
 
-        # Assertions
-        assert total_consumed_mass == expected_total_consumed_mass
-        mock_defecate.assert_called_once_with(
-            excrement_pool_instance, total_consumed_mass
-        )
+            # Ensure `calculate_consumed_mass_predation` was called for each prey
+            assert mock_calculate.call_count == len(animal_list)
 
+            # Ensure `get_eaten` was called for each prey
+            for prey in animal_list:
+                prey.get_eaten.assert_called_once_with(
+                    mock_consumed_mass, herbivore_cohort_instance, carcass_pools
+                )
+
+    @pytest.mark.parametrize(
+        "num_plants, mock_consumed_mass, mock_herbivore_gain_cnp,"
+        "mock_plant_litter_cnp, expected_result",
+        [
+            # ✅ Case 1: Two plants (Original test case)
+            (
+                2,
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 8.0, "nitrogen": 1.5, "phosphorus": 0.8},
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.2},
+                {"carbon": 16.0, "nitrogen": 3.0, "phosphorus": 1.6},
+            ),
+            # ✅ Case 2: Three plants (Larger mass summation)
+            (
+                3,
+                {"carbon": 5.0, "nitrogen": 1.0, "phosphorus": 0.5},
+                {"carbon": 4.0, "nitrogen": 0.8, "phosphorus": 0.4},
+                {"carbon": 1.0, "nitrogen": 0.2, "phosphorus": 0.1},
+                {
+                    "carbon": 12.0,
+                    "nitrogen": pytest.approx(2.4),
+                    "phosphorus": pytest.approx(1.2),
+                },
+            ),
+            # ✅ Case 3: Single plant (Minimal case)
+            (
+                1,
+                {"carbon": 15.0, "nitrogen": 3.0, "phosphorus": 1.5},
+                {"carbon": 12.0, "nitrogen": 2.4, "phosphorus": 1.2},
+                {"carbon": 3.0, "nitrogen": 0.6, "phosphorus": 0.3},
+                {
+                    "carbon": 12.0,
+                    "nitrogen": pytest.approx(2.4),
+                    "phosphorus": pytest.approx(1.2),
+                },
+            ),
+        ],
+    )
     def test_delta_mass_herbivory(
         self,
         mocker,
         herbivore_cohort_instance,
         plant_list_instance,
-        excrement_pool_instance,
-        herbivory_waste_pool_instance,
+        num_plants,
+        mock_consumed_mass,
+        mock_herbivore_gain_cnp,
+        mock_plant_litter_cnp,
+        expected_result,
     ):
-        """Test mass assimilation calculation from herbivory."""
+        """Test that `delta_mass_herbivory` correctly sums masses for multiple cases."""
 
-        # Mock the calculate_consumed_mass_herbivory method
-        mock_calculate_consumed_mass_herbivory = mocker.patch.object(
-            herbivore_cohort_instance,
-            "calculate_consumed_mass_herbivory",
-            side_effect=lambda plant_list,
-            plant: 10.0,  # Assume 10.0 kg mass consumed from each plant for simplicity
-        )
+        # Import inside function
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
 
-        # Mock the PlantResources.get_eaten method to match its original signature
-        mock_get_eaten = mocker.patch(
-            "virtual_ecosystem.models.animal.plant_resources.PlantResources.get_eaten",
-            side_effect=lambda consumed_mass, herbivore: (
-                consumed_mass,
-                0.0,
-            ),  # Return consumed_mass and 0.0 as excess_mass
-        )
-
-        # Ensure herbivory_waste_pools includes entries for all plant cell IDs
+        # Use the first `num_plants` from `plant_list_instance`
+        plant_list = plant_list_instance[:num_plants]
         herbivory_waste_pools = {
-            plant.cell_id: herbivory_waste_pool_instance
-            for plant in plant_list_instance
+            plant.cell_id: mocker.MagicMock(spec=HerbivoryWaste) for plant in plant_list
         }
 
-        # Call the delta_mass_herbivory method
-        delta_mass = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list_instance,
-            [excrement_pool_instance],
-            herbivory_waste_pools,
+        # Mock method calls
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "calculate_consumed_mass_herbivory",
+            return_value=mock_consumed_mass,
+        )
+        for plant in plant_list:
+            mocker.patch.object(
+                plant,
+                "get_eaten",
+                return_value=(mock_herbivore_gain_cnp, mock_plant_litter_cnp),
+            )
+
+        # Call `delta_mass_herbivory`
+        result = herbivore_cohort_instance.delta_mass_herbivory(
+            plant_list, herbivory_waste_pools
         )
 
-        # Ensure calculate_consumed_mass_herbivory and get_eaten were called correctly
-        assert mock_calculate_consumed_mass_herbivory.call_count == len(
-            plant_list_instance
-        )
-        assert mock_get_eaten.call_count == len(plant_list_instance)
-
-        # Calculate the expected total consumed mass based on the number of plants
-        expected_delta_mass = 10.0 * len(plant_list_instance)
-
-        # Assert the calculated delta_mass matches the expected value
-        assert delta_mass == pytest.approx(expected_delta_mass), (
-            "Calculated change in mass due to herbivory did not match expected value."
+        # ✅ FIX: Use `pytest.approx` to handle floating-point precision
+        assert result == pytest.approx(expected_result), (
+            f"Expected {expected_result}, but got {result}"
         )
 
-    def test_forage_cohort(
+    @pytest.mark.parametrize(
+        "plant_list_fixture, herbivory_waste_pools, expected_error, expected_message",
+        [
+            (
+                None,
+                {},
+                ValueError,
+                "plant_list cannot be None.",
+            ),  # plant_list is None
+            (
+                [],
+                None,
+                ValueError,
+                "herbivory_waste_pools cannot be None.",
+            ),  # herbivory_waste_pools is None
+            (
+                "plant_list_instance",
+                {},
+                KeyError,
+                "herbivory_waste_pools is missing cell_id",
+            ),  # Missing `cell_id`
+            (
+                "plant_list_instance",
+                {"cell_id": {}},
+                ValueError,
+                "calculate_consumed_mass_herbivory.*returned None",
+            ),  # Consumed mass returns None
+            (
+                "plant_list_instance",
+                {"cell_id": {}},
+                ValueError,
+                "get_eaten.*returned None",
+            ),  # get_eaten returns None
+        ],
+    )
+    def test_delta_mass_herbivory_errors(
         self,
         mocker,
         herbivore_cohort_instance,
-        predator_cohort_instance,
+        request,
+        plant_list_fixture,
+        herbivory_waste_pools,
+        expected_error,
+        expected_message,
+    ):
+        """Test that `delta_mass_herbivory`."""
+
+        # Import inside function
+
+        # Use the fixture if specified
+        if isinstance(plant_list_fixture, str):
+            plant_list = request.getfixturevalue(plant_list_fixture)
+        else:
+            plant_list = plant_list_fixture
+
+        # Ensure plants have valid `cell_id`
+        if plant_list:
+            for i, plant in enumerate(plant_list):
+                plant.cell_id = i
+
+        # Mock `calculate_consumed_mass_herbivory` to return None where necessary
+        if expected_message.startswith("calculate_consumed_mass_herbivory"):
+            mocker.patch.object(
+                herbivore_cohort_instance,
+                "calculate_consumed_mass_herbivory",
+                return_value=None,
+            )
+
+        # Mock `get_eaten` to return None where necessary
+        if expected_message.startswith("get_eaten"):
+            for plant in plant_list or []:
+                mocker.patch.object(plant, "get_eaten", return_value=(None, None))
+
+        # Ensure error is raised correctly
+        with pytest.raises(expected_error, match=expected_message):
+            herbivore_cohort_instance.delta_mass_herbivory(
+                plant_list, herbivory_waste_pools
+            )
+
+    @pytest.mark.parametrize(
+        "cohort_instance, diet_type, plant_list, animal_list, expected_consumed_mass,"
+        "delta_mass_mock",
+        [
+            # ✅ Test Herbivore Case
+            (
+                "herbivore_cohort_instance",
+                "HERBIVORE",
+                "plant_list_instance",
+                [],
+                100,
+                "delta_mass_herbivory",
+            ),
+            # ✅ Test Carnivore Case
+            (
+                "predator_cohort_instance",
+                "CARNIVORE",
+                [],
+                "animal_list_instance",
+                200,
+                "delta_mass_predation",
+            ),
+        ],
+    )
+    def test_forage_cohort(
+        self,
+        mocker,
+        request,
+        cohort_instance,
+        diet_type,
+        plant_list,
+        animal_list,
+        expected_consumed_mass,
+        delta_mass_mock,
         plant_list_instance,
         animal_list_instance,
         excrement_pool_instance,
         carcass_pools_instance,
         herbivory_waste_pool_instance,
     ):
-        """Test foraging behavior for different diet types."""
+        """Test `forage_cohort`."""
 
-        # Mocking the delta_mass_herbivory and delta_mass_predation methods
-        mock_delta_mass_herbivory = mocker.patch.object(
-            herbivore_cohort_instance, "delta_mass_herbivory", return_value=100
-        )
-        mock_delta_mass_predation = mocker.patch.object(
-            predator_cohort_instance, "delta_mass_predation", return_value=200
-        )
-        mock_eat_herbivore = mocker.patch.object(herbivore_cohort_instance, "eat")
-        mock_eat_predator = mocker.patch.object(predator_cohort_instance, "eat")
+        from virtual_ecosystem.models.animal.animal_traits import DietType
 
-        # Ensure herbivory_waste_pools includes entries for all plant cell IDs
+        # Get the actual cohort instance from the fixture
+        cohort = request.getfixturevalue(cohort_instance)
+
+        # Set the functional group diet type
+        cohort.functional_group.diet = getattr(DietType, diet_type)
+
+        # Resolve `plant_list` and `animal_list`
+        if isinstance(plant_list, str):
+            plant_list = request.getfixturevalue(plant_list)
+        if isinstance(animal_list, str):
+            animal_list = request.getfixturevalue(animal_list)
+
+        # Set up the herbivory waste pools
         herbivory_waste_pools = {
             plant.cell_id: herbivory_waste_pool_instance
             for plant in plant_list_instance
         }
 
-        # Test herbivore diet
-        herbivore_cohort_instance.forage_cohort(
-            plant_list_instance,
-            [],
-            excrement_pool_instance,
-            carcass_pools_instance,
-            herbivory_waste_pools,
+        # Mock `delta_mass_herbivory` or `delta_mass_predation`
+        mock_delta_mass = mocker.patch.object(
+            cohort, delta_mass_mock, return_value=expected_consumed_mass
         )
-        mock_delta_mass_herbivory.assert_called_once_with(
-            plant_list_instance, excrement_pool_instance, herbivory_waste_pools
-        )
-        mock_eat_herbivore.assert_called_once_with(100)
 
-        # Test carnivore diet
-        predator_cohort_instance.forage_cohort(
-            [],
-            animal_list_instance,
+        # Mock `eat` method
+        mock_eat = mocker.patch.object(cohort, "eat")
+
+        # Call `forage_cohort`
+        cohort.forage_cohort(
+            plant_list,
+            animal_list,
             excrement_pool_instance,
             carcass_pools_instance,
-            {},
+            herbivory_waste_pools if diet_type == "HERBIVORE" else {},
         )
-        mock_delta_mass_predation.assert_called_once_with(
-            animal_list_instance, excrement_pool_instance, carcass_pools_instance
+
+        # Ensure the correct `delta_mass_*` method was called
+        if diet_type == "HERBIVORE":
+            mock_delta_mass.assert_called_once_with(
+                plant_list_instance, herbivory_waste_pools
+            )
+        else:
+            mock_delta_mass.assert_called_once_with(
+                animal_list_instance, carcass_pools_instance
+            )
+
+        # Ensure `eat` was called with the correct arguments
+        mock_eat.assert_called_once_with(
+            expected_consumed_mass, excrement_pool_instance
         )
-        mock_eat_predator.assert_called_once_with(200)
 
     @pytest.mark.parametrize(
         "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
@@ -1365,31 +1824,39 @@ class TestAnimalCohort:
 
         # Assign test-specific values to the cohort instance
         cohort = herbivore_cohort_instance
-        cohort.mass_current = mass_current
+
+        # ✅ Mock `mass_current` properly as a property on the class
+        mocker.patch.object(
+            type(cohort),
+            "mass_current",
+            new_callable=mocker.PropertyMock,
+            return_value=mass_current,
+        )
+
+        # ✅ Mock `constants`
         cohort.constants = mocker.MagicMock(
             V_disp=V_disp, M_disp_ref=M_disp_ref, o_disp=o_disp
         )
 
-        # Mock juvenile_dispersal_speed
+        # ✅ Mock `juvenile_dispersal_speed`
         mocked_velocity = V_disp * (mass_current / M_disp_ref) ** o_disp
         mocker.patch(
-            "virtual_ecosystem.models.animal.scaling_functions."
-            "juvenile_dispersal_speed",
+            "virtual_ecosystem.models.animal.scaling_functions.juvenile_dispersal_speed",
             return_value=mocked_velocity,
         )
 
-        # Calculate expected probability
+        # ✅ Calculate expected probability
         A_cell = 1.0
         grid_side = sqrt(A_cell)
         calculated_probability = mocked_velocity / grid_side
         expected_probability = min(calculated_probability, 1.0)  # Cap at 1.0
 
-        # Call the method under test
+        # ✅ Call the method under test
         probability_of_dispersal = cohort.migrate_juvenile_probability()
 
-        # Assertion to check if the method returns the correct probability
+        # ✅ Assertion to check if the method returns the correct probability
         assert probability_of_dispersal == expected_probability, (
-            "The probability calculated did not match the expected probability."
+            f"Expected {expected_probability}, but got {probability_of_dispersal}."
         )
 
     @pytest.mark.parametrize(
@@ -1455,12 +1922,19 @@ class TestAnimalCohort:
         cohort = predator_cohort_instance
         cohort.individuals = 100  # Set initial individuals count
         cohort.is_mature = is_mature
-        cohort.mass_current = mass_current
         cohort.time_to_maturity = t_to_maturity
         cohort.time_since_maturity = t_since_maturity
         cohort.functional_group.adult_mass = mass_max
 
-        # Mocking the mortality functions to return predefined values
+        # ✅ Mock `mass_current` properly as a property on the class
+        mocker.patch.object(
+            type(cohort),
+            "mass_current",
+            new_callable=mocker.PropertyMock,
+            return_value=mass_current,
+        )
+
+        # ✅ Mocking the mortality functions to return predefined values
         mocker.patch(
             "virtual_ecosystem.models.animal.scaling_functions.background_mortality",
             return_value=u_bg,
@@ -1519,4 +1993,34 @@ class TestAnimalCohort:
         assert cohort.individuals == 100 - expected_dead, (
             "The calculated number of dead individuals doesn't match the expected "
             "value."
+        )
+
+    @pytest.mark.parametrize(
+        "mock_random, expected_result",
+        [
+            (0.0, True),  # Always migrate (random value < probability)
+            (0.05, True),  # Should migrate (0.05 < 0.083)
+            (0.083, True),  # Edge case (should migrate)
+            (0.084, False),  # Just above threshold
+            (0.5, False),  # Should not migrate
+            (0.99, False),  # Almost certain not to migrate
+        ],
+    )
+    def test_is_migration_season(
+        self, mocker, herbivore_cohort_instance, mock_random, expected_result
+    ):
+        """Test whether is_migration_season correctly triggers based on probability."""
+
+        # Mock the correct module where random() is called
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_cohorts.random.random",
+            return_value=mock_random,
+        )
+
+        # Run function
+        result = herbivore_cohort_instance.is_migration_season()
+
+        # Ensure print happens even if the test fails
+        assert result == expected_result, (
+            f"\n[ASSERT FAILED] Expected {expected_result} but got {result}\n"
         )

@@ -28,9 +28,13 @@ lmwc_values = 0.005 + 0.005 * gradient / 64.0
 # Generate a range of plausible values (1.0-3.0) for the maom pool [kg C m^-3].
 maom_values = 1.0 + 2.0 * gradient / 64.0
 
-# Generate a range of plausible values (0.0015-0.005) for the microbial C pool
+# Generate a range of plausible values (0.0015-0.005) for the bacterial C pool
 # [kg C m^-3].
-microbial_C_values = 0.0015 + 0.0035 * gradient / 64.0
+bacterial_C_values = 0.0015 + 0.0035 * gradient / 64.0
+
+# Generate a range of plausible values (0.0015-0.005) for the fungal C pool
+# [kg C m^-3].
+fungal_C_values = 0.0015 + 0.0035 * gradient / 64.0
 
 # Generate a range of plausible values (0.1-1.0) for the POM pool [kg C m^-3].
 pom_values = 0.1 + 0.9 * gradient / 64.0
@@ -100,11 +104,14 @@ example_soil_data = Dataset(
         clay_fraction=(["x", "y"], clay_fraction_values),
         soil_c_pool_lmwc=(["x", "y"], lmwc_values),
         soil_c_pool_maom=(["x", "y"], maom_values),
-        soil_c_pool_microbe=(["x", "y"], microbial_C_values),
+        soil_c_pool_bacteria=(["x", "y"], bacterial_C_values),
+        soil_c_pool_fungi=(["x", "y"], fungal_C_values),
         soil_c_pool_pom=(["x", "y"], pom_values),
         soil_c_pool_necromass=(["x", "y"], necromass_values),
-        soil_enzyme_pom=(["x", "y"], pom_enzyme_values),
-        soil_enzyme_maom=(["x", "y"], maom_enzyme_values),
+        soil_enzyme_pom_bacteria=(["x", "y"], pom_enzyme_values),
+        soil_enzyme_maom_bacteria=(["x", "y"], maom_enzyme_values),
+        soil_enzyme_pom_fungi=(["x", "y"], pom_enzyme_values),
+        soil_enzyme_maom_fungi=(["x", "y"], maom_enzyme_values),
         soil_n_pool_don=(["x", "y"], don_values),
         soil_n_pool_particulate=(["x", "y"], particulate_n_values),
         soil_n_pool_maom=(["x", "y"], maom_n_values),

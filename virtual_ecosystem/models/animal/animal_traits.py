@@ -26,6 +26,7 @@ class TaxaType(Enum):
     MAMMAL = "mammal"
     BIRD = "bird"
     INSECT = "insect"
+    AMPHIBIAN = "amphibian"
 
 
 class ReproductiveType(Enum):
@@ -34,6 +35,13 @@ class ReproductiveType(Enum):
     SEMELPAROUS = "semelparous"
     ITEROPAROUS = "iteroparous"
     NONREPRODUCTIVE = "nonreproductive"
+
+
+class ReproductiveEnvironment(Enum):
+    """Where and how reproduction happens: aquatic vs terrestrial."""
+
+    TERRESTRIAL = "terrestrial"
+    AQUATIC = "aquatic"
 
 
 class DevelopmentType(Enum):
@@ -55,3 +63,10 @@ class ExcretionType(Enum):
 
     UREOTELIC = "ureotelic"
     URICOTELIC = "uricotelic"
+
+
+class MigrationType(Enum):
+    """Enumeration for external migration trait."""
+
+    NONE = "none"
+    SEASONAL = "seasonal"

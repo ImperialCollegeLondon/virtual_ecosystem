@@ -31,7 +31,7 @@ def test_determine_all_plant_to_litter_flows(dummy_litter_data):
         "reprod_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
-        "deadwood_lignin": [0.233, 0.545, 0.612, 0.378],
+        "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
         "leaf_nitrogen": [15.00899, 32.5, 40.710063, 53.929808],
         "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
@@ -70,7 +70,7 @@ def test_combine_input_sources(dummy_litter_data):
         "reprod_mass": [0.003, 0.0075, 0.00255, 0.00375],
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
-        "deadwood_lignin": [0.233, 0.545, 0.612, 0.378],
+        "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
         "leaf_nitrogen": [15.00899, 32.5, 40.710063, 53.929808],
         "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
@@ -146,7 +146,7 @@ def test_split_pool_into_metabolic_and_structural_litter(dummy_litter_data):
     expected_split = [0.812403025, 0.640197595, 0.424077745, 0.0089426731]
 
     actual_split = split_pool_into_metabolic_and_structural_litter(
-        lignin_proportion=dummy_litter_data["leaf_turnover_lignin"],
+        lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
         carbon_nitrogen_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
         carbon_phosphorus_ratio=dummy_litter_data["leaf_turnover_c_p_ratio"],
         max_metabolic_fraction=LitterConsts.max_metabolic_fraction_of_input,

@@ -23,11 +23,14 @@ INITIALISATION_LOG = [
     ),
     (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_microbe' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
     (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_maom_bacteria' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_pom_fungi' checked"),
+    (DEBUG, "soil model: required var 'soil_enzyme_maom_fungi' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
     (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
@@ -54,7 +57,14 @@ INITIALISATION_LOG = [
             '[core.timing]\nupdate_interval = "7 days"\n[soil]\n',
             "SoilModel(update_interval=604800 seconds)",
             does_not_raise(),
-            tuple(INITIALISATION_LOG),
+            tuple(
+                [
+                    *INITIALISATION_LOG,
+                    (INFO, "Adding data array for 'dissolved_nitrate'"),
+                    (INFO, "Adding data array for 'dissolved_ammonium'"),
+                    (INFO, "Adding data array for 'dissolved_phosphorus'"),
+                ],
+            ),
             id="valid config",
         ),
         pytest.param(
@@ -96,6 +106,7 @@ INITIALISATION_LOG = [
 def test_initialise_models(
     caplog,
     dummy_carbon_data,
+    microbial_groups_cfg,
     cfg_strings,
     output,
     raises,
@@ -109,7 +120,7 @@ def test_initialise_models(
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
+    config = Config(cfg_strings=[cfg_strings, microbial_groups_cfg])
     core_components = CoreComponents(config)
     caplog.clear()
 

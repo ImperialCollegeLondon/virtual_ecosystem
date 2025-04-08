@@ -17,9 +17,152 @@
                   "SoilConsts"
                ]
             },
+            "enzyme_class_definition": {
+               "description": "Microbial functional group definitions",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "source": {
+                        "type": "string"
+                     },
+                     "substrate": {
+                        "type": "string"
+                     },
+                     "maximum_rate": {
+                        "type": "number"
+                     },
+                     "half_saturation_constant": {
+                        "type": "number"
+                     },
+                     "activation_energy_rate": {
+                        "type": "number"
+                     },
+                     "activation_energy_saturation": {
+                        "type": "number"
+                     },
+                     "reference_temperature": {
+                        "type": "number"
+                     },
+                     "turnover_rate": {
+                        "type": "number"
+                     },
+                     "c_n_ratio": {
+                        "type": "number"
+                     },
+                     "c_p_ratio": {
+                        "type": "number"
+                     }
+                  },
+                  "required": [
+                     "source",
+                     "substrate",
+                     "maximum_rate",
+                     "half_saturation_constant",
+                     "activation_energy_rate",
+                     "activation_energy_saturation",
+                     "reference_temperature",
+                     "turnover_rate",
+                     "c_n_ratio",
+                     "c_p_ratio"
+                  ]
+               }
+            },
+            "microbial_group_definition": {
+               "description": "Microbial functional group definitions",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "name": {
+                        "type": "string"
+                     },
+                     "max_uptake_rate_labile_C": {
+                        "type": "number"
+                     },
+                     "activation_energy_uptake_rate": {
+                        "type": "number"
+                     },
+                     "half_sat_labile_C_uptake": {
+                        "type": "number"
+                     },
+                     "activation_energy_uptake_saturation": {
+                        "type": "number"
+                     },
+                     "max_uptake_rate_ammonium": {
+                        "type": "number"
+                     },
+                     "half_sat_ammonium_uptake": {
+                        "type": "number"
+                     },
+                     "max_uptake_rate_nitrate": {
+                        "type": "number"
+                     },
+                     "half_sat_nitrate_uptake": {
+                        "type": "number"
+                     },
+                     "max_uptake_rate_labile_p": {
+                        "type": "number"
+                     },
+                     "half_sat_labile_p_uptake": {
+                        "type": "number"
+                     },
+                     "turnover_rate": {
+                        "type": "number"
+                     },
+                     "activation_energy_turnover": {
+                        "type": "number"
+                     },
+                     "reference_temperature": {
+                        "type": "number"
+                     },
+                     "c_n_ratio": {
+                        "type": "number"
+                     },
+                     "c_p_ratio": {
+                        "type": "number"
+                     },
+                     "enzyme_production": {
+                        "description": "Allocation to production of each enzyme type",
+                        "type": "object",
+                        "properties": {
+                           "pom": {
+                              "type": "number"
+                           },
+                           "maom": {
+                              "type": "number"
+                           }
+                        },
+                        "required": [
+                           "pom",
+                           "maom"
+                        ]
+                     }
+                  },
+                  "required": [
+                     "name",
+                     "max_uptake_rate_labile_C",
+                     "activation_energy_uptake_rate",
+                     "half_sat_labile_C_uptake",
+                     "activation_energy_uptake_saturation",
+                     "max_uptake_rate_ammonium",
+                     "half_sat_ammonium_uptake",
+                     "max_uptake_rate_nitrate",
+                     "half_sat_nitrate_uptake",
+                     "max_uptake_rate_labile_p",
+                     "half_sat_labile_p_uptake",
+                     "turnover_rate",
+                     "activation_energy_turnover",
+                     "reference_temperature",
+                     "c_n_ratio",
+                     "c_p_ratio",
+                     "enzyme_production"
+                  ]
+               }
+            },
             "static": {
-                "type": "boolean",
-                "default": false
+               "type": "boolean",
+               "default": false
             }
          },
          "default": {},

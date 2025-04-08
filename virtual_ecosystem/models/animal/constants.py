@@ -16,7 +16,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
 
 @dataclass(frozen=True)
 class AnimalConsts(ConstantsDataclass):
-    """Dataclass to store all constants related to metabolic rates.
+    """Dataclass to store all constants related to animals.
 
     TODO: Remove unused constants.
 
@@ -47,6 +47,10 @@ class AnimalConsts(ConstantsDataclass):
                 DietType.CARNIVORE: (-0.75, 2.00),
             },
             TaxaType.INSECT: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+            },
+            TaxaType.AMPHIBIAN: {
                 DietType.HERBIVORE: (-0.75, 5.00),
                 DietType.CARNIVORE: (-0.75, 2.00),
             },
@@ -82,7 +86,19 @@ class AnimalConsts(ConstantsDataclass):
                 TaxaType.MAMMAL: (1.0, 1.0),  # Toy values
                 TaxaType.BIRD: (1.0, 1.0),  # Toy values
             },
-            MetabolicType.ECTOTHERMIC: {TaxaType.INSECT: (1.0, 1.0)},  # Toy values
+            MetabolicType.ECTOTHERMIC: {
+                TaxaType.INSECT: (1.0, 1.0),
+                TaxaType.AMPHIBIAN: (1.0, 1.0),
+            },  # Toy values
+        }
+    )
+
+    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+            TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
+            TaxaType.INSECT: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
 
@@ -247,6 +263,21 @@ class AnimalConsts(ConstantsDataclass):
     biomass between scavengable carcass biomass and flow into the soil. In reality this
     should be a constant, but as a simplifying assumption it is.
     """
+
+    migration_mortality: float = 0.1  # toy
+    """Proportion of mortality that occurs on return from a migration [unitless]."""
+
+    aquatic_mortality: float = 0.1  # toy
+    """Proportion of mortality that occurs on return from aquatic status [unitless]."""
+
+    aquatic_residence_time: float = 60.0  # toy
+    """Amount of time a new cohort spends living in aquatic environment [days]."""
+
+    migration_residence_time: float = 60.0  # toy
+    """Amount of time a migrated cohort spends away [days]."""
+
+    seasonal_migration_probability: float = 0.083  # approx 1 seasonal migration per yr.
+    """The probability a seasonal migration event occurs per time step (month)."""
 
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]

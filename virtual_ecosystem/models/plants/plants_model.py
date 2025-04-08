@@ -40,7 +40,7 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "photosynthetic_photon_flux_density",
+        "downward_shortwave_radiation",
     ),
     vars_populated_by_init=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -54,11 +54,14 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
-        "photosynthetic_photon_flux_density",
+        "downward_shortwave_radiation",
         "air_temperature",
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "dissolved_nitrate",
+        "dissolved_ammonium",
+        "dissolved_phosphorus",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -71,10 +74,10 @@ class PlantsModel(
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
         "root_turnover",
-        "deadwood_lignin",
-        "leaf_turnover_lignin",
-        "plant_reproductive_tissue_turnover_lignin",
-        "root_turnover_lignin",
+        "stem_lignin",
+        "senesced_leaf_lignin",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
         "deadwood_c_n_ratio",
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
@@ -84,6 +87,10 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -91,10 +98,10 @@ class PlantsModel(
         "leaf_turnover",
         "plant_reproductive_tissue_turnover",
         "root_turnover",
-        "deadwood_lignin",
-        "leaf_turnover_lignin",
-        "plant_reproductive_tissue_turnover_lignin",
-        "root_turnover_lignin",
+        "stem_lignin",
+        "senesced_leaf_lignin",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
         "deadwood_c_n_ratio",
         "leaf_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_n_ratio",
@@ -104,6 +111,10 @@ class PlantsModel(
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
         "nitrogen_fixation_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -193,6 +204,8 @@ class PlantsModel(
         """PModel constants used by pyrealm."""
         self.pmodel_core_consts: CoreConst
         """Core constants used by pyrealm."""
+        self.per_update_interval_stem_mortality_probability: np.float64
+        """The rate of stem mortality per update interval."""
 
     @classmethod
     def from_config(
@@ -258,6 +271,11 @@ class PlantsModel(
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
 
+        # Calculate PPFD from DSR
+        self.data["photosynthetic_photon_flux_density"] = (
+            self.data["downward_shortwave_radiation"] / model_constants.ppfd_to_dsr
+        )
+
         # Initialise the canopy layer arrays.
         # TODO - this initialisation step may move somewhere else at some point see #442
         self.data.add_from_dict(
@@ -289,6 +307,11 @@ class PlantsModel(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
 
+        # Calculate the per update interval stem mortality rate
+        self.per_update_interval_stem_mortality_probability = 1 - (
+            1 - model_constants.per_stem_annual_mortality_probability
+        ) ** (1 / self.model_timing.updates_per_year)
+
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 
@@ -317,6 +340,12 @@ class PlantsModel(
 
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
+
+        # Calculate uptake from each inorganic soil nutrient pool
+        self.calculate_nutrient_uptake()
+
+        # Apply mortality to plant cohorts
+        self.apply_mortality()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -606,6 +635,37 @@ class PlantsModel(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
 
+    def apply_mortality(self) -> None:
+        """Apply mortality to plant cohorts.
+
+        This function applies the basic annual mortality rate to plant cohorts. The
+        mortality rate is currently a constant value for all cohorts. The function
+        calculates the number of individuals that have died in each cohort and updates
+        the cohort data accordingly. The function then updates deadwood production.
+
+        """
+
+        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0)
+
+        # Loop over each grid cell
+        for cell_id in self.communities.keys():
+            community = self.communities[cell_id]
+            cohorts = community.cohorts
+
+            # Calculate the number of individuals that have died in each cohort
+            mortality = np.random.binomial(
+                cohorts.n_individuals,
+                self.per_update_interval_stem_mortality_probability,
+            )
+
+            # Decrease size of cohorts based on mortality
+            cohorts.n_individuals = cohorts.n_individuals - mortality
+
+            # Update deadwood production
+            self.data["deadwood_production"][cell_id] = np.sum(
+                mortality * community.stem_allometry.stem_mass
+            )
+
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
 
@@ -613,45 +673,82 @@ class PlantsModel(
         leaves, roots, and reproductive tissues). As well as this the lignin
         concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
         turnover flow is calculated. It also returns the rate at which plants supply
-        carbon to their nitrogen fixing symbionts in the soil.
+        carbon to their nitrogen fixing symbionts in the soil and the rate at which they
+        exude carbohydrates into the soil more generally.
 
         Warning:
             At present, this function literally just returns constant values for each of
             the variables it returns.
         """
 
-        # All outputs are just constants at the moment
-        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0.075)
         self.data["plant_reproductive_tissue_turnover"] = xr.full_like(
             self.data["elevation"], 0.003
         )
-        self.data["deadwood_lignin"] = xr.full_like(self.data["elevation"], 0.545)
-        self.data["leaf_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.05)
-        self.data["plant_reproductive_tissue_turnover_lignin"] = xr.full_like(
-            self.data["elevation"], 0.01
+
+        # Lignin concentrations
+        self.data["stem_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.stem_lignin
         )
-        self.data["root_turnover_lignin"] = xr.full_like(self.data["elevation"], 0.2)
-        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
-        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 25.5
+        self.data["senesced_leaf_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.senesced_leaf_lignin
         )
-        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 12.5
+        self.data["leaf_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.leaf_lignin
         )
-        self.data["root_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 45.6
+        self.data["plant_reproductive_tissue_lignin"] = xr.full_like(
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_lignin,
         )
-        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 856.5)
-        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 415.0
-        )
-        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 125.5
-        )
-        self.data["root_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 656.7
+        self.data["root_lignin"] = xr.full_like(
+            self.data["elevation"], self.model_constants.root_lignin
         )
 
+        # C:N and C:P ratios
+        self.data["deadwood_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.deadwood_c_n_ratio
+        )
+        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.leaf_turnover_c_n_ratio
+        )
+        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+        )
+        self.data["root_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.root_turnover_c_n_ratio
+        )
+        self.data["deadwood_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.deadwood_c_p_ratio
+        )
+        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.leaf_turnover_c_p_ratio
+        )
+        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
+        )
+        self.data["root_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
+        )
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
+        self.data["root_carbohydrate_exudation"] = xr.full_like(
+            self.data["elevation"], 0.025
+        )
+
+    def calculate_nutrient_uptake(self) -> None:
+        """Calculate uptake of soil nutrients by the plant community.
+
+        This function calculates the rate a which plants take up inorganic nutrients
+        (ammonium, nitrate, and labile phosphorus) from the soil.
+
+        Warning:
+            At present, this function just calculates uptake based on an entirely made
+            up function, and does not link to plant dynamics in any way.
+        """
+
+        # Assume plants can take 0.1% of the available nutrient per day
+        self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
+        self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
+        self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01

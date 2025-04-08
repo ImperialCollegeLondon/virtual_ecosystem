@@ -46,13 +46,18 @@ def plants_data(fixture_core_components):
         data["plant_cohorts_" + var] = cohorts[var]
 
     # Spatio-temporal data
-    data["photosynthetic_photon_flux_density"] = DataArray(
-        data=np.full((n_cells, 12), fill_value=1000),
+    data["downward_shortwave_radiation"] = DataArray(
+        data=np.full((n_cells, 12), fill_value=2040),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
             "time_index": np.arange(12),
         },
     )
+
+    # Adding soil variables
+    data["dissolved_ammonium"] = DataArray(np.array([5.0e-2] * n_cells))
+    data["dissolved_nitrate"] = DataArray(np.array([7.5e-1] * n_cells))
+    data["dissolved_phosphorus"] = DataArray(np.array([3.0e-3] * n_cells))
 
     # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
     # function works in testing. Once that function has been replaced with something

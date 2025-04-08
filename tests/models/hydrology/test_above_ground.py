@@ -16,11 +16,11 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
     [
         (
             1.225,
-            2.45,
+            2442.0,
         ),
         (
-            np.array([1.225, 1.225, 1.225]),
-            np.array([2.45, 2.45, 2.45]),
+            np.repeat(1.225, 3),
+            np.repeat(2442.0, 3),
         ),
     ],
 )
@@ -31,19 +31,20 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         calculate_soil_evaporation,
     )
 
+    core_consts = CoreConsts()
     result = calculate_soil_evaporation(
         temperature=np.array([20.0, 20.0, 30.0]),
         wind_speed_surface=np.array([1.0, 0.5, 0.1]),
-        relative_humidity=np.array([80, 80, 90]),
-        atmospheric_pressure=np.array([90, 90, 90]),
+        relative_humidity=np.array([80.0, 80.0, 90.0]),
+        atmospheric_pressure=np.array([90.0, 90.0, 90.0]),
         soil_moisture=np.array([0.01, 0.1, 0.5]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
-        leaf_area_index=np.array([3, 4, 5]),
-        celsius_to_kelvin=273.15,
+        leaf_area_index=np.array([3.0, 4.0, 5.0]),
+        celsius_to_kelvin=core_consts.zero_Celsius,
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour,
+        gas_constant_water_vapour=core_consts.gas_constant_water_vapour,
         soil_surface_heat_transfer_coefficient=(
             HydroConsts.soil_surface_heat_transfer_coefficient
         ),
@@ -52,7 +53,7 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         ),
     )
 
-    exp_evap = np.array([0.745206, 0.092515, 0.135078])
+    exp_evap = np.array([7.500966e-07, 9.312173e-08, 1.334507e-04])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
 
 

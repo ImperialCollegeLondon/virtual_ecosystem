@@ -29,23 +29,28 @@ def test_calculate_molar_density_air():
     )
 
 
-def test_calculate_specific_heat_air():
-    """Test calculate specific heat of air."""
+def test_calculate_air_density(dummy_climate_data):
+    """Test calculate the density of air."""
 
-    from virtual_ecosystem.models.abiotic.abiotic_tools import (
-        calculate_specific_heat_air,
+    from virtual_ecosystem.models.abiotic.abiotic_tools import calculate_air_density
+
+    consts = CoreConsts()
+    result = calculate_air_density(
+        air_temperature=dummy_climate_data["air_temperature_ref"]
+        .isel(time_index=0)
+        .to_numpy(),
+        atmospheric_pressure=dummy_climate_data["atmospheric_pressure_ref"]
+        .isel(time_index=0)
+        .to_numpy(),
+        specific_gas_constant_dry_air=consts.specific_gas_constant_dry_air,
+        celsius_to_kelvin=consts.zero_Celsius,
     )
-
-    constants = AbioticConsts()
-    result = calculate_specific_heat_air(
-        temperature=np.array([[25.0] * 3, [20.0] * 3, [18.0] * 3]),
-        molar_heat_capacity_air=CoreConsts.molar_heat_capacity_air,
-        specific_heat_equ_factors=constants.specific_heat_equ_factors,
+    np.testing.assert_allclose(
+        result,
+        np.repeat(1.103205, 4),
+        rtol=1e-5,
+        atol=1e-5,
     )
-
-    exp_result = np.array([[29.2075] * 3, [29.202] * 3, [29.2] * 3])
-
-    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
 def test_calculate_latent_heat_vapourisation():
@@ -92,3 +97,41 @@ def test_find_last_valid_row(input_array, expected):
 
     result = find_last_valid_row(input_array)
     np.testing.assert_allclose(result, expected)
+
+
+def test_calculate_slope_of_saturated_pressure_curve():
+    """Test calculation of slope of saturated pressure curve."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_slope_of_saturated_pressure_curve,
+    )
+
+    const = AbioticConsts()
+    result = calculate_slope_of_saturated_pressure_curve(
+        temperature=np.full((4, 3), 20.0),
+        saturated_pressure_slope_parameters=const.saturated_pressure_slope_parameters,
+    )
+    exp_result = np.full((4, 3), 0.14474)
+    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
+
+
+def test_calculate_actual_vapour_pressure(dummy_climate_data, fixture_core_components):
+    """Calculate effective vapour pressure, [kPa]."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_actual_vapour_pressure,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+
+    result = calculate_actual_vapour_pressure(
+        air_temperature=dummy_climate_data["air_temperature"],
+        relative_humidity=dummy_climate_data["relative_humidity"],
+        saturation_vapour_pressure_factors=[0.61078, 7.5, 237.3],
+    )
+
+    exp_result = lyr_str.from_template()
+    exp_result[lyr_str.index_filled_atmosphere] = np.array(
+        [1.275543, 1.275448, 1.274309, 1.270266, 1.128206]
+    )[:, None]
+    np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)

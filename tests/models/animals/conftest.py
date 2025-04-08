@@ -153,11 +153,13 @@ def animal_fixture_config():
         taxa = "bird"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.1
         adult_mass = 1.0
         [[animal.functional_groups]]
@@ -165,11 +167,13 @@ def animal_fixture_config():
         taxa = "bird"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.05
         adult_mass = 0.5
         [[animal.functional_groups]]
@@ -177,11 +181,13 @@ def animal_fixture_config():
         taxa = "mammal"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
         birth_mass = 4.0
         adult_mass = 40.0
         [[animal.functional_groups]]
@@ -189,11 +195,13 @@ def animal_fixture_config():
         taxa = "mammal"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
         birth_mass = 1.0
         adult_mass = 10.0
         [[animal.functional_groups]]
@@ -201,11 +209,13 @@ def animal_fixture_config():
         taxa = "insect"
         diet = "carnivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.001
         adult_mass = 0.01
         [[animal.functional_groups]]
@@ -213,11 +223,13 @@ def animal_fixture_config():
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.0005
         adult_mass = 0.005
         [[animal.functional_groups]]
@@ -225,11 +237,13 @@ def animal_fixture_config():
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "indirect"
         development_status = "adult"
         offspring_functional_group = "caterpillar"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.0005
         adult_mass = 0.005
         [[animal.functional_groups]]
@@ -237,13 +251,43 @@ def animal_fixture_config():
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "nonreproductive"
         development_type = "indirect"
         development_status = "larval"
         offspring_functional_group = "butterfly"
         excretion_type = "uricotelic"
+        migration_type = "none"
         birth_mass = 0.0005
         adult_mass = 0.005
+        [[animal.functional_groups]]
+        name = "frog"
+        taxa = "amphibian"
+        diet = "carnivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "aquatic"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "frog"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        birth_mass = 0.005
+        adult_mass = 0.5
+        [[animal.functional_groups]]
+        name = "swallow"
+        taxa = "bird"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "swallow"
+        excretion_type = "uricotelic"
+        migration_type = "seasonal"
+        birth_mass = 0.005
+        adult_mass = 0.2
 
         [hydrology]
     """
@@ -704,17 +748,30 @@ def butterfly_cohort_instance(
 
 @pytest.fixture
 def excrement_pool_instance():
-    """Fixture for a soil pool used in tests."""
+    """Fixture for an excrement pool used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
 
     return ExcrementPool(
-        scavengeable_carbon=0.0,
-        decomposed_carbon=0.0,
-        scavengeable_nitrogen=0.0,
-        decomposed_nitrogen=0.0,
-        scavengeable_phosphorus=0.0,
-        decomposed_phosphorus=0.0,
+        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
     )
+
+
+@pytest.fixture
+def excrement_pools_instance():
+    """Fixture for excrement pools used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
+    from virtual_ecosystem.models.animal.decay import ExcrementPool
+
+    return {
+        1: [
+            ExcrementPool(
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
+            )
+        ]
+    }
 
 
 @pytest.fixture
@@ -766,34 +823,29 @@ def animal_list_instance(
 @pytest.fixture
 def carcass_pool_instance():
     """Fixture for a carcass pool used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return CarcassPool(
-        scavengeable_carbon=0.0,
-        decomposed_carbon=0.0,
-        scavengeable_nitrogen=0.0,
-        decomposed_nitrogen=0.0,
-        scavengeable_phosphorus=0.0,
-        decomposed_phosphorus=0.0,
+        scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+        decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
     )
 
 
 @pytest.fixture
 def carcass_pools_instance():
     """Fixture for carcass pools used in tests."""
+    from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
 
     return {
-        1: [
+        cell_id: [
             CarcassPool(
-                scavengeable_carbon=500.0,
-                decomposed_carbon=0.0,
-                scavengeable_nitrogen=100.0,
-                decomposed_nitrogen=0.0,
-                scavengeable_phosphorus=50.0,
-                decomposed_phosphorus=0.0,
+                scavengeable_cnp=CNP(carbon=500.0, nitrogen=100.0, phosphorus=50.0),
+                decomposed_cnp=CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0),
             )
         ]
+        for cell_id in range(0, 9)  # Creates carcass pools for cells 0 to 8
     }
 
 

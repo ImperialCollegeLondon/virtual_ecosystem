@@ -67,7 +67,7 @@ def calculate_soil_evaporation(
         wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
         celsius_to_kelvin: Factor to convert temperature from Celsius to Kelvin
         density_air: Density if air, [kg m-3]
-        latent_heat_vapourisation: Latent heat of vapourisation, [MJ kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         leaf_area_index: Leaf area index [m m-1]
         gas_constant_water_vapour: Gas constant for water vapour, [J kg-1 K-1]
         soil_surface_heat_transfer_coefficient: Heat transfer coefficient between soil
@@ -332,7 +332,7 @@ def calculate_bypass_flow(
     top_soil_moisture: NDArray[np.float32],
     sat_top_soil_moisture: NDArray[np.float32],
     available_water: NDArray[np.float32],
-    infiltration_shape_parameter: float,
+    bypass_flow_coefficient: float,
 ) -> NDArray[np.float32]:
     r"""Calculate preferential bypass flow.
 
@@ -358,7 +358,7 @@ def calculate_bypass_flow(
         top_soil_moisture: Soil moisture of top soil layer, [mm]
         sat_top_soil_moisture: Soil moisture of top soil layer at saturation, [mm]
         available_water: Amount of water available for infiltration, [mm]
-        infiltration_shape_parameter: Shape parameter for infiltration
+        bypass_flow_coefficient: Bypass flow coefficient
 
     Returns:
         preferential bypass flow, [mm]
@@ -366,7 +366,7 @@ def calculate_bypass_flow(
 
     return (
         available_water
-        * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
+        * (top_soil_moisture / sat_top_soil_moisture) ** bypass_flow_coefficient
     )
 
 
@@ -405,6 +405,8 @@ def calculate_surface_runoff(
     , the excess water is added to runoff and top soil moisture is set to soil
     moisture capacity value; if the top soil is not saturated, precipitation is
     added to the current soil moisture level and runoff is set to zero.
+
+    TODO adjust capacity to account for new set of soil layers #535
 
     Args:
         precipitation_surface: Precipitation that reaches surface, [mm]

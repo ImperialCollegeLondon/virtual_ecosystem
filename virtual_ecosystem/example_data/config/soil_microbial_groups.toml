@@ -1,0 +1,87 @@
+[[soil.microbial_group_definition]]
+name = "bacteria"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000
+max_uptake_rate_ammonium = 5e-3
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 5e-4
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000
+reference_temperature = 12.0
+c_n_ratio = 5.2
+c_p_ratio = 16
+enzyme_production.pom = 0.005
+enzyme_production.maom = 0.005
+
+[[soil.microbial_group_definition]]
+name = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000
+max_uptake_rate_ammonium = 5e-3
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 5e-4
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000
+reference_temperature = 12.0
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+enzyme_production.pom = 0.005
+enzyme_production.maom = 0.005
+
+[[soil.enzyme_class_definition]]
+source = "bacteria"
+substrate = "pom"
+maximum_rate = 60.0
+half_saturation_constant = 70.0
+activation_energy_rate = 37000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 5.2
+c_p_ratio = 16
+
+[[soil.enzyme_class_definition]]
+source = "bacteria"
+substrate = "maom"
+maximum_rate = 24.0
+half_saturation_constant = 350.0
+activation_energy_rate = 47000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 5.2
+c_p_ratio = 16
+
+[[soil.enzyme_class_definition]]
+source = "fungi"
+substrate = "pom"
+maximum_rate = 120.0
+half_saturation_constant = 35.0
+activation_energy_rate = 37000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+
+[[soil.enzyme_class_definition]]
+source = "fungi"
+substrate = "maom"
+maximum_rate = 48.0
+half_saturation_constant = 175.0
+activation_energy_rate = 47000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 6.5
+c_p_ratio = 40.0

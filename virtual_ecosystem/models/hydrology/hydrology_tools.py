@@ -21,7 +21,7 @@ def setup_hydrology_input_current_timestep(
     soil_moisture_capacity: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
     core_constants: CoreConsts,
-    latent_heat_vap_equ_factors: list[float],
+    latent_heat_vap_equ_factors: tuple[float, float],
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
@@ -34,7 +34,6 @@ def setup_hydrology_input_current_timestep(
     The function returns a dictionary with the following variables:
 
     * latent_heat_vapourisation
-    * molar_density_air
 
     * surface_temperature (TODO switch to subcanopy_temperature)
     * surface_humidity (TODO switch to subcanopy_humidity)
@@ -72,21 +71,18 @@ def setup_hydrology_input_current_timestep(
     output = {}
 
     # Calculate latent heat of vapourisation and density of air for all layers
-    latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-        temperature=data["air_temperature"].to_numpy(),
-        celsius_to_kelvin=core_constants.zero_Celsius,
-        latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
-    )
-    output["latent_heat_vapourisation"] = latent_heat_vapourisation
+    if "latent_heat_vapourisation" in data:
+        output["latent_heat_vapourisation"] = data[
+            "latent_heat_vapourisation"
+        ].to_numpy()
 
-    molar_density_air = abiotic_tools.calculate_molar_density_air(
-        temperature=data["air_temperature"].to_numpy(),
-        atmospheric_pressure=data["atmospheric_pressure"].to_numpy(),
-        standard_mole=core_constants.standard_mole,
-        standard_pressure=core_constants.standard_pressure,
-        celsius_to_kelvin=core_constants.zero_Celsius,
-    )
-    output["molar_density_air"] = molar_density_air
+    else:
+        latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
+            temperature=data["air_temperature"].to_numpy(),
+            celsius_to_kelvin=core_constants.zero_Celsius,
+            latent_heat_vap_equ_factors=latent_heat_vap_equ_factors,
+        )
+        output["latent_heat_vapourisation"] = latent_heat_vapourisation
 
     # Get atmospheric variables
     output["current_precipitation"] = above_ground.distribute_monthly_rainfall(
