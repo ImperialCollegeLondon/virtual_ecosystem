@@ -258,6 +258,14 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
         # Ensure that leaf and root turnover exist and are > 0
         assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
+        assert np.all(fxt_plants_model.data["fallen_n_propagules"][cell_id] >= 0)
+        assert fxt_plants_model.data["fallen_non_propagule_c_mass"][cell_id] > 0
+        assert np.all(fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0)
+        assert np.all(
+            fxt_plants_model.data["canopy_non_propagule_c_mass"][cell_id] >= 0
+        )  # For cell_id = 1, only one of the two PFTs is present.
+        assert fxt_plants_model.data["root_carbohydrate_exudation"][cell_id] > 0
+        assert fxt_plants_model.data["plant_symbiote_carbon_supply"][cell_id] > 0
 
 
 def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
@@ -298,9 +306,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     consts = fxt_plants_model.model_constants
 
     # Check that all expected variables are generated and have the correct value
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover"], 0.003
-    )
     assert np.allclose(fxt_plants_model.data["stem_lignin"], consts.stem_lignin)
     assert np.allclose(
         fxt_plants_model.data["senesced_leaf_lignin"], consts.senesced_leaf_lignin
@@ -434,4 +439,19 @@ def test_PlantsModel_subcanopy_vegetation_dynamics(
     )
     assert np.all(
         seedbank_comparator(plants_data["subcanopy_seedbank_biomass"], np.zeros(4))
+    )
+
+
+def test_partition_reproductive_tissue(fxt_plants_model):
+    """Tests the partition reproductive tissue function."""
+
+    n_propagules, mass_non_propagules = fxt_plants_model.partition_reproductive_tissue(
+        reproductive_tissue_mass=10.5
+    )
+
+    assert n_propagules == 5
+    assert mass_non_propagules == 5.5
+    assert (
+        n_propagules * fxt_plants_model.model_constants.carbon_mass_per_propagule
+        + mass_non_propagules
     )

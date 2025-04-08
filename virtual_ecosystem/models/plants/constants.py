@@ -85,3 +85,11 @@ class PlantsConsts(ConstantsDataclass):
     subcanopy_sprout_yield: float = 0.5
     """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
     mass (kg kg-1)."""
+    root_exudates: float = 0.5
+    """Fraction of GPP topslice allocated to root exudates."""
+
+    propagule_mass_portion: float = 0.5
+    """Fraction of reprodutive tissue allocated to propagules."""
+
+    carbon_mass_per_propagule: float = 1
+    """Mass of carbon per propagule in g."""
