@@ -55,15 +55,31 @@ Effective soil moisture
   residual moisture and field capacity. Expressed in m3/m3, %, or mm.
 
 Relative soil moisture
-  A dimensionless measure comparing current soil moisture to the range between residual
-  and field capacity. Expressed as a unitless ratio (0–1) or %; can also be related to
-  mm if total available water is known.
+  A ratio expressing the amount of water in soil, as a percentage, compared to the total
+  water-holding capacity between the wilting point (very dry) and saturation (very wet)
+  for a given soil type. Expressed as a unitless ratio (0–1) or %.
 
 Specific soil moisture
   Commonly refers to volumetric soil moisture content—the volume of water per volume of
-  soil (%). In some contexts, it may also describe soil moisture at a specific location or
-  layer, or (less commonly) the derivative of the water retention curve (specific
+  soil (%). In some contexts, it may also describe soil moisture at a specific location
+  or layer, or (less commonly) the derivative of the water retention curve (specific
   moisture capacity). Alternative meaning (specific moisture capacity): 1/m or unitless
-  per unit suction (if used in hydrological modeling)
+  per unit suction (if used in hydrological modeling).
+
+Permanent wilting point
+  The water content at which plants can no longer extract moisture, leading to wilting
+  and potential plant death. Water is still present in the soil, but it is tightly bound
+  and unavailable to plants. This is lower limit of plant-available water. Expressed in
+  m3/m3, %, or mm.
+
+Available water capacity
+  Amount of water that a soil can store and make available to plants, defined as the
+  difference between field capacity and the permanent wilting point. Expressed in
+  m3/m3, %, or mm.
+
+Saturation soil moisture
+  Maximum amount of water a soil can hold when all its pores are completely filled with
+  water — that is, the soil is fully saturated and contains no air in the pore spaces.
+  Expressed in m3/m3, %, or mm.
 
 ```
