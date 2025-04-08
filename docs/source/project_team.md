@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.0rc1
+    jupytext_version: 1.16.6
 kernelspec:
   display_name: Python 3
   language: python
@@ -26,7 +26,7 @@ fussy about the formatting within the disable comment.
 
 :::{grid-item-card} Professor Robert Ewers
 :margin: 2 2 0 0
-:link: project_team.html
+:link: https://profiles.imperial.ac.uk/r.ewers
 
 ```{image} _static/images/people/rob_ewers.png
 :alt: Professor Rob Ewers
@@ -41,7 +41,7 @@ Silwood Park campus of Imperial Collge London.
 
 :::{grid-item-card} Olivia Daniel
 :margin: 2 2 0 0
-:link: https://profiles.imperial.ac.uk/r.ewers
+:link: project_team.html
 
 ```{image} _static/images/people/olivia_daniel.png
 :alt: Olivia Daniel
