@@ -680,34 +680,18 @@ class PlantsModel(
                 stem_allocation.fine_root_turnover * cohorts.n_individuals
             )
 
-            # Reproductive tissue turnover: partitioning into propagules and
-            # non-propagules
-            # TODO: dimension issue in pyrealm, returns 2D array.
+            # Partition reproductive tissue into propagule and non-propagule masses and
+            # convert the propagule mass to number of propagules
+            # 1. Turnover reproductive tissue mass leaving the canopy to the ground
             stem_fallen_n_propagules, stem_fallen_non_propagule_c_mass = (
                 self.partition_reproductive_tissue(
+                    # TODO: dimension issue in pyrealm, returns 2D array.
                     stem_allocation.reproductive_tissue_turnover.squeeze()
                 )
             )
 
-            # Merge fallen non-propagule mass into a single pool
-            self.data["fallen_non_propagule_c_mass"][cell_id] = (
-                stem_fallen_non_propagule_c_mass * cohorts.n_individuals
-            ).sum()
-
-            # Partition fallen propagules by cohort PFT, not sure how performant this
-            # is, there might be a better solution.
-            for cohort_pft, stem_n_propagules, cohort_n_stems in zip(
-                cohorts.pft_names,
-                stem_fallen_n_propagules.squeeze(),
-                cohorts.n_individuals,
-            ):
-                self.data["fallen_n_propagules"].loc[cell_id, cohort_pft] += (
-                    stem_n_propagules * cohort_n_stems
-                )
-
-            # Canopy reproductive tissue mass: partition into propagules and
-            # non-propagules. These are lumped across cohorts into per PFT and cell
-            # pools.
+            # 2. Canopy reproductive tissue mass: partition into propagules and
+            # non-propagules.
             # TODO - This is wrong. Reproductive tissue mass can't simply move backwards
             #        and forwards between these two classes.
             stem_canopy_n_propagules, stem_canopy_non_propagule_c_mass = (
@@ -716,24 +700,37 @@ class PlantsModel(
                 )
             )
 
-            # Partition fallen propagules by cohort PFT, not sure how performant this
-            # is, there might be a better solution.
+            # Add those partitions to pools
+            #  - Merge fallen non-propagule mass into a single pool
+            self.data["fallen_non_propagule_c_mass"][cell_id] = (
+                stem_fallen_non_propagule_c_mass * cohorts.n_individuals
+            ).sum()
+
+            # Allocate fallen propagules, and canopy propagules and non-propagule mass
+            # into PFT specific pools by iterating over cohort PFTs.
+            # TODO: not sure how performant this is, there might be a better solution.
+
             for (
                 cohort_pft,
-                stem_n_propagules,
-                stem_non_propagules,
+                fallen_n_propagules,
+                canopy_n_propagules,
+                canopy_non_propagule_mass,
                 cohort_n_stems,
             ) in zip(
                 cohorts.pft_names,
+                stem_fallen_n_propagules.squeeze(),
                 stem_canopy_n_propagules.squeeze(),
                 stem_canopy_non_propagule_c_mass.squeeze(),
                 cohorts.n_individuals,
             ):
+                self.data["fallen_n_propagules"].loc[cell_id, cohort_pft] += (
+                    fallen_n_propagules * cohort_n_stems
+                )
                 self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
-                    stem_n_propagules * cohort_n_stems
+                    canopy_n_propagules * cohort_n_stems
                 )
                 self.data["canopy_non_propagule_c_mass"].loc[cell_id, cohort_pft] += (
-                    stem_non_propagules * cohort_n_stems
+                    canopy_non_propagule_mass * cohort_n_stems
                 )
 
             # Allocate the topsliced GPP to root exudates with remainder as active
