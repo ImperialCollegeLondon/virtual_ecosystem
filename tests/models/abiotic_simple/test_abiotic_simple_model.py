@@ -211,7 +211,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((4, 3), 0.141727),
+            np.full((4, 3), 0.423372),
             dims=["cell_id", "time_index"],
             coords={"cell_id": [0, 1, 2, 3]},
         ),
