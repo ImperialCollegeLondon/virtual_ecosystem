@@ -223,7 +223,7 @@ def fixture_config(microbial_groups_cfg):
         tau_f = 4.0
         tau_r = 1.04
         tau_rt = 1
-        yld = 0.17
+        yld = 0.6
         zeta = 0.17
         gpp_topslice = 0.1
         p_foliage_for_reproductive_tissue = 0.05
@@ -247,7 +247,7 @@ def fixture_config(microbial_groups_cfg):
         tau_f = 4.0
         tau_r = 1.04
         tau_rt = 1
-        yld = 0.17
+        yld = 0.6
         zeta = 0.17
         gpp_topslice = 0.1
         p_foliage_for_reproductive_tissue = 0.05

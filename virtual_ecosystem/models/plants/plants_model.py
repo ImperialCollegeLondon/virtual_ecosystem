@@ -265,6 +265,29 @@ class PlantsModel(
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
         self.model_constants = model_constants
+
+        # Adjust flora turnover rates to timestep
+        # TODO: Pyrealm provides annual turnover rates. Dividing by the number of
+        #       updates_per_year to get monthly turnover values is naive and will
+        #       overestimate turnover. This should be updated eventually to a more
+        #       sophisticated approach.
+        #
+        #       This is kinda hacky because the Flora instances is a frozen dataclass,
+        #       but we only bring the model timing and flora object together at this
+        #       point. We would have to pass the model timing in to the flora creation.
+        #       Potentially create a Flora.adjust_rate_timing() method, but we'd need to
+        #       be sure that the approach is sane first.
+        object.__setattr__(
+            self.flora, "tau_f", self.flora.tau_f / self.model_timing.updates_per_year
+        )
+        object.__setattr__(
+            self.flora, "tau_r", self.flora.tau_r / self.model_timing.updates_per_year
+        )
+        object.__setattr__(
+            self.flora, "tau_rt", self.flora.tau_rt / self.model_timing.updates_per_year
+        )
+
+        # Now build the communities with the updated rates
         self.communities = PlantCommunities(
             data=self.data, flora=self.flora, grid=self.grid
         )
@@ -602,19 +625,30 @@ class PlantsModel(
         turnover values.
         """
 
-        # Reset turnover to 0 as turnover from previous steps should have been allocated
+        # Allocate leaf and root turnover to per cell pools, merging across PFTs and
+        # cohorts.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
-        # TODO: Propagules should be stored in a cell x PFT array
-        self.data["fallen_n_propagules"] = xr.full_like(self.data["elevation"], 0)
+
+        # Allocate reproductive tissue mass turnover - fallen propagules are stored per
+        # cell and per PFT, but fallen non-propagule reproductive tissue mass is merged
+        # into a single pool.
+        pft_cell_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+        )
+
+        self.data["fallen_n_propagules"] = pft_cell_template.copy()
         self.data["fallen_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0
         )
-        # Deliberately not partitioning fruit across canopy vertical layers
-        self.data["canopy_n_propagules"] = xr.full_like(self.data["elevation"], 0)
-        self.data["canopy_non_propagule_c_mass"] = xr.full_like(
-            self.data["elevation"], 0
-        )
+
+        # Allocate canopy reproductive tissue mass. This is deliberately not
+        # partitioning tissue across canopy vertical layers.
+        self.data["canopy_n_propagules"] = pft_cell_template.copy()
+        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
+
+        # Carbon supply to soil
         self.data["root_carbohydrate_exudation"] = xr.full_like(
             self.data["elevation"], 0
         )
@@ -627,53 +661,89 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate the allocation of GPP
-            cohort_allocation = StemAllocation(
+            # Calculate the allocation of GPP per stem
+            stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
                 at_potential_gpp=self.per_stem_gpp[cell_id],
             )
 
-            # Grow the plants by increasing cohort dbh
+            # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            cohorts.dbh_values = cohorts.dbh_values + cohort_allocation.delta_dbh
+            cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
 
             # Sum of turnover from all cohorts in a grid cell
-            # TODO: Pyrealm provides annual turnover values. Divide by the number of
-            # updates_per_year to get monthly turnover values is naive and will
-            # overestimate turnover. This should be updated eventually to a more
-            # sophisticated approach.
             self.data["leaf_turnover"][cell_id] = np.sum(
-                cohort_allocation.foliage_turnover / self.model_timing.updates_per_year
+                stem_allocation.foliage_turnover * cohorts.n_individuals
             )
             self.data["root_turnover"][cell_id] = np.sum(
-                cohort_allocation.fine_root_turnover
-                / self.model_timing.updates_per_year
-            )
-            (
-                self.data["fallen_n_propagules"][cell_id],
-                self.data["fallen_non_propagule_c_mass"][cell_id],
-            ) = self.partition_reproductive_tissue(
-                cohort_allocation.reproductive_tissue_turnover
-                / self.model_timing.updates_per_year
+                stem_allocation.fine_root_turnover * cohorts.n_individuals
             )
 
-            # Partition reproductive tissue mass into propagules and non-propagules
-            (
-                self.data["canopy_n_propagules"][cell_id],
-                self.data["canopy_non_propagule_c_mass"][cell_id],
-            ) = self.partition_reproductive_tissue(
-                community.stem_allometry.reproductive_tissue_mass
+            # Partition reproductive tissue into propagule and non-propagule masses and
+            # convert the propagule mass to number of propagules
+            # 1. Turnover reproductive tissue mass leaving the canopy to the ground
+            stem_fallen_n_propagules, stem_fallen_non_propagule_c_mass = (
+                self.partition_reproductive_tissue(
+                    # TODO: dimension issue in pyrealm, returns 2D array.
+                    stem_allocation.reproductive_tissue_turnover.squeeze()
+                )
             )
+
+            # 2. Canopy reproductive tissue mass: partition into propagules and
+            # non-propagules.
+            # TODO - This is wrong. Reproductive tissue mass can't simply move backwards
+            #        and forwards between these two classes.
+            stem_canopy_n_propagules, stem_canopy_non_propagule_c_mass = (
+                self.partition_reproductive_tissue(
+                    community.stem_allometry.reproductive_tissue_mass
+                )
+            )
+
+            # Add those partitions to pools
+            #  - Merge fallen non-propagule mass into a single pool
+            self.data["fallen_non_propagule_c_mass"][cell_id] = (
+                stem_fallen_non_propagule_c_mass * cohorts.n_individuals
+            ).sum()
+
+            # Allocate fallen propagules, and canopy propagules and non-propagule mass
+            # into PFT specific pools by iterating over cohort PFTs.
+            # TODO: not sure how performant this is, there might be a better solution.
+
+            for (
+                cohort_pft,
+                fallen_n_propagules,
+                canopy_n_propagules,
+                canopy_non_propagule_mass,
+                cohort_n_stems,
+            ) in zip(
+                cohorts.pft_names,
+                stem_fallen_n_propagules.squeeze(),
+                stem_canopy_n_propagules.squeeze(),
+                stem_canopy_non_propagule_c_mass.squeeze(),
+                cohorts.n_individuals,
+            ):
+                self.data["fallen_n_propagules"].loc[cell_id, cohort_pft] += (
+                    fallen_n_propagules * cohort_n_stems
+                )
+                self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
+                    canopy_n_propagules * cohort_n_stems
+                )
+                self.data["canopy_non_propagule_c_mass"].loc[cell_id, cohort_pft] += (
+                    canopy_non_propagule_mass * cohort_n_stems
+                )
 
             # Allocate the topsliced GPP to root exudates with remainder as active
             # nutrient pathways
             self.data["root_carbohydrate_exudation"][cell_id] = np.sum(
-                cohort_allocation.gpp_topslice * self.model_constants.root_exudates
+                stem_allocation.gpp_topslice
+                * self.model_constants.root_exudates
+                * cohorts.n_individuals
             )
             self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
-                cohort_allocation.gpp_topslice
+                stem_allocation.gpp_topslice
                 * (1 - self.model_constants.root_exudates)
+                * cohorts.n_individuals
             )
 
             # Update community allometry with new dbh values
@@ -793,8 +863,8 @@ class PlantsModel(
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
 
     def partition_reproductive_tissue(
-        self, reproductive_tissue_mass
-    ) -> tuple[np.int_, np.float64]:
+        self, reproductive_tissue_mass: NDArray[np.float64]
+    ) -> tuple[NDArray[np.int_], NDArray[np.float64]]:
         """Partition reproductive tissue into propagules and non-propagules.
 
         This function partitions the reproductive tissue of each cohort into
@@ -803,15 +873,14 @@ class PlantsModel(
         mass is considered as non-propagule reproductive tissue.
         """
 
-        n_propagules = np.sum(
-            np.floor(
-                reproductive_tissue_mass
-                * self.model_constants.propagule_mass_portion
-                / self.model_constants.carbon_mass_per_propagule
-            )
-        )
-        non_propagule_mass = np.sum(
+        n_propagules = np.floor(
             reproductive_tissue_mass
-            - (n_propagules * self.model_constants.carbon_mass_per_propagule)
+            * self.model_constants.propagule_mass_portion
+            / self.model_constants.carbon_mass_per_propagule
         )
+
+        non_propagule_mass = reproductive_tissue_mass - (
+            n_propagules * self.model_constants.carbon_mass_per_propagule
+        )
+
         return n_propagules, non_propagule_mass
