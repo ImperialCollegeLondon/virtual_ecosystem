@@ -596,7 +596,8 @@ class HydrologyModel(
                 )
             )
 
-            # Calculate vertical flow between soil layers in mm per day
+            # Calculate vertical flow between soil layers in mm per day and matric
+            # potential in m
             # Note that there are severe limitations to this approach on the temporal
             # spatial scale of this model and this can only be treated as a very rough
             # approximation to discuss nutrient leaching.
@@ -604,30 +605,37 @@ class HydrologyModel(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm,  # mm
+                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),
                 soil_moisture_capacity=(
                     self.core_constants.soil_moisture_capacity
                 ),  # vol
                 soil_moisture_residual=(
                     self.model_constants.soil_moisture_residual
                 ),  # vol
-                hydraulic_conductivity=(
+                saturated_hydraulic_conductivity=(
                     self.model_constants.hydraulic_conductivity
                 ),  # m/s
-                hydraulic_gradient=self.model_constants.hydraulic_gradient,  # m/m
+                air_entry_potential_inverse=(
+                    self.model_constants.air_entry_potential_inverse
+                ),  # m/m
                 van_genuchten_nonlinearily_parameter=(
                     self.model_constants.van_genuchten_nonlinearily_parameter
+                ),
+                pore_connectivity_parameter=(
+                    self.model_constants.pore_connectivity_parameter
                 ),
                 groundwater_capacity=self.model_constants.groundwater_capacity,
                 seconds_to_day=self.core_constants.seconds_to_day,
             )
-            daily_lists["vertical_flow"].append(vertical_flow)
+            daily_lists["matric_potential"].append(vertical_flow["matric_potential"])
+            daily_lists["vertical_flow"].append(vertical_flow["vertical_flow"])
 
             # Update soil moisture by +/- vertical flow to each layer and remove root
             # water uptake by plants (transpiration), [mm]
             # TODO combined input from evaporation and transpiration
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
-                vertical_flow=vertical_flow,  # mm
+                vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
                 evapotranspiration=hydro_input["current_evapotranspiration"],  # mm
                 soil_moisture_capacity=(  # mm
                     self.core_constants.soil_moisture_capacity
@@ -640,26 +648,10 @@ class HydrologyModel(
             )
             daily_lists["soil_moisture"].append(soil_moisture_updated)
 
-            # Convert soil moisture to matric potential
-            # TODO replace with van Genuchten implementation
-            matric_potential = below_ground.convert_soil_moisture_to_water_potential(
-                soil_moisture=(
-                    soil_moisture_updated / self.soil_layer_thickness_mm  # vol
-                ),
-                air_entry_water_potential=(
-                    self.model_constants.air_entry_water_potential
-                ),
-                campbell_pore_size_distribution=(
-                    self.model_constants.campbell_pore_size_distribution
-                ),
-                soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
-            )
-            daily_lists["matric_potential"].append(matric_potential)
-
             # calculate below ground horizontal flow and update ground water
             below_ground_flow = below_ground.update_groundwater_storage(
                 groundwater_storage=hydro_input["groundwater_storage"],
-                vertical_flow_to_groundwater=vertical_flow[-1],
+                vertical_flow_to_groundwater=vertical_flow["vertical_flow"][-1],
                 bypass_flow=bypass_flow,
                 max_percolation_rate_uzlz=(
                     self.model_constants.max_percolation_rate_uzlz

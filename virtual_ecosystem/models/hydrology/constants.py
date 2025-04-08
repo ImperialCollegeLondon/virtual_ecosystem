@@ -151,3 +151,12 @@ class HydroConsts(ConstantsDataclass):
 
     initial_stomatal_conductance: float = 1000.0
     """Initial stomatal conductance, [mmol m-2 s-1]"""
+
+    pore_connectivity_parameter: float = 0.5
+    """Pore connectivity parameter.
+    
+    Dimensionless parameter used in van Genuchten-Mualem model to calculate unsaturated
+    hydraulic conductivity."""
+
+    air_entry_potential_inverse: float = 0.1
+    """Inverse of air entry potential (parameter alpha in van Genuchten)."""
