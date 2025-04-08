@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.0rc1
+    jupytext_version: 1.16.6
 kernelspec:
   display_name: Python 3
   language: python
@@ -158,9 +158,10 @@ College London.
 :class: team-photo
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit dolor tellus ligula ligula
-montes tellus eget. Accumsan platea blandit porta imperdiet curabitur varius himenaeos
-egestas.
+Priyanga's research focuses on the role of abiotic environmental variation and biotic
+interactions on ecological and evolutionary dynamics, using a combination of
+observation, experimentation and mathematical modelling. Priyanga is a Professor in the
+Department of Ecology and Evolutionary Biology at UCLA.
 :::
 
 :::{grid-item-card} Sally Matson
