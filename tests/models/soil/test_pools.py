@@ -159,6 +159,7 @@ def test_calculate_microbial_changes(
     environmental_factors,
     functional_groups,
     enzyme_classes,
+    carbon_supply_from_plants,
 ):
     """Check that calculation of microbe related changes works correctly."""
 
@@ -191,6 +192,7 @@ def test_calculate_microbial_changes(
         constants=SoilConsts,
         microbial_groups=functional_groups,
         enzyme_classes=enzyme_classes,
+        carbon_supply=carbon_supply_from_plants,
     )
 
     for attr in dir(actual_mic_changes):
@@ -417,24 +419,6 @@ def test_calculate_maintenance_biomass_synthesis(
     assert np.allclose(actual_loss, expected_loss)
 
 
-def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_components):
-    """Check carbon use efficiency calculates correctly."""
-    from virtual_ecosystem.models.soil.pools import calculate_carbon_use_efficiency
-
-    expected_cues = [0.36, 0.33, 0.3, 0.48]
-
-    actual_cues = calculate_carbon_use_efficiency(
-        dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        SoilConsts.reference_cue,
-        SoilConsts.cue_reference_temp,
-        SoilConsts.cue_with_temperature,
-    )
-
-    assert np.allclose(actual_cues, expected_cues)
-
-
 @pytest.mark.parametrize(
     "turnover,expected_decay",
     [
@@ -462,122 +446,6 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     )
 
     assert np.allclose(actual_decay, expected_decay)
-
-
-def test_calculate_nutrient_uptake_rates(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
-):
-    """Check microbial carbon uptake calculates correctly."""
-    from virtual_ecosystem.models.soil.pools import (
-        calculate_nutrient_uptake_rates,
-    )
-
-    expected_carbon_gain = [6.8992651e-5, 3.7409801e-4, 0.0015989096, 2.743906e-5]
-    expected_consumption_rates = {
-        "organic_nitrogen": [2.2121431e-6, 8.1783248e-5, 7.6896091e-6, 3.2992193e-5],
-        "organic_phosphorus": [2.2120347e-8, 1.3085320e-6, 3.0759944e-6, 1.3196877e-6],
-        "carbon": [0.00019356272, 0.00114496662, 0.00538299554, 5.77363558e-5],
-        "inorganic_phosphorus": [4.333042e-6, 2.230641e-5, 9.785517e-5, 4.124029e-7],
-        "ammonium": [2.57532647e-6, -8.2097145e-6, 0.00026349497, -2.4896415e-5],
-        "nitrate": [8.61302608e-6, -9.1219050e-7, 3.93728584e-5, -2.7662684e-6],
-    }
-
-    actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
-        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        constants=SoilConsts,
-        functional_group=functional_groups["bacteria"],
-    )
-
-    assert np.allclose(actual_carbon_gain, expected_carbon_gain)
-
-    for attr in dir(actual_consumption_rates):
-        if not attr.startswith("_"):
-            assert attr in expected_consumption_rates.keys(), (
-                f"Attribute {attr} not tested"
-            )
-            assert np.allclose(
-                getattr(actual_consumption_rates, attr),
-                expected_consumption_rates[attr],
-            )
-
-
-def test_calculate_highest_achievable_nutrient_uptake(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
-):
-    """Check function to calculate maximum possible uptake rates works as intended."""
-    from virtual_ecosystem.models.soil.pools import (
-        calculate_highest_achievable_nutrient_uptake,
-    )
-
-    expected_uptake = [1.29159055e-2, 8.43352433e-3, 7.6946265e-2, 5.77363558e-5]
-
-    actual_uptake = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=dummy_carbon_data["soil_c_pool_lmwc"],
-        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        max_uptake_rate=functional_groups["bacteria"].max_uptake_rate_labile_C,
-        activation_energy_uptake=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_rate,
-        half_saturation_constant=functional_groups["bacteria"].half_sat_labile_C_uptake,
-        activation_energy_uptake_saturation=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_saturation,
-        reference_temperature=functional_groups["bacteria"].reference_temperature,
-    )
-
-    assert np.allclose(actual_uptake, expected_uptake)
-
-
-def test_negative_highest_achievable_nutrient_uptake_are_impossible(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
-):
-    """Test to check that negative maximum uptake rates cannot be returned."""
-    from virtual_ecosystem.models.soil.pools import (
-        calculate_highest_achievable_nutrient_uptake,
-    )
-
-    labile_carbon_data = dummy_carbon_data["soil_c_pool_lmwc"]
-    labile_carbon_data[1] = -0.0001
-    labile_carbon_data[3] = -3.7e-5
-
-    expected_uptake = [1.29159055e-2, 0.0, 7.6946265e-2, 0.0]
-
-    actual_uptake = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=labile_carbon_data,
-        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        max_uptake_rate=functional_groups["bacteria"].max_uptake_rate_labile_C,
-        activation_energy_uptake=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_rate,
-        half_saturation_constant=functional_groups["bacteria"].half_sat_labile_C_uptake,
-        activation_energy_uptake_saturation=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_saturation,
-        reference_temperature=functional_groups["bacteria"].reference_temperature,
-    )
-
-    assert np.allclose(actual_uptake, expected_uptake)
 
 
 def test_calculate_enzyme_mediated_decomposition(
