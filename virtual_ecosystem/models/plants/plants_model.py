@@ -29,6 +29,7 @@ from virtual_ecosystem.models.plants.canopy import (
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
+from virtual_ecosystem.models.plants.stochiometry import StemStochiometry
 
 
 class PlantsModel(
@@ -187,6 +188,8 @@ class PlantsModel(
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
         to PlantCommunity instances for each cell."""
+        self.stochiometries: dict[int, StemStochiometry]
+        """A dictionary keyed by cell id giving the stochiometry of each community."""
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
@@ -291,6 +294,16 @@ class PlantsModel(
         self.communities = PlantCommunities(
             data=self.data, flora=self.flora, grid=self.grid
         )
+
+        # Initialize the stochiometries of each cohort
+        self.stochiometries = {
+            cell_id: StemStochiometry(
+                plant_constants=self.model_constants,
+                n_cohorts=self.communities[cell_id].number_of_cohorts,
+            )
+            for cell_id in self.communities.keys()
+        }
+
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
 
