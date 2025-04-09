@@ -11,7 +11,8 @@ def calculate_vertical_flow(
     soil_moisture: NDArray[np.float32],
     soil_layer_thickness: NDArray[np.float32],
     soil_layer_depth: NDArray[np.float32],
-    soil_moisture_capacity: float | NDArray[np.float32],
+    soil_moisture_capacity: float
+    | NDArray[np.float32],  # TODO saturated moisture cont?
     soil_moisture_residual: float | NDArray[np.float32],
     saturated_hydraulic_conductivity: float | NDArray[np.float32],
     air_entry_potential_inverse: float,
@@ -53,7 +54,7 @@ def calculate_vertical_flow(
     .. math ::
         q = - K(\Theta)*(\frac{d \Psi_{m}}{dz} + 1)
 
-    where :math:`\frac{d \Psi_{m}}{dz}`is the matric potnetial gradient with :math:`z`
+    where :math:`\frac{d \Psi_{m}}{dz}`is the matric potential gradient with :math:`z`
     the elevation (gravitational potential) or gravitational head.
 
     Note that there are severe limitations to this approach on the temporal and
@@ -62,7 +63,7 @@ def calculate_vertical_flow(
 
     Args:
         soil_moisture: Volumetric relative water content in top soil, [unitless]
-        soil_layer_thickness: Thickness of all soil_layers, [mm]
+        soil_layer_thickness: Thickness of all soil layers, [m]
         soil_layer_depth: Soil layer depth, [m]
         soil_moisture_capacity: Soil moisture capacity, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
@@ -72,12 +73,12 @@ def calculate_vertical_flow(
         van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
             model that describes the degree of nonlinearity of the relationship between
             the volumetric water content and the soil matric potential.
-        pore_connectivity_parameter: Pore connectivity paramter, dimensionless
-        groundwater_capacity: Storage capacity of groundwater, [mm]
+        pore_connectivity_parameter: Pore connectivity parameter, dimensionless
+        groundwater_capacity: Storage capacity of groundwater, [m]
         seconds_to_day: Factor to convert between second and day
 
     Returns:
-        matric potential, volumetric flow rate of water, [mm d-1]
+        matric potential,[m] volumetric flow rate of water, [mm d-1]
     """
 
     output = {}
@@ -104,37 +105,37 @@ def calculate_vertical_flow(
         ** 2,
     )
 
-    # Convert hydraulic conductivity to mm/day (1 m/s = 86400 mm/day)
-    effective_conductivity_mm_day = effective_conductivity * seconds_to_day
-
     # Compute matric potential gradient
     matric_potential_gradient = np.gradient(matric_potential, soil_layer_depth, axis=0)
 
-    # Calculate vertical flow from top soil to lower soil in mm per day
-    flow = -effective_conductivity_mm_day * (matric_potential_gradient + 1)
+    # Calculate vertical flow from top soil to lower soil in m s-1
+    flow = -effective_conductivity * (matric_potential_gradient + 1)
 
-    # Make sure that flow does not exceed storage capacity in mm
+    # Make sure that flow does not exceed storage capacity in m
     available_storage = (soil_moisture - soil_moisture_residual) * soil_layer_thickness
+
+    # Flow in m per day to match unit of available storage
+    flow_timestep = flow * seconds_to_day
 
     # Redistribute water in soil layers
     flow_min = []
     for i in np.arange(len(soil_moisture) - 1):
         flow_layer = np.where(
-            effective_conductivity[i] < available_storage[i + 1],
-            flow[i],
+            flow_timestep[i] < available_storage[i + 1],
+            flow_timestep[i],
             available_storage[i + 1],
         )
         flow_min.append(flow_layer)
 
     outflow = np.where(
-        effective_conductivity[-1] < groundwater_capacity,
-        flow[-1],
+        flow_timestep[-1] < groundwater_capacity,
+        flow_timestep[-1],
         groundwater_capacity,
     )
     flow_min.append(outflow)
 
     output["matric_potential"] = matric_potential
-    output["vertical_flow"] = np.abs(np.array(flow_min))
+    output["vertical_flow"] = np.abs(np.array(flow_min) / 1000.0)  # mm per day
     return output
 
 

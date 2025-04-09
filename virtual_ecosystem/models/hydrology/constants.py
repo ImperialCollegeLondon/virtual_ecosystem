@@ -160,3 +160,6 @@ class HydroConsts(ConstantsDataclass):
 
     air_entry_potential_inverse: float = 0.1
     """Inverse of air entry potential (parameter alpha in van Genuchten)."""
+
+    m_to_kpa: float = 9.804
+    """Factor to convert matric potential from m to kPa."""

@@ -10,19 +10,13 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
 @pytest.mark.parametrize(
     "soilm_cap, soilm_res, hydr_con, nonlin_par, gw_cap",
     [
+        (0.6, 0.1, 0.001, 2.0, 0.9),
         (
-            CoreConsts.soil_moisture_capacity,
-            HydroConsts.soil_moisture_residual,
-            HydroConsts.hydraulic_conductivity,
-            HydroConsts.van_genuchten_nonlinearily_parameter,
-            HydroConsts.groundwater_capacity,
-        ),
-        (
-            np.array([[0.9, 0.9, 0.9], [0.9, 0.9, 0.9]]),
-            np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]]),
-            np.array([[0.001, 0.001, 0.001], [0.001, 0.001, 0.001]]),
-            np.array([2, 2, 2]),
-            np.array([0.9, 0.9, 0.9]),
+            np.full((2, 3), 0.6),
+            np.full((2, 3), 0.1),
+            np.full((2, 3), 0.001),
+            np.repeat(2.0, 3),
+            np.repeat(0.9, 3),
         ),
     ],
 )
@@ -37,9 +31,9 @@ def test_calculate_vertical_flow(
 
     from virtual_ecosystem.models.hydrology.below_ground import calculate_vertical_flow
 
-    soil_moisture = np.array([[0.3, 0.6, 0.9], [0.3, 0.6, 0.9]])
-    layer_thickness = np.array([[500, 500, 500], [500, 500, 500]])
-    layer_depth = np.array([500, 1000])
+    soil_moisture = np.array([[0.3, 0.4, 0.6], [0.3, 0.4, 0.6]])
+    layer_thickness = np.full((2, 3), 0.5)
+    layer_depth = np.array([0.5, 1])
     result = calculate_vertical_flow(
         soil_moisture=soil_moisture,
         soil_layer_thickness=layer_thickness,
@@ -47,7 +41,7 @@ def test_calculate_vertical_flow(
         soil_moisture_capacity=soilm_cap,
         soil_moisture_residual=soilm_res,
         saturated_hydraulic_conductivity=hydr_con,
-        air_entry_potential_inverse=1.0,
+        air_entry_potential_inverse=0.01,
         van_genuchten_nonlinearily_parameter=nonlin_par,
         pore_connectivity_parameter=0.5,
         groundwater_capacity=gw_cap,
@@ -56,14 +50,14 @@ def test_calculate_vertical_flow(
 
     exp_matric_pot = np.array(
         [
-            [-3.872983, -1.249, 0.0],
-            [-3.872983, -1.249, 0.0],
+            [-229.12878, -133.33333, 0.0],
+            [-229.12878, -133.33333, 0.0],
         ]
     )
     exp_flow = np.array(
         [
-            [4.355972e-02, 3.287222e00, 8.640000e01],
-            [4.355972e-02, 3.287222e00, 8.640000e01],
+            [0.000381, 0.002677, 0.0864],
+            [0.000381, 0.002677, 0.0864],
         ]
     )
     np.testing.assert_allclose(result["matric_potential"], exp_matric_pot, rtol=0.001)
