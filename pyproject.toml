@@ -38,7 +38,7 @@ netcdf4 = "^1.6.5"
 numpy = "~2.1" # Pinning numpy less than 2.2.0 until this resolves: https://github.com/numpy/numpy/issues/27957
 openpyxl = "^3.1.5" 
 pint = "^0.24.1" 
-pyrealm = {version = "^2.0.0rc1", allow-prereleases = true} 
+pyrealm = {version = "^2.0.0rc2", allow-prereleases = true}
 python = ">=3.10,<3.14" 
 scipy = "^1.9.0" 
 tomli = {version = "^2.0.1", python = "<3.11"} 

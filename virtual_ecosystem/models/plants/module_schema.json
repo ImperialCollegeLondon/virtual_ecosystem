@@ -47,6 +47,9 @@
                      "resp_r": {
                         "type": "number"
                      },
+                     "resp_rt": {
+                        "type": "number"
+                     },
                      "resp_s": {
                         "type": "number"
                      },
@@ -62,6 +65,9 @@
                      "tau_r": {
                         "type": "number"
                      },
+                     "tau_rt": {
+                        "type": "number"
+                     },
                      "yld": {
                         "type": "number"
                      },
@@ -75,6 +81,12 @@
                         "type": "number"
                      },
                      "n": {
+                        "type": "number"
+                     },
+                     "gpp_topslice": {
+                        "type": "number"
+                     },
+                     "p_foliage_for_reproductive_tissue": {
                         "type": "number"
                      }
                   },
@@ -96,7 +108,9 @@
                      "zeta",
                      "f_g",
                      "m",
-                     "n"
+                     "n",
+                     "gpp_topslice",
+                     "p_foliage_for_reproductive_tissue"
                   ]
                }
             },
