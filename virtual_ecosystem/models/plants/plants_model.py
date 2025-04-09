@@ -12,6 +12,7 @@ import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.demography.canopy import Canopy
+from pyrealm.demography.community import Cohorts
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -358,9 +359,14 @@ class PlantsModel(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
 
-        # Calculate the per update interval stem mortality rate
+        # Calculate the per update interval stem mortality and recruitment rates from
+        # the annual values
         self.per_update_interval_stem_mortality_probability = 1 - (
             1 - model_constants.per_stem_annual_mortality_probability
+        ) ** (1 / self.model_timing.updates_per_year)
+
+        self.per_update_interval_propagule_recruitment_probability = 1 - (
+            1 - model_constants.per_propagule_annual_recruitment_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
     def spinup(self) -> None:
@@ -397,6 +403,7 @@ class PlantsModel(
 
         # Apply mortality to plant cohorts
         self.apply_mortality()
+        self.apply_recruitment()
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -697,7 +704,9 @@ class PlantsModel(
 
             # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
+            cohorts.dbh_values = (
+                cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
+            )
 
             # Sum of turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(
@@ -808,6 +817,46 @@ class PlantsModel(
             self.data["deadwood_production"][cell_id] = np.sum(
                 mortality * community.stem_allometry.stem_mass
             )
+
+    def apply_recruitment(self) -> None:
+        """Apply recruitment to plant cohorts.
+
+        This function applies recruitment to plant cohorts, currently using a single
+        recruitment rate across all plant functional types.
+        """
+
+        # Get the PFR sequence in the data.
+        pft_sequence = self.data["plant_pft_propagules"]["pft"].to_numpy()
+
+        # Loop over each grid cell
+        for cell_id in self.communities.keys():
+            # Calculate the number of individuals recruited
+            recruitment = np.random.binomial(
+                self.data["plant_pft_propagules"][cell_id],
+                self.per_update_interval_propagule_recruitment_probability,
+            )
+
+            # Check to see if there is any recruitment.
+            if recruitment.sum() > 0:
+                # Decrease number of propagules by recruitment
+                self.data["plant_pft_propagules"][cell_id] -= recruitment
+
+                # Weed out PFTs with no recruitment to generate a Cohorts object
+                pfts_with_recruitment = [
+                    (pft, r) for pft, r in zip(pft_sequence, recruitment) if r > 0
+                ]
+                new_pfts, new_n_indiv = zip(*pfts_with_recruitment)
+                new_dbh_values = np.repeat(0.01, len(new_pfts))
+
+                # Add recruited cohorts
+                community = self.communities[cell_id]
+                community.add_cohorts(
+                    new_data=Cohorts(
+                        n_individuals=np.array(new_n_indiv),
+                        pft_names=np.array(new_pfts),
+                        dbh_values=new_dbh_values,
+                    )
+                )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.

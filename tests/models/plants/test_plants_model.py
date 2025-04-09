@@ -401,6 +401,38 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
         assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
 
 
+def test_PlantsModel_apply_recruitment(fxt_plants_model):
+    """Test the apply_recruitment method of the plants model."""
+
+    original_n_cohorts = [
+        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+    ]
+    original_n_propagules = (
+        fxt_plants_model.data["plant_pft_propagules"].to_numpy().copy()
+    )
+
+    # Increase the probability of recruitment to force changes
+    fxt_plants_model.per_update_interval_propagule_recruitment_probability = 0.5
+
+    # Apply recruitment
+    fxt_plants_model.apply_recruitment()
+
+    # Check there are fewer propagules after the recruitment
+    assert np.all(
+        np.greater(
+            original_n_propagules,
+            fxt_plants_model.data["plant_pft_propagules"].to_numpy(),
+        )
+    )
+
+    # Check there are more cohorts after the recruitment
+    new_n_cohorts = [
+        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+    ]
+
+    assert np.all(np.less(original_n_cohorts, new_n_cohorts))
+
+
 def test_partition_reproductive_tissue(fxt_plants_model):
     """Tests the partition reproductive tissue function."""
 
