@@ -40,7 +40,7 @@ def calculate_vertical_flow(
     Then, the effective unsaturated hydraulic conductivity is computed as:
 
     .. math ::
-        K(\Theta) = K_{s} S_{e}^{L} (1-(1-S^{frac{1}{m}})^{m})^{2}
+        K(\Theta) = K_{s} S_{e}^{L} (1-(1-S^{\frac{1}{m}})^{m})^{2}
 
     where :math:`K_{s}` is the saturated hydraulic conductivity,
     :math:`L` is the pore connectivity parameter (assumed to be 0.5 in most of studies),
@@ -52,9 +52,9 @@ def calculate_vertical_flow(
     conductivity:
 
     .. math ::
-        q = - K(\Theta)*(\frac{d \Psi_{m}}{dz} + 1)
+        q = - K(\Theta) (\frac{d \Psi_{m}}{dz} + 1)
 
-    where :math:`\frac{d \Psi_{m}}{dz}`is the matric potential gradient with :math:`z`
+    where :math:`\frac{d \Psi_{m}}{dz}` is the matric potential gradient with :math:`z`
     the elevation (gravitational potential) or gravitational head.
 
     Note that there are severe limitations to this approach on the temporal and
@@ -215,9 +215,9 @@ def calculate_matric_potential(
     Genuchten - Mualem model :cite:p:`van_genuchten_closed-form_1980`:
 
     .. math ::
-        \Psi_{m} = -1 / \Psi_{e} (S_{e}**(-1/m) - 1)**(1/n)
+        \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}} - 1)^{(\frac{1}{n})}
 
-    where :math:`\Psi_{e}` is the inverse of the air-entry, :math:`S_{e}` is the
+    where :math:`\alpha` is the inverse of the air-entry , :math:`S_{e}` is the
     effective saturation, n and m are van Genuchten parmeters.
 
     Args:

@@ -226,27 +226,34 @@ important as the soil gets wetter.
 
 ### Vertical flow
 
-To calculate the flow of water through unsaturated soil, we use the Richards equation.
-First, the function calculates the effective saturation $S$ and effective hydraulic
-conductivity $K(S)$ based on the moisture content $\Theta$ using the Mualem-van
+To calculate the flow of water through unsaturated soil, we combine
+Richards' equation and Darcy's law for unsaturated flow.
+First, we calculate the effective saturation $S_{e}$ and effective saturated hydraulic
+conductivity $K(\Theta)$ based on the moisture content $\Theta$ using the Mualem-van
 Genuchten model {cite}`van_genuchten_closed-form_1980`:
 
-$$S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
+$$S_{e} = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
 
-and
+where $\Theta_{r}$ is the residual moisture content and $\Theta_{s}$ is
+the saturated moisture content.
 
-$$K(S) = K_{s} \cdot \sqrt{S} \cdot (1-(1-S^{1/m})^{m})^{2}$$
+Then, the effective unsaturated hydraulic conductivity is computed as:
 
-where $\Theta_{r}$ is the residual moisture content,$\Theta_{s}$ is the saturated
-moisture content, $K_{s}$ is the saturated hydraulic conductivity, and $m=1-1/n$ is a
-shape parameter derived from the non-linearity parameter $n$. Then, the function applies
-Darcy's law to calculate the water flow rate $q$ in $\frac{m^3}{s^1}$ considering the
+$$K(\Theta) = K_{s} \cdot S^{L} \cdot (1-(1-S^{\frac{1}{m}})^{m})^{2}$$
+
+where $K_{s}$ is the saturated hydraulic conductivity,
+is the pore connectivity parameter (assumed to be 0.5 in most of studies),
+and $m=1-1/n$ is a
+shape parameter derived from the non-linearity parameter $n$.
+
+Then, the function applies
+Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
 effective hydraulic conductivity:
 
-$$q = - K(S) \cdot (\frac{dh}{dl}-1)$$
+$$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
 
-where $\frac{dh}{dl}$ is the hydraulic gradient with $l$ the length of the flow path in
-meters (here equal to the soil depth).
+where $\frac{d \Psi_{m}}{dz}$ is the matric potential gradient with $z$
+    the elevation (gravitational potential) or gravitational head.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this
@@ -259,17 +266,6 @@ Soil moisture is updated for each layer by removing the vertical flow
 of the current layer and adding it to the layer below. The implementation is based
 on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
 removed from the second soil layer.
-
-For some model functionalities, such as plant water uptake and soil microbial activity,
-soil moisture needs to be converted to matric potential. The model provides a coarse
-estimate of soil water potential :$\Psi_{m}$ taken from
-{cite:t}`campbell_simple_1974`:
-
-$$\Psi_{m} = \Psi_{e} \cdot (\frac{\Theta}{\Theta_{s}})^{b}$$
-
-where $\Psi_{e}$ is the air-entry, $\Theta$ is the volumetric water content,
-$\Theta_{s}$ is the saturated water content, and $b$ is the water retention curvature
-parameter.
 
 ### Subsurface flow and groundwater storage
 
