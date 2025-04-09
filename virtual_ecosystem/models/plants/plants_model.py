@@ -846,7 +846,14 @@ class PlantsModel(
                     (pft, r) for pft, r in zip(pft_sequence, recruitment) if r > 0
                 ]
                 new_pfts, new_n_indiv = zip(*pfts_with_recruitment)
-                new_dbh_values = np.repeat(0.01, len(new_pfts))
+
+                # Initial DBH values
+                # TODO - We need to allocate the seed mass to growing a tiny tree.
+                #        Probably that would be by using StemAllocation with an initial
+                #        value of zero and a potential GPP equal to the seed mass, but
+                #        the equations aren't defined for DBH=0. Not sure how to self
+                #        start these, so using a 2mm DBH
+                new_dbh_values = np.repeat(0.002, len(new_pfts))
 
                 # Add recruited cohorts
                 community = self.communities[cell_id]
