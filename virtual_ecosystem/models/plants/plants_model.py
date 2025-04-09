@@ -21,6 +21,7 @@ from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -304,6 +305,19 @@ class PlantsModel(
         #   CoreComponents to the axis validation it won't be available (unless we
         #   duplicate that information as part of the core, which might not be the
         #   maddest thing ever).
+
+        # Does the propagule data have PFT coordinates
+        if "pft" not in self.data["plant_pft_propagules"].coords:
+            raise InitialisationError(
+                "The plant_pft_propagules data is missing 'pft' coordinates."
+            )
+
+        # Do the PFT coordinate values match the flora?
+        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(flora.name):
+            raise InitialisationError(
+                "The 'pft' coordinates in the plant_pft_propagules data do not match "
+                "the PFT names configured in the PlantsModel flora"
+            )
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy

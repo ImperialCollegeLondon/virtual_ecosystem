@@ -1,7 +1,12 @@
 """Tests for the model.plants.plants_model submodule."""
 
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
+import pytest
 import xarray
+
+from virtual_ecosystem.core.exceptions import InitialisationError
 
 # TODO: A lot of duplication in these tests, work out how to share code to make it DRYer
 
@@ -35,6 +40,73 @@ def test_PlantsModel__init__(
         expected = fixture_core_components.layer_structure.from_template()
         expected[layer_indices] = layer_vals
         xarray.testing.assert_allclose(plants_data[layer_name], expected)
+
+
+@pytest.mark.parametrize(
+    argnames="new_data,context_manager,error_message",
+    argvalues=(
+        pytest.param({}, does_not_raise(), None, id="all_good"),
+        pytest.param(
+            {
+                "plant_pft_propagules": xarray.DataArray(
+                    data=np.full((4, 2), fill_value=100, dtype=np.integer),
+                    coords={
+                        "cell_id": np.arange(4),
+                        "plant_functional_type": ["tree1", "tree2"],
+                    },
+                )
+            },
+            pytest.raises(InitialisationError),
+            "The plant_pft_propagules data is missing 'pft' coordinates.",
+            id="no_pft_coords",
+        ),
+        pytest.param(
+            {
+                "plant_pft_propagules": xarray.DataArray(
+                    data=np.full((4, 2), fill_value=100, dtype=np.integer),
+                    coords={
+                        "cell_id": np.arange(4),
+                        "pft": ["tree1", "tree2"],
+                    },
+                )
+            },
+            pytest.raises(InitialisationError),
+            "The 'pft' coordinates in the plant_pft_propagules data do not match "
+            "the PFT names configured in the PlantsModel flora",
+            id="bad_pft_coords",
+        ),
+    ),
+)
+def test_PlantsModel__init__errors(
+    plants_data,
+    flora,
+    fixture_core_components,
+    fixture_canopy_layer_data,
+    new_data,
+    context_manager,
+    error_message,
+):
+    """Check initialisation failure models for the PlantsModel."""
+
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+    # Overwrite configuration data with new values. This is more complex than a simple
+    # replacement because the new values are altering an existing axis, so the data
+    # needs clearing out before being replaced.
+    for ky, val in new_data.items():
+        del plants_data.data[ky]
+        del plants_data.data["pft"]
+        plants_data[ky] = val
+
+    with context_manager as ctxt:
+        _ = PlantsModel(
+            data=plants_data,
+            core_components=fixture_core_components,
+            flora=flora,
+        )
+        return
+
+    assert str(ctxt.value) == error_message
 
 
 def test_PlantsModel_from_config(
