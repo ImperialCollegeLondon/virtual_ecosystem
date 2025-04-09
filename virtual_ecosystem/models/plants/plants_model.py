@@ -521,7 +521,7 @@ class PlantsModel(
         """Estimate the gross primary productivity within plant cohorts.
 
         This method uses estimated light use efficiency from the P Model to estimate the
-        light use efficiency of leaves in gC mol-1, given the environment (temperate,
+        light use efficiency of leaves in gC mol-1, given the environment (temperature,
         atmospheric pressure, vapour pressure deficit and atmospheric CO2 concentration)
         within each canopy layer. This is multiplied by the absorbed irradiance within
         each canopy layer to predict the gross primary productivity (GPP, µg C m-2 s-1)

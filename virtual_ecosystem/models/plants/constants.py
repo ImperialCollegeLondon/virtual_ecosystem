@@ -62,7 +62,7 @@ class PlantsConsts(ConstantsDataclass):
     """Carbon to Phosphorous ratio of root turnover."""
 
     subcanopy_extinction_coef: float = 0.5
-    """The extinction coefficient of subcanopy vegation (unitless)."""
+    """The extinction coefficient of subcanopy vegetation (unitless)."""
 
     subcanopy_specific_leaf_area: float = 14
     """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
