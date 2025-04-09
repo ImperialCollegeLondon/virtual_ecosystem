@@ -40,6 +40,7 @@ class PlantsModel(
         "plant_cohorts_pft",
         "plant_cohorts_n",
         "plant_cohorts_dbh",
+        "plant_pft_propagules",
         "downward_shortwave_radiation",
     ),
     vars_populated_by_init=(
@@ -50,71 +51,72 @@ class PlantsModel(
         "shortwave_absorption",
     ),
     vars_required_for_update=(
-        "plant_cohorts_cell_id",
-        "plant_cohorts_pft",
-        "plant_cohorts_n",
-        "plant_cohorts_dbh",
-        "downward_shortwave_radiation",
         "air_temperature",
-        "vapour_pressure_deficit",
-        "atmospheric_pressure",
         "atmospheric_co2",
-        "dissolved_nitrate",
+        "atmospheric_pressure",
         "dissolved_ammonium",
+        "dissolved_nitrate",
         "dissolved_phosphorus",
+        "downward_shortwave_radiation",
+        "plant_cohorts_cell_id",
+        "plant_cohorts_dbh",
+        "plant_cohorts_n",
+        "plant_cohorts_pft",
+        "plant_pft_propagules",
+        "vapour_pressure_deficit",
     ),
     vars_updated=(
-        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
-        "layer_fapar",
-        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "shortwave_absorption",
-        "evapotranspiration",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
-        "stem_lignin",
-        "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
-        "root_lignin",
         "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_production",
+        "evapotranspiration",
+        "fallen_non_propagule_c_mass",
+        "layer_fapar",
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
+        "leaf_turnover",
         "nitrogen_fixation_carbon_supply",
-        "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_carbohydrate_exudation",
+        "root_lignin",
+        "root_turnover_c_n_ratio",
+        "root_turnover_c_p_ratio",
+        "root_turnover",
+        "senesced_leaf_lignin",
+        "shortwave_absorption",
+        "stem_lignin",
     ),
     vars_populated_by_first_update=(
-        "evapotranspiration",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
-        "stem_lignin",
-        "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
-        "root_lignin",
         "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_production",
+        "evapotranspiration",
+        "fallen_non_propagule_c_mass",
+        "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
+        "leaf_turnover",
         "nitrogen_fixation_carbon_supply",
-        "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_carbohydrate_exudation",
+        "root_lignin",
+        "root_turnover_c_n_ratio",
+        "root_turnover_c_p_ratio",
+        "root_turnover",
+        "senesced_leaf_lignin",
+        "stem_lignin",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -291,6 +293,18 @@ class PlantsModel(
         self.communities = PlantCommunities(
             data=self.data, flora=self.flora, grid=self.grid
         )
+
+        # Check the pft propagules data
+        # Some development notes:
+        # - This _could_ be an optional __init__ variable that defaults to zero, but we
+        #   don't currently have optional __init__ variables.
+        # - The axis name checking here is something that the axis validation in data
+        #   loading should do, but the information (PFT names) needed to validate it
+        #   there is not part of the core configuration, so even when we pass
+        #   CoreComponents to the axis validation it won't be available (unless we
+        #   duplicate that information as part of the core, which might not be the
+        #   maddest thing ever).
+
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
 
@@ -638,7 +652,6 @@ class PlantsModel(
             coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
         )
 
-        self.data["fallen_n_propagules"] = pft_cell_template.copy()
         self.data["fallen_non_propagule_c_mass"] = xr.full_like(
             self.data["elevation"], 0
         )
@@ -723,7 +736,7 @@ class PlantsModel(
                 stem_canopy_non_propagule_c_mass.squeeze(),
                 cohorts.n_individuals,
             ):
-                self.data["fallen_n_propagules"].loc[cell_id, cohort_pft] += (
+                self.data["plant_pft_propagules"].loc[cell_id, cohort_pft] += (
                     fallen_n_propagules * cohort_n_stems
                 )
                 self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
@@ -877,7 +890,7 @@ class PlantsModel(
             reproductive_tissue_mass
             * self.model_constants.propagule_mass_portion
             / self.model_constants.carbon_mass_per_propagule
-        )
+        ).astype(np.integer)
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule

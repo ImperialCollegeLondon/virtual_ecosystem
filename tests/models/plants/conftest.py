@@ -19,7 +19,7 @@ def flora(fixture_config):
 
 
 @pytest.fixture
-def plants_data(fixture_core_components):
+def plants_data(fixture_core_components, flora):
     """Construct a minimal data object with plant cohort data."""
     from virtual_ecosystem.core.data import Data
 
@@ -44,6 +44,14 @@ def plants_data(fixture_core_components):
 
     for var in cohorts:
         data["plant_cohorts_" + var] = cohorts[var]
+
+    data["plant_pft_propagules"] = DataArray(
+        data=np.full((n_cells, flora.n_pfts), fill_value=100, dtype=np.integer),
+        coords={
+            "cell_id": fixture_core_components.grid.cell_id,
+            "pft": flora.name,
+        },
+    )
 
     # Spatio-temporal data
     data["downward_shortwave_radiation"] = DataArray(
