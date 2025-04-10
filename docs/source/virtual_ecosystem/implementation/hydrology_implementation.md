@@ -239,12 +239,18 @@ the saturated moisture content.
 
 Then, the effective unsaturated hydraulic conductivity is computed as:
 
-$$K(\Theta) = K_{s} \cdot S^{L} \cdot (1-(1-S^{\frac{1}{m}})^{m})^{2}$$
+$$K(\Theta) = K_{s} \cdot S^{L} \cdot [1-(1-S_{e}^{\frac{1}{m}})^{m}]^{2}$$
 
 where $K_{s}$ is the saturated hydraulic conductivity,
 is the pore connectivity parameter (assumed to be 0.5 in most of studies),
 and $m=1-1/n$ is a
 shape parameter derived from the non-linearity parameter $n$.
+
+The matric potential $\Psi_{m}$ is calculated as follows:
+
+$$\Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
+
+where $\alpha$ is the inverse of air entry value.
 
 Then, the function applies
 Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
@@ -260,7 +266,7 @@ There are severe limitations to this approach on the temporal and spatial scale 
 model and this can only be treated as a very rough approximation!
 ```
 
-### Soil moisture and matrix potential
+### Soil moisture redistribution
 
 Soil moisture is updated for each layer by removing the vertical flow
 of the current layer and adding it to the layer below. The implementation is based

@@ -25,8 +25,9 @@ def calculate_vertical_flow(
     To calculate the flow of water through unsaturated soil, this function combines
     Richards' equation and Darcy's law for unsaturated flow. It calculates the effective
     saturation :math:`S_{e}` and effective unsaturated hydraulic conductivity
-    :math:`K(\Theta)` based on the moisture content :math:`\Theta` using the Mualem-van
-    Genuchten model :cite:p:`van_genuchten_closed-form_1980`.
+    :math:`K(\Theta)` based on the moisture content :math:`\Theta` using the van
+    Genuchten - Mualem model
+    (:cite:t:`van_genuchten_closed-form_1980`, :cite:t:`mualem_new_1976`).
 
     First, the effective saturation is calculated as:
 
@@ -42,19 +43,26 @@ def calculate_vertical_flow(
         K(\Theta) = K_{s} S_{e}^{L} (1-(1-S^{\frac{1}{m}})^{m})^{2}
 
     where :math:`K_{s}` is the saturated hydraulic conductivity,
-    :math:`L` is the pore connectivity parameter (assumed to be 0.5 in most of studies),
-    and :math:`m=1-1/n` is a shape parameter derived from the non-linearity parameter
-    :math:`n`.
+    :math:`L` is the pore connectivity parameter, and :math:`m=1-1/n` is a shape
+    parameter derived from the non-linearity parameter :math:`n`.
+
+    The matric potential :math:`\Psi_{m}` is calculated as follows:
+
+    .. math ::
+        \Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}
+
+    where :math:`\alpha` is the inverse of air entry value.
 
     Then, the function applies Darcy's law to calculate the water flow rate
-    :math:`q` in :math:`\frac{mm}{day}` considering the effective unsaturated hydraulic
+    :math:`q` in :math:`\frac{m}{s-1}` considering the effective unsaturated hydraulic
     conductivity:
 
     .. math ::
         q = - K(\Theta) (\frac{d \Psi_{m}}{dz} + 1)
 
     where :math:`\frac{d \Psi_{m}}{dz}` is the matric potential gradient with :math:`z`
-    the elevation (gravitational potential) or gravitational head.
+    the elevation (gravitational potential) or gravitational head. The result is
+    converted to mm per day.
 
     Note that there are severe limitations to this approach on the temporal and
     spatial scale of this model and this can only be treated as a very rough
@@ -211,7 +219,8 @@ def calculate_matric_potential(
     r"""Convert soil moisture into an estimate of water potential.
 
     This function estimates soil water potential :math:`\Psi_{m}` as using the van
-    Genuchten - Mualem model :cite:p:`van_genuchten_closed-form_1980`:
+    Genuchten - Mualem model
+    (:cite:t:`van_genuchten_closed-form_1980`, :cite:t:`mualem_new_1976`):
 
     .. math ::
         \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}} - 1)^{(\frac{1}{n})}
@@ -254,7 +263,7 @@ def update_groundwater_storage(
     Groundwater storage and transport are modelled using two parallel linear reservoirs,
     similar to the approach used in the HBV-96 model
     :cite:p:`lindstrom_development_1997` and the LISFLOOD
-    :cite:p:`van_der_knijff_lisflood_2010` (see for full documentation).
+    :cite:p:`van_der_knijff_lisflood_2010`.
 
     The upper zone represents a quick runoff component, which includes fast groundwater
     and subsurface flow through macro-pores in the soil. The lower zone represents the

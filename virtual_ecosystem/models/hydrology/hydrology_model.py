@@ -11,6 +11,7 @@ There are still a number of open TODOs related to process implementation and imp
     * spin up soil moisture and accumulated runoff
     * set boundaries for river discharge
     * update infiltration process
+    * net radiation needs to be initialised here and included in hydro_input
 
 .. TODO:: time step and model structure
 
