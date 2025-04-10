@@ -47,6 +47,17 @@ data["plant_pft_propagules"] = DataArray(
     },
 )
 
+# Subcanopy vegetation
+# Spatio-temporal data
+data["subcanopy_vegetation_biomass"] = DataArray(
+    data=np.full((n_cells,), fill_value=0.07),
+    coords={"cell_id": cell_id},
+)
+
+data["subcanopy_seedbank_biomass"] = DataArray(
+    data=np.full((n_cells,), fill_value=0.07),
+    coords={"cell_id": cell_id},
+)
 
 # Spatio-temporal data
 data["downward_shortwave_radiation"] = DataArray(
@@ -68,6 +79,8 @@ df = data.drop_vars(
         "time_index",
         "cell_id",
         "pft",
+        "subcanopy_vegetation_biomass",
+        "subcanopy_seedbank_biomass",
     ]
 ).to_pandas()
 

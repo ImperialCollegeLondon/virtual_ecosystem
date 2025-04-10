@@ -17,11 +17,12 @@ class PlantsConsts(ConstantsDataclass):
     per_propagule_annual_recruitment_probability: float = 0.2
     """Basic annual recruitment rate from plant propagules."""
 
-    ppfd_to_dsr: float = 2.04
+    dsr_to_ppfd: float = 2.04
     """Convert from downward shortwave radiation to photosynthetic photon flux density.
 
-    Converting units from umol m-2 s-1 to W m-2 (conversion = 4.57) and assuming 46% of
-    DSR is photosynthetically active results in an overall conversion factor of 2.04.
+    Converting DSR in W m-2 to PPFD in µmol m-2 s-1. 1 W m-2 of sunlight is roughly 4.57
+    µmol m-2 s-1 of full spectrum sunlight, of which about 4.57 * 46% = 2.04  µmol m-2
+    s-1 is PPFD.
     """
 
     stem_lignin: float = 0.545
@@ -63,6 +64,30 @@ class PlantsConsts(ConstantsDataclass):
     root_turnover_c_p_ratio: float = 656.7
     """Carbon to Phosphorous ratio of root turnover."""
 
+    subcanopy_extinction_coef: float = 0.5
+    """The extinction coefficient of subcanopy vegetation (unitless)."""
+
+    subcanopy_specific_leaf_area: float = 14
+    """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
+
+    subcanopy_respiration_fraction: float = 0.1
+    """The fraction of gross primary productivity used in respiration (unitless)."""
+
+    subcanopy_yield: float = 0.6
+    """The yield fraction of net primary productivity in subcanopy vegetation
+    (unitless). """
+
+    subcanopy_reproductive_allocation: float = 0.1
+    """The fraction of subcanopy net primary productivity that is allocated to subcanopy
+    seedbank mass (unitless)."""
+
+    subcanopy_sprout_rate: float = 0.1
+    """The rate at which new subcanopy biomass sprouts from the subcanopy seedbank mass
+    (kg kg-1 m-2 y-1)."""
+
+    subcanopy_sprout_yield: float = 0.5
+    """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
+    mass (kg kg-1)."""
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
 
