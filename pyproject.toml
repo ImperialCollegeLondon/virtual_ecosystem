@@ -30,21 +30,21 @@ version = "0.1.1a8"
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
 [tool.poetry.dependencies]
-Shapely = "^2.0" 
-dask = ">=2023.6,<2026.0" 
-dpath = "^2.0.6" 
-jsonschema = "^4.14.0" 
-netcdf4 = "^1.6.5" 
-numpy = "~2.1" # Pinning numpy less than 2.2.0 until this resolves: https://github.com/numpy/numpy/issues/27957
-openpyxl = "^3.1.5" 
-pint = "^0.24.1" 
+Shapely = "^2.0"
+dask = ">=2023.6,<2026.0"
+dpath = "^2.0.6"
+jsonschema = "^4.14.0"
+netcdf4 = "^1.6.5"
+numpy = "^2.0"
+openpyxl = "^3.1.5"
+pint = "^0.24.1"
 pyrealm = {version = "^2.0.0rc2", allow-prereleases = true}
-python = ">=3.10,<3.14" 
-scipy = "^1.9.0" 
-tomli = {version = "^2.0.1", python = "<3.11"} 
-tomli-w = "^1.0.0" 
-tqdm = "^4.66.2" 
-xarray = ">=2024.6,<2026.0" 
+python = ">=3.10,<3.14"
+scipy = "^1.9.0"
+tomli = {version = "^2.0.1", python = "<3.11"}
+tomli-w = "^1.0.0"
+tqdm = "^4.66.2"
+xarray = ">=2024.6,<2026.0"
 
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
