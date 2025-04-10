@@ -11,8 +11,7 @@ def calculate_vertical_flow(
     soil_moisture: NDArray[np.float32],
     soil_layer_thickness: NDArray[np.float32],
     soil_layer_depth: NDArray[np.float32],
-    soil_moisture_capacity: float
-    | NDArray[np.float32],  # TODO saturated moisture cont?
+    soil_moisture_saturation: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
     saturated_hydraulic_conductivity: float | NDArray[np.float32],
     air_entry_potential_inverse: float,
@@ -65,7 +64,7 @@ def calculate_vertical_flow(
         soil_moisture: Volumetric relative water content in top soil, [unitless]
         soil_layer_thickness: Thickness of all soil layers, [m]
         soil_layer_depth: Soil layer depth, [m]
-        soil_moisture_capacity: Soil moisture capacity, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
         saturated_hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
         air_entry_potential_inverse: Inverse of air entry water potential (parameter
@@ -87,7 +86,7 @@ def calculate_vertical_flow(
     # Calculate soil effective saturation in rel. vol. water content for each layer:
     # TODO make this function a tool
     effective_saturation = (soil_moisture - soil_moisture_residual) / (
-        soil_moisture_capacity - soil_moisture_residual
+        soil_moisture_saturation - soil_moisture_residual
     )
 
     # Calculate matric potential for each grid point and depth

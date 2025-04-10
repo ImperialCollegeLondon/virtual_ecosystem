@@ -60,8 +60,8 @@ def test_calculate_all_pool_updates(
         "soil_n_pool_particulate": [-8.93041e-5, 5.105645e-5, 9.035108e-5, 5.212779e-6],
         "soil_n_pool_necromass": [6.917627e-3, -3.050687e-3, 1.431913e-3, -4.551887e-3],
         "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
-        "soil_n_pool_ammonium": [9.35035e-4, 2.72159e-2, 5.31626e-4, 1.83631e-4],
-        "soil_n_pool_nitrate": [-3.053041e-3, -3.922566e-3, -1.050268e-3, -9.197065e-4],
+        "soil_n_pool_ammonium": [0.00093437, 0.02715149, 0.00052829, 0.00015892],
+        "soil_n_pool_nitrate": [-0.00315054, -0.00399711, -0.00105165, -0.00093574],
         "soil_p_pool_dop": [1.99425697e-4, 1.39742546e-4, 1.99748943e-4, 9.68009312e-5],
         "soil_p_pool_particulate": [6.820884e-6, -6.40228e-6, -8.6718e-7, 2.094258e-7],
         "soil_p_pool_necromass": [2.184141e-3, 2.644765e-3, 5.429799e-3, 7.286432e-4],
@@ -799,7 +799,7 @@ def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_compone
         * CoreConsts.soil_moisture_capacity
     )
 
-    expected_rate = [5.71719748e-6, 0.000423915, 1.557907e-5, 0.000114643]
+    expected_rate = [1.48136406e-06, 2.88209167e-04, 1.93117164e-05, 1.73005910e-04]
 
     actual_rate = calculate_rate_of_nitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -832,7 +832,7 @@ def test_negative_nitrification_rate_impossible(
     ammonium_data[0] = -0.0001
     ammonium_data[3] = -3e-4
 
-    expected_rate = [0.0, 0.000423915, 1.557907e-5, 0.0]
+    expected_rate = [0.0, 2.88209167e-04, 1.93117164e-05, 0.0]
 
     actual_rate = calculate_rate_of_nitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -860,7 +860,7 @@ def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_compo
         * CoreConsts.soil_moisture_capacity
     )
 
-    expected_rate = [2.89449367e-04, 4.26467934e-04, 1.50161251e-05, 9.71117584e-05]
+    expected_rate = [9.37815950e-04, 1.38175611e-03, 4.86522454e-05, 3.14642097e-04]
 
     actual_rate = calculate_rate_of_denitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -893,7 +893,7 @@ def test_negative_denitrification_rate_impossible(
     nitrate_data[1] = -0.0001
     nitrate_data[2] = -7e-4
 
-    expected_rate = [2.89449367e-4, 0.0, 0.0, 9.71117584e-5]
+    expected_rate = [0.00093782, 0.0, 0.0, 0.00031464]
 
     actual_rate = calculate_rate_of_denitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][

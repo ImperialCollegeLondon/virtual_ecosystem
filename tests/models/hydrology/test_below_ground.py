@@ -8,7 +8,7 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 @pytest.mark.parametrize(
-    "soilm_cap, soilm_res, hydr_con, nonlin_par, gw_cap",
+    "soilm_sat, soilm_res, hydr_con, nonlin_par, gw_cap",
     [
         (0.6, 0.1, 0.001, 2.0, 0.9),
         (
@@ -21,7 +21,7 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
     ],
 )
 def test_calculate_vertical_flow(
-    soilm_cap,
+    soilm_sat,
     soilm_res,
     hydr_con,
     nonlin_par,
@@ -38,7 +38,7 @@ def test_calculate_vertical_flow(
         soil_moisture=soil_moisture,
         soil_layer_thickness=layer_thickness,
         soil_layer_depth=layer_depth,
-        soil_moisture_capacity=soilm_cap,
+        soil_moisture_saturation=soilm_sat,
         soil_moisture_residual=soilm_res,
         saturated_hydraulic_conductivity=hydr_con,
         air_entry_potential_inverse=0.01,
@@ -73,7 +73,9 @@ def test_update_soil_moisture():
     vertical_flow = np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]])
     evapotranspiration = np.array([10, 2, 3])
     layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
-    exp_result = np.array([[20, 58, 47], [290.0, 598.0, 497.0], [300.0, 600.0, 500.0]])
+    exp_result = np.array(
+        [[20.0, 50.0, 47.0], [290.0, 450.0, 450.0], [300.0, 450.0, 450.0]]
+    )
 
     result = update_soil_moisture(
         soil_moisture,

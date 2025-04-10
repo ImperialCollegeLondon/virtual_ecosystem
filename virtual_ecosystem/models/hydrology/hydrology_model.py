@@ -602,15 +602,15 @@ class HydrologyModel(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
                 soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,  # m
-                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),
-                soil_moisture_capacity=(
-                    self.core_constants.soil_moisture_capacity
+                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),  # m
+                soil_moisture_saturation=(
+                    self.model_constants.soil_moisture_saturation
                 ),  # vol
                 soil_moisture_residual=(
                     self.model_constants.soil_moisture_residual
                 ),  # vol
                 saturated_hydraulic_conductivity=(
-                    self.model_constants.hydraulic_conductivity
+                    self.model_constants.saturated_hydraulic_conductivity
                 ),  # m/s
                 air_entry_potential_inverse=(
                     self.model_constants.air_entry_potential_inverse

@@ -77,7 +77,7 @@ Available water capacity
   difference between field capacity and the permanent wilting point. Expressed in
   m3/m3, %, or mm.
 
-Saturation soil moisture
+Soil moisture saturation
   Maximum amount of water a soil can hold when all its pores are completely filled with
   water — that is, the soil is fully saturated and contains no air in the pore spaces.
   Expressed in m3/m3, %, or mm.
