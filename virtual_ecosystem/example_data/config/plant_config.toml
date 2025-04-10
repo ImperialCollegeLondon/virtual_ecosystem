@@ -17,4 +17,7 @@ file_path = "../data/example_plant_data.nc"
 var_name = "plant_cohorts_dbh"
 [[core.data.variable]]
 file_path = "../data/example_plant_data.nc"
+var_name = "plant_pft_propagules"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
 var_name = "downward_shortwave_radiation"

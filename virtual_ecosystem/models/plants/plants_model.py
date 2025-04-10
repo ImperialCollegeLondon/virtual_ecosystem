@@ -388,6 +388,10 @@ class PlantsModel(
         """
 
         # Update the canopy layers
+        self.canopies = calculate_canopies(
+            communities=self.communities,
+            max_canopy_layers=self.layer_structure.n_canopy_layers,
+        )
         self.update_canopy_layers()
         self.set_shortwave_absorption(time_index=time_index)
 

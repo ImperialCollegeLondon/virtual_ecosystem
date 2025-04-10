@@ -38,6 +38,16 @@ data["plant_cohorts_dbh"] = DataArray(
     np.array([0.1, 0.05] * n_cells), coords={"cohort_index": cohort_index}
 )
 
+# PFT propagules
+data["plant_pft_propagules"] = DataArray(
+    data=np.full((n_cells, 2), fill_value=100, dtype=np.integer),
+    coords={
+        "cell_id": cell_id,
+        "pft": np.array(["broadleaf", "shrub"]),
+    },
+)
+
+
 # Spatio-temporal data
 data["downward_shortwave_radiation"] = DataArray(
     data=np.full((n_cells, n_dates), fill_value=2040),
@@ -51,7 +61,14 @@ data.to_netcdf("../data/example_plant_data.nc")
 
 # Write cohort data to CSV file as an alternative form of this data source
 df = data.drop_vars(
-    ["downward_shortwave_radiation", "time", "time_index", "cell_id"]
+    [
+        "plant_pft_propagules",
+        "downward_shortwave_radiation",
+        "time",
+        "time_index",
+        "cell_id",
+        "pft",
+    ]
 ).to_pandas()
 
 df.to_csv("../data/example_plant_cohorts.csv", index=False)
