@@ -287,7 +287,7 @@ variable_type = ""
 
 [[variable]]
 axis = ["spatial", "time"]
-description = "Top of canopy downward shortwave radiation (dsr)"
+description = "Top of canopy downward shortwave radiation (DSR)"
 name = "downward_shortwave_radiation"
 unit = "W m-2"
 variable_type = "float"
@@ -1200,4 +1200,18 @@ axis = ["spatial"]
 description = "Amount of fungal enzyme class which breaks down mineral associated organic matter"
 name = "soil_enzyme_maom_fungi"
 unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of vegetation growing underneath the canopy."
+name = "subcanopy_vegetation_biomass"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of subcanopy seedbank."
+name = "subcanopy_seedbank_biomass"
+unit = "kg C m^-2"
 variable_type = "float"
