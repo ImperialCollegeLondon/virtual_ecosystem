@@ -140,7 +140,9 @@ class TestFunctionalGroup:
         assert func_group.offspring_functional_group == offspring_functional_group
         assert func_group.excretion_type == ExcretionType(excretion_type)
         assert func_group.migration_type == MigrationType(migration_type)
-        assert func_group.vertical_occupancy == VerticalOccupancy(vertical_occupancy)
+        assert func_group.vertical_occupancy == VerticalOccupancy.parse(
+            vertical_occupancy
+        )
         assert func_group.damuths_law_terms[0] == dam_law_exp
         assert func_group.damuths_law_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
@@ -441,7 +443,7 @@ def test_import_functional_groups(
     assert fg.offspring_functional_group == offspring_functional_group
     assert fg.excretion_type == ExcretionType(excretion_type)
     assert fg.migration_type == MigrationType(migration_type)
-    assert fg.vertical_occupancy == VerticalOccupancy(vertical_occupancy)
+    assert fg.vertical_occupancy == VerticalOccupancy.parse(vertical_occupancy)
     assert fg.birth_mass == birth_mass
     assert fg.adult_mass == adult_mass
 

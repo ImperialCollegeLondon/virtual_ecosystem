@@ -84,7 +84,7 @@ class FunctionalGroup:
         """The excretion type of the functional group."""
         self.migration_type = MigrationType(migration_type)
         """The migration type of the functional group."""
-        self.vertical_occupancy = VerticalOccupancy(vertical_occupancy)
+        self.vertical_occupancy = VerticalOccupancy.parse(vertical_occupancy)
         """The vertical occupancy type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""

@@ -2568,5 +2568,5 @@ class TestAnimalCohort:
 
         # Test match_vertical result
 
-        result = cohort.match_vertical(VerticalOccupancy(resource_occupancy))
+        result = cohort.match_vertical(VerticalOccupancy.parse(resource_occupancy))
         assert result is expected

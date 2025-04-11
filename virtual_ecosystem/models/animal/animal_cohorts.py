@@ -1452,48 +1452,4 @@ class AnimalCohort:
             True if the vertical occupancy overlaps; False otherwise.
 
         """
-        occupancy_pairs = {
-            VerticalOccupancy.SOIL: {
-                VerticalOccupancy.SOIL,
-                VerticalOccupancy.SOIL_GROUND,
-                VerticalOccupancy.SOIL_GROUND_CANOPY,
-            },
-            VerticalOccupancy.GROUND: {
-                VerticalOccupancy.GROUND,
-                VerticalOccupancy.SOIL_GROUND,
-                VerticalOccupancy.GROUND_CANOPY,
-                VerticalOccupancy.SOIL_GROUND_CANOPY,
-            },
-            VerticalOccupancy.CANOPY: {
-                VerticalOccupancy.CANOPY,
-                VerticalOccupancy.GROUND_CANOPY,
-                VerticalOccupancy.SOIL_GROUND_CANOPY,
-            },
-            VerticalOccupancy.SOIL_GROUND: {
-                VerticalOccupancy.SOIL,
-                VerticalOccupancy.GROUND,
-                VerticalOccupancy.SOIL_GROUND,
-                VerticalOccupancy.GROUND_CANOPY,
-                VerticalOccupancy.SOIL_GROUND_CANOPY,
-            },
-            VerticalOccupancy.GROUND_CANOPY: {
-                VerticalOccupancy.GROUND,
-                VerticalOccupancy.CANOPY,
-                VerticalOccupancy.SOIL_GROUND,
-                VerticalOccupancy.GROUND_CANOPY,
-                VerticalOccupancy.SOIL_GROUND_CANOPY,
-            },
-            VerticalOccupancy.SOIL_GROUND_CANOPY: {
-                VerticalOccupancy.SOIL,
-                VerticalOccupancy.GROUND,
-                VerticalOccupancy.CANOPY,
-                VerticalOccupancy.SOIL_GROUND,
-                VerticalOccupancy.GROUND_CANOPY,
-                VerticalOccupancy.SOIL_GROUND_CANOPY,
-            },
-        }
-
-        return (
-            resource_occupancy
-            in occupancy_pairs[self.functional_group.vertical_occupancy]
-        )
+        return bool(resource_occupancy & self.functional_group.vertical_occupancy)

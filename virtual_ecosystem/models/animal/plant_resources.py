@@ -40,7 +40,9 @@ class PlantResources:
         """The mass of the plant leaf mass [kg]."""
         self.constants = constants
         """The animal constants, including energy density."""
-        self.vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND_CANOPY
+        self.vertical_occupancy: VerticalOccupancy = (
+            VerticalOccupancy.GROUND | VerticalOccupancy.CANOPY
+        )
         """The vertical position of the plant resource pool."""
         self.is_alive = True
         """Indicating whether the plant cohort is alive [True] or dead [False]."""
