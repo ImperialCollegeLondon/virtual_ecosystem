@@ -154,7 +154,7 @@ def test_to_per_volume(
 
 def test_calculate_microbial_changes(
     dummy_carbon_data,
-    fixture_core_components,
+    averaged_soil_temp,
     soil_pool_data,
     environmental_factors,
     functional_groups,
@@ -185,14 +185,20 @@ def test_calculate_microbial_changes(
 
     actual_mic_changes = calculate_microbial_changes(
         pools=soil_pool_data,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         env_factors=environmental_factors,
         constants=SoilConsts,
         microbial_groups=functional_groups,
         enzyme_classes=enzyme_classes,
         carbon_supply=carbon_supply_from_plants,
+        plant_n_uptake_arbuscular=dummy_carbon_data[
+            "plant_n_uptake_arbuscular"
+        ].to_numpy(),
+        plant_p_uptake_arbuscular=dummy_carbon_data[
+            "plant_p_uptake_arbuscular"
+        ].to_numpy(),
+        plant_n_uptake_ecto=dummy_carbon_data["plant_n_uptake_ecto"].to_numpy(),
+        plant_p_uptake_ecto=dummy_carbon_data["plant_p_uptake_ecto"].to_numpy(),
     )
 
     for attr in dir(actual_mic_changes):

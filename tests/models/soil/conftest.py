@@ -235,6 +235,7 @@ def biomass_losses(soil_pool_data, functional_groups, averaged_soil_temp):
 
 @pytest.fixture
 def growth_rates(
+    dummy_carbon_data,
     environmental_factors,
     functional_groups,
     soil_pool_data,
@@ -254,6 +255,8 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
         external_carbon_supply=None,
+        nitrogen_exchange=None,
+        phosphorus_exchange=None,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
@@ -269,6 +272,8 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_saprotrophic_fungi,
         external_carbon_supply=None,
+        nitrogen_exchange=None,
+        phosphorus_exchange=None,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
@@ -284,6 +289,8 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_arbuscular_mycorrhiza,
         external_carbon_supply=carbon_supply_from_plants.arbuscular_mycorrhiza,
+        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_arbuscular"],
+        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_arbuscular"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,
@@ -299,6 +306,8 @@ def growth_rates(
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
+        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
+        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
         soil_temp=averaged_soil_temp,

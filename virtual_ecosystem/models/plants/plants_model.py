@@ -91,6 +91,10 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
     ),
     vars_populated_by_first_update=(
         "evapotranspiration",
@@ -115,6 +119,10 @@ class PlantsModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -343,6 +351,9 @@ class PlantsModel(
 
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
+
+        # Calculate the rate at which plants take nutrients from mycorrhizal fungi
+        self.calculate_mycorrhizal_uptakes()
 
         # Apply mortality to plant cohorts
         self.apply_mortality()
@@ -752,3 +763,21 @@ class PlantsModel(
         self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
+
+    def calculate_mycorrhizal_uptakes(self) -> None:
+        """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
+
+        Warning:
+            At present, this function just calculates uptake based on an entirely made
+            up function, and does not link to plant dynamics in any way.
+        """
+
+        # TODO - This should use the limits in some way
+        self.data["plant_n_uptake_arbuscular"] = xr.full_like(
+            self.data["elevation"], 0.0
+        )
+        self.data["plant_n_uptake_ecto"] = xr.full_like(self.data["elevation"], 0.0)
+        self.data["plant_p_uptake_arbuscular"] = xr.full_like(
+            self.data["elevation"], 0.0
+        )
+        self.data["plant_p_uptake_ecto"] = xr.full_like(self.data["elevation"], 0.0)

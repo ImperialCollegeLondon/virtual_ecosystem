@@ -1126,6 +1126,34 @@ unit = "kg P m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take nitrogen from their arbuscular mycorrhizal partners"
+name = "plant_n_uptake_arbuscular"
+unit = "kg N m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take nitrogen from their ectomycorrhizal partners"
+name = "plant_n_uptake_ecto"
+unit = "kg N m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take phosphorus from their arbuscular mycorrhizal partners"
+name = "plant_p_uptake_arbuscular"
+unit = "kg P m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take phosphorus from their ectomycorrhizal partners"
+name = "plant_p_uptake_ecto"
+unit = "kg P m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
 axis = [] # as_yet_undefined_cohort_setup_axis
 description = "Cell ID of plant cohorts"
 name = "plant_cohorts_cell_id"

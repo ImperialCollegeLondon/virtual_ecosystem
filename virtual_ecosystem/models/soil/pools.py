@@ -474,6 +474,10 @@ class SoilPools:
             microbial_groups=self.functional_groups,
             enzyme_classes=self.enzyme_classes,
             carbon_supply=carbon_supply,
+            plant_n_uptake_arbuscular=self.data["plant_n_uptake_arbuscular"].to_numpy(),
+            plant_p_uptake_arbuscular=self.data["plant_p_uptake_arbuscular"].to_numpy(),
+            plant_n_uptake_ecto=self.data["plant_n_uptake_ecto"].to_numpy(),
+            plant_p_uptake_ecto=self.data["plant_p_uptake_ecto"].to_numpy(),
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
@@ -762,7 +766,6 @@ class SoilPools:
 
 # TODO - This functional really needs to be reworked if it's to take in 4 functional
 # groups rather than 2, refactor makes sense to do after the new functionality is added
-# TODO - Next I need to add the removal of nutrients, need to sketch this out
 def calculate_microbial_changes(
     pools: PoolData,
     soil_temp: NDArray[np.float32],
@@ -771,6 +774,10 @@ def calculate_microbial_changes(
     microbial_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
     carbon_supply: CarbonSupply,
+    plant_n_uptake_arbuscular: NDArray[np.float32],
+    plant_p_uptake_arbuscular: NDArray[np.float32],
+    plant_n_uptake_ecto: NDArray[np.float32],
+    plant_p_uptake_ecto: NDArray[np.float32],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
@@ -789,6 +796,14 @@ def calculate_microbial_changes(
         enzyme_classes: Details of the enzyme classes used by the soil model.
         carbon_supply: The carbon supply to each symbiotic microbial partner [kg C m^-3
             day^-1]
+        plant_n_uptake_arbuscular: The rate at which plants take up nitrogen from the
+            arbuscular mycorrhizal fungi [kg N m^-3 day^-1].
+        plant_p_uptake_arbuscular: The rate at which plants take up phosphorus from the
+            arbuscular mycorrhizal fungi [kg P m^-3 day^-1].
+        plant_n_uptake_ecto: The rate at which plants take up nitrogen from the
+            ectomycorrhizal fungi [kg N m^-3 day^-1].
+        plant_p_uptake_ecto: The rate at which plants take up phosphorus from the
+            ectomycorrhizal fungi [kg P m^-3 day^-1].
 
     Returns:
         A dataclass containing the rate at which microbes uptake LMWC, DON and DOP, and
@@ -805,6 +820,8 @@ def calculate_microbial_changes(
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_bacteria,
         external_carbon_supply=None,
+        nitrogen_exchange=None,
+        phosphorus_exchange=None,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
@@ -821,6 +838,8 @@ def calculate_microbial_changes(
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_saprotrophic_fungi,
             external_carbon_supply=None,
+            nitrogen_exchange=None,
+            phosphorus_exchange=None,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
@@ -838,6 +857,8 @@ def calculate_microbial_changes(
             soil_p_pool_labile=pools.soil_p_pool_labile,
             microbial_pool_size=pools.soil_c_pool_arbuscular_mycorrhiza,
             external_carbon_supply=carbon_supply.arbuscular_mycorrhiza,
+            nitrogen_exchange=plant_n_uptake_arbuscular,
+            phosphorus_exchange=plant_p_uptake_arbuscular,
             water_factor=env_factors.water,
             pH_factor=env_factors.pH,
             soil_temp=soil_temp,
@@ -854,6 +875,8 @@ def calculate_microbial_changes(
         soil_p_pool_labile=pools.soil_p_pool_labile,
         microbial_pool_size=pools.soil_c_pool_ectomycorrhiza,
         external_carbon_supply=carbon_supply.ectomycorrhiza,
+        nitrogen_exchange=plant_n_uptake_ecto,
+        phosphorus_exchange=plant_p_uptake_ecto,
         water_factor=env_factors.water,
         pH_factor=env_factors.pH,
         soil_temp=soil_temp,
@@ -871,8 +894,12 @@ def calculate_microbial_changes(
         growth_rates={
             "bacteria": bacterial_growth,
             "saprotrophic_fungi": saprotrophic_fungal_growth,
-            "arbuscular_mycorrhiza": arbuscular_mycorrhizal_growth,
-            "ectomycorrhiza": ectomycorrhizal_growth,
+            "arbuscular_mycorrhiza": np.where(
+                arbuscular_mycorrhizal_growth > 0, arbuscular_mycorrhizal_growth, 0
+            ),
+            "ectomycorrhiza": np.where(
+                ectomycorrhizal_growth > 0, ectomycorrhizal_growth, 0
+            ),
         },
     )
 

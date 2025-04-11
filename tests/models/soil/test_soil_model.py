@@ -515,6 +515,10 @@ def test_order_independance(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]

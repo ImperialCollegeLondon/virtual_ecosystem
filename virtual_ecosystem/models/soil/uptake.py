@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     calculate_carbon_use_efficiency,
@@ -80,6 +81,8 @@ def calculate_nutrient_uptake_rates(
     soil_p_pool_labile: NDArray[np.float32],
     microbial_pool_size: NDArray[np.float32],
     external_carbon_supply: NDArray[np.float32] | None,
+    nitrogen_exchange: NDArray[np.float32] | None,
+    phosphorus_exchange: NDArray[np.float32] | None,
     water_factor: NDArray[np.float32],
     pH_factor: NDArray[np.float32],
     soil_temp: NDArray[np.float32],
@@ -118,6 +121,12 @@ def calculate_nutrient_uptake_rates(
     inorganic nitrogen is mineralised the ratio of ammonium to nitrate mineralised is
     determined by a fixed ratio defined in the model constants.
 
+    Symbiotic microbes can end up with negative growth rates, when the nutrient demands
+    from plants are large enough that symbiotic microbes have to start breaking down
+    their existing biomass. The stoichiometric balance for this is handled within the
+    uptake functions, so this biomass loss is subtracted from the biomass pool size, but
+    is not added to the necromass.
+
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
         soil_n_pool_don: Dissolved organic nitrogen pool [kg N m^-3]
@@ -128,6 +137,10 @@ def calculate_nutrient_uptake_rates(
         microbial_pool_size: Amount of biomass for functional of interest [kg C m^-3]
         external_carbon_supply: Additional supply of carbon to the microbial group from
             external sources (i.e. partner plants) [kg C m^-3 day^-1]
+        nitrogen_exchange: Rate of nitrogen provision partner plants demand in exchange
+            for the carbon they supply [kg N m^-3 day^-1]
+        phosphorus_exchange: Rate of phosphorus provision partner plants demand in
+            exchange for the carbon they supply [kg N m^-3 day^-1]
         water_factor: A factor capturing the impact of soil water potential on microbial
             rates [unitless]
         pH_factor: A factor capturing the impact of soil pH on microbial rates
@@ -141,10 +154,13 @@ def calculate_nutrient_uptake_rates(
         A tuple containing the rate at which microbial (cellular) biomass increases due
         to nutrient uptake, as well as a dataclass containing the rate at which carbon,
         nitrogen and phosphorus get taken up.
+
+    Raises:
+        ValueError: If an external carbon supply is provided without a corresponding
+            demand for nitrogen and phosphorus exchange
     """
 
-    # Calculate carbon use efficiency and LWMC stoichiometries as these are used by
-    # multiple subsequent functions
+    # Calculate carbon use efficiency as it is used in multiple subsequent functions
     carbon_use_efficiency = calculate_carbon_use_efficiency(
         soil_temp=soil_temp,
         reference_cue=constants.reference_cue,
@@ -166,42 +182,71 @@ def calculate_nutrient_uptake_rates(
         functional_group=functional_group,
     )
 
-    # Find the actual rate of carbon assimilation
-    actual_carbon_gain = calculate_actual_carbon_gain(
-        max_uptake_rates=max_uptake_rates,
-        external_carbon_supply=external_carbon_supply,
-        carbon_use_efficiency=carbon_use_efficiency,
-        functional_group=functional_group,
-    )
+    if external_carbon_supply is not None:
+        if nitrogen_exchange is None or phosphorus_exchange is None:
+            msg = (
+                "External carbon supply is provided, but nitrogen and phosphorus "
+                "exchange demands are not!"
+            )
+            LOGGER.critical(msg)
+            raise ValueError(msg)
+        else:
+            actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
+                max_uptake_rates=max_uptake_rates,
+                external_carbon_supply=external_carbon_supply,
+                nitrogen_exchange=nitrogen_exchange,
+                phosphorus_exchange=phosphorus_exchange,
+                carbon_use_efficiency=carbon_use_efficiency,
+                functional_group=functional_group,
+            )
 
-    # Calculate the rate of consumption of each nutrient
-    consumption_rates = find_net_nutrient_consumptions(
-        max_uptake_rates=max_uptake_rates,
-        actual_carbon_gain=actual_carbon_gain,
-        external_carbon_supply=external_carbon_supply,
-        carbon_use_efficiency=carbon_use_efficiency,
-        functional_group=functional_group,
-        ammonium_mineralisation_proportion=constants.ammonium_mineralisation_proportion,
-    )
+            consumption_rates = find_net_nutrient_consumptions_symbiotic(
+                max_uptake_rates=max_uptake_rates,
+                actual_carbon_gain=actual_carbon_gain,
+                external_carbon_supply=external_carbon_supply,
+                nitrogen_exchange=nitrogen_exchange,
+                phosphorus_exchange=phosphorus_exchange,
+                carbon_use_efficiency=carbon_use_efficiency,
+                functional_group=functional_group,
+                ammonium_mineralisation_proportion=constants.ammonium_mineralisation_proportion,
+            )
+    else:
+        actual_carbon_gain = calculate_actual_carbon_gain_free_living(
+            max_uptake_rates=max_uptake_rates,
+            carbon_use_efficiency=carbon_use_efficiency,
+            functional_group=functional_group,
+        )
+
+        consumption_rates = find_net_nutrient_consumptions_free_living(
+            max_uptake_rates=max_uptake_rates,
+            actual_carbon_gain=actual_carbon_gain,
+            carbon_use_efficiency=carbon_use_efficiency,
+            functional_group=functional_group,
+            ammonium_mineralisation_proportion=constants.ammonium_mineralisation_proportion,
+        )
 
     # TODO - the quantities calculated above can be used to calculate the carbon
     # respired instead of being uptaken. This isn't currently of interest, but will be
     # in future
 
-    return actual_carbon_gain / (
-        1 + sum(functional_group.enzyme_production.values())
+    # If carbon gain is negative it should be returned just as is as it's a pure loss of
+    # biomass. If it's positive, it needs to be divided by the proportional enzyme
+    # production as it represents biomass gain and enzyme production.
+    return np.where(
+        actual_carbon_gain >= 0,
+        actual_carbon_gain / (1 + sum(functional_group.enzyme_production.values())),
+        actual_carbon_gain,
     ), consumption_rates
 
 
-def find_net_nutrient_consumptions(
+def find_net_nutrient_consumptions_free_living(
     max_uptake_rates: MaxUptakeRates,
     actual_carbon_gain: NDArray[np.float32],
-    external_carbon_supply: NDArray[np.float32] | None,
     carbon_use_efficiency: NDArray[np.float32],
     functional_group: MicrobialGroupConstants,
     ammonium_mineralisation_proportion: float,
 ) -> NetNutrientConsumption:
-    """Find the net consumption of each nutrient class by the microbial group.
+    """Find net consumption of each nutrient class for a free-living microbial group.
 
     These net consumptions can be negative as microbes can mineralise nutrients from
     organic matter.
@@ -219,8 +264,6 @@ def find_net_nutrient_consumptions(
         max_uptake_rates: Maximum uptake rates for each nutrient class [kg m^-3 day^-1]
         actual_carbon_gain: The rate at which carbon is assimilated to biomass [kg C
             m^-3 day^-1]
-        external_carbon_supply: Additional supply of carbon to the microbial group from
-            external sources (i.e. partner plants) [kg C m^-3 day^-1]
         carbon_use_efficiency: Carbon use efficiency of the microbial group (varies with
             temperature) [unitless]
         functional_group: A data class containing the parameters defining the microbial
@@ -233,12 +276,9 @@ def find_net_nutrient_consumptions(
     """
 
     # Determine how limiting carbon is (as a proportion)
-    if external_carbon_supply is not None:
-        total_carbon_gain = max_uptake_rates.carbon + external_carbon_supply
-    else:
-        total_carbon_gain = max_uptake_rates.carbon
-
-    carbon_limitation = actual_carbon_gain / (total_carbon_gain * carbon_use_efficiency)
+    carbon_limitation = actual_carbon_gain / (
+        max_uptake_rates.carbon * carbon_use_efficiency
+    )
 
     # Calculate biomass demands for nitrogen and phosphorus
     nitrogen_demand = (
@@ -309,13 +349,156 @@ def find_net_nutrient_consumptions(
     )
 
 
-def calculate_actual_carbon_gain(
+def find_net_nutrient_consumptions_symbiotic(
     max_uptake_rates: MaxUptakeRates,
-    external_carbon_supply: NDArray[np.float32] | None,
+    actual_carbon_gain: NDArray[np.float32],
+    external_carbon_supply: NDArray[np.float32],
+    nitrogen_exchange: NDArray[np.float32],
+    phosphorus_exchange: NDArray[np.float32],
+    carbon_use_efficiency: NDArray[np.float32],
+    functional_group: MicrobialGroupConstants,
+    ammonium_mineralisation_proportion: float,
+) -> NetNutrientConsumption:
+    """Find net consumption of each nutrient class for a symbiotic microbial group.
+
+    These net consumptions can be negative as microbes can mineralise nutrients from
+    organic matter.
+
+    We assume that organic matter is always taken up at the maximum possible rate. This
+    is because organic matter contains carbon, nitrogen and phosphorus and one of these
+    will always be limiting growth. Any excess uptake through organic matter gets
+    returned (this represents overflow metabolism). If the microbial group is heavily
+    carbon limited nutrients will be returned to the soil in an inorganic form,
+    conversely if it is less carbon limited the excess nutrients will be returned in an
+    organic form. If the demand for nitrogen or phosphorus exceeds the amount provided
+    through organic matter uptake, inorganic nutrients are uptaken.
+
+    If rates of carbon assimilation are negative, i.e. because biomass is being broken
+    down to supply plant nutrient demands, the carbon and the non-limiting nutrient are
+    released as organic matter. This process of biomass loss exists harmonise the time
+    steps of the plant and soil models, rather than being a realistic process. As such,
+    we just allow extra release of organic matter rather than treating it as a real
+    generation of necromass.
+
+    Args:
+        max_uptake_rates: Maximum uptake rates for each nutrient class [kg m^-3 day^-1]
+        actual_carbon_gain: The rate at which carbon is assimilated to biomass [kg C
+            m^-3 day^-1]
+        external_carbon_supply: Additional supply of carbon to the microbial group from
+            external sources (i.e. partner plants) [kg C m^-3 day^-1]
+        nitrogen_exchange: Rate of nitrogen provision partner plants demand in exchange
+            for the carbon supply [kg N m^-3 day^-1]
+        phosphorus_exchange: Rate of phosphorus provision partner plants demand in
+            exchange for the carbon supply [kg P m^-3 day^-1]
+        carbon_use_efficiency: Carbon use efficiency of the microbial group (varies with
+            temperature) [unitless]
+        functional_group: A data class containing the parameters defining the microbial
+            functional group.
+        ammonium_mineralisation_proportion: Proportion of microbially mineralised
+            nitrogen that takes the form of ammonium [unitless]
+
+    Returns:
+        The net consumption/production of each nutrient class [kg m^-3 day^-1].
+    """
+
+    # Determine how limiting carbon is (as a proportion)
+    carbon_limitation = np.where(
+        actual_carbon_gain > 0.0,
+        actual_carbon_gain
+        / ((max_uptake_rates.carbon + external_carbon_supply) * carbon_use_efficiency),
+        0.0,
+    )
+
+    # Calculate biomass demands for nitrogen and phosphorus, if actual_carbon_gain is
+    # negative cellular stoichiometry is used as only cellular biomass (and not
+    # extracellular enzymes) can be sacrificed to meet plant nutrient demands
+    nitrogen_demand = np.where(
+        actual_carbon_gain > 0.0,
+        nitrogen_exchange
+        + (actual_carbon_gain / functional_group.synthesis_nutrient_ratios["nitrogen"]),
+        nitrogen_exchange + (actual_carbon_gain / functional_group.c_n_ratio),
+    )
+    phosphorus_demand = np.where(
+        actual_carbon_gain > 0.0,
+        phosphorus_exchange
+        + (
+            actual_carbon_gain
+            / functional_group.synthesis_nutrient_ratios["phosphorus"]
+        ),
+        phosphorus_exchange + (actual_carbon_gain / functional_group.c_p_ratio),
+    )
+    # Next find if organic uptake satisfies demands for phosphorus and nitrogen
+    nitrogen_inorganic_demand = nitrogen_demand - max_uptake_rates.organic_nitrogen
+    phosphorus_inorganic_demand = (
+        phosphorus_demand - max_uptake_rates.organic_phosphorus
+    )
+
+    # Calculate how much of the organic nitrogen and phosphorus should be returned in an
+    # organic form
+    organic_nitrogen_return = np.where(
+        nitrogen_inorganic_demand < 0,
+        -nitrogen_inorganic_demand * (1 - carbon_limitation),
+        0.0,
+    )
+    organic_phosphorus_return = np.where(
+        phosphorus_inorganic_demand < 0,
+        -phosphorus_inorganic_demand * (1 - carbon_limitation),
+        0.0,
+    )
+
+    # Find how much inorganic nitrogen and phosphorus is taken up or released
+    inorganic_nitrogen_change = np.where(
+        nitrogen_inorganic_demand >= 0,
+        nitrogen_inorganic_demand,
+        nitrogen_inorganic_demand * carbon_limitation,
+    )
+    inorganic_phosphorus_change = np.where(
+        phosphorus_inorganic_demand >= 0,
+        phosphorus_inorganic_demand,
+        phosphorus_inorganic_demand * carbon_limitation,
+    )
+
+    # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
+    # follows the proportion of the maximum uptake rates (if either is above zero)
+    ammonium_uptake_proportion = np.where(
+        (max_uptake_rates.ammonium > 0) | (max_uptake_rates.nitrate > 0),
+        max_uptake_rates.ammonium
+        / (max_uptake_rates.ammonium + max_uptake_rates.nitrate),
+        0.0,
+    )
+
+    # Whether the uptake proportion or the mineralisation proportion is relevant depends
+    # whether inorganic nitrogen is being taken up or not
+    ammonium_to_nitrate_proportion = np.where(
+        inorganic_nitrogen_change > 0,
+        ammonium_uptake_proportion,
+        ammonium_mineralisation_proportion,
+    )
+    ammonium_change = inorganic_nitrogen_change * ammonium_to_nitrate_proportion
+    nitrate_change = inorganic_nitrogen_change * (1 - ammonium_to_nitrate_proportion)
+
+    return NetNutrientConsumption(
+        organic_nitrogen=max_uptake_rates.organic_nitrogen - organic_nitrogen_return,
+        organic_phosphorus=(
+            max_uptake_rates.organic_phosphorus - organic_phosphorus_return
+        ),
+        carbon=np.where(
+            actual_carbon_gain > 0.0,
+            (actual_carbon_gain / carbon_use_efficiency) - external_carbon_supply,
+            actual_carbon_gain,
+        ),
+        ammonium=ammonium_change,
+        nitrate=nitrate_change,
+        inorganic_phosphorus=inorganic_phosphorus_change,
+    )
+
+
+def calculate_actual_carbon_gain_free_living(
+    max_uptake_rates: MaxUptakeRates,
     carbon_use_efficiency: NDArray[np.float32],
     functional_group: MicrobialGroupConstants,
 ) -> NDArray[np.float32]:
-    """Calculate the rate at which carbon is assimilated to biomass.
+    """Calculate the rate at which carbon is assimilated by free-living microbes.
 
     The limitation that each nutrient places on carbon assimilation is determined. For
     carbon this is based on carbon use efficiency, but in the case of nitrogen and
@@ -325,8 +508,6 @@ def calculate_actual_carbon_gain(
 
     Args:
         max_uptake_rates: Maximum uptake rates for each nutrient class [kg m^-3 day^-1]
-        external_carbon_supply: Additional supply of carbon to the microbial group from
-            external sources (i.e. partner plants) [kg C m^-3 day^-1]
         carbon_use_efficiency: Carbon use efficiency of the microbial group (varies with
             temperature) [unitless]
         functional_group: A data class containing the parameters defining the microbial
@@ -336,12 +517,7 @@ def calculate_actual_carbon_gain(
         The rate at which carbon is assimilated to biomass [kg m^-3 day^-1].
     """
 
-    if external_carbon_supply is not None:
-        carbon_gain_max = (
-            max_uptake_rates.carbon + external_carbon_supply
-        ) * carbon_use_efficiency
-    else:
-        carbon_gain_max = max_uptake_rates.carbon * carbon_use_efficiency
+    carbon_gain_max = max_uptake_rates.carbon * carbon_use_efficiency
 
     # Find the maximum rate of carbon assimilation based on nitrogen and phosphorus
     # uptake rates, and biomass stoichiometric ratios
@@ -354,9 +530,9 @@ def calculate_actual_carbon_gain(
         max_uptake_rates.organic_phosphorus + max_uptake_rates.inorganic_phosphorus
     )
 
-    # Find actual rate of carbon gain based on most limiting uptake rate, then find
+    # Return actual rate of carbon gain based on most limiting uptake rate, then find
     # nutrient gain and total carbon consumption based on this
-    actual_carbon_gain = np.minimum.reduce(
+    return np.minimum.reduce(
         [
             carbon_gain_max,
             nitrogen_limit,
@@ -364,7 +540,94 @@ def calculate_actual_carbon_gain(
         ]
     )
 
-    return actual_carbon_gain
+
+def calculate_actual_carbon_gain_symbiotic(
+    max_uptake_rates: MaxUptakeRates,
+    external_carbon_supply: NDArray[np.float32],
+    nitrogen_exchange: NDArray[np.float32],
+    phosphorus_exchange: NDArray[np.float32],
+    carbon_use_efficiency: NDArray[np.float32],
+    functional_group: MicrobialGroupConstants,
+) -> NDArray[np.float32]:
+    """Calculate the rate at which carbon is assimilated by symbiotic microbes.
+
+    The limitation that each nutrient places on carbon assimilation is determined. For
+    carbon this is based on carbon use efficiency, but in the case of nitrogen and
+    phosphorus this is determined based on biomass stoichiometry (i.e. you can't add
+    more carbon to biomass if you are deficient in nitrogen). This is used to calculate
+    the actual rate at which carbon is assimilated to biomass.
+
+    In the symbiotic case, additional carbon is supplied by the plant partners, reducing
+    carbon limitation. Plants demand that nutrients are provide in exchange for this,
+    increasing demand for nitrogen and phosphorus. This demand can exceed the maximum
+    rate mycorrhizal fungi can take up nutrients, in which case biomass is sacrificed to
+    meet the demand.
+
+    Args:
+        max_uptake_rates: Maximum uptake rates for each nutrient class [kg m^-3 day^-1]
+        external_carbon_supply: Additional supply of carbon to the microbial group from
+            external sources (i.e. partner plants) [kg C m^-3 day^-1]
+        nitrogen_exchange: Rate of nitrogen provision partner plants demand in exchange
+            for the carbon supply [kg N m^-3 day^-1]
+        phosphorus_exchange: Rate of phosphorus provision partner plants demand in
+            exchange for the carbon supply [kg P m^-3 day^-1]
+        carbon_use_efficiency: Carbon use efficiency of the microbial group (varies with
+            temperature) [unitless]
+        functional_group: A data class containing the parameters defining the microbial
+            functional group.
+
+    Returns:
+        The rate at which carbon is assimilated to (or lost from) biomass [kg m^-3
+        day^-1].
+    """
+
+    carbon_gain_max = (
+        max_uptake_rates.carbon + external_carbon_supply
+    ) * carbon_use_efficiency
+    nitrogen_gain_max = (
+        max_uptake_rates.organic_nitrogen
+        + max_uptake_rates.ammonium
+        + max_uptake_rates.nitrate
+        - nitrogen_exchange
+    )
+    phosphorus_gain_max = (
+        max_uptake_rates.organic_phosphorus
+        + max_uptake_rates.inorganic_phosphorus
+        - phosphorus_exchange
+    )
+
+    # Find the maximum rate of carbon assimilation based on nitrogen and phosphorus
+    # uptake rates, and biomass stoichiometric ratios
+    nitrogen_limit = (
+        functional_group.synthesis_nutrient_ratios["nitrogen"] * nitrogen_gain_max
+    )
+    phosphorus_limit = (
+        functional_group.synthesis_nutrient_ratios["phosphorus"] * phosphorus_gain_max
+    )
+
+    # Find actual rate of carbon gain based on most limiting uptake rate, then find
+    # nutrient gain and total carbon consumption based on this
+    carbon_gain = np.minimum.reduce(
+        [
+            carbon_gain_max,
+            nitrogen_limit,
+            phosphorus_limit,
+        ]
+    )
+
+    # Rate is potentially negative (implying biomass loss to feed symbiotic partners),
+    # in this case carbon loss should be based off of cellular biomass stoichiometry, as
+    # negative extracellular enzyme production is nonsensical
+    return np.where(
+        carbon_gain > 0,
+        carbon_gain,
+        np.minimum.reduce(
+            [
+                functional_group.c_n_ratio * nitrogen_gain_max,
+                functional_group.c_p_ratio * phosphorus_gain_max,
+            ]
+        ),
+    )
 
 
 def calculate_maximum_uptake_rates(

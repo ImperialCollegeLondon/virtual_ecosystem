@@ -122,6 +122,10 @@ class SoilModel(
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -228,8 +232,6 @@ class SoilModel(
     ) -> None:
         """Function to setup up the soil model."""
 
-        # TODO - At the moment the soil model only cares about the very top layer. As
-        # both the soil and abiotic models get more complex this might well change.
         self.model_constants = model_constants
 
         # Store microbial functional groups and enzyme classes needed by the model
