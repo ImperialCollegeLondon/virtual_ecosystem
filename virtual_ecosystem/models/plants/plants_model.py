@@ -11,6 +11,7 @@ import numpy as np
 import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
+from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
 from pyrealm.demography.community import Cohorts
 from pyrealm.demography.flora import Flora
@@ -205,11 +206,11 @@ class PlantsModel(
         self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
         self.per_stem_gpp: dict[int, NDArray[np.float32]]
-        """A dictionary keyed by cell id giving an array of per stem GPP values for each
-        cohort in the community."""
+        """A dictionary keyed by cell id giving the GPP values over the course of a 
+        model update for each stem within the cohorts in the community (µg C)."""
         self.per_stem_transpiration: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving an array of per stem transpiration
-        values for each cohort in the cell community"""
+        values in for each cohort in the cell community (mm H2O)"""
         self.pmodel: PModel
         """A P Model instance providing estimates of light use efficiency through the
         canopy and across cells."""
@@ -620,54 +621,66 @@ class PlantsModel(
             # layers, whose dimensions vary between grid cells
             active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
 
-            # GPP is estimated as:
-            #    LUE * per stem per layer fAPAR * the canopy top PPFD.
-            # Dimensions:
-            #    (n_active_layers, 1) * (n_active_layers, n_cohorts) * scalar
-            #    = (n_active_layers, n_cohorts)
+            # GPP for each later is estimated as (value, dimensions, units):
+            #    LUE                (n_active_layers, 1)          [gC mol-1]
+            #    * cohort fAPAR     (n_active_layers, n_cohorts)  [-]
+            #    * canopy top PPFD  scalar                        [µmol m-2 s-1]
+            #    * stem leaf area   (n_active_layers, n_cohorts)  [m2]
+            #    * time elapsed     scalar                        [s]
             # Units:
-            #    gC mol-1  * µmol m-2 s-1 * (-) = µg m-2 s-1
-            per_stem_gpp_rate = (
-                self.pmodel.lue[active_layers, :][:, [cell_id]]
-                * canopy.cohort_data.stem_fapar
-                * canopy_top_ppfd[cell_id]
+            #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
+            #
+            # NOTE: I _think_ that the canopy.cohort_data.stem_fapar data is bogus. The
+            #       cohort_fapar calculation gets the fraction of light across all of
+            #       the leaf area within a cohort. That _is_ the fAPAR experienced by
+            #       each stem of the cohort within the community area. The stem_fapar
+            #       divides through by the number of individuals, which is incorrect
+
+            per_layer_gpp = (
+                self.pmodel.lue[active_layers, :][:, [cell_id]]  # gC mol-1
+                * canopy.cohort_data.cohort_fapar  # unitless
+                * canopy_top_ppfd[cell_id]  # µmol m-1 s-1
+                * canopy.cohort_data.stem_leaf_area  # m2
+                * self.model_timing.update_interval_seconds  # second
             )
 
-            # The transpiration associated with that GPP is then:
-            #    (GPP / (Mc * 1e6)) * iwue
-            # Dimensions:
-            #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
+            # Calculate and store whole stem GPP in kg C
+            self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
+
+            # The per layer transpiration associated with that GPP then needs GPP in
+            # moles of Carbon  (GPP in µg C / (Molar mass carbon * 1e6))):
+            #   GPP in mols   (n_layer, n_cohorts)  [mol C]
+            #   * IWUE        (n_layer, 1)          [µmol mol -1]
             # Units:
-            #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
-            per_stem_transpiration_rate = (
-                per_stem_gpp_rate / (self.pmodel_core_consts.k_c_molmass * 1e6)
+            #    mol C  * µmol H2O mol C -1 = µmol H2O
+            per_layer_transpiration_micromolar = (
+                per_layer_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
             ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
 
-            # Now scale up and aggregate those values
+            # Convert to mm
+            per_layer_transpiration_mm = convert_water_moles_to_mm(
+                water_moles=per_layer_transpiration_micromolar * 1e-6,
+                tc=np.repeat(
+                    self.pmodel.env.tc[active_layers, :][:, [cell_id]],
+                    canopy.n_cohorts,
+                    axis=1,
+                ),
+                patm=np.repeat(
+                    self.pmodel.env.patm[active_layers, :][:, [cell_id]],
+                    canopy.n_cohorts,
+                    axis=1,
+                ),
+                core_const=self.pmodel_core_consts,
+            )
+            # Calculate and store total stem transpiration in mm  per stem and total
+            # grid cell transpiration in mm m-2 since last update
+            self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
+                axis=0
+            )
 
-            # Per stem GPP since last update: sum GPP *  whole stem leaf area
-            # and scale by elapsed time in seconds
-            self.per_stem_gpp[cell_id] = (
-                per_stem_gpp_rate
-                * canopy.cohort_data.stem_leaf_area
-                * self.model_timing.update_interval_seconds
-            ).sum(axis=0)
-
-            # Calculate total stem transpiration in µmol per stem and total grid cell
-            # transpiration in mm m-2 since last update
-            self.per_stem_transpiration[cell_id] = (
-                per_stem_transpiration_rate
-                * canopy.cohort_data.stem_leaf_area
-                * self.model_timing.update_interval_seconds
-            ).sum(axis=0)
-
-            # Calculate the total transpiration per layer in mm m2 in mm, converted from
-            # an initial value is in µmol m2 s1
+            # Calculate the total transpiration per layer in m2 in mm
             transpiration[active_layers, cell_id] = (
-                community.cohorts.n_individuals
-                * per_stem_transpiration_rate
-                * self.model_timing.update_interval_seconds
-                * 1.8e-8
+                community.cohorts.n_individuals * per_layer_transpiration_mm
             ).sum(axis=1)
 
         # Pass values to data object
@@ -721,11 +734,12 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate the allocation of GPP per stem
+            # Calculate the allocation of GPP converting from µgC m2 to kgC m2 per stem,
+            # since the T Model is calibrated using per kg values.
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
-                at_potential_gpp=self.per_stem_gpp[cell_id],
+                at_potential_gpp=self.per_stem_gpp[cell_id] * 1e-9,
             )
 
             # Grow the plants by increasing the stem dbh
@@ -733,7 +747,6 @@ class PlantsModel(
             cohorts.dbh_values = (
                 cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             )
-
             # Sum of turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(
                 stem_allocation.foliage_turnover * cohorts.n_individuals
@@ -843,6 +856,9 @@ class PlantsModel(
             self.data["deadwood_production"][cell_id] = np.sum(
                 mortality * community.stem_allometry.stem_mass
             )
+
+            # TODO - also need to add standing foliage, fine root and reproductive
+            #        tissue masses to the respective pools and check units of pools.
 
     def apply_recruitment(self) -> None:
         """Apply recruitment to plant cohorts.
