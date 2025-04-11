@@ -85,6 +85,8 @@ class ModelTiming:
     """The configured run length as a pint Quantity."""
     update_interval: np.timedelta64 = field(init=False)
     """The configured update interval."""
+    update_interval_seconds: float = field(init=False)
+    """The configured update interval in seconds."""
     update_interval_quantity: Quantity = field(init=False)
     """The configured update interval as a pint Quantity."""
     n_updates: int = field(init=False)
@@ -157,6 +159,11 @@ class ModelTiming:
         # TODO - this is not calendar aware - variable length months and leap years.
         seconds_per_year = np.timedelta64(31536000, "s")
         self.updates_per_year = seconds_per_year / self.update_interval
+
+        # Calculate the total number of seconds in the update interval
+        self.update_interval_seconds = float(
+            self.update_interval / np.timedelta64(1, "s")
+        )
 
         # Log the completed timing creation.
         LOGGER.info(

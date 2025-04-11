@@ -101,3 +101,17 @@ class CoreConsts(ConstantsDataclass):
 
     specific_gas_constant_dry_air: float = 287.05
     """Specific gas constant for dry air, [J kg-1 K-1]."""
+
+    molecular_weight_ratio_water_to_dry_air: float = 0.622
+    """The molecular weight ratio of water to dry air.
+    
+    The ratio of the molar mass of water vapour (18.015 g/mol) to the molar mass of dry
+    air (28.964 g/mol), which is approximately 0.622. This ratio is used in atmospheric
+    calculations, particularly in determining the mixing ratio of water vapour to dry
+    air."""
+
+    conductance_to_resistance_conversion_factor: float = 40.9
+    """Conductance to resistance conversion factor.
+    
+    This factor is used to convert between stomatal conductance in mmol m-2 s-1 and
+    stomatal resistance in s m-1."""

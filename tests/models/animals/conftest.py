@@ -127,6 +127,10 @@ def animal_fixture_config():
         tau_r = 1.04
         yld = 0.17
         zeta = 0.17
+        resp_rt = 0.05
+        tau_rt = 1
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
 
         [[plants.pft_definition]]
         a_hd = 116.0
@@ -147,6 +151,10 @@ def animal_fixture_config():
         tau_r = 1.04
         yld = 0.17
         zeta = 0.17
+        resp_rt = 0.05
+        tau_rt = 1
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
         
         [[animal.functional_groups]]
         name = "carnivorous_bird"
