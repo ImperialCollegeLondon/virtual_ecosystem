@@ -474,10 +474,18 @@ class SoilPools:
             microbial_groups=self.functional_groups,
             enzyme_classes=self.enzyme_classes,
             carbon_supply=carbon_supply,
-            plant_n_uptake_arbuscular=self.data["plant_n_uptake_arbuscular"].to_numpy(),
-            plant_p_uptake_arbuscular=self.data["plant_p_uptake_arbuscular"].to_numpy(),
-            plant_n_uptake_ecto=self.data["plant_n_uptake_ecto"].to_numpy(),
-            plant_p_uptake_ecto=self.data["plant_p_uptake_ecto"].to_numpy(),
+            plant_n_uptake_arbuscular=self.to_per_volume(
+                self.data["plant_n_uptake_arbuscular"].to_numpy()
+            ),
+            plant_p_uptake_arbuscular=self.to_per_volume(
+                self.data["plant_p_uptake_arbuscular"].to_numpy()
+            ),
+            plant_n_uptake_ecto=self.to_per_volume(
+                self.data["plant_n_uptake_ecto"].to_numpy()
+            ),
+            plant_p_uptake_ecto=self.to_per_volume(
+                self.data["plant_p_uptake_ecto"].to_numpy()
+            ),
         )
         # find changes driven by the enzyme pools
         enzyme_mediated = calculate_enzyme_mediated_rates(
@@ -764,6 +772,10 @@ class SoilPools:
             return input_rate / self.max_depth_of_microbial_activity
 
 
+# TODO - WHERE DOES THE UPTAKE LIMIT CALCULATION BELONG? OUTSIDE THE INTEGRATION
+# WHAT SHOULD THE UPTAKE LIMIT BE BASED ON? BASICALLY FUNGI SHOULD BE HAPPY TO GIVE
+# NUTRIENTS, PROVIDED THAT THEY CAN STILL GROW, SO CALCULATE MAXIMUM UPTAKE RATES
+# SUBTRACT BIOMASS UPTAKE RATES
 # TODO - This functional really needs to be reworked if it's to take in 4 functional
 # groups rather than 2, refactor makes sense to do after the new functionality is added
 def calculate_microbial_changes(
