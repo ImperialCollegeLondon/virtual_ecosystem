@@ -545,11 +545,10 @@ class PlantsModel(
         # Estimate the light use efficiency of leaves within each canopy layer within
         # each grid cell. The LUE is set purely by the environmental conditions, which
         # are shared across cohorts so we can calculate all layers in all cells.
-        # Some unit conversion needed - PATM and VPD in kPa to Pa.
         pmodel_env = PModelEnvironment(
             tc=self.data["air_temperature"].to_numpy(),
-            vpd=self.data["vapour_pressure_deficit"].to_numpy() * 1000,
-            patm=self.data["atmospheric_pressure"].to_numpy() * 1000,
+            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
+            patm=self.data["atmospheric_pressure"].to_numpy(),
             co2=self.data["atmospheric_co2"].to_numpy(),
             core_const=self.pmodel_core_consts,
             pmodel_const=self.pmodel_consts,
@@ -734,12 +733,12 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate the allocation of GPP converting from µgC m2 to kgC m2 per stem,
-            # since the T Model is calibrated using per kg values.
+            # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
+            # calibrated using per kg values.
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
-                at_potential_gpp=self.per_stem_gpp[cell_id] * 1e-9,
+                whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
             # Grow the plants by increasing the stem dbh
