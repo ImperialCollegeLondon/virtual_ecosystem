@@ -108,9 +108,7 @@ def test_calculate_all_pool_updates(
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
-def test_to_per_volume(
-    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
-):
+def test_to_per_volume(dummy_carbon_data, functional_groups, enzyme_classes):
     """Test that the SoilPools.to_per_volume method converts correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.pools import SoilPools

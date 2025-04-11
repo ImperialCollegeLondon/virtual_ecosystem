@@ -1106,6 +1106,34 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Limit on rate at which ectomycorrhizal fungi will supply nitrogen to their plant partners"
+name = "ecto_supply_limit_n"
+unit = "kg N m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Limit on rate at which ectomycorrhizal fungi will supply phosphorus to their plant partners"
+name = "ecto_supply_limit_p"
+unit = "kg P m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Limit on rate at which arbuscular mycorrhizal fungi will supply nitrogen to their plant partners"
+name = "arbuscular_supply_limit_n"
+unit = "kg N m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Limit on rate at which arbuscular mycorrhizal fungi will supply phosphorus to their plant partners"
+name = "arbuscular_supply_limit_p"
+unit = "kg P m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate at which plants uptake ammonium from the soil"
 name = "plant_ammonium_uptake"
 unit = "kg N m^-2 day^-1"

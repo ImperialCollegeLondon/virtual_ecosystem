@@ -62,6 +62,10 @@ class PlantsModel(
         "dissolved_nitrate",
         "dissolved_ammonium",
         "dissolved_phosphorus",
+        "ecto_supply_limit_n",
+        "ecto_supply_limit_p",
+        "arbuscular_supply_limit_n",
+        "arbuscular_supply_limit_p",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles

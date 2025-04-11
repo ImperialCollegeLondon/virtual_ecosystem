@@ -48,6 +48,10 @@ POST_SETUP_LOG = (
     (INFO, "Adding data array for 'dissolved_nitrate'"),
     (INFO, "Adding data array for 'dissolved_ammonium'"),
     (INFO, "Adding data array for 'dissolved_phosphorus'"),
+    (INFO, "Adding data array for 'ecto_supply_limit_n'"),
+    (INFO, "Adding data array for 'ecto_supply_limit_p'"),
+    (INFO, "Adding data array for 'arbuscular_supply_limit_n'"),
+    (INFO, "Adding data array for 'arbuscular_supply_limit_p'"),
 )
 
 
@@ -590,6 +594,24 @@ def test_calculate_dissolved_nutrient_concentrations_negative(fixture_soil_model
         assert np.allclose(actual_concs[nutrient], expected_concs[nutrient])
 
 
+def test_calculate_symbiotic_supply_limits(fixture_soil_model):
+    """Test that the function to calculate the symbiotic supply limits works."""
+
+    expected_limits = {
+        "ecto_supply_limit_n": [0.0, 0.00040386, 0.0, 0.0],
+        "ecto_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
+        "arbuscular_supply_limit_n": [0.0, 0.000449755, 0.0, 0.0],
+        "arbuscular_supply_limit_p": [0.0, 0.0, 0.0, 0.0],
+    }
+
+    actual_limits = fixture_soil_model.calculate_symbiotic_supply_limits()
+
+    assert expected_limits.keys() == actual_limits.keys()
+
+    for nutrient in expected_limits.keys():
+        assert np.allclose(actual_limits[nutrient], expected_limits[nutrient])
+
+
 def test_construct_full_soil_model(
     dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
 ):
@@ -752,3 +774,40 @@ def test_make_slices():
     assert len(slices) == no_pools
     assert slices[0] == slice(0, 4)
     assert slices[1] == slice(4, 8)
+
+
+def test_to_per_area(fixture_soil_model):
+    """Test that the SoilModel.to_per_area method converts correctly."""
+
+    # Test that it works for both floats and numpy arrays
+    assert np.isclose(fixture_soil_model.to_per_area(40.0), 10.0)
+    assert np.allclose(
+        fixture_soil_model.to_per_area(np.array([40.0, 100.0, 396.0, 138.8])),
+        [10.0, 25.0, 99.0, 34.7],
+    )
+
+
+def test_find_maximum_mycorrhizal_supply(
+    dummy_carbon_data, averaged_soil_temp, functional_groups, environmental_factors
+):
+    """Test that the function to calculate the maximum mycorrhizal supply works."""
+    from virtual_ecosystem.models.soil.soil_model import find_maximum_mycorrhizal_supply
+
+    expected_maximum_n = [-0.00017139, 0.001615443, -0.00167385, -0.00079816]
+    expected_maximum_p = [-2.844675e-5, -7.276582e-5, -0.000246096, -0.000188804]
+
+    actual_maximum_n, actual_maximum_p = find_maximum_mycorrhizal_supply(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        microbe_pool_size=dummy_carbon_data["soil_c_pool_ectomycorrhiza"],
+        soil_temp=averaged_soil_temp,
+        microbial_group=functional_groups["ectomycorrhiza"],
+        env_factors=environmental_factors,
+    )
+
+    assert np.allclose(actual_maximum_n, expected_maximum_n)
+    assert np.allclose(actual_maximum_p, expected_maximum_p)
