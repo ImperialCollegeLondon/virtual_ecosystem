@@ -594,7 +594,7 @@ class HydrologyModel(
                 )
             )
 
-            # Calculate vertical flow between soil layers in mm per day and matric
+            # Calculate vertical flow between soil layers in mm per day and soil matric
             # potential in m (later converted to kPa for data object).
             # Note that there are severe limitations to this approach on the temporal
             # spatial scale of this model and this can only be treated as a very rough
@@ -754,7 +754,7 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Return mean soil moisture, [mm], and matric potential, [kPa], and add
+        # Return mean soil moisture, [mm], and soil matric potential, [kPa], and add
         # atmospheric layers (nan)
         for var in ["soil_moisture", "matric_potential"]:
             soil_hydrology[var] = self.layer_structure.from_template()

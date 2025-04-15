@@ -34,19 +34,19 @@ def calculate_vertical_flow(
     .. math ::
         S_{e} = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}
 
-    where :math:`\Theta_{r}` is the residual moisture content and :math:`\Theta_{s}` is
-    the saturated moisture content.
+    where :math:`\Theta_{r}` is the soil moisture residual and :math:`\Theta_{s}` is
+    the soil moisture saturation.
 
     Then, the effective unsaturated hydraulic conductivity is computed as:
 
     .. math ::
-        K(\Theta) = K_{s} S_{e}^{L} (1-(1-S^{\frac{1}{m}})^{m})^{2}
+        K(\Theta) = K_{s} S_{e}^{L} (1-(1-S_{e}^{\frac{1}{m}})^{m})^{2}
 
     where :math:`K_{s}` is the saturated hydraulic conductivity,
     :math:`L` is the pore connectivity parameter, and :math:`m=1-1/n` is a shape
     parameter derived from the non-linearity parameter :math:`n`.
 
-    The matric potential :math:`\Psi_{m}` is calculated as follows:
+    The soil matric potential :math:`\Psi_{m}` is calculated as follows:
 
     .. math ::
         \Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}

@@ -85,9 +85,9 @@ grid cell. This includes [above ground](../../api/models/hydrology/above_ground.
 processes such as rainfall, canopy interception and evaporation, leaf drainage, and
 surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
-infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
-potential, horizontal sub-surface flow out of the grid cell, and changes in
-groundwater storage.
+infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
+{term}`soil matric potential`, horizontal
+sub-surface flow out of the grid cell, and changes in groundwater storage.
 
 ### Canopy interception
 
@@ -162,8 +162,8 @@ to the groundwater.
 ### Surface Runoff
 
 Surface runoff is calculated with a simple bucket model based on
-{cite:t}`davis_simple_2017`: if precipitation exceeds top soil moisture capacity, the
-excess water is added to runoff and top soil moisture is set to soil
+{cite:t}`davis_simple_2017`: if precipitation exceeds top {term}`soil moisture capacity`
+, the excess water is added to runoff and top soil moisture is set to soil
 moisture capacity value; if the top soil is not saturated, precipitation is
 added to the current soil moisture level and runoff is set to zero.
 
@@ -184,11 +184,11 @@ $$\alpha = \frac{1.8 \cdot \Theta}{\Theta + 0.3}$$
 
 $$E_{g} = \frac{\rho_{air}}{R_{a}} \cdot (\alpha \cdot q_{sat}(T_{s}) - q_{g})$$
 
-where $\Theta$ is the available top soil moisture (relative volumetric water
-content), $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
+where $\Theta$ is the available top soil moisture (here {term}`relative soil moisture`)
+, $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
 density of air (kg m-3), $R_{a}$ is the aerodynamic resistance (unitless),
 $q_{sat}(T_{s})$ (unitless) is the saturated specific humidity, and
-$q_{g}$ is the surface specific humidity (unitless).
+$q_{g}$ is the {term}`specific soil moisture` near the surface (unitless).
 
 In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
 {cite:t}`supit_system_1994`:
@@ -228,25 +228,28 @@ important as the soil gets wetter.
 
 To calculate the flow of water through unsaturated soil, we combine
 Richards' equation and Darcy's law for unsaturated flow.
-First, we calculate the effective saturation $S_{e}$ and effective saturated hydraulic
-conductivity $K(\Theta)$ based on the moisture content $\Theta$ using the Mualem-van
-Genuchten model {cite}`van_genuchten_closed-form_1980`:
+First, we calculate the effective saturation $S_{e}$ and effective unsaturated hydraulic
+conductivity $K(\Theta)$ based on the moisture content $\Theta$ using the van
+Genuchten - Mualem model
+({cite:t}`van_genuchten_closed-form_1980`, {cite:t}`mualem_new_1976`).
+
+First, the effective saturation is calculated as:
 
 $$S_{e} = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
 
-where $\Theta_{r}$ is the residual moisture content and $\Theta_{s}$ is
-the saturated moisture content.
+where $\Theta_{r}$ is the {term}`soil moisture residual` and $\Theta_{s}$ is
+the {term}`soil moisture saturation`.
 
 Then, the effective unsaturated hydraulic conductivity is computed as:
 
-$$K(\Theta) = K_{s} \cdot S^{L} \cdot [1-(1-S_{e}^{\frac{1}{m}})^{m}]^{2}$$
+$$K(\Theta) = K_{s} \cdot S_{e}^{L} \cdot [1-(1-S_{e}^{\frac{1}{m}})^{m}]^{2}$$
 
 where $K_{s}$ is the saturated hydraulic conductivity,
 is the pore connectivity parameter (assumed to be 0.5 in most of studies),
 and $m=1-1/n$ is a
 shape parameter derived from the non-linearity parameter $n$.
 
-The matric potential $\Psi_{m}$ is calculated as follows:
+The soil matric potential $\Psi_{m}$ is calculated as follows:
 
 $$\Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
 
@@ -254,11 +257,11 @@ where $\alpha$ is the inverse of air entry value.
 
 Then, the function applies
 Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
-effective hydraulic conductivity:
+effective unsaturated hydraulic conductivity:
 
 $$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
 
-where $\frac{d \Psi_{m}}{dz}$ is the matric potential gradient with $z$
+where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
     the elevation (gravitational potential) or gravitational head.
 
 ```{note}
