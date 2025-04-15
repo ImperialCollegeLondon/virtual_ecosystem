@@ -262,7 +262,7 @@ effective unsaturated hydraulic conductivity:
 $$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
 
 where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
-    the elevation (gravitational potential) or gravitational head.
+    the elevation (gravitational potential) or {term}`gravitational head`.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this
