@@ -245,7 +245,7 @@ Then, the effective unsaturated hydraulic conductivity is computed as:
 $$K(\Theta) = K_{s} \cdot S_{e}^{L} \cdot [1-(1-S_{e}^{\frac{1}{m}})^{m}]^{2}$$
 
 where $K_{s}$ is the saturated hydraulic conductivity,
-is the pore connectivity parameter (assumed to be 0.5 in most of studies),
+$L$ is the pore connectivity parameter (assumed to be 0.5 in most of studies),
 and $m=1-1/n$ is a
 shape parameter derived from the non-linearity parameter $n$.
 
