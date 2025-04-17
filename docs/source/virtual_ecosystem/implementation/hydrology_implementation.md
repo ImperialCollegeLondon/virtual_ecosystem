@@ -251,7 +251,7 @@ shape parameter derived from the non-linearity parameter $n$.
 
 The soil matric potential $\Psi_{m}$ is calculated as follows:
 
-$$\Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
+$$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
 
 where $\alpha$ is the inverse of air entry value.
 
