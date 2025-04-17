@@ -245,7 +245,7 @@ def test_calculate_nitrification_moisture_factor(
         * CoreConsts.soil_moisture_capacity
     )
 
-    expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]
+    expected_factor = [0.25880985, 0.66926154, 0.9999273, 0.84401893]
 
     actual_factor = calculate_nitrification_moisture_factor(
         effective_saturation=effective_saturation
