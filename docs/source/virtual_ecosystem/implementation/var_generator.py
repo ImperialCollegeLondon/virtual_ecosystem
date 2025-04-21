@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.17.0rc1
+#       jupytext_version: 1.17.0
 # ---
 
 """Utility functions to generate model variable listings."""

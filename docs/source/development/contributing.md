@@ -8,7 +8,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.17.0rc1
+      jupytext_version: 1.17.0
 ---
 
 # Contributing to the Virtual Ecosystem
