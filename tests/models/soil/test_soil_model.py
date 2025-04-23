@@ -403,10 +403,10 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.86649472, 0.4859555, 0.33374338, 0.09967796], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00052167, 0.01855596, 0.00043117, 0.0052487], dims="cell_id"
+                        [0.00056153, 0.01973523, 0.00044013, 0.00524491], dims="cell_id"
                     ),
                     soil_n_pool_nitrate=DataArray(
-                        [0.00069102, 0.00219584, -0.00016155, 0.01272167],
+                        [0.00027728, 0.00049583, -0.0001823, 0.01241204],
                         dims="cell_id",
                     ),
                     soil_p_pool_dop=DataArray(

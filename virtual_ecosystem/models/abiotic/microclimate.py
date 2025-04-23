@@ -3,7 +3,8 @@ balance in the Virtual Ecosystem.
 """  # noqa: D205
 
 import numpy as np
-from pyrealm.core.hygro import calc_specific_heat
+from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
@@ -11,10 +12,6 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
-from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
-    calculate_saturation_vapour_pressure,
-)
 
 
 def run_microclimate(
@@ -24,8 +21,8 @@ def run_microclimate(
     cell_area: float,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
-    abiotic_simple_constants: AbioticSimpleConsts,
     core_constants: CoreConsts,
+    pyrealm_const: PyrealmConst,
 ) -> dict[str, DataArray]:
     """Run microclimate model.
 
@@ -47,8 +44,8 @@ def run_microclimate(
         cell_area: Cell area, [m2]
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
-        abiotic_simple_constants: Set of constants for abiotic simple model
         core_constants: Set of constants that are shared across all models
+        pyrealm_const: Set of constants from pyrealm
 
     Returns:
         dictionary with updated microclimate variables
@@ -59,7 +56,7 @@ def run_microclimate(
     # Selection of often used subsets (could be moved to separate function, e.g. tools)
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
-    leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers").to_numpy()
+    leaf_area_index_sum = np.nansum(data["leaf_area_index"].to_numpy(), axis=0)
 
     atmospheric_pressure_out = layer_structure.from_template()
     atmospheric_pressure_out[layer_structure.index_filled_atmosphere] = data[
@@ -120,18 +117,61 @@ def run_microclimate(
         min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
     )
 
-    #   TODO Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = 10.0
-    #  The current implementation of logarithmic wind profile breaks down when the
-    #  canopy layer height falls below the zero displacement height. A more sophistcated
-    #  implementation is needed, e.g. Monin-Obukov theory, or a constant value across
-    #  the canopy. For now empirical value for homogenous canopy.
+    #   Friction velocity, [m s-1]
+    # friction_velocity = wind.calculate_friction_velocity(
+    #     reference_wind_speed=data["wind_speed_ref"]
+    #     .isel(time_index=time_index)
+    #     .to_numpy(),
+    #     reference_height=(
+    #         data["layer_heights"][0].to_numpy()
+    #         + abiotic_constants.wind_reference_height
+    #     ),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+
+    #   Friction velocity, [m s-1]
+    # friction_velocity = wind.calculate_friction_velocity(
+    #     reference_wind_speed=data["wind_speed_ref"]
+    #     .isel(time_index=time_index)
+    #     .to_numpy(),
+    #     reference_height=(
+    #         data["layer_heights"][0].to_numpy()
+    #         + abiotic_constants.wind_reference_height
+    #     ),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+
+    # Aerodynamic resistance canopy, [s m-1]
+    #  TODO The current implementation returns quite high values at the top canopy
+    # There seems to be an issue with fluxes as, needs to be checked when fixing
+    # temperature update function. Could have to do with low wind speeds.
+    # aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
+    #     wind_heights=data["layer_heights"][
+    #         layer_structure.index_filled_canopy
+    #     ].to_numpy(),
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     friction_velocity=friction_velocity,
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+    aerodynamic_resistance_canopy = np.full_like(
+        data["leaf_area_index"][layer_structure.index_filled_canopy], 12.5
+    )
+    aerodynamic_resistance_canopy_out = layer_structure.from_template()
+    aerodynamic_resistance_canopy_out[layer_structure.index_filled_canopy] = (
+        aerodynamic_resistance_canopy
+    )
+    output["aerodynamic_resistance_canopy"] = aerodynamic_resistance_canopy_out
 
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
     # Initialise variables to iterate energy balance to update temperatures
-    # TODO check if it actually makes sense to preselect inddices, seems messy
+    # TODO check if it actually makes sense to preselect indices, seems messy
 
     all_air_temperature = data["air_temperature"][
         layer_structure.index_filled_atmosphere
@@ -170,7 +210,7 @@ def run_microclimate(
 
         #   Latent heat of vapourisation, [kJ kg-1]
         latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-            temperature=mean_air_temperature,
+            temperature=all_air_temperature,
             celsius_to_kelvin=core_constants.zero_Celsius,
             latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
         )
@@ -207,20 +247,16 @@ def run_microclimate(
         )
 
         # Saturated vapour pressure of air, [kPa]
-        saturated_vapour_pressure_air = calculate_saturation_vapour_pressure(
-            temperature=DataArray(all_air_temperature),
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
+        saturated_vapour_pressure_air = calc_vp_sat(
+            ta=all_air_temperature,
+            core_const=PyrealmConst(),
         )
 
         #  Actual vapour pressure of air, [kPa]
         actual_vapour_pressure_air = abiotic_tools.calculate_actual_vapour_pressure(
             air_temperature=DataArray(all_air_temperature),
             relative_humidity=DataArray(relative_humidity),
-            saturation_vapour_pressure_factors=(
-                abiotic_simple_constants.saturation_vapour_pressure_factors
-            ),
+            pyrealm_const=PyrealmConst,
         )
 
         # Specific humidity of air, [kg kg-1] TODO external function
@@ -234,16 +270,19 @@ def run_microclimate(
         # TODO cross-check with plant model, time step currently month to second
         # TODO also there is a split between evaporation and transpiration, needs to be
         # fixed in #493 - hydrology and evaporation
+        # also canopy_evaporation is 2D, chekc that this matches
         # evapotranspiration = data['canopy_evaporation'] + data['transpiration']
         latent_heat_flux_canopy = (
             data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
             / 2.628e6
-        ) * latent_heat_vapourisation
+        ) * latent_heat_vapourisation[1:-1]
 
         # Latent heat flux topsoil, [W m-2]
         # TODO cross-check with hydrology model, time step currently month to second
         latent_heat_flux_soil = (
-            data["soil_evaporation"].to_numpy() / 2.628e6 * latent_heat_vapourisation
+            data["soil_evaporation"].to_numpy()
+            / 2.628e6
+            * latent_heat_vapourisation[-1]
         )
 
         # TODO name absorption variable like plants - Net radiation topsoil, [W m-2]
@@ -321,7 +360,7 @@ def run_microclimate(
                 layer_structure.index_filled_canopy
             ].to_numpy(),
             soil_evaporation=data["soil_evaporation"].to_numpy(),
-            saturated_vapour_pressure=saturated_vapour_pressure_air.to_numpy(),
+            saturated_vapour_pressure=saturated_vapour_pressure_air,
             specific_humidity=specific_humidity_air.to_numpy(),
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,
@@ -357,6 +396,17 @@ def run_microclimate(
     output["density_air"] = DataArray(density_air, dims="cell_id")
     output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")
 
+    aero_resistance_canopy_out = layer_structure.from_template()
+    aero_resistance_canopy_out[layer_structure.index_filled_canopy] = (
+        aerodynamic_resistance_canopy
+    )
+    output["aerodynamic_resistance_canopy"] = aero_resistance_canopy_out
+
+    latent_heat_vapourisation_out = layer_structure.from_template()
+    latent_heat_vapourisation_out[layer_structure.index_filled_atmosphere] = (
+        latent_heat_vapourisation
+    )
+    output["latent_heat_vapourisation"] = latent_heat_vapourisation_out
     # Combine sensible heat flux in one variable, TODO consider time interval
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy

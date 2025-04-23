@@ -115,6 +115,39 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
+def test_calculate_sensible_heat_flux(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculation of sensible heat flux."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_sensible_heat_flux,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    index = fixture_core_components.layer_structure.index_filled_canopy
+    # Compute flux
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
+    )
+
+    # Expected result (manually calculated)
+    expected_flux = np.array(
+        [
+            [-0.489356, -0.489356, -0.489356, -0.489356],
+            [-0.390997, -0.390997, np.nan, np.nan],
+            [-0.222852, np.nan, np.nan, np.nan],
+        ]
+    )
+
+    # Assert all elements are close
+    np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
+
+
 @pytest.mark.parametrize(
     "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
     [
@@ -158,7 +191,9 @@ def test_calculate_net_radiation(
     np.testing.assert_allclose(result, expected, rtol=1e-5)
 
 
-def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_components):
+def test_calculate_aerodynamic_resistance(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test calculate aerodynamic resistance."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
@@ -166,9 +201,10 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
 
     lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
 
     result = calculate_aerodynamic_resistance(
-        wind_heights=dummy_climate_data["layer_heights"][lyr_str.index_filled_canopy],
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
         roughness_length=np.repeat(0.3, 4),
         zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
         friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
@@ -176,9 +212,9 @@ def test_calculate_aerodynamic_resistance(dummy_climate_data, fixture_core_compo
     )
     exp_ra = np.array(
         [
-            [142.134882, 122.08445, 98.78846, 71.045725],
-            [129.620527, 101.934823, 71.04573, np.nan],
-            [108.227096, 0.001, np.nan, np.nan],
+            [1636.388306, 1281.796711, 966.156818, 499.702011],
+            [1360.919965, 893.600893, np.nan, np.nan],
+            [948.761442, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
@@ -268,9 +304,9 @@ def test_update_air_canopy_temperature():
     air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
     canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
 
-    # Expected outputs (calculated manually)
+    # Expected outputs
     expected_canopy_temperature = np.array(
-        [[356.152399, 367.60412], [380.623964, 395.36695]]
+        [[357.378642, 369.30703], [382.892166, 398.304809]]
     )
     expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
 
@@ -283,9 +319,9 @@ def test_update_air_canopy_temperature():
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
         emissivity_leaf=0.8,
-        specific_heat_air=1.006,
-        density_air=1.293,
-        aerodynamic_resistance=10.0,
+        specific_heat_air=np.full((2, 2), 1.006),
+        density_air=np.full((2, 2), 1.293),
+        aerodynamic_resistance=np.full((2, 2), 200.0),
         relaxation_factor=0.1,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
     )
@@ -314,8 +350,8 @@ def test_update_humidity_vpd():
     layer_thickness = np.array([np.full(4, layer) for layer in [20, 10, 5, 1, 0.1]])
     atmospheric_pressure = np.full((5, 4), 100)  # kPa
     water_to_air_mass_ratio = 0.622  # Constant
-    dry_air_factor = 1 - water_to_air_mass_ratio  # 0.378
-    cell_area = 10_000  # m² (1 ha)
+    dry_air_factor = 1 - water_to_air_mass_ratio
+    cell_area = 10_000  # m2 (1 ha)
 
     # Call the function
     result = update_humidity_vpd(

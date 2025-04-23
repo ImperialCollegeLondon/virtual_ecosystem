@@ -1,10 +1,10 @@
 """Test microclimate.py."""
 
 import numpy as np
+from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
 
 # Test integration (TODO add structural and value range check)
@@ -23,12 +23,12 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         cell_area=10000,
         layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
-        abiotic_simple_constants=AbioticSimpleConsts(),
         core_constants=CoreConsts(),
+        pyrealm_const=PyrealmConst(),
     )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.378808, 19.9601])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([17.381122, 19.960125])[:, None]
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
@@ -38,7 +38,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [23.089618, 22.275915, 20.883682]
+        [21.661984, 20.863471, 19.496992]
     )[:, None]
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
@@ -49,7 +49,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 26.323, 25.473, 24.019, 19.625]
+        [30.0, 25.657778, 24.815103, 23.373881, 19.625]
     )[:, None]
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -71,13 +71,13 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_vp = lyr_str.from_template()
     exp_vp[lyr_str.index_filled_atmosphere] = np.array(
-        [1.417, 1.195, 1.170, 1.127, 1.088]
+        [4.233724, 2.643879, 2.517338, 2.313084, 2.305459]
     )[:, None]
     np.testing.assert_allclose(
         result["vapour_pressure"],
         exp_vp,
-        rtol=1e-02,
-        atol=1e-02,
+        rtol=1e-04,
+        atol=1e-04,
     )
 
     exp_vpd = lyr_str.from_template()
@@ -85,6 +85,18 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     np.testing.assert_allclose(
         result["vapour_pressure_deficit"],
         exp_vpd,
+        rtol=1e-04,
+        atol=1e-04,
+    )
+
+    # Sensible heat flux, canopy only
+    exp_shc = lyr_str.from_template()
+    exp_shc[lyr_str.index_filled_canopy] = np.array(
+        [-370.635892, -366.524782, -359.567395]
+    )[:, None]
+    np.testing.assert_allclose(
+        result["sensible_heat_flux"][1:4],
+        exp_shc[1:4],
         rtol=1e-04,
         atol=1e-04,
     )

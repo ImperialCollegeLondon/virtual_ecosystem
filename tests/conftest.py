@@ -261,12 +261,16 @@ def fixture_config(microbial_groups_cfg):
         resp_f = 0.1
         resp_r = 0.913
         resp_s = 0.044
+        resp_rt = 0.05
         rho_s = 200.0
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        tau_rt = 1
+        yld = 0.6
         zeta = 0.17
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
 
         [[plants.pft_definition]]
         a_hd = 116.0
@@ -281,107 +285,190 @@ def fixture_config(microbial_groups_cfg):
         resp_f = 0.1
         resp_r = 0.913
         resp_s = 0.044
+        resp_rt = 0.05
         rho_s = 200.0
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        tau_rt = 1
+        yld = 0.6
         zeta = 0.17
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"
         taxa = "bird"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.1
         adult_mass = 1.0
+
         [[animal.functional_groups]]
         name = "herbivorous_bird"
         taxa = "bird"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.05
         adult_mass = 0.5
+
         [[animal.functional_groups]]
         name = "carnivorous_mammal"
         taxa = "mammal"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 4.0
         adult_mass = 40.0
+
         [[animal.functional_groups]]
         name = "herbivorous_mammal"
         taxa = "mammal"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 1.0
         adult_mass = 10.0
+
         [[animal.functional_groups]]
         name = "carnivorous_insect"
         taxa = "insect"
         diet = "carnivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground_canopy"
         birth_mass = 0.001
         adult_mass = 0.01
+
         [[animal.functional_groups]]
         name = "herbivorous_insect"
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground_canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
+
         [[animal.functional_groups]]
         name = "butterfly"
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "indirect"
         development_status = "adult"
         offspring_functional_group = "caterpillar"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
+
         [[animal.functional_groups]]
         name = "caterpillar"
         taxa = "insect"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "nonreproductive"
         development_type = "indirect"
         development_status = "larval"
         offspring_functional_group = "butterfly"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "canopy"
+        birth_mass = 0.0005
+        adult_mass = 0.005
+
+        [[animal.functional_groups]]
+        name = "frog"
+        taxa = "amphibian"
+        diet = "carnivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "aquatic"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "frog"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
+        birth_mass = 0.005
+        adult_mass = 0.5
+
+        [[animal.functional_groups]]
+        name = "swallow"
+        taxa = "bird"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "swallow"
+        excretion_type = "uricotelic"
+        migration_type = "seasonal"
+        vertical_occupancy = "canopy"
+        birth_mass = 0.005
+        adult_mass = 0.2
+
+        [[animal.functional_groups]]
+        name = "earthworm"
+        taxa = "insect"
+        diet = "herbivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "earthworm"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil"
         birth_mass = 0.0005
         adult_mass = 0.005
 
@@ -581,6 +668,9 @@ def dummy_climate_data(fixture_core_components):
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
 
+    data["aerodynamic_resistance_canopy"] = from_template()
+    data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
+
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
 
@@ -600,6 +690,11 @@ def dummy_climate_data(fixture_core_components):
     data["relative_humidity"] = from_template()
     data["relative_humidity"][lyr_str.index_filled_atmosphere] = np.array(
         [90.0, 90.341644, 92.488034, 96.157312, 100]
+    )[:, None]
+
+    data["vapour_pressure_deficit"] = from_template()
+    data["vapour_pressure_deficit"][lyr_str.index_filled_atmosphere] = np.array(
+        [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
     data["shortwave_absorption"] = from_template()
@@ -677,6 +772,9 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     """
 
     index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
+    index_filled_atmosphere = (
+        fixture_core_components.layer_structure.index_filled_atmosphere
+    )
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -719,6 +817,19 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
     dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
+    dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
+        [12.5, 12.5, 12.5, 12.5],
+        [12.5, 12.5, np.nan, np.nan],
+        [12.5, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
+        [0.14, 0.14, 0.14, 0.14],
+        [0.2, 0.2, 0.2, 0.2],
+        [0.2, 0.2, np.nan, np.nan],
+        [0.2, np.nan, np.nan, np.nan],
+        [0.14, 0.14, 0.14, 0.14],
+    ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
         [0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, np.nan, np.nan],

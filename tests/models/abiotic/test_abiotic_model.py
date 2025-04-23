@@ -32,7 +32,7 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
     (INFO, "Replacing data array for 'air_temperature'"),
     (INFO, "Replacing data array for 'relative_humidity'"),
-    (INFO, "Adding data array for 'vapour_pressure_deficit'"),
+    (INFO, "Replacing data array for 'vapour_pressure_deficit'"),
     (INFO, "Replacing data array for 'wind_speed'"),
     (INFO, "Replacing data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
@@ -319,7 +319,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((4, 3), 0.141727),
+            np.full((4, 3), 0.423372),
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2, 3],
@@ -370,7 +370,12 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         model.update(time_index=0)
 
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.727418, 19.989483])[
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([18.730802, 19.989525])[
         :, None
     ]
-    xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp1)
+    expected_soil_moist = lyr_strct.from_template()
+    expected_soil_moist[lyr_strct.index_all_soil] = np.array([5.0, 500])[:, None]
+    xr.testing.assert_allclose(
+        model.data["soil_temperature"], expected_soil_temp1, rtol=0.0001
+    )
+    xr.testing.assert_allclose(model.data["soil_moisture"], expected_soil_moist)

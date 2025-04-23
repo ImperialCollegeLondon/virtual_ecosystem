@@ -13,8 +13,11 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     ExcretionType,
     MetabolicType,
+    MigrationType,
+    ReproductiveEnvironment,
     ReproductiveType,
     TaxaType,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 
@@ -38,11 +41,14 @@ class FunctionalGroup:
         taxa: str,
         diet: str,
         metabolic_type: str,
+        reproductive_environment: str,
         reproductive_type: str,
         development_type: str,
         development_status: str,
         offspring_functional_group: str,
         excretion_type: str,
+        migration_type: str,
+        vertical_occupancy: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -61,6 +67,10 @@ class FunctionalGroup:
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""
+        self.reproductive_environment = ReproductiveEnvironment(
+            reproductive_environment
+        )
+        """The reproductive environment used by the functional group."""
         self.reproductive_type = ReproductiveType(reproductive_type)
         """The reproductive type of the functional group."""
         self.development_type = DevelopmentType(development_type)
@@ -72,6 +82,10 @@ class FunctionalGroup:
             metamorphosis."""
         self.excretion_type = ExcretionType(excretion_type)
         """The excretion type of the functional group."""
+        self.migration_type = MigrationType(migration_type)
+        """The migration type of the functional group."""
+        self.vertical_occupancy = VerticalOccupancy.parse(vertical_occupancy)
+        """The vertical occupancy type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -134,11 +148,14 @@ def import_functional_groups(
             row.taxa,
             row.diet,
             row.metabolic_type,
+            row.reproductive_environment,
             row.reproductive_type,
             row.development_type,
             row.development_status,
             row.offspring_functional_group,
             row.excretion_type,
+            row.migration_type,
+            row.vertical_occupancy,
             row.birth_mass,
             row.adult_mass,
             constants=constants,
