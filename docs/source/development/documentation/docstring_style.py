@@ -2,7 +2,7 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: all,-trusted
-#     notebook_metadata_filter: settings,mystnb,language_info
+#     notebook_metadata_filter: settings,mystnb,language_info,execution
 #     text_representation:
 #       extension: .py
 #       format_name: light
