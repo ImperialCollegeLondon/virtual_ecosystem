@@ -264,7 +264,7 @@ class SoilModel(
         self.data.add_from_dict(dissolved_nutrient_pools)
 
         # Calculate the limit on what the plants can take from the symbiotic microbes
-        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits()
+        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=True)
         # Add these limits to the data object
         self.data.add_from_dict(symbiotic_supply_limits)
 
@@ -301,7 +301,7 @@ class SoilModel(
         self.data.add_from_dict(dissolved_nutrient_pools)
 
         # Calculate the limit on what the plants can take from the symbiotic microbes
-        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits()
+        symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=False)
 
         # Add these limits to the data object
         self.data.add_from_dict(symbiotic_supply_limits)
@@ -462,7 +462,7 @@ class SoilModel(
         else:
             return output_rate * self.core_constants.max_depth_of_microbial_activity
 
-    def calculate_symbiotic_supply_limits(self) -> dict[str, DataArray]:
+    def calculate_symbiotic_supply_limits(self, init: bool) -> dict[str, DataArray]:
         """Calculate supply limits of nutrients to plants by symbiotic microbes.
 
         These limits are calculated for each symbiote for each nutrient. If the limits
@@ -470,25 +470,50 @@ class SoilModel(
         converted from the per volume units used in the soil model, to the per area
         units used in the plant model.
 
+        TODO - These supply limits can only be properly calculated once the soil
+        temperature and matric potential are known. At present these are only found once
+        the abiotic and hydrology models (respectively), are updated. Instead a
+        temperature of 25C and optimal water potential (set in the constants) are used.
+        Down the line we need to decide whether this inaccuracy is acceptable, or
+        whether the stage at which basic abiotic information gets calculated needs to
+        change.
+
+        Args:
+            init: A boolean specifying whether this function is being called as part of
+               the model initialisation or as part of the model update.
+
         Returns:
             The maximum amount each nutrient (nitrogen and phosphorus) that plants can
             draw from each mycorrhizal partner (arbuscular mycorrhizal and
             ectomycorrhizal fungi) [kg m^-2 day^-1]
         """
 
-        # Average soil temperature and water potential over the microbially active
-        # layers, and then use to calculate the environmental factors
-        soil_water_potential = average_water_potential_over_microbially_active_layers(
-            water_potentials=self.data["matric_potential"],
-            layer_structure=self.layer_structure,
-        )
-        soil_temperature = average_temperature_over_microbially_active_layers(
-            soil_temperatures=self.data["soil_temperature"],
-            surface_temperature=self.data["air_temperature"][
-                self.layer_structure.index_surface_scalar
-            ].to_numpy(),
-            layer_structure=self.layer_structure,
-        )
+        if not init:
+            # Average soil temperature and water potential over the microbially active
+            # layers, and then use to calculate the environmental factors
+            soil_water_potential = (
+                average_water_potential_over_microbially_active_layers(
+                    water_potentials=self.data["matric_potential"],
+                    layer_structure=self.layer_structure,
+                )
+            )
+            soil_temperature = average_temperature_over_microbially_active_layers(
+                soil_temperatures=self.data["soil_temperature"],
+                surface_temperature=self.data["air_temperature"][
+                    self.layer_structure.index_surface_scalar
+                ].to_numpy(),
+                layer_structure=self.layer_structure,
+            )
+        else:
+            # Want to establish the maximum for optimal conditions, so use the water
+            # potential optimum from the constants, and arbitrarily select a soil
+            # temperature of 25C as "optimal"
+            soil_temperature = np.full_like(self.data["pH"].to_numpy(), 25.0)
+            soil_water_potential = np.full_like(
+                self.data["pH"].to_numpy(),
+                self.model_constants.soil_microbe_water_potential_optimum,
+            )
+
         env_factors = calculate_environmental_effect_factors(
             soil_water_potential=soil_water_potential,
             pH=self.data["pH"].to_numpy(),
@@ -523,22 +548,22 @@ class SoilModel(
 
         return {
             "ecto_supply_limit_n": where(
-                ecto_n_limit >= 0.0,
+                DataArray(ecto_n_limit) >= 0.0,
                 self.to_per_area(ecto_n_limit),
                 0.0,
             ),
             "ecto_supply_limit_p": where(
-                ecto_p_limit >= 0.0,
+                DataArray(ecto_p_limit) >= 0.0,
                 self.to_per_area(ecto_p_limit),
                 0.0,
             ),
             "arbuscular_supply_limit_n": where(
-                arbuscular_n_limit >= 0.0,
+                DataArray(arbuscular_n_limit) >= 0.0,
                 self.to_per_area(arbuscular_n_limit),
                 0.0,
             ),
             "arbuscular_supply_limit_p": where(
-                arbuscular_p_limit >= 0.0,
+                DataArray(arbuscular_p_limit) >= 0.0,
                 self.to_per_area(arbuscular_p_limit),
                 0.0,
             ),

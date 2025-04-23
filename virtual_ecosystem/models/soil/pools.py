@@ -772,8 +772,6 @@ class SoilPools:
             return input_rate / self.max_depth_of_microbial_activity
 
 
-# TODO - This functional really needs to be reworked if it's to take in 4 functional
-# groups rather than 2, refactor makes sense to do after the new functionality is added
 def calculate_microbial_changes(
     pools: PoolData,
     soil_temp: NDArray[np.float32],
