@@ -13,11 +13,89 @@ class MetabolicType(Enum):
     ECTOTHERMIC = "ectothermic"
 
 
-class DietType(Enum):
-    """Enumeration for diet types."""
+class DietType(Flag):
+    """Enumeration for diet resource types."""
 
-    HERBIVORE = "herbivore"
-    CARNIVORE = "carnivore"
+    ALGAE = auto()
+    DETRITUS = auto()
+    FLOWERS = auto()
+    FOLIAGE = auto()
+    FRUIT = auto()
+    FUNGUS = auto()
+    SEEDS = auto()
+    BLOOD = auto()
+    INVERTS = auto()
+    NECTAR = auto()
+    FISH = auto()
+    CARCASS = auto()
+    VERTS = auto()
+    WASTE = auto()
+    WOOD = auto()
+    NONFEEDING = auto()
+
+    HERBIVORE = (
+        ALGAE
+        | DETRITUS
+        | FLOWERS
+        | FOLIAGE
+        | FRUIT
+        | FUNGUS
+        | SEEDS
+        | NECTAR
+        | WOOD
+        | NONFEEDING  # not strictly correct
+    )
+    CARNIVORE = BLOOD | INVERTS | FISH | VERTS | CARCASS | WASTE
+    OMNIVORE = HERBIVORE | CARNIVORE
+
+    @classmethod
+    def parse(cls, diet_string: str) -> "DietType":
+        """Parse a string of underscore-separated diet terms into a DietType flag.
+
+        This method takes a lowercase string such as 'fruit_foliage_fish' and converts
+        it into a combined DietType flag using bitwise OR logic. This allows diet
+        traits to be specified flexibly in configuration files or CSV inputs.
+
+        Args:
+            diet_string: A lowercase underscore-separated string representing one or
+              more diet components (e.g., 'foliage', 'fruit_fish', 'nectar_fungus').
+
+        Returns:
+            A DietType flag representing the combined diet traits.
+        """
+
+        parts = diet_string.lower().split("_")
+        flags = getattr(cls, parts[0].upper())
+        for part in parts[1:]:
+            flags |= getattr(cls, part.upper())
+        return flags
+
+    def coarse_category(self) -> "DietType":
+        """Classify the detailed diet into a broad trophic category.
+
+        This method examines the components of the current DietType flag and returns one
+        of the three broad trophic categories: HERBIVORE, CARNIVORE, or OMNIVORE. These
+        categories are defined as composite flags within the DietType enumeration.
+
+        - Returns OMNIVORE if the diet includes both plant/fungal and animal-derived
+            resources.
+        - Returns CARNIVORE if the diet includes only animal-derived resources.
+        - Returns HERBIVORE for all other combinations, including plant-only or empty
+            diets.
+
+        Returns:
+            A DietType flag representing the coarse category: HERBIVORE, CARNIVORE,
+              or OMNIVORE.
+        """
+        is_herb = bool(self & DietType.HERBIVORE)
+        is_carn = bool(self & DietType.CARNIVORE)
+
+        if is_herb and is_carn:
+            return DietType.OMNIVORE
+        elif is_carn:
+            return DietType.CARNIVORE
+        else:
+            return DietType.HERBIVORE
 
 
 class TaxaType(Enum):
@@ -25,7 +103,7 @@ class TaxaType(Enum):
 
     MAMMAL = "mammal"
     BIRD = "bird"
-    INSECT = "insect"
+    INVERTEBRATE = "invertebrate"
     AMPHIBIAN = "amphibian"
 
 

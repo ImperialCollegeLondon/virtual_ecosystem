@@ -1010,6 +1010,8 @@ class AnimalModel(
     def forage_community(self) -> None:
         """This function organizes the foraging of animal cohorts.
 
+        TODO: update for trophic expansion
+
         Herbivores will only forage plant resources, while carnivores will forage for
         prey (other animal cohorts).
 

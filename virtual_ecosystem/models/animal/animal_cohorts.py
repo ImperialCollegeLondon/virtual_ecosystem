@@ -826,7 +826,6 @@ class AnimalCohort:
         consumed based on this rate and other model parameters.
 
         TODO: Replace delta_t with time step reference
-        TODO: Update with stoichiometry
 
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
@@ -1022,7 +1021,7 @@ class AnimalCohort:
     ) -> None:
         """This function handles selection of resources from a list for consumption.
 
-        TODO: Update with stoichiometry
+        TODO: update for trophic expansion
 
         Args:
             plant_list: A list of plant resources available for herbivory.
