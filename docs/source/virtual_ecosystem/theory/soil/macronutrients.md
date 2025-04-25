@@ -62,10 +62,14 @@ where $I_p$ is the total input of phosphorus from the litter to the soil, $\lamb
 the fraction of the litter decay that occurs by leaching, and $\delta_o$ is the fraction
 of the leached phosphorus that enters the soil in an organic form.
 
-TODO - Add a microbial uptake paragraph
-
-TODO - Add a note about DON and DOP being LMWC stoichiometry but called something
-different
+Microbes uptake organic matter (in the form of :term:`LMWC`) so that they can synthesis
+new biomass. This organic matter also has nitrogen and phosphorus contents (referred to
+as :term:`DON` and :term:`DOP`, respectively). This can result in more macronutrient
+being taken up than the microbe needs to sustain it's growth. When this happens the
+excess macronutrient gets returned to the soil. The form that this excess nutrient gets
+returned in depends on how carbon limited the microbial group is. The closer to carbon
+limitation (the point where carbon is the nutrient limiting growth) the microbial group
+is the higher the proportion that gets returned in an inorganic form is.
 
 ## Inorganic nitrogen cycling
 
