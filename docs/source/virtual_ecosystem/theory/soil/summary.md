@@ -23,7 +23,7 @@ language_info:
   version: 3.11.9
 ---
 
-# Overview
+# Soil and litter
 
 The storage and cycling of carbon and nutrients within the soil are key processes we aim
 to capture in the Virtual Ecosystem. This requires modelling soil specific processes, as
@@ -33,7 +33,7 @@ and within the above ground litter layer.
 The soil theme is split into two separate models. On one hand, the [litter
 model](./litter_theory.md) handles the breakdown of biomass that's still in an
 identifiable form, both in the above-ground litter layer as well as below ground.
-On the other hand, the soil model handles the processes that are specific to the soil, 
+On the other hand, the soil model handles the processes that are specific to the soil,
 i.e. the [soil carbon](./soil_carbon.md) and [macronutrient](./macronutrients.md) cycles.
 
 The litter model is significantly simpler than the soil model. The biggest uncertainty

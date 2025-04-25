@@ -33,8 +33,8 @@ by environmental conditions and, for some of the pools, by their lignin concentr
 Notably, these decay rates are not affected by the nitrogen and phosphorus
 concentrations of the pools. Instead, nitrogen and phosphorus concentrations affect the
 partitioning of input organic matter between litter pools, i.e. if the nutrient
-concentrations of a particular input are low, then a higher proportion of the input goes into
-slow decaying litter pools. This indirectly captures the impact of nitrogen and
+concentrations of a particular input are low, then a higher proportion of the input goes
+into slow decaying litter pools. This indirectly captures the impact of nitrogen and
 phosphorus chemistry on litter decay.
 
 The rest of this page gives provides details on the specific litter pools, the
@@ -45,7 +45,7 @@ the impacts animals have on litter accumulation and decay.
 
 In our model, pools are principally defined by input type, e.g. woody, structural and
 metabolic. They are then further subdivided into above- and below-ground pools. Some of
-these pools cannot be fully characterised due to insufficient data, so we neglect them 
+these pools cannot be fully characterised due to insufficient data, so we neglect them
 following {cite}`fatichi_mechanistic_2019`. This means that we use a single
 above-ground woody litter pool, rather than coarse and fine woody, and we do not include
 any below-ground woody pool. This leaves us with the following pools:
@@ -70,7 +70,7 @@ to an above-ground woody pool. We assume that the vast majority of dead wood end
 decaying on top of the soil, and so there is no corresponding below-ground pool. We
 considered including a separate pool for standing dead trees, as wood decaying in this
 form would experience a very different environment and hence would be expected to decay
-at a different rate. However, this felt like too much effort for what is likely to be a 
+at a different rate. However, this felt like too much effort for what is likely to be a
 small effect.
 
 ### Below-ground metabolic litter

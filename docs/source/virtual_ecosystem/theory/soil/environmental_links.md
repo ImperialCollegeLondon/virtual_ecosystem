@@ -38,10 +38,10 @@ through the soil. We will now describe each of these processes in more detail.
 
 ## Microbial response to temperature
 
-Temperature is one of the most significant drivers of microbial processes. 
-Two different approaches are taken to model the effects of temperature on
-microbial process rates. While most processes are modelled using the Arrhenius equation,
-a different approach is taken to modelling the microbial growth rate.
+Temperature is one of the most significant drivers of microbial processes. Two different
+approaches are taken to model the effects of temperature on microbial process rates.
+While most processes are modelled using the Arrhenius equation, a different approach is
+taken to modelling the microbial growth rate.
 
 ### Arrhenius equation
 
@@ -73,11 +73,11 @@ temperature.
 ### Temperature impact on microbial growth efficiency
 
 The efficiency of microbial growth is often expressed in carbon terms as a carbon use
-efficiency (CUE). This is defined as the proportion of carbon used for the synthesis of new biomass
-to the total amount of carbon taken up. This is an emergent property that arises from a
-large number of underlying processes (e.g. basal respiration, DNA synthesis efficiency,
-etc.), most of which would be expected to vary with temperature. Carbon
-use efficiency usually does not increase exponentially with temperature,
+efficiency (CUE). This is defined as the proportion of carbon used for the synthesis of
+new biomass to the total amount of carbon taken up. This is an emergent property that
+arises from a large number of underlying processes (e.g. basal respiration, DNA
+synthesis efficiency, etc.), most of which would be expected to vary with temperature.
+Carbon use efficiency usually does not increase exponentially with temperature,
 therefore the Arrhenius model is rarely an appropriate model. Instead we use a simple
 logistic model to describe the temperature dependence of carbon use efficiency
 
@@ -85,21 +85,20 @@ $$\mathrm{logit}\left(\epsilon\right) = \epsilon_{\mathrm{ref}} - \alpha * (T - 
 
 where $\epsilon_{\mathrm{ref}}$ is the carbon use efficiency at the reference
 temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ is the
-environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature.
-The logit link function is used to ensure that carbon use efficiency $\epsilon$
-is bound between 0 and 1 as it is a proportion.
+environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature. The logit
+link function is used to ensure that carbon use efficiency $\epsilon$ is bound between 0
+and 1 as it is a proportion.
 
 ## Soil moisture response
 
-Breakdown rates for soil organic matter and below-ground litter
-pools are both impacted by soil moisture. In very dry soils, breakdown rates are extremely
-slow because microbial movement is restricted from reaching
-the substrate to break it down. As soils get wetter, microbial motility increases
-resulting in faster breakdown rates. However, further increasing soil moisture makes 
-oxygen less permeable in the soil, so after a certain peak breakdown rates begin to
-decrease with increasing soil moisture as oxygen becomes limiting. The
-"intrinsic" process rates are altered to capture the effect of soil moisture by
-multiplying them with a factor that takes the following form
+Breakdown rates for soil organic matter and below-ground litter pools are both impacted
+by soil moisture. In very dry soils, breakdown rates are extremely slow because
+microbial movement is restricted from reaching the substrate to break it down. As soils
+get wetter, microbial motility increases resulting in faster breakdown rates. However,
+further increasing soil moisture makes oxygen less permeable in the soil, so after a
+certain peak breakdown rates begin to decrease with increasing soil moisture as oxygen
+becomes limiting. The "intrinsic" process rates are altered to capture the effect of
+soil moisture by multiplying them with a factor that takes the following form
 
 $$
 A(\psi) = 1 - \left(

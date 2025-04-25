@@ -27,7 +27,7 @@ language_info:
 
 Soils are one of the largest stores ecological stores of carbon. For this reason, there
 has been long term interest in modelling the soil carbon cycle. This is a massively
-complex task as carbon exists in the soil in a huge variety of forms, therefore 
+complex task as carbon exists in the soil in a huge variety of forms, therefore
 soil carbon modelling (starting with the CENTURY model
 {cite}`parton_analysis_1987`) have generally grouped carbon into a small set of pools
 with common properties. This is the broad approach that we take in the Virtual
@@ -50,16 +50,15 @@ is both comprehensive and defines measurable pools, and for this reason we make 
 a variant of it in our soil model.
 
 Where we differ from the Millennial model is that we only include pools that represent
-the chemical protection of carbon, and neglect the pool that represents the
-physical protection of carbon (i.e. soil aggregates). 
-This partly to avoid double counting of protection mechanisms, as it is
-quite common for carbon that is protected chemically to also be protected physically.
-Additionally, pools are appropriately set up to represent chemical transformations
-(through enzymatic kinetics), but are less appropriate for physical transformations
-(i.e. soil aggregates changing in size is hard to capture with a discrete set of pools).
-Properly capturing physical protection of carbon requires 
-the distribution of particle sizes in soil, which is not something we plan to
-add in the immediate future.
+the chemical protection of carbon, and neglect the pool that represents the physical
+protection of carbon (i.e. soil aggregates). This partly to avoid double counting of
+protection mechanisms, as it is quite common for carbon that is protected chemically to
+also be protected physically. Additionally, pools are appropriately set up to represent
+chemical transformations (through enzymatic kinetics), but are less appropriate for
+physical transformations (i.e. soil aggregates changing in size is hard to capture with
+a discrete set of pools). Properly capturing physical protection of carbon requires the
+distribution of particle sizes in soil, which is not something we plan to add in the
+immediate future.
 
 The carbon pools that we use in our soil model are as follows:
 
@@ -90,31 +89,30 @@ the main form of (chemically) protected carbon.
 
 ### Microbial biomass
 
-Microbial biomass accounts for a small fraction of total soil carbon. 
+Microbial biomass accounts for a small fraction of total soil carbon.
 This pool turns over rapidly (order of days) and only represents a
 very small fraction of total soil carbon. However, microbes
-are key drivers of soil carbon cycling. It is therefore very important to track 
-the size of the microbial biomass pool because a significant amount of carbon flows 
+are key drivers of soil carbon cycling. It is therefore very important to track
+the size of the microbial biomass pool because a significant amount of carbon flows
 through it, with microbial respiration being one of the major sources of carbon
 loss from the system.
 
 ### Microbial necromass
 
-When microbial cells die they break down and form the microbial necromass. This
-consists of complex biochemicals that normally would be contained within cells, but are
-now exposed directly to the soil environment. This pools turns over rapidly (order of
-days), and is very small. However, it is important to track this pool as the
-biochemicals that it represents rapidly bind to soil minerals, so the size of
-this pool can affect how quickly new protected carbon is formed.
+When microbial cells die they break down and form the microbial necromass. This consists
+of complex biochemicals that normally would be contained within cells, but are now
+exposed directly to the soil environment. This pools turns over rapidly (order of days),
+and is very small. However, it is important to track this pool as the biochemicals that
+it represents rapidly bind to soil minerals, so the size of this pool can affect how
+quickly new protected carbon is formed.
 
 ## Soil carbon inputs
 
 ### Plant inputs
 
-Most plant inputs enter to the soil via the [litter model](./litter_theory.md), 
-due to litter mineralisation. 
-A portion of this is assumed to have occurred due leaching of simple
-compounds from the litter into the soil. This part of the litter mineralisation
+Most plant inputs enter to the soil via the [litter model](./litter_theory.md), due to
+litter mineralisation. A portion of this is assumed to have occurred due leaching of
+simple compounds from the litter into the soil. This part of the litter mineralisation
 flux gets added to the {term}`LMWC` pool, and is calculated by
 
 $$I_L = C_l * M_C,$$
@@ -165,10 +163,10 @@ the relevant enzyme class, $k_i$ is the decomposition rate constant, $K_i$ is th
 decomposition saturation constant, $f_{T,r}$ is a factor capturing the impact of
 temperature on the process rate, $f_{T,s}$ is a factor capturing the impact of
 temperature on the concentration at which the enzyme saturates, $f_W$ is a factor
-capturing the impact of soil moisture on the process rate, $f_{p}$ is a factor
-capturing the impact of soil pH on the process rate, and $f_{c}$ is a factor capturing
-the impact of soil clay content on the concentration at which the enzyme saturates.
-Definitions of these environmental factors can be found
+capturing the impact of soil moisture on the process rate, $f_{p}$ is a factor capturing
+the impact of soil pH on the process rate, and $f_{c}$ is a factor capturing the impact
+of soil clay content on the concentration at which the enzyme saturates. Definitions of
+these environmental factors can be found
 [here](./environmental_links.md#environmental-effects-on-enzymes).
 
 ### Microbial turnover
@@ -176,8 +174,8 @@ Definitions of these environmental factors can be found
 The rate at which microbial biomass is lost to both cell death and protein degradation
 ($d$) is temperature dependent (the modelling of this temperature dependence is
 described [here](./environmental_links.md#microbial-response-to-temperature)). All of
-this losses get added to the necromass pool. The breakdown of this necromass pool to form
-{term}`LMWC` is modelled using linear kinetics as
+this losses get added to the necromass pool. The breakdown of this necromass pool to
+form {term}`LMWC` is modelled using linear kinetics as
 
 $$D_n = k_d * N,$$
 
@@ -203,7 +201,7 @@ $$\Delta L = K_d * M - K_s * L,$$
 
 where $K_d$ is the rate constant for {term}`MAOM` desorption, $K_s$ is the rate constant
 for {term}`LMWC` sorption, $M$ is the size of the {term}`MAOM` pool and $L$ is the size
-of the {term}`LMWC` pool. Most {term}`MAOM` formation occurs via necromass sorption, 
+of the {term}`LMWC` pool. Most {term}`MAOM` formation occurs via necromass sorption,
 therefore the default value for $K_s$ is small relative to $k_s$.
 
 ### Leaching of soil carbon
