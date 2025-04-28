@@ -1,6 +1,7 @@
 """Test module for abiotic.energy_balance.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
@@ -23,7 +24,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_componen
     ]
 
     result = initialise_absorbed_radiation(
-        topofcanopy_radiation=dummy_climate_data["topofcanopy_radiation"]
+        topofcanopy_radiation=dummy_climate_data["downward_shortwave_radiation"]
         .isel(time_index=0)
         .to_numpy(),
         leaf_area_index=leaf_area_index_true.to_numpy(),
@@ -60,22 +61,6 @@ def test_initialise_canopy_temperature(dummy_climate_data, fixture_core_componen
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_slope_of_saturated_pressure_curve():
-    """Test calculation of slope of saturated pressure curve."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_slope_of_saturated_pressure_curve,
-    )
-
-    const = AbioticConsts()
-    result = calculate_slope_of_saturated_pressure_curve(
-        temperature=np.full((4, 3), 20.0),
-        saturated_pressure_slope_parameters=const.saturated_pressure_slope_parameters,
-    )
-    exp_result = np.full((4, 3), 0.14474)
-    np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
-
-
 def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_components):
     """Test that canopy and soil fluxes initialised correctly."""
 
@@ -86,13 +71,14 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
     result = initialise_canopy_and_soil_fluxes(
         air_temperature=dummy_climate_data["air_temperature"],
         topofcanopy_radiation=(
-            dummy_climate_data["topofcanopy_radiation"].isel(time_index=0)
+            dummy_climate_data["downward_shortwave_radiation"].isel(time_index=0)
         ),
         leaf_area_index=dummy_climate_data["leaf_area_index"],
         layer_heights=dummy_climate_data["layer_heights"],
         layer_structure=fixture_core_components.layer_structure,
         light_extinction_coefficient=0.01,
         canopy_temperature_ini_factor=0.01,
+        initial_flux_value=0.001,
     )
 
     exp_abs = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
@@ -110,8 +96,8 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         result["shortwave_absorption"][1:4].to_numpy(), exp_abs, rtol=1e-04, atol=1e-04
     )
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
-        np.testing.assert_allclose(result[var][1:4].to_numpy(), np.zeros((3, 4)))
-        np.testing.assert_allclose(result[var][12].to_numpy(), np.zeros(4))
+        np.testing.assert_allclose(result[var][1:4].to_numpy(), np.full((3, 4), 0.001))
+        np.testing.assert_allclose(result[var][12].to_numpy(), np.repeat(0.001, 4))
 
 
 def test_calculate_longwave_emission():
@@ -129,208 +115,268 @@ def test_calculate_longwave_emission():
     np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_leaf_and_air_temperature(
-    fixture_core_components,
-    dummy_climate_data,
+def test_calculate_sensible_heat_flux(
+    dummy_climate_data_varying_canopy, fixture_core_components
 ):
-    """Test updating leaf and air temperature."""
+    """Test calculation of sensible heat flux."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_leaf_and_air_temperature,
-    )
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
-
-    lyr_strct = fixture_core_components.layer_structure
-
-    result = calculate_leaf_and_air_temperature(
-        data=dummy_climate_data,
-        time_index=1,
-        layer_structure=lyr_strct,
-        abiotic_constants=AbioticConsts(),
-        abiotic_simple_constants=AbioticSimpleConsts(),
-        core_constants=CoreConsts(),
+        calculate_sensible_heat_flux,
     )
 
-    exp_air_temp = lyr_strct.from_template()
-    exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
-        [30.0, 29.999969, 29.995439, 28.796977, 20.08797]
-    )[:, None]
-
-    exp_leaf_temp = lyr_strct.from_template()
-    exp_leaf_temp[lyr_strct.index_filled_canopy] = np.array(
-        [30.078613, 29.091601, 26.951191]
-    )[:, None]
-
-    exp_vp = lyr_strct.from_template()
-    exp_vp[lyr_strct.index_filled_atmosphere] = np.array(
-        [0.14, 0.140323, 0.18372, 1.296359, 0.023795]
-    )[:, None]
-
-    exp_vpd = lyr_strct.from_template()
-    exp_vpd[lyr_strct.index_filled_atmosphere] = np.array(
-        [0.098781, 0.099009, 0.129644, 0.94264, 0.021697]
-    )[:, None]
-
-    exp_gv = lyr_strct.from_template()
-    exp_gv[lyr_strct.index_filled_canopy] = np.array([0.203513, 0.202959, 0.202009])[
-        :, None
-    ]
-
-    # TODO - flux layer index does not include above but these tests do - what is best.
-    flux_index = np.logical_or(lyr_strct.index_flux_layers, lyr_strct.index_above)
-
-    exp_sens_heat = lyr_strct.from_template()
-    exp_sens_heat[flux_index] = np.array([0.0, 1.397746, 1.315211, -1.515519, 1.0])[
-        :, None
-    ]
-
-    exp_latent_heat = lyr_strct.from_template()
-    exp_latent_heat[flux_index] = np.array([0.0, 8.330748, 8.426556, 11.740824, 1.0])[
-        :, None
-    ]
-
-    np.testing.assert_allclose(
-        result["air_temperature"], exp_air_temp, rtol=1e-03, atol=1e-03
-    )
-    np.testing.assert_allclose(
-        result["canopy_temperature"], exp_leaf_temp, rtol=1e-04, atol=1e-04
-    )
-    np.testing.assert_allclose(
-        result["vapour_pressure"], exp_vp, rtol=1e-04, atol=1e-04
-    )
-    np.testing.assert_allclose(
-        result["vapour_pressure_deficit"], exp_vpd, rtol=1e-04, atol=1e-04
-    )
-    np.testing.assert_allclose(
-        result["leaf_vapour_conductivity"], exp_gv, rtol=1e-04, atol=1e-04
-    )
-    np.testing.assert_allclose(
-        result["sensible_heat_flux"], exp_sens_heat, rtol=1e-04, atol=1e-04
-    )
-    np.testing.assert_allclose(
-        result["latent_heat_flux"][1:4], exp_latent_heat[1:4], rtol=1e-04, atol=1e-04
+    data = dummy_climate_data_varying_canopy
+    index = fixture_core_components.layer_structure.index_filled_canopy
+    # Compute flux
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
     )
 
+    # Expected result (manually calculated)
+    expected_flux = np.array(
+        [
+            [-0.489356, -0.489356, -0.489356, -0.489356],
+            [-0.390997, -0.390997, np.nan, np.nan],
+            [-0.222852, np.nan, np.nan, np.nan],
+        ]
+    )
 
-def test_leaf_and_air_temperature_linearisation(
-    fixture_core_components, dummy_climate_data
+    # Assert all elements are close
+    np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
+    [
+        # Test case 1: Typical inputs
+        (
+            np.array([400.0, 500.0, 600.0], dtype=np.float32),
+            np.array([100.0, 150.0, 200.0], dtype=np.float32),
+            np.array([50.0, 75.0, 100.0], dtype=np.float32),
+            0.2,
+            np.array([170.0, 175.0, 180.0], dtype=np.float32),
+        ),
+        # Test case 2: Edge case with zero values
+        (
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            0.0,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+        ),
+        # Test case 3: Nighttime condition with negative incoming radiation
+        (
+            np.array([-200.0, -150.0, -100.0], dtype=np.float32),
+            np.array([50.0, 75.0, 100.0], dtype=np.float32),
+            np.array([20.0, 30.0, 40.0], dtype=np.float32),
+            0.1,
+            np.array([-250.0, -240.0, -230.0], dtype=np.float32),
+        ),
+    ],
+)
+def test_calculate_net_radiation(
+    incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected
 ):
-    """Test linearisation of air and leaf temperature."""
+    """Test net radiation."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_net_radiation,
+    )
+
+    result = calculate_net_radiation(
+        incoming_radiation, absorbed_radiation, longwave_emission, albedo
+    )
+    np.testing.assert_allclose(result, expected, rtol=1e-5)
+
+
+def test_calculate_aerodynamic_resistance(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculate aerodynamic resistance."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        leaf_and_air_temperature_linearisation,
+        calculate_aerodynamic_resistance,
     )
 
-    lyr_strct = fixture_core_components.layer_structure
+    lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
 
-    a_A, b_A = leaf_and_air_temperature_linearisation(
-        conductivity_from_ref_height=(
-            dummy_climate_data["conductivity_from_ref_height"][
-                lyr_strct.index_filled_canopy
-            ]
+    result = calculate_aerodynamic_resistance(
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
+        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
+        von_karman_constant=0.4,
+    )
+    exp_ra = np.array(
+        [
+            [1636.388306, 1281.796711, 966.156818, 499.702011],
+            [1360.919965, 893.600893, np.nan, np.nan],
+            [948.761442, np.nan, np.nan, np.nan],
+        ]
+    )
+    np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp",
+    [
+        # Test case for 2 soil layers and constant (float) soil parameters
+        (
+            np.array([20.0, 25.0, 18.0, 22.0]),
+            np.array([[15.0, 16.0, 14.0, 13.0], [14.0, 15.0, 13.0, 12.0]]),
+            np.array([[0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.1, 0.1]]),
+            1.2,
+            1300.0,
+            800.0,
+            3600,  # time_interval (1 hour)
+            2,
+            np.array(
+                [
+                    [15.692308, 16.865385, 14.623077, 13.761538],
+                    [14.702959, 15.774852, 13.674201, 12.731716],
+                ],
+            ),
         ),
-        conductivity_from_soil=np.repeat(0.1, 4),
-        leaf_air_heat_conductivity=(
-            dummy_climate_data["leaf_air_heat_conductivity"][
-                lyr_strct.index_filled_canopy
-            ]
+        # Test case for 5 soil layers and arrays of soil parameters
+        (
+            np.array([18.0, 19.0, 20.0, 21.0]),
+            np.array(
+                [
+                    [15.0, 16.0, 14.0, 13.0],
+                    [14.5, 15.5, 13.5, 12.5],
+                    [14.2, 15.2, 13.2, 12.2],
+                    [14.1, 15.1, 13.1, 12.1],
+                    [14.0, 15.0, 13.0, 12.0],
+                ],
+            ),
+            np.array([[0.1], [0.2], [0.2], [0.3], [0.2]]) * np.ones((1, 4)),
+            np.repeat(1.2, 4),
+            np.repeat(1300.0, 4),
+            np.repeat(800.0, 4),
+            3600,  # time_interval (1 hour)
+            5,
+            np.array(
+                [
+                    [15.623077, 16.657692, 14.692308, 13.726923],
+                    [14.520769, 15.520769, 13.520769, 12.520769],
+                    [14.222926, 15.222926, 13.222926, 12.222926],
+                    [14.1, 15.1, 13.1, 12.1],
+                    [14.010385, 15.010385, 13.010385, 12.010385],
+                ],
+            ),
         ),
-        air_temperature_ref=(
-            dummy_climate_data["air_temperature_ref"].isel(time_index=0).to_numpy()
-        ),
-        top_soil_temperature=dummy_climate_data["soil_temperature"][
-            lyr_strct.index_topsoil
-        ].to_numpy(),
+    ],
+)
+def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp):
+    """Test update soil temperature."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import update_soil_temperature
+
+    updated_temperature = update_soil_temperature(
+        ground_heat_flux=g,
+        soil_temperature=soil_temp,
+        soil_layer_thickness=dz,
+        soil_thermal_conductivity=k,
+        soil_bulk_density=rho,
+        specific_heat_capacity_soil=cp,
+        time_interval=dt,
     )
 
-    exp_a = np.full((3, 4), fill_value=29.677419)
-    exp_b = np.full((3, 4), fill_value=0.04193548)
-    np.testing.assert_allclose(a_A, exp_a)
-    np.testing.assert_allclose(b_A, exp_b)
+    # Check that the number of layers matches the expected layers
+    assert updated_temperature.shape[0] == exp_n
+    np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
 
 
-def test_longwave_radiation_flux_linearisation():
-    """Test linearisation of longwave radiation fluxes."""
-
+def test_update_air_canopy_temperature():
+    """Test update air and canopy temperatures."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        longwave_radiation_flux_linearisation,
+        update_air_canopy_temperature,
     )
 
-    a_R, b_R = longwave_radiation_flux_linearisation(
-        a_A=np.full((3, 4), fill_value=29.677419),
-        b_A=np.full((3, 4), fill_value=0.04193548),
-        air_temperature_ref=np.full((3, 4), 30.0),
-        leaf_emissivity=0.8,
+    # Test inputs (2D arrays for layers and grid cells)
+    absorbed_radiation_canopy = np.array([[290.0, 340.0], [390.0, 440.0]])
+    longwave_emission_canopy = np.array([[100.0, 100.0], [100.0, 100.0]])
+    sensible_heat_flux_canopy = np.array([[-50.0, -60.0], [-70.0, -80.0]])
+    latent_heat_flux_canopy = np.array([[-30.0, -40.0], [-50.0, -60.0]])
+    air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
+    canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
+
+    # Expected outputs
+    expected_canopy_temperature = np.array(
+        [[357.378642, 369.30703], [382.892166, 398.304809]]
+    )
+    expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
+
+    # Call the function
+    updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
+        absorbed_radiation_canopy=absorbed_radiation_canopy,
+        longwave_emission_canopy=longwave_emission_canopy,
+        sensible_heat_flux_canopy=sensible_heat_flux_canopy,
+        latent_heat_flux_canopy=latent_heat_flux_canopy,
+        air_temperature=air_temperature,
+        canopy_temperature=canopy_temperature,
+        emissivity_leaf=0.8,
+        specific_heat_air=np.full((2, 2), 1.006),
+        density_air=np.full((2, 2), 1.293),
+        aerodynamic_resistance=np.full((2, 2), 200.0),
+        relaxation_factor=0.1,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
     )
 
-    exp_a = np.full((3, 4), fill_value=0.035189)
-    exp_b = np.full((3, 4), fill_value=0.005098)
-    np.testing.assert_allclose(a_R, exp_a, rtol=1e-04, atol=1e-04)
-    np.testing.assert_allclose(b_R, exp_b, rtol=1e-04, atol=1e-04)
+    # Assertions
+    np.testing.assert_allclose(
+        updated_canopy_temperature, expected_canopy_temperature, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        updated_air_temperature, expected_air_temperature, rtol=1e-4
+    )
 
 
-def test_vapour_pressure_linearisation():
-    """Test linearisation of vapour pressure."""
+def test_update_humidity_vpd():
+    """Test update atmospheric humidity."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        vapour_pressure_linearisation,
+        update_humidity_vpd,
     )
 
-    a_E, b_E = vapour_pressure_linearisation(
-        vapour_pressure_ref=np.full((3, 4), 0.14),
-        saturated_vapour_pressure_ref=np.full((3, 4), 0.5),
-        soil_vapour_pressure=np.full((3, 4), 0.14),
-        conductivity_from_soil=np.repeat(0.1, 4),
-        leaf_vapour_conductivity=np.full((3, 4), 0.2),
-        conductivity_from_ref_height=np.full((3, 4), 3),
-        delta_v_ref=np.full((3, 4), 0.14474),
+    # Input values for a tropical rainforest
+    evapotranspiration = np.full((3, 4), 4.5)  # mm/day
+    soil_evaporation = np.repeat(1.2, 4)  # mm/day
+    saturated_vapour_pressure = np.full((5, 4), 3.8)  # kPa (for ~28°C)
+    specific_humidity = np.full((5, 4), 0.020)  # kg/kg (high humidity)
+    layer_thickness = np.array([np.full(4, layer) for layer in [20, 10, 5, 1, 0.1]])
+    atmospheric_pressure = np.full((5, 4), 100)  # kPa
+    water_to_air_mass_ratio = 0.622  # Constant
+    dry_air_factor = 1 - water_to_air_mass_ratio
+    cell_area = 10_000  # m2 (1 ha)
+
+    # Call the function
+    result = update_humidity_vpd(
+        evapotranspiration,
+        soil_evaporation,
+        saturated_vapour_pressure,
+        specific_humidity,
+        layer_thickness,
+        atmospheric_pressure,
+        water_to_air_mass_ratio,
+        dry_air_factor,
+        cell_area,
+    )
+    exp_vpd = np.array([np.full(4, layer) for layer in [0, 0, 0, 0, 0]])
+    np.testing.assert_allclose(
+        result["vapour_pressure_deficit"],
+        exp_vpd,
+        rtol=1e-04,
+        atol=1e-04,
     )
 
-    exp_a = np.full((3, 4), fill_value=0.161818)
-    exp_b = np.full((3, 4), fill_value=0.043861)
-    np.testing.assert_allclose(a_E, exp_a, rtol=1e-04, atol=1e-04)
-    np.testing.assert_allclose(b_E, exp_b, rtol=1e-04, atol=1e-04)
-
-
-def test_latent_heat_flux_linearisation():
-    """Test latent heat flux linearisation."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        latent_heat_flux_linearisation,
+    exp_relhum = np.array([np.full(4, layer) for layer in [100, 100, 100, 100, 100]])
+    np.testing.assert_allclose(
+        result["relative_humidity"],
+        exp_relhum,
+        rtol=1e-04,
+        atol=1e-04,
     )
-
-    a_L, b_L = latent_heat_flux_linearisation(
-        latent_heat_vapourisation=np.full((3, 4), 2245.0),
-        leaf_vapour_conductivity=np.full((3, 4), 0.2),
-        atmospheric_pressure_ref=np.repeat(96.0, 4),
-        saturated_vapour_pressure_ref=np.full((3, 4), 0.5),
-        a_E=np.full((3, 4), fill_value=0.161818),
-        b_E=np.full((3, 4), fill_value=0.043861),
-        delta_v_ref=np.full((3, 4), 0.14474),
-    )
-
-    exp_a = np.full((3, 4), fill_value=13.830078)
-    exp_b = np.full((3, 4), fill_value=46.3633)
-    np.testing.assert_allclose(a_L, exp_a, rtol=1e-04, atol=1e-04)
-    np.testing.assert_allclose(b_L, exp_b, rtol=1e-04, atol=1e-04)
-
-
-def test_calculate_delta_canopy_temperature():
-    """Test calculate delta canopy temperature."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_delta_canopy_temperature,
-    )
-
-    delta_t = calculate_delta_canopy_temperature(
-        absorbed_radiation=np.full((3, 4), 10),
-        a_R=np.full((3, 4), fill_value=0.035189),
-        a_L=np.full((3, 4), fill_value=13.830078),
-        b_R=np.full((3, 4), fill_value=0.005098),
-        b_L=np.full((3, 4), fill_value=46.3633),
-        b_H=np.full((3, 4), fill_value=46.3633),
-    )
-
-    exp_delta_t = np.full((3, 4), fill_value=-0.041238)
-    np.testing.assert_allclose(delta_t, exp_delta_t, rtol=1e-04, atol=1e-04)

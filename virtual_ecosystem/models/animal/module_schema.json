@@ -23,6 +23,9 @@
                             "metabolic_type": {
                                 "type": "string"
                             },
+                            "reproductive_environment": {
+                                "type": "string"
+                            },
                             "reproductive_type": {
                                 "type": "string"
                             },
@@ -38,6 +41,12 @@
                             "excretion_type": {
                                 "type": "string"
                             },
+                            "migration_type": {
+                                "type": "string"
+                            },
+                            "vertical_occupancy": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },
@@ -50,11 +59,14 @@
                             "taxa",
                             "diet",
                             "metabolic_type",
+                            "reproductive_environment",
                             "reproductive_type",
                             "development_type",
                             "development_status",
                             "offspring_functional_group",
                             "excretion_type",
+                            "migration_type",
+                            "vertical_occupancy",
                             "birth_mass",
                             "adult_mass"
                         ]

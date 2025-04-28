@@ -18,3 +18,9 @@ var_name = "plant_cohorts_dbh"
 [[core.data.variable]]
 file_path = "../data/example_plant_data.nc"
 var_name = "downward_shortwave_radiation"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "subcanopy_vegetation_biomass"
+[[core.data.variable]]
+file_path = "../data/example_plant_data.nc"
+var_name = "subcanopy_seedbank_biomass"

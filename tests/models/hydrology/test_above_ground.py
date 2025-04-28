@@ -5,10 +5,75 @@ from logging import ERROR
 
 import numpy as np
 import pytest
+from pyrealm.constants import CoreConst as PyrealmConst
 
 from tests.conftest import log_check
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.hydrology.constants import HydroConsts
+
+
+def test_potential_evaporation_leaf():
+    """Test potential evaporation from leaf."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        potential_evaporation_leaf,
+    )
+
+    # Expected shape should match input (2x2)
+    result = potential_evaporation_leaf(
+        net_radiation=np.array([[100.0, 120.0], [110.0, 130.0]]),
+        vapour_pressure_deficit=np.array([[0.8, 0.850], [0.82, 0.87]]),
+        air_temperature=np.array([[25.0, 26.0], [24.5, 27.0]]),
+        density_air_kg=np.array([[1.2, 1.2], [1.2, 1.2]]),
+        specific_heat_air=np.array([[1.005, 1.005], [1.005, 1.005]]),
+        aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, 58.0]]),
+        stomatal_resistance=np.array([[200.0, 220.0], [210.0, 230.0]]),
+        latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, 2268.0]]),
+        psychrometric_constant=np.array([[66.0, 66.0], [66.0, 66.0]]),
+        saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
+    )
+
+    assert result.shape == (2, 2)
+    assert np.all(result >= 0)
+    assert np.all(np.isfinite(result))
+    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.682281e-05, 3.658325e-05]])
+    np.testing.assert_allclose(result, exp_evap, rtol=1e-3)
+
+
+def test_calculate_canopy_evaporation():
+    """Test canopy evaporation."""
+
+    from virtual_ecosystem.models.hydrology.above_ground import (
+        calculate_canopy_evaporation,
+    )
+
+    interception = np.array([0.5, 1.0])
+    # Run function
+    output = calculate_canopy_evaporation(
+        leaf_area_index=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        interception=interception,
+        net_radiation=np.array([100, 200]),
+        vapour_pressure_deficit=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        air_temperature=np.array([[21.0, 22.0], [18.0, 20.0]]),
+        density_air_kg=np.array([1.2, 1.2]),
+        specific_heat_air=np.array([1.005, 1.005]),
+        aerodynamic_resistance=np.array([50.0, 60.0]),
+        stomatal_resistance=np.array([150.0, 160.0]),
+        latent_heat_vapourisation=np.array([2268.0, 2268.0]),
+        psychrometric_constant=np.array([0.066, 0.067]),
+        saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
+        time_interval=3600.0,  # 1 hour in seconds
+        intercept_residence_time=86400.0,  # 1 day in seconds
+        extinction_coefficient_global_radiation=0.5,
+    )
+
+    # Check value constraints
+    assert np.all(output["canopy_evaporation"] >= 0)
+    assert np.all(output["leaf_drainage"] >= 0)
+    assert np.all(output["canopy_evaporation"] <= interception)
+    assert np.all(output["leaf_drainage"] <= interception)
+    assert output["canopy_evaporation"].shape == (2, 2)
+    assert output["leaf_drainage"].shape == (2, 2)
 
 
 @pytest.mark.parametrize(
@@ -16,11 +81,11 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
     [
         (
             1.225,
-            2.45,
+            2442.0,
         ),
         (
-            np.array([1.225, 1.225, 1.225]),
-            np.array([2.45, 2.45, 2.45]),
+            np.repeat(1.225, 3),
+            np.repeat(2442.0, 3),
         ),
     ],
 )
@@ -34,26 +99,29 @@ def test_calculate_soil_evaporation(dens_air, latvap):
     result = calculate_soil_evaporation(
         temperature=np.array([20.0, 20.0, 30.0]),
         wind_speed_surface=np.array([1.0, 0.5, 0.1]),
-        relative_humidity=np.array([80, 80, 90]),
-        atmospheric_pressure=np.array([90, 90, 90]),
-        soil_moisture=np.array([0.01, 0.1, 0.5]),
+        relative_humidity=np.array([80.0, 80.0, 90.0]),
+        atmospheric_pressure=np.array([101.0, 101.0, 101.0]),
+        soil_moisture=np.array([1.0, 2.0, 5.0]),
         soil_moisture_residual=0.1,
         soil_moisture_capacity=0.9,
-        leaf_area_index=np.array([3, 4, 5]),
-        celsius_to_kelvin=273.15,
+        leaf_area_index=np.array([3.0, 4.0, 5.0]),
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
-        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour,
-        soil_surface_heat_transfer_coefficient=(
-            HydroConsts.soil_surface_heat_transfer_coefficient
-        ),
+        gas_constant_water_vapour=CoreConsts.gas_constant_water_vapour / 1000.0,
+        drag_coefficient_evaporation=HydroConsts.drag_coefficient_evaporation,
         extinction_coefficient_global_radiation=(
             HydroConsts.extinction_coefficient_global_radiation
         ),
+        time_interval=86400,
+        pyrealm_const=PyrealmConst,
     )
 
-    exp_evap = np.array([0.745206, 0.092515, 0.135078])
+    exp_evap = np.array([2.466861, 0.612504, 0.110356])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
+    exp_ra = np.array([5.0, 10.0, 50.0])
+    np.testing.assert_allclose(
+        result["aerodynamic_resistance_surface"], exp_ra, rtol=0.01
+    )
 
 
 def test_find_lowest_neighbour(fixture_core_components, dummy_climate_data):

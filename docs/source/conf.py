@@ -127,6 +127,7 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
+    ("py:class", "numpy.float64"),
     # HACK - core_components docstrings are being odd.
     ("py:class", "NDArray"),
     ("py:class", "np.int_"),
@@ -134,6 +135,7 @@ nitpick_ignore = [
     ("py:class", "np.bool_"),
     ("py:class", "numpy.bool_"),
     ("py:class", "np.float32"),
+    ("py:class", "np.float64"),
     ("py:class", "np.datetime64"),
     ("py:class", "np.ndarray"),
     ("py:class", "np.timedelta64"),
@@ -156,6 +158,7 @@ nitpick_ignore = [
     ("py:exc", "BadZipFile"),
     # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
     # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "PModel"),
     ("py:class", "Canopy"),
     ("py:class", "Flora"),
     ("py:class", "PModelConst"),

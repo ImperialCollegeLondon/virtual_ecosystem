@@ -8,6 +8,9 @@ TODO change temperatures to Kelvin
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.core.hygro import calc_vp_sat
+from xarray import DataArray
 
 
 def calculate_molar_density_air(
@@ -42,34 +45,36 @@ def calculate_molar_density_air(
     )
 
 
-def calculate_specific_heat_air(
-    temperature: NDArray[np.float32],
-    molar_heat_capacity_air: float,
-    specific_heat_equ_factors: list[float],
-) -> NDArray[np.float32]:
-    """Calculate temperature-dependent specific heat of air.
-
-    Implementation after :cite:t:`maclean_microclimc_2021`.
+def calculate_air_density(
+    air_temperature: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.float32],
+    specific_gas_constant_dry_air: float,
+    celsius_to_kelvin: float,
+):
+    """Calculate the density of air using the ideal gas law.
 
     Args:
-        temperature: Air temperature, [C]
-        molar_heat_capacity_air: Molar heat capacity of air, [J mol-1 C-1]
-        specific_heat_equ_factors: Factors in calculation of molar specific heat of air
-
+        air_temperature: Air temperature, [C]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        specific_gas_constant_dry_air: Specific gas constant for dry air, [J kg-1 K-1]
+        celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
+            temperature in Kelvin
     Returns:
-        specific heat of air at constant pressure, [J mol-1 K-1]
+        density of air, [kg m-3].
     """
+    # Convert temperature from Celsius to Kelvin
+    temperature_k = air_temperature + celsius_to_kelvin
+
+    # Calculate density using the ideal gas law
     return (
-        specific_heat_equ_factors[0] * temperature**2
-        + specific_heat_equ_factors[1] * temperature
-        + molar_heat_capacity_air
+        atmospheric_pressure * 1000.0 / (temperature_k * specific_gas_constant_dry_air)
     )
 
 
 def calculate_latent_heat_vapourisation(
     temperature: NDArray[np.float32],
     celsius_to_kelvin: float,
-    latent_heat_vap_equ_factors: list[float],
+    latent_heat_vap_equ_factors: tuple[float, float],
 ) -> NDArray[np.float32]:
     """Calculate latent heat of vapourisation.
 
@@ -86,11 +91,8 @@ def calculate_latent_heat_vapourisation(
         latent heat of vapourisation, [kJ kg-1]
     """
     temperature_kelvin = temperature + celsius_to_kelvin
-    return (
-        latent_heat_vap_equ_factors[0]
-        * (temperature_kelvin / (temperature_kelvin - latent_heat_vap_equ_factors[1]))
-        ** 2
-    ) / 1000.0
+    a, b = latent_heat_vap_equ_factors
+    return (a * (temperature_kelvin / (temperature_kelvin - b)) ** 2) / 1000.0
 
 
 def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
@@ -122,3 +124,47 @@ def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
             new_row.append(np.nan)
 
     return np.array(new_row)
+
+
+def calculate_slope_of_saturated_pressure_curve(
+    temperature: NDArray[np.float32],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+) -> NDArray[np.float32]:
+    r"""Calculate slope of the saturated pressure curve.
+
+    Args:
+        temperature: Temperature, [C]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+
+    Returns:
+        Slope of the saturated pressure curve, :math:`\Delta_{v}`
+    """
+
+    a, b, c, d = saturated_pressure_slope_parameters
+    return (
+        a * (b * np.exp(c * temperature / (temperature + d))) / (temperature + d) ** 2
+    )
+
+
+def calculate_actual_vapour_pressure(
+    air_temperature: DataArray,
+    relative_humidity: DataArray,
+    pyrealm_const: PyrealmConst,
+) -> DataArray:
+    """Calculate actual vapour pressure, [kPa].
+
+    Args:
+        air_temperature: Air temperature, [C]
+        relative_humidity: Relative humidity, [-]
+        pyrealm_const: Set of constants from pyrealm
+
+    Returns:
+        actual vapour pressure, [kPa]
+    """
+
+    saturation_vapour_pressure_air = calc_vp_sat(
+        ta=air_temperature.to_numpy(),
+        core_const=pyrealm_const(),
+    )
+    return saturation_vapour_pressure_air * relative_humidity / 100.0
