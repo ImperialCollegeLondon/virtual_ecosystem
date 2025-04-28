@@ -159,6 +159,10 @@ class AnimalModel(
         """The carcass pools in the model with associated grid cell ids."""
         self.leaf_waste_pools: dict[int, HerbivoryWaste]
         """A pool for leaves removed by herbivory but not actually consumed."""
+        self.litter_pools: dict[int, dict[str, LitterPool]] = (
+            self.populate_litter_pools()
+        )
+        """The litter pools with associated grid cell ids."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -300,6 +304,7 @@ class AnimalModel(
             cell_id: HerbivoryWaste(plant_matter_type="leaf")
             for cell_id in self.data.grid.cell_id
         }
+
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
@@ -369,7 +374,6 @@ class AnimalModel(
         # TODO: merge problems as community looping is not internal to comm methods
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
-        litter_pools = self.populate_litter_pools()
 
         self.forage_community()
         self.migrate_community()
@@ -386,7 +390,7 @@ class AnimalModel(
         # Now that communities have been updated information required to update the
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
-        litter_consumption = self.calculate_total_litter_consumption(litter_pools)
+        litter_consumption = self.calculate_total_litter_consumption(self.litter_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
 
         # Update the data object with the changes to soil and litter pools
@@ -400,7 +404,7 @@ class AnimalModel(
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
 
-    def populate_litter_pools(self) -> dict[str, LitterPool]:
+    def populate_litter_pools(self) -> dict[int, dict[str, LitterPool]]:
         """Populate the litter pools that animals can consume from.
 
         Returns:
@@ -416,64 +420,74 @@ class AnimalModel(
 
         """
 
+        litter_types = (
+            "above_metabolic",
+            "above_structural",
+            "woody",
+            "below_metabolic",
+            "below_structural",
+        )
+
         return {
-            "above_metabolic": LitterPool(
-                pool_name="above_metabolic",
-                data=self.data,
-                cell_area=self.data.grid.cell_area,
-            ),
-            "above_structural": LitterPool(
-                pool_name="above_structural",
-                data=self.data,
-                cell_area=self.data.grid.cell_area,
-            ),
-            "woody": LitterPool(
-                pool_name="woody",
-                data=self.data,
-                cell_area=self.data.grid.cell_area,
-            ),
-            "below_metabolic": LitterPool(
-                pool_name="below_metabolic",
-                data=self.data,
-                cell_area=self.data.grid.cell_area,
-            ),
-            "below_structural": LitterPool(
-                pool_name="below_structural",
-                data=self.data,
-                cell_area=self.data.grid.cell_area,
-            ),
+            cell_id: {
+                lt: LitterPool(
+                    pool_name=lt,
+                    cell_id=cell_id,
+                    data=self.data,
+                    cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                )
+                for lt in litter_types
+            }
+            for cell_id in self.data.grid.cell_id
         }
 
     def calculate_total_litter_consumption(
-        self, litter_pools: dict[str, LitterPool]
+        self, litter_pools: dict[int, dict[str, LitterPool]]
     ) -> dict[str, DataArray]:
-        """Calculate total animal consumption of each litter pool.
-
-        TODO: rework for merge
-
-        Note: will break if animals don't consume from litter in fixed stochiometric
-        proportions
+        """Compute carbon removed from every litter pool, by cell.
 
         Args:
-            litter_pools: The full set of animal accessible litter pools.
+            litter_pools: Mapping ``{cell_id: {pool_name: LitterPool}}`` created at
+                model setup.
 
         Returns:
-            The total consumption of litter from each pool [kg C m^-2]
+            Dictionary whose keys are
+            ``"litter_consumption_<pool_name>"`` and whose values are 1-D
+            :class:`xarray.DataArray` objects (dimension ``cell_id``) containing the
+            amount of carbon consumed from each litter pool during the current
+            update, expressed in kg C m⁻².
         """
+        # List of pool names handled by the model
+        litter_types = (
+            "above_metabolic",
+            "above_structural",
+            "woody",
+            "below_metabolic",
+            "below_structural",
+        )
 
-        # Find total animal consumption from each pool
-        total_consumption = {
-            pool_name: self.data[f"litter_pool_{pool_name}"]
-            - (litter_pools[pool_name].mass_current / self.data.grid.cell_area)
-            for pool_name in litter_pools.keys()
-        }
+        cell_ids = self.data.grid.cell_id
+        area = self.data.grid.cell_area  # Cell area is uniform at present
 
-        return {
-            f"litter_consumption_{pool_name}": DataArray(
-                array(total_consumption[pool_name]), dims="cell_id"
+        results: dict[str, DataArray] = {}
+
+        for pool in litter_types:
+            # Original stock at the start of the step (kg C m⁻²)
+            start_stock = self.data[f"litter_pool_{pool}"].to_numpy()
+
+            # Current stock after detritivore feeding (kg C m⁻²)
+            end_stock = array(
+                [litter_pools[cid][pool].mass_current / area for cid in cell_ids]
             )
-            for pool_name in litter_pools.keys()
-        }
+
+            # Consumption equals start minus end
+            consumption = start_stock - end_stock
+
+            results[f"litter_consumption_{pool}"] = DataArray(
+                consumption, dims="cell_id"
+            )
+
+        return results
 
     def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
         """Calculate additions to litter due to herbivory mechanical inefficiencies.

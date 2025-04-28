@@ -19,6 +19,7 @@ from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
     HerbivoryWaste,
+    LitterPool,
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
@@ -946,9 +947,6 @@ class AnimalCohort:
     ) -> dict[str, float]:
         """Handles mass assimilation from herbivory.
 
-        TODO: At present this just takes a single herbivory waste pool (for leaves),
-        this probably should change to be a list of waste pools once herbivory for other
-        plant tissues is added.
         TODO: update name.
 
         Args:
@@ -1452,3 +1450,19 @@ class AnimalCohort:
 
         """
         return bool(resource_occupancy & self.functional_group.vertical_occupancy)
+
+    def get_litter_pools(
+        self, litter_pools: dict[str, LitterPool]
+    ) -> dict[str, LitterPool]:
+        """Return the global litter-pool dictionary.
+
+        This is a placeholder awaiting a rework of the litterpool class.
+
+        Args:
+            litter_pools: the global dict of litter pools
+
+        Returns: the global dict of litter pools.
+
+        """
+
+        return litter_pools
