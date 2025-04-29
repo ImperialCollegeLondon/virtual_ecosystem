@@ -204,3 +204,24 @@ contained in the water column. We can then combine the above to calculate the le
 rate for substrate $i$ as
 
 $$L_i = \mu * D_i.$$
+
+## Other environmental factors
+
+TODO - Explain that nitrification and denitrification use their own factors. Mention
+that this isn't ideal but is something we are working with for now.
+
+### Nitrification temperature factor
+
+TODO - Add in Nitrification temperature factor
+
+### Nitrification moisture factor
+
+TODO - Add in Nitrification moisture factor
+
+### Denitrification temperature factor
+
+TODO - Add in denitrification temperature factor
+
+### Denitrification moisture factor
+
+TODO - Add in denitrification temperature factor

@@ -101,7 +101,88 @@ and can be removed from the soil by water flows.
 
 ### Inorganic nitrogen cycling processes
 
-TODO - Populate this with details of the key processes which cycle inorganic nitrogen
+There are a number of processes specific to the inorganic nitrogen pools. A couple of
+these are very simple. Firstly, ammonia added to the system at a fixed rate to
+represented environment deposition. Secondly, ammonia volatilises out of the soil at
+rate proportional to its concentration in the soil. The other processes are more complex
+and are explained in detail below.
+
+#### Nitrogen fixation
+
+Our model of nitrogen fixation makes two major simplifications. Firstly, as already
+mentioned we assume that all nitrogen is fixed in the form of ammonium. Secondly, we do
+not explicitly represent nitrogen-fixing bacteria as a separate microbial group, instead
+we use empirical relations to capture the rate of nitrogen fixation. We do, however,
+calculate nitrogen fixation by plant associated bacteria and the nitrogen fixed by
+free-living microbes separately. To calculate the rate of nitrogen fixation by plant
+symbiotes we use the following expression
+
+$$N_{s}(T) = \frac{S_{p}}{C_{f}(T)},$$
+
+where $S_{p}$ is the rate of carbon supply from the plants to their symbiotic partners,
+and $C_{f}(T)$ is the cost of nitrogen fixation at temperature $T$. This fixation cost
+is the amount of carbon needed to fix a unit amount of nitrogen. To calculate this we
+use the following empirical expression (adapted from {cite}`brzostek_modeling_2014`)
+
+$$
+\begin{align}
+C_{f}(T) &= \inf \quad T<0, \\
+C_{f}(T) &= C_0 + C_{\inf} * (e^{s * T * (1 - (T / T_e))} - 1) \quad T>=0,
+\end{align}
+$$
+
+where $C_0$ is the cost at zero Celsius, $C_{\inf}$ is the maximum additional cost at
+high temperatures (this is asymptotically approached as temperatures tend towards
+infinity), $s$ is the sensitivity of the cost to changes in temperature and $T_e$ is the
+(positive) temperature at which the fixation cost is equal to the cost at zero degrees
+Celsius.
+
+The rate of nitrogen fixation by free-living microbes is simpler to calculate as we
+assume that it is only effected by temperature (because there isn't a symbiotic
+partner). We calculate the fixation rate using the following expression (adapted from
+{cite}`lin_modelling_2000`)
+
+$$N_{f}(T) = f_r * Q_f^{(T - T_r) / 10.0},$$
+
+where $f_r$ is the rate at which free-living microbes fix nitrogen (per unit volume of
+topsoil) at the reference temperature $T_r$ and $Q_f$ is the $Q_10$ coefficient for
+nitrogen fixation.
+
+#### Nitrification
+
+Nitrification is the process by which nitrate is formed from ammonium in the soil. To
+calculate this rate we adapted an empirical relationship used in
+{cite}`fatichi_mechanistic_2019`, which makes the assumption that nitrification rate
+obeys linear kinetics with variations due to changes in soil temperature and soil
+moisture. The nitrification rate is calculated at follows
+
+$$r_n = k_n * f_{T,n} * f_{w,n} * \ce{NH_{4}^{+}},$$
+
+where $k_n$ is the rate constant for nitrification, $f_{T,n}$ is a factor capturing the
+impact of soil temperature on nitrification rate (defined
+[here](./environmental_links.md#nitrification-temperature-factor)), $f_{w,n}$ is a
+factor capturing the impact of soil moisture on nitrification rate (defined
+[here](./environmental_links.md#nitrification-moisture-factor)) and $\ce{NH_{4}^{+}}$ is
+the concentration of ammonium in the soil.
+
+#### Denitrification
+
+Denitrification is the process by which nitrate is converted into nitrite. This nitrite
+is generally rapidly lost to the soil quickly (in a variety of forms) so we don't track
+it directly. To calculate the rate at which denitrification occurs we adapted an
+empirical relationship used in {cite}`fatichi_mechanistic_2019`, which makes the
+assumption that denitrification rate obeys linear kinetics with variations due to
+changes in soil temperature and soil moisture. The denitrification rate is calculated at
+follows
+
+$$r_d = k_d * f_{T,d} * f_{w,d} * \ce{NO_{3}^{-}},$$
+
+where $k_d$ is the rate constant for denitrification, $f_{T,d}$ is a factor capturing
+the impact of soil temperature on denitrification rate (defined
+[here](./environmental_links.md#denitrification-temperature-factor)), $f_{w,d}$ is a
+factor capturing the impact of soil moisture on denitrification rate (defined
+[here](./environmental_links.md#denitrification-moisture-factor)) and $\ce{NO_{3}^{-}}$
+is the concentration of nitrate in the soil.
 
 ## Inorganic phosphorus cycling
 
