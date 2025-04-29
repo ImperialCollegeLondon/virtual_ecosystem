@@ -190,6 +190,8 @@ class PlantsModel(
         to PlantCommunity instances for each cell."""
         self.stochiometries: dict[int, StemStochiometry]
         """A dictionary keyed by cell id giving the stochiometry of each community."""
+        self.allocations: dict[int, StemAllocation]
+        """A dictionary keyed by cell id giving the allocation of each community."""
         self._canopy_layer_indices: NDArray[np.bool_]
         """The indices of the canopy layers within wider vertical profile. This is 
         a shorter reference to self.layer_structure.index_canopy."""
@@ -269,6 +271,8 @@ class PlantsModel(
         self.flora = flora
         self.model_constants = model_constants
 
+        self.temp_populate_symbiote_vars()
+
         # Adjust flora turnover rates to timestep
         # TODO: Pyrealm provides annual turnover rates. Dividing by the number of
         #       updates_per_year to get monthly turnover values is naive and will
@@ -299,7 +303,9 @@ class PlantsModel(
         self.stochiometries = {
             cell_id: StemStochiometry(
                 plant_constants=self.model_constants,
-                n_cohorts=self.communities[cell_id].number_of_cohorts,
+                num_cohorts=self.communities[cell_id].number_of_cohorts,
+                stem_allometry=self.communities[cell_id].stem_allometry,
+                community=self.communities[cell_id],
             )
             for cell_id in self.communities.keys()
         }
@@ -613,6 +619,21 @@ class PlantsModel(
                 * n_seconds
             ).sum(axis=0)
 
+            # Calculate N uptake (g N per stem) due to transpiration. Conversion units:
+            # - Per stem transpiration (µmol H2O per stem)
+            # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
+            # - Concentration of dissolved N (kg m^-3)
+            # - Kg to g (1000)
+            self.stochiometries[cell_id].n_surplus += (
+                self.per_stem_transpiration[cell_id]
+                * (1.8015 * pow(10.0, -11))
+                * (
+                    self.data["dissolved_ammonium"][cell_id]
+                    + self.data["dissolved_nitrate"][cell_id]
+                ).item()
+                * 1000
+            )
+
             # Calculate the total transpiration per layer in mm m2 in mm, converted from
             # an initial value is in µmol m2 s1.abs
             transpiration[active_layers, cell_id] = (
@@ -638,41 +659,34 @@ class PlantsModel(
         turnover values.
         """
 
-        # Allocate leaf and root turnover to per cell pools, merging across PFTs and
-        # cohorts.
+        # First, initialize all turnover variables to 0 with the proper shapes.
+        # Most variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
-
-        # Allocate reproductive tissue mass turnover - fallen propagules are stored per
-        # cell and per PFT, but fallen non-propagule reproductive tissue mass is merged
-        # into a single pool.
-        pft_cell_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
-            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
-        )
-
-        self.data["fallen_n_propagules"] = pft_cell_template.copy()
-        self.data["fallen_non_propagule_c_mass"] = xr.full_like(
-            self.data["elevation"], 0
-        )
-
-        # Allocate canopy reproductive tissue mass. This is deliberately not
-        # partitioning tissue across canopy vertical layers.
-        self.data["canopy_n_propagules"] = pft_cell_template.copy()
-        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
-
-        # Carbon supply to soil
         self.data["root_carbohydrate_exudation"] = xr.full_like(
             self.data["elevation"], 0
         )
         self.data["plant_symbiote_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0
         )
+        self.data["fallen_non_propagule_c_mass"] = xr.full_like(
+            self.data["elevation"], 0
+        )
 
-        # Loop over each grid cell
+        # Fallen propagules and canopy RT are stored per cell and per PFT.
+        pft_cell_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+        )
+        self.data["fallen_n_propagules"] = pft_cell_template.copy()
+        # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
+        self.data["canopy_n_propagules"] = pft_cell_template.copy()
+        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
+
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
+            stochiometry = self.stochiometries[cell_id]
 
             # Calculate the allocation of GPP per stem
             stem_allocation = StemAllocation(
@@ -681,14 +695,12 @@ class PlantsModel(
                 at_potential_gpp=self.per_stem_gpp[cell_id],
             )
 
-            # Grow the plants by increasing the stem dbh
-            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
-
+            # FIRST, ALLOCATE TO TURNOVER:
             # Sum of turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(
                 stem_allocation.foliage_turnover * cohorts.n_individuals
             )
+
             self.data["root_turnover"][cell_id] = np.sum(
                 stem_allocation.fine_root_turnover * cohorts.n_individuals
             )
@@ -746,6 +758,41 @@ class PlantsModel(
                     canopy_non_propagule_mass * cohort_n_stems
                 )
 
+            # SECOND: ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
+            # Nitrogen is lost from the tree in the form of turnover, and so an
+            # equivalent allocation of N is required to replace what was lost. To
+            # represent this process, N is allocated from the surplus store in the same
+            # quantities as turnover.
+            # TODO: is it correct to use the current ratios here? Should prob be a bit
+            # more complicated - need to replace N at the "ideal" ratio rate?
+            stochiometry.n_surplus = (
+                stochiometry.n_surplus
+                - (
+                    stem_allocation.foliage_turnover
+                    * (1 / self.model_constants.leaf_turnover_c_n_ratio)
+                )
+                - (
+                    stem_allocation.fine_root_turnover
+                    * (1 / stochiometry.cn_ratio_roots)
+                )
+                - (
+                    stem_allocation.reproductive_tissue_turnover
+                    * (1 / stochiometry.cn_ratio_reproductive_tissue)
+                )
+            )
+
+            # N is lost in the form of senseced leaves, but some of the N emobodied in
+            # living leaves is returned to the surplus store before the leaves are shed.
+            stochiometry.n_surplus = (
+                stochiometry.n_surplus
+                + stem_allocation.foliage_turnover
+                * (
+                    1 / stochiometry.cn_ratio_foliage
+                    - 1 / self.model_constants.leaf_turnover_c_n_ratio
+                )
+            )
+
+            # THIRD, ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
             # nutrient pathways
             self.data["root_carbohydrate_exudation"][cell_id] = np.sum(
@@ -759,10 +806,89 @@ class PlantsModel(
                 * cohorts.n_individuals
             )
 
+            # FOURTH, ALLOCATE TO GROWTH:
+            # Grow the plants by increasing the stem dbh
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
+            cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
+
+            # Allocate N to growth and update stochiometry values
+            n_for_foliage_growth = (
+                1 / self.model_constants.foliage_c_n_ratio
+            ) * stem_allocation.delta_foliage_mass
+            n_for_stem_growth = (
+                1 / self.model_constants.deadwood_c_n_ratio
+            ) * stem_allocation.delta_stem_mass
+            n_for_rt_growth = (
+                (1 / self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio)
+                * stem_allocation.delta_foliage_mass
+                * community.stem_traits.p_foliage_for_reproductive_tissue
+            )
+            n_for_roots_growth = (
+                (1 / self.model_constants.root_turnover_c_n_ratio)
+                * stem_allocation.delta_foliage_mass
+                * community.stem_traits.zeta
+            )
+
+            # Update the stochiometry values
+            stochiometry.n_surplus -= (
+                n_for_foliage_growth
+                + n_for_stem_growth
+                + n_for_rt_growth
+                + n_for_roots_growth
+            )
+            stochiometry.n_foliage = stochiometry.n_foliage + n_for_foliage_growth
+            stochiometry.n_wood = stochiometry.n_wood + n_for_stem_growth
+            stochiometry.n_reproductive_tissue = (
+                stochiometry.n_reproductive_tissue + n_for_rt_growth
+            )
+            stochiometry.n_roots = stochiometry.n_roots + n_for_roots_growth
+
+            # Balance the N surplus/deficit with the symbiote carbon supply
+            self.data["plant_n_uptake_arbuscular"] = xr.full_like(
+                self.data["elevation"], 0
+            )
+            self.data["plant_n_uptake_ecto"] = xr.full_like(self.data["elevation"], 0)
+            n_available_from_symbiotes = (
+                self.data["ecto_supply_limit_n"][cell_id]
+                + self.data["arbuscular_supply_limit_n"][cell_id]
+            )
+            for cohort in range(0, len(stochiometry.n_surplus)):
+                if stochiometry.n_surplus[cohort] >= 0:
+                    # Take no N from the symbiotes and keep the surplus
+                    self.data["plant_n_uptake_arbuscular"][cell_id] += 0
+                    self.data["plant_n_uptake_ecto"][cell_id] += 0
+                elif stochiometry.n_surplus[cohort] + n_available_from_symbiotes >= 0:
+                    # Take N from arbuscular and ecto symbiotes in proportion to their
+                    # supply, and reset the surplus to 0
+                    self.data["plant_n_uptake_arbuscular"] = stochiometry.n_surplus * (
+                        self.data["arbs_supply_limit_n"]
+                        / (
+                            self.data["ecto_supply_limit_n"]
+                            + self.data["arbs_supply_limit_n"]
+                        )
+                    )
+                    self.data["plant_n_uptake_ecto"] = (
+                        stochiometry.n_surplus - self.data["plant_n_uptake_arbuscular"]
+                    )
+                    stochiometry.n_surplus = 0
+                else:
+                    # NITROGEN DEFICIT!!
+                    # Take all the N from the symbiotes, and decrease the deficit
+                    self.data["plant_n_uptake_arbuscular"] = self.data[
+                        "arbuscular_supply_limit_n"
+                    ]
+                    self.data["plant_n_uptake_ecto"] = self.data["ecto_supply_limit_n"]
+                    stochiometry.n_surplus = (
+                        stochiometry.n_surplus + n_available_from_symbiotes
+                    )
+                    # TODO: what to do about the remaining deficit????
+
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
+
+            self.allocations[cell_id] = stem_allocation
 
     def apply_mortality(self) -> None:
         """Apply mortality to plant cohorts.
@@ -794,6 +920,35 @@ class PlantsModel(
             self.data["deadwood_production"][cell_id] = np.sum(
                 mortality * community.stem_allometry.stem_mass
             )
+
+    def update_cn_ratios(self) -> None:
+        # C:N and C:P ratios
+        self.data["deadwood_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.deadwood_c_n_ratio
+        )
+        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.leaf_turnover_c_n_ratio
+        )
+        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+        )
+        self.data["root_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.root_turnover_c_n_ratio
+        )
+        self.data["deadwood_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.deadwood_c_p_ratio
+        )
+        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.leaf_turnover_c_p_ratio
+        )
+        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"],
+            self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
+        )
+        self.data["root_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
+        )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -828,33 +983,6 @@ class PlantsModel(
             self.data["elevation"], self.model_constants.root_lignin
         )
 
-        # C:N and C:P ratios
-        self.data["deadwood_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.deadwood_c_n_ratio
-        )
-        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_turnover_c_n_ratio
-        )
-        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
-        )
-        self.data["root_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.root_turnover_c_n_ratio
-        )
-        self.data["deadwood_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.deadwood_c_p_ratio
-        )
-        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_turnover_c_p_ratio
-        )
-        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
-        )
-        self.data["root_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
-        )
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
@@ -871,6 +999,7 @@ class PlantsModel(
         """
 
         # Assume plants can take 0.1% of the available nutrient per day
+        # TODO: This is now set by transpiration?
         self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
@@ -897,3 +1026,11 @@ class PlantsModel(
         )
 
         return n_propagules, non_propagule_mass
+
+    def temp_populate_symbiote_vars(self) -> None:
+        """Jacob has these vars in an open PR. Will delete before merging with develop."""
+
+        self.data["ecto_supply_limit_n"] = xr.full_like(self.data["elevation"], 1)
+        self.data["arbuscular_supply_limit_n"] = xr.full_like(self.data["elevation"], 1)
+        self.data["ecto_supply_limit_p"] = xr.full_like(self.data["elevation"], 1)
+        self.data["arbuscular_supply_limit_p"] = xr.full_like(self.data["elevation"], 1)
