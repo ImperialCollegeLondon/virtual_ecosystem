@@ -5,7 +5,7 @@ use in the Virtual Ecosystem. This includes reading climate data from netcdf,
 converting the data into an input format that is suitable for the abiotic module (e.g.
 Kelvin to Celsius conversion), adding further required variables, and writing the output
 in a new netcdf file. This does **not** include spatially interpolating coarser
-resolution climate data and including the effects of local topography.
+resolution climate data or the effects of local topography.
 
 Input file: ERA5_land_example.nc
 
