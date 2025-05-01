@@ -73,6 +73,71 @@ class CarcassPool:
             carbon=carbon, nitrogen=nitrogen, phosphorus=phosphorus
         )
 
+    def get_eaten(
+        self,
+        consumed_mass: float,
+        scavenger: "Consumer",
+    ) -> dict[str, float]:
+        """Handle a scavenging event and update pool state.
+
+        Args:
+            consumed_mass: Wet-mass the scavenger tries to eat [kg].
+            scavenger: The cohort consuming the carcass.
+
+        Returns:
+            Dict keyed ``"carbon"``, ``"nitrogen"``, ``"phosphorus"`` giving the
+            mass of each element actually ingested.
+
+        Raises:
+            ValueError: If ``consumed_mass`` is negative.
+        """
+        if consumed_mass < 0:
+            raise ValueError("consumed_mass cannot be negative.")
+
+        available = self.scavengeable_cnp.total
+        if available == 0.0:
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+
+        # Mass physically removed from the carcass
+        taken_wet = min(consumed_mass, available)
+
+        mech_eff = scavenger.functional_group.mechanical_efficiency
+        ingested_wet = taken_wet * mech_eff
+        missed_wet = taken_wet * (1.0 - mech_eff)
+
+        # Stoichiometric fractions of the scavengeable pool
+        frac_C = self.scavengeable_cnp.carbon / available
+        frac_N = self.scavengeable_cnp.nitrogen / available
+        frac_P = self.scavengeable_cnp.phosphorus / available
+
+        # Elemental masses
+        ingested_cnp = {
+            "carbon": ingested_wet * frac_C,
+            "nitrogen": ingested_wet * frac_N,
+            "phosphorus": ingested_wet * frac_P,
+        }
+        missed_cnp = {
+            "carbon": missed_wet * frac_C,
+            "nitrogen": missed_wet * frac_N,
+            "phosphorus": missed_wet * frac_P,
+        }
+
+        # Update pool states
+        # 1. Remove everything physically taken
+        self.scavengeable_cnp.update(
+            carbon=-taken_wet * frac_C,
+            nitrogen=-taken_wet * frac_N,
+            phosphorus=-taken_wet * frac_P,
+        )
+        # 2. Transfer handling losses to the decomposed compartment
+        self.decomposed_cnp.update(
+            carbon=missed_cnp["carbon"],
+            nitrogen=missed_cnp["nitrogen"],
+            phosphorus=missed_cnp["phosphorus"],
+        )
+
+        return ingested_cnp
+
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed carcasses.
 
@@ -151,6 +216,62 @@ class ExcrementPool:
         have been calculated.
         """
         self.decomposed_cnp = CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
+
+    def get_eaten(
+        self,
+        consumed_mass: float,
+        scavenger: Consumer,
+    ) -> dict[str, float]:
+        """Remove biomass from the excrement pool and return the stoichiometric gain.
+
+        Args:
+            consumed_mass: Wet-mass the scavenger tries to eat [kg].
+            scavenger: The animal cohort consuming the excrement.
+
+        Returns:
+            Dict with keys ``"carbon"``, ``"nitrogen"``, ``"phosphorus"`` giving
+            the mass of each element actually ingested.
+
+        Raises:
+            ValueError: If ``consumed_mass`` is negative.
+        """
+        if consumed_mass < 0:
+            raise ValueError("consumed_mass cannot be negative.")
+
+        available = self.scavengeable_cnp.total
+        if available == 0.0:
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+
+        taken_wet = min(consumed_mass, available)
+
+        mech_eff = scavenger.functional_group.mechanical_efficiency
+        ingested_wet = taken_wet * mech_eff
+        missed_wet = taken_wet * (1.0 - mech_eff)
+
+        frac_C = self.scavengeable_cnp.carbon / available
+        frac_N = self.scavengeable_cnp.nitrogen / available
+        frac_P = self.scavengeable_cnp.phosphorus / available
+
+        ingested_cnp = {
+            "carbon": ingested_wet * frac_C,
+            "nitrogen": ingested_wet * frac_N,
+            "phosphorus": ingested_wet * frac_P,
+        }
+
+        # Remove everything physically taken
+        self.scavengeable_cnp.update(
+            carbon=-taken_wet * frac_C,
+            nitrogen=-taken_wet * frac_N,
+            phosphorus=-taken_wet * frac_P,
+        )
+        # Handling losses become decomposed material
+        self.decomposed_cnp.update(
+            carbon=missed_wet * frac_C,
+            nitrogen=missed_wet * frac_N,
+            phosphorus=missed_wet * frac_P,
+        )
+
+        return ingested_cnp
 
 
 def find_decay_consumed_split(

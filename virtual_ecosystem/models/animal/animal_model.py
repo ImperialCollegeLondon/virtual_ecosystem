@@ -1022,53 +1022,78 @@ class AnimalModel(
                 self.birth(cohort)
 
     def forage_community(self) -> None:
-        """This function organizes the foraging of animal cohorts.
+        """Loop through every active cohort and trigger resource consumption.
 
-        TODO: update for trophic expansion
+        The diet flags on each cohort determine which resource lists are
+        assembled and forwarded to ``cohort.forage_cohort``:
 
-        Herbivores will only forage plant resources, while carnivores will forage for
-        prey (other animal cohorts).
+        * ``DietType.HERBIVORE`` → live plant resources
+        * ``DietType.CARNIVORE`` → live prey cohorts
+        * ``DietType.DETRITUS``  → plant-litter pools (detritivory)
+        * ``DietType.CARCASS``   → carcass pools   (scavenging)
+        * ``DietType.WASTE``     → excrement pools (coprophagy)
 
-        It loops over every animal cohort in the community and calls the
-        forage_cohort function with a list of suitable trophic resources. This action
-        initiates foraging for those resources, with mass transfer details handled
-        internally by forage_cohort and its helper functions. Future expansions may
-        include functions for handling scavenging and soil consumption behaviors.
-
-        Cohorts with no remaining individuals post-foraging are marked for death.
+        Deposition targets (``excrement_pools`` for faeces and
+        ``carcass_pool_map`` for uneaten prey remains) are always supplied so
+        trophic functions can update them regardless of whether the cohort
+        actively scavenges in the same step.
         """
-
-        for consumer_cohort in self.active_cohorts.values():
-            # Check that the cohort has a valid territory defined
-            if consumer_cohort.territory is None:
+        for cohort in list(self.active_cohorts.values()):
+            # Safety check territory must be defined
+            if cohort.territory is None:
                 raise ValueError("The cohort's territory hasn't been defined.")
 
-            # Initialize empty resource lists
-            plant_list = []
-            prey_list = []
-            excrement_list = consumer_cohort.get_excrement_pools(self.excrement_pools)
-            """plant_waste_list = consumer_cohort.get_plant_waste_pools(
-                self.leaf_waste_pools
-            )"""
+            diet: DietType = cohort.functional_group.diet
 
-            # Check the diet of the cohort and get appropriate resources
-            if consumer_cohort.functional_group.diet == DietType.HERBIVORE:
-                plant_list = consumer_cohort.get_plant_resources(self.plant_resources)
+            # ---------------------------------------------------------------- #
+            #  Build resource collections based on diet flags                  #
+            # ---------------------------------------------------------------- #
+            plant_list: list[Resource] = []
+            prey_list: list[AnimalCohort] = []
+            litter_list: list[LitterPool] = []
+            scavenge_car_pools: list[CarcassPool] = []
+            scavenge_exc_pools: list[ExcrementPool] = []
 
-            elif consumer_cohort.functional_group.diet == DietType.CARNIVORE:
-                prey_list = consumer_cohort.get_prey(self.communities)
+            # Deposition targets (always passed, may be empty)
+            excrement_pools = cohort.get_excrement_pools(self.excrement_pools)
+            carcass_pool_map = self.carcass_pools
 
-            # Initiate foraging for the consumer cohort with the available resources
-            consumer_cohort.forage_cohort(
+            # Live plant resources (herbivory and omnivory)
+            if diet & DietType.HERBIVORE:
+                plant_list = cohort.get_plant_resources(self.plant_resources)
+
+            # Live prey (carnivory and omnivory)
+            if diet & DietType.CARNIVORE:
+                prey_list = cohort.get_prey(self.communities)
+
+            # Detritivory
+            if diet & DietType.DETRITUS:
+                litter_list = cohort.get_litter_pools(self.litter_pools)
+
+            # Carcass scavenging
+            if diet & DietType.CARCASS:
+                scavenge_car_pools = cohort.get_carcass_pools(self.carcass_pools)
+
+            # Coprophagy
+            if diet & DietType.WASTE:
+                scavenge_exc_pools = excrement_pools  # same objects used for deposition
+
+            # ---------------------------------------------------------------- #
+            #  Trigger cohort-level foraging                                   #
+            # ---------------------------------------------------------------- #
+            cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
-                excrement_pools=excrement_list,
-                carcass_pools=self.carcass_pools,  # the full list of carcass pools
-                herbivory_waste_pools=self.leaf_waste_pools,  # full list of leaf waste
+                litter_pools=litter_list,
+                excrement_pools=excrement_pools,  # for defecation
+                carcass_pool_map=carcass_pool_map,  # for prey remains
+                scavenge_carcass_pools=scavenge_car_pools,
+                scavenge_excrement_pools=scavenge_exc_pools,
+                herbivory_waste_pools=self.leaf_waste_pools,
             )
 
-            # Temporary solution to remove dead cohorts
-            self.remove_dead_cohort_community()
+        # Remove any cohorts that died during foraging
+        self.remove_dead_cohort_community()
 
     def metabolize_community(self, dt: timedelta64) -> None:
         """This handles metabolize for all cohorts in a community.
