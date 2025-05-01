@@ -211,8 +211,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
 
     # Check stem_gpp and stem_transpiration structure
     exp_stem_struct = {
-        cid: cmty.number_of_cohorts
-        for cid, cmty in fxt_plants_model.communities.items()
+        cid: cmty.n_cohorts for cid, cmty in fxt_plants_model.communities.items()
     }
 
     # Are the stem properties dictionaries of arrays with the right length
