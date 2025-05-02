@@ -214,4 +214,28 @@ mineral association as labile phosphorus.
 
 ### Inorganic phosphorus cycling processes
 
-TODO - Populate this with details of the key processes which cycle inorganic phosphorus
+Inorganic phosphorus is added to the system in a couple of ways. Firstly, labile
+phosphorus added to the system at a fixed rate to represented environment deposition.
+Secondly, tectonic uplift adds new primary mineral phosphorus into the system, obviously
+this is a very slow process so the rate of tectonic uplift is set to zero by default.
+However, we keep this process in the model as it will be relevant both for long-duration
+model runs and if the model is applied to areas of greater tectonic activity.
+
+The breakdown of primary mineral phosphorus into labile inorganic phosphorus is modelled
+as a linear decay by
+
+$$b_P = k_P * P_P,$$
+
+where $k_P$ is rate constant for primary phosphorus breakdown and $P_P$ is the density
+of primary mineral phosphorus in the soil. The sorption of labile inorganic phosphorus
+to soil minerals (forming secondary mineral phosphorus) and the breakdown of secondary
+mineral phosphorus (forming labile inorganic phosphorus) are both also assumed to follow
+linear kinetics. As such the net formation rate of secondary mineral phosphorus can be
+expressed as
+
+$$f_S = k_L * P_L - k_S * P_S,$$
+
+where $k_L$ is the rate constant for sorption of labile inorganic phosphorus to soil
+minerals, $P_L$ is the density of labile inorganic phosphorus in the soil, $k_S$ is rate
+constant for secondary mineral phosphorus breakdown and $P_S$ is the density of
+secondary mineral phosphorus in the soil.
