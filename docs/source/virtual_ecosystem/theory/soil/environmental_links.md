@@ -25,76 +25,50 @@ language_info:
 
 # Environmental impacts on soil processes
 
-Litter decay and soil nutrient transformations are both affected by environment. As the
-soil model explicitly includes microbes, temperature effects many different processes in
-the model, e.g. enzymatic rates and the carbon use efficiency of microbial growth.
-Temperature is more straightforward in the litter model and just affects the decay rate
-of each litter pool. Processes that take place underground are also affected by soil
-moisture. For the soil moisture response, an empirical relationship is used for both
-litter decay and soil organic matter breakdown. For the enzymes in the soil model, their
-action is also affected by soil pH and clay fraction. Finally, the rate at which
-nutrients leach from the soil is affected by the flow rate of water downwards
-through the soil. We will now describe each of these processes in more detail.
+Litter decay and soil nutrient transformations are both affected by environment. At the
+most basic level these are impacts on the microbial components of the soil and litter
+models, which then impact the models more broadly. There are three different ways that
+these impacts are represented in the models. The rates of processes that are implicitly
+driven by microbes can change, the growth rates of the different microbial groups can be
+directly affected, or the enzymatic rates can be affected. Each of these cases will be
+dealt with in detail below.
 
-## Microbial response to temperature
+At present, the only environmental impact we represent that isn't mediated by microbes
+is the the rate at which nutrients leach from the soil. As such, this process does not
+fit into any of the cases mentioned already, and so it will discuss in a separate
+section.
 
-Temperature is one of the most significant drivers of microbial processes. Two different
-approaches are taken to model the effects of temperature on microbial process rates.
-While most processes are modelled using the Arrhenius equation, a different approach is
-taken to modelling the microbial growth rate.
+## Environmental modification of implicit rates
 
-### Arrhenius equation
+The soil model explicitly represents the soil microbes involved in decomposition.
+However, extending this representation to all the processes would be incredibly hard to
+parametrise, so some processes are instead represented by empirically obtained
+expressions that implicitly represent the actions of the microbial community. As these
+processes are driven by microbes they are affected by environmental conditions, in
+particular soil temperature and moisture.
 
-:::{admonition} Future directions 🔭
+### Litter decay temperature response
 
-The Arrhenius equation is a simple model for the impact of temperature on biological
-rates. We use this equation as a simple initial approach to incorporating
-temperature in the model, and anticipate deprecating it in favour of more refined models
-in future.
+The decay rates of all classes of litter are affected by temperature. For the
+above-ground pools, this temperature is simply the air temperature just above the soil
+surface. For the below ground pools, the temperature is an average of the temperatures
+for the biologically active soil layers. The "intrinsic" litter decay rates are altered
+to capture the effect of temperature by multiplying them with a factor that takes the
+following form
 
-:::
+$$f(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)},$$
 
-We model the thermal response of the following processes using the Arrhenius equation:
+where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
+establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
+$\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
+changes.
 
-* microbial biomass loss
-* microbial uptake rate
-* microbial uptake saturation
-* enzyme rate
-* enzyme saturation
+## Litter decay moisture response
 
-The form of the Arrhenius equation is as follows
-
-$$f(T) = \exp{\frac{-E_a}{R} * (\frac{1}{T} - \frac{1}{T_{\mathrm{ref}}})},$$
-
-where $E_a$ is the activation energy of the process of interest, $R$ is the molar gas
-constant, $T$ is the environmental temperature, and $T_{\mathrm{ref}}$ the reference
-temperature.
-
-### Temperature impact on microbial growth efficiency
-
-The efficiency of microbial growth is often expressed in carbon terms as a carbon use
-efficiency (CUE). This is defined as the proportion of carbon used for the synthesis of
-new biomass to the total amount of carbon taken up. This is an emergent property that
-arises from a large number of underlying processes (e.g. basal respiration, DNA
-synthesis efficiency, etc.), most of which would be expected to vary with temperature.
-Carbon use efficiency usually does not increase exponentially with temperature,
-therefore the Arrhenius model is rarely an appropriate model. Instead we use a simple
-logistic model to describe the temperature dependence of carbon use efficiency
-
-$$\mathrm{logit}\left(\epsilon\right) = \epsilon_{\mathrm{ref}} - \alpha * (T - T_{\mathrm{ref}}),$$
-
-where $\epsilon_{\mathrm{ref}}$ is the carbon use efficiency at the reference
-temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ is the
-environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature. The logit
-link function is used to ensure that carbon use efficiency $\epsilon$ is bound between 0
-and 1 as it is a proportion.
-
-## Soil moisture response
-
-Breakdown rates for soil organic matter and below-ground litter pools are both impacted
-by soil moisture. In very dry soils, breakdown rates are extremely slow because
-microbial movement is restricted from reaching the substrate to break it down. As soils
-get wetter, microbial motility increases resulting in faster breakdown rates. However,
+Breakdown rates for below-ground litter pools are significantly impacted by soil
+moisture. In very dry soils, breakdown rates are extremely slow because microbial
+movement is restricted from reaching the substrate to break it down. As soils get
+wetter, microbial motility increases resulting in faster breakdown rates. However,
 further increasing soil moisture makes oxygen less permeable in the soil, so after a
 certain peak breakdown rates begin to decrease with increasing soil moisture as oxygen
 becomes limiting. The "intrinsic" process rates are altered to capture the effect of
@@ -112,29 +86,30 @@ which substrate breakdown is maximised, $\psi_{h}$ is the water potential at whi
 substrate breakdown stops entirely, and $\alpha$ is an empirically determined parameter
 which sets the curvature of the response to changing soil water potential.
 
-## Litter decay temperature response
+### Nitrification temperature factor
 
-The decay rates of all classes of litter are affected by temperature. For the
-above-ground pools, this temperature is simply the air temperature just above the soil
-surface. For the below ground pools, the temperature is an average of the temperatures
-for the biologically active soil layers. The "intrinsic" litter decay rates are altered
-to capture the effect of temperature by multiplying them with a factor that takes the
-following form
+TODO - Add in Nitrification temperature factor
 
-$$f(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)},$$
+### Nitrification moisture factor
 
-where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
-establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and
-$\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
-changes.
+TODO - Add in Nitrification moisture factor
+
+### Denitrification temperature factor
+
+TODO - Add in denitrification temperature factor
+
+### Denitrification moisture factor
+
+TODO - Add in denitrification temperature factor
 
 ## Environmental effects on enzymes
 
-Enzyme mediated processes in the soil are effected by a wider range of environmental
-factors: soil clay content, soil pH, soil temperature and soil moisture. These
-environmental factors can change the maximum rates of the processes or alternatively
-change the half saturation of the process. We will now discuss each of these factors in
-detail.
+Many processes in the soil model are mediated by extra-cellular enzymes produced by the
+microbial groups. The kinetics of these enzymes are modified by a wider range of
+environmental factors: soil clay content, soil pH, soil temperature and soil moisture.
+These environmental factors can change the maximum rates of the processes or
+alternatively change the half saturation of the process. We will now discuss each of
+these factors in detail.
 
 ### Impact of clay on enzyme saturation
 
@@ -172,14 +147,69 @@ $pH_\mathrm{max}$ is the maximum pH at which enzymatic activity can occur.
 
 ### Impact of temperature on enzyme rate and saturation
 
-The response of both enzyme rate and enzyme saturation to changing temperature is
-modelled using an [Arrhenius function](#arrhenius-equation).
+:::{admonition} Future directions 🔭
+
+The Arrhenius equation is a simple model for the impact of temperature on biological
+rates. We use this equation as a simple initial approach to incorporating
+temperature in the model, and anticipate deprecating it in favour of more refined models
+in future.
+
+:::
+
+The thermal response of enzymatic rates and saturations is modelled using the Arrhenius
+equation. The form of this equation is as follows
+
+$$f(T) = \exp{\frac{-E_a}{R} * (\frac{1}{T} - \frac{1}{T_{\mathrm{ref}}})},$$
+
+where $E_a$ is the activation energy of the process of interest, $R$ is the molar gas
+constant, $T$ is the environmental temperature, and $T_{\mathrm{ref}}$ the reference
+temperature.
 
 ### Impact of soil moisture on enzyme saturation
 
 The response of enzymatic rates to changing soil water potential is modelled using the
 same approach as for the below ground litter pools (described
-[here](#soil-moisture-response)).
+[here](#litter-decay-moisture-response)).
+
+## Direct environmental impacts on microbes
+
+Environmental factors also directly impact the growth of the different microbial groups
+in the model. The rate at which microbes can take up resources is affected by a wide
+range of environmental conditions. The efficiency microbes can grow is also affected by
+temperature, as is rate at which they lose biomass due to cell death and protein
+degradation.
+
+### Microbial uptake
+
+The uptake of resources by microbes is effected by a wide range of environmental
+factors, affecting both uptake rate and saturation. We use the same approach to
+calculate the environmental impacts on uptake rate and saturation as was used for
+enzymatic rate and saturation (described [here](#environmental-effects-on-enzymes)).
+
+### Microbial growth efficiency
+
+The efficiency of microbial growth is often expressed in carbon terms as a carbon use
+efficiency (CUE). This is defined as the proportion of carbon used for the synthesis of
+new biomass to the total amount of carbon taken up. This is an emergent property that
+arises from a large number of underlying processes (e.g. basal respiration, DNA
+synthesis efficiency, etc.), most of which would be expected to vary with temperature.
+Carbon use efficiency usually does not increase exponentially with temperature,
+therefore the Arrhenius model is rarely an appropriate model. Instead we use a simple
+logistic model to describe the temperature dependence of carbon use efficiency
+
+$$\mathrm{logit}\left(\epsilon\right) = \epsilon_{\mathrm{ref}} - \alpha * (T - T_{\mathrm{ref}}),$$
+
+where $\epsilon_{\mathrm{ref}}$ is the carbon use efficiency at the reference
+temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ is the
+environmental temperature and $T_{\mathrm{ref}}$ is the reference temperature. The logit
+link function is used to ensure that carbon use efficiency $\epsilon$ is bound between 0
+and 1 as it is a proportion.
+
+### Biomass loss
+
+The impact of temperature on the rate of biomass loss is assumed to follow the Arrhenius
+equation, which is described in detail
+[here](#impact-of-temperature-on-enzyme-rate-and-saturation).
 
 ## Soil nutrient leaching rate
 
@@ -204,24 +234,3 @@ contained in the water column. We can then combine the above to calculate the le
 rate for substrate $i$ as
 
 $$L_i = \mu * D_i.$$
-
-## Other environmental factors
-
-TODO - Explain that nitrification and denitrification use their own factors. Mention
-that this isn't ideal but is something we are working with for now.
-
-### Nitrification temperature factor
-
-TODO - Add in Nitrification temperature factor
-
-### Nitrification moisture factor
-
-TODO - Add in Nitrification moisture factor
-
-### Denitrification temperature factor
-
-TODO - Add in denitrification temperature factor
-
-### Denitrification moisture factor
-
-TODO - Add in denitrification temperature factor

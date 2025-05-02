@@ -173,7 +173,7 @@ these environmental factors can be found
 
 The rate at which microbial biomass is lost to both cell death and protein degradation
 ($d$) is temperature dependent (the modelling of this temperature dependence is
-described [here](./environmental_links.md#microbial-response-to-temperature)). All of
+described [here](./environmental_links.md#temperature-effects-on-microbes)). All of
 this losses get added to the necromass pool. The breakdown of this necromass pool to
 form {term}`LMWC` is modelled using linear kinetics as
 
