@@ -126,12 +126,12 @@ use the following empirical expression (adapted from {cite}`brzostek_modeling_20
 
 $$
 \begin{align}
-C_{f}(T) &= \inf \quad T<0, \\
-C_{f}(T) &= C_0 + C_{\inf} * (e^{s * T * (1 - (T / T_e))} - 1) \quad T>=0,
+C_{f}(T) &= \infty \quad T<0, \\
+C_{f}(T) &= C_0 + C_{\infty} * (e^{s * T * (1 - (T / T_e))} - 1) \quad T>=0,
 \end{align}
 $$
 
-where $C_0$ is the cost at zero Celsius, $C_{\inf}$ is the maximum additional cost at
+where $C_0$ is the cost at zero Celsius, $C_{\infty}$ is the maximum additional cost at
 high temperatures (this is asymptotically approached as temperatures tend towards
 infinity), $s$ is the sensitivity of the cost to changes in temperature and $T_e$ is the
 (positive) temperature at which the fixation cost is equal to the cost at zero degrees

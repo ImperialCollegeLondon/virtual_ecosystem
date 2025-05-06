@@ -88,19 +88,59 @@ which sets the curvature of the response to changing soil water potential.
 
 ### Nitrification temperature factor
 
-TODO - Add in Nitrification temperature factor
+The rate of nitrification in the soil changes with temperature. We capture this effect
+using an empirical function taken from {cite}`xu-ri_terrestrial_2008`, where the impact
+of temperature on nitrifaction rate captured as
+
+$$
+f_{T,n}(T) = \left(\frac{T_m - T}{T_m - T_o}\right)^{s_n}
+             * \exp{\left(s_n * \frac{T - T_o}{T_m - T_o}\right)},
+$$
+
+where $T_m$ is the maximum temperature that nitrification occurs at, $T_o$ is the
+optimal temperature for nitrification, and $s_n$ is the sensitivity of nitrification to
+changes in temperature.
 
 ### Nitrification moisture factor
 
-TODO - Add in Nitrification moisture factor
+The rate of nitrification in the soil also varies with soil moisture. In this case, we
+use a function taken from {cite}`fatichi_mechanistic_2019` to capture this effect.
+The factor capturing the impact of soil moisture on nitrification rate is calculated as
+
+$$
+f_{w,n}(S_e) = \frac{S_e * (1 - S_e)}{0.25},
+$$
+
+where $S_e$ is the effective saturation.
 
 ### Denitrification temperature factor
 
-TODO - Add in denitrification temperature factor
+Denitrification rate is also impacted by temperature. To capture this we modify an
+empirical expression provided in {cite}`xu-ri_terrestrial_2008`. This allows the impact
+that temperature has on denitrification rate to be calculated as
+
+$$
+f_{T,d}(T) =
+\begin{cases}
+0, \quad T <= T_h \\
+f_\infty * \exp{\left(-\frac{s_d}{T - T_h}\right)}, \quad T > T_h \\
+\end{cases}
+$$
+
+where $f_\infty$ is the impact of the factor at infinite temperature, $s_d$ is the
+(inverse) sensitivity of denitrification to changes in temperature and $T_h$ is the
+temperature below which denitrification halts.
 
 ### Denitrification moisture factor
 
-TODO - Add in denitrification temperature factor
+Soil moisture also effects the rate of denitrification. We capture this effect using a
+function taken from {cite}`fatichi_mechanistic_2019`, which is expressed as
+
+$$
+f_{w,d}(S_e) = {S_e}^2
+$$
+
+where $S_e$ is the effective saturation.
 
 ## Environmental effects on enzymes
 
