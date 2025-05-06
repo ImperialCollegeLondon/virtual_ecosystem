@@ -30,21 +30,21 @@ version = "0.1.1a8"
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
 [tool.poetry.dependencies]
-Shapely = "^2.0" 
-dask = ">=2023.6,<2026.0" 
-dpath = "^2.0.6" 
-jsonschema = "^4.14.0" 
-netcdf4 = "^1.6.5" 
-numpy = "~2.1" # Pinning numpy less than 2.2.0 until this resolves: https://github.com/numpy/numpy/issues/27957
-openpyxl = "^3.1.5" 
-pint = "^0.24.1" 
-pyrealm = {version = "^2.0.0rc1", allow-prereleases = true} 
-python = ">=3.10,<3.14" 
-scipy = "^1.9.0" 
-tomli = {version = "^2.0.1", python = "<3.11"} 
-tomli-w = "^1.0.0" 
-tqdm = "^4.66.2" 
-xarray = ">=2024.6,<2026.0" 
+Shapely = "^2.0"
+dask = ">=2023.6,<2026.0"
+dpath = "^2.0.6"
+jsonschema = "^4.14.0"
+netcdf4 = "^1.6.5"
+numpy = "^2.0"
+openpyxl = "^3.1.5"
+pint = "^0.24.1"
+pyrealm = {version = "^2.0.0rc3", allow-prereleases = true}
+python = ">=3.10,<3.14"
+scipy = "^1.9.0"
+tomli = {version = "^2.0.1", python = "<3.11"}
+tomli-w = "^1.0.0"
+tqdm = "^4.66.2"
+xarray = ">=2024.6,<2026.0"
 
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
@@ -71,7 +71,7 @@ mdformat_frontmatter = ">=0.4.1,<2.1.0"
 mdformat_tables = ">=0.4.1,<1.1.0"
 mypy = "^1.5.1"
 pre-commit = ">=3,<5"
-ruff = "^0.9.1"
+ruff = ">=0.9.1,<0.12.0"
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"
@@ -137,6 +137,6 @@ plugins = "numpy.typing.mypy_plugin"
 
 [tool.jupytext]
 # Stop jupytext from removing mystnb and other settings in MyST Notebook YAML headers
-notebook_metadata_filter = "settings,mystnb,language_info"
+notebook_metadata_filter = "settings,mystnb,language_info,execution"
 # Also stop it from stripping cell metadata.
 cell_metadata_filter = "all,-trusted"

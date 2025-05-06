@@ -38,6 +38,18 @@ data["plant_cohorts_dbh"] = DataArray(
     np.array([0.1, 0.05] * n_cells), coords={"cohort_index": cohort_index}
 )
 
+# Subcanopy vegetation
+# Spatio-temporal data
+data["subcanopy_vegetation_biomass"] = DataArray(
+    data=np.full((n_cells,), fill_value=0.07),
+    coords={"cell_id": cell_id},
+)
+
+data["subcanopy_seedbank_biomass"] = DataArray(
+    data=np.full((n_cells,), fill_value=0.07),
+    coords={"cell_id": cell_id},
+)
+
 # Spatio-temporal data
 data["downward_shortwave_radiation"] = DataArray(
     data=np.full((n_cells, n_dates), fill_value=2040),
@@ -51,7 +63,14 @@ data.to_netcdf("../data/example_plant_data.nc")
 
 # Write cohort data to CSV file as an alternative form of this data source
 df = data.drop_vars(
-    ["downward_shortwave_radiation", "time", "time_index", "cell_id"]
+    [
+        "downward_shortwave_radiation",
+        "time",
+        "time_index",
+        "cell_id",
+        "subcanopy_vegetation_biomass",
+        "subcanopy_seedbank_biomass",
+    ]
 ).to_pandas()
 
 df.to_csv("../data/example_plant_cohorts.csv", index=False)

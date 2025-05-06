@@ -10,39 +10,59 @@ from numpy.typing import NDArray
 def calculate_vertical_flow(
     soil_moisture: NDArray[np.float32],
     soil_layer_thickness: NDArray[np.float32],
-    soil_moisture_capacity: float | NDArray[np.float32],
+    soil_layer_depth: NDArray[np.float32],
+    soil_moisture_saturation: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
-    hydraulic_conductivity: float | NDArray[np.float32],
-    hydraulic_gradient: float | NDArray[np.float32],
-    nonlinearily_parameter: float | NDArray[np.float32],
+    saturated_hydraulic_conductivity: float | NDArray[np.float32],
+    air_entry_potential_inverse: float,
+    van_genuchten_nonlinearily_parameter: float,
+    pore_connectivity_parameter: float,
     groundwater_capacity: float | NDArray[np.float32],
     seconds_to_day: float,
-) -> NDArray[np.float32]:
+) -> dict[str, NDArray[np.float32]]:
     r"""Calculate vertical water flow through soil column, [mm d-1].
 
-    To calculate the flow of water through unsaturated soil, this function uses the
-    Richards equation. First, the function calculates the effective saturation :math:`S`
-    and effective hydraulic conductivity :math:`K(S)` based on the moisture content
-    :math:`\Theta` using the Mualem-van Genuchten model
-    :cite:p:`van_genuchten_closed-form_1980`:
+    To calculate the flow of water through unsaturated soil, this function combines
+    Richards' equation and Darcy's law for unsaturated flow. It calculates the effective
+    saturation :math:`S_{e}` and effective unsaturated hydraulic conductivity
+    :math:`K(\Theta)` based on the moisture content :math:`\Theta` using the van
+    Genuchten - Mualem model
+    (:cite:t:`van_genuchten_closed-form_1980`, :cite:t:`mualem_new_1976`).
 
-    :math:`S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}`
+    First, the effective saturation is calculated as:
 
-    and
+    .. math ::
+        S_{e} = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}
 
-    :math:`K(S) = K_{s}* \sqrt{S} *(1-(1-S^{1/m})^{m})^{2}`
+    where :math:`\Theta_{r}` is the soil moisture residual and :math:`\Theta_{s}` is
+    the soil moisture saturation.
 
-    where :math:`\Theta_{r}` is the residual moisture content, :math:`\Theta_{s}` is the
-    saturated moisture content, :math:`K_{s}` is the saturated hydraulic conductivity,
-    and :math:`m=1-1/n` is a shape parameter derived from the non-linearity parameter
-    :math:`n`. Then, the function applies Darcy's law to calculate the water flow rate
-    :math:`q` in :math:`\frac{m^3}{s^1}` considering the effective hydraulic
+    Then, the effective unsaturated hydraulic conductivity is computed as:
+
+    .. math ::
+        K(\Theta) = K_{s} S_{e}^{L} (1-(1-S_{e}^{\frac{1}{m}})^{m})^{2}
+
+    where :math:`K_{s}` is the saturated hydraulic conductivity,
+    :math:`L` is the pore connectivity parameter, and :math:`m=1-1/n` is a shape
+    parameter derived from the non-linearity parameter :math:`n`.
+
+    The soil matric potential :math:`\Psi_{m}` is calculated as follows:
+
+    .. math ::
+        \Psi_{m} = \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}
+
+    where :math:`\alpha` is the inverse of air entry value.
+
+    Then, the function applies Darcy's law to calculate the water flow rate
+    :math:`q` in :math:`\frac{m}{s-1}` considering the effective unsaturated hydraulic
     conductivity:
 
-    :math:`q = - K(S)*(\frac{dh}{dl}-1)`
+    .. math ::
+        q = - K(\Theta) (\frac{d \Psi_{m}}{dz} + 1)
 
-    where :math:`\frac{dh}{dl}` is the hydraulic gradient with :math:`l` the
-    length of the flow path in meters (here equal to the soil depth).
+    where :math:`\frac{d \Psi_{m}}{dz}` is the matric potential gradient with :math:`z`
+    the elevation (gravitational potential) or gravitational head. The result is
+    converted to mm per day.
 
     Note that there are severe limitations to this approach on the temporal and
     spatial scale of this model and this can only be treated as a very rough
@@ -50,59 +70,80 @@ def calculate_vertical_flow(
 
     Args:
         soil_moisture: Volumetric relative water content in top soil, [unitless]
-        soil_layer_thickness: Thickness of all soil_layers, [mm]
-        soil_moisture_capacity: Soil moisture capacity, [unitless]
+        soil_layer_thickness: Thickness of all soil layers, [m]
+        soil_layer_depth: Soil layer depth, [m]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
-        hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
-        hydraulic_gradient: Hydraulic gradient (change in hydraulic head) along the flow
-            path, positive values indicate downward flow, [m/m]
-        nonlinearily_parameter: Dimensionless parameter in van Genuchten model that
-            describes the degree of nonlinearity of the relationship between the
-            volumetric water content and the soil matric potential.
-        groundwater_capacity: Storage capacity of groundwater, [mm]
+        saturated_hydraulic_conductivity: Hydraulic conductivity of soil, [m/s]
+        air_entry_potential_inverse: Inverse of air entry water potential (parameter
+            alpha in van Genuchten model), [m-1]
+        van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
+            model that describes the degree of nonlinearity of the relationship between
+            the volumetric water content and the soil matric potential.
+        pore_connectivity_parameter: Pore connectivity parameter, dimensionless
+        groundwater_capacity: Storage capacity of groundwater, [m]
         seconds_to_day: Factor to convert between second and day
 
     Returns:
-        volumetric flow rate of water, [mm d-1]
+        matric potential,[m] volumetric flow rate of water, [mm d-1]
     """
-    shape_parameter = 1 - 1 / nonlinearily_parameter
+
+    output = {}
+    shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
 
     # Calculate soil effective saturation in rel. vol. water content for each layer:
+    # TODO make this function a tool
     effective_saturation = (soil_moisture - soil_moisture_residual) / (
-        soil_moisture_capacity - soil_moisture_residual
+        soil_moisture_saturation - soil_moisture_residual
     )
 
-    # Calculate the effective hydraulic conductivity in m/s
+    # Calculate matric potential for each grid point and depth
+    matric_potential = calculate_matric_potential(
+        effective_saturation=effective_saturation,
+        air_entry_potential_inverse=air_entry_potential_inverse,
+        van_genuchten_nonlinearily_parameter=van_genuchten_nonlinearily_parameter,
+    )
+
+    # Calculate the unsaturated (effective) hydraulic conductivity in m/s
     effective_conductivity = np.array(
-        hydraulic_conductivity
-        * np.sqrt(effective_saturation)
+        saturated_hydraulic_conductivity
+        * effective_saturation**pore_connectivity_parameter
         * (1 - (1 - (effective_saturation) ** (1 / shape_parameter)) ** shape_parameter)
         ** 2,
     )
 
-    # Calculate flow from top soil to lower soil in mm per month
-    flow = -effective_conductivity * (hydraulic_gradient - 1) * seconds_to_day
+    # Compute matric potential gradient
+    matric_potential_gradient = np.gradient(matric_potential, soil_layer_depth, axis=0)
 
-    # Make sure that flow does not exceed storage capacity in mm
+    # Calculate vertical flow from top soil to lower soil in m s-1
+    flow = -effective_conductivity * (matric_potential_gradient + 1)
+
+    # Make sure that flow does not exceed storage capacity in m
     available_storage = (soil_moisture - soil_moisture_residual) * soil_layer_thickness
 
+    # Flow in m per day to match unit of available storage
+    flow_timestep = flow * seconds_to_day
+
+    # Redistribute water in soil layers
     flow_min = []
     for i in np.arange(len(soil_moisture) - 1):
         flow_layer = np.where(
-            effective_conductivity[i] < available_storage[i + 1],
-            flow[i],
+            flow_timestep[i] < available_storage[i + 1],
+            flow_timestep[i],
             available_storage[i + 1],
         )
         flow_min.append(flow_layer)
 
     outflow = np.where(
-        effective_conductivity[-1] < groundwater_capacity,
-        flow[-1],
+        flow_timestep[-1] < groundwater_capacity,
+        flow_timestep[-1],
         groundwater_capacity,
     )
     flow_min.append(outflow)
 
-    return np.array(flow_min)
+    output["matric_potential"] = matric_potential
+    output["vertical_flow"] = np.abs(np.array(flow_min) / 1000.0)  # mm per day
+    return output
 
 
 def update_soil_moisture(
@@ -170,37 +211,41 @@ def update_soil_moisture(
     return soil_moisture_updated
 
 
-def convert_soil_moisture_to_water_potential(
-    soil_moisture: NDArray[np.float32],
-    air_entry_water_potential: float,
-    water_retention_curvature: float,
-    soil_moisture_capacity: float,
+def calculate_matric_potential(
+    effective_saturation: NDArray[np.float32],
+    air_entry_potential_inverse: float,
+    van_genuchten_nonlinearily_parameter: float,
 ) -> NDArray[np.float32]:
     r"""Convert soil moisture into an estimate of water potential.
 
-    This function provides a coarse estimate of soil water potential :math:`\Psi_{m}`.
-    It is taken from :cite:t:`campbell_simple_1974`:
+    This function estimates soil water potential :math:`\Psi_{m}` as using the van
+    Genuchten - Mualem model
+    (:cite:t:`van_genuchten_closed-form_1980`, :cite:t:`mualem_new_1976`):
 
-    :math:`\Psi_{m} = \Psi_{e} * (\frac{\Theta}{\Theta_{s}})^{b}`
+    .. math ::
+        \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}} - 1)^{(\frac{1}{n})}
 
-    where :math:`\Psi_{e}` is the air-entry, :math:`\Theta` is the volumetric water
-    content, :math:`\Theta_{s}` is the saturated water content, and :math:`b` is the
-    water retention curvature parameter.
+    where :math:`\alpha` is the inverse of the air-entry , :math:`S_{e}` is the
+    effective saturation, n and m are van Genuchten parmeters.
 
     Args:
-        soil_moisture: Volumetric relative water content, [unitless]
-        air_entry_water_potential: Water potential at which soil pores begin to aerate,
-            [kPa]
-        water_retention_curvature: Curvature of water retention curve, [unitless]
-        soil_moisture_capacity: The relative water content at which the soil is fully
-            saturated, [unitless].
+        effective_saturation: Effective saturation
+        air_entry_potential_inverse: Inverse of air entry potential (parameter alpha in
+            van Genuchten), [m-1]
+        van_genuchten_nonlinearily_parameter: Dimensionless parameter in van Genuchten
+            model that describes the degree of nonlinearity of the relationship between
+            the volumetric water content and the soil matric potential.
 
     Returns:
-        An estimate of the water potential of the soil, [kPa]
+        An estimate of the water potential of the soil, [m]
     """
+    shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
 
-    return air_entry_water_potential * (
-        (soil_moisture / soil_moisture_capacity) ** water_retention_curvature
+    return (
+        -1
+        / air_entry_potential_inverse
+        * (effective_saturation ** (-1 / shape_parameter) - 1)
+        ** (1 / van_genuchten_nonlinearily_parameter)
     )
 
 
@@ -218,7 +263,7 @@ def update_groundwater_storage(
     Groundwater storage and transport are modelled using two parallel linear reservoirs,
     similar to the approach used in the HBV-96 model
     :cite:p:`lindstrom_development_1997` and the LISFLOOD
-    :cite:p:`van_der_knijff_lisflood_2010` (see for full documentation).
+    :cite:p:`van_der_knijff_lisflood_2010`.
 
     The upper zone represents a quick runoff component, which includes fast groundwater
     and subsurface flow through macro-pores in the soil. The lower zone represents the
