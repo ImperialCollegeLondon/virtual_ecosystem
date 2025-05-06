@@ -231,7 +231,7 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     )
 
 
-@pytest.skip(
+@pytest.mark.skip(
     reason="The DBH increase check fails - we need to fix this but that is going "
     "to be tricky and we need to unblock the CI."
 )
