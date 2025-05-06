@@ -4,16 +4,21 @@ This section illustrates how to perform simple manipulations to adjust ERA5-Land
 use in the Virtual Ecosystem. This includes reading climate data from netcdf,
 converting the data into an input format that is suitable for the abiotic module (e.g.
 Kelvin to Celsius conversion), adding further required variables, and writing the output
-in a new netcdf file. This does not include spatially interpolating coarser resolution
-climate data and including the effects of local topography.
+in a new netcdf file. This does **not** include spatially interpolating coarser
+resolution climate data or the effects of local topography.
 
-Input file: ERA5_land.nc
+Input file: ERA5_land_example.nc
 
 Metadata:
 
-* Muñoz-Sabater,J. et al: ERA5-Land: A state-of-the-art global reanalysis dataset for
-  land applications, Earth Syst. Sci. Data,13, 4349-4383, 2021.
-  [https://doi.org/10.5194/essd-13-4349-2021](https://doi.org/10.5194/essd-13-4349-2021)
+* Muñoz Sabater, J. (2019): ERA5-Land monthly averaged data from 1950 to present.
+  Copernicus Climate Change Service (C3S) Climate Data Store (CDS).
+  [DOI: 10.24381/cds.68d2bb30](https://doi.org/10.24381/cds.68d2bb30)
+  (Accessed on 16-04-2025)
+* Web catalogue entry: Copernicus Climate Change Service (C3S) (2022): ERA5-Land monthly
+  averaged data from 1950 to present. Copernicus Climate Change Service (C3S) Climate
+  Data Store (CDS). [DOI: 10.24381/cds.68d2bb30](https://doi.org/10.24381/cds.68d2bb30)
+  (Accessed on 16-04-2025)
 * Product type: Monthly averaged reanalysis
 * Variable: 2m dewpoint temperature, 2m temperature, Surface pressure, Total
   precipitation
@@ -49,7 +54,7 @@ from virtual_ecosystem.example_data.generation_scripts.common import (
 
 # 1. Load ERA5_Land data in low resolution
 
-dataset = xr.open_dataset("../source/ERA5_land.nc")
+dataset = xr.open_dataset("../source/ERA5_land_example.nc")
 
 # 2. Convert temperatures units
 # The standard output unit of ERA5-Land temperatures is Kelvin which we need to convert
@@ -105,60 +110,61 @@ dataset_renamed = dataset_cleaned.rename(
 
 dataset_renamed["atmospheric_co2_ref"] = DataArray(
     np.full_like(dataset_renamed["air_temperature_ref"], 400),
-    dims=["time", "latitude", "longitude"],
+    dims=["valid_time", "latitude", "longitude"],
 )
 dataset_renamed["wind_speed_ref"] = DataArray(
     np.full_like(dataset_renamed["air_temperature_ref"], 0.1),
-    dims=["time", "latitude", "longitude"],
+    dims=["valid_time", "latitude", "longitude"],
 )
 dataset_renamed["mean_annual_temperature"] = dataset_renamed[
     "air_temperature_ref"
-].mean(dim="time")
+].mean(dim="valid_time")
 
 
-# 8. Change coordinates to x-y in meters
+# 8. project data on model grid
+# The following code segment interpolates the data on to the model grid (here 9x9) and
+# fills nan value with the grid mean
+time = time_index
+lat = dataset_renamed.latitude.values
+lon = dataset_renamed.longitude.values
+
+# Create new target lat/lon grid
+new_lat = np.linspace(lat.min(), lat.max(), len(y_cell_ids))
+new_lon = np.linspace(lon.min(), lon.max(), len(x_cell_ids))
+
+# Interpolate spatially (lat/lon) with nearest neighbor method
+data_9x9x24 = dataset_renamed.interp(
+    latitude=new_lat, longitude=new_lon, method="nearest"
+)
+
+# Fill nan values with grid mean
+dataset_filled = data_9x9x24.map(lambda x: x.fillna(x.mean(skipna=True)))
+
+# 9. Change coordinates and dimensions
 # The following code segment changes the coordinate names from `longitude/latitude` to
 # `x/y` and the units from `minutes` to `meters`. The ERA5-Land coordinates are treated
 # as the centre points of the grid cells which means that when setting up the grid, an
 # offset of 4.5 km has to be added.
-
-dataset_xy = (
-    dataset_renamed.rename_dims({"longitude": "x", "latitude": "y"})
-    .assign_coords({"x": np.arange(0, 180000, 9000), "y": np.arange(0, 180000, 9000)})
-    .drop({"longitude", "latitude"})
-)
-
-# 9. Scale to 90 m resolution
-# The Virtual Ecosystem example data is run on a 90 x 90 m grid. This means that some
-# form of spatial downscaling has to be applied to the dataset, for example by spatially
-# interpolating coarser resolution climate data and including the effects of local
-# topography. This is not yet implemented!
-
-# For the purpose of a example data in the development stage, the coordinates can be
-# overwritten to match the Virtual Ecosystem grid and we can select a smaller area.
-# Note that the resulting dataset does no longer match a digital elevation model for the
-# area!
-
-dataset_xy_100 = (
-    dataset_renamed.rename_dims({"longitude": "x", "latitude": "y"})
-    .assign_coords({"x": np.arange(0, 1800, 90), "y": np.arange(0, 1800, 90)})
-    .drop({"longitude", "latitude"})
-)
-dataset_xy_example = dataset_xy_100.isel(x=x_cell_ids, y=y_cell_ids)
-
-# 10. Add time_index
-# At the moemnt, the example model iterates over time indices rather than real datetime.
+# Further, the example model iterates over time indices rather than real datetime.
 # Therefore, we add a `time_index` coordinate to the dataset:
 
-dataset_xy_timeindex = (
-    dataset_xy_example.rename_dims({"time": "time_index"})
-    .assign_coords({"time_index": time_index})
-    .drop("time")
+dataset_xyt = (
+    dataset_filled.rename_dims(
+        {"longitude": "x", "latitude": "y", "valid_time": "time_index"}
+    )
+    .drop_vars({"longitude", "latitude", "valid_time"})
+    .assign_coords(
+        {
+            "x": np.arange(0, 810, 90),
+            "y": np.arange(0, 810, 90),
+            "time_index": np.arange(0, 24, 1),
+        }
+    )
 )
 
-# 11. Save netcdf
+# 10. Save netcdf
 # Once we confirmed that our dataset is complete and our calculations are correct, we
 # save it as a new netcdf file. This can then be fed into the code data loading system
 # here {mod}`~virtual_ecosystem.core.data`.
 
-dataset_xy_timeindex.to_netcdf("../data/example_climate_data.nc")
+dataset_xyt.to_netcdf("../data/example_climate_data.nc")
