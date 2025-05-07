@@ -508,6 +508,11 @@ class HydrologyModel(
                 - interception
                 + canopy_water_balance["leaf_drainage"]
             )
+
+            hydrology_tools.check_precipitation_surface(
+                precipitation_surface=precipitation_surface
+            )
+
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]

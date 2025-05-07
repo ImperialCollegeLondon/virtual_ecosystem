@@ -159,3 +159,18 @@ def test_calculate_psychrometric_constant():
 
     # Assert that the output is as expected within a small tolerance
     np.testing.assert_allclose(output, expected_output, rtol=1e-5)
+
+
+def test_check_precipitation_surface_raises_error():
+    """Test check surface precipitation is positive."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_precipitation_surface,
+    )
+
+    test_array = np.array([1.0, 0.5, -0.2, 0.8])
+
+    with pytest.raises(
+        ValueError, match="Surface precipitation should not be negative!"
+    ):
+        check_precipitation_surface(test_array)
