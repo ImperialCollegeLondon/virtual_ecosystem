@@ -323,6 +323,13 @@ def test_setup(
                     atol=1e-4,
                 )
 
+            exp_canopy_evap = model.layer_structure.from_template()
+            exp_canopy_evap = 0
+            np.testing.assert_allclose(
+                model.data["canopy_evaporation"],
+                exp_canopy_evap,
+            )
+
             # Test one dimensional variables
             expected_1d = {
                 "vertical_flow": [0.012935, 0.012935, 0.012935, 0.012935],

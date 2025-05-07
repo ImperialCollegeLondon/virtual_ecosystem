@@ -464,7 +464,7 @@ class HydrologyModel(
                 veg_density_param=self.model_constants.veg_density_param,
             )
 
-            # Calculate canopy evaporation and leaf drainage
+            # Calculate canopy evaporation and leaf drainage, [mm day-1]
             # TODO net radiation is part of energy balance, check which inputs are
             # required, in which order this is calculated, discuss also with plant model
             # needs to move out of loop and split in 30 days if sum input
@@ -742,9 +742,9 @@ class HydrologyModel(
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][
-            self.layer_structure.index_filled_canopy
-        ] = np.array(daily_lists["canopy_evaporation"]).sum(axis=(0, 1))
+        soil_hydrology["canopy_evaporation"][:,] = np.nansum(
+            daily_lists["canopy_evaporation"], axis=0
+        )
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
