@@ -907,15 +907,16 @@ class PlantsModel(
             up function, and does not link to plant dynamics in any way.
         """
 
-        # TODO - This should use the limits in some way
-        self.data["plant_n_uptake_arbuscular"] = xr.full_like(
-            self.data["elevation"], 0.0
+        # Making arbitrary assumption that the plants take exactly half the maximum
+        # supply amount, this should be replaced by something more sensible
+        self.data["plant_n_uptake_arbuscular"] = (
+            0.5 * self.data["arbuscular_supply_limit_n"]
         )
-        self.data["plant_n_uptake_ecto"] = xr.full_like(self.data["elevation"], 0.0)
-        self.data["plant_p_uptake_arbuscular"] = xr.full_like(
-            self.data["elevation"], 0.0
+        self.data["plant_n_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_n"]
+        self.data["plant_p_uptake_arbuscular"] = (
+            0.5 * self.data["arbuscular_supply_limit_p"]
         )
-        self.data["plant_p_uptake_ecto"] = xr.full_like(self.data["elevation"], 0.0)
+        self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
 
     def set_subcanopy_light_capture(self) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
