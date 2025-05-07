@@ -105,8 +105,7 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
     configuration file. This becomes a problem when configurations are compiled across
     multiple configuration files, possibly in different locations, so this function
     searches the configuration dictionary loaded from a single file and updates
-    configure paths to be congruent from the directory in which Virtual Ecosystem is
-    being run.
+    configured relative paths to their absolute paths.
 
     At present, the configuration schema does not have an explicit mechanism to type a
     configuration option as being a path, so we currently use the `_path` suffix to
@@ -123,12 +122,16 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
         ValueError: if a key ending in ``_path`` has a non-string value.
     """
 
+    if not config_dir.is_absolute():
+        config_dir = config_dir.absolute()
+
     for key, item in config_dict.items():
         if isinstance(item, dict):
             _resolve_config_paths(config_dir=config_dir, config_dict=item)
         elif isinstance(item, list):
             for list_entry in item:
-                _resolve_config_paths(config_dir=config_dir, config_dict=list_entry)
+                if isinstance(list_entry, dict):
+                    _resolve_config_paths(config_dir=config_dir, config_dict=list_entry)
         elif key.endswith("_path"):
             if not isinstance(item, str):
                 raise ValueError(
@@ -137,15 +140,8 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
             file_path = Path(item)
             if not file_path.is_absolute():
                 # The resolve method is used here because it is the only method to
-                # resolve ../ entries from relative file paths. However, it also makes
-                # all paths absolute, which lengthens paths if the config directory
-                # itself is relative. The approach here converts `path/to/config` and
-                # `../data/file1.nc` to `path/to/data/file1.nc` when both paths are
-                # relative
+                # resolve ../ entries from relative file paths.
                 file_resolved = (config_dir / file_path).resolve()
-                if not config_dir.is_absolute():
-                    config_absolute = Path(config_dir.root).absolute()
-                    file_resolved = file_resolved.relative_to(config_absolute)
 
                 config_dict[key] = str(file_resolved)
 
