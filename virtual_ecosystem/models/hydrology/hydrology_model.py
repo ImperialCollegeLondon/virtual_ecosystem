@@ -506,7 +506,7 @@ class HydrologyModel(
             precipitation_surface = (
                 hydro_input["current_precipitation"][:, day]
                 - interception
-                + np.nansum(canopy_water_balance["leaf_drainage"], axis=0)
+                + canopy_water_balance["leaf_drainage"]
             )
             daily_lists["precipitation_surface"].append(precipitation_surface)
 

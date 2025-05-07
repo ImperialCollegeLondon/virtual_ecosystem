@@ -197,7 +197,9 @@ def calculate_canopy_evaporation(
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    remaining_interception = np.maximum(interception - actual_evaporation, 0.0)
+    remaining_interception = np.maximum(
+        interception - np.nansum(actual_evaporation, axis=0), 0.0
+    )
 
     leaf_drainage = np.minimum(
         (1.0 / intercept_residence_time) * remaining_interception * time_interval,
