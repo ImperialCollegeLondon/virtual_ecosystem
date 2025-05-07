@@ -742,7 +742,7 @@ class HydrologyModel(
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][:,] = np.nansum(
+        soil_hydrology["canopy_evaporation"][:,] = np.sum(
             daily_lists["canopy_evaporation"], axis=0
         )
 
