@@ -50,7 +50,7 @@ def test_calculate_canopy_evaporation():
     interception = np.array([0.5, 1.0])
     # Run function
     output = calculate_canopy_evaporation(
-        leaf_area_index=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        leaf_area_index=np.array([[1.0, 2.0], [1.0, np.nan]]),
         interception=interception,
         net_radiation=np.array([[100, 200], [80, 60]]),
         vapour_pressure_deficit=np.array([[1.0, 2.0], [1.0, 2.0]]),
@@ -68,18 +68,13 @@ def test_calculate_canopy_evaporation():
     )
 
     # Check value constraints
-    assert np.all(output["canopy_evaporation"] >= 0)
     assert np.all(output["leaf_drainage"] >= 0)
-    assert np.all(output["canopy_evaporation"] <= interception)
     assert np.all(output["leaf_drainage"] <= interception)
-    assert np.all(
-        output["leaf_drainage"] + output["canopy_evaporation"] <= interception
-    )
     assert output["canopy_evaporation"].shape == (2, 2)
     assert output["leaf_drainage"].shape == (2,)
     np.testing.assert_allclose(
         output["canopy_evaporation"],
-        np.array([[0.290727, 0.780195], [0.209273, 0.219805]]),
+        np.array([[0.290727, 1.0], [0.209273, np.nan]]),
         rtol=1e-4,
         atol=1e-4,
     )

@@ -205,7 +205,9 @@ def calculate_canopy_evaporation(
     # Actual evaporation, constrained by energy and water
     actual_evaporation = maximum_evaporation * scale_factor
 
-    output["canopy_evaporation"] = actual_evaporation
+    output["canopy_evaporation"] = np.where(
+        np.isnan(leaf_area_index), np.nan, actual_evaporation
+    )
 
     # Update interception pool after evaporation
     # Ensure no negative interception
