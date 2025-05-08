@@ -2024,3 +2024,549 @@ class TestAnimalCohort:
         assert result == expected_result, (
             f"\n[ASSERT FAILED] Expected {expected_result} but got {result}\n"
         )
+
+    @pytest.mark.parametrize(
+        "prey_mass, prey_individuals, vertical_match, is_same_object, expected",
+        [
+            (10.0, 5, True, False, True),  # Valid prey
+            (0.00001, 5, True, False, False),  # Too small
+            (2000.0, 5, True, False, False),  # Too large
+            (10.0, 0, True, False, False),  # No individuals
+            (10.0, 5, False, False, False),  # No vertical match
+            (10.0, 5, True, True, False),  # Same object
+        ],
+    )
+    def test_can_prey_on(
+        self,
+        prey_mass,
+        prey_individuals,
+        vertical_match,
+        is_same_object,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Parametrized test for can_prey_on across valid and invalid scenarios."""
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional groups
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        predator_group = get_functional_group_by_name(
+            functional_group_list_instance, "carnivorous_mammal"
+        )
+        prey_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Setup predator
+        predator = AnimalCohort(
+            functional_group=predator_group,
+            mass=40.0,
+            age=100.0,
+            individuals=10,
+            centroid_key=4,
+            grid=grid,
+            constants=constants_instance,
+        )
+
+        # If testing same-object condition, reuse predator as prey
+        if is_same_object:
+            prey = predator
+        else:
+            prey = AnimalCohort(
+                functional_group=prey_group,
+                mass=prey_mass,
+                age=50.0,
+                individuals=prey_individuals,
+                centroid_key=4,
+                grid=grid,
+                constants=constants_instance,
+            )
+
+        # Patch vertical matching result
+        setattr(predator, "match_vertical", lambda _: vertical_match)
+
+        assert predator.can_prey_on(prey) is expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_prey_map, expected",
+        [
+            # Single valid prey in one cell
+            ([1], {1: ["valid"]}, 1),
+            # Valid and invalid prey in different cells
+            ([1, 2], {1: ["valid"], 2: ["invalid"]}, 1),
+            # All prey invalid
+            ([1, 2], {1: ["invalid"], 2: ["invalid"]}, 0),
+            # Multiple valid prey
+            ([1, 2], {1: ["valid"], 2: ["valid"]}, 2),
+            # Mixed prey in one cell
+            ([1], {1: ["valid", "invalid"]}, 1),
+        ],
+    )
+    def test_get_prey(
+        self,
+        territory,
+        cell_prey_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Parametrized test for get_prey."""
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional groups
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        predator_group = get_functional_group_by_name(
+            functional_group_list_instance, "carnivorous_mammal"
+        )
+        prey_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create predator and assign mock territory
+        predator = AnimalCohort(
+            functional_group=predator_group,
+            mass=40.0,
+            age=100.0,
+            individuals=10,
+            centroid_key=4,
+            grid=grid,
+            constants=constants_instance,
+        )
+        predator.territory = territory
+
+        # Create mock prey cohorts
+        communities = {}
+        all_prey = []
+        for cell_id, prey_types in cell_prey_map.items():
+            cell_prey = []
+            for prey_type in prey_types:
+                cohort = AnimalCohort(
+                    functional_group=prey_group,
+                    mass=10.0 if prey_type == "valid" else 2000.0,
+                    age=50.0,
+                    individuals=5,
+                    centroid_key=cell_id,
+                    grid=grid,
+                    constants=constants_instance,
+                )
+                cell_prey.append(cohort)
+                all_prey.append(cohort)
+            communities[cell_id] = cell_prey
+
+        # Patch can_prey_on to return True for mass < 1000 only
+        predator.can_prey_on = lambda prey: prey.mass_current < 1000.0
+
+        # Run and assert
+        result = predator.get_prey(communities)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "vertical_match_result, expected",
+        [
+            (True, True),  # Matching vertical occupancy: should forage
+            (False, False),  # Non-matching vertical occupancy: should not forage
+        ],
+    )
+    def test_can_forage_on(
+        self,
+        vertical_match_result,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test can_forage_on plant resource."""
+
+        from virtual_ecosystem.core.data import Data
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+        from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+
+        # Patch match_vertical to control return value
+        cohort.match_vertical = lambda vertical: vertical_match_result
+
+        # Create dummy data object and plant resource
+        dummy_data = Data(grid)
+        plant_resource = PlantResources(
+            data=dummy_data,
+            cell_id=0,
+            constants=constants_instance,
+        )
+
+        assert cohort.can_forage_on(plant_resource) is expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_resource_map, expected",
+        [
+            # Single valid resource
+            ([1], {1: ["valid"]}, 1),
+            # Valid and invalid resources in separate cells
+            ([1, 2], {1: ["valid"], 2: ["invalid"]}, 1),
+            # All resources invalid
+            ([1, 2], {1: ["invalid"], 2: ["invalid"]}, 0),
+            # Multiple valid resources
+            ([1, 2], {1: ["valid"], 2: ["valid"]}, 2),
+            # Mixed in one cell
+            ([1], {1: ["valid", "invalid"]}, 1),
+        ],
+    )
+    def test_get_plant_resources(
+        self,
+        territory,
+        cell_resource_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_plant_resources."""
+
+        from virtual_ecosystem.core.data import Data
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+        from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create dummy cohort with defined territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy data
+        dummy_data = Data(grid)
+
+        # Build plant_resources dictionary with real resource objects
+        plant_resources = {}
+        all_resources = []
+
+        for cell_id, resource_types in cell_resource_map.items():
+            cell_resources = []
+            for resource_type in resource_types:
+                resource = PlantResources(
+                    data=dummy_data,
+                    cell_id=cell_id,
+                    constants=constants_instance,
+                )
+                cell_resources.append(resource)
+                all_resources.append((resource, resource_type == "valid"))
+            plant_resources[cell_id] = cell_resources
+
+        # Patch can_forage_on to return True only for resources labeled "valid"
+        cohort.can_forage_on = lambda resource: any(
+            resource is res and is_valid for res, is_valid in all_resources
+        )
+
+        result = cohort.get_plant_resources(plant_resources)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: [1]}, 1),
+            # Pools in multiple cells
+            ([1, 2], {1: [1], 2: [2]}, 2),
+            # Territory includes a cell with no pools
+            ([1, 2], {1: [1]}, 1),
+            # Territory with no matching cells
+            ([3], {1: [1], 2: [2]}, 0),
+            # Multiple pools in a single cell
+            ([1], {1: [1, 2, 3]}, 3),
+        ],
+    )
+    def test_get_excrement_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_excrement_pools returns all pools in the territory."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy excrement pools from simple integers
+        excrement_pools = {
+            cell_id: [ExcrementPool() for _ in pool_ids]
+            for cell_id, pool_ids in cell_pool_map.items()
+        }
+
+        result = cohort.get_excrement_pools(excrement_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: 1}, 1),
+            # Pools in multiple cells
+            ([1, 2], {1: 1, 2: 1}, 2),
+            # Territory includes a cell with no pool
+            ([1, 2], {1: 1}, 1),
+            # Territory with no matching cells
+            ([3], {1: 1, 2: 1}, 0),
+        ],
+    )
+    def test_get_herbivory_waste_pools(
+        self,
+        territory,
+        pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_herbivory_waste_pools returns all pools in the territory."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy herbivory waste pool map
+        herbivory_waste = {
+            cell_id: HerbivoryWaste("leaf") for cell_id in pool_map.keys()
+        }
+
+        result = cohort.get_herbivory_waste_pools(herbivory_waste)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: [1]}, 1),
+            # Pools in multiple cells
+            ([1, 2], {1: [1], 2: [2]}, 2),
+            # Territory includes a cell with no pool
+            ([1, 2], {1: [1]}, 1),
+            # Territory with no matching cells
+            ([3], {1: [1], 2: [2]}, 0),
+            # Multiple pools in a single cell
+            ([1], {1: [1, 2, 3]}, 3),
+        ],
+    )
+    def test_get_carcass_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_carcass_pools returns all pools in the territory."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy carcass pools from simple identifiers
+        carcass_pools = {
+            cell_id: [CarcassPool() for _ in pool_ids]
+            for cell_id, pool_ids in cell_pool_map.items()
+        }
+
+        result = cohort.get_carcass_pools(carcass_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "cohort_occupancy, resource_occupancy, expected",
+        [
+            ("soil", "soil", True),
+            ("soil", "soil_ground", True),
+            ("soil", "ground", False),
+            ("soil", "canopy", False),
+            ("soil", "ground_canopy", False),
+            ("soil", "soil_ground_canopy", True),
+            ("ground", "ground", True),
+            ("ground", "soil_ground", True),
+            ("ground", "ground_canopy", True),
+            ("ground", "soil", False),
+            ("ground", "canopy", False),
+            ("ground", "soil_ground_canopy", True),
+            ("canopy", "canopy", True),
+            ("canopy", "ground_canopy", True),
+            ("canopy", "ground", False),
+            ("canopy", "soil", False),
+            ("canopy", "soil_ground", False),
+            ("canopy", "soil_ground_canopy", True),
+            ("soil_ground", "soil", True),
+            ("soil_ground", "ground", True),
+            ("soil_ground", "soil_ground", True),
+            ("soil_ground", "ground_canopy", True),
+            ("soil_ground", "canopy", False),
+            ("soil_ground", "soil_ground_canopy", True),
+            ("ground_canopy", "ground", True),
+            ("ground_canopy", "canopy", True),
+            ("ground_canopy", "soil_ground", True),
+            ("ground_canopy", "ground_canopy", True),
+            ("ground_canopy", "soil", False),
+            ("ground_canopy", "soil_ground_canopy", True),
+            ("soil_ground_canopy", "soil", True),
+            ("soil_ground_canopy", "ground", True),
+            ("soil_ground_canopy", "canopy", True),
+            ("soil_ground_canopy", "soil_ground", True),
+            ("soil_ground_canopy", "ground_canopy", True),
+            ("soil_ground_canopy", "soil_ground_canopy", True),
+        ],
+    )
+    def test_match_vertical(
+        self,
+        cohort_occupancy,
+        resource_occupancy,
+        expected,
+        constants_instance,
+    ):
+        """Test match_vertical correctly identifies overlapping vertical occupancy."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+        # Setup grid
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+
+        # Create functional group with given vertical occupancy
+        group = FunctionalGroup(
+            name="test",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="test",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy=cohort_occupancy,
+            birth_mass=1.0,
+            adult_mass=10.0,
+            constants=constants_instance,
+        )
+
+        # Create test cohort
+        cohort = AnimalCohort(
+            functional_group=group,
+            mass=10.0,
+            age=100.0,
+            individuals=5,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+
+        # Test match_vertical result
+
+        result = cohort.match_vertical(VerticalOccupancy.parse(resource_occupancy))
+        assert result is expected

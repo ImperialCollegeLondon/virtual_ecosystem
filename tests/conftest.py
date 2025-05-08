@@ -88,6 +88,7 @@ def microbial_groups_cfg():
     return """
         [[soil.microbial_group_definition]]
         name = "bacteria"
+        taxonomic_group = "bacteria"
         max_uptake_rate_labile_C = 0.04
         activation_energy_uptake_rate = 47000
         half_sat_labile_C_uptake = 0.364
@@ -107,7 +108,8 @@ def microbial_groups_cfg():
         enzyme_production.maom = 0.005
 
         [[soil.microbial_group_definition]]
-        name = "fungi"
+        name = "saprotrophic_fungi"
+        taxonomic_group = "fungi"
         max_uptake_rate_labile_C = 0.04
         activation_energy_uptake_rate = 47000
         half_sat_labile_C_uptake = 0.364
@@ -125,6 +127,48 @@ def microbial_groups_cfg():
         c_p_ratio = 40.0
         enzyme_production.pom = 0.005
         enzyme_production.maom = 0.005
+
+        [[soil.microbial_group_definition]]
+        name = "arbuscular_mycorrhiza"
+        taxonomic_group = "fungi"
+        max_uptake_rate_labile_C = 0.04
+        activation_energy_uptake_rate = 47000
+        half_sat_labile_C_uptake = 0.364
+        activation_energy_uptake_saturation = 30000
+        max_uptake_rate_ammonium = 5e-3
+        half_sat_ammonium_uptake = 0.02275
+        max_uptake_rate_nitrate = 5e-4
+        half_sat_nitrate_uptake = 0.02275
+        max_uptake_rate_labile_p = 0.0025
+        half_sat_labile_p_uptake = 0.02275
+        turnover_rate = 0.005
+        activation_energy_turnover = 20000
+        reference_temperature = 12.0
+        c_n_ratio = 18.0
+        c_p_ratio = 120.0
+        enzyme_production.pom = 0.005
+        enzyme_production.maom = 0.005
+
+        [[soil.microbial_group_definition]]
+        name = "ectomycorrhiza"
+        taxonomic_group = "fungi"
+        max_uptake_rate_labile_C = 0.04
+        activation_energy_uptake_rate = 47000
+        half_sat_labile_C_uptake = 0.364
+        activation_energy_uptake_saturation = 30000
+        max_uptake_rate_ammonium = 5e-3
+        half_sat_ammonium_uptake = 0.02275
+        max_uptake_rate_nitrate = 5e-4
+        half_sat_nitrate_uptake = 0.02275
+        max_uptake_rate_labile_p = 0.0025
+        half_sat_labile_p_uptake = 0.02275
+        turnover_rate = 0.005
+        activation_energy_turnover = 20000
+        reference_temperature = 12.0
+        c_n_ratio = 18.0
+        c_p_ratio = 120.0
+        enzyme_production.pom = 0.02
+        enzyme_production.maom = 0.02
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"
@@ -217,12 +261,16 @@ def fixture_config(microbial_groups_cfg):
         resp_f = 0.1
         resp_r = 0.913
         resp_s = 0.044
+        resp_rt = 0.05
         rho_s = 200.0
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        tau_rt = 1
+        yld = 0.6
         zeta = 0.17
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
 
         [[plants.pft_definition]]
         a_hd = 116.0
@@ -237,12 +285,16 @@ def fixture_config(microbial_groups_cfg):
         resp_f = 0.1
         resp_r = 0.913
         resp_s = 0.044
+        resp_rt = 0.05
         rho_s = 200.0
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        tau_rt = 1
+        yld = 0.6
         zeta = 0.17
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"
@@ -256,8 +308,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "carnivorous_bird"
         excretion_type = "uricotelic"
         migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.1
         adult_mass = 1.0
+
         [[animal.functional_groups]]
         name = "herbivorous_bird"
         taxa = "bird"
@@ -270,8 +324,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "herbivorous_bird"
         excretion_type = "uricotelic"
         migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.05
         adult_mass = 0.5
+
         [[animal.functional_groups]]
         name = "carnivorous_mammal"
         taxa = "mammal"
@@ -284,8 +340,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "carnivorous_mammal"
         excretion_type = "ureotelic"
         migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 4.0
         adult_mass = 40.0
+
         [[animal.functional_groups]]
         name = "herbivorous_mammal"
         taxa = "mammal"
@@ -298,8 +356,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "herbivorous_mammal"
         excretion_type = "ureotelic"
         migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 1.0
         adult_mass = 10.0
+
         [[animal.functional_groups]]
         name = "carnivorous_insect"
         taxa = "insect"
@@ -312,8 +372,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "carnivorous_insect"
         excretion_type = "uricotelic"
         migration_type = "none"
+        vertical_occupancy = "soil_ground_canopy"
         birth_mass = 0.001
         adult_mass = 0.01
+
         [[animal.functional_groups]]
         name = "herbivorous_insect"
         taxa = "insect"
@@ -326,8 +388,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "herbivorous_insect"
         excretion_type = "uricotelic"
         migration_type = "none"
+        vertical_occupancy = "soil_ground_canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
+
         [[animal.functional_groups]]
         name = "butterfly"
         taxa = "insect"
@@ -340,8 +404,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "caterpillar"
         excretion_type = "uricotelic"
         migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
+
         [[animal.functional_groups]]
         name = "caterpillar"
         taxa = "insect"
@@ -354,8 +420,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "butterfly"
         excretion_type = "uricotelic"
         migration_type = "none"
+        vertical_occupancy = "canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
+
         [[animal.functional_groups]]
         name = "frog"
         taxa = "amphibian"
@@ -368,8 +436,10 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "frog"
         excretion_type = "ureotelic"
         migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 0.005
         adult_mass = 0.5
+
         [[animal.functional_groups]]
         name = "swallow"
         taxa = "bird"
@@ -382,8 +452,25 @@ def fixture_config(microbial_groups_cfg):
         offspring_functional_group = "swallow"
         excretion_type = "uricotelic"
         migration_type = "seasonal"
+        vertical_occupancy = "canopy"
         birth_mass = 0.005
         adult_mass = 0.2
+
+        [[animal.functional_groups]]
+        name = "earthworm"
+        taxa = "insect"
+        diet = "herbivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "earthworm"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil"
+        birth_mass = 0.0005
+        adult_mass = 0.005
 
         [hydrology]
     """
@@ -427,7 +514,9 @@ def dummy_carbon_data(fixture_core_components):
         "soil_c_pool_lmwc": [0.05, 0.02, 0.1, 0.005],
         "soil_c_pool_maom": [2.5, 1.7, 4.5, 0.5],
         "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
-        "soil_c_pool_fungi": [0.89, 8.55, 2.21, 4.54],
+        "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
+        "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
+        "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
         "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
         "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
         "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],
@@ -454,11 +543,15 @@ def dummy_carbon_data(fixture_core_components):
         "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
         "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
         "vertical_flow": [0.1, 0.5, 2.5, 1.59],
-        "nitrogen_fixation_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
+        "plant_symbiote_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
         "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
         "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
         "plant_nitrate_uptake": [7.5e-4, 1.0e-3, 2.5e-4, 1.0e-4],
         "plant_phosphorus_uptake": [3.0e-6, 5e-5, 2.0e-6, 1.0e-6],
+        "plant_n_uptake_arbuscular": [2.07e-5, 3.12e-5, 3.57e-6, 6.98e-5],
+        "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
+        "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
+        "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
     }
 
     for var_name, var_values in data_values.items():

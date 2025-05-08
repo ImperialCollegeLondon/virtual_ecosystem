@@ -291,18 +291,24 @@ def test_setup(
                 atol=1e-3,
             )
 
+            exp_aero_resist_canopy = np.full((14, 4), np.nan)
+            np.testing.assert_allclose(
+                model.data["aerodynamic_resistance_canopy"],
+                exp_aero_resist_canopy,
+            )
+
             # Run the update step
             model.update(time_index=1, seed=42)
 
             # Test 2d variables
             expected_2d = {
                 "soil_moisture": [
-                    [261.125091, 261.245902, 261.117706, 260.943488],
-                    [228.350564, 228.428083, 228.330321, 228.266441],
+                    [246.698563, 246.698536, 246.698563, 246.698563],
+                    [218.996509, 218.996509, 218.996509, 218.996509],
                 ],
                 "matric_potential": [
-                    [-196.21647, -195.455268, -196.315208, -197.193146],
-                    [-540.064973, -538.587559, -540.395254, -541.854458],
+                    [-76.910901, -76.910929, -76.910901, -76.910901],
+                    [-105.707405, -105.707405, -105.707405, -105.707405],
                 ],
             }
 
@@ -319,11 +325,11 @@ def test_setup(
 
             # Test one dimensional variables
             expected_1d = {
-                "vertical_flow": [1.112, 1.115, 1.115, 1.112],
-                "total_river_discharge": [0, 0, 64864, 21514],
-                "surface_runoff": [0, 0, 0, 0],
-                "surface_runoff_accumulated": [0, 0, 0, 0],
-                "soil_evaporation": [13.097139, 13.097139, 13.097139, 13.097139],
+                "vertical_flow": [0.012935, 0.012935, 0.012935, 0.012935],
+                "total_river_discharge": [0, 0, 67980, 22340],
+                "surface_runoff": [83.775945, 83.792379, 83.776216, 83.776116],
+                "surface_runoff_accumulated": [0, 0, 7140, 2100],
+                "soil_evaporation": [7.172842, 7.172842, 7.172842, 7.172842],
             }
 
             for var_name, expected_vals in expected_1d.items():

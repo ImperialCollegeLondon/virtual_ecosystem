@@ -1,4 +1,15 @@
 ---
+jupytext:
+  formats: md:myst
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,17 +20,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # The hydrology model implementation
@@ -82,11 +82,12 @@ The default values are set for forest ecosystems.
 
 The vertical component of the hydrology model determines the water balance within each
 grid cell. This includes [above ground](../../api/models/hydrology/above_ground.md)
-processes such as rainfall, canopy interception, and surface runoff out of the grid cell.
+processes such as rainfall, canopy interception and evaporation, leaf drainage, and
+surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
-infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
-potential, horizontal sub-surface flow out of the grid cell, and changes in
-groundwater storage.
+infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
+{term}`soil matric potential`, horizontal
+sub-surface flow out of the grid cell, and changes in groundwater storage.
 
 ### Canopy interception
 
@@ -114,10 +115,45 @@ where LAI is the average Leaf Area Index (m2 m-2). $k$ is estimated as:
 
 $$k=0.046 \cdot LAI$$
 
+### Canopy evaporation and leaf drainage
+
+Evaporation of intercepted water from the canopy following the LISFLOOD model
+{cite:t}`van_der_knijff_lisflood_2010`. The maximum evaporation per time step $EW_{max}$
+is proportional to the fraction of vegetated area:
+
+```{math}
+  EW_{max} = EW_{0} [1 - e^{(-\kappa_{gb} LAI)}] \Delta t
+```
+
+where $EW_{0}$ is the potential evaporation rate, the dimensionless constant
+$\kappa_{gb}$ is the extinction coefficient for global solar radiation. In LISFLOOD,
+$\kappa_{gb}$ is given by the product $0.75 \cdot \kappa_{df}$, where $\kappa_{df}$ is
+the extinction coefficient for diffuse visible light: its value is provided as input to
+the model and it varies between 0.4 and 1.1.
+
+The actual amount of evaporation $EW_{int}$ is limited by the amount of
+water stored on the leaves $Int_{cum}$:
+
+```{math}
+  EW_{int} = min(EW_{max} \Delta t, Int_{cum})
+```
+
+Another amount of water falls to the soil because of leaf drainage which is modelled
+as a linear reservoir:
+
+```{math}
+  D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
+```
+
+where $D_{int}$ is the amount of leaf drainage per time step and $T_{int}$ is a time
+constant (or residence time) of the interception store. Setting $T_{int} = 1$ day is
+strongly recommended and means that all the water in the interception store
+evaporates or falls to the soil surface as leaf drainage within one day.
+
 ### Water at the surface
 
 Precipitation that reaches the surface is defined as incoming precipitation minus canopy
-interception (throughfall and stemflow are currently not implemented). The water at the
+evaporation plus leaf drainage. The water at the
 surface can follow different trajectories: runoff at the surface,
 remain at the surface as searchable resource for animals, return to the atmosphere via
 evaporation, or infiltrate into the soil where it can be taken up by plants or percolate
@@ -126,8 +162,8 @@ to the groundwater.
 ### Surface Runoff
 
 Surface runoff is calculated with a simple bucket model based on
-{cite:t}`davis_simple_2017`: if precipitation exceeds top soil moisture capacity, the
-excess water is added to runoff and top soil moisture is set to soil
+{cite:t}`davis_simple_2017`: if precipitation exceeds top {term}`soil moisture capacity`
+, the excess water is added to runoff and top soil moisture is set to soil
 moisture capacity value; if the top soil is not saturated, precipitation is
 added to the current soil moisture level and runoff is set to zero.
 
@@ -148,11 +184,11 @@ $$\alpha = \frac{1.8 \cdot \Theta}{\Theta + 0.3}$$
 
 $$E_{g} = \frac{\rho_{air}}{R_{a}} \cdot (\alpha \cdot q_{sat}(T_{s}) - q_{g})$$
 
-where $\Theta$ is the available top soil moisture (relative volumetric water
-content), $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
+where $\Theta$ is the available top soil moisture (here {term}`relative soil moisture`)
+, $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
 density of air (kg m-3), $R_{a}$ is the aerodynamic resistance (unitless),
 $q_{sat}(T_{s})$ (unitless) is the saturated specific humidity, and
-$q_{g}$ is the surface specific humidity (unitless).
+$q_{g}$ is the {term}`specific soil moisture` near the surface (unitless).
 
 In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
 {cite:t}`supit_system_1994`:
@@ -190,50 +226,55 @@ important as the soil gets wetter.
 
 ### Vertical flow
 
-To calculate the flow of water through unsaturated soil, we use the Richards equation.
-First, the function calculates the effective saturation $S$ and effective hydraulic
-conductivity $K(S)$ based on the moisture content $\Theta$ using the Mualem-van
-Genuchten model {cite}`van_genuchten_closed-form_1980`:
+To calculate the flow of water through unsaturated soil, we combine
+Richards' equation and Darcy's law for unsaturated flow.
+First, we calculate the effective saturation $S_{e}$ and effective unsaturated hydraulic
+conductivity $K(\Theta)$ based on the moisture content $\Theta$ using the van
+Genuchten - Mualem model
+({cite:t}`van_genuchten_closed-form_1980`, {cite:t}`mualem_new_1976`).
 
-$$S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
+First, the effective saturation is calculated as:
 
-and
+$$S_{e} = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
 
-$$K(S) = K_{s} \cdot \sqrt{S} \cdot (1-(1-S^{1/m})^{m})^{2}$$
+where $\Theta_{r}$ is the {term}`soil moisture residual` and $\Theta_{s}$ is
+the {term}`soil moisture saturation`.
 
-where $\Theta_{r}$ is the residual moisture content,$\Theta_{s}$ is the saturated
-moisture content, $K_{s}$ is the saturated hydraulic conductivity, and $m=1-1/n$ is a
-shape parameter derived from the non-linearity parameter $n$. Then, the function applies
-Darcy's law to calculate the water flow rate $q$ in $\frac{m^3}{s^1}$ considering the
-effective hydraulic conductivity:
+Then, the effective unsaturated hydraulic conductivity is computed as:
 
-$$q = - K(S) \cdot (\frac{dh}{dl}-1)$$
+$$K(\Theta) = K_{s} \cdot S_{e}^{L} \cdot [1-(1-S_{e}^{\frac{1}{m}})^{m}]^{2}$$
 
-where $\frac{dh}{dl}$ is the hydraulic gradient with $l$ the length of the flow path in
-meters (here equal to the soil depth).
+where $K_{s}$ is the saturated hydraulic conductivity,
+$L$ is the pore connectivity parameter (assumed to be 0.5 in most of studies),
+and $m=1-1/n$ is a
+shape parameter derived from the non-linearity parameter $n$.
+
+The soil matric potential $\Psi_{m}$ is calculated as follows:
+
+$$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
+
+where $\alpha$ is the inverse of air entry value.
+
+Then, the function applies
+Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
+effective unsaturated hydraulic conductivity:
+
+$$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
+
+where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
+    the elevation (gravitational potential) or {term}`gravitational head`.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this
 model and this can only be treated as a very rough approximation!
 ```
 
-### Soil moisture and matrix potential
+### Soil moisture redistribution
 
 Soil moisture is updated for each layer by removing the vertical flow
 of the current layer and adding it to the layer below. The implementation is based
 on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
 removed from the second soil layer.
-
-For some model functionalities, such as plant water uptake and soil microbial activity,
-soil moisture needs to be converted to matric potential. The model provides a coarse
-estimate of soil water potential :$\Psi_{m}$ taken from
-{cite:t}`campbell_simple_1974`:
-
-$$\Psi_{m} = \Psi_{e} \cdot (\frac{\Theta}{\Theta_{s}})^{b}$$
-
-where $\Psi_{e}$ is the air-entry, $\Theta$ is the volumetric water content,
-$\Theta_{s}$ is the saturated water content, and $b$ is the water retention curvature
-parameter.
 
 ### Subsurface flow and groundwater storage
 

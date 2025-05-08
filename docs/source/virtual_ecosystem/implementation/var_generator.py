@@ -2,12 +2,12 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: all,-trusted
-#     notebook_metadata_filter: settings,mystnb,language_info
+#     notebook_metadata_filter: settings,mystnb,language_info,execution
 #     text_representation:
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.17.0rc1
+#       jupytext_version: 1.17.1
 # ---
 
 """Utility functions to generate model variable listings."""
