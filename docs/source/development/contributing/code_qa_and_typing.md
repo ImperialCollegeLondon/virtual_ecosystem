@@ -68,6 +68,10 @@ and we use both the linting (`ruff`) and formatting (`ruff-format`) hooks.
 : This tool is used to pass all python code within notebooks through code formatting. At
 present, this still uses the `black` code formatter and not `ruff-format` as above.
 
+`codespell`
+: This tool checks files for common mis-spellings of words. If `codespell` complains
+about a word that you think is correct, you can add it to `.codespellignore.txt`.
+
 ### Output and configuration
 
 When `pre-commit` runs, you may see some lines about package installation and update,
@@ -82,6 +86,7 @@ ruff-format..........................................................Passed
 mypy.................................................................Passed
 markdownlint.........................................................Passed
 jupytext.............................................................Passed
+codespell............................................................Passed
 ```
 
 ### Updating `pre-commit`
