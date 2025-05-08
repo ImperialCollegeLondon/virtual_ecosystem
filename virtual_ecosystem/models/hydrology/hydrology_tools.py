@@ -273,5 +273,11 @@ def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> N
         error if precipitation is negative in any grid cell
     """
     if (precipitation_surface < 0.0).any():
-        LOGGER.error("Surface precipitation should not be negative!")
-        raise ValueError("Surface precipitation should not be negative!")
+        LOGGER.critical(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
+        raise ValueError(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
