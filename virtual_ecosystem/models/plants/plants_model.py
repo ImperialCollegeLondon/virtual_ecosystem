@@ -702,7 +702,7 @@ class PlantsModel(
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
-                at_potential_gpp=self.per_stem_gpp[cell_id],
+                whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
             # Grow the plants by increasing the stem dbh
