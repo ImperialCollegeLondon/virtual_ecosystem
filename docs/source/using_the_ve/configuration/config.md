@@ -29,7 +29,7 @@ This module is used to configure a `virtual_ecosystem` simulation run. This modu
 reads in a set of configuration files written using `toml`. It is setup in such a way as
 to allow a reduced set of modules to be configured (e.g. just `plants` and `soil`), and
 to allow specific module implementations to be configured (e.g. `abiotic_simple`
-instead of `abiotic`). It deliberately accepts multuple configuration files in order to
+instead of `abiotic`). It deliberately accepts multiple configuration files in order to
 allow users to maintain a library of model configuration files that can be used within
 multiple different simulations.
 
@@ -39,7 +39,7 @@ to a single file to provide a permanent record of the model configuration. All f
 paths within the combined configuration are converted to absolute paths to ensure that
 input paths across the initial configurations can be located from within the combined
 configuration - this does tie the combined configuration paths to the file system in
-which the simulation is run..
+which the simulation is run.
 
 ::::{dropdown} An example configuration file
 :::{literalinclude} ../../_static/ve_full_model_configuration.toml
