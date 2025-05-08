@@ -140,8 +140,9 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
             file_path = Path(item)
             if not file_path.is_absolute():
                 # The resolve method is used here because it is the only method to
-                # resolve ../ entries from relative file paths.
-                file_resolved = (config_dir / file_path).resolve()
+                # resolve ../ entries from relative file paths and then the path is made
+                # explicitly absolute
+                file_resolved = (config_dir / file_path).resolve().absolute()
 
                 config_dict[key] = str(file_resolved)
 
