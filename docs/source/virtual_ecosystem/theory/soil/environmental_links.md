@@ -237,7 +237,10 @@ Carbon use efficiency usually does not increase exponentially with temperature,
 therefore the Arrhenius model is rarely an appropriate model. Instead we use a simple
 logistic model to describe the temperature dependence of carbon use efficiency
 
-$$\mathrm{logit}\left(\epsilon\right) = \epsilon_{\mathrm{ref}} - \alpha * (T - T_{\mathrm{ref}}),$$
+$$
+\mathrm{logit}\left(\epsilon\right) =
+\epsilon_{\mathrm{ref}} + \alpha * (T - T_{\mathrm{ref}}),
+$$
 
 where $\epsilon_{\mathrm{ref}}$ is the carbon use efficiency at the reference
 temperature, $\alpha$ is the change in carbon efficiency with temperature, $T$ is the
