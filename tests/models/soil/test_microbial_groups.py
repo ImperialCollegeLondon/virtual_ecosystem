@@ -5,6 +5,7 @@ This module tests the functions which generate microbial functional groups.
 
 from logging import CRITICAL
 
+import numpy as np
 import pytest
 
 from tests.conftest import log_check
@@ -18,7 +19,12 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
         make_full_set_of_microbial_groups,
     )
 
-    expected_groups = ["bacteria", "fungi"]
+    expected_groups = [
+        "bacteria",
+        "saprotrophic_fungi",
+        "arbuscular_mycorrhiza",
+        "ectomycorrhiza",
+    ]
 
     functional_groups = make_full_set_of_microbial_groups(
         fixture_config, enzyme_classes=enzyme_classes
@@ -31,7 +37,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
 
     # Only testing one value, as testing them all seems like overkill/hard to maintain
     assert functional_groups["bacteria"].c_n_ratio == 5.2
-    assert functional_groups["fungi"].c_n_ratio == 6.5
+    assert functional_groups["saprotrophic_fungi"].c_n_ratio == 6.5
 
 
 @pytest.mark.parametrize(
@@ -48,6 +54,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             """
             [[soil.microbial_group_definition]]
             name = "bacteria"
+            taxonomic_group = "bacteria"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -69,8 +76,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             [
                 (
                     CRITICAL,
-                    "The following expected soil microbial groups are not defined: "
-                    "fungi",
+                    "The following expected soil microbial groups are not defined: ",
                 )
             ],
             id="missing_fungi",
@@ -79,6 +85,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             """
             [[soil.microbial_group_definition]]
             name = "bacteria"
+            taxonomic_group = "bacteria"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -98,7 +105,8 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             enzyme_production.maom = 0.005
 
             [[soil.microbial_group_definition]]
-            name = "fungi"
+            name = "saprotrophic_fungi"
+            taxonomic_group = "fungi"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -116,9 +124,52 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+
+            [[soil.microbial_group_definition]]
+            name = "arbuscular_mycorrhiza"
+            taxonomic_group = "fungi"
+            max_uptake_rate_labile_C = 0.04
+            activation_energy_uptake_rate = 47000
+            half_sat_labile_C_uptake = 0.364
+            activation_energy_uptake_saturation = 30000
+            max_uptake_rate_ammonium = 5e-3
+            half_sat_ammonium_uptake = 0.02275
+            max_uptake_rate_nitrate = 5e-4
+            half_sat_nitrate_uptake = 0.02275
+            max_uptake_rate_labile_p = 0.0025
+            half_sat_labile_p_uptake = 0.02275
+            turnover_rate = 0.005
+            activation_energy_turnover = 20000
+            reference_temperature = 12.0
+            c_n_ratio = 18.0
+            c_p_ratio = 120.0
+            enzyme_production.pom = 0.005
+            enzyme_production.maom = 0.005
+
+            [[soil.microbial_group_definition]]
+            name = "ectomycorrhiza"
+            taxonomic_group = "fungi"
+            max_uptake_rate_labile_C = 0.04
+            activation_energy_uptake_rate = 47000
+            half_sat_labile_C_uptake = 0.364
+            activation_energy_uptake_saturation = 30000
+            max_uptake_rate_ammonium = 5e-3
+            half_sat_ammonium_uptake = 0.02275
+            max_uptake_rate_nitrate = 5e-4
+            half_sat_nitrate_uptake = 0.02275
+            max_uptake_rate_labile_p = 0.0025
+            half_sat_labile_p_uptake = 0.02275
+            turnover_rate = 0.005
+            activation_energy_turnover = 20000
+            reference_temperature = 12.0
+            c_n_ratio = 18.0
+            c_p_ratio = 120.0
+            enzyme_production.pom = 0.02
+            enzyme_production.maom = 0.02
 
             [[soil.microbial_group_definition]]
             name = "archaea"
+            taxonomic_group = "archaea"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -149,6 +200,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             """
             [[soil.microbial_group_definition]]
             name = "bacteria"
+            taxonomic_group = "bacteria"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -169,6 +221,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
 
             [[soil.microbial_group_definition]]
             name = "archaea"
+            taxonomic_group = "archaea"
             max_uptake_rate_labile_C = 0.04
             activation_energy_uptake_rate = 47000
             half_sat_labile_C_uptake = 0.364
@@ -190,8 +243,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             [
                 (
                     CRITICAL,
-                    "The following expected soil microbial groups are not defined: "
-                    "fungi",
+                    "The following expected soil microbial groups are not defined: ",
                 ),
                 (
                     CRITICAL,
@@ -439,6 +491,44 @@ def test_find_enzyme_substrates(fixture_config, enzyme_classes):
     assert set(bacteria.find_enzyme_substrates()) == set(["maom", "pom"])
 
 
+def test_build_microbial_group_errors(caplog, enzyme_classes):
+    """Check that build_microbial_group factory method raises errors correctly."""
+    from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
+
+    group_config = {
+        "name": "archaea",
+        "taxonomic_group": "archaea",
+        "max_uptake_rate_labile_C": 0.04,
+        "activation_energy_uptake_rate": 47000,
+        "half_sat_labile_C_uptake": 0.364,
+        "activation_energy_uptake_saturation": 30000,
+        "max_uptake_rate_ammonium": 5e-3,
+        "half_sat_ammonium_uptake": 0.02275,
+        "max_uptake_rate_nitrate": 5e-4,
+        "half_sat_nitrate_uptake": 0.02275,
+        "max_uptake_rate_labile_p": 0.0025,
+        "half_sat_labile_p_uptake": 0.02275,
+        "turnover_rate": 0.005,
+        "activation_energy_turnover": 20000,
+        "reference_temperature": 12.0,
+        "c_n_ratio": 5.2,
+        "c_p_ratio": 16,
+        "enzyme_production": {"pom": 0.005, "maom": 0.005},
+    }
+
+    caplog.clear()
+
+    exp_log = ((CRITICAL, "Taxonomic group archaea not allowed. Must be one of "),)
+
+    with pytest.raises(ValueError):
+        _ = MicrobialGroupConstants.build_microbial_group(
+            group_config=group_config,
+            enzyme_classes=enzyme_classes,
+        )
+
+    log_check(caplog, exp_log)
+
+
 def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_classes):
     """Check method to calculate average new biomass nutrient ratios works."""
     import numpy as np
@@ -450,11 +540,11 @@ def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_cl
     group_config = next(
         functional_group
         for functional_group in fixture_config["soil"]["microbial_group_definition"]
-        if functional_group["name"] == "bacteria"
+        if functional_group["taxonomic_group"] == "bacteria"
     )
 
     averaged_nutrient_ratios = calculate_new_biomass_average_nutrient_ratios(
-        name=group_config["name"],
+        taxonomic_group=group_config["taxonomic_group"],
         c_n_ratio=5.7,
         c_p_ratio=15.5,
         enzyme_production=group_config["enzyme_production"],
@@ -463,3 +553,31 @@ def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_cl
 
     assert np.isclose(averaged_nutrient_ratios["nitrogen"], 5.695)
     assert np.isclose(averaged_nutrient_ratios["phosphorus"], 15.505)
+
+
+def test_calculate_symbiotic_carbon_supply(dummy_carbon_data):
+    """Test that calculation of splitting of carbon supply between symbiotes works."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        calculate_symbiotic_carbon_supply,
+    )
+
+    expected_supply = {
+        "nitrogen_fixers": [0.012, 0.3, 0.009, 0.00564],
+        "ectomycorrhiza": [0.007, 0.175, 0.00525, 0.00329],
+        "arbuscular_mycorrhiza": [0.021, 0.525, 0.01575, 0.00987],
+    }
+
+    actual_supply = calculate_symbiotic_carbon_supply(
+        dummy_carbon_data["plant_symbiote_carbon_supply"]
+        / CoreConsts.max_depth_of_microbial_activity,
+        nitrogen_fixer_fraction=SoilConsts.nitrogen_fixer_supply_fraction,
+        ectomycorrhiza_fraction=SoilConsts.ectomycorrhiza_supply_fraction,
+    )
+
+    # Check all (non-private) dataclass attributes against the dictionary
+    for attr in dir(actual_supply):
+        if not attr.startswith("_"):
+            assert attr in expected_supply.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_supply, attr), expected_supply[attr])

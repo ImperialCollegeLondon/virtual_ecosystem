@@ -8,6 +8,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import above_ground
@@ -260,3 +261,23 @@ def calculate_psychrometric_constant(
     return (specific_heat_air * atmospheric_pressure) / (
         latent_heat_vapourization * molecular_weight_ratio_water_to_dry_air
     )
+
+
+def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> None:
+    """Check that precipitation at the surface is not negative.
+
+    Args:
+        precipitation_surface: Precipitation at the surface
+
+    Returns:
+        error if precipitation is negative in any grid cell
+    """
+    if (precipitation_surface < 0.0).any():
+        LOGGER.critical(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
+        raise ValueError(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
