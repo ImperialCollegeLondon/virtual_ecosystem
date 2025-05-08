@@ -1,6 +1,7 @@
 ---
 jupytext:
   formats: md:myst
+  main_language: python
   text_representation:
     extension: .md
     format_name: myst
@@ -19,7 +20,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.10.14
+  version: 3.11.9
 ---
 
 # Running the Virtual Ecosystem in Static Mode
@@ -37,7 +38,7 @@ animals, and soils static. This allows us to test for example how individual mod
 parameters influence hydrological processes, and how different rainfall regimes impact
 hydrological variables.
 
-### What This Means in Practice
+### What this means in practice
 
 - **Microclimate is fixed** (e.g., temperature and relative humidity do not change).
 - **Plants remain static**, meaning constant water uptake, transpiration, and
@@ -51,7 +52,7 @@ Before proceeding, ensure you have successfully run the example dataset as descr
 the [example instructions](./virtual_ecosystem_in_use.md). If not, we recommend
 completing that first.
 
-Once the example run is complete, you can start your hydrology-focused experiments.
+Once the example run is complete, you can start your 'hydrology-only' experiments.
 For example, you can modify the input rainfall, adjust infiltration parameters, or
 change how monthly rainfall is distributed over the days of the month. Comparing each
 change to the default setup allows you to quantify isolated effects.
@@ -67,55 +68,114 @@ First we need to run the ve_example as a baseline. Once complete, we can set up 
 hydrology-only experiment (no changes to parameters or input data):
 
 1. Navigate to the `/ve_example/out/` folder.
-2. Copy the `vr_full_model_configuration.toml` file to `/ve_example/config/` and rename
-  to `experiment1_config.toml`.
-3. Set the status flags to `static = true` for all but the hydrology model, for example:
+1. Copy the `ve_full_model_configuration.toml` file and rename it, for example to
+  `experiment1_config.toml`. We moved this file to a separate folder
+  `/ve_example/static_config/`.
+1. Set the status flags to `static = true` for all but the hydrology model, for example:
 
     ```toml
     [abiotic_simple]
     static=true
     ```
 
-4. Create a new output folder for your experiment, for example
-   `/ve_example/experiment1_out/`. This is essential because the Virtual ecosystem
+1. Create a new output folder for your experiment, for example
+   `/ve_example/experiment1_out/`. This is essential because the Virtual Ecosystem
    output files always have the same name and cannot be overwritten; if they
    already exist in your output folder, the model will crash.
+
+```{code-cell} ipython3
+%%bash
+[ ! -d "/tmp/ve_example/experiment1_out" ] && mkdir -p /tmp/ve_example/experiment1_out
+```
 
 #### Run experiment 1
 
 To run the static model use the following command, making sure that it points to your
 updated configuration file:
 
-  ```sh
-    ve_run /path/ve_example/config/experiment1_config.toml \
-      --outpath /path/ve_example/experiment1_out/ \
-      --logfile /path/ve_example/experiment1_out/ve_example.log
-  ```
+```{code-cell} ipython3
+%%bash
+ve_run /tmp/ve_example/static_config/experiment1_config.toml \
+  --outpath /tmp/ve_example/experiment1_out/ \
+  --logfile /tmp/ve_example/experiment1_out/ve_example.log
+```
 
 #### Compare experiment 1 to default model
 
 To compare the results of the standard hydrology-only vs full dynamic ve_example, load
 the results from `/ve_example/out/` and `/ve_example/experiment1_out/`:
 
-``` python
-standard_continuous = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
-hydro_only_continuous = xarray.load_dataset(
+```{code-cell} ipython3
+import xarray
+import matplotlib.pyplot as plt
+
+# Example: load or define your datasets
+ve_example = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
+experiment1 = xarray.load_dataset(
     "/tmp/ve_example/experiment1_out/all_continuous_data.nc"
 )
 ```
 
 If you plot a hydrology variable, for example soil moisture of the topsoil
-layer over time, you can see ...
+layer over time, you can see that it behaves differently:
 
-```python
-plot soil moisture time series both simulations
+```{code-cell} ipython3
+# Choose the variable to plot
+var_name = "soil moisture"
+
+plt.plot(
+    ve_example["time_index"],
+    ve_example[var_name],
+    label="ve example",
+    linestyle="-",
+    color="blue",
+)
+plt.plot(
+    experiment1["time_index"],
+    experiment1[var_name],
+    label="experiment 1",
+    linestyle="--",
+    color="red",
+)
+
+plt.xlabel("Time")
+plt.ylabel(var_name.capitalize())
+plt.title(f"{var_name.capitalize()} comparison")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 ```
 
 If you plot leaf area index, you see that it does not change in the hydrology_only
 experiment.
 
-```python
-plot plant area index time series both simulations
+```{code-cell} ipython3
+# Choose the variable to plot
+var_name = "leaf_area_index"
+
+plt.plot(
+    ve_example["time_index"],
+    ve_example[var_name],
+    label="ve example",
+    linestyle="-",
+    color="blue",
+)
+plt.plot(
+    experiment1["time_index"],
+    experiment1[var_name],
+    label="experiment1",
+    linestyle="--",
+    color="red",
+)
+
+plt.xlabel("Time")
+plt.ylabel(var_name.capitalize())
+plt.title(f"{var_name.capitalize()} comparison")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 ```
 
 ### Experiment 2: 'hydrology-only' simulation with lower initial soil moisture
@@ -124,10 +184,11 @@ To set up a hydrology-only experiment with a change in initial soil moisture, fo
 these steps:
 
 1. Navigate to the `/ve_example/out/` folder.
-2. Copy the `vr_full_model_configuration.toml` file to `/ve_example/config/` and rename
-    to `experiment2_config.toml`.
-3. Check the status flags are set to `static = true`, for all but the hydrology model.
-4. Make further changes to your configuration for your experiment. Here, we modify the
+1. Copy the `ve_full_model_configuration.toml` file and
+  rename to `experiment2_config.toml`. We moved this file to a separate folder
+  `/ve_example/static_config/`.
+1. Check the status flags are set to `static = true`, for all but the hydrology model.
+1. Make further changes to your configuration for your experiment. Here, we modify the
   initial soil moisture values (default 0.5):
 
     ```toml
@@ -137,19 +198,25 @@ these steps:
       static = false
     ```
 
-5. Create a new output folder for your experiment, for example
+1. Create a new output folder for your experiment, for example
   `/ve_example/experiment2_out/`.
 
-#### Run  experiment 2
+```{code-cell} ipython3
+%%bash
+[ ! -d "/tmp/ve_example/experiment2_out" ] && mkdir -p /tmp/ve_example/experiment2_out
+```
+
+#### Run experiment 2
 
 To run the static model use the following command, making sure that it points to your
-updated configuration file:
+updated configuration file and a clear output directory:
 
-  ```sh
-    ve_run /path/ve_example/experiment2_out/experiment2_config.toml \
-      --outpath /path/ve_example/experiment2_out/ \
-      --logfile /path/ve_example/experiment2_out//ve_example.log
-  ```
+```{code-cell} ipython3
+%%bash
+ve_run /tmp/ve_example/static_config/experiment2_config.toml \
+  --outpath /tmp/ve_example/experiment2_out/ \
+  --logfile /tmp/ve_example/experiment2_out/ve_example.log
+```
 
 #### Compare results experiment 2
 
@@ -157,17 +224,38 @@ To compare the results of different initial soil moisture levels in the hydrolog
 configuration, load the results from `/ve_example/experiment1_out/` and
 `/ve_example/experiment2_out/`:
 
-```python
-exp1_continuous = xarray.load_dataset(
-  "/tmp/ve_example/experiment1_out/all_continuous_data.nc"
-)
-exp2_continuous = xarray.load_dataset(
-  "/tmp/ve_example/experiment2_out/all_continuous_data.nc"
+```{code-cell} ipython3
+experiment2 = xarray.load_dataset(
+    "/tmp/ve_example/experiment2_out/all_continuous_data.nc"
 )
 ```
 
-Now agian plot the soil moisture over time:
+Now again plot the soil moisture over time:
 
-```python
-plot time series of soil moisture
+```{code-cell} ipython3
+# Choose the variable to plot
+var_name = "soil moisture"
+
+plt.plot(
+    experiment1["time_index"],
+    experiment1[var_name],
+    label="experiment 1",
+    linestyle="-",
+    color="blue",
+)
+plt.plot(
+    experiment2["time_index"],
+    experiment2[var_name],
+    label="experiment 2",
+    linestyle="--",
+    color="red",
+)
+
+plt.xlabel("Time")
+plt.ylabel(var_name.capitalize())
+plt.title(f"{var_name.capitalize()} comparison")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 ```
