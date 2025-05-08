@@ -187,7 +187,6 @@ def ve_run(
     pbar = tqdm(total=core_components.model_timing.n_updates)
     time_index = 0
     current_time = core_components.model_timing.start_time
-
     while current_time < core_components.model_timing.end_time:
         LOGGER.info(f"Starting update {time_index}: {current_time}")
 
@@ -207,12 +206,14 @@ def ve_run(
                 variables_to_save, config["core"]["data_output_options"], time_index
             )
             continuous_data_files.append(outfile_path)
+
         pbar.update(n=1)
 
     pbar.close()
 
     if progress:
         print("* Simulation completed")
+
     # Merge all files together based on a list
     if config["core"]["data_output_options"]["save_continuous_data"]:
         merge_continuous_data_files(
