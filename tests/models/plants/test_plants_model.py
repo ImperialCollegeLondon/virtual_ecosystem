@@ -379,6 +379,19 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-5)
 
 
+def test_PlantsModel_calculate_mycorrhizal_uptakes(fxt_plants_model):
+    """Test the calculate_mycorrhizal_uptakes method of the plants model."""
+
+    # Check reset
+    fxt_plants_model.calculate_mycorrhizal_uptakes()
+
+    # Check that all expected variables are generated and have the correct value
+    assert np.allclose(fxt_plants_model.data["plant_n_uptake_arbuscular"], 0.00216)
+    assert np.allclose(fxt_plants_model.data["plant_n_uptake_ecto"], 0.000805)
+    assert np.allclose(fxt_plants_model.data["plant_p_uptake_arbuscular"], 0.000117)
+    assert np.allclose(fxt_plants_model.data["plant_p_uptake_ecto"], 6.6e-5)
+
+
 def test_PlantsModel_apply_mortality(fxt_plants_model):
     """Test the apply_mortality method of the plants model."""
 
