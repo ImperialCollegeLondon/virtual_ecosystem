@@ -436,10 +436,7 @@ def calculate_carbon_use_efficiency(
     """
 
     return expit(
-        np.exp(
-            -reference_cue_logit
-            - logit_cue_with_temp * (soil_temp - cue_reference_temp)
-        )
+        reference_cue_logit + logit_cue_with_temp * (soil_temp - cue_reference_temp)
     )
 
 

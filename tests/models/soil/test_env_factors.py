@@ -374,19 +374,17 @@ def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
     assert np.allclose(expected_cost, actual_cost)
 
 
-def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_components):
+def test_calculate_carbon_use_efficiency(averaged_soil_temp):
     """Check carbon use efficiency calculates correctly."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_carbon_use_efficiency,
     )
 
-    expected_cues = [0.36, 0.33, 0.3, 0.48]
+    expected_cues = [0.46920255, 0.45708189, 0.44501183, 0.51790586]
 
     actual_cues = calculate_carbon_use_efficiency(
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         reference_cue_logit=SoilConsts.reference_cue_logit,
         cue_reference_temp=SoilConsts.cue_reference_temp,
         logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
