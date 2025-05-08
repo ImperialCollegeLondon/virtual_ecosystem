@@ -303,8 +303,6 @@ class PlantsModel(
         self.stochiometries = {
             cell_id: StemStochiometry(
                 plant_constants=self.model_constants,
-                num_cohorts=self.communities[cell_id].number_of_cohorts,
-                stem_allometry=self.communities[cell_id].stem_allometry,
                 community=self.communities[cell_id],
             )
             for cell_id in self.communities.keys()
@@ -659,7 +657,7 @@ class PlantsModel(
         turnover values.
         """
 
-        # First, initialize all turnover variables to 0 with the proper shapes.
+        # First, initialize all turnover variables to 0 with the proper dimensions.
         # Most variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
@@ -674,12 +672,12 @@ class PlantsModel(
         )
 
         # Fallen propagules and canopy RT are stored per cell and per PFT.
+        # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
         pft_cell_template = xr.DataArray(
             data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
             coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
         )
         self.data["fallen_n_propagules"] = pft_cell_template.copy()
-        # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
         self.data["canopy_n_propagules"] = pft_cell_template.copy()
         self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
 
@@ -762,34 +760,35 @@ class PlantsModel(
             # Nitrogen is lost from the tree in the form of turnover, and so an
             # equivalent allocation of N is required to replace what was lost. To
             # represent this process, N is allocated from the surplus store in the same
-            # quantities as turnover.
-            # TODO: is it correct to use the current ratios here? Should prob be a bit
-            # more complicated - need to replace N at the "ideal" ratio rate?
+            # quantities as turnover. This uses the current ratios so that the tissue
+            # C:N ratios are maintained.
             stochiometry.n_surplus = (
                 stochiometry.n_surplus
                 - (
-                    stem_allocation.foliage_turnover
-                    * (1 / self.model_constants.leaf_turnover_c_n_ratio)
-                )
-                - (
-                    stem_allocation.fine_root_turnover
-                    * (1 / stochiometry.cn_ratio_roots)
-                )
-                - (
-                    stem_allocation.reproductive_tissue_turnover
-                    * (1 / stochiometry.cn_ratio_reproductive_tissue)
-                )
+                    (
+                        stem_allocation.foliage_turnover
+                        * (1 / stochiometry.cn_ratio_foliage)
+                    )
+                    - (
+                        stem_allocation.fine_root_turnover
+                        * (1 / stochiometry.cn_ratio_roots)
+                    )
+                    - (
+                        stem_allocation.reproductive_tissue_turnover
+                        * (1 / stochiometry.cn_ratio_reproductive_tissue)
+                    )
+                ).squeeze()
             )
-
             # N is lost in the form of senseced leaves, but some of the N emobodied in
             # living leaves is returned to the surplus store before the leaves are shed.
-            stochiometry.n_surplus = (
-                stochiometry.n_surplus
-                + stem_allocation.foliage_turnover
-                * (
-                    1 / stochiometry.cn_ratio_foliage
-                    - 1 / self.model_constants.leaf_turnover_c_n_ratio
-                )
+            stochiometry.n_surplus = stochiometry.n_surplus + (
+                (
+                    stem_allocation.foliage_turnover
+                    * (
+                        1 / stochiometry.cn_ratio_foliage
+                        - 1 / self.model_constants.leaf_turnover_c_n_ratio
+                    )
+                ).squeeze()
             )
 
             # THIRD, ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
@@ -800,10 +799,13 @@ class PlantsModel(
                 * self.model_constants.root_exudates
                 * cohorts.n_individuals
             )
-            self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
+            carbon_to_symbiotes = (
                 stem_allocation.gpp_topslice
                 * (1 - self.model_constants.root_exudates)
                 * cohorts.n_individuals
+            )
+            self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
+                carbon_to_symbiotes
             )
 
             # FOURTH, ALLOCATE TO GROWTH:
@@ -812,31 +814,37 @@ class PlantsModel(
             cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
 
             # Allocate N to growth and update stochiometry values
-            n_for_foliage_growth = (
-                1 / self.model_constants.foliage_c_n_ratio
-            ) * stem_allocation.delta_foliage_mass
+
             n_for_stem_growth = (
                 1 / self.model_constants.deadwood_c_n_ratio
-            ) * stem_allocation.delta_stem_mass
+            ) * stem_allocation.delta_stem_mass.squeeze()
             n_for_rt_growth = (
                 (1 / self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio)
                 * stem_allocation.delta_foliage_mass
                 * community.stem_traits.p_foliage_for_reproductive_tissue
-            )
+            ).squeeze()
             n_for_roots_growth = (
                 (1 / self.model_constants.root_turnover_c_n_ratio)
                 * stem_allocation.delta_foliage_mass
                 * community.stem_traits.zeta
-            )
+            ).squeeze()
 
             # Update the stochiometry values
-            stochiometry.n_surplus -= (
-                n_for_foliage_growth
-                + n_for_stem_growth
-                + n_for_rt_growth
-                + n_for_roots_growth
+            stochiometry.n_surplus = (
+                stochiometry.n_surplus
+                - (
+                    stochiometry.n_for_foliage_growth(
+                        stem_allocation.delta_foliage_mass
+                    )
+                    + n_for_stem_growth
+                    + n_for_rt_growth
+                    + n_for_roots_growth
+                ).squeeze()
             )
-            stochiometry.n_foliage = stochiometry.n_foliage + n_for_foliage_growth
+            stochiometry.n_foliage = (
+                stochiometry.n_foliage
+                + stochiometry.n_for_foliage_growth(stem_allocation.delta_foliage_mass)
+            )
             stochiometry.n_wood = stochiometry.n_wood + n_for_stem_growth
             stochiometry.n_reproductive_tissue = (
                 stochiometry.n_reproductive_tissue + n_for_rt_growth
@@ -844,51 +852,43 @@ class PlantsModel(
             stochiometry.n_roots = stochiometry.n_roots + n_for_roots_growth
 
             # Balance the N surplus/deficit with the symbiote carbon supply
-            self.data["plant_n_uptake_arbuscular"] = xr.full_like(
-                self.data["elevation"], 0
-            )
-            self.data["plant_n_uptake_ecto"] = xr.full_like(self.data["elevation"], 0)
-            n_available_from_symbiotes = (
+            n_weighted_avg = np.dot(
                 self.data["ecto_supply_limit_n"][cell_id]
-                + self.data["arbuscular_supply_limit_n"][cell_id]
+                + self.data["arbuscular_supply_limit_n"][cell_id],
+                cohorts.n_individuals,
             )
-            for cohort in range(0, len(stochiometry.n_surplus)):
-                if stochiometry.n_surplus[cohort] >= 0:
-                    # Take no N from the symbiotes and keep the surplus
-                    self.data["plant_n_uptake_arbuscular"][cell_id] += 0
-                    self.data["plant_n_uptake_ecto"][cell_id] += 0
-                elif stochiometry.n_surplus[cohort] + n_available_from_symbiotes >= 0:
-                    # Take N from arbuscular and ecto symbiotes in proportion to their
-                    # supply, and reset the surplus to 0
-                    self.data["plant_n_uptake_arbuscular"] = stochiometry.n_surplus * (
-                        self.data["arbs_supply_limit_n"]
-                        / (
-                            self.data["ecto_supply_limit_n"]
-                            + self.data["arbs_supply_limit_n"]
-                        )
-                    )
-                    self.data["plant_n_uptake_ecto"] = (
-                        stochiometry.n_surplus - self.data["plant_n_uptake_arbuscular"]
-                    )
-                    stochiometry.n_surplus = 0
+            n_avaiable_per_cohort = n_weighted_avg / sum(n_weighted_avg)
+            n_available_per_stem = np.divide(
+                n_avaiable_per_cohort, cohorts.n_individuals
+            )
+
+            stochiometry.n_surplus = stochiometry.n_surplus + n_available_per_stem
+
+            # Cohort by cohort, distribute the surplus/deficit across the tissue types
+            for cohort in range(len(cohorts.n_individuals)):
+                if stochiometry.n_surplus[cohort] < 0:
+                    # Distribute deficit across the tissue types
+                    stochiometry.distribute_deficit(cohort)
+
+                elif (
+                    stochiometry.n_surplus[cohort] > 0
+                    and stochiometry.n_tissue_deficit[cohort] > 0
+                ):
+                    # Distribute the surplus across the tissue types
+                    stochiometry.distribute_surplus(cohort)
+
                 else:
-                    # NITROGEN DEFICIT!!
-                    # Take all the N from the symbiotes, and decrease the deficit
-                    self.data["plant_n_uptake_arbuscular"] = self.data[
-                        "arbuscular_supply_limit_n"
-                    ]
-                    self.data["plant_n_uptake_ecto"] = self.data["ecto_supply_limit_n"]
-                    stochiometry.n_surplus = (
-                        stochiometry.n_surplus + n_available_from_symbiotes
-                    )
-                    # TODO: what to do about the remaining deficit????
+                    # NO ADJUSTMENT REQUIRED - there is a surplus in the store, but
+                    # there is no deficit in the tissue types.
+                    pass
 
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
 
-            self.allocations[cell_id] = stem_allocation
+            # self.allocations[cell_id] = stem_allocation
+            self.update_cn_ratios()
 
     def apply_mortality(self) -> None:
         """Apply mortality to plant cohorts.
@@ -922,6 +922,15 @@ class PlantsModel(
             )
 
     def update_cn_ratios(self) -> None:
+        """Update the C:N and C:P ratios of plant tissues.
+
+        This function updates the C:N and C:P ratios of various plant tissues, including
+        deadwood, leaf turnover, plant reproductive tissue turnover, and root turnover.
+
+        Warning:
+            At present, this function just sets values to original constants.
+        """
+
         # C:N and C:P ratios
         self.data["deadwood_c_n_ratio"] = xr.full_like(
             self.data["elevation"], self.model_constants.deadwood_c_n_ratio
@@ -1028,7 +1037,7 @@ class PlantsModel(
         return n_propagules, non_propagule_mass
 
     def temp_populate_symbiote_vars(self) -> None:
-        """Jacob has these vars in an open PR. Will delete before merging with develop."""
+        """Jacob has these vars in an open PR. Will delete before merging."""
 
         self.data["ecto_supply_limit_n"] = xr.full_like(self.data["elevation"], 1)
         self.data["arbuscular_supply_limit_n"] = xr.full_like(self.data["elevation"], 1)

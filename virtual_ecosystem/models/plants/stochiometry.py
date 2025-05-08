@@ -17,8 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pyrealm.demography.community import Community
 from pyrealm.demography.core import CohortMethods, PandasExporter
-from pyrealm.demography.tmodel import StemAllometry, StemAllocation
-from pyrealm.demography.community import Community
+from pyrealm.demography.tmodel import StemAllocation
 
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 
@@ -35,12 +34,8 @@ class StemStochiometry(CohortMethods, PandasExporter):
     # Init vars
     plant_constants: PlantsConsts
     """The plant constants used in the model."""
-    num_cohorts: int
-    """The number of cohorts in the community."""
     community: Community
     """The Community object for the stochiometry."""
-    stem_allometry: StemAllometry
-    """The StemAllometry object for the community."""
 
     # Post-init vars
     n_reproductive_tissue: NDArray[np.float64] = field(init=False)
@@ -81,57 +76,64 @@ class StemStochiometry(CohortMethods, PandasExporter):
 
         # Initialise the arrays
         self.n_reproductive_tissue = np.full(
-            self.num_cohorts,
+            self.community.number_of_cohorts,
             self.plant_constants.plant_reproductive_tissue_turnover_c_n_ratio
-            * self.stem_allometry.reproductive_tissue_mass,
+            * self.community.stem_allometry.reproductive_tissue_mass,
         )
         self.p_reproductive_tissue = np.full(
-            self.num_cohorts,
+            self.community.number_of_cohorts,
             self.plant_constants.plant_reproductive_tissue_turnover_c_p_ratio
-            * self.stem_allometry.reproductive_tissue_mass,
+            * self.community.stem_allometry.reproductive_tissue_mass,
         )
 
         self.n_foliage = np.full(
-            self.num_cohorts,
-            self.plant_constants.foliage_c_n_ratio * self.stem_allometry.foliage_mass,
+            self.community.number_of_cohorts,
+            self.plant_constants.foliage_c_n_ratio
+            * self.community.stem_allometry.foliage_mass,
         )
         self.p_foliage = np.full(
-            self.num_cohorts,
-            self.plant_constants.foliage_c_p_ratio * self.stem_allometry.foliage_mass,
+            self.community.number_of_cohorts,
+            self.plant_constants.foliage_c_p_ratio
+            * self.community.stem_allometry.foliage_mass,
         )
 
         self.n_wood = np.full(
-            self.num_cohorts,
-            self.plant_constants.deadwood_c_n_ratio * self.stem_allometry.stem_mass,
+            self.community.number_of_cohorts,
+            self.plant_constants.deadwood_c_n_ratio
+            * self.community.stem_allometry.stem_mass,
         )
         self.p_wood = np.full(
-            self.num_cohorts,
-            self.plant_constants.deadwood_c_p_ratio * self.stem_allometry.stem_mass,
+            self.community.number_of_cohorts,
+            self.plant_constants.deadwood_c_p_ratio
+            * self.community.stem_allometry.stem_mass,
         )
 
         self.n_roots = np.full(
-            self.num_cohorts,
+            self.community.number_of_cohorts,
             self.plant_constants.root_turnover_c_n_ratio
             * self.community.stem_traits.zeta
-            * self.stem_allometry.foliage_mass,
+            * self.community.stem_allometry.foliage_mass,
         )
         self.p_roots = np.full(
-            self.num_cohorts,
+            self.community.number_of_cohorts,
             self.plant_constants.root_turnover_c_p_ratio
             * self.community.stem_traits.zeta
-            * self.stem_allometry.foliage_mass,
+            * self.community.stem_allometry.foliage_mass,
         )
 
-        self.n_surplus = np.full(self.num_cohorts, 0.0)
-        self.p_surplus = np.full(self.num_cohorts, 0.0)
+        self.n_surplus = np.full(self.community.number_of_cohorts, 0.0)
+        self.p_surplus = np.full(self.community.number_of_cohorts, 0.0)
 
+    @property
     def total_n(self) -> NDArray[np.float64]:
         """Calculate the total nitrogen mass for each cohort.
 
         Returns:
             The total nitrogen mass for each cohort.
         """
-        return self.n_foliage + self.n_wood + self.n_roots + self.n_reproductive_tissue
+        return (
+            self.n_foliage + self.n_wood + self.n_roots + self.n_reproductive_tissue
+        ).squeeze()
 
     def total_p(self) -> NDArray[np.float64]:
         """Calculate the total phosphorous mass for each cohort.
@@ -141,26 +143,73 @@ class StemStochiometry(CohortMethods, PandasExporter):
         """
         return self.p_foliage + self.p_wood + self.p_roots + self.p_reproductive_tissue
 
-    def n_deficit(self) -> NDArray[np.float64]:
+    @property
+    def n_foliage_deficit(self) -> NDArray[np.float64]:
+        """Calculate the nitrogen deficit for foliage.
+
+        Returns:
+            The nitrogen deficit for foliage.
+        """
+        return (
+            self.plant_constants.foliage_c_n_ratio
+            * self.community.stem_allometry.foliage_mass
+            - self.n_foliage
+        ).squeeze()
+
+    @property
+    def n_wood_deficit(self) -> NDArray[np.float64]:
+        """Calculate the nitrogen deficit for wood.
+
+        Returns:
+            The nitrogen deficit for wood.
+        """
+        return (
+            self.plant_constants.deadwood_c_n_ratio
+            * self.community.stem_allometry.stem_mass
+            - self.n_wood
+        ).squeeze()
+
+    @property
+    def n_roots_deficit(self) -> NDArray[np.float64]:
+        """Calculate the nitrogen deficit for roots.
+
+        Returns:
+            The nitrogen deficit for roots.
+        """
+        return (
+            self.plant_constants.root_turnover_c_n_ratio
+            * self.community.stem_traits.zeta
+            * self.community.stem_allometry.foliage_mass
+            - self.n_roots
+        ).squeeze()
+
+    @property
+    def n_reproductive_tissue_deficit(self) -> NDArray[np.float64]:
+        """Calculate the nitrogen deficit for reproductive tissue.
+
+        Returns:
+            The nitrogen deficit for reproductive tissue.
+        """
+        return (
+            self.plant_constants.plant_reproductive_tissue_turnover_c_n_ratio
+            * self.community.stem_allometry.reproductive_tissue_mass
+            - self.n_reproductive_tissue
+        ).squeeze()
+
+    @property
+    def n_tissue_deficit(self) -> NDArray[np.float64]:
         """Calculate the nitrogen deficit for each cohort.
 
         Returns:
             The nitrogen deficit for each cohort.
         """
 
-        ideal_n = (
-            self.plant_constants.plant_reproductive_tissue_turnover_c_n_ratio
-            * self.stem_allometry.reproductive_tissue_mass
-            + self.plant_constants.foliage_c_n_ratio * self.stem_allometry.foliage_mass
-            + self.plant_constants.deadwood_c_n_ratio * self.stem_allometry.stem_mass
-            + (
-                self.plant_constants.root_turnover_c_n_ratio
-                * self.community.stem_traits.zeta
-                * self.stem_allometry.foliage_mass
-            )
+        return (
+            self.n_foliage_deficit
+            + self.n_wood_deficit
+            + self.n_roots_deficit
+            + self.n_reproductive_tissue_deficit
         )
-
-        return ideal_n - self.total_n()
 
     def n_for_growth(self, allocation: StemAllocation) -> NDArray[np.float64]:
         """Calculate the nitrogen required for growth for each cohort.
@@ -180,7 +229,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
         n_needed_for_rt_growth = (
             allocation.delta_foliage_mass
             * (1 / self.plant_consts["plant_reproductive_tissue_turnover_c_n_ratio"])
-            * self.stem_allometry.p_foliage_for_reproductive_tissue
+            * self.community.stem_allometry.p_foliage_for_reproductive_tissue
         )
 
         n_needed_for_growth = (
@@ -194,16 +243,105 @@ class StemStochiometry(CohortMethods, PandasExporter):
     @property
     def cn_ratio_foliage(self) -> NDArray[np.float64]:
         """Get the carbon to nitrogen ratio for foliage."""
-        return self.stem_allometry.foliage_mass / self.n_foliage
+        return self.community.stem_allometry.foliage_mass / self.n_foliage
 
     @property
     def cn_ratio_roots(self) -> NDArray[np.float64]:
         """Get the carbon to nitrogen ratio for roots."""
         return (
-            self.community.stem_traits.zeta * self.stem_allometry.foliage_mass
+            self.community.stem_traits.zeta * self.community.stem_allometry.foliage_mass
         ) / self.n_roots
 
     @property
     def cn_ratio_reproductive_tissue(self) -> NDArray[np.float64]:
         """Get the carbon to nitrogen ratio for reproductive tissue."""
-        return self.stem_allometry.reproductive_tissue_mass / self.n_reproductive_tissue
+        return (
+            self.community.stem_allometry.reproductive_tissue_mass
+            / self.n_reproductive_tissue
+        )
+
+    def n_for_foliage_growth(self, delta_foliage_mass) -> NDArray[np.float64]:
+        """Get the nitrogen needed for foliage growth."""
+        return (
+            (1 / self.plant_constants.foliage_c_n_ratio) * delta_foliage_mass
+        ).squeeze()
+
+    def distribute_deficit(self, cohort: int) -> None:
+        """Distribute the nitrogen deficit across the tissue types.
+
+        Args:
+            cohort: The cohort to reconcile deficit.
+        """
+        deficit = self.n_surplus[cohort] * -1
+
+        self.n_foliage[cohort] = self.n_foliage[cohort] - (
+            deficit * self.n_foliage[cohort] / self.total_n[cohort]
+        )
+
+        self.n_wood[cohort] = self.n_wood[cohort] - (
+            deficit * self.n_wood[cohort] / self.total_n[cohort]
+        )
+        self.n_roots[cohort] -= deficit * self.n_roots[cohort] / self.total_n[cohort]
+        self.n_reproductive_tissue[cohort] -= (
+            deficit * self.n_reproductive_tissue[cohort] / self.total_n[cohort]
+        )
+        self.n_surplus[cohort] += deficit
+
+    def distribute_surplus(self, cohort: int) -> None:
+        """Distribute the nitrogen surplus across the tissue types for a single cohort.
+
+        Args:
+            cohort: The cohort to reconcile surplus.
+        """
+        if self.n_surplus[cohort] > self.n_tissue_deficit[cohort]:
+            # If there is sufficient surplus N to cover the existing deficit, the
+            # amount of the deficit is subtracted from the surplus which persists until
+            # the next update. All tissue types are updated to the ideal N ratios.
+            self.n_surplus[cohort] = (
+                self.n_surplus[cohort] - self.n_tissue_deficit[cohort]
+            )
+            self.n_foliage[cohort] = (
+                self.plant_constants.plant_reproductive_tissue_turnover_c_n_ratio
+                * self.community.stem_allometry.foliage_mass.squeeze()[cohort]
+            )
+            self.n_wood[cohort] = (
+                # self.plant_constants.deadwood_c_n_ratio *
+                self.community.stem_allometry.stem_mass.squeeze()[cohort]
+            )
+            self.n_roots[cohort] = (
+                self.plant_constants.root_turnover_c_n_ratio
+                * self.community.stem_traits.zeta[cohort]
+                * self.community.stem_allometry.foliage_mass.squeeze()[cohort]
+            )
+            self.n_reproductive_tissue[cohort] = (
+                self.plant_constants.plant_reproductive_tissue_turnover_c_n_ratio
+                * self.community.stem_allometry.reproductive_tissue_mass.squeeze()[
+                    cohort
+                ]
+            )
+        else:
+            # If there is not enough surplus N to cover the deficit, the surplus is
+            # distributed across the tissue types in proportion to the N deficit.
+            # The surplus is then set to zero.
+
+            self.n_foliage[cohort] += (
+                self.n_surplus[cohort]
+                * self.n_foliage_deficit[cohort]
+                / self.n_tissue_deficit[cohort]
+            )
+            self.n_wood[cohort] += (
+                self.n_surplus[cohort]
+                * self.n_wood_deficit[cohort]
+                / self.n_tissue_deficit[cohort]
+            )
+            self.n_roots[cohort] += (
+                self.n_surplus[cohort]
+                * self.n_roots_deficit[cohort]
+                / self.n_tissue_deficit[cohort]
+            )
+            self.n_reproductive_tissue[cohort] += (
+                self.n_surplus[cohort]
+                * self.n_reproductive_tissue_deficit[cohort]
+                / self.n_tissue_deficit[cohort]
+            )
+            self.n_surplus[cohort] = 0.0

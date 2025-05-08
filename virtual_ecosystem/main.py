@@ -161,7 +161,7 @@ def ve_run(
         )
         if progress:
             print("* Saved model inital state")
-
+    print("checkpoint3")
     # If no path for saving continuous data is specified, fall back on using out_path
     if "out_folder_continuous" not in config["core"]["data_output_options"]:
         config["core"]["data_output_options"]["out_folder_continuous"] = str(out_path)
@@ -188,32 +188,37 @@ def ve_run(
     time_index = 0
     current_time = core_components.model_timing.start_time
     while current_time < core_components.model_timing.end_time:
+        print("starting update ", time_index)
         LOGGER.info(f"Starting update {time_index}: {current_time}")
 
         current_time += core_components.model_timing.update_interval
 
         # Run update() method for every model
         for model in models_update.values():
+            print(model)
             LOGGER.info(f"Updating model {model.model_name}")
             model.update(time_index)
+            print("done with ", model.model_name)
 
         # With updates complete increment the time_index
         time_index += 1
 
+        print("yo yo yo")
         # Append updated data to the continuous data file
         if config["core"]["data_output_options"]["save_continuous_data"]:
+            print("next checkpoint")
             outfile_path = data.output_current_state(
                 variables_to_save, config["core"]["data_output_options"], time_index
             )
             continuous_data_files.append(outfile_path)
-
+        print("almost to end")
         pbar.update(n=1)
 
     pbar.close()
 
     if progress:
         print("* Simulation completed")
-
+    print("checkpoint4")
     # Merge all files together based on a list
     if config["core"]["data_output_options"]["save_continuous_data"]:
         merge_continuous_data_files(
