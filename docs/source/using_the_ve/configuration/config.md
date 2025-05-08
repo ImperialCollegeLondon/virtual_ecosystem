@@ -35,7 +35,7 @@ saved as a permanent record of the model configuration. This configuration is al
 as a dictionary accessible to other modules and scripts.
 
 ::::{dropdown} An example configuration file
-:::{literalinclude} ../../_static/vr_full_model_configuration.toml
+:::{literalinclude} ../../_static/ve_full_model_configuration.toml
 :language: toml
 :::
 ::::

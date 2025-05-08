@@ -128,7 +128,7 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
 
     The resolved complete configuration will then be written to a single consolidated
     config file in the output path with a default name of
-    `vr_full_model_configuration.toml`. This can be disabled by setting the
+    `ve_full_model_configuration.toml`. This can be disabled by setting the
     `core.data_output_options.save_merged_config` option to false.
 
     Args:
