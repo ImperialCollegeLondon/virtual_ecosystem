@@ -66,6 +66,10 @@ class PlantsModel(
         "dissolved_nitrate",
         "dissolved_ammonium",
         "dissolved_phosphorus",
+        "ecto_supply_limit_n",
+        "ecto_supply_limit_p",
+        "arbuscular_supply_limit_n",
+        "arbuscular_supply_limit_p",
     ),
     vars_updated=(
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
@@ -90,11 +94,15 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
-        "nitrogen_fixation_carbon_supply",
+        "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
         "subcanopy_vegetation_biomass",
         "subcanopy_seedbank_biomass",
     ),
@@ -116,11 +124,15 @@ class PlantsModel(
         "leaf_turnover_c_p_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
         "root_turnover_c_p_ratio",
-        "nitrogen_fixation_carbon_supply",
+        "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
         "plant_nitrate_uptake",
         "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -373,6 +385,9 @@ class PlantsModel(
 
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
+
+        # Calculate the rate at which plants take nutrients from mycorrhizal fungi
+        self.calculate_mycorrhizal_uptakes()
 
         # Apply mortality to plant cohorts
         self.apply_mortality()
@@ -864,7 +879,7 @@ class PlantsModel(
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
         )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
+        self.data["plant_symbiote_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
 
@@ -883,6 +898,25 @@ class PlantsModel(
         self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
+
+    def calculate_mycorrhizal_uptakes(self) -> None:
+        """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
+
+        Warning:
+            At present, this function just calculates uptake based on an entirely made
+            up function, and does not link to plant dynamics in any way.
+        """
+
+        # Making arbitrary assumption that the plants take exactly half the maximum
+        # supply amount, this should be replaced by something more sensible
+        self.data["plant_n_uptake_arbuscular"] = (
+            0.5 * self.data["arbuscular_supply_limit_n"]
+        )
+        self.data["plant_n_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_n"]
+        self.data["plant_p_uptake_arbuscular"] = (
+            0.5 * self.data["arbuscular_supply_limit_p"]
+        )
+        self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
 
     def set_subcanopy_light_capture(self) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.

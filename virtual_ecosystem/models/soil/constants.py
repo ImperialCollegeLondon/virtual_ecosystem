@@ -365,3 +365,15 @@ class SoilConsts(ConstantsDataclass):
     We are assuming that deposition rates won't vary substantially over the area the
     simulation encompasses. Value taken from :cite:t:`Mahowald2008`.
     """
+
+    nitrogen_fixer_supply_fraction: float = 0.3
+    """Fraction of carbon supplied by plants to symbiotes that goes to nitrogen fixers.
+    
+    [unitless]. The remainder goes to mycorrhizal fungi.
+    """
+
+    ectomycorrhiza_supply_fraction: float = 0.25
+    """Fraction of plant carbon supply to mycorrhizal fungi that goes to ectomycorrhiza.
+    
+    [unitless]. The remainder goes to arbuscular mycorrhizal fungi.
+    """
