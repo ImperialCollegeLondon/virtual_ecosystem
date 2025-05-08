@@ -77,7 +77,7 @@ class AnimalCohort:
             self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
         )
-        """The identification of useable food resources."""
+        """The identification of usable food resources."""
         self.territory_size = sf.territory_size(self.functional_group.adult_mass)
         """The size in hectares of the animal cohorts territory."""
         self.occupancy_proportion: float = 1.0 / self.territory_size
@@ -1158,11 +1158,11 @@ class AnimalCohort:
         equal to the proportion of the cohort individuals that would arrive in the
         neighboring cell after one full timestep's movement.
 
-        Assuming cohort individuals are homogenously distributed within a grid cell and
+        Assuming cohort individuals are homogeneously distributed within a grid cell and
         that the move is non-diagonal, the probability is then equal to the ratio of
         dispersal speed to the side-length of a grid cell.
 
-        A homogenously distributed cohort with a partial presence in a grid cell will
+        A homogeneously distributed cohort with a partial presence in a grid cell will
         have a proportion of its individuals in the new grid cell equal to the
         proportion the new grid cell that it occupies (A_new / A_cell). This proportion
         will be equal to the cohorts velocity (V) multiplied by the elapsed time (t)

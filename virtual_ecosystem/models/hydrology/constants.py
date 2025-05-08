@@ -154,7 +154,7 @@ class HydroConsts(ConstantsDataclass):
     intercept_residence_time: float = 86400.0
     """Intecept residence time.
     
-    The amound of time that water sits on the leaves before it evaporates or falls to
+    The amount of time that water sits on the leaves before it evaporates or falls to
     the ground."""
 
     initial_stomatal_conductance: float = 1000.0

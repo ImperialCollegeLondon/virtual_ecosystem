@@ -117,7 +117,7 @@ class AnimalConsts(ConstantsDataclass):
     """Proportion of the time step in which it's suitable to be active for functional
     group f."""
 
-    # Trophic paramters
+    # Trophic parameters
 
     alpha_0_herb = 1.0e-11  # alpha_herb_0 [Madingley] ha/(day*g)
     """Effective rate per unit mass at which a herbivore searches its environment."""

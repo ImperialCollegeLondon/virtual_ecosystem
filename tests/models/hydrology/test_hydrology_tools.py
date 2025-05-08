@@ -12,7 +12,7 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
 def test_initialise_atmosphere_for_hydrology(
     dummy_climate_data, fixture_core_components
 ):
-    """Test initialisation of atmospheric varibales for hydrology."""
+    """Test initialisation of atmospheric variables for hydrology."""
 
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
         initialise_atmosphere_for_hydrology,

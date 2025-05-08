@@ -61,7 +61,7 @@ size `cell_nx`).
 
 The configuration system does not require a single input config file, instead the
 configuration can be separated out into a set of config files. This allows different
-configuration files to be re-used in a modular way, allowing a library of configuration
+configuration files to be reused in a modular way, allowing a library of configuration
 options to be set up.
 
 When a simulation is run, users can identify a set of specific configuration files or

@@ -49,7 +49,7 @@ short description of the roles of each hook.
 ::::
 
 `pre-commit-hooks`
-: We use these basic hooks to check for remaning `git` merge conflict markers in code
+: We use these basic hooks to check for remaining `git` merge conflict markers in code
 files (`check-merge-conflicts` hook) and for debugger imports and `breakpoint()` calls
 (`dubug-statements` hook), which should not end up in code in the repository.
 
@@ -119,7 +119,7 @@ developed to help support clear and consistent typing. We use
 bit of getting used to but is a key tool in maintaining clear code and variable
 structures.
 
-## Supressing checking
+## Suppressing checking
 
 The `pre-commit` tools sometimes complain about things that we do not want to change.
 Almost all of the tools can be told to suppress checking, using comments with a set
@@ -129,7 +129,7 @@ This should not be done lightly: we are using these QA tools for a reason.
 
 * Code linting issued identified by `ruff` can be ignored by either using `# noqa: E501`
   to ignore the issue for that line.
-* Code formatting changes suggested by `ruff-format` can be supressed by using the
+* Code formatting changes suggested by `ruff-format` can be suppressed by using the
   `# fmt: off` tag at the end of a specific line or wrapping a section in `# fmt: off`
   and then `# fmt: on`.
 * `mypy` uses the syntax `# type: ignore` comment to [suppress

@@ -143,5 +143,5 @@ notebook_metadata_filter = "settings,mystnb,language_info,execution"
 cell_metadata_filter = "all,-trusted"
 
 [tool.codespell]
-ignore-words = ".codespellignore"
-skip = "*.js,*.html,*.css,*.ipynb,*.bib,poetry.lock,./docs/build"
+ignore-words = ".codespellignore.txt"
+skip = "*.js,*.html,*.css,*.ipynb,*.bib,*.svg,poetry.lock,./docs/build"
