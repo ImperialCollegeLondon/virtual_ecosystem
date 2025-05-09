@@ -125,7 +125,7 @@ def animal_fixture_config():
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        yld = 0.6
         zeta = 0.17
         resp_rt = 0.05
         tau_rt = 1
@@ -149,7 +149,7 @@ def animal_fixture_config():
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        yld = 0.6
         zeta = 0.17
         resp_rt = 0.05
         tau_rt = 1

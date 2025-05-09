@@ -47,7 +47,7 @@ def metabolic_rate(
     This follows the Madingley implementation, assuming a power-law relationship with
     mass and an exponential relationship with temperature.
 
-    TODO: Implement activity windows to properly paramterize sigma.
+    TODO: Implement activity windows to properly parameterize sigma.
     TODO: Move constants to constants file.
 
     Args:

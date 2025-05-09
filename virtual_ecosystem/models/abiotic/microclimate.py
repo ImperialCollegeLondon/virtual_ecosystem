@@ -261,7 +261,8 @@ def run_microclimate(
 
         # Specific humidity of air, [kg kg-1] TODO external function
         specific_humidity_air = (
-            abiotic_constants.water_to_air_mass_ratio * actual_vapour_pressure_air
+            core_constants.molecular_weight_ratio_water_to_dry_air
+            * actual_vapour_pressure_air
         ) / (atmospheric_pressure - actual_vapour_pressure_air)
 
         # Latent heat flux canopy, [W m-2]
@@ -270,7 +271,7 @@ def run_microclimate(
         # TODO cross-check with plant model, time step currently month to second
         # TODO also there is a split between evaporation and transpiration, needs to be
         # fixed in #493 - hydrology and evaporation
-        # also canopy_evaporation is 2D, chekc that this matches
+        # also canopy_evaporation is 2D, check that this matches
         # evapotranspiration = data['canopy_evaporation'] + data['transpiration']
         latent_heat_flux_canopy = (
             data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
@@ -364,7 +365,9 @@ def run_microclimate(
             specific_humidity=specific_humidity_air.to_numpy(),
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,
-            water_to_air_mass_ratio=abiotic_constants.water_to_air_mass_ratio,
+            molecular_weight_ratio_water_to_dry_air=(
+                core_constants.molecular_weight_ratio_water_to_dry_air
+            ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
         )

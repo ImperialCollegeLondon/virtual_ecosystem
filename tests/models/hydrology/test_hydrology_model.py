@@ -326,9 +326,9 @@ def test_setup(
             # Test one dimensional variables
             expected_1d = {
                 "vertical_flow": [0.012935, 0.012935, 0.012935, 0.012935],
-                "total_river_discharge": [0, 0, 67980, 22340],
-                "surface_runoff": [83.775945, 83.792379, 83.776216, 83.776116],
-                "surface_runoff_accumulated": [0, 0, 7140, 2100],
+                "total_river_discharge": [0, 0, 69035, 22660],
+                "surface_runoff": [106.654852, 106.654852, 106.654852, 106.654852],
+                "surface_runoff_accumulated": [0, 0, 9150, 2730],
                 "soil_evaporation": [7.172842, 7.172842, 7.172842, 7.172842],
             }
 

@@ -151,7 +151,7 @@ class HydrologyModel(
         """Hydrology init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
+        handled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -221,7 +221,7 @@ class HydrologyModel(
         This function initializes variables that are required to run the
         first update().
 
-        For the within grid cell hydrology, soil moisture is initialised homogenously
+        For the within grid cell hydrology, soil moisture is initialised homogeneously
         for all soil layers and groundwater storage is set to the percentage of it's
         capacity that was defined in the model configuration. Soil and canopy
         aerodynamic resistances are set to an initial constant value. Some additional
@@ -464,7 +464,7 @@ class HydrologyModel(
                 veg_density_param=self.model_constants.veg_density_param,
             )
 
-            # Calculate canopy evaporation and leaf drainage
+            # Calculate canopy evaporation and leaf drainage, [mm day-1]
             # TODO net radiation is part of energy balance, check which inputs are
             # required, in which order this is calculated, discuss also with plant model
             # needs to move out of loop and split in 30 days if sum input
@@ -506,8 +506,13 @@ class HydrologyModel(
             precipitation_surface = (
                 hydro_input["current_precipitation"][:, day]
                 - interception
-                + np.nansum(canopy_water_balance["leaf_drainage"], axis=0)
+                + canopy_water_balance["leaf_drainage"]
             )
+
+            hydrology_tools.check_precipitation_surface(
+                precipitation_surface=precipitation_surface
+            )
+
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]
@@ -737,9 +742,9 @@ class HydrologyModel(
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][
-            self.layer_structure.index_filled_canopy
-        ] = np.array(daily_lists["canopy_evaporation"]).sum(axis=(0, 1))
+        soil_hydrology["canopy_evaporation"][:,] = np.sum(
+            daily_lists["canopy_evaporation"], axis=0
+        )
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
@@ -762,7 +767,7 @@ class HydrologyModel(
                 np.stack(daily_lists[var], axis=0), axis=0
             )
 
-        # Save last state of groundwater stoage, [mm]
+        # Save last state of groundwater storage, [mm]
         soil_hydrology["groundwater_storage"] = DataArray(
             daily_lists["groundwater_storage"][day],
             dims=self.data["groundwater_storage"].dims,

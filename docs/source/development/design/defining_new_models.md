@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.0
+    jupytext_version: 1.17.1
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -29,7 +29,7 @@ an ecosystem, examples include the `abiotic`, `animal`, `plants` and `soil` mode
 However, the simulation is designed to be modular:
 
 * Different combinations of models can be configured for a particular simulation.
-* New models can be defined in order to extend the simulation or alter the implemention:
+* New models can be defined in order to extend the simulation or alter the implementation:
   examples of new functionality might be `freshwater` or `disturbance` models.
 
 This page sets out the steps needed to add a new model to the Virtual Ecosystem and
@@ -153,7 +153,7 @@ from pint import Quantity
 # - a Config , used to configure a BaseModel instance.
 # - the load_constants helper function to configure model constants.
 # - the Data class, used as a central data store within the simulation
-# - an custom exception to cover model initalisation failure
+# - an custom exception to cover model initialisation failure
 # - the global LOGGER, used to report information to users.
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
