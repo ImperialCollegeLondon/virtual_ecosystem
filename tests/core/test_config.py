@@ -764,8 +764,8 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
                 "baz": 6,
             },
             {
-                "file1_path": "path/to/config/file.txt",
-                "other_path": "path/to/config/file2.txt",
+                "file1_path": str(Path("path/to/config/file.txt").absolute()),
+                "other_path": str(Path("path/to/config/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -779,8 +779,8 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
                 "baz": 6,
             },
             {
-                "file1_path": "path/to/config/data/file.txt",
-                "other_path": "path/to/config/data/file2.txt",
+                "file1_path": str(Path("path/to/config/data/file.txt").absolute()),
+                "other_path": str(Path("path/to/config/data/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -794,8 +794,8 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
                 "baz": 6,
             },
             {
-                "file1_path": "path/to/data/file.txt",
-                "other_path": "path/to/data/file2.txt",
+                "file1_path": str(Path("path/to/data/file.txt").absolute()),
+                "other_path": str(Path("path/to/data/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -809,8 +809,8 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
                 "baz": 6,
             },
             {
-                "file1_path": "path/data/file.txt",
-                "other_path": "path/data/file2.txt",
+                "file1_path": str(Path("path/data/file.txt").absolute()),
+                "other_path": str(Path("path/data/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -824,8 +824,8 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
                 "baz": 6,
             },
             {
-                "file1_path": "path/data/file.txt",
-                "other_path": "path/to/config/data/file2.txt",
+                "file1_path": str(Path("path/data/file.txt").absolute()),
+                "other_path": str(Path("path/to/config/data/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -834,17 +834,17 @@ def test_Config_export_config(caplog, shared_datadir, auto, expected_log_entries
     ),
 )
 def test__resolve_config_paths_file_locations(
-    tmpdir, cfg_is_relative, filepath_is_relative, params_dict_source, expected
+    cfg_is_relative, filepath_is_relative, params_dict_source, expected
 ):
-    """Test the __resolve_config_paths() function can get relative paths correctly.
+    """Test the __resolve_config_paths() function handles file resolution correctly.
 
-    This is using tmpdir to get an OS appropriate base file path - the location is not
-    used for any actual file IO.
+    This test uses the test execution directory as an OS appropriate base file path,
+    the location is not used for any actual file IO.
     """
     from virtual_ecosystem.core.config import _resolve_config_paths
 
     # Get the config path to be used
-    execution_root = Path(tmpdir)
+    execution_root = Path()
     cfg_relative = Path("path/to/config")
     cfg_absolute = execution_root / cfg_relative
     cfg_path = cfg_relative if cfg_is_relative else cfg_absolute
@@ -856,9 +856,7 @@ def test__resolve_config_paths_file_locations(
     if not filepath_is_relative:
         for key, val in params_dict.items():
             if key.endswith("_path"):
-                params_dict[key] = str(
-                    (execution_root / cfg_relative / Path(val)).resolve()
-                )
+                params_dict[key] = str((cfg_absolute / Path(val)).resolve())
 
     # Run the function
     _resolve_config_paths(cfg_path, params_dict)
@@ -867,11 +865,7 @@ def test__resolve_config_paths_file_locations(
         # Test that paths have been resolved as expected
         # but that the other entries have been left alone
         if key.endswith("_path"):
-            if cfg_is_relative and filepath_is_relative:
-                assert Path(val) == Path(expected[key])
-            else:
-                assert Path(val) == execution_root / expected[key]
-
+            assert Path(val) == Path(expected[key])
         elif key == "foo":
             assert val == "bar"
         elif key == "baz":
@@ -880,8 +874,9 @@ def test__resolve_config_paths_file_locations(
 
 @pytest.mark.parametrize(
     "params_dict,raises,expected,err_msg",
-    # The str(Path(x)) pattern in the expected values below is to ensure that
-    # the expected paths are converted to the file system of the test machine.
+    # The str(Path(x).absolute()) pattern in the expected values below is to ensure that
+    # the expected paths are converted to the file system of the test machine and
+    # converted to absolute paths within the test execution directory
     (
         pytest.param(
             {
@@ -892,8 +887,8 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": str(Path("path/to/config/file.txt")),
-                "other_path": str(Path("path/to/config/file2.txt")),
+                "file1_path": str(Path("path/to/config/file.txt").absolute()),
+                "other_path": str(Path("path/to/config/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -909,8 +904,8 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": str(Path("path/to/config/file.txt")),
-                "other_path": str(Path("path/file2.txt")),
+                "file1_path": str(Path("path/to/config/file.txt").absolute()),
+                "other_path": str(Path("path/file2.txt").absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -925,8 +920,11 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": str(Path("path/to/config/file.txt")),
-                "nested": {"other_path": str(Path("path/file2.txt")), "foo": "bar"},
+                "file1_path": str(Path("path/to/config/file.txt").absolute()),
+                "nested": {
+                    "other_path": str(Path("path/file2.txt").absolute()),
+                    "foo": "bar",
+                },
                 "baz": 6,
             },
             None,
