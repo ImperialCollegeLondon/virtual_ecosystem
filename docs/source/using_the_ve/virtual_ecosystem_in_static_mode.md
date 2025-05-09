@@ -84,8 +84,22 @@ hydrology-only experiment (no changes to parameters or input data):
    already exist in your output folder, the model will crash.
 
 ```{code-cell} ipython3
-%%bash
-[ ! -d "/tmp/ve_example/experiment1_out" ] && mkdir -p /tmp/ve_example/experiment1_out
+import os
+import shutil
+
+output_dir = "/tmp/ve_example/experiment1_out"
+
+# Create the directory if it doesn't exist, or clear it if it does
+if os.path.exists(output_dir):
+    # Remove all files and subdirectories
+    for filename in os.listdir(output_dir):
+        file_path = os.path.join(output_dir, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)  # remove file or link
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)  # remove directory
+else:
+    os.makedirs(output_dir)
 ```
 
 #### Run experiment 1
@@ -121,8 +135,8 @@ layer over time, you can see that it behaves differently:
 
 ```{code-cell} ipython3
 # Choose the variable and cell_id to plot
-var_name = "soil moisture"
-cell_to_plot = 0
+var_name = "soil_moisture"
+cell_to_plot = 25
 
 # Select the bottom two layers (soil layers)
 soil_layers = ve_example.layers[-2:]
@@ -131,14 +145,14 @@ soil_layers = ve_example.layers[-2:]
 for layer in soil_layers.values:
     plt.plot(
         ve_example["time_index"],
-        ve_example[var_name].sel(cellid=cell_to_plot, layers=layer),
+        ve_example[var_name].sel(cell_id=cell_to_plot, layers=layer),
         label=f"VE Example - Layer {layer}",
         linestyle="-",
         color="blue",
     )
     plt.plot(
         experiment1["time_index"],
-        experiment1[var_name].sel(cellid=cell_to_plot, layers=layer),
+        experiment1[var_name].sel(cell_id=cell_to_plot, layers=layer),
         label=f"Experiment 1 - Layer {layer}",
         linestyle="--",
         color="red",
@@ -151,29 +165,29 @@ plt.legend()
 plt.show()
 ```
 
-If you plot leaf area index, you see that it does not change in the hydrology_only
+If you plot air temperature, you see that it does not change in the hydrology_only
 experiment.
 
 ```{code-cell} ipython3
 # Choose the variable, cell_id to plot
-var_name = "leaf_area_index"
-cell_to_plot = 0
+var_name = "air_temperature"
+cell_to_plot = 25
 
 # Select the canopy layers
-canopy_layers = ve_example.layers[1:4]
+atmosphere_layers = ve_example.layers[0:1]
 
 # Plot for each of the canopy layers
-for layer in canopy_layers.values:
+for layer in atmosphere_layers.values:
     plt.plot(
         ve_example["time_index"],
-        ve_example[var_name].sel(cellid=cell_to_plot, layers=layer),
+        ve_example[var_name].sel(cell_id=cell_to_plot, layers=layer),
         label=f"VE Example - Layer {layer}",
         linestyle="-",
         color="blue",
     )
     plt.plot(
         experiment1["time_index"],
-        experiment1[var_name].sel(cellid=cell_to_plot, layers=layer),
+        experiment1[var_name].sel(cell_id=cell_to_plot, layers=layer),
         label=f"Experiment 1 - Layer {layer}",
         linestyle="--",
         color="red",
@@ -210,8 +224,19 @@ these steps:
   `/ve_example/experiment2_out/`.
 
 ```{code-cell} ipython3
-%%bash
-[ ! -d "/tmp/ve_example/experiment2_out" ] && mkdir -p /tmp/ve_example/experiment2_out
+output_dir2 = "/tmp/ve_example/experiment2_out"
+
+# Create the directory if it doesn't exist, or clear it if it does
+if os.path.exists(output_dir2):
+    # Remove all files and subdirectories
+    for filename in os.listdir(output_dir2):
+        file_path = os.path.join(output_dir2, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)  # remove file or link
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)  # remove directory
+else:
+    os.makedirs(output_dir2)
 ```
 
 #### Run experiment 2
@@ -241,11 +266,9 @@ experiment2 = xarray.load_dataset(
 Now again plot the soil moisture over time:
 
 ```{code-cell} ipython3
-# Choose the variable to plot
-var_name = "soil moisture"
 # Choose the variable and cell_id to plot
-var_name = "soil moisture"
-cell_to_plot = 0  # Change as needed
+var_name = "soil_moisture"
+cell_to_plot = 25
 
 # Select the bottom two layers (soil layers)
 soil_layers = ve_example.layers[-2:]
@@ -254,14 +277,14 @@ soil_layers = ve_example.layers[-2:]
 for layer in soil_layers.values:
     plt.plot(
         experiment1["time_index"],
-        experiment1[var_name].sel(cellid=cell_to_plot, layers=layer),
+        experiment1[var_name].sel(cell_id=cell_to_plot, layers=layer),
         label=f"Experiment 1- Layer {layer}",
         linestyle="-",
         color="blue",
     )
     plt.plot(
         experiment2["time_index"],
-        experiment2[var_name].sel(cellid=cell_to_plot, layers=layer),
+        experiment2[var_name].sel(cell_id=cell_to_plot, layers=layer),
         label=f"Experiment 2 - Layer {layer}",
         linestyle="--",
         color="red",
