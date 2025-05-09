@@ -349,8 +349,8 @@ def test_update_humidity_vpd():
     specific_humidity = np.full((5, 4), 0.020)  # kg/kg (high humidity)
     layer_thickness = np.array([np.full(4, layer) for layer in [20, 10, 5, 1, 0.1]])
     atmospheric_pressure = np.full((5, 4), 100)  # kPa
-    water_to_air_mass_ratio = 0.622  # Constant
-    dry_air_factor = 1 - water_to_air_mass_ratio
+    molecular_weight_ratio_water_to_dry_air = 0.622  # Constant
+    dry_air_factor = 1 - molecular_weight_ratio_water_to_dry_air
     cell_area = 10_000  # m2 (1 ha)
 
     # Call the function
@@ -361,7 +361,7 @@ def test_update_humidity_vpd():
         specific_humidity,
         layer_thickness,
         atmospheric_pressure,
-        water_to_air_mass_ratio,
+        molecular_weight_ratio_water_to_dry_air,
         dry_air_factor,
         cell_area,
     )
