@@ -19,7 +19,6 @@ from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
     HerbivoryWaste,
-    LitterPool,
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
@@ -1011,26 +1010,35 @@ class AnimalCohort:
 
     def calculate_consumed_mass_detritivory(
         self,
-        litter_pools: list[LitterPool],
-        target_pool: LitterPool,
+        litter_pools: list[Resource],
+        target_pool: Resource,
     ) -> float:
-        """Simple placeholder: detritivore eats a fixed fraction of each pool.
+        """Return kg wet mass a cohort removes from one litter pool over Δt.
 
-        # TODO: replace with real functional response
+        The search/handling formulation is identical to herbivory; only the resource
+          list and pool class differ.
 
         Args:
-            litter_pools: All LitterPool objects in reach (unused for now).
-            target_pool: The pool currently being considered.
+            litter_pools: All litter pools available in the territory.  Used
+                to compute the denominator of handling time.
+            target_pool: The specific pool from which biomass is sought.
 
         Returns:
-            Wet-mass to attempt to consume from the pool [kg].
+            Wet mass (kg) of litter requested from ``target_pool`` during the
+            current update.  The value is ≥ 0; if the pool is empty the
+            method returns 0.0.
         """
-        fraction_to_consume = 0.10
-        return target_pool.mass_current * fraction_to_consume
+        F = self.F_i_k(litter_pools, target_pool)
+        delta_t = 30.0  # days (placeholder until model timing is wired in)
+
+        consumed = target_pool.mass_current * (
+            1.0 - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
+        )
+        return max(consumed, 0.0)
 
     def delta_mass_detritivory(
         self,
-        litter_pools: list[LitterPool],
+        litter_pools: list[Resource],
     ) -> dict[str, float]:
         """Handle mass assimilation from detritus (plant litter).
 
@@ -1069,7 +1077,7 @@ class AnimalCohort:
                 )
 
             # LitterPool handles mechanical efficiency + pool update
-            consumed_cnp = pool.get_eaten(requested_mass, self)
+            consumed_cnp, _unused = pool.get_eaten(requested_mass, self)
             if consumed_cnp is None:
                 raise ValueError(
                     f"get_eaten() returned None for pool {pool.pool_name} "
@@ -1085,28 +1093,33 @@ class AnimalCohort:
 
     def calculate_consumed_mass_carcass(
         self,
-        carcass_pools: list[CarcassPool],
-        target_pool: CarcassPool,
+        carcass_pools: list[Resource],
+        target_pool: Resource,
     ) -> float:
-        """Placeholder functional response for scavengers.
+        """Return wet mass (kg) removed from a carcass pool in one time step.
 
-        At present each cohort attempts to take a fixed fraction of the
-        *scavengeable* biomass in the pool.  Replace with a search /
-        handling-time model later.
+        The search/handling formulation is identical to herbivory; only the resource
+          list and pool class differ.
 
         Args:
-            carcass_pools: All accessible carcass pools (unused for now).
+            carcass_pools: All carcass pools in the cohort's territory.
             target_pool: The pool currently being evaluated.
 
         Returns:
-            Wet-mass requested from the pool [kg].
+            Wet mass (kg) of carcass material that the cohort would attempt
+            to ingest during the 30-day step.
         """
-        frac = 0.15  # TODO: fit a real functional response
-        return target_pool.scavengeable_cnp.total * frac
+        F = self.F_i_k(carcass_pools, target_pool)
+        delta_t = 30.0
+
+        consumed = target_pool.mass_current * (
+            1.0 - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
+        )
+        return max(consumed, 0.0)
 
     def delta_mass_carcass_scavenging(
         self,
-        carcass_pools: list[CarcassPool],
+        carcass_pools: list[Resource],
     ) -> dict[str, float]:
         """Handle mass assimilation from carcass scavenging.
 
@@ -1139,7 +1152,7 @@ class AnimalCohort:
                 )
 
             # Retrieve ingested stoichiometry (mechanical efficiency applied)
-            ingested_cnp = pool.get_eaten(requested, self)
+            ingested_cnp, _unused = pool.get_eaten(requested, self)
             if ingested_cnp is None:
                 raise ValueError(
                     f"get_eaten() returned None for carcass pool in cell {pool}."
@@ -1154,24 +1167,33 @@ class AnimalCohort:
 
     def calculate_consumed_mass_excrement(
         self,
-        excrement_pools: list[ExcrementPool],
-        target_pool: ExcrementPool,
+        excrement_pools: list[Resource],
+        target_pool: Resource,
     ) -> float:
-        """Placeholder functional response for coprophagy.
+        """Return wet mass (kg) removed from an excrement pool (coprophagy).
+
+        The search/handling formulation is identical to herbivory; only the resource
+          list and pool class differ.
 
         Args:
-            excrement_pools: All accessible ExcrementPool objects (unused for now).
+            excrement_pools: All excrement pools in the cohort's territory.
             target_pool: The pool currently being evaluated.
 
         Returns:
-            Wet-mass requested from the pool [kg].
+            Wet mass (kg) of excrement ingested by the cohort over the update period.
         """
-        frac = 0.20  # TODO: calibrate with real data
-        return target_pool.scavengeable_cnp.total * frac
+        F = self.F_i_k(excrement_pools, target_pool)
+        delta_t = 30.0
+
+        consumed = target_pool.mass_current * (
+            1.0 - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
+        )
+
+        return max(consumed, 0.0)
 
     def delta_mass_excrement_scavenging(
         self,
-        excrement_pools: list[ExcrementPool],
+        excrement_pools: list[Resource],
     ) -> dict[str, float]:
         """Handle mass assimilation from excrement (coprophagy).
 
@@ -1206,7 +1228,7 @@ class AnimalCohort:
                 )
 
             # Ingested stoichiometry (mechanical efficiency handled inside pool)
-            ingested_cnp = pool.get_eaten(requested, self)
+            ingested_cnp, _unused = pool.get_eaten(requested, self)
             if ingested_cnp is None:
                 raise ValueError(
                     f"get_eaten() returned None for excrement pool in cell {pool}."
@@ -1223,11 +1245,11 @@ class AnimalCohort:
         self,
         plant_list: list[Resource],
         animal_list: list[AnimalCohort],
-        litter_pools: list[LitterPool],
+        litter_pools: list[Resource],
         excrement_pools: list[ExcrementPool],
         carcass_pool_map: dict[int, list[CarcassPool]],
-        scavenge_carcass_pools: list[CarcassPool],
-        scavenge_excrement_pools: list[ExcrementPool],
+        scavenge_carcass_pools: list[Resource],
+        scavenge_excrement_pools: list[Resource],
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> None:
         """Coordinate all resource consumption for a single cohort.
@@ -1696,8 +1718,8 @@ class AnimalCohort:
         return bool(resource_occupancy & self.functional_group.vertical_occupancy)
 
     def get_litter_pools(
-        self, litter_pools: dict[int, dict[str, LitterPool]]
-    ) -> list[LitterPool]:
+        self, litter_pools: dict[int, dict[str, Resource]]
+    ) -> list[Resource]:
         """Return all litter pools that fall inside this cohort's territory.
 
         Args:
@@ -1706,7 +1728,7 @@ class AnimalCohort:
         Returns:
             A flat list of litter pools found in the territory of the consumer.
         """
-        pools_in_territory: list[LitterPool] = []
+        pools_in_territory: list[Resource] = []
 
         for cell_id in self.territory:
             if cell_id in litter_pools:

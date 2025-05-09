@@ -20,7 +20,7 @@ from __future__ import annotations
 import uuid
 from math import ceil, sqrt
 from random import choice, random
-from typing import Any
+from typing import Any, cast
 
 from numpy import array, inf, timedelta64, zeros
 from xarray import DataArray
@@ -159,9 +159,7 @@ class AnimalModel(
         """The carcass pools in the model with associated grid cell ids."""
         self.leaf_waste_pools: dict[int, HerbivoryWaste]
         """A pool for leaves removed by herbivory but not actually consumed."""
-        self.litter_pools: dict[int, dict[str, LitterPool]] = (
-            self.populate_litter_pools()
-        )
+        self.litter_pools: dict[int, dict[str, Resource]] = self.populate_litter_pools()
         """The litter pools with associated grid cell ids."""
 
     def _setup_grid_neighbours(self) -> None:
@@ -404,12 +402,12 @@ class AnimalModel(
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
 
-    def populate_litter_pools(self) -> dict[int, dict[str, LitterPool]]:
+    def populate_litter_pools(self) -> dict[int, dict[str, Resource]]:
         """Populate the litter pools that animals can consume from.
 
         Returns:
-            dict[str, LitterPool]: A dictionary where keys represent the pool types and
-            values are the corresponding `LitterPool` objects. The following pools are
+            dict[str, Resource]: A dictionary where keys represent the pool types and
+            values are the corresponding LitterPool objects. The following pools are
             included:
 
             - "above_metabolic": Litter pool for above-ground metabolic organic matter
@@ -442,12 +440,12 @@ class AnimalModel(
         }
 
     def calculate_total_litter_consumption(
-        self, litter_pools: dict[int, dict[str, LitterPool]]
+        self, litter_pools: dict[int, dict[str, Resource]]
     ) -> dict[str, DataArray]:
         """Compute carbon removed from every litter pool, by cell.
 
         Args:
-            litter_pools: Mapping ``{cell_id: {pool_name: LitterPool}}`` created at
+            litter_pools: Mapping created at
                 model setup.
 
         Returns:
@@ -1045,24 +1043,22 @@ class AnimalModel(
 
             diet: DietType = cohort.functional_group.diet
 
-            # ---------------------------------------------------------------- #
-            #  Build resource collections based on diet flags                  #
-            # ---------------------------------------------------------------- #
+            #  Build resource collections based on diet flags
             plant_list: list[Resource] = []
             prey_list: list[AnimalCohort] = []
-            litter_list: list[LitterPool] = []
-            scavenge_car_pools: list[CarcassPool] = []
-            scavenge_exc_pools: list[ExcrementPool] = []
+            litter_list: list[Resource] = []
+            scavenge_carcass_pools: list[Resource] = []
+            scavenge_waste_pools: list[Resource] = []
 
-            # Deposition targets (always passed, may be empty)
+            # Deposition targets (always passed)
             excrement_pools = cohort.get_excrement_pools(self.excrement_pools)
             carcass_pool_map = self.carcass_pools
 
-            # Live plant resources (herbivory and omnivory)
+            # Live plant resources
             if diet & DietType.HERBIVORE:
                 plant_list = cohort.get_plant_resources(self.plant_resources)
 
-            # Live prey (carnivory and omnivory)
+            # Live prey
             if diet & DietType.CARNIVORE:
                 prey_list = cohort.get_prey(self.communities)
 
@@ -1071,24 +1067,25 @@ class AnimalModel(
                 litter_list = cohort.get_litter_pools(self.litter_pools)
 
             # Carcass scavenging
+            # cohort.get_carcass_pools returns list[CarcassPool];  tell mypy
             if diet & DietType.CARCASS:
-                scavenge_car_pools = cohort.get_carcass_pools(self.carcass_pools)
+                scavenge_carcass_pools = cast(
+                    list[Resource], cohort.get_carcass_pools(self.carcass_pools)
+                )
 
             # Coprophagy
+            # excrement_pools is list[ExcrementPool];  again cast for mypy
             if diet & DietType.WASTE:
-                scavenge_exc_pools = excrement_pools  # same objects used for deposition
+                scavenge_waste_pools = cast(list[Resource], excrement_pools)
 
-            # ---------------------------------------------------------------- #
-            #  Trigger cohort-level foraging                                   #
-            # ---------------------------------------------------------------- #
             cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
                 litter_pools=litter_list,
                 excrement_pools=excrement_pools,  # for defecation
                 carcass_pool_map=carcass_pool_map,  # for prey remains
-                scavenge_carcass_pools=scavenge_car_pools,
-                scavenge_excrement_pools=scavenge_exc_pools,
+                scavenge_carcass_pools=scavenge_carcass_pools,
+                scavenge_excrement_pools=scavenge_waste_pools,
                 herbivory_waste_pools=self.leaf_waste_pools,
             )
 

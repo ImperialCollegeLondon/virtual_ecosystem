@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.protocols import Consumer
 
@@ -26,6 +27,15 @@ class CarcassPool:
         default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
     )
     """A CNP object storing decomposed nutrients in the carcass pool."""
+    cell_id: int = -1
+    """Grid position of carcass pool."""
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of carcass pool."""
+
+    @property
+    def mass_current(self) -> float:
+        """Total scavengeable carcass mass (kg)."""
+        return self.scavengeable_cnp.total
 
     def decomposed_nutrient_per_area(
         self, nutrient: str, grid_cell_area: float
@@ -77,7 +87,7 @@ class CarcassPool:
         self,
         consumed_mass: float,
         scavenger: "Consumer",
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Handle a scavenging event and update pool state.
 
         Args:
@@ -96,7 +106,7 @@ class CarcassPool:
 
         available = self.scavengeable_cnp.total
         if available == 0.0:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, {}
 
         # Mass physically removed from the carcass
         taken_wet = min(consumed_mass, available)
@@ -136,7 +146,7 @@ class CarcassPool:
             phosphorus=missed_cnp["phosphorus"],
         )
 
-        return ingested_cnp
+        return ingested_cnp, {}  # temporarily empty
 
     def reset(self) -> None:
         """Reset tracking of the nutrients associated with decomposed carcasses.
@@ -161,6 +171,15 @@ class ExcrementPool:
         default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
     )
     """A CNP object storing decomposed nutrients in the excrement pool."""
+    cell_id: int = -1
+    """Grid position of carcass pool."""
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of carcass pool."""
+
+    @property
+    def mass_current(self) -> float:
+        """Total scavengeable excrement mass (kg)."""
+        return self.scavengeable_cnp.total
 
     def decomposed_nutrient_per_area(
         self, nutrient: str, grid_cell_area: float
@@ -221,7 +240,7 @@ class ExcrementPool:
         self,
         consumed_mass: float,
         scavenger: Consumer,
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Remove biomass from the excrement pool and return the stoichiometric gain.
 
         Args:
@@ -240,7 +259,7 @@ class ExcrementPool:
 
         available = self.scavengeable_cnp.total
         if available == 0.0:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, {}
 
         taken_wet = min(consumed_mass, available)
 
@@ -271,7 +290,7 @@ class ExcrementPool:
             phosphorus=missed_wet * frac_P,
         )
 
-        return ingested_cnp
+        return ingested_cnp, {}  # temporarily empty
 
 
 def find_decay_consumed_split(
@@ -298,6 +317,9 @@ class LitterPool:
     One :class:`LitterPool` instance now represents **one litter type *in one grid
     cell***.
     """
+
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of carcass pool."""
 
     def __init__(
         self,
@@ -345,7 +367,7 @@ class LitterPool:
         self,
         consumed_mass: float,
         detritivore: "Consumer",
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """Remove biomass when a cohort consumes this litter pool.
 
         Args:
@@ -381,7 +403,7 @@ class LitterPool:
             nitrogen=-taken["nitrogen"],
             phosphorus=-taken["phosphorus"],
         )
-        return taken
+        return taken, {}
 
 
 class HerbivoryWaste:

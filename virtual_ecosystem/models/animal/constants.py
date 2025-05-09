@@ -71,6 +71,7 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
+    # TODO: rework these efficiencies to be interaction-specific, not trait based
     conversion_efficiency: dict[DietType, float] = field(
         default_factory=lambda: {
             DietType.HERBIVORE: 0.1,  # Toy value

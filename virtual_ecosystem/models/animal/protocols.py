@@ -41,9 +41,13 @@ class DecayPool(Protocol):
 class Resource(Protocol):
     """This is the protocol for defining what classes work as trophic resources."""
 
-    mass_current: float
     cell_id: int
     vertical_occupancy: VerticalOccupancy
+
+    @property
+    def mass_current(self) -> float:
+        """The mass_current method defines current total mass."""
+        ...
 
     def get_eaten(
         self,

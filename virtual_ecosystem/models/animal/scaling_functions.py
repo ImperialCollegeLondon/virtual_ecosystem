@@ -106,6 +106,8 @@ def prey_group_selection(
 
     TODO: Implement real pred-prey mass ratio.
 
+    TODO: Trophic expansion
+
     Args:
         diet_type: A value from the DietType enumeration.
         mass: The body-mass [kg] of an AnimalCohort
