@@ -39,7 +39,7 @@ class MyClass:
 
     Attributes are documented with docstrings underneath the attribute definition. Class
     attributes are grouped with instance attributes in the rendered documentation, so
-    should say explictly that they are a class attribute."""
+    should say explicitly that they are a class attribute."""
 
     def __init__(self, myarg: int, name: str) -> None:
         # Note there is no __init__ docstring.

@@ -146,7 +146,7 @@ def ve_run(
     if progress:
         print(f"* Models initialised: {', '.join(init_sequence.keys())}")
 
-    LOGGER.info("All models successfully intialised.")
+    LOGGER.info("All models successfully initialised.")
 
     # TODO - A model spin up might be needed here in future
 
@@ -160,7 +160,7 @@ def ve_run(
             out_path / config["core"]["data_output_options"]["out_initial_file_name"]
         )
         if progress:
-            print("* Saved model inital state")
+            print("* Saved model initial state")
 
     # If no path for saving continuous data is specified, fall back on using out_path
     if "out_folder_continuous" not in config["core"]["data_output_options"]:

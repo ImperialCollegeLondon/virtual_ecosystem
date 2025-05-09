@@ -107,7 +107,7 @@ def add_file_logger(logfile: Path) -> None:
         if isinstance(handler, logging.FileHandler) and handler.name == "ve_logfile":
             raise RuntimeError(f"Already logging to file: {handler.baseFilename}")
 
-    # Do not propogate errors up to parent handler - this avoids mirroring the log
+    # Do not propagate errors up to parent handler - this avoids mirroring the log
     # output through the StreamHandler associated with the root logger
     LOGGER.propagate = False
 
@@ -141,5 +141,5 @@ def remove_file_logger() -> None:
     ve_logfile.close()
     LOGGER.removeHandler(ve_logfile)
 
-    # Allow logger messages to propogate back down to the root StreamHandler
+    # Allow logger messages to propagate back down to the root StreamHandler
     LOGGER.propagate = True

@@ -44,7 +44,7 @@ from virtual_ecosystem.example_data.generation_scripts.common import cell_displa
 # # Project DEM to new mesh
 # dem_9x9 = dem.interp(x=new_x, y=new_y)  # type: ignore
 
-# # Reduce the data to reuired information for netcdf
+# # Reduce the data to required information for netcdf
 # dem_cleaned = (
 #     dem_9x9.drop_vars(
 #       ["band", "spatial_ref"]
@@ -66,7 +66,7 @@ dem_data = np.array(
 )
 dem_cleaned = DataArray(name="elevation", data=dem_data, dims=("x", "y"))
 
-# Change coordinates to match exmple data grid
+# Change coordinates to match example data grid
 dem_placed = dem_cleaned.assign_coords(
     {"x": cell_displacements, "y": cell_displacements}
 )

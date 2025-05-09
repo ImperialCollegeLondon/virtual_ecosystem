@@ -66,7 +66,7 @@ class AbioticConsts(ConstantsDataclass):
     transfer, typically extending up to about 10% of the height of the roughness
     elements or features on the surface. This layer is characterized by intense
     turbulence and rapid velocity changes due to surface irregularities.
-    Implentation and value taken from :cite:p:`maclean_microclimc_2021`."""
+    Implementation and value taken from :cite:p:`maclean_microclimc_2021`."""
 
     max_ratio_wind_to_friction_velocity: float = 0.3
     """Maximum ratio of wind velocity to friction velocity, dimensionless.

@@ -379,7 +379,7 @@ class Spat_CellId_Dim_Any(AxisValidator):
             A DataArray standardised to match the ``cell_id`` values in the ``Grid``
             object.
         """
-        # Cell ID is only a dimenson with a give length - assume the order correct and
+        # Cell ID is only a dimension with a give length - assume the order correct and
         # check the right number of cells found
         n_found = value["cell_id"].size
         if grid.n_cells != n_found:

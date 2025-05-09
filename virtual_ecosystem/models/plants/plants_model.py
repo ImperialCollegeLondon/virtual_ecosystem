@@ -161,7 +161,7 @@ class PlantsModel(
 
     * the canopy layer closure heights (``layer_heights``),
     * the canopy layer leaf area indices (``leaf_area_index``),
-    * the fraction of absorbed photosynthetically active radation in each canopy layer
+    * the fraction of absorbed photosynthetically active radiation in each canopy layer
         (``layer_fapar``), and
     * the whole canopy leaf mass within the layers (``layer_leaf_mass``)
 
@@ -193,7 +193,7 @@ class PlantsModel(
         """Plants init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
+        handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -406,7 +406,7 @@ class PlantsModel(
 
         * the layer closure heights (``layer_heights``),
         * the layer leaf area indices (``leaf_area_index``),
-        * the fraction of absorbed photosynthetically active radation in each layer
+        * the fraction of absorbed photosynthetically active radiation in each layer
           (``layer_fapar``), and
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
         * the proportion of shortwave radiation absorbed, including both by leaves in
@@ -547,7 +547,7 @@ class PlantsModel(
         :attr:`~virtual_ecosystem.models.plants.plants_model.PlantsModel.pmodel`
         attribute.
 
-        The GPP for each cohort is then estimated by mutiplying the cohort canopy area
+        The GPP for each cohort is then estimated by multiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
 
         .. TODO:
