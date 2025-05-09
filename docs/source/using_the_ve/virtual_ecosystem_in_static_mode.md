@@ -120,30 +120,34 @@ If you plot a hydrology variable, for example soil moisture of the topsoil
 layer over time, you can see that it behaves differently:
 
 ```{code-cell} ipython3
-# Choose the variable to plot
+# Choose the variable and cell_id to plot
 var_name = "soil moisture"
+cell_to_plot = 0
 
-plt.plot(
-    ve_example["time_index"],
-    ve_example[var_name],
-    label="ve example",
-    linestyle="-",
-    color="blue",
-)
-plt.plot(
-    experiment1["time_index"],
-    experiment1[var_name],
-    label="experiment 1",
-    linestyle="--",
-    color="red",
-)
+# Select the bottom two layers (soil layers)
+soil_layers = ve_example.layers[-2:]
+
+# Plot for each of the bottom two layers
+for layer in soil_layers.values:
+    plt.plot(
+        ve_example["time_index"],
+        ve_example[var_name].sel(cellid=cell_to_plot, layers=layer),
+        label=f"VE Example - Layer {layer}",
+        linestyle="-",
+        color="blue",
+    )
+    plt.plot(
+        experiment1["time_index"],
+        experiment1[var_name].sel(cellid=cell_to_plot, layers=layer),
+        label=f"Experiment 1 - Layer {layer}",
+        linestyle="--",
+        color="red",
+    )
 
 plt.xlabel("Time")
-plt.ylabel(var_name.capitalize())
-plt.title(f"{var_name.capitalize()} comparison")
+plt.ylabel(var_name)
+plt.title(f"{var_name} for cell {cell_to_plot} (soil layers)")
 plt.legend()
-plt.grid(True)
-plt.tight_layout()
 plt.show()
 ```
 
@@ -151,30 +155,34 @@ If you plot leaf area index, you see that it does not change in the hydrology_on
 experiment.
 
 ```{code-cell} ipython3
-# Choose the variable to plot
+# Choose the variable, cell_id to plot
 var_name = "leaf_area_index"
+cell_to_plot = 0
 
-plt.plot(
-    ve_example["time_index"],
-    ve_example[var_name],
-    label="ve example",
-    linestyle="-",
-    color="blue",
-)
-plt.plot(
-    experiment1["time_index"],
-    experiment1[var_name],
-    label="experiment1",
-    linestyle="--",
-    color="red",
-)
+# Select the canopy layers
+canopy_layers = ve_example.layers[1:4]
+
+# Plot for each of the canopy layers
+for layer in canopy_layers.values:
+    plt.plot(
+        ve_example["time_index"],
+        ve_example[var_name].sel(cellid=cell_to_plot, layers=layer),
+        label=f"VE Example - Layer {layer}",
+        linestyle="-",
+        color="blue",
+    )
+    plt.plot(
+        experiment1["time_index"],
+        experiment1[var_name].sel(cellid=cell_to_plot, layers=layer),
+        label=f"Experiment 1 - Layer {layer}",
+        linestyle="--",
+        color="red",
+    )
 
 plt.xlabel("Time")
-plt.ylabel(var_name.capitalize())
-plt.title(f"{var_name.capitalize()} comparison")
+plt.ylabel(var_name)
+plt.title(f"{var_name} for cell {cell_to_plot} (canopy layers)")
 plt.legend()
-plt.grid(True)
-plt.tight_layout()
 plt.show()
 ```
 
@@ -235,27 +243,33 @@ Now again plot the soil moisture over time:
 ```{code-cell} ipython3
 # Choose the variable to plot
 var_name = "soil moisture"
+# Choose the variable and cell_id to plot
+var_name = "soil moisture"
+cell_to_plot = 0  # Change as needed
 
-plt.plot(
-    experiment1["time_index"],
-    experiment1[var_name],
-    label="experiment 1",
-    linestyle="-",
-    color="blue",
-)
-plt.plot(
-    experiment2["time_index"],
-    experiment2[var_name],
-    label="experiment 2",
-    linestyle="--",
-    color="red",
-)
+# Select the bottom two layers (soil layers)
+soil_layers = ve_example.layers[-2:]
+
+# Plot for each of the bottom two layers
+for layer in soil_layers.values:
+    plt.plot(
+        experiment1["time_index"],
+        experiment1[var_name].sel(cellid=cell_to_plot, layers=layer),
+        label=f"Experiment 1- Layer {layer}",
+        linestyle="-",
+        color="blue",
+    )
+    plt.plot(
+        experiment2["time_index"],
+        experiment2[var_name].sel(cellid=cell_to_plot, layers=layer),
+        label=f"Experiment 2 - Layer {layer}",
+        linestyle="--",
+        color="red",
+    )
 
 plt.xlabel("Time")
-plt.ylabel(var_name.capitalize())
-plt.title(f"{var_name.capitalize()} comparison")
+plt.ylabel(var_name)
+plt.title(f"{var_name} for cell {cell_to_plot} (soil layers)")
 plt.legend()
-plt.grid(True)
-plt.tight_layout()
 plt.show()
 ```
