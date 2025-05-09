@@ -59,6 +59,7 @@ pytest-datadir = "^1.4.1"
 pytest-mock = "^3.8.1"
 
 [tool.poetry.group.devenv.dependencies]
+codespell = "^2.4.1"
 ipykernel = "^6.15.0"
 ipython = "^8.4.0"
 isort = ">=5.12,<7.0"
@@ -140,3 +141,7 @@ plugins = "numpy.typing.mypy_plugin"
 notebook_metadata_filter = "settings,mystnb,language_info,execution"
 # Also stop it from stripping cell metadata.
 cell_metadata_filter = "all,-trusted"
+
+[tool.codespell]
+ignore-words = ".codespellignore.txt"
+skip = "*.js,*.html,*.css,*.ipynb,*.bib,*.svg,poetry.lock,./docs/build"

@@ -151,7 +151,7 @@ class HydrologyModel(
         """Hydrology init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
+        handled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -221,7 +221,7 @@ class HydrologyModel(
         This function initializes variables that are required to run the
         first update().
 
-        For the within grid cell hydrology, soil moisture is initialised homogenously
+        For the within grid cell hydrology, soil moisture is initialised homogeneously
         for all soil layers and groundwater storage is set to the percentage of it's
         capacity that was defined in the model configuration. Soil and canopy
         aerodynamic resistances are set to an initial constant value. Some additional
@@ -767,7 +767,7 @@ class HydrologyModel(
                 np.stack(daily_lists[var], axis=0), axis=0
             )
 
-        # Save last state of groundwater stoage, [mm]
+        # Save last state of groundwater storage, [mm]
         soil_hydrology["groundwater_storage"] = DataArray(
             daily_lists["groundwater_storage"][day],
             dims=self.data["groundwater_storage"].dims,

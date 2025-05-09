@@ -77,7 +77,7 @@ dataset["rh2m"] = 100.0 * (
 # The standard output unit for total precipitation in ERA5-Land is meters which we need
 # to convert to millimeters. Further, the data represents mean daily accumulated
 # precipitation for the 9x9km grid box, so the value has to be scaled to monthly (here
-# 30 days). TODO handel daily inputs
+# 30 days). TODO handle daily inputs
 
 dataset["tp_mm"] = dataset["tp"] * 1000 * 30
 

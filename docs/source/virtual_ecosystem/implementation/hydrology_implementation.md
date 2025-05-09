@@ -200,7 +200,7 @@ $LAI$ is the total leaf area index.
 
 ### Infiltration
 
-Infiltration is currently handeled in a very simplistic way: the water that 'fits in the
+Infiltration is currently handled in a very simplistic way: the water that 'fits in the
 topsoil bucket' is added to the topsoil layer. We aim to implement a more realistic
 process that accounts for soil type specific infiltration capacities.
 
@@ -377,7 +377,7 @@ data["elevation"] = elevation
 ```
 
 The initialisation step of the hydrology model finds all the neighbours for each grid
-cell and determine which neigbour has the lowest elevation. The code below returns the
+cell and determine which neighbour has the lowest elevation. The code below returns the
 neighbours of the grid cell with `cell_id = 56` as an example.
 
 ```{code-cell} ipython3

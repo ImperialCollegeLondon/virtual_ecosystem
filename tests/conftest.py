@@ -557,7 +557,7 @@ def dummy_carbon_data(fixture_core_components):
     for var_name, var_values in data_values.items():
         data[var_name] = DataArray(var_values, dims=["cell_id"])
 
-    # The layer dependant data has to be handled separately - at present all of these
+    # The layer dependent data has to be handled separately - at present all of these
     # are defined only for the topsoil layer
     lyr_str = fixture_core_components.layer_structure
 
