@@ -124,18 +124,12 @@ class AbioticConsts(ConstantsDataclass):
     )
     """List of parameters to calculate the slope of saturated vapour pressure curve."""
 
-    water_to_air_mass_ratio: float = 0.622
-    """Ratio of the molecular mass of water vapour to dry air.
-    
-    This ratio is crucial because it determines how much water vapour contributes to
-    the total pressure in a given air parcel.
-
-    """
     dry_air_factor: float = 0.378
-    """Dry air factor, complement of water_to_air_mass_ratio.
+    """Dry air factor, dimensionless.
 
     This term accounts for the proportion of dry air when computing the partitioning
-    of total air pressure."""
+    of total air pressure. It is the complement of the
+    molecular_weight_ratio_water_to_dry_air in core.constants."""
 
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
