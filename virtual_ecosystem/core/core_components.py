@@ -254,8 +254,8 @@ class LayerStructure:
 
         In addition, the :attr:`.lowest_canopy_filled` attribute provides an array
         giving the vertical index of the lowest filled canopy layer in each grid cell.
-        It contains ``np.nan`` when there is  no canopy in a grid cell and is initalised
-        as an array of ``np.nan`` values.
+        It contains ``np.nan`` when there is  no canopy in a grid cell and is
+        initialised as an array of ``np.nan`` values.
 
     **Getting layer indices**:
 

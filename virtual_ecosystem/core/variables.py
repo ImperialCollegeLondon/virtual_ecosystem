@@ -216,7 +216,7 @@ def _format_variables_list(vars: dict[str, dict]) -> str:
         vars: The variables to format.
 
     Returns:
-        The flist of variables and atrributes formated as a sequence of tables
+        The flist of variables and attributes formatted as a sequence of tables
         in RST format.
     """
     out = []
@@ -244,7 +244,7 @@ def _collect_vars_populated_by_init(
 
     Args:
         models: The list of models that are initialising the variables.
-        check_unique_initialisation: Fail on duplicate intialisation.
+        check_unique_initialisation: Fail on duplicate initialisation.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
@@ -281,7 +281,7 @@ def _collect_vars_populated_by_first_update(
 
     Args:
         models: The list of models that are initialising the variables.
-        check_unique_initialisation: Fail on duplicate intialisation.
+        check_unique_initialisation: Fail on duplicate initialisation.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
