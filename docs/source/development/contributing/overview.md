@@ -529,7 +529,7 @@ in this document. There are two options to do this:
    using the `poetry` environment. This approach is used in the example commands below.
 1. You can use `poetry shell` to start a new shell that uses this environment: you can
    then run commands without needing `poetry run` and they should use the correct
-   enviroment. This is usually more convenient.
+   environment. This is usually more convenient.
 
 You should now be able to run the following command to see that `virtual_ecosystem` is
 installed and is showing the current version.
@@ -626,7 +626,7 @@ could be an Exception) is generated.
 Again, the `pytest` package and plugins are installed by `poetry`. See the [code testing
 page](./code_testing.md) for more details but you should be able to check the tests run
 using the following command. Be warned that the `mypy` steps can be very time consuming
-on the first run, but `pytest` does some cacheing that makes them quicker when they next
+on the first run, but `pytest` does some caching that makes them quicker when they next
 run.
 
 ```sh
@@ -674,7 +674,7 @@ page](./release_process.md) for details.
 ## Setup script example
 
 The scripts below bundle all the commands together to show the set up process, including
-using `pyenv` to mangage `python` versions, ending by running the unit tests. This sets
+using `pyenv` to manage `python` versions, ending by running the unit tests. This sets
 up everything you need, ready to start developing on the `virtual_ecosystem`.
 
 :::{admonition} Setup script

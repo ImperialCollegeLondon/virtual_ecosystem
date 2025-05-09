@@ -226,7 +226,7 @@ def calculate_matric_potential(
         \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}} - 1)^{(\frac{1}{n})}
 
     where :math:`\alpha` is the inverse of the air-entry , :math:`S_{e}` is the
-    effective saturation, n and m are van Genuchten parmeters.
+    effective saturation, n and m are van Genuchten parameters.
 
     Args:
         effective_saturation: Effective saturation
@@ -335,7 +335,7 @@ def update_groundwater_storage(
 
     output = {}
     # The water that percolates from the upper to the lower groundwater zone is defined
-    # as the minumum of `max_percolation_rate_uzlz` and the amount water stored in upper
+    # as the minimum of `max_percolation_rate_uzlz` and the amount water stored in upper
     # zone, here `groundwater_storage[0]`
     percolation_to_lower_zone = np.where(
         max_percolation_rate_uzlz < groundwater_storage[0],

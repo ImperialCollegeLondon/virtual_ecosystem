@@ -48,7 +48,7 @@ square_grid
 ## Hexagon grids
 
 A hexagon grid is defined in a very similar way - alternate rows of hexagons are offset
-to correctly tesselate the individual cells.
+to correctly tessellate the individual cells.
 
 ```{code-cell} ipython3
 hex_grid = Grid(grid_type="hexagon", cell_area=100, cell_nx=9, cell_ny=11)

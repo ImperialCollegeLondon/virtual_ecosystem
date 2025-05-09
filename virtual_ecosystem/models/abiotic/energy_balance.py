@@ -188,7 +188,7 @@ def initialise_canopy_and_soil_fluxes(
     canopy_temperature[layer_structure.index_filled_canopy] = initial_canopy_temperature
     output["canopy_temperature"] = canopy_temperature
 
-    # Initialise sensible heat flux with non-zero mimimum values and write in output
+    # Initialise sensible heat flux with non-zero minimum values and write in output
     sensible_heat_flux = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
@@ -199,10 +199,10 @@ def initialise_canopy_and_soil_fluxes(
     sensible_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["sensible_heat_flux"] = sensible_heat_flux
 
-    # Initialise latent heat flux with non-zero mimimum values and write in output
+    # Initialise latent heat flux with non-zero minimum values and write in output
     output["latent_heat_flux"] = sensible_heat_flux.copy().rename("latent_heat_flux")
 
-    # Initialise latent heat flux with non-zero mimimum values and write in output
+    # Initialise latent heat flux with non-zero minimum values and write in output
     ground_heat_flux = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,

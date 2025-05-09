@@ -270,7 +270,7 @@ def run_microclimate(
         # TODO cross-check with plant model, time step currently month to second
         # TODO also there is a split between evaporation and transpiration, needs to be
         # fixed in #493 - hydrology and evaporation
-        # also canopy_evaporation is 2D, chekc that this matches
+        # also canopy_evaporation is 2D, check that this matches
         # evapotranspiration = data['canopy_evaporation'] + data['transpiration']
         latent_heat_flux_canopy = (
             data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
