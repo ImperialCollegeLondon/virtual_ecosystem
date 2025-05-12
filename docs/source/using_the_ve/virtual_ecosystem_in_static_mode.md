@@ -86,7 +86,6 @@ ve_run --install-example /tmp/
 ve_run /tmp/ve_example/config \
   --outpath /tmp/ve_example/out/ \
   --logfile /tmp/ve_example/out/ve_example.log
-  --progress
 ```
 
 Once complete, we can set up the hydrology-only experiment (no changes to parameters or
