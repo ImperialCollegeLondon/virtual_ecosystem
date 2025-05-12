@@ -64,8 +64,33 @@ In this tutorial, we run two experiments:
 
 ### Experiment 1: Standard 'hydrology-only' simulation
 
-First we need to run the ve_example as a baseline. Once complete, we can set up the
-hydrology-only experiment (no changes to parameters or input data):
+First we need to run the ve_example as a baseline:
+
+```{code-cell} ipython3
+%%bash
+# Remove any existing VE data directory in the /tmp/ directory
+if [ -d /tmp/ve_example ]; then
+  rm -r /tmp/ve_example
+fi
+```
+
+```{code-cell} ipython3
+%%bash
+# Install the example data directory from the Virtual Ecosystem package
+ve_run --install-example /tmp/
+```
+
+```{code-cell} ipython3
+%%bash
+# Run the example
+ve_run /tmp/ve_example/config \
+  --outpath /tmp/ve_example/out/ \
+  --logfile /tmp/ve_example/out/ve_example.log
+  --progress
+```
+
+Once complete, we can set up the hydrology-only experiment (no changes to parameters or
+input data):
 
 1. Navigate to the `/ve_example/out/` folder.
 1. Copy the `ve_full_model_configuration.toml` file and rename it, for example to
@@ -111,7 +136,7 @@ updated configuration file:
 %%bash
 ve_run /tmp/ve_example/static_config/experiment1_config.toml \
   --outpath /tmp/ve_example/experiment1_out/ \
-  --logfile /tmp/ve_example/experiment1_out/ve_example.log
+  --logfile /tmp/ve_example/experiment1_out/experiment1.log
 ```
 
 #### Compare experiment 1 to default model
@@ -130,8 +155,8 @@ experiment1 = xarray.load_dataset(
 )
 ```
 
-If you plot a hydrology variable, for example soil moisture of the topsoil
-layer over time, you can see that it behaves differently:
+If you plot a hydrology variable, for example soil moisture of the two soil
+layers over time, you can see that it behaves differently:
 
 ```{code-cell} ipython3
 # Choose the variable and cell_id to plot
@@ -165,8 +190,8 @@ plt.legend()
 plt.show()
 ```
 
-If you plot air temperature, you see that it does not change in the hydrology_only
-experiment.
+If you plot air temperature in the top canopy layer, you see that it does not change in
+the hydrology_only experiment.
 
 ```{code-cell} ipython3
 # Choose the variable, cell_id to plot
@@ -248,7 +273,7 @@ updated configuration file and a clear output directory:
 %%bash
 ve_run /tmp/ve_example/static_config/experiment2_config.toml \
   --outpath /tmp/ve_example/experiment2_out/ \
-  --logfile /tmp/ve_example/experiment2_out/ve_example.log
+  --logfile /tmp/ve_example/experiment2_out/experiment2.log
 ```
 
 #### Compare results experiment 2

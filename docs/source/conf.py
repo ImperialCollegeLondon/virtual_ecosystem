@@ -247,3 +247,7 @@ html_sidebars = {
 hoverxref_roles = ["term"]
 
 hoverxref_role_types = {"term": "tooltip"}
+
+# Allow for longer runtime
+jupyter_execute_notebooks = "force"
+execution_timeout = 300
