@@ -201,7 +201,7 @@ class HydroConsts(ConstantsDataclass):
     
     The inverse of air entry potential describes how quickly soil water retention
     decreases with increasing soil suction, with higher values indicating coarser soils
-    that drain more readily. The value is taken from :cite:`gupta_global_2022`."""
+    that drain more readily. This value is still to be replaced by observed data."""
 
     m_to_kpa: float = 9.804
     """Factor to convert matric potential from m to kPa."""
