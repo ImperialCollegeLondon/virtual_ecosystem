@@ -3,9 +3,8 @@ dataclasses containing parameters required by the
 :mod:`~virtual_ecosystem.models.hydrology.hydrology_model`. These parameters are
 constants in that they should not be changed during a particular simulation.
 
-TODO Soil parameters vary strongly with soil type and will require literature search and
-sensitivity analysis to produce meaningful results. The current default values are just
-examples within reasonable bounds.
+Note that soil parameters vary strongly with soil type and can change over time. The
+current default values are average best estimates within reasonable bounds.
 """  # noqa: D205
 
 from dataclasses import dataclass
