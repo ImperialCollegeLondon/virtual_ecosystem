@@ -733,6 +733,9 @@ def dummy_climate_data(fixture_core_components):
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
 
+    data["canopy_evaporation"] = from_template()
+    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
+
     data["leaf_air_heat_conductivity"] = from_template()
     data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
 
@@ -858,6 +861,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [25.0, 25.0, 25.0, 25.0],
         [25.0, 25.0, np.nan, np.nan],
         [25.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
+        [10.0, 10.0, 10.0, 10.0],
+        [10.0, 10.0, np.nan, np.nan],
+        [10.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["leaf_air_heat_conductivity"][index_filled_canopy] = [

@@ -154,15 +154,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Evaporation"
-name = "evaporation"
-unit = "mm"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
-description = "Transpiration"
-name = "Transpiration"
+description = "Transpiration from canopy"
+name = "transpiration"
 unit = "mm"
 variable_type = "float"
 
