@@ -350,8 +350,8 @@ class HydrologyModel(
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
-        input precipitation is randomly distributed over 30 days and input soil
-        evaporation and canopy transpiration is divided by 30, and the return variables
+        input precipitation is randomly distributed over 30 days and input canopy
+        transpiration is divided by 30, and the return variables
         are monthly means or monthly accumulated values.
 
         Precipitation that reaches the surface is defined as incoming precipitation
