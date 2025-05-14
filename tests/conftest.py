@@ -748,8 +748,8 @@ def dummy_climate_data(fixture_core_components):
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
 
     # Hydrology
-    data["evapotranspiration"] = from_template()
-    data["evapotranspiration"][lyr_str.index_filled_canopy] = 20.0
+    data["transpiration"] = from_template()
+    data["transpiration"][lyr_str.index_filled_canopy] = 20.0
 
     data["soil_moisture"] = from_template()
     data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
@@ -885,7 +885,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     # Hydrology
-    dummy_climate_data["evapotranspiration"][index_filled_canopy] = [
+    dummy_climate_data["transpiration"][index_filled_canopy] = [
         [20.0, 20.0, 20.0, 20.0],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],
