@@ -114,7 +114,7 @@ def setup_hydrology_input_current_timestep(
     The hydrology model currently loops over 30 days per month. Atmospheric variables in
     the canopy and
     near the surface are selected here and kept constant for the whole month. Daily
-    timeseries of precipitation and evapotranspiration are generated from monthly
+    timeseries of precipitation and canopy transpiration are generated from monthly
     values in `data` to be used in the daily loop. States of other hydrology variables
     are selected and updated in the daily loop.
 
@@ -131,7 +131,7 @@ def setup_hydrology_input_current_timestep(
 
     * leaf_area_index_sum
     * current_precipitation
-    * current_evapotranspiration
+    * current_transpiration
     * current_soil_moisture
     * top_soil_moisture_capacity
     * top_soil_moisture_residual
@@ -178,8 +178,8 @@ def setup_hydrology_input_current_timestep(
     output["leaf_area_index_sum"] = np.nansum(
         data["leaf_area_index"].to_numpy(), axis=0
     )
-    output["current_evapotranspiration"] = np.nansum(
-        data["evapotranspiration"].to_numpy() / days, axis=0
+    output["current_transpiration"] = np.nansum(
+        data["transpiration"].to_numpy() / days, axis=0
     )
 
     # Select soil variables

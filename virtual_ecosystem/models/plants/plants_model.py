@@ -77,7 +77,7 @@ class PlantsModel(
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "shortwave_absorption",
-        "evapotranspiration",
+        "transpiration",
         "deadwood_production",
         "leaf_turnover",
         "fallen_non_propagule_c_mass",
@@ -107,7 +107,7 @@ class PlantsModel(
         "subcanopy_seedbank_biomass",
     ),
     vars_populated_by_first_update=(
-        "evapotranspiration",
+        "transpiration",
         "deadwood_production",
         "leaf_turnover",
         "fallen_non_propagule_c_mass",
@@ -552,9 +552,6 @@ class PlantsModel(
 
         .. TODO:
 
-            * This function populates evapotranspiration but the calculation is
-              currently only estimating _transpiration_
-              `#704 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/704>`_
             * Conversion of transpiration from `µmol m-2` to `mm m-2` currently ignores
               density changes with conditions:
               `#723 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/723>`_
@@ -576,9 +573,7 @@ class PlantsModel(
         )
 
         # Initialise transpiration array to collect per grid cell values
-        # NOTE - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        transpiration = self.layer_structure.from_template("evapotranspiration")
+        transpiration = self.layer_structure.from_template("transpiration")
 
         # Now calculate the gross primary productivity and transpiration across cohorts
         # and canopy layers over the time period.
@@ -647,11 +642,7 @@ class PlantsModel(
             ).sum(axis=1)
 
         # Pass values to data object
-        #
-        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        #
-        self.data["evapotranspiration"] = transpiration
+        self.data["transpiration"] = transpiration
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
@@ -1031,9 +1022,7 @@ class PlantsModel(
             new_seedbank - subcanopy_sprouting_mass
         )
 
-        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        self.data["evapotranspiration"] += subcanopy_transpiration
+        self.data["transpiration"] += subcanopy_transpiration
 
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.float64]
