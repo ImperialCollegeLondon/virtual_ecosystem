@@ -14,8 +14,13 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class AbioticConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic` model."""
 
-    leaf_emissivity: float = 0.97
-    """Leaf emissivity."""
+    leaf_emissivity: float = 0.98
+    """Leaf emissivity, unitless.
+    
+    Leaf emissivity is a measure of how efficiently a leaf emits thermal radiation
+    compared to a perfect blackbody, typically ranging from 0.95 to 0.99. Value for
+    tropical vegetation is taken from :cite:t:`ma_an_2019`.
+    """
 
     bulk_density_soil: float = 1.5
     """Bulk density of soil."""
