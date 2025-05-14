@@ -95,7 +95,7 @@ def test_calculate_matric_potential():
     )
 
     constants = HydroConsts()
-    expected_potentials = np.repeat(-69.963839, 3)
+    expected_potentials = np.repeat(-68.197326, 3)
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
         air_entry_potential_inverse=constants.air_entry_potential_inverse,

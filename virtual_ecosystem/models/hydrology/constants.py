@@ -16,7 +16,7 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class HydroConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `hydrology` model."""
 
-    soil_moisture_residual: float = 0.179
+    soil_moisture_residual: float = 0.175
     """Residual soil moisture, unitless.
 
     The residual soil moisture refers to the water that remains in the soil after
@@ -24,15 +24,16 @@ class HydroConsts(ConstantsDataclass):
     by soil particles and is not easily available for plant roots to extract. The value
     is soil specific, the format here is volumentic relative water content (unitless,
     between 0 and 1). Value for average tropical rainforest taken from
-    :cite:t:`gupta_global_2022`.
+    :cite:t:`hodnett_marked_2002`.
     """
 
-    soil_moisture_saturation: float = 0.57
+    soil_moisture_saturation: float = 0.51
     """Soil moisture saturation, unitless.
 
     Maximum amount of water a soil can hold when all its pores are completely filled
     with water — that is, the soil is fully saturated and contains no air in the pore
-    spaces. Value for average tropical rainforest taken from :cite:t:`gupta_global_2022`
+    spaces. Value for average tropical rainforest taken from
+    :cite:t:`hodnett_marked_2002`
     .
     """
 
@@ -57,12 +58,12 @@ class HydroConsts(ConstantsDataclass):
     soil type, permeability, slope, and water table depth.
     """
 
-    van_genuchten_nonlinearily_parameter: float = 1.347
+    van_genuchten_nonlinearily_parameter: float = 1.598
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
     :cite:p:`van_genuchten_closed-form_1980`. The value for average tropical rainforest
-    is taken from :cite:t:`gupta_global_2022`.
+    is taken from :cite:t:`hodnett_marked_2002`.
     """
 
     stream_flow_capacity: float = 5000.0
@@ -196,12 +197,13 @@ class HydroConsts(ConstantsDataclass):
     Dimensionless parameter used in van Genuchten-Mualem model to calculate unsaturated
     hydraulic conductivity."""
 
-    air_entry_potential_inverse: float = 0.1
+    air_entry_potential_inverse: float = 0.042
     """Inverse of air entry potential (parameter alpha in van Genuchten), [m-1].
     
     The inverse of air entry potential describes how quickly soil water retention
     decreases with increasing soil suction, with higher values indicating coarser soils
-    that drain more readily. This value is still to be replaced by observed data."""
+    that drain more readily. This value for tropical soils is taken from
+    :cite:t:`hodnett_marked_2002`."""
 
     m_to_kpa: float = 9.804
     """Factor to convert matric potential from m to kPa."""
