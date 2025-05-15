@@ -23,7 +23,6 @@ There are still a number of open TODOs related to process implementation and imp
 .. TODO:: units and module coordination
 
     * change temperature to Kelvin
-    * plants need to return transpiration only
 
 """  # noqa: D205
 
@@ -90,7 +89,7 @@ class HydrologyModel(
         "leaf_area_index",
         "layer_heights",
         "soil_moisture",
-        "evapotranspiration",  # TODO this needs to be transpiration
+        "transpiration",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "density_air",
@@ -351,9 +350,9 @@ class HydrologyModel(
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
-        input precipitation is randomly distributed over 30 days and input
-        evapotranspiration is divided by 30, and the return variables are monthly means
-        or monthly accumulated values.
+        input precipitation is randomly distributed over 30 days and input canopy
+        transpiration is divided by 30, and the return variables
+        are monthly means or monthly accumulated values.
 
         Precipitation that reaches the surface is defined as incoming precipitation
         minus canopy interception, which is estimated using a stroage-based approach,
@@ -411,7 +410,7 @@ class HydrologyModel(
         * leaf area index, [m m-1]
         * layer heights, [m]
         * Soil moisture (previous time step), [mm]
-        * evapotranspiration (current time step), [mm]
+        * transpiration (current time step), [mm]
         * accumulated surface runoff (previous time step), [mm]
         * accumulated subsurface flow (previous time step), [mm]
         * aerodynamic_resistance_canopy, [s m-1]
@@ -637,11 +636,10 @@ class HydrologyModel(
 
             # Update soil moisture by +/- vertical flow to each layer and remove root
             # water uptake by plants (transpiration), [mm]
-            # TODO combined input from evaporation and transpiration
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
                 vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
-                evapotranspiration=hydro_input["current_evapotranspiration"],  # mm
+                transpiration=hydro_input["current_transpiration"],  # mm
                 soil_moisture_capacity=(  # mm
                     self.core_constants.soil_moisture_capacity
                     * self.soil_layer_thickness_mm

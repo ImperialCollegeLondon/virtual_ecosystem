@@ -269,13 +269,10 @@ def run_microclimate(
         # The current implementation converts outputs from plant and hydrology model to
         # ensure energy conservation between modules for now.
         # TODO cross-check with plant model, time step currently month to second
-        # TODO also there is a split between evaporation and transpiration, needs to be
-        # fixed in #493 - hydrology and evaporation
-        # also canopy_evaporation is 2D, check that this matches
-        # evapotranspiration = data['canopy_evaporation'] + data['transpiration']
+
+        evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
         latent_heat_flux_canopy = (
-            data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
-            / 2.628e6
+            evapotranspiration[layer_structure.index_filled_canopy].to_numpy() / 2.628e6
         ) * latent_heat_vapourisation[1:-1]
 
         # Latent heat flux topsoil, [W m-2]
@@ -357,7 +354,7 @@ def run_microclimate(
 
         # TODO dimensions -  Update atmospheric humidity/VPD
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
-            evapotranspiration=data["evapotranspiration"][
+            evapotranspiration=evapotranspiration[
                 layer_structure.index_filled_canopy
             ].to_numpy(),
             soil_evaporation=data["soil_evaporation"].to_numpy(),

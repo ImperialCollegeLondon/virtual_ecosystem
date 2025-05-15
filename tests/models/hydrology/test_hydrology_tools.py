@@ -70,7 +70,7 @@ def test_setup_hydrology_input_current_timestep(
         "surface_pressure",
         "surface_wind_speed",
         "leaf_area_index_sum",
-        "current_evapotranspiration",
+        "current_transpiration",
         "top_soil_moisture_capacity",
         "top_soil_moisture_residual",
         "previous_accumulated_runoff",

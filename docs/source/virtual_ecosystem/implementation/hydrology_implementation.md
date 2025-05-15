@@ -48,7 +48,7 @@ enters and leaves the plant model.
 ```{note}
 Many of the underlying processes are problematic at a monthly timestep, which is
 currently the only supported update interval. As a short-term work around, the input
-precipitation is randomly distributed over 30 days and input evapotranspiration is
+precipitation is randomly distributed over 30 days and input canopy transpiration is
 divided by 30, and the return variables are monthly means or monthly accumulated values.
 ```
 
@@ -273,7 +273,7 @@ model and this can only be treated as a very rough approximation!
 
 Soil moisture is updated for each layer by removing the vertical flow
 of the current layer and adding it to the layer below. The implementation is based
-on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
+on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
 removed from the second soil layer.
 
 ### Subsurface flow and groundwater storage
