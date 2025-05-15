@@ -1028,7 +1028,7 @@ class AnimalModel(
         * ``DietType.HERBIVORE`` → live plant resources
         * ``DietType.CARNIVORE`` → live prey cohorts
         * ``DietType.DETRITUS``  → plant-litter pools (detritivory)
-        * ``DietType.CARCASS``   → carcass pools   (scavenging)
+        * ``DietType.CARCASSES``   → carcass pools   (scavenging)
         * ``DietType.WASTE``     → excrement pools (coprophagy)
 
         Deposition targets (``excrement_pools`` for faeces and
@@ -1068,7 +1068,7 @@ class AnimalModel(
 
             # Carcass scavenging
             # cohort.get_carcass_pools returns list[CarcassPool];  tell mypy
-            if diet & DietType.CARCASS:
+            if diet & DietType.CARCASSES:
                 scavenge_carcass_pools = cast(
                     list[Resource], cohort.get_carcass_pools(self.carcass_pools)
                 )

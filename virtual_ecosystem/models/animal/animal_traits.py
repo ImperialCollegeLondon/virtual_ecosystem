@@ -24,11 +24,11 @@ class DietType(Flag):
     FUNGUS = auto()
     SEEDS = auto()
     BLOOD = auto()
-    INVERTS = auto()
+    INVERTEBRATES = auto()
     NECTAR = auto()
     FISH = auto()
-    CARCASS = auto()
-    VERTS = auto()
+    CARCASSES = auto()
+    VERTEBRATES = auto()
     WASTE = auto()
     WOOD = auto()
     NONFEEDING = auto()
@@ -45,7 +45,7 @@ class DietType(Flag):
         | WOOD
         | NONFEEDING  # not strictly correct
     )
-    CARNIVORE = BLOOD | INVERTS | FISH | VERTS | CARCASS | WASTE
+    CARNIVORE = BLOOD | INVERTEBRATES | FISH | VERTEBRATES | CARCASSES | WASTE
     OMNIVORE = HERBIVORE | CARNIVORE
 
     @classmethod
@@ -65,9 +65,12 @@ class DietType(Flag):
         """
 
         parts = diet_string.lower().split("_")
-        flags = getattr(cls, parts[0].upper())
-        for part in parts[1:]:
-            flags |= getattr(cls, part.upper())
+        try:
+            flags = getattr(cls, parts[0].upper())
+            for part in parts[1:]:
+                flags |= getattr(cls, part.upper())
+        except AttributeError as e:
+            raise ValueError(f"Invalid diet term in string: {diet_string}") from e
         return flags
 
     def coarse_category(self) -> "DietType":
