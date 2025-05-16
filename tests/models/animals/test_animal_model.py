@@ -327,7 +327,7 @@ class TestAnimalModel:
                 )
 
     @pytest.mark.parametrize(
-        "density_values, expected_mass, c_n_ratio, c_p_ratio, expect_error",
+        "density_key, expected_key, c_n_key, c_p_key, expect_error",
         [
             ("zeros", "zeros", "ones", "ones", False),
             ("small", "small", "tens", "twenties", False),
@@ -339,19 +339,18 @@ class TestAnimalModel:
     def test_populate_litter_pools(
         self,
         animal_model_instance,
-        density_values,
-        expected_mass,
-        c_n_ratio,
-        c_p_ratio,
+        density_key,
+        expected_key,
+        c_n_key,
+        c_p_key,
         expect_error,
     ):
-        """Test litter pool population."""
+        """Test litter pool population with full structure-aware validation."""
         import numpy as np
         import xarray as xr
 
         from virtual_ecosystem.models.animal.decay import LitterPool
 
-        # Define values based on test case
         value_map = {
             "zeros": np.zeros(9),
             "small": np.full(9, 1e-10),
@@ -366,83 +365,46 @@ class TestAnimalModel:
             "huge": np.full(9, 1e6),
         }
 
-        density_values = xr.DataArray(value_map[density_values], dims=["cell_id"])
+        cell_area = animal_model_instance.data.grid.cell_area
+        density_values = xr.DataArray(value_map[density_key], dims=["cell_id"])
         expected_mass = xr.DataArray(
-            value_map[expected_mass] * animal_model_instance.data.grid.cell_area,
-            dims=["cell_id"],
+            value_map[expected_key] * cell_area, dims=["cell_id"]
         )
-        c_n_ratio = xr.DataArray(value_map[c_n_ratio], dims=["cell_id"])
-        c_p_ratio = xr.DataArray(value_map[c_p_ratio], dims=["cell_id"])
+        c_n_ratio = xr.DataArray(value_map[c_n_key], dims=["cell_id"])
+        c_p_ratio = xr.DataArray(value_map[c_p_key], dims=["cell_id"])
 
-        # Assign mock data to model
-        for pool_name in [
+        pool_names = [
             "above_metabolic",
             "above_structural",
             "woody",
             "below_metabolic",
             "below_structural",
-        ]:
-            animal_model_instance.data[f"litter_pool_{pool_name}"] = density_values
-            animal_model_instance.data[f"c_n_ratio_{pool_name}"] = c_n_ratio
-            animal_model_instance.data[f"c_p_ratio_{pool_name}"] = c_p_ratio
+        ]
+        for name in pool_names:
+            animal_model_instance.data[f"litter_pool_{name}"] = density_values
+            animal_model_instance.data[f"c_n_ratio_{name}"] = c_n_ratio
+            animal_model_instance.data[f"c_p_ratio_{name}"] = c_p_ratio
 
-        # Populate litter pools
         if expect_error:
             with pytest.raises(ValueError):
-                litter_pools = animal_model_instance.populate_litter_pools()
+                animal_model_instance.populate_litter_pools()
         else:
             litter_pools = animal_model_instance.populate_litter_pools()
+            expected_pool_set = set(pool_names)
 
-            expected_pools = [
-                "above_metabolic",
-                "above_structural",
-                "woody",
-                "below_metabolic",
-                "below_structural",
-            ]
-            assert set(litter_pools.keys()) == set(expected_pools), (
-                "Not all litter pools were initialized."
-            )
+            for cell_id, pool_dict in litter_pools.items():
+                assert set(pool_dict.keys()) == expected_pool_set
+                for pool_name, pool in pool_dict.items():
+                    assert isinstance(pool, LitterPool)
+                    assert pool.pool_name == pool_name
 
-            # Validate each pool
-            for pool_name in expected_pools:
-                assert isinstance(litter_pools[pool_name], LitterPool), (
-                    f"{pool_name} is not a LitterPool instance."
-                )
-                assert litter_pools[pool_name].pool_name == pool_name, (
-                    f"{pool_name} pool name mismatch."
-                )
+                    expected_carbon = expected_mass.values[cell_id]
+                    expected_n = expected_carbon / c_n_ratio.values[cell_id]
+                    expected_p = expected_carbon / c_p_ratio.values[cell_id]
 
-                # Ensure mass_current only tracks carbon and is correctly computed
-                assert np.allclose(
-                    litter_pools[pool_name].mass_current.values,
-                    expected_mass.values,
-                    rtol=1e-5,
-                    atol=1e-8,
-                ), f"{pool_name} mass_current mismatch."
-
-                # Extract nitrogen and phosphorus from mass_cnp list
-                actual_nitrogen = np.array(
-                    [cnp.nitrogen for cnp in litter_pools[pool_name].mass_cnp]
-                )
-                actual_phosphorus = np.array(
-                    [cnp.phosphorus for cnp in litter_pools[pool_name].mass_cnp]
-                )
-
-                # Ensure nitrogen and phosphorus are calculated correctly
-                assert np.allclose(
-                    actual_nitrogen,
-                    (expected_mass / c_n_ratio).values,
-                    rtol=1e-5,
-                    atol=1e-8,
-                ), f"{pool_name} nitrogen mass is incorrect."
-
-                assert np.allclose(
-                    actual_phosphorus,
-                    (expected_mass / c_p_ratio).values,
-                    rtol=1e-5,
-                    atol=1e-8,
-                ), f"{pool_name} phosphorus mass is incorrect."
+                    assert np.isclose(pool.mass_current, expected_carbon)
+                    assert np.isclose(pool.mass_cnp.nitrogen, expected_n)
+                    assert np.isclose(pool.mass_cnp.phosphorus, expected_p)
 
     def test_calculate_total_litter_consumption(
         self,
@@ -454,9 +416,12 @@ class TestAnimalModel:
         """Test calculation of total consumption of litter by animals is correct."""
         from copy import deepcopy
 
+        import numpy as np
+
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
         from virtual_ecosystem.models.animal.decay import LitterPool
 
+        # Create AnimalModel instance with test data
         model = AnimalModel(
             data=litter_data_instance,
             core_components=fixture_core_components,
@@ -464,8 +429,8 @@ class TestAnimalModel:
             model_constants=constants_instance,
         )
 
+        # Copy data and simulate biomass loss from each litter pool
         new_data = deepcopy(litter_data_instance)
-        # Add new values for each pool
         new_data["litter_pool_above_metabolic"] = (
             litter_data_instance["litter_pool_above_metabolic"] - 0.03
         )
@@ -480,7 +445,6 @@ class TestAnimalModel:
             litter_data_instance["litter_pool_below_structural"] - 0.01
         )
 
-        # Make an updated set of litter pools
         pool_names = [
             "above_metabolic",
             "above_structural",
@@ -488,40 +452,42 @@ class TestAnimalModel:
             "below_metabolic",
             "below_structural",
         ]
+
+        cell_ids = fixture_core_components.grid.cell_id
+        cell_area = fixture_core_components.grid.cell_area
+
+        # Construct the nested dict: cell_id → pool_name → LitterPool
         new_litter_pools = {
-            pool_name: LitterPool(
-                pool_name=pool_name,
-                data=new_data,
-                cell_area=fixture_core_components.grid.cell_area,
-            )
-            for pool_name in pool_names
+            cid: {
+                pool_name: LitterPool(
+                    pool_name=pool_name,
+                    cell_id=cid,
+                    data=new_data,
+                    cell_area=cell_area,
+                )
+                for pool_name in pool_names
+            }
+            for cid in cell_ids
         }
 
-        # Calculate litter consumption
+        # Run consumption calculation
         consumption = model.calculate_total_litter_consumption(
             litter_pools=new_litter_pools
         )
 
-        assert np.allclose(
-            consumption["litter_consumption_above_metabolic"],
-            0.03 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_above_structural"],
-            0.04 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_woody"],
-            1.2 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_below_metabolic"],
-            0.06 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_below_structural"],
-            0.01 * np.ones(4),
-        )
+        # Validate consumption matches expected loss per cell
+        for pool_name, expected_loss in [
+            ("above_metabolic", 0.03),
+            ("above_structural", 0.04),
+            ("woody", 1.2),
+            ("below_metabolic", 0.06),
+            ("below_structural", 0.01),
+        ]:
+            expected = expected_loss * np.ones(len(cell_ids))
+            actual = consumption[f"litter_consumption_{pool_name}"].values
+            assert np.allclose(actual, expected), (
+                f"Mismatch in {pool_name} consumption."
+            )
 
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""
@@ -550,6 +516,7 @@ class TestAnimalModel:
 
     def test_initialize_communities(
         self,
+        mocker,
         animal_data_for_model_instance,
         fixture_core_components,
         functional_group_list_instance,
@@ -559,6 +526,11 @@ class TestAnimalModel:
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_litter_pools",
+            return_value={},
+        )
 
         # Initialize the model
         model = AnimalModel(
@@ -1560,11 +1532,14 @@ class TestAnimalModel:
             mock_get_excrement_pools_herbivore,
         )
         mocker.patch.object(
+            herbivore_cohort_instance, "get_litter_pools", mocker.Mock(return_value=[])
+        )
+        mocker.patch.object(
             herbivore_cohort_instance, "forage_cohort", mock_forage_herbivore
         )
 
         # Set up predator cohort
-        predator_cohort_instance.functional_group.diet = DietType.CARNIVORE
+        predator_cohort_instance.functional_group.diet = DietType.VERTEBRATES
         mocker.patch.object(
             predator_cohort_instance, "get_plant_resources", mocker.Mock()
         )  # Should not be called for predators
@@ -1595,8 +1570,11 @@ class TestAnimalModel:
         mock_forage_herbivore.assert_called_once_with(
             plant_list=["plant_resources"],
             animal_list=[],
+            litter_pools=[],
             excrement_pools=["excrement_pools_herbivore"],
-            carcass_pools=animal_model_instance.carcass_pools,
+            carcass_pool_map=animal_model_instance.carcass_pools,
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
         )
 
@@ -1606,8 +1584,11 @@ class TestAnimalModel:
         mock_forage_predator.assert_called_once_with(
             plant_list=[],
             animal_list=["prey"],
+            litter_pools=[],
             excrement_pools=["excrement_pools_predator"],
-            carcass_pools=animal_model_instance.carcass_pools,
+            carcass_pool_map=animal_model_instance.carcass_pools,
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
         )
 

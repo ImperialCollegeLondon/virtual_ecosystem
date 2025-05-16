@@ -218,7 +218,7 @@ def animal_fixture_config():
         adult_mass = 10.0
         [[animal.functional_groups]]
         name = "carnivorous_insect"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "carnivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -233,7 +233,7 @@ def animal_fixture_config():
         adult_mass = 0.01
         [[animal.functional_groups]]
         name = "herbivorous_insect"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -248,7 +248,7 @@ def animal_fixture_config():
         adult_mass = 0.005
         [[animal.functional_groups]]
         name = "butterfly"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -263,7 +263,7 @@ def animal_fixture_config():
         adult_mass = 0.005
         [[animal.functional_groups]]
         name = "caterpillar"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -308,7 +308,7 @@ def animal_fixture_config():
         adult_mass = 0.2
         [[animal.functional_groups]]
         name = "earthworm"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
