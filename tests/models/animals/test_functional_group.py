@@ -57,7 +57,7 @@ class TestFunctionalGroup:
             ),
             (
                 "herbivorous_insect_iteroparous",
-                "insect",
+                "invertebrate",
                 "herbivore",
                 "ectothermic",
                 "terrestrial",
@@ -131,7 +131,7 @@ class TestFunctionalGroup:
         )
         assert func_group.name == name
         assert func_group.taxa == TaxaType(taxa)
-        assert func_group.diet == DietType(diet)
+        assert func_group.diet == DietType.parse(diet)
         assert func_group.metabolic_type == MetabolicType(metabolic_type)
         assert func_group.reproductive_environment == ReproductiveEnvironment(
             reproductive_environment
@@ -235,7 +235,7 @@ class TestFunctionalGroup:
         (
             4,
             "carnivorous_insect_iteroparous",
-            "insect",
+            "invertebrate",
             "carnivore",
             "ectothermic",
             "terrestrial",
@@ -252,7 +252,7 @@ class TestFunctionalGroup:
         (
             5,
             "herbivorous_insect_iteroparous",
-            "insect",
+            "invertebrate",
             "herbivore",
             "ectothermic",
             "terrestrial",
@@ -269,7 +269,7 @@ class TestFunctionalGroup:
         (
             6,
             "carnivorous_insect_semelparous",
-            "insect",
+            "invertebrate",
             "carnivore",
             "ectothermic",
             "terrestrial",
@@ -286,7 +286,7 @@ class TestFunctionalGroup:
         (
             7,
             "herbivorous_insect_semelparous",
-            "insect",
+            "invertebrate",
             "herbivore",
             "ectothermic",
             "terrestrial",
@@ -303,7 +303,7 @@ class TestFunctionalGroup:
         (
             8,
             "butterfly",
-            "insect",
+            "invertebrate",
             "herbivore",
             "ectothermic",
             "terrestrial",
@@ -320,7 +320,7 @@ class TestFunctionalGroup:
         (
             9,
             "caterpillar",
-            "insect",
+            "invertebrate",
             "herbivore",
             "ectothermic",
             "terrestrial",
@@ -371,7 +371,7 @@ class TestFunctionalGroup:
         (
             12,
             "earthworm",
-            "insect",
+            "invertebrate",
             "herbivore",
             "ectothermic",
             "terrestrial",
@@ -432,7 +432,7 @@ def test_import_functional_groups(
     assert isinstance(fg, FunctionalGroup)
     assert fg.name == name
     assert fg.taxa == TaxaType(taxa)
-    assert fg.diet == DietType(diet)
+    assert fg.diet == DietType.parse(diet)
     assert fg.metabolic_type == MetabolicType(metabolic_type)
     assert fg.reproductive_environment == ReproductiveEnvironment(
         reproductive_environment

@@ -63,7 +63,7 @@ class FunctionalGroup:
         """The name of the functional group."""
         self.taxa = TaxaType(taxa)
         """The taxa of the functional group."""
-        self.diet = DietType(diet)
+        self.diet = DietType.parse(diet)
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""

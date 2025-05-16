@@ -1707,25 +1707,23 @@ class TestAnimalCohort:
             )
 
     @pytest.mark.parametrize(
-        "cohort_instance, diet_type, plant_list, animal_list, expected_consumed_mass,"
+        "cohort_instance, diet_type, plant_list, animal_list, expected_nutrient_gain,"
         "delta_mass_mock",
         [
-            # ✅ Test Herbivore Case
             (
                 "herbivore_cohort_instance",
                 "HERBIVORE",
                 "plant_list_instance",
                 [],
-                100,
+                {"carbon": 60.0, "nitrogen": 30.0, "phosphorus": 10.0},
                 "delta_mass_herbivory",
             ),
-            # ✅ Test Carnivore Case
             (
                 "predator_cohort_instance",
                 "CARNIVORE",
                 [],
                 "animal_list_instance",
-                200,
+                {"carbon": 120.0, "nitrogen": 60.0, "phosphorus": 20.0},
                 "delta_mass_predation",
             ),
         ],
@@ -1738,7 +1736,7 @@ class TestAnimalCohort:
         diet_type,
         plant_list,
         animal_list,
-        expected_consumed_mass,
+        expected_nutrient_gain,
         delta_mass_mock,
         plant_list_instance,
         animal_list_instance,
@@ -1746,46 +1744,44 @@ class TestAnimalCohort:
         carcass_pools_instance,
         herbivory_waste_pool_instance,
     ):
-        """Test `forage_cohort`."""
-
+        """Test `forage_cohort` for correct resource routing and assimilation calls."""
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
-        # Get the actual cohort instance from the fixture
         cohort = request.getfixturevalue(cohort_instance)
-
-        # Set the functional group diet type
         cohort.functional_group.diet = getattr(DietType, diet_type)
 
-        # Resolve `plant_list` and `animal_list`
         if isinstance(plant_list, str):
             plant_list = request.getfixturevalue(plant_list)
         if isinstance(animal_list, str):
             animal_list = request.getfixturevalue(animal_list)
 
-        # Set up the herbivory waste pools
         herbivory_waste_pools = {
             plant.cell_id: herbivory_waste_pool_instance
             for plant in plant_list_instance
         }
 
-        # Mock `delta_mass_herbivory` or `delta_mass_predation`
         mock_delta_mass = mocker.patch.object(
-            cohort, delta_mass_mock, return_value=expected_consumed_mass
+            cohort, delta_mass_mock, return_value=expected_nutrient_gain
         )
-
-        # Mock `eat` method
         mock_eat = mocker.patch.object(cohort, "eat")
 
-        # Call `forage_cohort`
+        # Dummy values for other inputs
+        empty_list = []
+
         cohort.forage_cohort(
-            plant_list,
-            animal_list,
-            excrement_pool_instance,
-            carcass_pools_instance,
-            herbivory_waste_pools if diet_type == "HERBIVORE" else {},
+            plant_list=plant_list,
+            animal_list=animal_list,
+            litter_pools=empty_list,
+            excrement_pools=excrement_pool_instance,
+            carcass_pool_map=carcass_pools_instance,
+            scavenge_carcass_pools=empty_list,
+            scavenge_excrement_pools=empty_list,
+            herbivory_waste_pools=herbivory_waste_pools
+            if diet_type == "HERBIVORE"
+            else {},
         )
 
-        # Ensure the correct `delta_mass_*` method was called
+        # Assert correct foraging call
         if diet_type == "HERBIVORE":
             mock_delta_mass.assert_called_once_with(
                 plant_list_instance, herbivory_waste_pools
@@ -1795,10 +1791,68 @@ class TestAnimalCohort:
                 animal_list_instance, carcass_pools_instance
             )
 
-        # Ensure `eat` was called with the correct arguments
+        # Assert assimilation
         mock_eat.assert_called_once_with(
-            expected_consumed_mass, excrement_pool_instance
+            expected_nutrient_gain, excrement_pool_instance
         )
+
+    def test_forage_cohort_skips_when_no_individuals(
+        self, mocker, herbivore_cohort_instance
+    ):
+        """Ensure cohort with 0 individuals does not forage."""
+        cohort = herbivore_cohort_instance
+        cohort.individuals = 0
+        mocker.patch.object(
+            type(cohort),
+            "mass_current",
+            new_callable=mocker.PropertyMock,
+            return_value=0.0,
+        )
+        mocker.patch.object(cohort, "delta_mass_herbivory")
+        mock_eat = mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            plant_list=[],
+            animal_list=[],
+            litter_pools=[],
+            excrement_pools=[],
+            carcass_pool_map={},
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
+            herbivory_waste_pools={},
+        )
+
+        mock_eat.assert_not_called()
+
+    def test_forage_cohort_skips_when_no_mass(self, mocker, herbivore_cohort_instance):
+        """Ensure cohort with 0 mass does not forage."""
+        cohort = herbivore_cohort_instance
+        cohort.individuals = 5
+
+        # Patch the mass_current property to return 0.0
+        mocker.patch.object(
+            type(cohort),
+            "mass_current",
+            new_callable=mocker.PropertyMock,
+            return_value=0.0,
+        )
+
+        mock_delta = mocker.patch.object(cohort, "delta_mass_herbivory")
+        mock_eat = mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            plant_list=[],
+            animal_list=[],
+            litter_pools=[],
+            excrement_pools=[],
+            carcass_pool_map={},
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
+            herbivory_waste_pools={},
+        )
+
+        mock_delta.assert_not_called()
+        mock_eat.assert_not_called()
 
     @pytest.mark.parametrize(
         "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
