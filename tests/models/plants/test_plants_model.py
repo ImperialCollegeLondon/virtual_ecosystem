@@ -223,9 +223,9 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
         cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
     }
 
-    # Check the evapotranspiration shape
+    # Check the transpiration shape
 
-    assert fxt_plants_model.data["evapotranspiration"].shape == (
+    assert fxt_plants_model.data["transpiration"].shape == (
         fxt_plants_model.layer_structure.n_layers,
         fxt_plants_model.grid.n_cells,
     )
