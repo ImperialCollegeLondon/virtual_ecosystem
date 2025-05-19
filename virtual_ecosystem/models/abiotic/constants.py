@@ -22,6 +22,14 @@ class AbioticConsts(ConstantsDataclass):
     tropical vegetation is taken from :cite:t:`ma_an_2019`.
     """
 
+    leaf_albedo: float = 0.15
+    """Leaf albedo, unitless.
+    
+    Leaf albedo is the fraction of incoming solar radiation that a leaf reflects,
+    typically ranging from 0.12 to 0.18 in tropical forests due to their dark, broadleaf
+    surfaces. Value here is taken from :cite:t:`su_aerodynamic_2021`.
+    """
+
     bulk_density_soil: float = 1.175 * 1000
     """Bulk density of soil, [kg m-3].
     
