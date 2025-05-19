@@ -1405,6 +1405,91 @@ class TestAnimalCohort:
 
         assert theta == expected_theta
 
+    def test_calculate_consumed_mass_predation_not_in_list(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test behavior when target cohort is not present in the prey list."""
+        from unittest.mock import Mock
+
+        predator = predator_cohort_instance
+        prey = Mock()
+        prey.mass_current = 10.0
+        prey.individuals = 5
+
+        prey_list = []  # Empty list, so target is not present
+
+        mocker.patch.object(predator, "F_i_j_individual", return_value=0.05)
+
+        result = predator.calculate_consumed_mass_predation(prey_list, prey)
+
+        # No error expected — default formula still works, prey list isn't validated
+        assert isinstance(result, float)
+        assert result >= 0.0
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, individuals, expected_behavior",
+        [
+            (0.05, 10.0, 5, "formula"),  # normal case
+            (0.0, 10.0, 5, 0.0),  # F = 0
+            (1e6, 10.0, 5, "max"),  # very high F
+            (0.05, 10.0, 0, 0.0),  # zero individuals
+            (0.05, 0.0, 5, 0.0),  # zero mass
+        ],
+    )
+    def test_calculate_consumed_mass_predation_cases(
+        self,
+        predator_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        individuals,
+        expected_behavior,
+    ):
+        """Parametrized test for consumed mass predation with mocked prey."""
+        from math import exp, isclose
+
+        predator = predator_cohort_instance
+
+        # Use mocker to create a fake prey cohort
+        prey = mocker.Mock()
+        prey.mass_current = mass_current
+        prey.individuals = individuals
+
+        prey_list = [prey]
+
+        # Patch predation rate method to return fixed value
+        mocker.patch.object(predator, "F_i_j_individual", return_value=F_value)
+
+        # Run method under test
+        result = predator.calculate_consumed_mass_predation(prey_list, prey)
+
+        # Expected outcome logic
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = (
+                mass_current
+                * individuals
+                * (
+                    1
+                    - exp(
+                        -(
+                            F_value
+                            * delta_t
+                            * predator.constants.tau_f
+                            * predator.constants.sigma_f_t
+                        )
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current * individuals
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
+
     @pytest.mark.parametrize(
         "animal_list, carcass_pools, should_raise_error, expected_error_message,"
         "mock_consumed_mass, mock_actual_cnp, expected_total",
@@ -1543,6 +1628,63 @@ class TestAnimalCohort:
                 prey.get_eaten.assert_called_once_with(
                     mock_consumed_mass, herbivore_cohort_instance, carcass_pools
                 )
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # F very high
+            (0.05, 0.0, 0.0),  # zero mass
+        ],
+    )
+    def test_calculate_consumed_mass_herbivory_cases(
+        self,
+        herbivore_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for herbivory mass consumption with mocked plant."""
+        from math import exp, isclose
+
+        herbivore = herbivore_cohort_instance
+
+        # Create a pure mock plant resource
+        plant = mocker.Mock()
+        plant.mass_current = mass_current
+
+        plant_list = [plant]
+
+        # Patch F_i_k to return controlled F_value
+        mocker.patch.object(herbivore, "F_i_k", return_value=F_value)
+
+        # Run method under test
+        result = herbivore.calculate_consumed_mass_herbivory(plant_list, plant)
+
+        # Determine expected outcome
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * herbivore.constants.tau_f
+                        * herbivore.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
 
     @pytest.mark.parametrize(
         "num_plants, mock_consumed_mass, mock_herbivore_gain_cnp,"
@@ -1705,6 +1847,181 @@ class TestAnimalCohort:
             herbivore_cohort_instance.delta_mass_herbivory(
                 plant_list, herbivory_waste_pools
             )
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # very high F
+            (0.05, 0.0, 0.0),  # zero mass
+            (0.05, -5.0, 0.0),  # negative mass (should be clamped to 0)
+        ],
+    )
+    def test_calculate_consumed_mass_detritivory_cases(
+        self,
+        herbivore_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for detritivory consumption with mocked litter pool."""
+        from math import exp, isclose
+
+        detritivore = herbivore_cohort_instance
+
+        # Mock target litter pool
+        litter = mocker.Mock()
+        litter.mass_current = mass_current
+
+        litter_list = [litter]
+
+        # Patch F_i_k to return controlled value
+        mocker.patch.object(detritivore, "F_i_k", return_value=F_value)
+
+        # Run method under test
+        result = detritivore.calculate_consumed_mass_detritivory(litter_list, litter)
+
+        # Determine expected outcome
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1.0
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * detritivore.constants.tau_f
+                        * detritivore.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            # Directly test for clamped 0.0
+            assert result == expected_behavior
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # very high F
+            (0.05, 0.0, 0.0),  # zero mass
+            (0.05, -5.0, 0.0),  # negative mass clamped to zero
+        ],
+    )
+    def test_calculate_consumed_mass_carcass_cases(
+        self,
+        predator_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for carcass mass consumption with mocked pool."""
+        from math import exp, isclose
+
+        predator = predator_cohort_instance
+
+        # Create mock carcass pool
+        carcass = mocker.Mock()
+        carcass.mass_current = mass_current
+
+        carcass_pools = [carcass]
+
+        # Patch F_i_k to controlled value
+        mocker.patch.object(predator, "F_i_k", return_value=F_value)
+
+        # Run the method under test
+        result = predator.calculate_consumed_mass_carcass(carcass_pools, carcass)
+
+        # Evaluate expected result
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1.0
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * predator.constants.tau_f
+                        * predator.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # very high F
+            (0.05, 0.0, 0.0),  # zero mass
+            (0.05, -5.0, 0.0),  # negative mass clamped to zero
+        ],
+    )
+    def test_calculate_consumed_mass_excrement_cases(
+        self,
+        herbivore_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for excrement mass consumption with mocked pool."""
+        from math import exp, isclose
+
+        consumer = herbivore_cohort_instance
+
+        # Mock target excrement pool
+        excrement = mocker.Mock()
+        excrement.mass_current = mass_current
+
+        excrement_pools = [excrement]
+
+        # Patch F_i_k to return desired F value
+        mocker.patch.object(consumer, "F_i_k", return_value=F_value)
+
+        # Run the method
+        result = consumer.calculate_consumed_mass_excrement(excrement_pools, excrement)
+
+        # Determine expected outcome
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1.0
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * consumer.constants.tau_f
+                        * consumer.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
 
     @pytest.mark.parametrize(
         "cohort_instance, diet_type, plant_list, animal_list, expected_nutrient_gain,"
