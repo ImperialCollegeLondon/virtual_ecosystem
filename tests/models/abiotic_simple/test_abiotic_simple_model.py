@@ -17,6 +17,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
     (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'net_radiation'"),
     (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
 ]

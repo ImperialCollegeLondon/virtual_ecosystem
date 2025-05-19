@@ -20,6 +20,7 @@ from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
@@ -46,6 +47,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "net_radiation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -61,6 +63,7 @@ class AbioticSimpleModel(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
+        "net_radiation",
     ),
     vars_populated_by_first_update=(
         "air_temperature",
@@ -149,6 +152,9 @@ class AbioticSimpleModel(
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
 
+        # create net radiation array
+        self.data["net_radiation"] = self.layer_structure.from_template()
+
         # calculate vapour pressure deficit at reference height for all time steps
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
@@ -179,7 +185,9 @@ class AbioticSimpleModel(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=time_index,
-            constants=self.model_constants,
+            simple_constants=self.model_constants,
+            abiotic_constants=AbioticConsts(),
+            core_constants=self.core_constants,
             bounds=self.bounds,
         )
         self.data.add_from_dict(output_dict=output_variables)

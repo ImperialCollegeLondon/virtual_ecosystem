@@ -18,8 +18,11 @@ from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
@@ -30,7 +33,9 @@ def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    constants: AbioticSimpleConsts,
+    simple_constants: AbioticSimpleConsts,
+    abiotic_constants: AbioticConsts,
+    core_constants: CoreConsts,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -82,7 +87,9 @@ def run_simple_microclimate(
         data: Data object
         layer_structure: The LayerStructure instance for the simulation.
         time_index: Time index, integer
-        constants: Set of constants for the abiotic simple model
+        simple_constants: Set of constants for the abiotic simple model
+        abiotic_constants: Set of constants for the abiotic model
+        core_constants: Set of constants shared across all models
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -142,6 +149,30 @@ def run_simple_microclimate(
         upper_bound=upper,
         lower_bound=lower,
     )
+
+    # Calculate net radiation (canopy only), [W m-2].
+    canopy_temperature = energy_balance.initialise_canopy_temperature(
+        air_temperature=output["air_temperature"].to_numpy(),
+        absorbed_radiation=data["shortwave_absorption"].to_numpy(),
+        canopy_temperature_ini_factor=abiotic_constants.canopy_temperature_ini_factor,
+    )
+    canopy_longwave_emission = energy_balance.calculate_longwave_emission(
+        temperature=canopy_temperature,
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+    net_radiation_canopy = energy_balance.calculate_net_radiation(
+        incoming_radiation=data["downward_shortwave_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        absorbed_radiation=data["shortwave_absorption"].to_numpy(),
+        longwave_emission=canopy_longwave_emission,
+        albedo=abiotic_constants.leaf_albedo,
+    )
+    net_radiation = layer_structure.from_template()
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy[
+        layer_structure.index_filled_canopy
+    ]
 
     return output
 

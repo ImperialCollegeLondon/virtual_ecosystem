@@ -28,6 +28,7 @@ REQUIRED_INIT_VAR_CHECKS = (
 
 SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'net_radiation'"),
     (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
     (INFO, "Replacing data array for 'air_temperature'"),
