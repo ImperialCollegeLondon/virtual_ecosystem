@@ -261,9 +261,9 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
 
     exp_netrad = lyr_strct.from_template()
     exp_netrad[lyr_strct.index_flux_layers] = [
-        [49.955331, 49.955171, 49.955011, 49.955011],
-        [49.958261, 49.957146, np.nan, np.nan],
-        [49.962932, np.nan, np.nan, np.nan],
+        [74.955331, 74.955171, 74.955011, 74.955011],
+        [74.958261, 74.957146, np.nan, np.nan],
+        [74.962932, np.nan, np.nan, np.nan],
         [77.491651, 77.490632, 77.489522, 77.489522],
     ]
     xr.testing.assert_allclose(model.data["net_radiation"], exp_netrad)
