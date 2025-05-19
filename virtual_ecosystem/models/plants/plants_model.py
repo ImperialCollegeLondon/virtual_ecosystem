@@ -703,10 +703,10 @@ class PlantsModel(
             # Sum of turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = np.sum(
                 stem_allocation.foliage_turnover * cohorts.n_individuals
-            )
+            ) / (1000.0 * self.grid.cell_area)
             self.data["root_turnover"][cell_id] = np.sum(
                 stem_allocation.fine_root_turnover * cohorts.n_individuals
-            )
+            ) / (1000.0 * self.grid.cell_area)
 
             # Partition reproductive tissue into propagule and non-propagule masses and
             # convert the propagule mass to number of propagules
@@ -731,7 +731,9 @@ class PlantsModel(
             # Add those partitions to pools
             #  - Merge fallen non-propagule mass into a single pool
             self.data["fallen_non_propagule_c_mass"][cell_id] = (
-                stem_fallen_non_propagule_c_mass * cohorts.n_individuals
+                stem_fallen_non_propagule_c_mass
+                * cohorts.n_individuals
+                / (1000.0 * self.grid.cell_area)
             ).sum()
 
             # Allocate fallen propagules, and canopy propagules and non-propagule mass
@@ -767,11 +769,19 @@ class PlantsModel(
                 stem_allocation.gpp_topslice
                 * self.model_constants.root_exudates
                 * cohorts.n_individuals
+            ) / (
+                1000.0
+                * (self.model_timing.update_interval_seconds / 86400)
+                * self.grid.cell_area
             )
             self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
                 stem_allocation.gpp_topslice
                 * (1 - self.model_constants.root_exudates)
                 * cohorts.n_individuals
+            ) / (
+                1000.0
+                * (self.model_timing.update_interval_seconds / 86400)
+                * self.grid.cell_area
             )
 
             # Update community allometry with new dbh values
@@ -808,7 +818,7 @@ class PlantsModel(
             # Update deadwood production
             self.data["deadwood_production"][cell_id] = np.sum(
                 mortality * community.stem_allometry.stem_mass
-            )
+            ) / (self.grid.cell_area)
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.

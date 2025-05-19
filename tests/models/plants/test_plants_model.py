@@ -410,7 +410,10 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             original_population[cell_id]
             - fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
-        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
+        deadwood_mass = (
+            np.sum(mortality * community.stem_allometry.stem_mass)
+            / fxt_plants_model.grid.cell_area
+        )
 
         assert np.all(
             original_population[cell_id]
