@@ -8,7 +8,7 @@ vertical wind profile within the canopy.
 Soil temperature is interpolated between the surface layer and the soil temperature at
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
-:math:`\ce{CO2}`.
+:math:`\ce{CO2}` as well as a profile of net radiation.
 
 TODO change temperatures to Kelvin
 """  # noqa: D205
@@ -63,7 +63,8 @@ def run_simple_microclimate(
 
     The function also broadcasts the reference values for atmospheric pressure and
     :math:`\ce{CO2}` to all atmospheric levels as they are currently assumed to remain
-    constant during one time step.
+    constant during one time step. Net radiation for canopy and topsoil layer is also
+    returned.
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
@@ -101,7 +102,7 @@ def run_simple_microclimate(
 
     output = {}
 
-    # Sum leaf area index over all canopy layers
+    # Sum leaf area index over all canopy layers, [m m-1]
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # Interpolate atmospheric profiles
@@ -137,7 +138,7 @@ def run_simple_microclimate(
         "atmospheric_co2_ref"
     ].isel(time_index=time_index)
 
-    # Calculate soil temperatures
+    # Calculate soil temperatures, [C]
     lower, upper = getattr(bounds, "soil_temperature")
     output["soil_temperature"] = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
@@ -150,12 +151,13 @@ def run_simple_microclimate(
         lower_bound=lower,
     )
 
-    # Calculate net radiation (canopy only), [W m-2].
+    # Calculate net radiation, [W m-2].
     canopy_temperature = energy_balance.initialise_canopy_temperature(
         air_temperature=output["air_temperature"].to_numpy(),
         absorbed_radiation=data["shortwave_absorption"].to_numpy(),
         canopy_temperature_ini_factor=abiotic_constants.canopy_temperature_ini_factor,
     )
+
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=canopy_temperature,
         emissivity=abiotic_constants.leaf_emissivity,
@@ -187,6 +189,7 @@ def run_simple_microclimate(
         longwave_emission=soil_longwave_emission,
         albedo=abiotic_constants.surface_albedo,
     )
+
     net_radiation = layer_structure.from_template()
     net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy[
         layer_structure.index_filled_canopy
