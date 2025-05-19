@@ -11,7 +11,6 @@ There are still a number of open TODOs related to process implementation and imp
     * spin up soil moisture and accumulated runoff
     * set boundaries for river discharge
     * update infiltration process
-    * net radiation needs to be initialised here and included in hydro_input
 
 .. TODO:: time step and model structure
 
@@ -469,7 +468,7 @@ class HydrologyModel(
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
-                net_radiation=self.data["net_radiation"].to_numpy(),
+                net_radiation=self.data["net_radiation"].to_numpy() / days,
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=self.data["density_air"].to_numpy(),
