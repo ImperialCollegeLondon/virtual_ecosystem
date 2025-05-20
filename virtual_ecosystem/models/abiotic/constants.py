@@ -17,6 +17,9 @@ class AbioticConsts(ConstantsDataclass):
     leaf_emissivity: float = 0.97
     """Leaf emissivity."""
 
+    leaf_albedo: float = 0.15
+    """Leaf albedo, dimensionless. """
+
     bulk_density_soil: float = 1.5
     """Bulk density of soil."""
 
