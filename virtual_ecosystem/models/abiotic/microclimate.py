@@ -228,6 +228,30 @@ def run_microclimate(
             stefan_boltzmann=core_constants.stefan_boltzmann_constant,
         )
 
+        # Net radiation canopy, [W m-2]
+        net_radiation_canopy = energy_balance.calculate_net_radiation(
+            incoming_radiation=data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy(),
+            absorbed_radiation=data["shortwave_absorption"][
+                layer_structure.index_filled_canopy
+            ].to_numpy(),
+            longwave_emission=longwave_emission_canopy,
+            albedo=abiotic_constants.leaf_albedo,
+        )
+
+        # Net radiation topsoil, [W m-2]
+        net_radiation_soil = energy_balance.calculate_net_radiation(
+            incoming_radiation=data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy(),
+            absorbed_radiation=data["shortwave_absorption"][
+                layer_structure.index_topsoil_scalar
+            ].to_numpy(),
+            longwave_emission=longwave_emission_soil,
+            albedo=abiotic_constants.surface_albedo,
+        )
+
         #  Sensible heat flux from canopy layers, [W m-2]
         sensible_heat_flux_canopy = energy_balance.calculate_sensible_heat_flux(
             density_air=density_air,
@@ -281,18 +305,6 @@ def run_microclimate(
             data["soil_evaporation"].to_numpy()
             / 2.628e6
             * latent_heat_vapourisation[-1]
-        )
-
-        # TODO name absorption variable like plants - Net radiation topsoil, [W m-2]
-        net_radiation_soil = energy_balance.calculate_net_radiation(
-            incoming_radiation=data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy(),
-            absorbed_radiation=data["shortwave_absorption"][
-                layer_structure.index_topsoil_scalar
-            ].to_numpy(),
-            longwave_emission=longwave_emission_soil,
-            albedo=abiotic_constants.surface_albedo,
         )
 
         # Ground heat flux, [W m-2]
@@ -392,6 +404,11 @@ def run_microclimate(
     longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
     output["longwave_emission"] = longwave_emission
+
+    net_radiation = layer_structure.from_template()
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
+    net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
+    output["net_radiation"] = net_radiation
 
     output["density_air"] = DataArray(density_air, dims="cell_id")
     output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")
