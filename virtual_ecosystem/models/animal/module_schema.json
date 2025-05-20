@@ -44,6 +44,9 @@
                             "migration_type": {
                                 "type": "string"
                             },
+                            "vertical_occupancy": {
+                                "type": "string"
+                            },
                             "birth_mass": {
                                 "type": "number"
                             },
@@ -63,6 +66,7 @@
                             "offspring_functional_group",
                             "excretion_type",
                             "migration_type",
+                            "vertical_occupancy",
                             "birth_mass",
                             "adult_mass"
                         ]

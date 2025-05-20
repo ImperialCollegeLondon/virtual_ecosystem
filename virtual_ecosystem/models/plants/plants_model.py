@@ -73,6 +73,24 @@ class PlantsModel(
         "vapour_pressure_deficit",
     ),
     vars_updated=(
+        "ecto_supply_limit_n",
+        "ecto_supply_limit_p",
+        "arbuscular_supply_limit_n",
+        "arbuscular_supply_limit_p",
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_fapar",
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "shortwave_absorption",
+        "transpiration",
+        "deadwood_production",
+        "leaf_turnover",
+        "fallen_non_propagule_c_mass",
+        "root_turnover",
+        "stem_lignin",
+        "senesced_leaf_lignin",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
         "deadwood_c_n_ratio",
         "deadwood_c_p_ratio",
         "deadwood_production",
@@ -100,10 +118,31 @@ class PlantsModel(
         "senesced_leaf_lignin",
         "shortwave_absorption",
         "stem_lignin",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_turnover_c_p_ratio",
+        "plant_symbiote_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
+        "subcanopy_vegetation_biomass",
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
     ),
     vars_populated_by_first_update=(
+        "transpiration",
+        "deadwood_production",
+        "leaf_turnover",
+        "fallen_non_propagule_c_mass",
+        "root_turnover",
+        "stem_lignin",
+        "senesced_leaf_lignin",
+        "plant_reproductive_tissue_lignin",
+        "root_lignin",
         "deadwood_c_n_ratio",
         "deadwood_c_p_ratio",
         "deadwood_production",
@@ -126,6 +165,17 @@ class PlantsModel(
         "root_turnover",
         "senesced_leaf_lignin",
         "stem_lignin",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "root_turnover_c_p_ratio",
+        "plant_symbiote_carbon_supply",
+        "root_carbohydrate_exudation",
+        "plant_ammonium_uptake",
+        "plant_nitrate_uptake",
+        "plant_phosphorus_uptake",
+        "plant_n_uptake_arbuscular",
+        "plant_n_uptake_ecto",
+        "plant_p_uptake_arbuscular",
+        "plant_p_uptake_ecto",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -154,7 +204,7 @@ class PlantsModel(
 
     * the canopy layer closure heights (``layer_heights``),
     * the canopy layer leaf area indices (``leaf_area_index``),
-    * the fraction of absorbed photosynthetically active radation in each canopy layer
+    * the fraction of absorbed photosynthetically active radiation in each canopy layer
         (``layer_fapar``), and
     * the whole canopy leaf mass within the layers (``layer_leaf_mass``)
 
@@ -186,7 +236,7 @@ class PlantsModel(
         """Plants init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
+        handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -413,6 +463,9 @@ class PlantsModel(
         # Calculate uptake from each inorganic soil nutrient pool
         self.calculate_nutrient_uptake()
 
+        # Calculate the rate at which plants take nutrients from mycorrhizal fungi
+        self.calculate_mycorrhizal_uptakes()
+
         # Apply mortality to plant cohorts
         self.apply_mortality()
         self.apply_recruitment()
@@ -431,7 +484,7 @@ class PlantsModel(
 
         * the layer closure heights (``layer_heights``),
         * the layer leaf area indices (``leaf_area_index``),
-        * the fraction of absorbed photosynthetically active radation in each layer
+        * the fraction of absorbed photosynthetically active radiation in each layer
           (``layer_fapar``), and
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
         * the proportion of shortwave radiation absorbed, including both by leaves in
@@ -571,14 +624,11 @@ class PlantsModel(
         :attr:`~virtual_ecosystem.models.plants.plants_model.PlantsModel.pmodel`
         attribute.
 
-        The GPP for each cohort is then estimated by mutiplying the cohort canopy area
+        The GPP for each cohort is then estimated by multiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
 
         .. TODO:
 
-            * This function populates evapotranspiration but the calculation is
-              currently only estimating _transpiration_
-              `#704 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/704>`_
             * Conversion of transpiration from `µmol m-2` to `mm m-2` currently ignores
               density changes with conditions:
               `#723 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/723>`_
@@ -600,9 +650,7 @@ class PlantsModel(
         )
 
         # Initialise transpiration array to collect per grid cell values
-        # NOTE - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        transpiration = self.layer_structure.from_template("evapotranspiration")
+        transpiration = self.layer_structure.from_template("transpiration")
 
         # Now calculate the gross primary productivity and transpiration across cohorts
         # and canopy layers over the time period.
@@ -683,11 +731,7 @@ class PlantsModel(
             ).sum(axis=1)
 
         # Pass values to data object
-        #
-        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        #
-        self.data["evapotranspiration"] = transpiration
+        self.data["transpiration"] = transpiration
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
@@ -966,7 +1010,7 @@ class PlantsModel(
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
         )
-        self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
+        self.data["plant_symbiote_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
 
@@ -985,6 +1029,25 @@ class PlantsModel(
         self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
+
+    def calculate_mycorrhizal_uptakes(self) -> None:
+        """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
+
+        Warning:
+            At present, this function just calculates uptake based on an entirely made
+            up function, and does not link to plant dynamics in any way.
+        """
+
+        # Making arbitrary assumption that the plants take exactly half the maximum
+        # supply amount, this should be replaced by something more sensible
+        self.data["plant_n_uptake_arbuscular"] = (
+            0.5 * self.data["arbuscular_supply_limit_n"]
+        )
+        self.data["plant_n_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_n"]
+        self.data["plant_p_uptake_arbuscular"] = (
+            0.5 * self.data["arbuscular_supply_limit_p"]
+        )
+        self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
 
     def set_subcanopy_light_capture(self) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
@@ -1099,9 +1162,7 @@ class PlantsModel(
             new_seedbank - subcanopy_sprouting_mass
         )
 
-        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        self.data["evapotranspiration"] += subcanopy_transpiration
+        self.data["transpiration"] += subcanopy_transpiration
 
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.float64]

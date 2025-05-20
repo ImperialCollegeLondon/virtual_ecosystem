@@ -63,7 +63,7 @@ model specific attributes. The ``__init__`` should not contain any further
 initialization logic, which should happen in the subclass ``_setup`` method instead.
 The ``__init__`` method **must** call the
 :meth:`BaseModel.__init__() <virtual_ecosystem.core.base_model.BaseModel.__init__>`
-method, as this populates core shared model attrributes - see the linked method
+method, as this populates core shared model attributes - see the linked method
 description for details.
 
 .. code-block:: python
@@ -198,7 +198,7 @@ class BaseModel(ABC):
 
     These are the variables that are initialised by the model and stored in the data
     object when running the update method for the first time. They will be available for
-    other models to use in their update methods but not in the setup methos.
+    other models to use in their update methods but not in the setup methods.
     """
 
     def __init__(
@@ -357,7 +357,7 @@ class BaseModel(ABC):
 
         In particular, it checks that the appropriate variables created or updated in
         the update method are present or not in the data object. Based on this, an
-        exception is raised is there is a problem or a decission is made on whether or
+        exception is raised is there is a problem or a decision is made on whether or
         not running the update method once.
 
         Raises:

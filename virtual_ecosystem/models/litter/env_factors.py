@@ -148,12 +148,12 @@ def calculate_soil_water_effect_on_litter_decomp(
     # range of matric potentials.
 
     # Calculate how much moisture suppresses microbial activity
-    supression = (
+    suppression = (
         (np.log10(-water_potential) - np.log10(-water_potential_opt))
         / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** moisture_response_curvature
 
-    return 1 - supression
+    return 1 - suppression
 
 
 def average_temperature_over_microbially_active_layers(

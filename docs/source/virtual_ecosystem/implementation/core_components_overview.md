@@ -1,4 +1,16 @@
 ---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,18 +21,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.10.14
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # Implementation of the core components
@@ -43,7 +43,7 @@ When a simulation starts, the Virtual Ecosystem:
 * Loads the user-provided configuration files and checks the file formats are valid.
 * Collates the configuration settings into a single unified configuration.
 * Loads the model schemas for the core and requested science models and uses this to
-  validate the congfiguration.
+  validate the configuration.
 * The validation process populates any missing options from the default values.
 * The configuration validation will fail if:
   * Any options are duplicated within the configuration.

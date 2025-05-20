@@ -130,7 +130,7 @@ def merge_schemas(schemas: dict[str, dict[str, Any]]) -> dict[str, Any]:
     The method merges a set of schemas for a set of desired modules into a single
     integrated schema that can then be used to validate a merged configuration for those
     modules. The merge also updates the resulting schema to enforce that only properties
-    explicity listed in the schema can be included.
+    explicitly listed in the schema can be included.
 
     Args:
         schemas: A dictionary of schemas keyed by module name

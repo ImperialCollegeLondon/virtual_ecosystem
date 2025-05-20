@@ -148,12 +148,12 @@ def calculate_water_potential_impact_on_microbes(
         raise err
 
     # Calculate how much moisture suppresses microbial activity
-    supression = (
+    suppression = (
         (np.log10(-water_potential) - np.log10(-water_potential_opt))
         / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** response_curvature
 
-    return 1 - supression
+    return 1 - suppression
 
 
 def calculate_pH_suitability(
@@ -407,6 +407,30 @@ def calculate_leaching_rate(
     """
 
     return solubility_coefficient * solute_density * vertical_flow_rate / soil_moisture
+
+
+def calculate_carbon_use_efficiency(
+    soil_temp: NDArray[np.float32],
+    reference_cue: float,
+    cue_reference_temp: float,
+    cue_with_temperature: float,
+) -> NDArray[np.float32]:
+    """Calculate the (temperature dependent) carbon use efficiency.
+
+    TODO - This should be adapted to use an Arrhenius function at some point.
+
+    Args:
+        soil_temp: soil temperature for each soil grid cell [degrees C]
+        reference_cue: Carbon use efficiency at reference temp [unitless]
+        cue_reference_temp: Reference temperature [degrees C]
+        cue_with_temperature: Rate of change in carbon use efficiency with increasing
+            temperature [degree C^-1]
+
+    Returns:
+        The carbon use efficiency (CUE) of the microbial community
+    """
+
+    return reference_cue - cue_with_temperature * (soil_temp - cue_reference_temp)
 
 
 def find_total_soil_moisture_for_microbially_active_depth(

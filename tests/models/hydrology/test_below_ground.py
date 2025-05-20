@@ -8,31 +8,22 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 @pytest.mark.parametrize(
-    "soilm_cap, soilm_res, hydr_con, hydr_grad, nonlin_par, gw_cap",
+    "soilm_sat, soilm_res, hydr_con, nonlin_par, gw_cap",
     [
+        (0.6, 0.1, 0.001, 2.0, 0.9),
         (
-            CoreConsts.soil_moisture_capacity,
-            HydroConsts.soil_moisture_residual,
-            HydroConsts.hydraulic_conductivity,
-            HydroConsts.hydraulic_gradient,
-            HydroConsts.van_genuchten_nonlinearily_parameter,
-            HydroConsts.groundwater_capacity,
-        ),
-        (
-            np.array([[0.9, 0.9, 0.9], [0.9, 0.9, 0.9]]),
-            np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]]),
-            np.array([[0.001, 0.001, 0.001], [0.001, 0.001, 0.001]]),
-            np.array([[0.01, 0.01, 0.01], [0.01, 0.01, 0.01]]),
-            np.array([2, 2, 2]),
-            np.array([0.9, 0.9, 0.9]),
+            np.full((2, 3), 0.6),
+            np.full((2, 3), 0.1),
+            np.full((2, 3), 0.001),
+            np.repeat(2.0, 3),
+            np.repeat(0.9, 3),
         ),
     ],
 )
 def test_calculate_vertical_flow(
-    soilm_cap,
+    soilm_sat,
     soilm_res,
     hydr_con,
-    hydr_grad,
     nonlin_par,
     gw_cap,
 ):
@@ -40,27 +31,37 @@ def test_calculate_vertical_flow(
 
     from virtual_ecosystem.models.hydrology.below_ground import calculate_vertical_flow
 
-    soil_moisture = np.array([[0.3, 0.6, 0.9], [0.3, 0.6, 0.9]])
-    layer_thickness = np.array([[500, 500, 500], [500, 500, 500]])
-
+    soil_moisture = np.array([[0.3, 0.4, 0.6], [0.3, 0.4, 0.6]])
+    layer_thickness = np.full((2, 3), 0.5)
+    layer_depth = np.array([0.5, 1])
     result = calculate_vertical_flow(
-        soil_moisture,
-        layer_thickness,
-        soilm_cap,
-        soilm_res,
-        hydr_con,
-        hydr_grad,
-        nonlin_par,
-        gw_cap,
-        2.628e6,
+        soil_moisture=soil_moisture,
+        soil_layer_thickness=layer_thickness,
+        soil_layer_depth=layer_depth,
+        soil_moisture_saturation=soilm_sat,
+        soil_moisture_residual=soilm_res,
+        saturated_hydraulic_conductivity=hydr_con,
+        air_entry_potential_inverse=0.01,
+        van_genuchten_nonlinearily_parameter=nonlin_par,
+        pore_connectivity_parameter=0.5,
+        groundwater_capacity=gw_cap,
+        seconds_to_day=86400,
+    )
+
+    exp_matric_pot = np.array(
+        [
+            [-229.12878, -133.33333, 0.0],
+            [-229.12878, -133.33333, 0.0],
+        ]
     )
     exp_flow = np.array(
         [
-            [1.311692, 98.98647, 2601.720],
-            [1.31169, 98.986, 2601.720],
+            [0.000381, 0.002677, 0.0864],
+            [0.000381, 0.002677, 0.0864],
         ]
     )
-    np.testing.assert_allclose(result, exp_flow, rtol=0.001)
+    np.testing.assert_allclose(result["matric_potential"], exp_matric_pot, rtol=0.001)
+    np.testing.assert_allclose(result["vertical_flow"], exp_flow, rtol=0.001)
 
 
 def test_update_soil_moisture():
@@ -68,38 +69,39 @@ def test_update_soil_moisture():
 
     from virtual_ecosystem.models.hydrology.below_ground import update_soil_moisture
 
-    soil_moisture = np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]])
-    vertical_flow = np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]])
-    evapotranspiration = np.array([10, 2, 3])
     layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
-    exp_result = np.array([[20, 58, 47], [290.0, 598.0, 497.0], [300.0, 600.0, 500.0]])
+    exp_result = np.array(
+        [[20.0, 50.0, 47.0], [290.0, 450.0, 450.0], [300.0, 450.0, 450.0]]
+    )
 
     result = update_soil_moisture(
-        soil_moisture,
-        vertical_flow,
-        evapotranspiration,
-        CoreConsts.soil_moisture_capacity * layer_thickness,
-        HydroConsts.soil_moisture_residual * layer_thickness,
+        soil_moisture=np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]]),
+        vertical_flow=np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]]),
+        transpiration=np.array([10, 2, 3]),
+        soil_moisture_capacity=CoreConsts.soil_moisture_capacity * layer_thickness,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual * layer_thickness,
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
 
 
-def test_convert_soil_moisture_to_water_potential():
+def test_calculate_matric_potential():
     """Test that function to convert soil moisture to a water potential works."""
     from virtual_ecosystem.models.hydrology.below_ground import (
-        convert_soil_moisture_to_water_potential,
+        calculate_matric_potential,
     )
 
-    expected_potentials = np.repeat(-198467.26813379, 3)
-    actual_potentials = convert_soil_moisture_to_water_potential(
-        soil_moisture=np.repeat(0.2, 3),
-        air_entry_water_potential=HydroConsts.air_entry_water_potential,
-        campbell_pore_size_distribution=HydroConsts.campbell_pore_size_distribution,
-        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
+    constants = HydroConsts()
+    expected_potentials = np.repeat(-17.320508, 3)
+    actual_potentials = calculate_matric_potential(
+        effective_saturation=np.repeat(0.5, 3),
+        air_entry_potential_inverse=constants.air_entry_potential_inverse,
+        van_genuchten_nonlinearily_parameter=(
+            constants.van_genuchten_nonlinearily_parameter
+        ),
     )
 
-    np.testing.assert_allclose(actual_potentials, expected_potentials)
+    np.testing.assert_allclose(actual_potentials, expected_potentials, rtol=0.001)
 
 
 def test_update_groundwater_storage(dummy_climate_data):

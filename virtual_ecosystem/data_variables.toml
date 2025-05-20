@@ -154,8 +154,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Evapotranspiration"
-name = "evapotranspiration"
+description = "Transpiration from canopy"
+name = "transpiration"
 unit = "mm"
 variable_type = "float"
 
@@ -269,6 +269,13 @@ axis = ["spatial"]
 description = "Mean mixing length"
 name = "mean_mixing_length"
 unit = "m"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Net radiation"
+name = "net_radiation"
+unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
@@ -483,7 +490,7 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Accumlated surface runoff"
+description = "Accumulated surface runoff"
 name = "surface_runoff_accumulated"
 unit = "mm"
 variable_type = "float"
@@ -581,8 +588,22 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Soil fungal biomass (carbon) pool"
-name = "soil_c_pool_fungi"
+description = "Soil saprotrophic fungal biomass (carbon) pool"
+name = "soil_c_pool_saprotrophic_fungi"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Soil arbuscular mycorrhizal fungal biomass (carbon) pool"
+name = "soil_c_pool_arbuscular_mycorrhiza"
+unit = "kg C m^-3"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Soil ectomycorrhizal fungal biomass (carbon) pool"
+name = "soil_c_pool_ectomycorrhiza"
 unit = "kg C m^-3"
 variable_type = "float"
 
@@ -1078,8 +1099,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Rate at which plants are supplying carbon to their soil-living nitrogen-fixing symbiotic partners"
-name = "nitrogen_fixation_carbon_supply"
+description = "Rate at which plants are supplying carbon to their soil-living symbiotic partners"
+name = "plant_symbiote_carbon_supply"
 unit = "kg C m^-2 day^-1"
 variable_type = "float"
 
@@ -1113,6 +1134,34 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Limit on rate at which ectomycorrhizal fungi will supply nitrogen to their plant partners"
+name = "ecto_supply_limit_n"
+unit = "kg N m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Limit on rate at which ectomycorrhizal fungi will supply phosphorus to their plant partners"
+name = "ecto_supply_limit_p"
+unit = "kg P m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Limit on rate at which arbuscular mycorrhizal fungi will supply nitrogen to their plant partners"
+name = "arbuscular_supply_limit_n"
+unit = "kg N m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Limit on rate at which arbuscular mycorrhizal fungi will supply phosphorus to their plant partners"
+name = "arbuscular_supply_limit_p"
+unit = "kg P m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate at which plants uptake ammonium from the soil"
 name = "plant_ammonium_uptake"
 unit = "kg N m^-2 day^-1"
@@ -1129,6 +1178,34 @@ variable_type = "float"
 axis = ["spatial"]
 description = "Rate at which plants uptake labile inorganic phosphorus from the soil"
 name = "plant_phosphorus_uptake"
+unit = "kg P m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take nitrogen from their arbuscular mycorrhizal partners"
+name = "plant_n_uptake_arbuscular"
+unit = "kg N m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take nitrogen from their ectomycorrhizal partners"
+name = "plant_n_uptake_ecto"
+unit = "kg N m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take phosphorus from their arbuscular mycorrhizal partners"
+name = "plant_p_uptake_arbuscular"
+unit = "kg P m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which plants take phosphorus from their ectomycorrhizal partners"
+name = "plant_p_uptake_ecto"
 unit = "kg P m^-2 day^-1"
 variable_type = "float"
 

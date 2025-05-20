@@ -12,7 +12,7 @@ from numpy import timedelta64
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.animal.animal_traits import DietType
+from virtual_ecosystem.models.animal.animal_traits import DietType, VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
@@ -77,7 +77,7 @@ class AnimalCohort:
             self.functional_group.adult_mass,
             self.functional_group.prey_scaling,
         )
-        """The identification of useable food resources."""
+        """The identification of usable food resources."""
         self.territory_size = sf.territory_size(self.functional_group.adult_mass)
         """The size in hectares of the animal cohorts territory."""
         self.occupancy_proportion: float = 1.0 / self.territory_size
@@ -1158,11 +1158,11 @@ class AnimalCohort:
         equal to the proportion of the cohort individuals that would arrive in the
         neighboring cell after one full timestep's movement.
 
-        Assuming cohort individuals are homogenously distributed within a grid cell and
+        Assuming cohort individuals are homogeneously distributed within a grid cell and
         that the move is non-diagonal, the probability is then equal to the ratio of
         dispersal speed to the side-length of a grid cell.
 
-        A homogenously distributed cohort with a partial presence in a grid cell will
+        A homogeneously distributed cohort with a partial presence in a grid cell will
         have a proportion of its individuals in the new grid cell equal to the
         proportion the new grid cell that it occupies (A_new / A_cell). This proportion
         will be equal to the cohorts velocity (V) multiplied by the elapsed time (t)
@@ -1241,69 +1241,87 @@ class AnimalCohort:
         # Remove the dead individuals from the cohort
         self.die_individual(number_dead, carcass_pools)
 
+    def can_prey_on(self, prey_cohort: AnimalCohort) -> bool:
+        """Check if the cohort can prey upon another cohort.
+
+        Determines if another animal cohort is suitable prey based on the predator's
+        defined prey groups, prey body mass, and vertical occupancy.
+
+        Args:
+            prey_cohort: An animal cohort potentially being preyed upon.
+
+        Returns:
+            True if the prey cohort meets size, identity, and vertical occupancy
+              criteria, False otherwise.
+        """
+        if prey_cohort.functional_group.name not in self.prey_groups:
+            return False
+
+        min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
+
+        return (
+            min_size <= prey_cohort.mass_current <= max_size
+            and prey_cohort.individuals > 0
+            and prey_cohort is not self
+            and self.match_vertical(prey_cohort.functional_group.vertical_occupancy)
+        )
+
     def get_prey(
         self,
         communities: dict[int, list[AnimalCohort]],
     ) -> list[AnimalCohort]:
-        """Collect suitable prey for a given consumer cohort.
-
-        This method filters suitable prey from the list of animal cohorts across the
-        territory defined by the cohort's grid cells.
+        """Collect suitable prey cohorts within the cohort's territory.
 
         Args:
-            communities: A dictionary mapping cell IDs to sets of Consumers
-                (animal cohorts).
-            consumer_cohort: The Consumer for which a prey list is being collected.
+            communities: Dictionary mapping cell IDs to lists of animal cohorts.
 
         Returns:
-            A sequence of Consumers that can be preyed upon.
+            List of animal cohorts that can be preyed upon.
         """
-        prey_list: list = []
+        prey_list: list[AnimalCohort] = []
 
-        # Iterate over the grid cells in the consumer cohort's territory
         for cell_id in self.territory:
-            potential_prey_cohorts = communities[cell_id]
-
-            # Iterate over each Consumer (potential prey) in the current community
-            for prey_cohort in potential_prey_cohorts:
-                # Skip if this cohort is not a prey of the current predator
-                if prey_cohort.functional_group not in self.prey_groups:
-                    continue
-
-                # Get the size range of the prey this predator eats
-                min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
-
-                # Filter the potential prey cohorts based on their size
-                if (
-                    min_size <= prey_cohort.mass_current <= max_size
-                    and prey_cohort.individuals != 0
-                    and prey_cohort is not self
-                ):
+            for prey_cohort in communities[cell_id]:
+                if self.can_prey_on(prey_cohort):
                     prey_list.append(prey_cohort)
 
         return prey_list
 
+    def can_forage_on(self, resource: Resource) -> bool:
+        """Check if the cohort can forage on a given non-cohort resource pool.
+
+        This will soon be expanded to include more suitability checks.
+
+        Args:
+            resource: A non-cohort resource pool object implementing the Resource
+              protocol.
+
+        Returns:
+            True if the cohort and resource share overlapping vertical occupancy,
+            False otherwise.
+        """
+        return self.match_vertical(resource.vertical_occupancy)
+
     def get_plant_resources(
         self, plant_resources: dict[int, list[Resource]]
     ) -> list[Resource]:
-        """Returns a list of plant resources in this territory.
-
-        This method checks which grid cells are within this territory
-        and returns a list of the plant resources available in those grid cells.
+        """Return plant resources accessible within this cohort's territory.
 
         Args:
-            plant_resources: A dictionary of plants where keys are grid cell IDs.
+            plant_resources: Dictionary of plant resources keyed by grid cell IDs.
 
         Returns:
-            A list of Resource objects in this territory.
+            List of accessible Resource objects within the territory.
         """
-        plant_resources_in_territory: list = []
+        plant_resources_in_territory: list[Resource] = []
 
         # Iterate over all grid cell keys in this territory
         for cell_id in self.territory:
             # Check if the cell_id is within the provided plant resources
             if cell_id in plant_resources:
-                plant_resources_in_territory.extend(plant_resources[cell_id])
+                for resource in plant_resources[cell_id]:
+                    if self.can_forage_on(resource):
+                        plant_resources_in_territory.append(resource)
 
         return plant_resources_in_territory
 
@@ -1418,3 +1436,20 @@ class AnimalCohort:
         """
 
         return random.random() <= self.constants.seasonal_migration_probability
+
+    def match_vertical(self, resource_occupancy: VerticalOccupancy) -> bool:
+        """Check whether cohort vertical occupancy overlaps with a resource or prey.
+
+        This method determines whether the vertical occupancy of the consumer cohort
+        overlaps with the vertical occupancy of a resource (pool or cohort). Animals
+        can only forage resources that share at least one overlapping vertical space.
+
+        Args:
+            resource_occupancy: The vertical occupancy trait of the potential resource
+                or prey.
+
+        Returns:
+            True if the vertical occupancy overlaps; False otherwise.
+
+        """
+        return bool(resource_occupancy & self.functional_group.vertical_occupancy)

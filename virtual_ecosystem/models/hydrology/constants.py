@@ -27,12 +27,20 @@ class HydroConsts(ConstantsDataclass):
     between 0 and 1).
     """
 
-    hydraulic_conductivity: float = 0.001
-    """Hydraulic conductivity, [m s-1].
+    soil_moisture_saturation: float = 0.6
+    """Soil moisture saturation, [%].
 
-    The hydraulic conductivity is the measure of a soil's ability to transmit water
-    through its pores. More specifically, is defined as the volumetric flow rate of
-    water passing through a unit cross-sectional area of soil under a unit hydraulic
+    Maximum amount of water a soil can hold when all its pores are completely filled
+    with water — that is, the soil is fully saturated and contains no air in the pore
+    spaces.
+    """
+
+    saturated_hydraulic_conductivity: float = 0.001
+    """Saturated hydraulic conductivity, [m s-1].
+
+    The saturated hydraulic conductivity is the measure of a soil's ability to transmit
+    water through its pores. More specifically, is defined as the volumetric flow rate
+    of water passing through a unit cross-sectional area of soil under a unit hydraulic
     gradient (pressure difference).
     """
 
@@ -146,8 +154,20 @@ class HydroConsts(ConstantsDataclass):
     intercept_residence_time: float = 86400.0
     """Intecept residence time.
     
-    The amound of time that water sits on the leaves before it evaporates or falls to
+    The amount of time that water sits on the leaves before it evaporates or falls to
     the ground."""
 
     initial_stomatal_conductance: float = 1000.0
     """Initial stomatal conductance, [mmol m-2 s-1]"""
+
+    pore_connectivity_parameter: float = 0.5
+    """Pore connectivity parameter.
+    
+    Dimensionless parameter used in van Genuchten-Mualem model to calculate unsaturated
+    hydraulic conductivity."""
+
+    air_entry_potential_inverse: float = 0.1
+    """Inverse of air entry potential (parameter alpha in van Genuchten), [m-1]."""
+
+    m_to_kpa: float = 9.804
+    """Factor to convert matric potential from m to kPa."""

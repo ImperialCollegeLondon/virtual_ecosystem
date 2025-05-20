@@ -1,4 +1,16 @@
 ---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,18 +21,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # The `core.grid` module
@@ -48,7 +48,7 @@ square_grid
 ## Hexagon grids
 
 A hexagon grid is defined in a very similar way - alternate rows of hexagons are offset
-to correctly tesselate the individual cells.
+to correctly tessellate the individual cells.
 
 ```{code-cell} ipython3
 hex_grid = Grid(grid_type="hexagon", cell_area=100, cell_nx=9, cell_ny=11)

@@ -17,6 +17,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     ReproductiveEnvironment,
     ReproductiveType,
     TaxaType,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 
@@ -47,6 +48,7 @@ class FunctionalGroup:
         offspring_functional_group: str,
         excretion_type: str,
         migration_type: str,
+        vertical_occupancy: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -82,6 +84,8 @@ class FunctionalGroup:
         """The excretion type of the functional group."""
         self.migration_type = MigrationType(migration_type)
         """The migration type of the functional group."""
+        self.vertical_occupancy = VerticalOccupancy.parse(vertical_occupancy)
+        """The vertical occupancy type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
@@ -151,6 +155,7 @@ def import_functional_groups(
             row.offspring_functional_group,
             row.excretion_type,
             row.migration_type,
+            row.vertical_occupancy,
             row.birth_mass,
             row.adult_mass,
             constants=constants,
