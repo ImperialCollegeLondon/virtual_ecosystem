@@ -701,12 +701,16 @@ class PlantsModel(
             cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
 
             # Sum of turnover from all cohorts in a grid cell
-            self.data["leaf_turnover"][cell_id] = np.sum(
-                stem_allocation.foliage_turnover * cohorts.n_individuals
-            ) / (1000.0 * self.grid.cell_area)
-            self.data["root_turnover"][cell_id] = np.sum(
-                stem_allocation.fine_root_turnover * cohorts.n_individuals
-            ) / (1000.0 * self.grid.cell_area)
+            self.data["leaf_turnover"][cell_id] = self.convert_to_litter_units(
+                input_mass=np.sum(
+                    stem_allocation.foliage_turnover * cohorts.n_individuals
+                ),
+            )
+            self.data["root_turnover"][cell_id] = self.convert_to_litter_units(
+                input_mass=np.sum(
+                    stem_allocation.fine_root_turnover * cohorts.n_individuals
+                ),
+            )
 
             # Partition reproductive tissue into propagule and non-propagule masses and
             # convert the propagule mass to number of propagules
@@ -731,10 +735,12 @@ class PlantsModel(
             # Add those partitions to pools
             #  - Merge fallen non-propagule mass into a single pool
             self.data["fallen_non_propagule_c_mass"][cell_id] = (
-                stem_fallen_non_propagule_c_mass
-                * cohorts.n_individuals
-                / (1000.0 * self.grid.cell_area)
-            ).sum()
+                self.convert_to_litter_units(
+                    input_mass=(
+                        stem_fallen_non_propagule_c_mass * cohorts.n_individuals
+                    ).sum(),
+                )
+            )
 
             # Allocate fallen propagules, and canopy propagules and non-propagule mass
             # into PFT specific pools by iterating over cohort PFTs.
@@ -773,7 +779,7 @@ class PlantsModel(
                 1000.0
                 * (self.model_timing.update_interval_seconds / 86400)
                 * self.grid.cell_area
-            )
+            )  # TODO - Soil helper function
             self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
                 stem_allocation.gpp_topslice
                 * (1 - self.model_constants.root_exudates)
@@ -782,7 +788,7 @@ class PlantsModel(
                 1000.0
                 * (self.model_timing.update_interval_seconds / 86400)
                 * self.grid.cell_area
-            )
+            )  # TODO - Soil helper function
 
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
@@ -816,9 +822,9 @@ class PlantsModel(
             cohorts.n_individuals = cohorts.n_individuals - mortality
 
             # Update deadwood production
-            self.data["deadwood_production"][cell_id] = np.sum(
-                mortality * community.stem_allometry.stem_mass
-            ) / (self.grid.cell_area)
+            self.data["deadwood_production"][cell_id] = self.convert_to_litter_units(
+                input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
+            )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -1056,3 +1062,22 @@ class PlantsModel(
         )
 
         return n_propagules, non_propagule_mass
+
+    def convert_to_litter_units(
+        self, input_mass: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Helper function to convert plant quantities into litter model units.
+
+        The plant model records the amount of trees in terms of masses (kg) per grid
+        square, whereas the litter model expects litter inputs as kg per m^2.
+
+        Args:
+            input_mass: The mass (of carbon) being passed from the plant model to the
+                litter model [kg/g]
+
+        Returns:
+            The input mass converted to the density units that the litter model uses [kg
+            m^-2]
+        """
+
+        return input_mass / self.grid.cell_area

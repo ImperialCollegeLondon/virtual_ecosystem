@@ -478,3 +478,16 @@ def test_partition_reproductive_tissue(fxt_plants_model):
         n_propagules * fxt_plants_model.model_constants.carbon_mass_per_propagule
         + mass_non_propagules
     )
+
+
+def test_convert_to_litter_units(fxt_plants_model):
+    """Tests the helper function that converts to litter unit."""
+
+    input_mass = np.array([1e5, 3.4e2, 123.7, 0.007])
+    expected_input_density = [12.345679, 0.0419753, 0.0152716, 8.64198e-7]
+
+    actual_input_density = fxt_plants_model.convert_to_litter_units(
+        input_mass=input_mass
+    )
+
+    assert np.allclose(expected_input_density, actual_input_density)
