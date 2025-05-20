@@ -708,6 +708,9 @@ def dummy_climate_data(fixture_core_components):
     data["latent_heat_flux"] = from_template()
     data["latent_heat_flux"][flux_index] = 0.0
 
+    data["net_radiation"] = from_template()
+    data["net_radiation"][lyr_str.index_flux_layers] = 20.0
+
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
 
@@ -774,10 +777,9 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     number of canopy layers within the different cells.
     """
 
-    index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
-    index_filled_atmosphere = (
-        fixture_core_components.layer_structure.index_filled_atmosphere
-    )
+    lyr_str = fixture_core_components.layer_structure
+    index_filled_canopy = lyr_str.index_filled_canopy
+    index_filled_atmosphere = lyr_str.index_filled_atmosphere
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -843,6 +845,13 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, np.nan, np.nan],
         [0.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["net_radiation"][lyr_str.index_flux_layers] = [
+        [20.0, 20.0, 20.0, 20.0],
+        [20.0, 20.0, np.nan, np.nan],
+        [20.0, np.nan, np.nan, np.nan],
+        [20.0, 20.0, 20.0, 20.0],
     ]
 
     dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [
