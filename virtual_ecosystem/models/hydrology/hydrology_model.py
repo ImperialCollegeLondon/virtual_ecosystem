@@ -11,7 +11,6 @@ There are still a number of open TODOs related to process implementation and imp
     * spin up soil moisture and accumulated runoff
     * set boundaries for river discharge
     * update infiltration process
-    * net radiation needs to be initialised here and included in hydro_input
 
 .. TODO:: time step and model structure
 
@@ -96,6 +95,7 @@ class HydrologyModel(
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
         "stomatal_conductance",
+        "net_radiation",
     ),
     vars_populated_by_init=(
         "soil_moisture",
@@ -414,6 +414,7 @@ class HydrologyModel(
         * accumulated surface runoff (previous time step), [mm]
         * accumulated subsurface flow (previous time step), [mm]
         * aerodynamic_resistance_canopy, [s m-1]
+        * net radiation, [W m-2]
 
         and a number of parameters that as described in detail in
         :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
@@ -464,16 +465,10 @@ class HydrologyModel(
             )
 
             # Calculate canopy evaporation and leaf drainage, [mm day-1]
-            # TODO net radiation is part of energy balance, check which inputs are
-            # required, in which order this is calculated, discuss also with plant model
-            # needs to move out of loop and split in 30 days if sum input
-            net_radiation_canopy = self.layer_structure.from_template()
-            net_radiation_canopy[self.layer_structure.index_filled_canopy] = 20.0
-
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
-                net_radiation=net_radiation_canopy.to_numpy(),
+                net_radiation=self.data["net_radiation"].to_numpy() / days,
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=self.data["density_air"].to_numpy(),
