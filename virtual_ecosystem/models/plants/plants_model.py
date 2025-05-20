@@ -771,24 +771,24 @@ class PlantsModel(
 
             # Allocate the topsliced GPP to root exudates with remainder as active
             # nutrient pathways
-            self.data["root_carbohydrate_exudation"][cell_id] = np.sum(
-                stem_allocation.gpp_topslice
-                * self.model_constants.root_exudates
-                * cohorts.n_individuals
-            ) / (
-                1000.0
-                * (self.model_timing.update_interval_seconds / 86400)
-                * self.grid.cell_area
-            )  # TODO - Soil helper function
-            self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
-                stem_allocation.gpp_topslice
-                * (1 - self.model_constants.root_exudates)
-                * cohorts.n_individuals
-            ) / (
-                1000.0
-                * (self.model_timing.update_interval_seconds / 86400)
-                * self.grid.cell_area
-            )  # TODO - Soil helper function
+            self.data["root_carbohydrate_exudation"][cell_id] = (
+                self.convert_to_soil_units(
+                    input_mass=np.sum(
+                        stem_allocation.gpp_topslice
+                        * self.model_constants.root_exudates
+                        * cohorts.n_individuals
+                    )
+                )
+            )
+            self.data["plant_symbiote_carbon_supply"][cell_id] = (
+                self.convert_to_soil_units(
+                    input_mass=np.sum(
+                        stem_allocation.gpp_topslice
+                        * (1 - self.model_constants.root_exudates)
+                        * cohorts.n_individuals
+                    )
+                )
+            )
 
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
@@ -1068,8 +1068,8 @@ class PlantsModel(
     ) -> NDArray[np.float64]:
         """Helper function to convert plant quantities into litter model units.
 
-        The plant model records the amount of trees in terms of masses (kg) per grid
-        square, whereas the litter model expects litter inputs as kg per m^2.
+        The plant model records the plant biomass in units of mass (kg) per grid square,
+        whereas the litter model expects litter inputs as kg per m^2.
 
         Args:
             input_mass: The mass (of carbon) being passed from the plant model to the
@@ -1081,3 +1081,26 @@ class PlantsModel(
         """
 
         return input_mass / self.grid.cell_area
+
+    def convert_to_soil_units(
+        self, input_mass: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Helper function to convert plant quantities into soil model units.
+
+        The plant model records the GPP allocations (summed over stems) in units of mass
+        (g), whereas the soil model expects inputs into the soil to be expressed as rate
+        per area units (i.e. kg m^-2 day^-1). As well as converting to per area and rate
+        units this function also converts from g to kg.
+
+        Args:
+            input_mass: The mass (of carbon) being passed from the plant model to the
+                soil model [g]
+
+        Returns:
+            The input mass converted to the density rate units that the soil model uses
+            [kg m^-2 day^-1]
+        """
+
+        time_interval_in_days = self.model_timing.update_interval_seconds / 86400
+
+        return input_mass / (1000.0 * time_interval_in_days * self.grid.cell_area)
