@@ -38,11 +38,11 @@ is the the rate at which nutrients leach from the soil. As such, this process do
 fit into any of the cases mentioned already, and so it will discuss in a separate
 section.
 
-## Environmental modification of implicit rates
+## Environmental effects on implicit rates
 
 The soil model explicitly represents the soil microbes involved in decomposition.
 However, extending this representation to all the processes would be incredibly hard to
-parametrise, so some processes are instead represented by empirically obtained
+parameterise, so some processes are instead represented by empirically obtained
 expressions that implicitly represent the actions of the microbial community. As these
 processes are driven by microbes they are affected by environmental conditions, in
 particular soil temperature and moisture.
@@ -63,7 +63,7 @@ establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperat
 $\gamma$ is a parameter capturing how responsive litter decay rates are to temperature
 changes.
 
-## Litter decay moisture response
+### Litter decay moisture response
 
 Breakdown rates for below-ground litter pools are significantly impacted by soil
 moisture. In very dry soils, breakdown rates are extremely slow because microbial
