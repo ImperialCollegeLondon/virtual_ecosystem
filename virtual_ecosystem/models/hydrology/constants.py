@@ -23,8 +23,8 @@ class HydroConsts(ConstantsDataclass):
     prolonged drainage due to the force of gravity. It is the water that is tightly held
     by soil particles and is not easily available for plant roots to extract. The value
     is soil specific, the format here is volumentic relative water content (unitless,
-    between 0 and 1). Value for average tropical rainforest taken from
-    :cite:t:`hodnett_marked_2002`.
+    between 0 and 1). Average value of different soil textures across tropical regions
+    :cite:p:`hodnett_marked_2002`.
     """
 
     soil_moisture_saturation: float = 0.51
@@ -32,8 +32,8 @@ class HydroConsts(ConstantsDataclass):
 
     Maximum amount of water a soil can hold when all its pores are completely filled
     with water — that is, the soil is fully saturated and contains no air in the pore
-    spaces. Value for average tropical rainforest taken from
-    :cite:t:`hodnett_marked_2002`
+    spaces. Average value of different soil textures across tropical regions
+    :cite:p:`hodnett_marked_2002`
     .
     """
 
@@ -202,8 +202,8 @@ class HydroConsts(ConstantsDataclass):
     
     The inverse of air entry potential describes how quickly soil water retention
     decreases with increasing soil suction, with higher values indicating coarser soils
-    that drain more readily. This value for tropical soils is taken from
-    :cite:t:`hodnett_marked_2002`."""
+    that drain more readily. Average value of different soil textures across tropical
+    regions :cite:p:`hodnett_marked_2002`."""
 
     m_to_kpa: float = 9.804
     """Factor to convert matric potential from m to kPa."""
