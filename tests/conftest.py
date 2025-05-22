@@ -557,7 +557,7 @@ def dummy_carbon_data(fixture_core_components):
     for var_name, var_values in data_values.items():
         data[var_name] = DataArray(var_values, dims=["cell_id"])
 
-    # The layer dependant data has to be handled separately - at present all of these
+    # The layer dependent data has to be handled separately - at present all of these
     # are defined only for the topsoil layer
     lyr_str = fixture_core_components.layer_structure
 
@@ -708,6 +708,9 @@ def dummy_climate_data(fixture_core_components):
     data["latent_heat_flux"] = from_template()
     data["latent_heat_flux"][flux_index] = 0.0
 
+    data["net_radiation"] = from_template()
+    data["net_radiation"][lyr_str.index_flux_layers] = 20.0
+
     data["molar_density_air"] = from_template()
     data["molar_density_air"][lyr_str.index_filled_atmosphere] = 38.0
 
@@ -733,6 +736,9 @@ def dummy_climate_data(fixture_core_components):
     data["canopy_temperature"] = from_template()
     data["canopy_temperature"][lyr_str.index_filled_canopy] = 25.0
 
+    data["canopy_evaporation"] = from_template()
+    data["canopy_evaporation"][lyr_str.index_filled_canopy] = 10.0
+
     data["leaf_air_heat_conductivity"] = from_template()
     data["leaf_air_heat_conductivity"][lyr_str.index_filled_canopy] = 0.13
 
@@ -748,8 +754,8 @@ def dummy_climate_data(fixture_core_components):
     data["stomatal_conductance"][lyr_str.index_filled_canopy] = 15.0
 
     # Hydrology
-    data["evapotranspiration"] = from_template()
-    data["evapotranspiration"][lyr_str.index_filled_canopy] = 20.0
+    data["transpiration"] = from_template()
+    data["transpiration"][lyr_str.index_filled_canopy] = 20.0
 
     data["soil_moisture"] = from_template()
     data["soil_moisture"][lyr_str.index_all_soil] = np.array([5.0, 500.0])[:, None]
@@ -771,10 +777,9 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     number of canopy layers within the different cells.
     """
 
-    index_filled_canopy = fixture_core_components.layer_structure.index_filled_canopy
-    index_filled_atmosphere = (
-        fixture_core_components.layer_structure.index_filled_atmosphere
-    )
+    lyr_str = fixture_core_components.layer_structure
+    index_filled_canopy = lyr_str.index_filled_canopy
+    index_filled_atmosphere = lyr_str.index_filled_atmosphere
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
@@ -842,6 +847,13 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [0.0, np.nan, np.nan, np.nan],
     ]
 
+    dummy_climate_data["net_radiation"][lyr_str.index_flux_layers] = [
+        [20.0, 20.0, 20.0, 20.0],
+        [20.0, 20.0, np.nan, np.nan],
+        [20.0, np.nan, np.nan, np.nan],
+        [20.0, 20.0, 20.0, 20.0],
+    ]
+
     dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [
         [13.0, 13.0, 13.0, 13.0],
         [13.0, 13.0, np.nan, np.nan],
@@ -858,6 +870,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [25.0, 25.0, 25.0, 25.0],
         [25.0, 25.0, np.nan, np.nan],
         [25.0, np.nan, np.nan, np.nan],
+    ]
+
+    dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
+        [10.0, 10.0, 10.0, 10.0],
+        [10.0, 10.0, np.nan, np.nan],
+        [10.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["leaf_air_heat_conductivity"][index_filled_canopy] = [
@@ -885,7 +903,7 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     ]
 
     # Hydrology
-    dummy_climate_data["evapotranspiration"][index_filled_canopy] = [
+    dummy_climate_data["transpiration"][index_filled_canopy] = [
         [20.0, 20.0, 20.0, 20.0],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],

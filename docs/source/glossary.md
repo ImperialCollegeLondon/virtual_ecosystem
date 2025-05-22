@@ -18,9 +18,9 @@ jupyter:
 POM
   Particulate Organic Matter. A form of organic matter that derives from the
   decomposition and fragmentation of litter and other necromass. Generally, these
-  particulates are still in a state where the tissue they orginated from can be
+  particulates are still in a state where the tissue they originated from can be
   determined. This chemical complexity makes this a form of protected carbon, however this
-  is generally only a signifcant store of protected carbon in heavily waterlogged soils.
+  is generally only a significant store of protected carbon in heavily waterlogged soils.
 
 MAOM
   Mineral Associated Organic Matter. This is organic matter which has formed a strong

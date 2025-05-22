@@ -149,12 +149,12 @@ def calculate_water_potential_impact_on_microbes(
         raise err
 
     # Calculate how much moisture suppresses microbial activity
-    supression = (
+    suppression = (
         (np.log10(-water_potential) - np.log10(-water_potential_opt))
         / (np.log10(-water_potential_halt) - np.log10(-water_potential_opt))
     ) ** response_curvature
 
-    return 1 - supression
+    return 1 - suppression
 
 
 def calculate_pH_suitability(
@@ -416,7 +416,7 @@ def calculate_carbon_use_efficiency(
     cue_reference_temp: float,
     logit_cue_with_temp: float,
 ) -> NDArray[np.float32]:
-    """Calculate the (temperature dependant) carbon use efficiency.
+    """Calculate the (temperature dependent) carbon use efficiency.
 
     We model the carbon use efficiency using a logistic function. This is to ensure that
     carbon use efficiency values remain bounded between zero and one.

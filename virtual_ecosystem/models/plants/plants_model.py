@@ -77,7 +77,7 @@ class PlantsModel(
         "layer_fapar",
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "shortwave_absorption",
-        "evapotranspiration",
+        "transpiration",
         "deadwood_production",
         "leaf_turnover",
         "fallen_non_propagule_c_mass",
@@ -107,7 +107,7 @@ class PlantsModel(
         "subcanopy_seedbank_biomass",
     ),
     vars_populated_by_first_update=(
-        "evapotranspiration",
+        "transpiration",
         "deadwood_production",
         "leaf_turnover",
         "fallen_non_propagule_c_mass",
@@ -161,7 +161,7 @@ class PlantsModel(
 
     * the canopy layer closure heights (``layer_heights``),
     * the canopy layer leaf area indices (``leaf_area_index``),
-    * the fraction of absorbed photosynthetically active radation in each canopy layer
+    * the fraction of absorbed photosynthetically active radiation in each canopy layer
         (``layer_fapar``), and
     * the whole canopy leaf mass within the layers (``layer_leaf_mass``)
 
@@ -193,7 +193,7 @@ class PlantsModel(
         """Plants init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
+        handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -406,7 +406,7 @@ class PlantsModel(
 
         * the layer closure heights (``layer_heights``),
         * the layer leaf area indices (``leaf_area_index``),
-        * the fraction of absorbed photosynthetically active radation in each layer
+        * the fraction of absorbed photosynthetically active radiation in each layer
           (``layer_fapar``), and
         * the whole canopy leaf mass within the layers (``layer_leaf_mass``), and
         * the proportion of shortwave radiation absorbed, including both by leaves in
@@ -547,14 +547,11 @@ class PlantsModel(
         :attr:`~virtual_ecosystem.models.plants.plants_model.PlantsModel.pmodel`
         attribute.
 
-        The GPP for each cohort is then estimated by mutiplying the cohort canopy area
+        The GPP for each cohort is then estimated by multiplying the cohort canopy area
         within each layer by GPP and the time elapsed in seconds since the last update.
 
         .. TODO:
 
-            * This function populates evapotranspiration but the calculation is
-              currently only estimating _transpiration_
-              `#704 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/704>`_
             * Conversion of transpiration from `µmol m-2` to `mm m-2` currently ignores
               density changes with conditions:
               `#723 <https://github.com/ImperialCollegeLondon/virtual_ecosystem/issues/723>`_
@@ -576,9 +573,7 @@ class PlantsModel(
         )
 
         # Initialise transpiration array to collect per grid cell values
-        # NOTE - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        transpiration = self.layer_structure.from_template("evapotranspiration")
+        transpiration = self.layer_structure.from_template("transpiration")
 
         # Now calculate the gross primary productivity and transpiration across cohorts
         # and canopy layers over the time period.
@@ -647,11 +642,7 @@ class PlantsModel(
             ).sum(axis=1)
 
         # Pass values to data object
-        #
-        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        #
-        self.data["evapotranspiration"] = transpiration
+        self.data["transpiration"] = transpiration
 
     def allocate_gpp(self) -> None:
         """Calculate the allocation of GPP to growth and respiration.
@@ -710,11 +701,15 @@ class PlantsModel(
             cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
 
             # Sum of turnover from all cohorts in a grid cell
-            self.data["leaf_turnover"][cell_id] = np.sum(
-                stem_allocation.foliage_turnover * cohorts.n_individuals
+            self.data["leaf_turnover"][cell_id] = self.convert_to_litter_units(
+                input_mass=np.sum(
+                    stem_allocation.foliage_turnover * cohorts.n_individuals
+                ),
             )
-            self.data["root_turnover"][cell_id] = np.sum(
-                stem_allocation.fine_root_turnover * cohorts.n_individuals
+            self.data["root_turnover"][cell_id] = self.convert_to_litter_units(
+                input_mass=np.sum(
+                    stem_allocation.fine_root_turnover * cohorts.n_individuals
+                ),
             )
 
             # Partition reproductive tissue into propagule and non-propagule masses and
@@ -740,8 +735,12 @@ class PlantsModel(
             # Add those partitions to pools
             #  - Merge fallen non-propagule mass into a single pool
             self.data["fallen_non_propagule_c_mass"][cell_id] = (
-                stem_fallen_non_propagule_c_mass * cohorts.n_individuals
-            ).sum()
+                self.convert_to_litter_units(
+                    input_mass=(
+                        stem_fallen_non_propagule_c_mass * cohorts.n_individuals
+                    ).sum(),
+                )
+            )
 
             # Allocate fallen propagules, and canopy propagules and non-propagule mass
             # into PFT specific pools by iterating over cohort PFTs.
@@ -772,15 +771,23 @@ class PlantsModel(
 
             # Allocate the topsliced GPP to root exudates with remainder as active
             # nutrient pathways
-            self.data["root_carbohydrate_exudation"][cell_id] = np.sum(
-                stem_allocation.gpp_topslice
-                * self.model_constants.root_exudates
-                * cohorts.n_individuals
+            self.data["root_carbohydrate_exudation"][cell_id] = (
+                self.convert_to_soil_units(
+                    input_mass=np.sum(
+                        stem_allocation.gpp_topslice
+                        * self.model_constants.root_exudates
+                        * cohorts.n_individuals
+                    )
+                )
             )
-            self.data["plant_symbiote_carbon_supply"][cell_id] = np.sum(
-                stem_allocation.gpp_topslice
-                * (1 - self.model_constants.root_exudates)
-                * cohorts.n_individuals
+            self.data["plant_symbiote_carbon_supply"][cell_id] = (
+                self.convert_to_soil_units(
+                    input_mass=np.sum(
+                        stem_allocation.gpp_topslice
+                        * (1 - self.model_constants.root_exudates)
+                        * cohorts.n_individuals
+                    )
+                )
             )
 
             # Update community allometry with new dbh values
@@ -815,8 +822,8 @@ class PlantsModel(
             cohorts.n_individuals = cohorts.n_individuals - mortality
 
             # Update deadwood production
-            self.data["deadwood_production"][cell_id] = np.sum(
-                mortality * community.stem_allometry.stem_mass
+            self.data["deadwood_production"][cell_id] = self.convert_to_litter_units(
+                input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
             )
 
     def calculate_turnover(self) -> None:
@@ -1031,9 +1038,7 @@ class PlantsModel(
             new_seedbank - subcanopy_sprouting_mass
         )
 
-        # - #704, this is _not_ evapotranspiration, but we'll pretend it is for
-        #        the moment.
-        self.data["evapotranspiration"] += subcanopy_transpiration
+        self.data["transpiration"] += subcanopy_transpiration
 
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.float64]
@@ -1057,3 +1062,45 @@ class PlantsModel(
         )
 
         return n_propagules, non_propagule_mass
+
+    def convert_to_litter_units(
+        self, input_mass: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Helper function to convert plant quantities into litter model units.
+
+        The plant model records the plant biomass in units of mass (kg) per grid square,
+        whereas the litter model expects litter inputs as kg per m^2.
+
+        Args:
+            input_mass: The mass (of carbon) being passed from the plant model to the
+                litter model [kg/g]
+
+        Returns:
+            The input mass converted to the density units that the litter model uses [kg
+            m^-2]
+        """
+
+        return input_mass / self.grid.cell_area
+
+    def convert_to_soil_units(
+        self, input_mass: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """Helper function to convert plant quantities into soil model units.
+
+        The plant model records the GPP allocations (summed over stems) in units of mass
+        (g), whereas the soil model expects inputs into the soil to be expressed as rate
+        per area units (i.e. kg m^-2 day^-1). As well as converting to per area and rate
+        units this function also converts from g to kg.
+
+        Args:
+            input_mass: The mass (of carbon) being passed from the plant model to the
+                soil model [g]
+
+        Returns:
+            The input mass converted to the density rate units that the soil model uses
+            [kg m^-2 day^-1]
+        """
+
+        time_interval_in_days = self.model_timing.update_interval_seconds / 86400
+
+        return input_mass / (1000.0 * time_interval_in_days * self.grid.cell_area)

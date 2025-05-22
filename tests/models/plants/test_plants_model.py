@@ -223,9 +223,9 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
         cid: len(vals) for cid, vals in fxt_plants_model.per_stem_transpiration.items()
     }
 
-    # Check the evapotranspiration shape
+    # Check the transpiration shape
 
-    assert fxt_plants_model.data["evapotranspiration"].shape == (
+    assert fxt_plants_model.data["transpiration"].shape == (
         fxt_plants_model.layer_structure.n_layers,
         fxt_plants_model.grid.n_cells,
     )
@@ -410,7 +410,10 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             original_population[cell_id]
             - fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
-        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
+        deadwood_mass = (
+            np.sum(mortality * community.stem_allometry.stem_mass)
+            / fxt_plants_model.grid.cell_area
+        )
 
         assert np.all(
             original_population[cell_id]
@@ -475,3 +478,29 @@ def test_partition_reproductive_tissue(fxt_plants_model):
         n_propagules * fxt_plants_model.model_constants.carbon_mass_per_propagule
         + mass_non_propagules
     )
+
+
+def test_convert_to_litter_units(fxt_plants_model):
+    """Tests the helper function that converts to litter model units."""
+
+    input_mass = np.array([1e5, 3.4e2, 123.7, 0.007])
+    expected_input_density = [12.345679, 0.0419753, 0.0152716, 8.64198e-7]
+
+    actual_input_density = fxt_plants_model.convert_to_litter_units(
+        input_mass=input_mass
+    )
+
+    assert np.allclose(expected_input_density, actual_input_density)
+
+
+def test_convert_to_soil_units(fxt_plants_model):
+    """Tests the helper function that converts to soil model units."""
+
+    print(fxt_plants_model.model_timing.update_interval_quantity)
+
+    input_mass = np.array([1e6, 3.4e3, 1237.0, 0.07])
+    expected_input_density = [0.008818342, 2.998236e-5, 1.090829e-5, 6.17284e-10]
+
+    actual_input_density = fxt_plants_model.convert_to_soil_units(input_mass=input_mass)
+
+    assert np.allclose(expected_input_density, actual_input_density)
