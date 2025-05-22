@@ -228,6 +228,30 @@ def run_microclimate(
             stefan_boltzmann=core_constants.stefan_boltzmann_constant,
         )
 
+        # Net radiation canopy, [W m-2]
+        net_radiation_canopy = energy_balance.calculate_net_radiation(
+            incoming_radiation=data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy(),
+            absorbed_radiation=data["shortwave_absorption"][
+                layer_structure.index_filled_canopy
+            ].to_numpy(),
+            longwave_emission=longwave_emission_canopy,
+            albedo=abiotic_constants.leaf_albedo,
+        )
+
+        # Net radiation topsoil, [W m-2]
+        net_radiation_soil = energy_balance.calculate_net_radiation(
+            incoming_radiation=data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy(),
+            absorbed_radiation=data["shortwave_absorption"][
+                layer_structure.index_topsoil_scalar
+            ].to_numpy(),
+            longwave_emission=longwave_emission_soil,
+            albedo=abiotic_constants.surface_albedo,
+        )
+
         #  Sensible heat flux from canopy layers, [W m-2]
         sensible_heat_flux_canopy = energy_balance.calculate_sensible_heat_flux(
             density_air=density_air,
@@ -261,20 +285,18 @@ def run_microclimate(
 
         # Specific humidity of air, [kg kg-1] TODO external function
         specific_humidity_air = (
-            abiotic_constants.water_to_air_mass_ratio * actual_vapour_pressure_air
+            core_constants.molecular_weight_ratio_water_to_dry_air
+            * actual_vapour_pressure_air
         ) / (atmospheric_pressure - actual_vapour_pressure_air)
 
         # Latent heat flux canopy, [W m-2]
         # The current implementation converts outputs from plant and hydrology model to
         # ensure energy conservation between modules for now.
         # TODO cross-check with plant model, time step currently month to second
-        # TODO also there is a split between evaporation and transpiration, needs to be
-        # fixed in #493 - hydrology and evaporation
-        # also canopy_evaporation is 2D, chekc that this matches
-        # evapotranspiration = data['canopy_evaporation'] + data['transpiration']
+
+        evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
         latent_heat_flux_canopy = (
-            data["evapotranspiration"][layer_structure.index_filled_canopy].to_numpy()
-            / 2.628e6
+            evapotranspiration[layer_structure.index_filled_canopy].to_numpy() / 2.628e6
         ) * latent_heat_vapourisation[1:-1]
 
         # Latent heat flux topsoil, [W m-2]
@@ -283,18 +305,6 @@ def run_microclimate(
             data["soil_evaporation"].to_numpy()
             / 2.628e6
             * latent_heat_vapourisation[-1]
-        )
-
-        # TODO name absorption variable like plants - Net radiation topsoil, [W m-2]
-        net_radiation_soil = energy_balance.calculate_net_radiation(
-            incoming_radiation=data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy(),
-            absorbed_radiation=data["shortwave_absorption"][
-                layer_structure.index_topsoil_scalar
-            ].to_numpy(),
-            longwave_emission=longwave_emission_soil,
-            albedo=abiotic_constants.surface_albedo,
         )
 
         # Ground heat flux, [W m-2]
@@ -356,7 +366,7 @@ def run_microclimate(
 
         # TODO dimensions -  Update atmospheric humidity/VPD
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
-            evapotranspiration=data["evapotranspiration"][
+            evapotranspiration=evapotranspiration[
                 layer_structure.index_filled_canopy
             ].to_numpy(),
             soil_evaporation=data["soil_evaporation"].to_numpy(),
@@ -364,7 +374,9 @@ def run_microclimate(
             specific_humidity=specific_humidity_air.to_numpy(),
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,
-            water_to_air_mass_ratio=abiotic_constants.water_to_air_mass_ratio,
+            molecular_weight_ratio_water_to_dry_air=(
+                core_constants.molecular_weight_ratio_water_to_dry_air
+            ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
         )
@@ -392,6 +404,11 @@ def run_microclimate(
     longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
     output["longwave_emission"] = longwave_emission
+
+    net_radiation = layer_structure.from_template()
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
+    net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
+    output["net_radiation"] = net_radiation
 
     output["density_air"] = DataArray(density_air, dims="cell_id")
     output["specific_heat_air"] = DataArray(specific_heat_air, dims="cell_id")

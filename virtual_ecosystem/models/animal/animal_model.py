@@ -132,7 +132,7 @@ class AnimalModel(
         """Animal init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
+        handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)

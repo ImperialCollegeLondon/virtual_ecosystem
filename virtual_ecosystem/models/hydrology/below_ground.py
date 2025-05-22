@@ -149,7 +149,7 @@ def calculate_vertical_flow(
 def update_soil_moisture(
     soil_moisture: NDArray[np.float32],
     vertical_flow: NDArray[np.float32],
-    evapotranspiration: NDArray[np.float32],
+    transpiration: NDArray[np.float32],
     soil_moisture_capacity: NDArray[np.float32],
     soil_moisture_residual: NDArray[np.float32],
 ) -> NDArray[np.float32]:
@@ -157,13 +157,13 @@ def update_soil_moisture(
 
     This function calculates soil moisture for each layer by removing the vertical flow
     of the current layer and adding it to the layer below. The implementation is based
-    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
+    on :cite:t:`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
     removed from the second soil layer.
 
     Args:
         soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
         vertical_flow: Vertical flow between all layers, [mm]
-        evapotranspiration: Canopy evaporation, [mm]
+        transpiration: Canopy transpiration, [mm]
         soil_moisture_capacity: Soil moisture capacity for each layer, [mm]
         soil_moisture_residual: Residual soil moisture for each layer, [mm]
 
@@ -179,9 +179,9 @@ def update_soil_moisture(
     )
 
     # Add topsoil vertical flow to layer below and remove that layers flow as well as
-    # evapotranspiration = root water uptake, and ensure it is within capacity
+    # canopy transpiration = root water uptake, and ensure it is within capacity
     root_soil_moisture = np.clip(
-        soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - evapotranspiration,
+        soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - transpiration,
         soil_moisture_residual[1],
         soil_moisture_capacity[1],
     )
@@ -226,7 +226,7 @@ def calculate_matric_potential(
         \Psi_{m} = -\frac{1}{\alpha} (S_{e}^{-\frac{1}{m}} - 1)^{(\frac{1}{n})}
 
     where :math:`\alpha` is the inverse of the air-entry , :math:`S_{e}` is the
-    effective saturation, n and m are van Genuchten parmeters.
+    effective saturation, n and m are van Genuchten parameters.
 
     Args:
         effective_saturation: Effective saturation
@@ -335,7 +335,7 @@ def update_groundwater_storage(
 
     output = {}
     # The water that percolates from the upper to the lower groundwater zone is defined
-    # as the minumum of `max_percolation_rate_uzlz` and the amount water stored in upper
+    # as the minimum of `max_percolation_rate_uzlz` and the amount water stored in upper
     # zone, here `groundwater_storage[0]`
     percolation_to_lower_zone = np.where(
         max_percolation_rate_uzlz < groundwater_storage[0],

@@ -69,20 +69,17 @@ def test_update_soil_moisture():
 
     from virtual_ecosystem.models.hydrology.below_ground import update_soil_moisture
 
-    soil_moisture = np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]])
-    vertical_flow = np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]])
-    evapotranspiration = np.array([10, 2, 3])
     layer_thickness = np.array([[100, 100, 100], [900, 900, 900], [900, 900, 900]])
     exp_result = np.array(
         [[20.0, 50.0, 47.0], [290.0, 450.0, 450.0], [300.0, 450.0, 450.0]]
     )
 
     result = update_soil_moisture(
-        soil_moisture,
-        vertical_flow,
-        evapotranspiration,
-        CoreConsts.soil_moisture_capacity * layer_thickness,
-        HydroConsts.soil_moisture_residual * layer_thickness,
+        soil_moisture=np.array([[30, 60, 50], [300, 600, 500], [300, 600, 500]]),
+        vertical_flow=np.array([[10, 2, 3], [10, 2, 3], [15, 25, 35]]),
+        transpiration=np.array([10, 2, 3]),
+        soil_moisture_capacity=CoreConsts.soil_moisture_capacity * layer_thickness,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual * layer_thickness,
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=0.001)
