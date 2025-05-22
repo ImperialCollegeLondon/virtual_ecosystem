@@ -35,10 +35,10 @@ dealt with in detail below.
 
 At present, the only environmental impact we represent that isn't mediated by microbes
 is the the rate at which nutrients leach from the soil. As such, this process does not
-fit into any of the cases mentioned already, and so it will discuss in a separate
+fit into any of the cases mentioned already, and so it will be discussed in a separate
 section.
 
-## Environmental effects on implicit rates
+## Changes to rates of implicitly microbially driven processes
 
 The soil model explicitly represents the soil microbes involved in decomposition.
 However, extending this representation to all the processes would be incredibly hard to
