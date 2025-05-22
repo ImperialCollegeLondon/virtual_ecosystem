@@ -154,8 +154,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Evapotranspiration"
-name = "evapotranspiration"
+description = "Transpiration from canopy"
+name = "transpiration"
 unit = "mm"
 variable_type = "float"
 
@@ -269,6 +269,13 @@ axis = ["spatial"]
 description = "Mean mixing length"
 name = "mean_mixing_length"
 unit = "m"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Net radiation"
+name = "net_radiation"
+unit = "W m-2"
 variable_type = "float"
 
 [[variable]]
