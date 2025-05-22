@@ -46,14 +46,19 @@ def test_calculate_all_pool_updates(
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.12012715, 0.11835615, 0.25824465, 0.04074528],
-        "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.6793727e-2, 7.2757916e-2],
-        "soil_c_pool_bacteria": [-4.24905e-2, -1.71527e-2, -8.74104e-2, -6.36844e-3],
+        "soil_c_pool_lmwc": [0.12012578, 0.11834089, 0.2583055, 0.04054902],
+        "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.67937268e-2, 7.27579158e-2],
+        "soil_c_pool_bacteria": [
+            -4.24905130e-02,
+            -1.71526872e-02,
+            -8.74103820e-02,
+            -6.36922124e-03,
+        ],
         "soil_c_pool_saprotrophic_fungi": [
-            -0.00650731,
-            -0.06211968,
-            -0.01680347,
-            -0.02891271,
+            -6.50731332e-03,
+            -6.21196757e-02,
+            -1.68034651e-02,
+            -2.89162644e-02,
         ],
         "soil_c_pool_arbuscular_mycorrhiza": [
             -0.00575698,
@@ -71,21 +76,36 @@ def test_calculate_all_pool_updates(
         "soil_c_pool_necromass": [0.0059195, 0.09042042, 0.08573325, 0.02066319],
         "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
         "soil_enzyme_maom_bacteria": [-8.54122e-4, -2.79326e-4, -5.9611e-4, -1.0930e-4],
-        "soil_enzyme_pom_fungi": [-6.255735e-4, -1.243035e-4, -9.45208e-5, -7.39432e-5],
-        "soil_enzyme_maom_fungi": [-2.07949e-4, -1.501275e-4, -3.08488e-5, -2.00152e-5],
-        "soil_n_pool_don": [0.0015685, 0.00728104, 0.00516688, 0.00203954],
+        "soil_enzyme_pom_fungi": [
+            -6.25573478e-4,
+            -1.24303545e-4,
+            -9.45207808e-5,
+            -7.39609664e-5,
+        ],
+        "soil_enzyme_maom_fungi": [
+            -2.07949478e-04,
+            -1.50127545e-04,
+            -3.08487808e-05,
+            -2.00329664e-05,
+        ],
+        "soil_n_pool_don": [0.00156848, 0.0072802, 0.00516688, 0.00203954],
         "soil_n_pool_particulate": [-8.93041e-5, 5.105645e-5, 9.035108e-5, 5.212779e-6],
         "soil_n_pool_necromass": [7.37406e-3, -1.87488e-3, 4.96976e-3, -1.53633e-7],
         "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
-        "soil_n_pool_ammonium": [0.00015705, 0.00827318, -0.00015937, -0.00036218],
-        "soil_n_pool_nitrate": [-0.00316048, -0.00396003, -0.00106993, -0.00097346],
+        "soil_n_pool_ammonium": [0.00015706, 0.00827393, -0.00015937, -0.00036155],
+        "soil_n_pool_nitrate": [-0.00316048, -0.00395995, -0.00106993, -0.00097339],
         "soil_p_pool_dop": [2.08332995e-4, 1.02602825e-4, 1.39943896e-4, 8.15796967e-5],
         "soil_p_pool_particulate": [6.820884e-6, -6.40228e-6, -8.6718e-7, 2.094258e-7],
         "soil_p_pool_necromass": [0.00225261, 0.00282114, 0.00596048, 0.0014114],
         "soil_p_pool_maom": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
-        "soil_p_pool_labile": [-1.41331e-5, -2.62731e-4, -8.66805e-5, -2.80676e-5],
+        "soil_p_pool_labile": [
+            -1.41330755e-5,
+            -2.62731235e-4,
+            -8.66805070e-5,
+            -2.79283683e-5,
+        ],
     }
 
     # Make order of pools object
@@ -164,18 +184,18 @@ def test_calculate_microbial_changes(
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
     expected_mic_changes = {
-        "lmwc_uptake": [-0.00016719, -0.00345458, -0.00527733, -0.00432747],
-        "don_uptake": [3.80901815e-05, 3.60067105e-04, 1.55166065e-04, 5.35784923e-04],
-        "ammonium_change": [9.9737697e-7, -3.307539e-4, 4.0348864e-4, -1.399066e-4],
-        "nitrate_change": [8.008074e-6, -3.675043e-5, 6.023586e-5, -1.554518e-5],
-        "dop_uptake": [1.57632392e-6, 4.47842646e-5, 6.20694674e-5, 2.18040323e-5],
-        "labile_p_change": [3.05705735e-6, 6.55595034e-5, 7.50146619e-5, 2.43003685e-5],
-        "bacteria_change": [-0.04249051, -0.01715269, -0.08741038, -0.00636844],
+        "lmwc_uptake": [-0.00016582, -0.00343932, -0.00534401, -0.00407639],
+        "don_uptake": [3.81040066e-5, 3.60905249e-4, 1.55166065e-4, 5.36242414e-4],
+        "ammonium_change": [9.84934398e-7, -3.3150823e-4, 4.0348864e-4, -1.4095257e-4],
+        "nitrate_change": [8.00669162e-6, -3.6834248e-5, 6.0235861e-5, -1.5661397e-5],
+        "dop_uptake": [1.57632392e-6, 4.47842646e-05, 6.20694674e-05, 2.18040323e-05],
+        "labile_p_change": [3.05705735e-6, 6.55595034e-5, 7.50146619e-5, 2.41611289e-5],
+        "bacteria_change": [-0.04249051, -0.01715269, -0.08741038, -0.00636922],
         "saprotrophic_fungi_change": [
             -0.00650731,
             -0.06211968,
             -0.01680347,
-            -0.02891271,
+            -0.02891626,
         ],
         "arbuscular_mycorrhiza_change": [
             -0.00490935,
@@ -185,23 +205,28 @@ def test_calculate_microbial_changes(
         ],
         "ectomycorrhiza_change": [-0.00363767, -0.0154999, -0.03037165, -0.02285969],
         "pom_enzyme_bacteria_change": [
-            -5.44018325e-4,
-            -2.28350229e-4,
-            -1.19517352e-3,
-            -7.21027994e-5,
+            -5.44018325e-04,
+            -2.28350229e-04,
+            -1.19517352e-03,
+            -7.21067159e-05,
         ],
         "maom_enzyme_bacteria_change": [
             -0.00085412,
             -0.00027933,
             -0.00059611,
-            -0.0001093,
+            -0.00010931,
         ],
-        "pom_enzyme_fungi_change": [-6.25573e-4, -1.24304e-4, -8.84771e-5, -6.40606e-5],
+        "pom_enzyme_fungi_change": [
+            -6.25573478e-04,
+            -1.24303545e-04,
+            -8.84771213e-05,
+            -6.40784093e-05,
+        ],
         "maom_enzyme_fungi_change": [
-            -2.07949e-4,
-            -1.50128e-4,
-            -2.48051e-5,
-            -1.01326e-5,
+            -2.07949478e-04,
+            -1.50127545e-04,
+            -2.48051213e-05,
+            -1.01504093e-05,
         ],
         "necromass_generation": [0.05952289, 0.10428336, 0.1716835, 0.11770379],
         "necromass_n_flow": [0.01004001, 0.01465402, 0.02363142, 0.01030819],
@@ -364,13 +389,38 @@ def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_clas
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_changes
 
     expected_enzyme_changes = {
-        "net_change_pom_bacteria": [-0.00054402, -0.00022835, -0.00119517, -7.21028e-5],
-        "net_change_maom_bacteria": [-8.5412e-4, -2.7933e-4, -5.9611e-4, -0.0001093],
-        "net_change_pom_fungi": [-0.00063008, -0.00025732, -8.84771e-5, -6.40606e-5],
-        "net_change_maom_fungi": [-0.00021246, -0.00028314, -2.48051e-5, -1.01326e-5],
+        "net_change_pom_bacteria": [
+            -5.44018325e-4,
+            -2.28350229e-4,
+            -1.19517352e-3,
+            -7.21067159e-5,
+        ],
+        "net_change_maom_bacteria": [
+            -0.00085412,
+            -0.00027933,
+            -0.00059611,
+            -0.00010931,
+        ],
+        "net_change_pom_fungi": [
+            -6.30079138e-4,
+            -2.57320183e-4,
+            -8.84771213e-5,
+            -6.40784093e-5,
+        ],
+        "net_change_maom_fungi": [
+            -2.12455138e-4,
+            -2.83144183e-4,
+            -2.48051213e-5,
+            -1.01504093e-5,
+        ],
         "denaturation_maom_bacteria": [0.0008544, 0.0002808, 0.00060216, 0.00010944],
-        "denaturation_pom_bacteria": [0.000544296, 0.000229824, 0.001201224, 7.224e-5],
-        "denaturation_maom_fungi": [0.000208056, 0.000163824, 9.1368e-5, 5.1912e-5],
+        "denaturation_pom_bacteria": [
+            5.442960e-4,
+            2.298240e-4,
+            1.201224e-3,
+            7.224000e-5,
+        ],
+        "denaturation_maom_fungi": [2.08056e-4, 1.63824e-4, 9.13680e-5, 5.19120e-5],
         "denaturation_pom_fungi": [0.00062568, 0.000138, 0.00015504, 0.00010584],
     }
 
@@ -415,10 +465,10 @@ def test_calculate_enzyme_production(functional_groups, growth_rates):
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_production
 
     expected_production = {
-        "bacteria_maom": [2.776751015e-7, 1.4737706e-6, 6.0504784e-6, 1.372006185e-7],
-        "bacteria_pom": [2.776751015e-7, 1.4737706e-6, 6.0504784e-6, 1.372006185e-7],
-        "fungi_maom": [-4.3991781e-6, -0.0001193202, 6.65628219e-5, 4.17793908e-5],
-        "fungi_pom": [-4.3991781e-6, -0.0001193202, 6.65628219e-5, 4.17793908e-5],
+        "bacteria_pom": [2.77675102e-07, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
+        "bacteria_maom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
+        "fungi_pom": [-4.39913809e-6, -1.19320183e-4, 6.65628787e-5, 4.17615907e-5],
+        "fungi_maom": [-4.39913809e-6, -1.19320183e-4, 6.65628787e-5, 4.17615907e-5],
     }
 
     actual_production = calculate_enzyme_production(
