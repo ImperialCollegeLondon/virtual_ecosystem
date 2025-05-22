@@ -62,7 +62,8 @@ class HydroConsts(ConstantsDataclass):
     """Nonlinearity parameter n (dimensionless) in Mualem-van Genuchten model.
 
     This parameter is a fitting shape parameters of soil water retention curve, see
-    :cite:p:`van_genuchten_closed-form_1980`. The value for average tropical rainforest
+    :cite:p:`van_genuchten_closed-form_1980`. Average value of different soil textures
+    across tropical regions 
     is taken from :cite:t:`hodnett_marked_2002`.
     """
 
