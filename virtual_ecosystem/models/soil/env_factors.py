@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature, gas_constant
+from scipy.special import expit
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -411,26 +412,32 @@ def calculate_leaching_rate(
 
 def calculate_carbon_use_efficiency(
     soil_temp: NDArray[np.float32],
-    reference_cue: float,
+    reference_cue_logit: float,
     cue_reference_temp: float,
-    cue_with_temperature: float,
+    logit_cue_with_temp: float,
 ) -> NDArray[np.float32]:
     """Calculate the (temperature dependent) carbon use efficiency.
+
+    We model the carbon use efficiency using a logistic function. This is to ensure that
+    carbon use efficiency values remain bounded between zero and one.
 
     TODO - This should be adapted to use an Arrhenius function at some point.
 
     Args:
         soil_temp: soil temperature for each soil grid cell [degrees C]
-        reference_cue: Carbon use efficiency at reference temp [unitless]
+        reference_cue_logit: Logit of the carbon use efficiency at reference temp
+            [unitless]
         cue_reference_temp: Reference temperature [degrees C]
-        cue_with_temperature: Rate of change in carbon use efficiency with increasing
-            temperature [degree C^-1]
+        logit_cue_with_temp: Rate of change in the logit of carbon use efficiency with
+            increasing temperature [degree C^-1]
 
     Returns:
         The carbon use efficiency (CUE) of the microbial community
     """
 
-    return reference_cue - cue_with_temperature * (soil_temp - cue_reference_temp)
+    return expit(
+        reference_cue_logit + logit_cue_with_temp * (soil_temp - cue_reference_temp)
+    )
 
 
 def find_total_soil_moisture_for_microbially_active_depth(
