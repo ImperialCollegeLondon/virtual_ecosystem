@@ -29,12 +29,12 @@ The litter model we use is based on the well established approach of
 {cite}`kirschbaum_modelling_2002`. In our model, litter is divided into a number of
 separate pools based on input material type, chemistry and spatial location (i.e. above-
 vs below-ground). These pools each have a characteristic decay rate, which gets modified
-by environmental conditions and for some of the pools by their lignin concentrations.
+by environmental conditions and, for some of the pools, by their lignin concentrations.
 Notably, these decay rates are not affected by the nitrogen and phosphorus
-concentrations of the pools. Instead, nitrogen and phosphorus concentrations effect the
+concentrations of the pools. Instead, nitrogen and phosphorus concentrations affect the
 partitioning of input organic matter between litter pools, i.e. if the nutrient
-concentrations of a particular input are low a higher proportion of the input goes into
-slow decaying litter pools. This indirectly captures the impact of nitrogen and
+concentrations of a particular input are low, then a higher proportion of the input goes
+into slow decaying litter pools. This indirectly captures the impact of nitrogen and
 phosphorus chemistry on litter decay.
 
 The rest of this page gives provides details on the specific litter pools, the
@@ -45,8 +45,8 @@ the impacts animals have on litter accumulation and decay.
 
 In our model, pools are principally defined by input type, e.g. woody, structural and
 metabolic. They are then further subdivided into above- and below-ground pools. Some of
-these pools cannot be fully characterised due to insufficient data and so following
-{cite}`fatichi_mechanistic_2019`, we neglect them. This means that we use a single
+these pools cannot be fully characterised due to insufficient data, so we neglect them
+following {cite}`fatichi_mechanistic_2019`. This means that we use a single
 above-ground woody litter pool, rather than coarse and fine woody, and we do not include
 any below-ground woody pool. This leaves us with the following pools:
 
@@ -65,17 +65,17 @@ metabolic pool, but is defined as containing the more recalcitrant material.
 ### Above-ground woody litter
 
 Above-ground dead wood is treated separately due to its substantially different turnover
-dynamics. So, all wood losses from tree falls, branch fall etc, are assumed to be added
+dynamics, i.e. all wood losses from tree falls, branch fall etc, are assumed to be added
 to an above-ground woody pool. We assume that the vast majority of dead wood ends up
 decaying on top of the soil, and so there is no corresponding below-ground pool. We
 considered including a separate pool for standing dead trees, as wood decaying in this
 form would experience a very different environment and hence would be expected to decay
-at a different rate. This felt like too much effort for what is likely to be a small
-effect.
+at a different rate. However, this felt like too much effort for what is likely to be a
+small effect.
 
 ### Below-ground metabolic litter
 
-For the below-ground pools roots (both fine and coarse) are the major source of biomass.
+For the below-ground pools, roots (both fine and coarse) are the major source of biomass.
 The below-ground metabolic litter pool then includes the easily broken down root debris,
 which is likely to come predominantly from fine-root turnover.
 

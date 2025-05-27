@@ -163,9 +163,9 @@ def calculate_nutrient_uptake_rates(
     # Calculate carbon use efficiency as it is used in multiple subsequent functions
     carbon_use_efficiency = calculate_carbon_use_efficiency(
         soil_temp=soil_temp,
-        reference_cue=constants.reference_cue,
+        reference_cue_logit=constants.reference_cue_logit,
         cue_reference_temp=constants.cue_reference_temp,
-        cue_with_temperature=constants.cue_with_temperature,
+        logit_cue_with_temp=constants.logit_cue_with_temperature,
     )
 
     max_uptake_rates = calculate_maximum_uptake_rates(
