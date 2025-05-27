@@ -229,7 +229,7 @@ class TestAnimalCohort:
         cohort_type,
         excreta_mass,
         num_pools,
-        excrement_pools_instance,
+        excrement_pools_by_cell_instance,
     ):
         """Testing excrete method for various scenarios using the fixture."""
         # Select the appropriate cohort instance
@@ -240,7 +240,7 @@ class TestAnimalCohort:
         )
 
         # Retrieve the excrement pools from the fixture
-        excrement_pools = excrement_pools_instance[1][:num_pools]
+        excrement_pools = excrement_pools_by_cell_instance[1][:num_pools]
 
         # Store initial values before excretion
         initial_scavengeable_cnp = {
@@ -347,7 +347,7 @@ class TestAnimalCohort:
         cohort_type,
         mass_consumed,
         num_pools,
-        excrement_pools_instance,
+        excrement_pools_by_cell_instance,
     ):
         """Testing defecate method for various scenarios using the fixture."""
 
@@ -359,7 +359,7 @@ class TestAnimalCohort:
         )
 
         # Retrieve the excrement pools from the fixture
-        excrement_pools = excrement_pools_instance[1][:num_pools]
+        excrement_pools = excrement_pools_by_cell_instance[1][:num_pools]
 
         # Store initial values before defecation
         initial_scavengeable_cnp = {
@@ -639,7 +639,7 @@ class TestAnimalCohort:
         mocker,  # Inject pytest's mocker
         herbivore_cohort_instance,
         predator_cohort_instance,
-        carcass_pools_instance,
+        carcass_pools_by_cell_instance,
         initial_individuals,
         individual_mass,
         potential_consumed_mass,
@@ -665,17 +665,17 @@ class TestAnimalCohort:
         # Track initial total carcass pool mass for each nutrient
         initial_carcass_mass_c = sum(
             pool.scavengeable_cnp["carbon"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         initial_carcass_mass_n = sum(
             pool.scavengeable_cnp["nitrogen"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         initial_carcass_mass_p = sum(
             pool.scavengeable_cnp["phosphorus"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
 
@@ -695,11 +695,13 @@ class TestAnimalCohort:
         # **Mock `find_intersecting_carcass_pools` return only relevant carcass pools**
         predator_cells = predator_cohort_instance.territory
         intersecting_cells = [
-            cell for cell in predator_cells if cell in carcass_pools_instance
+            cell for cell in predator_cells if cell in carcass_pools_by_cell_instance
         ]
 
         mock_carcass_pools = [
-            pool for cell in intersecting_cells for pool in carcass_pools_instance[cell]
+            pool
+            for cell in intersecting_cells
+            for pool in carcass_pools_by_cell_instance[cell]
         ]
 
         mocker.patch.object(
@@ -713,7 +715,9 @@ class TestAnimalCohort:
 
         # When get_eaten is called
         actual_mass_consumed = herbivore_cohort_instance.get_eaten(
-            potential_consumed_mass, predator_cohort_instance, carcass_pools_instance
+            potential_consumed_mass,
+            predator_cohort_instance,
+            carcass_pools_by_cell_instance,
         )
 
         # Compute expected consumed and carcass mass
@@ -766,17 +770,17 @@ class TestAnimalCohort:
         # Track final total carcass pool mass for each nutrient
         final_carcass_mass_c = sum(
             pool.scavengeable_cnp["carbon"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         final_carcass_mass_n = sum(
             pool.scavengeable_cnp["nitrogen"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         final_carcass_mass_p = sum(
             pool.scavengeable_cnp["phosphorus"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
 
@@ -840,7 +844,7 @@ class TestAnimalCohort:
         herbivore_cohort_instance,
         mass_consumed,
         expected_waste,
-        excrement_pools_instance,
+        excrement_pools_by_cell_instance,
     ):
         """Test that `eat` calls `grow` and `defecate` with correct arguments."""
 
@@ -853,13 +857,15 @@ class TestAnimalCohort:
         mock_defecate = mocker.patch.object(herbivore_cohort_instance, "defecate")
 
         # Call eat method
-        herbivore_cohort_instance.eat(mass_consumed, excrement_pools_instance)
+        herbivore_cohort_instance.eat(mass_consumed, excrement_pools_by_cell_instance)
 
         # Assert that grow was called once with the expected arguments
         mock_grow.assert_called_once_with(mass_consumed)
 
         # Assert that defecate was called once with the expected waste mass
-        mock_defecate.assert_called_once_with(excrement_pools_instance, expected_waste)
+        mock_defecate.assert_called_once_with(
+            excrement_pools_by_cell_instance, expected_waste
+        )
 
     @pytest.mark.parametrize(
         "mass_consumed, excrement_pools, expected_error_message",
@@ -1908,6 +1914,75 @@ class TestAnimalCohort:
             assert result == expected_behavior
 
     @pytest.mark.parametrize(
+        "num_pools, mock_requested_mass, mock_consumed_cnp, expected_result",
+        [
+            # ✅ Case 1: Two pools
+            (
+                2,
+                5.0,
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 20.0, "nitrogen": 4.0, "phosphorus": 2.0},
+            ),
+            # ✅ Case 2: Three pools
+            (
+                3,
+                3.0,
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.25},
+                {"carbon": 6.0, "nitrogen": 1.5, "phosphorus": 0.75},
+            ),
+            # ✅ Case 3: One pool
+            (
+                1,
+                7.5,
+                {"carbon": 6.0, "nitrogen": 1.2, "phosphorus": 0.6},
+                {"carbon": 6.0, "nitrogen": 1.2, "phosphorus": 0.6},
+            ),
+        ],
+    )
+    def test_delta_mass_detritivory(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        litter_pools_by_cell_instance,
+        num_pools,
+        mock_requested_mass,
+        mock_consumed_cnp,
+        expected_result,
+    ):
+        """Test that `delta_mass_detritivory` sums assimilated CNP correctly."""
+        # Get subset of pools
+        all_pools = [
+            pool for pools in litter_pools_by_cell_instance.values() for pool in pools
+        ]
+        litter_pools = all_pools[:num_pools]
+
+        # Patch the detritivory mass request method
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "calculate_consumed_mass_detritivory",
+            return_value=mock_requested_mass,
+        )
+
+        # Patch get_eaten on each pool to return a known CNP and unused second value
+        for pool in litter_pools:
+            mocker.patch.object(
+                pool,
+                "get_eaten",
+                return_value=(mock_consumed_cnp, None),
+            )
+
+        # Run method under test
+        result = herbivore_cohort_instance.delta_mass_detritivory(litter_pools)
+
+        # Scale by conversion efficiency
+        eff = herbivore_cohort_instance.functional_group.conversion_efficiency
+        expected_scaled = {
+            k: pytest.approx(v * eff) for k, v in expected_result.items()
+        }
+
+        assert result == expected_scaled
+
+    @pytest.mark.parametrize(
         "F_value, mass_current, expected_behavior",
         [
             (0.05, 10.0, "formula"),  # normal case
@@ -2058,7 +2133,7 @@ class TestAnimalCohort:
         plant_list_instance,
         animal_list_instance,
         excrement_pool_instance,
-        carcass_pools_instance,
+        carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
     ):
         """Test `forage_cohort` for correct resource routing and assimilation calls."""
@@ -2090,7 +2165,7 @@ class TestAnimalCohort:
             animal_list=animal_list,
             litter_pools=empty_list,
             excrement_pools=excrement_pool_instance,
-            carcass_pool_map=carcass_pools_instance,
+            carcass_pool_map=carcass_pools_by_cell_instance,
             scavenge_carcass_pools=empty_list,
             scavenge_excrement_pools=empty_list,
             herbivory_waste_pools=herbivory_waste_pools
@@ -2105,7 +2180,7 @@ class TestAnimalCohort:
             )
         else:
             mock_delta_mass.assert_called_once_with(
-                animal_list_instance, carcass_pools_instance
+                animal_list_instance, carcass_pools_by_cell_instance
             )
 
         # Assert assimilation

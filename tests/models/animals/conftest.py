@@ -793,7 +793,7 @@ def excrement_pool_instance():
 
 
 @pytest.fixture
-def excrement_pools_instance():
+def excrement_pools_by_cell_instance():
     """Fixture for excrement pools used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
@@ -867,7 +867,7 @@ def carcass_pool_instance():
 
 
 @pytest.fixture
-def carcass_pools_instance():
+def carcass_pools_by_cell_instance():
     """Fixture for carcass pools used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
@@ -920,14 +920,33 @@ def litter_data_instance(fixture_core_components):
 
 @pytest.fixture
 def litter_pool_instance(litter_data_instance):
-    """Fixture for a litter pool class to be used in tests."""
+    """Fixture for a single LitterPool instance in cell 0."""
     from virtual_ecosystem.models.animal.decay import LitterPool
 
     return LitterPool(
         pool_name="above_metabolic",
+        cell_id=0,
         data=litter_data_instance,
         cell_area=10000,
     )
+
+
+@pytest.fixture
+def litter_pools_by_cell_instance(litter_data_instance):
+    """Fixture for litter pools used in tests."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    return {
+        cell_id: [
+            LitterPool(
+                pool_name="above_metabolic",
+                cell_id=cell_id,
+                data=litter_data_instance,
+                cell_area=10000,
+            )
+        ]
+        for cell_id in range(4)  # data has 4 valid cells: 0 to 3
+    }
 
 
 @pytest.fixture
