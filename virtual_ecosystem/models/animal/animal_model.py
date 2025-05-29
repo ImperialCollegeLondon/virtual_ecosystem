@@ -47,7 +47,10 @@ from virtual_ecosystem.models.animal.functional_group import (
 )
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
-from virtual_ecosystem.models.animal.scaling_functions import damuths_law
+from virtual_ecosystem.models.animal.scaling_functions import (
+    damuths_law,
+    prey_group_selection,
+)
 
 
 class AnimalModel(
@@ -191,18 +194,13 @@ class AnimalModel(
                     functional_group.adult_mass, functional_group.damuths_law_terms
                 )
 
-                # Create a cohort of the functional group
-                cohort = AnimalCohort(
+                self.create_new_cohort(
                     functional_group=functional_group,
                     mass=functional_group.adult_mass,
                     age=0.0,
                     individuals=individuals,
                     centroid_key=cell_id,
-                    grid=self.data.grid,
-                    constants=self.model_constants,
                 )
-                self.active_cohorts[cohort.id] = cohort
-                self.communities[cell_id].append(cohort)
 
     @classmethod
     def from_config(
@@ -806,7 +804,7 @@ class AnimalModel(
         if number_offspring == 0:
             return  # Insufficient mass for offspring
 
-        self.handle_offspring_creation(parent_cohort, number_offspring)
+        self.create_offspring(parent_cohort, number_offspring)
         self.handle_post_birth_parent_updates(parent_cohort, number_offspring)
 
     def calculate_total_reproductive_mass(
@@ -859,25 +857,6 @@ class AnimalModel(
         )
         # Total offspring is limited offspring per parent times the number of parents
         return int(max_per_parent * parent.individuals)
-
-    def handle_offspring_creation(
-        self, parent: AnimalCohort, number_offspring: int
-    ) -> None:
-        """Create offspring and place them into the correct cohort pool.
-
-        Args:
-            parent: The parent cohort.
-            number_offspring: Number of offspring to create.
-        """
-        offspring = self.create_offspring(parent, number_offspring)
-
-        if parent.functional_group.reproductive_environment == "aquatic":
-            # Aquatic offspring start in the 'aquatic' holding pool
-            self.aquatic_cohorts[offspring.id] = offspring
-        else:
-            # Terrestrial offspring immediately join the active population
-            self.active_cohorts[offspring.id] = offspring
-            self.update_community_occupancy(offspring, offspring.centroid_key)
 
     def handle_post_birth_parent_updates(
         self,
@@ -976,7 +955,7 @@ class AnimalModel(
     def create_offspring(
         self, parent: AnimalCohort, number_offspring: int
     ) -> AnimalCohort:
-        """Create a new offspring cohort, handling both aquatic and terrestrial cases.
+        """Create a new offspring cohort using the parent's offspring group definition.
 
         Args:
             parent: The parent cohort.
@@ -990,19 +969,14 @@ class AnimalModel(
             parent.functional_group.offspring_functional_group,
         )
 
-        offspring = AnimalCohort(
+        offspring = self.create_new_cohort(
             functional_group=offspring_functional_group,
             mass=offspring_functional_group.birth_mass,
             age=0.0,
             individuals=number_offspring,
             centroid_key=parent.centroid_key,
-            grid=parent.grid,
-            constants=parent.constants,
+            is_birth=True,
         )
-
-        if parent.functional_group.reproductive_environment == "aquatic":
-            # Aquatic offspring have a residence time before joining the active cohorts
-            offspring.remaining_time_away = parent.constants.aquatic_residence_time
 
         return offspring
 
@@ -1194,22 +1168,15 @@ class AnimalModel(
             self.functional_groups,
             larval_cohort.functional_group.offspring_functional_group,
         )
-        # create the adult cohort
-        adult_cohort = AnimalCohort(
+
+        # create the new adult cohort and update its presence in the simulation
+        self.create_new_cohort(
             adult_functional_group,
             adult_functional_group.birth_mass,
             0.0,
             larval_cohort.individuals,
             larval_cohort.centroid_key,
-            self.grid,
-            self.model_constants,
         )
-
-        # add a new cohort of the parental type to the community
-        self.active_cohorts[adult_cohort.id] = adult_cohort
-
-        # add the new cohort to the community lists it occupies
-        self.update_community_occupancy(adult_cohort, adult_cohort.centroid_key)
 
         # remove the larval cohort
         larval_cohort.is_alive = False
@@ -1313,3 +1280,66 @@ class AnimalModel(
         for cohort in list(self.aquatic_cohorts.values()):
             if cohort.remaining_time_away <= 0:
                 self.reintegrate_cohort(cohort, source="aquatic")
+
+    def assign_prey_groups(self, cohort: AnimalCohort) -> None:
+        """Assign the available prey groups to a given animal cohort.
+
+        This method filters the functional groups present in the model based on the
+        diet of the cohort and stores the resulting prey/resource groups on the cohort.
+        It should be called whenever a cohort is created or changes functional group.
+
+        Args:
+            cohort: The AnimalCohort instance for which to assign prey groups.
+        """
+
+        cohort.prey_groups = prey_group_selection(
+            cohort.functional_group.diet,
+            cohort.functional_group.adult_mass,
+            cohort.functional_group.prey_scaling,
+            self.functional_groups,
+        )
+
+    def create_new_cohort(
+        self,
+        functional_group: FunctionalGroup,
+        mass: float,
+        age: float,
+        individuals: int,
+        centroid_key: int,
+        is_birth: bool = False,
+    ) -> AnimalCohort:
+        """Create a new AnimalCohort and register it in the model.
+
+        Args:
+            functional_group: Functional group defining cohort traits.
+            mass: Body mass (kg) at creation.
+            age: Age (days) at creation.
+            individuals: Number of individuals in the cohort.
+            centroid_key: Grid cell for territorial location.
+            is_birth: Whether the cohort is a new offspring (affects aquatic routing).
+
+        Returns:
+            A registered AnimalCohort.
+        """
+
+        cohort = AnimalCohort(
+            functional_group=functional_group,
+            mass=mass,
+            age=age,
+            individuals=individuals,
+            centroid_key=centroid_key,
+            grid=self.data.grid,
+            constants=self.model_constants,
+        )
+
+        self.assign_prey_groups(cohort)
+
+        # Register based on birth & aquatic logic
+        if is_birth and functional_group.reproductive_environment == "aquatic":
+            cohort.remaining_time_away = cohort.constants.aquatic_residence_time
+            self.aquatic_cohorts[cohort.id] = cohort
+        else:
+            self.active_cohorts[cohort.id] = cohort
+            self.update_community_occupancy(cohort, centroid_key)
+
+        return cohort

@@ -72,11 +72,7 @@ class AnimalCohort:
         """The amount of time [days] between birth and adult body-mass."""
         self.time_since_maturity: float = 0.0
         """The amount of time [days] since reaching adult body-mass."""
-        self.prey_groups: dict[str, tuple[float, float]] = sf.prey_group_selection(
-            self.functional_group.diet,
-            self.functional_group.adult_mass,
-            self.functional_group.prey_scaling,
-        )
+        self.prey_groups: dict[str, tuple[float, float]] = {}
         """The identification of usable food resources."""
         self.territory_size = sf.territory_size(self.functional_group.adult_mass)
         """The size in hectares of the animal cohorts territory."""
@@ -826,7 +822,6 @@ class AnimalCohort:
         consumed based on this rate and other model parameters.
 
         TODO: Replace delta_t with time step reference
-        TODO: make tests
 
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
@@ -923,7 +918,6 @@ class AnimalCohort:
         this rate and other model parameters.
 
         TODO: Replace delta_t with actual time step reference
-        TODO: make tests
 
         Args:
             plant_list: A list of plant resources that can be consumed by the
@@ -1016,8 +1010,6 @@ class AnimalCohort:
         target_pool: Resource,
     ) -> float:
         """Return kg wet mass a cohort removes from one litter pool over Δt.
-
-        TODO: Make tests
 
         The search/handling formulation is identical to herbivory; only the resource
           list and pool class differ.
