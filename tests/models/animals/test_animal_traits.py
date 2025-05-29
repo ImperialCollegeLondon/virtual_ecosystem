@@ -62,6 +62,14 @@ class TestDietType:
         result = DietType.parse(diet_string)
         assert result == expected
 
+    def test_diettype_parse_composites(self):
+        """Test the composite diets parse correctly."""
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+
+        assert DietType.parse("carnivore") == DietType.CARNIVORE
+        assert DietType.parse("herbivore") == DietType.HERBIVORE
+        assert DietType.parse("omnivore") == DietType.OMNIVORE
+
     def test_parse_invalid(self):
         """Test that invalid parse strings raise ValueError."""
 

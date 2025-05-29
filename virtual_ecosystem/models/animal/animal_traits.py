@@ -64,13 +64,25 @@ class DietType(Flag):
             A DietType flag representing the combined diet traits.
         """
 
-        parts = diet_string.lower().split("_")
+        diet_string = diet_string.lower()
+
+        # Handle known composite categories directly
+        if diet_string == "herbivore":
+            return cls.HERBIVORE
+        elif diet_string == "carnivore":
+            return cls.CARNIVORE
+        elif diet_string == "omnivore":
+            return cls.OMNIVORE
+
+        # Otherwise parse individual components
+        parts = diet_string.split("_")
         try:
             flags = getattr(cls, parts[0].upper())
             for part in parts[1:]:
                 flags |= getattr(cls, part.upper())
         except AttributeError as e:
             raise ValueError(f"Invalid diet term in string: {diet_string}") from e
+
         return flags
 
     def coarse_category(self) -> "DietType":

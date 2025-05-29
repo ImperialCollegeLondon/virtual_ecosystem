@@ -941,8 +941,8 @@ class TestAnimalModel:
         mock_calculate_count = mocker.patch.object(
             animal_model_instance, "calculate_offspring_count"
         )
-        mock_handle_creation = mocker.patch.object(
-            animal_model_instance, "handle_offspring_creation"
+        mock_create_offspring = mocker.patch.object(
+            animal_model_instance, "create_offspring"
         )
         mock_handle_updates = mocker.patch.object(
             animal_model_instance, "handle_post_birth_parent_updates"
@@ -966,14 +966,14 @@ class TestAnimalModel:
         )
 
         if expect_creation_called:
-            mock_handle_creation.assert_called_once_with(
+            mock_create_offspring.assert_called_once_with(
                 herbivore_cohort_instance, offspring_count
             )
             mock_handle_updates.assert_called_once_with(
                 herbivore_cohort_instance, offspring_count
             )
         else:
-            mock_handle_creation.assert_not_called()
+            mock_create_offspring.assert_not_called()
             mock_handle_updates.assert_not_called()
 
     @pytest.mark.parametrize(
@@ -1103,69 +1103,6 @@ class TestAnimalModel:
 
         # Check result
         assert result == expected_offspring
-
-    @pytest.mark.parametrize(
-        "reproductive_environment, expected_aquatic, expected_active",
-        [
-            ("aquatic", True, False),  # Aquatic offspring go into aquatic pool
-            ("terrestrial", False, True),  # Terrestrial offspring go into active pool
-        ],
-    )
-    def test_handle_offspring_creation(
-        self,
-        mocker,
-        animal_model_instance,
-        herbivore_cohort_instance,
-        reproductive_environment,
-        expected_aquatic,
-        expected_active,
-    ):
-        """Test that offspring are placed in the correct pool based on environment."""
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-
-        # Mock the parent cohort's functional group
-        herbivore_cohort_instance.functional_group.reproductive_environment = (
-            reproductive_environment
-        )
-
-        # Mock the offspring created by `create_offspring`
-        mock_offspring = mocker.create_autospec(AnimalCohort)
-        mock_offspring.id = "mock_offspring_id"
-        mock_offspring.centroid_key = herbivore_cohort_instance.centroid_key
-
-        # Patch `create_offspring` to return the mock offspring
-        mocker.patch.object(
-            animal_model_instance,
-            "create_offspring",
-            return_value=mock_offspring,
-        )
-
-        # Patch `update_community_occupancy` to track calls
-        mock_update_occupancy = mocker.patch.object(
-            animal_model_instance, "update_community_occupancy"
-        )
-
-        # Run the method
-        animal_model_instance.handle_offspring_creation(herbivore_cohort_instance, 3)
-
-        # Assertions
-        if expected_aquatic:
-            assert (
-                animal_model_instance.aquatic_cohorts["mock_offspring_id"]
-                == mock_offspring
-            )
-            assert "mock_offspring_id" not in animal_model_instance.active_cohorts
-            mock_update_occupancy.assert_not_called()
-
-        if expected_active:
-            assert (
-                animal_model_instance.active_cohorts["mock_offspring_id"]
-                == mock_offspring
-            )
-            assert "mock_offspring_id" not in animal_model_instance.aquatic_cohorts
-            mock_update_occupancy.assert_called_once_with(
-                mock_offspring, mock_offspring.centroid_key
-            )
 
     @pytest.mark.parametrize(
         "reproductive_type, initial_reproductive_mass, offspring_count, birth_mass_cnp,"
@@ -1423,7 +1360,9 @@ class TestAnimalModel:
         herbivore_cohort_instance.functional_group.reproductive_environment = (
             reproductive_environment
         )
-        herbivore_cohort_instance.centroid_key = 42
+        # Pick a valid community cell
+        valid_cell_id = next(iter(animal_model_instance.communities.keys()))
+        herbivore_cohort_instance.centroid_key = valid_cell_id
 
         # Make sure the AnimalModel has the full list of functional groups
         animal_model_instance.functional_groups = functional_group_list_instance
@@ -1437,7 +1376,7 @@ class TestAnimalModel:
         assert offspring.mass_current == parent_group.birth_mass
         assert offspring.age == 0.0
         assert offspring.individuals == 5
-        assert offspring.centroid_key == 42
+        assert offspring.centroid_key == valid_cell_id
 
         # Check aquatic residence time handling
         if reproductive_environment == "aquatic":

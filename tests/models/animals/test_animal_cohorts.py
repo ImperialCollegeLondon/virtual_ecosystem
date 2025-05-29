@@ -2495,8 +2495,12 @@ class TestAnimalCohort:
         """Parametrized test for can_prey_on across valid and invalid scenarios."""
         from virtual_ecosystem.core.grid import Grid
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import DietType
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
+        )
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            prey_group_selection,
         )
 
         # Setup grid and functional groups
@@ -2517,6 +2521,20 @@ class TestAnimalCohort:
             centroid_key=4,
             grid=grid,
             constants=constants_instance,
+        )
+
+        predator.prey_groups = prey_group_selection(
+            predator.functional_group.diet,
+            predator.functional_group.adult_mass,
+            predator.functional_group.prey_scaling,
+            functional_group_list_instance,
+        )
+
+        print(DietType.parse("vertebrates_invertebrates_carcasses"))
+
+        assert "herbivorous_mammal" in predator.prey_groups, (
+            f"herbivorous_mammal not in"
+            f"self.predator.prey_groups: {predator.prey_groups.keys()}"
         )
 
         # If testing same-object condition, reuse predator as prey

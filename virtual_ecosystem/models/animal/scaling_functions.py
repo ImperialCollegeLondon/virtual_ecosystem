@@ -113,6 +113,8 @@ def prey_group_selection(
     Returns:
         A dictionary mapping prey/resource group names to mass ranges.
     """
+    from virtual_ecosystem.models.animal.animal_traits import TaxaType
+
     result: dict[str, tuple[float, float]] = {}
 
     # Living animal prey filtering
@@ -120,11 +122,11 @@ def prey_group_selection(
         # Vertebrate prey (birds, mammals, amphibians)
         if diet_type & (
             DietType.VERTEBRATES | DietType.BLOOD | DietType.FISH
-        ) and fg.taxa in {"bird", "mammal", "amphibian"}:
+        ) and fg.taxa in {TaxaType.BIRD, TaxaType.MAMMAL, TaxaType.AMPHIBIAN}:
             result[fg.name] = (0.0001, 1000.0)
 
         # Invertebrate prey
-        elif diet_type & DietType.INVERTEBRATES and fg.taxa == "invertebrate":
+        elif diet_type & DietType.INVERTEBRATES and fg.taxa == TaxaType.INVERTEBRATE:
             result[fg.name] = (0.0001, 1000.0)
 
     # Plant-based resources
