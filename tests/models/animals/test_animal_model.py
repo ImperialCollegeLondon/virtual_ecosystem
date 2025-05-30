@@ -1348,6 +1348,9 @@ class TestAnimalModel:
     ):
         """Test offspring creation uses correct functional group and properties."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import (
+            ReproductiveEnvironment,
+        )
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
         )
@@ -1372,14 +1375,17 @@ class TestAnimalModel:
 
         # Assertions - functional group & basic properties
         assert isinstance(offspring, AnimalCohort)
-        assert offspring.functional_group == parent_group
+        assert offspring.functional_group == get_functional_group_by_name(
+            functional_group_list_instance,
+            parent_group.offspring_functional_group,
+        )
         assert offspring.mass_current == parent_group.birth_mass
         assert offspring.age == 0.0
         assert offspring.individuals == 5
         assert offspring.centroid_key == valid_cell_id
 
         # Check aquatic residence time handling
-        if reproductive_environment == "aquatic":
+        if reproductive_environment == ReproductiveEnvironment.AQUATIC:
             assert (
                 offspring.remaining_time_away
                 == parent_group.constants.aquatic_residence_time
@@ -2040,3 +2046,121 @@ class TestAnimalModel:
             f"Expected {expected_reintegrations} reintegrations, "
             f"but got {mock_reintegrate.call_count}"
         )
+
+    def test_assign_prey_groups(self, animal_model_instance, predator_cohort_instance):
+        """Test assign_prey_groups correctly filters and assigns prey groups."""
+        # Run assign_prey_groups
+        animal_model_instance.assign_prey_groups(predator_cohort_instance)
+
+        # Extract assigned prey groups
+        prey_groups = predator_cohort_instance.prey_groups
+
+        # Assertions on structure
+        assert hasattr(predator_cohort_instance, "prey_groups")
+        assert isinstance(prey_groups, dict)
+
+        # Check all prey group entries are well formed
+        for group_name, mass_range in prey_groups.items():
+            assert isinstance(group_name, str)
+            assert isinstance(mass_range, tuple)
+            assert len(mass_range) == 2
+            assert all(isinstance(val, float) for val in mass_range)
+            assert 0.0 <= mass_range[0] <= mass_range[1]
+
+        # Check that known prey group names are included
+        known_possible_prey = {
+            "herbivorous_mammal",
+            "herbivorous_insect",
+            "herbivorous_bird",
+            "caterpillar",
+        }
+        assert any(group in prey_groups for group in known_possible_prey)
+
+    def test_create_new_cohort_registers_active(
+        self,
+        mocker,
+        animal_model_instance,
+        functional_group_list_instance,
+    ):
+        """Test for create new cohort registration."""
+
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import (
+            ReproductiveEnvironment,
+        )
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        terrestrial_fg = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+        # Confirm this is indeed a terrestrial reproducer
+        assert (
+            terrestrial_fg.reproductive_environment
+            is ReproductiveEnvironment.TERRESTRIAL
+        )
+
+        # Spy on helper methods
+        spy_assign = mocker.patch.object(animal_model_instance, "assign_prey_groups")
+        spy_occupancy = mocker.patch.object(
+            animal_model_instance, "update_community_occupancy"
+        )
+
+        cohort = animal_model_instance.create_new_cohort(
+            functional_group=terrestrial_fg,
+            mass=terrestrial_fg.adult_mass,
+            age=0.0,
+            individuals=10,
+            centroid_key=0,
+            is_birth=False,
+        )
+
+        # Returned object
+        assert isinstance(cohort, AnimalCohort)
+
+        # Correct registration: active, not aquatic
+        assert cohort.id in animal_model_instance.active_cohorts
+        assert cohort.id not in animal_model_instance.aquatic_cohorts
+
+        # Helper methods called exactly once
+        spy_assign.assert_called_once_with(cohort)
+        spy_occupancy.assert_called_once_with(cohort, 0)
+
+    @pytest.mark.parametrize(
+        "fg_name, is_birth, goes_aquatic",
+        [
+            ("frog", True, True),  # tadpoles
+            ("frog", False, False),  # adult frog at init
+            ("herbivorous_mammal", True, False),  # always terrestrial
+        ],
+    )
+    def test_create_new_cohort_routing(
+        self,
+        mocker,
+        animal_model_instance,
+        functional_group_list_instance,
+        fg_name,
+        is_birth,
+        goes_aquatic,
+    ):
+        """Test for create new cohort to ensure routing works."""
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        fg = get_functional_group_by_name(functional_group_list_instance, fg_name)
+
+        spy_occ = mocker.spy(animal_model_instance, "update_community_occupancy")
+
+        cohort = animal_model_instance.create_new_cohort(
+            fg, fg.birth_mass, 0.0, 5, 0, is_birth=is_birth
+        )
+
+        if goes_aquatic:
+            assert cohort.id in animal_model_instance.aquatic_cohorts
+            assert cohort.id not in animal_model_instance.active_cohorts
+            spy_occ.assert_not_called()
+        else:
+            assert cohort.id in animal_model_instance.active_cohorts
+            spy_occ.assert_called_once_with(cohort, 0)

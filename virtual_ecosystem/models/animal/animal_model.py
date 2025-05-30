@@ -32,7 +32,11 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-from virtual_ecosystem.models.animal.animal_traits import DevelopmentType, DietType
+from virtual_ecosystem.models.animal.animal_traits import (
+    DevelopmentType,
+    DietType,
+    ReproductiveEnvironment,
+)
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
@@ -1335,7 +1339,11 @@ class AnimalModel(
         self.assign_prey_groups(cohort)
 
         # Register based on birth & aquatic logic
-        if is_birth and functional_group.reproductive_environment == "aquatic":
+        if (
+            is_birth
+            and functional_group.reproductive_environment
+            is ReproductiveEnvironment.AQUATIC
+        ):
             cohort.remaining_time_away = cohort.constants.aquatic_residence_time
             self.aquatic_cohorts[cohort.id] = cohort
         else:
