@@ -99,8 +99,7 @@ class DietType(Flag):
             diets.
 
         Returns:
-            A DietType flag representing the coarse category: HERBIVORE, CARNIVORE,
-              or OMNIVORE.
+            DietType: A diet type flag representing the coarse category.
         """
         is_herb = bool(self & DietType.HERBIVORE)
         is_carn = bool(self & DietType.CARNIVORE)

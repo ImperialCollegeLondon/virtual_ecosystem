@@ -92,8 +92,8 @@ class FunctionalGroup:
         """The mass of the functional group at adulthood."""
         self.constants = constants
         """Animal constants."""
-        self.broad_diet = self.diet.coarse_category()
-        """The broad trophic category: HERBIVORE, CARNIVORE, or OMNIVORE."""
+        self.broad_diet: DietType = self.diet.coarse_category()
+        """The broad trophic category, herbivore, carnivore, omnivore."""
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
         """The proportions of carbon/nitrogen/phosphorus in the functional group,
             example {"carbon": 0.8, "nitrogen": 0.15, "phosphorus": 0.05}."""
