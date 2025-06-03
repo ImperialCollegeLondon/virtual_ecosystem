@@ -281,3 +281,27 @@ def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> N
             "Surface precipitation should not be negative! Consider checking that the"
             " canopy water balance is correct."
         )
+
+
+def calculate_effective_saturation(
+    soil_moisture: NDArray[np.float32],
+    soil_moisture_saturation: float | NDArray[np.float32],
+    soil_moisture_residual: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate the effective soil saturation based on the soil moisture.
+
+    This is kept as a separate function because the soil model also needs to use this
+    quantity.
+
+    Args:
+        soil_moisture: Volumetric relative water content in top soil, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
+        soil_moisture_residual: Residual soil moisture, [unitless]
+
+    Returns:
+        The :term:`effective saturation` of the soil [unitless]
+    """
+
+    return (soil_moisture - soil_moisture_residual) / (
+        soil_moisture_saturation - soil_moisture_residual
+    )
