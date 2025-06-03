@@ -334,7 +334,7 @@ class PlantsModel(
                         element_name="Nitrogen",
                         community=self.communities[cell_id],
                         ideal_ratio=np.full(
-                            self.communities[cell_id].number_of_cohorts,
+                            self.communities[cell_id].n_cohorts,
                             model_constants.foliage_c_n_ratio,
                         ),
                         actual_element_mass=self.communities[
@@ -342,7 +342,7 @@ class PlantsModel(
                         ].stem_allometry.foliage_mass
                         * model_constants.foliage_c_n_ratio,
                         reclaim_ratio=np.full(
-                            self.communities[cell_id].number_of_cohorts,
+                            self.communities[cell_id].n_cohorts,
                             model_constants.leaf_turnover_c_n_ratio,
                         ),
                     ),
@@ -350,7 +350,7 @@ class PlantsModel(
                         element_name="Nitrogen",
                         community=self.communities[cell_id],
                         ideal_ratio=np.full(
-                            self.communities[cell_id].number_of_cohorts,
+                            self.communities[cell_id].n_cohorts,
                             model_constants.root_turnover_c_n_ratio,
                         ),
                         actual_element_mass=model_constants.root_turnover_c_n_ratio
@@ -361,7 +361,7 @@ class PlantsModel(
                         element_name="Nitrogen",
                         community=self.communities[cell_id],
                         ideal_ratio=np.full(
-                            self.communities[cell_id].number_of_cohorts,
+                            self.communities[cell_id].n_cohorts,
                             model_constants.deadwood_c_n_ratio,
                         ),
                         actual_element_mass=model_constants.deadwood_c_n_ratio
@@ -371,7 +371,7 @@ class PlantsModel(
                         element_name="Nitrogen",
                         community=self.communities[cell_id],
                         ideal_ratio=np.full(
-                            self.communities[cell_id].number_of_cohorts,
+                            self.communities[cell_id].n_cohorts,
                             model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
                         ),
                         actual_element_mass=self.communities[
@@ -380,7 +380,7 @@ class PlantsModel(
                         * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
                     ),
                 ],
-                n_cohorts=self.communities[cell_id].number_of_cohorts,
+                n_cohorts=self.communities[cell_id].n_cohorts,
                 community=self.communities[cell_id],
             )
             for cell_id in self.communities.keys()

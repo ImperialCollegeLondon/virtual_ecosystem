@@ -249,7 +249,7 @@ class WoodTissue(Tissue):
         Returns:
             The element lost to turnover for wood tissue.
         """
-        return np.zeros(self.community.number_of_cohorts)
+        return np.zeros(self.community.n_cohorts)
 
 
 class RootTissue(Tissue):

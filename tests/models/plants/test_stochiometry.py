@@ -24,7 +24,8 @@ def test_Stochiometry__init__(fxt_plants_model):
                     element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
-                        community.number_of_cohorts, plant_consts.foliage_c_n_ratio
+                        community.n_cohorts,
+                        plant_consts.foliage_c_n_ratio,
                     ),
                     actual_element_mass=community.stem_allometry.foliage_mass
                     * plant_consts.foliage_c_n_ratio,
@@ -34,7 +35,7 @@ def test_Stochiometry__init__(fxt_plants_model):
                     element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
-                        community.number_of_cohorts,
+                        community.n_cohorts,
                         plant_consts.root_turnover_c_n_ratio,
                     ),
                     actual_element_mass=plant_consts.root_turnover_c_n_ratio
@@ -45,7 +46,8 @@ def test_Stochiometry__init__(fxt_plants_model):
                     element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
-                        community.number_of_cohorts, plant_consts.deadwood_c_n_ratio
+                        community.n_cohorts,
+                        plant_consts.deadwood_c_n_ratio,
                     ),
                     actual_element_mass=plant_consts.deadwood_c_n_ratio
                     * community.stem_allometry.stem_mass,
@@ -54,14 +56,14 @@ def test_Stochiometry__init__(fxt_plants_model):
                     element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
-                        community.number_of_cohorts,
+                        community.n_cohorts,
                         plant_consts.plant_reproductive_tissue_turnover_c_n_ratio,
                     ),
                     actual_element_mass=community.stem_allometry.reproductive_tissue_mass
                     * plant_consts.plant_reproductive_tissue_turnover_c_n_ratio,
                 ),
             ],
-            n_cohorts=community.number_of_cohorts,
+            n_cohorts=community.n_cohorts,
             community=community,
         )
         assert n_stochiometry is not None
@@ -78,9 +80,7 @@ def test_Stochiometry_FoliageTissue(fxt_plants_model):
         foliage_tissue = FoliageTissue(
             element_name="Nitrogen",
             community=community,
-            ideal_ratio=np.full(
-                community.number_of_cohorts, plant_consts.foliage_c_n_ratio
-            ),
+            ideal_ratio=np.full(community.n_cohorts, plant_consts.foliage_c_n_ratio),
             actual_element_mass=community.stem_allometry.foliage_mass
             * plant_consts.foliage_c_n_ratio,
             reclaim_ratio=plant_consts.leaf_turnover_c_n_ratio,
@@ -100,7 +100,7 @@ def test_Stochiometry_ReproductiveTissue(fxt_plants_model):
             element_name="Nitrogen",
             community=community,
             ideal_ratio=np.full(
-                community.number_of_cohorts,
+                community.n_cohorts,
                 plant_consts.plant_reproductive_tissue_turnover_c_n_ratio,
             ),
             actual_element_mass=community.stem_allometry.reproductive_tissue_mass
@@ -121,7 +121,7 @@ def test_Stochiometry_RootTissue(fxt_plants_model):
             element_name="Nitrogen",
             community=community,
             ideal_ratio=np.full(
-                community.number_of_cohorts, plant_consts.root_turnover_c_n_ratio
+                community.n_cohorts, plant_consts.root_turnover_c_n_ratio
             ),
             actual_element_mass=plant_consts.root_turnover_c_n_ratio
             * community.stem_traits.zeta
@@ -142,9 +142,7 @@ def test_Stochiometry_WoodTissue(fxt_plants_model):
         wood_tissue = WoodTissue(
             element_name="Nitrogen",
             community=community,
-            ideal_ratio=np.full(
-                community.number_of_cohorts, plant_consts.deadwood_c_n_ratio
-            ),
+            ideal_ratio=np.full(community.n_cohorts, plant_consts.deadwood_c_n_ratio),
             actual_element_mass=plant_consts.deadwood_c_n_ratio
             * community.stem_allometry.stem_mass,
         )
