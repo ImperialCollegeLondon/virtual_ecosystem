@@ -57,6 +57,7 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
+        "net_radiation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -87,6 +88,7 @@ class AbioticModel(
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
+        "net_radiation",
     ),
     vars_populated_by_first_update=(
         "longwave_emission",
@@ -194,7 +196,9 @@ class AbioticModel(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=0,
-            constants=self.simple_constants,
+            simple_constants=self.simple_constants,
+            abiotic_constants=self.model_constants,
+            core_constants=self.core_constants,
             bounds=AbioticSimpleBounds(),
         )
 

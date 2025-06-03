@@ -343,10 +343,10 @@ def carbon_use_efficiency(averaged_soil_temp):
     )
 
     return calculate_carbon_use_efficiency(
-        averaged_soil_temp,
-        SoilConsts.reference_cue,
-        SoilConsts.cue_reference_temp,
-        SoilConsts.cue_with_temperature,
+        soil_temp=averaged_soil_temp,
+        reference_cue_logit=SoilConsts.reference_cue_logit,
+        cue_reference_temp=SoilConsts.cue_reference_temp,
+        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
     )
 
 

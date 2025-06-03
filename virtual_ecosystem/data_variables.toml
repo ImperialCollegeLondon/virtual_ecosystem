@@ -273,6 +273,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Net radiation"
+name = "net_radiation"
+unit = "W m-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Temperature-dependent density of air"
 name = "density_air"
 unit = "kg m-3"
