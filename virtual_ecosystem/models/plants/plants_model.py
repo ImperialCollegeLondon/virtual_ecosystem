@@ -29,7 +29,13 @@ from virtual_ecosystem.models.plants.canopy import (
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
-from virtual_ecosystem.models.plants.stochiometry import StemStochiometry
+from virtual_ecosystem.models.plants.stochiometry import (
+    FoliageTissue,
+    ReproductiveTissue,
+    RootTissue,
+    StemStochiometry,
+    WoodTissue,
+)
 
 
 class PlantsModel(
@@ -302,7 +308,58 @@ class PlantsModel(
         # Initialize the stochiometries of each cohort
         self.stochiometries = {
             cell_id: StemStochiometry(
-                plant_constants=self.model_constants,
+                tissues=[
+                    FoliageTissue(
+                        element_name="Nitrogen",
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].number_of_cohorts,
+                            model_constants.foliage_c_n_ratio,
+                        ),
+                        actual_element_mass=self.communities[
+                            cell_id
+                        ].stem_allometry.foliage_mass
+                        * model_constants.foliage_c_n_ratio,
+                        reclaim_ratio=np.full(
+                            self.communities[cell_id].number_of_cohorts,
+                            model_constants.leaf_turnover_c_n_ratio,
+                        ),
+                    ),
+                    RootTissue(
+                        element_name="Nitrogen",
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].number_of_cohorts,
+                            model_constants.root_turnover_c_n_ratio,
+                        ),
+                        actual_element_mass=model_constants.root_turnover_c_n_ratio
+                        * self.communities[cell_id].stem_traits.zeta
+                        * self.communities[cell_id].stem_allometry.foliage_mass,
+                    ),
+                    WoodTissue(
+                        element_name="Nitrogen",
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].number_of_cohorts,
+                            model_constants.deadwood_c_n_ratio,
+                        ),
+                        actual_element_mass=model_constants.deadwood_c_n_ratio
+                        * self.communities[cell_id].stem_allometry.stem_mass,
+                    ),
+                    ReproductiveTissue(
+                        element_name="Nitrogen",
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].number_of_cohorts,
+                            model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+                        ),
+                        actual_element_mass=self.communities[
+                            cell_id
+                        ].stem_allometry.reproductive_tissue_mass
+                        * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
+                    ),
+                ],
+                n_cohorts=self.communities[cell_id].number_of_cohorts,
                 community=self.communities[cell_id],
             )
             for cell_id in self.communities.keys()
@@ -622,7 +679,7 @@ class PlantsModel(
             # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
             # - Concentration of dissolved N (kg m^-3)
             # - Kg to g (1000)
-            self.stochiometries[cell_id].n_surplus += (
+            self.stochiometries[cell_id].element_surplus += (
                 self.per_stem_transpiration[cell_id]
                 * (1.8015 * pow(10.0, -11))
                 * (
@@ -757,39 +814,7 @@ class PlantsModel(
                 )
 
             # SECOND: ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
-            # Nitrogen is lost from the tree in the form of turnover, and so an
-            # equivalent allocation of N is required to replace what was lost. To
-            # represent this process, N is allocated from the surplus store in the same
-            # quantities as turnover. This uses the current ratios so that the tissue
-            # C:N ratios are maintained.
-            stochiometry.n_surplus = (
-                stochiometry.n_surplus
-                - (
-                    (
-                        stem_allocation.foliage_turnover
-                        * (1 / stochiometry.cn_ratio_foliage)
-                    )
-                    - (
-                        stem_allocation.fine_root_turnover
-                        * (1 / stochiometry.cn_ratio_roots)
-                    )
-                    - (
-                        stem_allocation.reproductive_tissue_turnover
-                        * (1 / stochiometry.cn_ratio_reproductive_tissue)
-                    )
-                ).squeeze()
-            )
-            # N is lost in the form of senseced leaves, but some of the N emobodied in
-            # living leaves is returned to the surplus store before the leaves are shed.
-            stochiometry.n_surplus = stochiometry.n_surplus + (
-                (
-                    stem_allocation.foliage_turnover
-                    * (
-                        1 / stochiometry.cn_ratio_foliage
-                        - 1 / self.model_constants.leaf_turnover_c_n_ratio
-                    )
-                ).squeeze()
-            )
+            stochiometry.account_for_element_loss_turnover(stem_allocation)
 
             # THIRD, ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
@@ -813,43 +838,9 @@ class PlantsModel(
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
             cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
 
-            # Allocate N to growth and update stochiometry values
-
-            n_for_stem_growth = (
-                1 / self.model_constants.deadwood_c_n_ratio
-            ) * stem_allocation.delta_stem_mass.squeeze()
-            n_for_rt_growth = (
-                (1 / self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio)
-                * stem_allocation.delta_foliage_mass
-                * community.stem_traits.p_foliage_for_reproductive_tissue
-            ).squeeze()
-            n_for_roots_growth = (
-                (1 / self.model_constants.root_turnover_c_n_ratio)
-                * stem_allocation.delta_foliage_mass
-                * community.stem_traits.zeta
-            ).squeeze()
-
-            # Update the stochiometry values
-            stochiometry.n_surplus = (
-                stochiometry.n_surplus
-                - (
-                    stochiometry.n_for_foliage_growth(
-                        stem_allocation.delta_foliage_mass
-                    )
-                    + n_for_stem_growth
-                    + n_for_rt_growth
-                    + n_for_roots_growth
-                ).squeeze()
-            )
-            stochiometry.n_foliage = (
-                stochiometry.n_foliage
-                + stochiometry.n_for_foliage_growth(stem_allocation.delta_foliage_mass)
-            )
-            stochiometry.n_wood = stochiometry.n_wood + n_for_stem_growth
-            stochiometry.n_reproductive_tissue = (
-                stochiometry.n_reproductive_tissue + n_for_rt_growth
-            )
-            stochiometry.n_roots = stochiometry.n_roots + n_for_roots_growth
+            # Subtract the N/P required from growth from the element store, and
+            # redistribute it to the individual tisuses.
+            stochiometry.account_for_growth(stem_allocation)
 
             # Balance the N surplus/deficit with the symbiote carbon supply
             n_weighted_avg = np.dot(
@@ -862,17 +853,19 @@ class PlantsModel(
                 n_avaiable_per_cohort, cohorts.n_individuals
             )
 
-            stochiometry.n_surplus = stochiometry.n_surplus + n_available_per_stem
+            stochiometry.element_surplus = (
+                stochiometry.element_surplus + n_available_per_stem
+            )
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
-                if stochiometry.n_surplus[cohort] < 0:
+                if stochiometry.element_surplus[cohort] < 0:
                     # Distribute deficit across the tissue types
                     stochiometry.distribute_deficit(cohort)
 
                 elif (
-                    stochiometry.n_surplus[cohort] > 0
-                    and stochiometry.n_tissue_deficit[cohort] > 0
+                    stochiometry.element_surplus[cohort] > 0
+                    and stochiometry.tissue_deficit[cohort] > 0
                 ):
                     # Distribute the surplus across the tissue types
                     stochiometry.distribute_surplus(cohort)
