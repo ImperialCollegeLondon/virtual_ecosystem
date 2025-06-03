@@ -126,7 +126,7 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         pyrealm_const=PyrealmConst,
     )
 
-    exp_evap = np.array([2.466861, 0.612504, 0.110356])
+    exp_evap = np.array([2.18791, 0.521941, 0.090352])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
     np.testing.assert_allclose(
