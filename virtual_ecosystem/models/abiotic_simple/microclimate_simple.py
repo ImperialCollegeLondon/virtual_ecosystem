@@ -8,7 +8,7 @@ vertical wind profile within the canopy.
 Soil temperature is interpolated between the surface layer and the soil temperature at
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
-:math:`\ce{CO2}`.
+:math:`\ce{CO2}` as well as a profile of net radiation.
 
 TODO change temperatures to Kelvin
 """  # noqa: D205
@@ -18,8 +18,11 @@ from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
@@ -30,7 +33,9 @@ def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    constants: AbioticSimpleConsts,
+    simple_constants: AbioticSimpleConsts,
+    abiotic_constants: AbioticConsts,
+    core_constants: CoreConsts,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -58,7 +63,8 @@ def run_simple_microclimate(
 
     The function also broadcasts the reference values for atmospheric pressure and
     :math:`\ce{CO2}` to all atmospheric levels as they are currently assumed to remain
-    constant during one time step.
+    constant during one time step. Net radiation for canopy and topsoil layer is also
+    returned.
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
@@ -82,7 +88,9 @@ def run_simple_microclimate(
         data: Data object
         layer_structure: The LayerStructure instance for the simulation.
         time_index: Time index, integer
-        constants: Set of constants for the abiotic simple model
+        simple_constants: Set of constants for the abiotic simple model
+        abiotic_constants: Set of constants for the abiotic model
+        core_constants: Set of constants shared across all models
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -94,7 +102,7 @@ def run_simple_microclimate(
 
     output = {}
 
-    # Sum leaf area index over all canopy layers
+    # Sum leaf area index over all canopy layers, [m m-1]
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # Interpolate atmospheric profiles
@@ -130,7 +138,7 @@ def run_simple_microclimate(
         "atmospheric_co2_ref"
     ].isel(time_index=time_index)
 
-    # Calculate soil temperatures
+    # Calculate soil temperatures, [C]
     lower, upper = getattr(bounds, "soil_temperature")
     output["soil_temperature"] = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
@@ -142,6 +150,52 @@ def run_simple_microclimate(
         upper_bound=upper,
         lower_bound=lower,
     )
+
+    # Calculate net radiation, [W m-2].
+    canopy_temperature = energy_balance.initialise_canopy_temperature(
+        air_temperature=output["air_temperature"].to_numpy(),
+        absorbed_radiation=data["shortwave_absorption"].to_numpy(),
+        canopy_temperature_ini_factor=abiotic_constants.canopy_temperature_ini_factor,
+    )
+
+    canopy_longwave_emission = energy_balance.calculate_longwave_emission(
+        temperature=canopy_temperature,
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+    soil_longwave_emission = energy_balance.calculate_longwave_emission(
+        temperature=output["soil_temperature"][
+            layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        emissivity=abiotic_constants.soil_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+
+    net_radiation_canopy = energy_balance.calculate_net_radiation(
+        incoming_radiation=data["downward_shortwave_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        absorbed_radiation=data["shortwave_absorption"].to_numpy(),
+        longwave_emission=canopy_longwave_emission,
+        albedo=abiotic_constants.leaf_albedo,
+    )
+    net_radiation_soil = energy_balance.calculate_net_radiation(
+        incoming_radiation=data["downward_shortwave_radiation"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        absorbed_radiation=data["shortwave_absorption"][
+            layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        longwave_emission=soil_longwave_emission,
+        albedo=abiotic_constants.surface_albedo,
+    )
+
+    net_radiation = layer_structure.from_template()
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy[
+        layer_structure.index_filled_canopy
+    ]
+    net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
+    output["net_radiation"] = net_radiation
 
     return output
 

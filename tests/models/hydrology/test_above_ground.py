@@ -50,30 +50,40 @@ def test_calculate_canopy_evaporation():
     interception = np.array([0.5, 1.0])
     # Run function
     output = calculate_canopy_evaporation(
-        leaf_area_index=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        leaf_area_index=np.array([[1.0, 2.0], [1.0, np.nan]]),
         interception=interception,
-        net_radiation=np.array([100, 200]),
+        net_radiation=np.array([[100, 200], [80, 60]]),
         vapour_pressure_deficit=np.array([[1.0, 2.0], [1.0, 2.0]]),
         air_temperature=np.array([[21.0, 22.0], [18.0, 20.0]]),
-        density_air_kg=np.array([1.2, 1.2]),
-        specific_heat_air=np.array([1.005, 1.005]),
-        aerodynamic_resistance=np.array([50.0, 60.0]),
-        stomatal_resistance=np.array([150.0, 160.0]),
-        latent_heat_vapourisation=np.array([2268.0, 2268.0]),
+        density_air_kg=np.full((2, 2), 1.2),
+        specific_heat_air=np.full((2, 2), 1.005),
+        aerodynamic_resistance=np.array([[50.0, 60.0], [50.0, 60.0]]),
+        stomatal_resistance=np.array([[150.0, 160.0], [150.0, 160.0]]),
+        latent_heat_vapourisation=np.full((2, 2), 2268.0),
         psychrometric_constant=np.array([0.066, 0.067]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
-        time_interval=3600.0,  # 1 hour in seconds
+        time_interval=86400.0,  # 1 day in seconds
         intercept_residence_time=86400.0,  # 1 day in seconds
         extinction_coefficient_global_radiation=0.5,
     )
 
     # Check value constraints
-    assert np.all(output["canopy_evaporation"] >= 0)
     assert np.all(output["leaf_drainage"] >= 0)
-    assert np.all(output["canopy_evaporation"] <= interception)
     assert np.all(output["leaf_drainage"] <= interception)
     assert output["canopy_evaporation"].shape == (2, 2)
-    assert output["leaf_drainage"].shape == (2, 2)
+    assert output["leaf_drainage"].shape == (2,)
+    np.testing.assert_allclose(
+        output["canopy_evaporation"],
+        np.array([[0.290727, 1.0], [0.209273, np.nan]]),
+        rtol=1e-4,
+        atol=1e-4,
+    )
+    np.testing.assert_allclose(
+        output["leaf_drainage"],
+        np.array([0.0, 0.0]),
+        rtol=1e-4,
+        atol=1e-4,
+    )
 
 
 @pytest.mark.parametrize(
@@ -116,7 +126,7 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         pyrealm_const=PyrealmConst,
     )
 
-    exp_evap = np.array([2.466861, 0.612504, 0.110356])
+    exp_evap = np.array([2.18791, 0.521941, 0.090352])
     np.testing.assert_allclose(result["soil_evaporation"], exp_evap, rtol=0.01)
     exp_ra = np.array([5.0, 10.0, 50.0])
     np.testing.assert_allclose(

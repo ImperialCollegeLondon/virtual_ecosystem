@@ -2,12 +2,12 @@
 # jupyter:
 #   jupytext:
 #     cell_metadata_filter: all,-trusted
-#     notebook_metadata_filter: settings,mystnb,language_info
+#     notebook_metadata_filter: settings,mystnb,language_info,execution
 #     text_representation:
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.17.0rc1
+#       jupytext_version: 1.17.1
 # ---
 
 """This is the documentation for the module. It does not start with a header line
@@ -39,7 +39,7 @@ class MyClass:
 
     Attributes are documented with docstrings underneath the attribute definition. Class
     attributes are grouped with instance attributes in the rendered documentation, so
-    should say explictly that they are a class attribute."""
+    should say explicitly that they are a class attribute."""
 
     def __init__(self, myarg: int, name: str) -> None:
         # Note there is no __init__ docstring.

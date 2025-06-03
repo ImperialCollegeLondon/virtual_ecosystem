@@ -132,7 +132,7 @@ def register_module(module_name: str) -> None:
         # Trap models that do not follow the requirement that the BaseModel.model_name
         # attribute matches the virtual_ecosystem.models.model_name
         # TODO - can we retire the model_name attribute if it just duplicates the module
-        #        name or force it to match programatically.
+        #        name or force it to match programmatically.
         _, model = models_found[0]
         if module_name_short != model.model_name:
             msg = f"Different model_name attribute and module name {module_name}"

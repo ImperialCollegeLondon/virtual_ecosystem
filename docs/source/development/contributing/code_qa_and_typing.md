@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.0rc1
+    jupytext_version: 1.17.1
 kernelspec:
   display_name: Python 3
   language: python
@@ -49,7 +49,7 @@ short description of the roles of each hook.
 ::::
 
 `pre-commit-hooks`
-: We use these basic hooks to check for remaning `git` merge conflict markers in code
+: We use these basic hooks to check for remaining `git` merge conflict markers in code
 files (`check-merge-conflicts` hook) and for debugger imports and `breakpoint()` calls
 (`dubug-statements` hook), which should not end up in code in the repository.
 
@@ -68,6 +68,10 @@ and we use both the linting (`ruff`) and formatting (`ruff-format`) hooks.
 : This tool is used to pass all python code within notebooks through code formatting. At
 present, this still uses the `black` code formatter and not `ruff-format` as above.
 
+`codespell`
+: This tool checks files for common mis-spellings of words. If `codespell` complains
+about a word that you think is correct, you can add it to `.codespellignore.txt`.
+
 ### Output and configuration
 
 When `pre-commit` runs, you may see some lines about package installation and update,
@@ -82,6 +86,7 @@ ruff-format..........................................................Passed
 mypy.................................................................Passed
 markdownlint.........................................................Passed
 jupytext.............................................................Passed
+codespell............................................................Passed
 ```
 
 ### Updating `pre-commit`
@@ -119,7 +124,7 @@ developed to help support clear and consistent typing. We use
 bit of getting used to but is a key tool in maintaining clear code and variable
 structures.
 
-## Supressing checking
+## Suppressing checking
 
 The `pre-commit` tools sometimes complain about things that we do not want to change.
 Almost all of the tools can be told to suppress checking, using comments with a set
@@ -129,7 +134,7 @@ This should not be done lightly: we are using these QA tools for a reason.
 
 * Code linting issued identified by `ruff` can be ignored by either using `# noqa: E501`
   to ignore the issue for that line.
-* Code formatting changes suggested by `ruff-format` can be supressed by using the
+* Code formatting changes suggested by `ruff-format` can be suppressed by using the
   `# fmt: off` tag at the end of a specific line or wrapping a section in `# fmt: off`
   and then `# fmt: on`.
 * `mypy` uses the syntax `# type: ignore` comment to [suppress

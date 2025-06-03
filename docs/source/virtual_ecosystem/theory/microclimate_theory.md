@@ -1,4 +1,16 @@
 ---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,18 +21,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # Microclimate
@@ -59,8 +59,8 @@ temporally {cite}`bramer_chapter_2018`.
 
 ## Factors affecting microclimate
 
-Microclimates are mediated by macroclimate, topography, vegetation tye and structure, and
-soil. Many of these factors can be affected by human cativities, for example through
+Microclimates are mediated by macroclimate, topography, vegetation type and structure,
+and soil. Many of these factors can be affected by human cativities, for example through
 deforestation and other land use changes.
 
 ### Macroclimate
@@ -288,7 +288,7 @@ migration, or phenotypic plasticity to cope with microclimatic variability.
 ## Methods for microclimate science
 
 This section gives a broad overview over common methods and models in microclimate
-research. Recent advances in data aquisition for microclimate research and microclimate
+research. Recent advances in data acquisition for microclimate research and microclimate
 modelling are provided in a comprehensive review by {cite:t}`kemppinen_microclimate_2024`.
 
 ### Microclimate data collection
@@ -340,7 +340,7 @@ complex and unpredictable nature. However, these events can have disproportionat
 on ecosystem dynamics and in particular mortality rates.
 * **Integration with other models**: Combining microclimate models with broader
 ecological or hydrological models involves addressing compatibility and consistency issues.
-This includes for example interconnected processes happing at different time scales.
+This includes for example interconnected processes happening at different time scales.
 * **Human impacts**: Incorporating the effects of human activities (e.g. urbanization,
 land use changes, conservation actions) into microclimate models adds another layer of
 complexity.

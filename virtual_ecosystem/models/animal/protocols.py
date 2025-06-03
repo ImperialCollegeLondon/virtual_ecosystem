@@ -5,6 +5,7 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 
 from typing import Protocol
 
+from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -42,6 +43,7 @@ class Resource(Protocol):
 
     mass_current: float
     cell_id: int
+    vertical_occupancy: VerticalOccupancy
 
     def get_eaten(
         self,

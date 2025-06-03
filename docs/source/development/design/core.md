@@ -1,4 +1,16 @@
 ---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,18 +21,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # Design notes for the `core` module
@@ -59,7 +59,7 @@ The config system should provide a way to:
 - or possibly something like a dataclass for dotted notation:
   (config.plant.functional_types.max_height)
 - validate the config against some kind of template
-- It is likely that different configurations may re-use config subsections in different
+- It is likely that different configurations may reuse config subsections in different
   combinations, so the config system should be capable of loading configs from
   **multiple** files, so that a complete config can be built up or updated from multiple
   files, rather than having to compile a single monolithic file for each permutation.
