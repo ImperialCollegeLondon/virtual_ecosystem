@@ -1,6 +1,6 @@
 """The :mod:`~virtual_ecosystem.models.plants.stochiometry` module contains the class
 for managing plant cohort stochiometry ratios. The carbon mass is stored in plant
-alloemetry or allocation, so this class uses thoses as the anchor weights and stores
+alloemetry or allocation, so this class uses those as the anchor weights and stores
 CN and CP ratios.
 
 The class holds current CN and CP ratios for foliage, reproductive tissue, wood, and
@@ -24,7 +24,7 @@ from pyrealm.demography.tmodel import StemAllocation
 class Tissue(PandasExporter, CohortMethods):
     """A dataclass to hold tissue stochiometry data for a set of plant cohorts.
 
-    This class holds the current quantitiy of a given element (generally N or P) for a
+    This class holds the current quantity of a given element (generally N or P) for a
     specific plant tissue type (generally foliage, wood, roots or reproductive tissue).
     The class also holds the ideal ratio of the element for that tissue type. They hold
     an entry for each cohort in the data class.
