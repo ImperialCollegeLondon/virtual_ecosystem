@@ -6,6 +6,10 @@ matric potential, groundwater storage, and subsurface horizontal flow.
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_ecosystem.models.hydrology.hydrology_tools import (
+    calculate_effective_saturation,
+)
+
 
 def calculate_vertical_flow(
     soil_moisture: NDArray[np.float32],
@@ -92,9 +96,10 @@ def calculate_vertical_flow(
     shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
 
     # Calculate soil effective saturation in rel. vol. water content for each layer:
-    # TODO make this function a tool
-    effective_saturation = (soil_moisture - soil_moisture_residual) / (
-        soil_moisture_saturation - soil_moisture_residual
+    effective_saturation = calculate_effective_saturation(
+        soil_moisture=soil_moisture,
+        soil_moisture_saturation=soil_moisture_saturation,
+        soil_moisture_residual=soil_moisture_residual,
     )
 
     # Calculate matric potential for each grid point and depth
