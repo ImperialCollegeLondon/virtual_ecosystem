@@ -65,6 +65,12 @@ effective soil moisture
   The portion of soil water available for plant uptake, typically the range between
   residual moisture and field capacity. Expressed in m3/m3, %, or mm.
 
+effective saturation
+  Rescaled soil water saturation so that it takes a value of zero at the physical
+  minimum ({term}`soil moisture residual`) and a value of one at the physical maximum
+  ({term}`soil moisture saturation`). This can also be referred to as the normalised
+  water content.
+
 relative soil moisture
   A ratio expressing the amount of water in soil, as a percentage, compared to the total
   water-holding capacity between the wilting point (very dry) and saturation (very wet)

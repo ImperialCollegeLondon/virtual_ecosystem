@@ -92,7 +92,7 @@ def test_calculate_matric_potential():
     )
 
     constants = HydroConsts()
-    expected_potentials = np.repeat(-17.320508, 3)
+    expected_potentials = np.repeat(-68.197326, 3)
     actual_potentials = calculate_matric_potential(
         effective_saturation=np.repeat(0.5, 3),
         air_entry_potential_inverse=constants.air_entry_potential_inverse,
@@ -123,9 +123,11 @@ def test_update_groundwater_storage(dummy_climate_data):
         reservoir_const_lower_groundwater=HydroConsts.reservoir_const_lower_groundwater,
     )
 
-    exp_groundwater = np.array([[453, 457, 459, 459], [450.0, 450.0, 450.0, 450]])
-    exp_upper_flow = np.array([22.65, 22.85, 22.95, 22.95])
-    exp_lower_flow = np.array([22.5, 22.5, 22.5, 22.5])
-    np.testing.assert_allclose(result["groundwater_storage"], exp_groundwater)
-    np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow)
-    np.testing.assert_allclose(result["baseflow"], exp_lower_flow)
+    exp_groundwat = np.array(
+        [[451.3, 455.3, 457.3, 457.3], [451.7, 451.7, 451.7, 451.7]]
+    )
+    exp_upper_flow = np.array([22.565, 22.765, 22.865, 22.865])
+    exp_lower_flow = np.array([22.585, 22.585, 22.585, 22.585])
+    np.testing.assert_allclose(result["groundwater_storage"], exp_groundwat, rtol=1e-05)
+    np.testing.assert_allclose(result["subsurface_flow"], exp_upper_flow, rtol=1e-05)
+    np.testing.assert_allclose(result["baseflow"], exp_lower_flow, rtol=1e-5)

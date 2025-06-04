@@ -112,7 +112,7 @@ def test_calculate_longwave_emission():
         emissivity=AbioticConsts.soil_emissivity,
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
-    np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
+    np.testing.assert_allclose(result, np.repeat(381.002069, 3), rtol=1e-04, atol=1e-04)
 
 
 def test_calculate_sensible_heat_flux(

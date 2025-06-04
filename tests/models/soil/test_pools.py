@@ -14,6 +14,7 @@ def test_calculate_all_pool_updates(
 ):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
     from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
 
@@ -92,8 +93,8 @@ def test_calculate_all_pool_updates(
         "soil_n_pool_particulate": [-8.93041e-5, 5.105645e-5, 9.035108e-5, 5.212779e-6],
         "soil_n_pool_necromass": [7.37406e-3, -1.87488e-3, 4.96976e-3, -1.53633e-7],
         "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
-        "soil_n_pool_ammonium": [0.00015706, 0.00827393, -0.00015937, -0.00036155],
-        "soil_n_pool_nitrate": [-0.00316048, -0.00395995, -0.00106993, -0.00097339],
+        "soil_n_pool_ammonium": [0.00015831, 0.00844271, -0.00014193, -0.00011499],
+        "soil_n_pool_nitrate": [-0.00303913, -0.00393326, -0.00108282, -0.00138761],
         "soil_p_pool_dop": [2.08332995e-4, 1.02602825e-4, 1.39943896e-4, 8.15796967e-5],
         "soil_p_pool_particulate": [6.820884e-6, -6.40228e-6, -8.6718e-7, 2.094258e-7],
         "soil_p_pool_necromass": [0.00225261, 0.00282114, 0.00596048, 0.0014114],
@@ -116,7 +117,8 @@ def test_calculate_all_pool_updates(
     delta_pools = soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=pool_order,
         layer_structure=fixture_core_components.layer_structure,
-        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
+        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
             0
         ],

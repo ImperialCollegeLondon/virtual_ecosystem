@@ -234,6 +234,9 @@ class SoilModel(
             config, enzyme_classes=enzyme_classes
         )
 
+        # Load hydrology constants
+        hydro_constants = load_constants(config, "hydrology", "HydroConsts")
+
         return cls(
             data=data,
             core_components=core_components,
@@ -241,6 +244,8 @@ class SoilModel(
             model_constants=model_constants,
             microbial_groups=microbial_groups,
             enzyme_classes=enzyme_classes,
+            soil_moisture_saturation=hydro_constants.soil_moisture_saturation,
+            soil_moisture_residual=hydro_constants.soil_moisture_residual,
         )
 
     def _setup(
@@ -248,6 +253,8 @@ class SoilModel(
         model_constants: SoilConsts,
         microbial_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
+        soil_moisture_saturation: float,
+        soil_moisture_residual: float,
         **kwargs: Any,
     ) -> None:
         """Function to setup up the soil model."""
@@ -257,6 +264,10 @@ class SoilModel(
         # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups
         self.enzyme_classes = enzyme_classes
+
+        # Store the two required hydrology constants
+        self.soil_moisture_saturation = soil_moisture_saturation
+        self.soil_moisture_residual = soil_moisture_residual
 
         # Calculate dissolved amounts of each inorganic nutrient
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -380,7 +391,8 @@ class SoilModel(
                 self.microbial_groups,
                 self.enzyme_classes,
                 self.core_constants.max_depth_of_microbial_activity,
-                self.core_constants.soil_moisture_capacity,
+                self.soil_moisture_saturation,
+                self.soil_moisture_residual,
                 self.layer_structure.soil_layer_thickness[0],
             ),
         )
@@ -663,7 +675,8 @@ def construct_full_soil_model(
     functional_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
     max_depth_of_microbial_activity: float,
-    soil_moisture_capacity: float,
+    soil_moisture_saturation: float,
+    soil_moisture_residual: float,
     top_soil_layer_thickness: float,
 ) -> NDArray[np.float32]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
@@ -684,9 +697,11 @@ def construct_full_soil_model(
         enzyme_classes: Set of enzyme classes used by the soil model.
         max_depth_of_microbial_activity: Maximum depth of the soil profile where
             microbial activity occurs [m].
-        soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
+        soil_moisture_saturation: :term:`soil moisture saturation`, i.e. the maximum
             (volumetric) moisture the soil can hold [unitless].
-        top_soil_layer_thickness: Thickness of the topsoil layer [mm].
+        soil_moisture_residual: :term:`soil moisture residual`, i.e. the minimum
+            (volumetric) moisture the soil can hold [unitless].
+        top_soil_layer_thickness: Thickness of the topsoil layer [m].
 
     Returns:
         The rate of change for each soil pool
@@ -712,8 +727,8 @@ def construct_full_soil_model(
     return soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=delta_pools_ordered,
         layer_structure=layer_structure,
-        # TODO - This needs to be reconsidered as part of the soil-abiotic links review
-        soil_moisture_capacity=soil_moisture_capacity,
+        soil_moisture_saturation=soil_moisture_saturation,
+        soil_moisture_residual=soil_moisture_residual,
         top_soil_layer_thickness=top_soil_layer_thickness,
     )
 
