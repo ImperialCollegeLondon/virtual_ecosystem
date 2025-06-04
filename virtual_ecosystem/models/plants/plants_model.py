@@ -298,8 +298,6 @@ class PlantsModel(
         self.flora = flora
         self.model_constants = model_constants
 
-        self.temp_populate_symbiote_vars()
-
         # Adjust flora turnover rates to timestep
         # TODO: Pyrealm provides annual turnover rates. Dividing by the number of
         #       updates_per_year to get monthly turnover values is naive and will
@@ -1203,14 +1201,6 @@ class PlantsModel(
         )
 
         return n_propagules, non_propagule_mass
-
-    def temp_populate_symbiote_vars(self) -> None:
-        """Jacob has these vars in an open PR. Will delete before merging."""
-
-        self.data["ecto_supply_limit_n"] = xr.full_like(self.data["elevation"], 1)
-        self.data["arbuscular_supply_limit_n"] = xr.full_like(self.data["elevation"], 1)
-        self.data["ecto_supply_limit_p"] = xr.full_like(self.data["elevation"], 1)
-        self.data["arbuscular_supply_limit_p"] = xr.full_like(self.data["elevation"], 1)
 
     def convert_to_litter_units(
         self, input_mass: NDArray[np.float64]
