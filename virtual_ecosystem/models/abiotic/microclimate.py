@@ -192,7 +192,7 @@ def run_microclimate(
         layer_structure.index_filled_atmosphere
     ].to_numpy()
 
-    iterations = 10  # TODO input var iterations (or convergence criteria)
+    iterations = 1  # TODO input var iterations (or convergence criteria)
     for _ in range(iterations):
         #  Calculate atmospheric background variables using mean air temperature
         mean_air_temperature = np.nanmean(all_air_temperature, axis=0)
@@ -325,7 +325,6 @@ def run_microclimate(
         )
 
         # Update air/canopy temperatures
-        # TODO add parameters to constants and include conductivities
         new_canopy_temperature, new_air_temperature_canopy = (
             energy_balance.update_air_canopy_temperature(
                 absorbed_radiation_canopy=data["shortwave_absorption"][
@@ -334,14 +333,22 @@ def run_microclimate(
                 longwave_emission_canopy=longwave_emission_canopy,
                 sensible_heat_flux_canopy=sensible_heat_flux_canopy,
                 latent_heat_flux_canopy=latent_heat_flux_canopy,
-                air_temperature=air_temperature_canopy + core_constants.zero_Celsius,
-                canopy_temperature=canopy_temperature + core_constants.zero_Celsius,
+                air_temperature=air_temperature_canopy,
+                canopy_temperature=canopy_temperature,
                 emissivity_leaf=abiotic_constants.leaf_emissivity,
                 specific_heat_air=specific_heat_air,
                 density_air=density_air,
                 aerodynamic_resistance=aerodynamic_resistance_canopy,
-                relaxation_factor=0.1,
+                stomatal_resistance=(
+                    core_constants.conductance_to_resistance_conversion_factor
+                    / data["stomatal_conductance"][
+                        layer_structure.index_filled_canopy
+                    ].to_numpy()
+                ),
+                latent_heat_vaporisation=latent_heat_vapourisation[1:-1],
+                numerical_stability_factor=abiotic_constants.numerical_stability_factor,
                 stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+                saturated_pressure_slope_parameters=abiotic_constants.saturated_pressure_slope_parameters,
             )
         )
 
@@ -350,18 +357,16 @@ def run_microclimate(
         surface_temperature_change = sensible_heat_flux_soil / (
             density_air * specific_heat_air
         )
-        new_surface_temperature = (
-            surface_air_temperature + core_constants.zero_Celsius
-        ) + surface_temperature_change
+        new_surface_temperature = surface_air_temperature + surface_temperature_change
 
         soil_temperature = new_soil_temperature
-        air_temperature_canopy = (
-            new_air_temperature_canopy - core_constants.zero_Celsius
-        )
-        canopy_temperature = new_canopy_temperature - core_constants.zero_Celsius
-        surface_air_temperature = new_surface_temperature - core_constants.zero_Celsius
+        air_temperature_canopy = new_air_temperature_canopy
+        canopy_temperature = new_canopy_temperature
+        surface_air_temperature = new_surface_temperature
 
-        all_air_temperature[1 : len(canopy_temperature) + 1] = canopy_temperature
+        all_air_temperature[1 : len(canopy_temperature) + 1] = (
+            new_air_temperature_canopy
+        )
         all_air_temperature[-1] = surface_air_temperature
 
         # TODO dimensions -  Update atmospheric humidity/VPD

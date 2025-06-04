@@ -176,3 +176,10 @@ class AbioticConsts(ConstantsDataclass):
 
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
+
+    numerical_stability_factor: float = 0.1
+    """Factor for numerical stability in temperature update.
+    
+    Weighting factor used in the Newton method to control the step size 
+    of temperature updates. This helps ensure numerical stability and prevents 
+    overshooting during iterative solution of the energy balance equation."""

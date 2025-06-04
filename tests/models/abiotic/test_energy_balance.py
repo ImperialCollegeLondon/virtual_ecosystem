@@ -297,18 +297,18 @@ def test_update_air_canopy_temperature():
     )
 
     # Test inputs (2D arrays for layers and grid cells)
-    absorbed_radiation_canopy = np.array([[290.0, 340.0], [390.0, 440.0]])
-    longwave_emission_canopy = np.array([[100.0, 100.0], [100.0, 100.0]])
-    sensible_heat_flux_canopy = np.array([[-50.0, -60.0], [-70.0, -80.0]])
-    latent_heat_flux_canopy = np.array([[-30.0, -40.0], [-50.0, -60.0]])
-    air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
-    canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
+    absorbed_radiation_canopy = np.array([[500.0, 500.0], [500.0, 500.0]])
+    longwave_emission_canopy = np.array([[400.0, 400.0], [400.0, 400.0]])
+    sensible_heat_flux_canopy = np.array([[50.0, 60.0], [70.0, 80.0]])
+    latent_heat_flux_canopy = np.array([[30.0, 40.0], [50.0, 60.0]])
+    air_temperature = np.array([[30.0, 25.0], [28.0, 23.0]])
+    canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
 
     # Expected outputs
-    expected_canopy_temperature = np.array(
-        [[357.378642, 369.30703], [382.892166, 398.304809]]
+    expected_canopy_temperature = np.array([[31.328482, 26.0], [29.668271, 24.302754]])
+    expected_air_temperature = np.array(
+        [[30.015376, 25.015376], [28.030751, 23.030751]]
     )
-    expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
 
     # Call the function
     updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
@@ -318,12 +318,15 @@ def test_update_air_canopy_temperature():
         latent_heat_flux_canopy=latent_heat_flux_canopy,
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
-        emissivity_leaf=0.8,
+        emissivity_leaf=0.95,
         specific_heat_air=np.full((2, 2), 1.006),
         density_air=np.full((2, 2), 1.293),
-        aerodynamic_resistance=np.full((2, 2), 200.0),
-        relaxation_factor=0.1,
+        aerodynamic_resistance=np.full((2, 2), 50.0),
+        stomatal_resistance=np.full((2, 2), 100.0),
+        numerical_stability_factor=0.1,
+        latent_heat_vaporisation=2268,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        saturated_pressure_slope_parameters=AbioticConsts.saturated_pressure_slope_parameters,
     )
 
     # Assertions

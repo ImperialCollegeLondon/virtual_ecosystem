@@ -41,6 +41,9 @@ from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    calculate_slope_of_saturated_pressure_curve,
+)
 
 
 def initialise_absorbed_radiation(
@@ -444,16 +447,17 @@ def update_air_canopy_temperature(
     specific_heat_air: NDArray[np.float32],
     density_air: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
-    relaxation_factor: float,
+    stomatal_resistance: float | NDArray[np.float32],
+    latent_heat_vaporisation: NDArray[np.float32],
+    numerical_stability_factor: float,
     stefan_boltzmann_constant: float,
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
 ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
     r"""Update air and canopy temperature in steady state.
 
-    TODO this needs to be revisited, there seems to be a term missing and we need to
-    check if the linearisation needs to be applied in a wider context of the iteration.
-
     The method linearizes the energy balance of the canopy and air temperature updates
-    using Newton-Raphson approximation for temperature adjustment.
+    using Newton approximation for temperature adjustment following
+    :cite:t:`yang_scope_2021`.
 
     The energy balance (:math:`EB`) for the canopy is given by:
 
@@ -462,34 +466,41 @@ def update_air_canopy_temperature(
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_c` is the canopy temperature :math:`H` is the sensible heat
+    constant, :math:`T_{c}` is the canopy temperature :math:`H` is the sensible heat
     flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
 
-    The Newton-Raphson linearization for canopy temperature update is:
+    The Newton linearization for canopy temperature update is:
 
     .. math::
-        T^{new}_{c} = T_{c} - \frac{EB} {\frac{\delta EB}{\delta T_{c}}}
+        T_{new} = T_{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{c}}}
 
-    with
+    where :math:`\frac{\delta EB}{\delta T_{c}}` is the first derivative of the energy
+    balance closure error to temperature, and :math:`W` is a weighting for the step
+    size to ensure numerical stability. The derivative is estimated analytically:
 
     .. math::
         \frac{\delta EB}{\delta T_{c}}
-        = -(4 \epsilon \sigma T_{c}^{3} + \frac{\rho_{a} c_{p}} {r_{a}})
+        = \frac{\rho_{a} c_{p}} {r_{a}}
+        + \frac{\rho \Delta_{v}}{(r_{a} + r_{s})} \lambda
+        + 4 \epsilon \sigma (T_{old} + 273.15)^{3}
 
-    Where :math:`c_{p}` is the specific heat capacity of air, and :math:`\rho_{a}` is
-    the density of air, and :math:`r_{a}` is the aerodynamic resistance.
+    Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
+    :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
+    the saturation vapour pressure curve, :math:`\lambda` is the latent heat
+    of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
+    stomatal resistance, [s m-1], respectively.
 
     The new air temperature :math:`T^{new}_{a}` is given by:
 
     .. math::
-        T^{new}_{a} = T_{a} + \alpha * (T_{c} - T_{a})
+        T^{new}_{a} = T_{a} + \alpha \cdot (T_{c} - T_{a})
 
     Where the relaxation factor :math:`\alpha` is a weighting factor for air temperature
     update.
 
     Args:
-        canopy_temperature: canopy temperatures for all true canopy layers, [K]
-        air_temperature: Air temperature for all layers around true canopy, [K]
+        canopy_temperature: canopy temperatures for all true canopy layers, [C]
+        air_temperature: Air temperature for all layers around true canopy, [C]
         absorbed_radiation_canopy: Absorbed shortwave radiation at all canopy layers,
             [W m-2]
         longwave_emission_canopy: Longwave emission from all canopy layers, [W m-2]
@@ -499,30 +510,54 @@ def update_air_canopy_temperature(
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
-        relaxation_factor: Weighting factor for air temperature update (default 0.1)
+        stomatal_resistance: Stomatal resistance, [s m-1]
+        latent_heat_vaporisation: Latent heat of vaporisation, [kJ kg-1]
+        numerical_stability_factor: Numerical stability factor, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
 
     Returns:
-        Updated canopy and air temperatures, [K]
+        Updated canopy and air temperatures, [C]
     """
 
     # Energy balance for canopy
     energy_balance_canopy = (
         absorbed_radiation_canopy
-        - longwave_emission_canopy
-        - sensible_heat_flux_canopy
-        - latent_heat_flux_canopy
+        - np.abs(longwave_emission_canopy)
+        - np.abs(sensible_heat_flux_canopy)
+        - np.abs(latent_heat_flux_canopy)
     )
 
-    derivative = -(
-        4 * emissivity_leaf * stefan_boltzmann_constant * canopy_temperature**3
-        + specific_heat_air * density_air / aerodynamic_resistance
+    slope_saturation_vapour_pressure = calculate_slope_of_saturated_pressure_curve(
+        temperature=canopy_temperature,
+        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
     )
 
-    # Newton-Raphson step
-    new_canopy_temperature = canopy_temperature - energy_balance_canopy / derivative
+    # Derivative of energy balance closure error
+    derivative = (
+        (specific_heat_air * density_air / aerodynamic_resistance)
+        + (
+            density_air
+            * slope_saturation_vapour_pressure
+            / (aerodynamic_resistance + stomatal_resistance)
+            / latent_heat_vaporisation
+        )
+        + (
+            4
+            * emissivity_leaf
+            * stefan_boltzmann_constant
+            * (canopy_temperature + 273.15) ** 3
+        )
+    )
 
-    new_air_temperature = air_temperature + relaxation_factor * (
+    # Update temperatures
+    new_canopy_temperature = canopy_temperature + numerical_stability_factor * (
+        energy_balance_canopy / derivative
+    )
+
+    alpha = 1.0 / (density_air * specific_heat_air * aerodynamic_resistance)
+    new_air_temperature = air_temperature + alpha * (
         canopy_temperature - air_temperature
     )
 
