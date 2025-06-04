@@ -177,6 +177,8 @@ class SoilModel(
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
     ),
+    # TODO - If anything gets added to this section the implementation docs will need to
+    # be updated
     vars_populated_by_first_update=(),
 ):
     """A class defining the soil model.

@@ -55,19 +55,8 @@ display_markdown(
 
 ## Generated variables
 
-The first update of the soil model adds the following variables to the data
-environment of the Virtual Ecosystem:
-
-```{code-cell} ipython3
----
-mystnb:
-  markdown_format: myst
-tags: [remove-input]
----
-display_markdown(
-    generate_variable_table("SoilModel", ["vars_populated_by_first_update"]), raw=True
-)
-```
+The soil model does not currently generate any variables. If that changes this section
+will need to be updated.
 
 ## Updated variables
 
