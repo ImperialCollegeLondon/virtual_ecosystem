@@ -557,6 +557,7 @@ def update_air_canopy_temperature(
         energy_balance_canopy / derivative
     )
 
+    # TODO in calculation of alpha, the time interval should be considered where 1.0
     alpha = 1.0 / (density_air * specific_heat_air * aerodynamic_resistance)
     new_air_temperature = air_temperature + alpha * (
         canopy_temperature - air_temperature
