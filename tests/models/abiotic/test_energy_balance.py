@@ -296,6 +296,7 @@ def test_update_air_canopy_temperature():
         update_air_canopy_temperature,
     )
 
+    # TODO test positive and negative values for fluxes, see #780
     # Test inputs (2D arrays for layers and grid cells)
     absorbed_radiation_canopy = np.array([[500.0, 500.0], [500.0, 500.0]])
     longwave_emission_canopy = np.array([[400.0, 400.0], [400.0, 400.0]])
