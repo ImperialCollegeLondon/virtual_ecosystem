@@ -472,17 +472,18 @@ def update_air_canopy_temperature(
     The Newton linearization for canopy temperature update is:
 
     .. math::
-        T_{new} = T_{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{c}}}
+        T_{c}^{new} =
+        T_{c}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{c}^{old}}}
 
-    where :math:`\frac{\delta EB}{\delta T_{c}}` is the first derivative of the energy
-    balance closure error to temperature, and :math:`W` is a weighting for the step
-    size to ensure numerical stability. The derivative is estimated analytically:
+    where :math:`\frac{\delta EB}{\delta T_{c}^{old}}` is the first derivative of the
+    energy balance closure error to temperature, and :math:`W` is a weighting for the
+    step size to ensure numerical stability. The derivative is estimated analytically:
 
     .. math::
-        \frac{\delta EB}{\delta T_{c}}
+        \frac{\delta EB}{\delta T_{c}^{old}}
         = \frac{\rho_{a} c_{p}} {r_{a}}
         + \frac{\rho \Delta_{v}}{(r_{a} + r_{s})} \lambda
-        + 4 \epsilon \sigma (T_{old} + 273.15)^{3}
+        + 4 \epsilon \sigma (T_{c}^{old} + 273.15)^{3}
 
     Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
     :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
@@ -490,10 +491,10 @@ def update_air_canopy_temperature(
     of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
     stomatal resistance, [s m-1], respectively.
 
-    The new air temperature :math:`T^{new}_{a}` is given by:
+    The new air temperature :math:`T_{a}^{new}` is given by:
 
     .. math::
-        T^{new}_{a} = T_{a} + \alpha \cdot (T_{c} - T_{a})
+        T_{a}^{new} = T_{a}^{old} + \alpha \cdot (T_{c}^{new} - T_{a}^{new})
 
     Where the relaxation factor :math:`\alpha` is a weighting factor for air temperature
     update.
