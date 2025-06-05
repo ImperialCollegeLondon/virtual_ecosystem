@@ -1,6 +1,6 @@
 ---
 execution:
-  timeout: 60
+  timeout: 90
 jupytext:
   formats: md:myst
   main_language: python
@@ -117,6 +117,9 @@ if [ -d /tmp/ve_example/experiment1_out ]; then
 fi
 
 mkdir /tmp/ve_example/experiment1_out
+if [ -d /tmp/ve_example/experiment1_out ]; then
+  echo "it works"
+fi
 ```
 
 #### Run experiment 1
