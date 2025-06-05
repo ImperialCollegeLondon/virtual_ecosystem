@@ -110,22 +110,13 @@ input data):
    already exist in your output folder, the model will crash.
 
 ```{code-cell} ipython3
-import os
-import shutil
-
-output_dir = "/tmp/ve_example/experiment1_out"
-
+%%bash
 # Create the directory if it doesn't exist, or clear it if it does
-if os.path.exists(output_dir):
-    # Remove all files and subdirectories
-    for filename in os.listdir(output_dir):
-        file_path = os.path.join(output_dir, filename)
-        if os.path.isfile(file_path) or os.path.islink(file_path):
-            os.unlink(file_path)  # remove file or link
-        elif os.path.isdir(file_path):
-            shutil.rmtree(file_path)  # remove directory
-else:
-    os.makedirs(output_dir)
+if [ -d /tmp/ve_example/experiment1_out ]; then
+  rm -r /tmp/ve_example/experiment1_out
+fi
+
+mkdir /tmp/ve_example/experiment1_out
 ```
 
 #### Run experiment 1
@@ -250,19 +241,13 @@ these steps:
   `/ve_example/experiment2_out/`.
 
 ```{code-cell} ipython3
-output_dir2 = "/tmp/ve_example/experiment2_out"
-
+%%bash
 # Create the directory if it doesn't exist, or clear it if it does
-if os.path.exists(output_dir2):
-    # Remove all files and subdirectories
-    for filename in os.listdir(output_dir2):
-        file_path = os.path.join(output_dir2, filename)
-        if os.path.isfile(file_path) or os.path.islink(file_path):
-            os.unlink(file_path)  # remove file or link
-        elif os.path.isdir(file_path):
-            shutil.rmtree(file_path)  # remove directory
-else:
-    os.makedirs(output_dir2)
+if [ -d /tmp/ve_example/experiment2_out ]; then
+  rm -r /tmp/ve_example/experiment2_out
+fi
+
+mkdir /tmp/ve_example/experiment2_out
 ```
 
 #### Run experiment 2
