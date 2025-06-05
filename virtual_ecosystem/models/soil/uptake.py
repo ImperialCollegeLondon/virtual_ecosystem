@@ -275,10 +275,15 @@ def find_net_nutrient_consumptions_free_living(
         The net consumption/production of each nutrient class [kg m^-3 day^-1].
     """
 
-    # Determine how limiting carbon is (as a proportion)
-    carbon_limitation = actual_carbon_gain / (
-        max_uptake_rates.carbon * carbon_use_efficiency
-    )
+    # Determine how limiting carbon is (as a proportion). The zero carbon uptake case is
+    # handled by assuming that carbon limitation is total in this case. Divide by zero
+    # warnings are turned off because this is explicitly handled.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        carbon_limitation = np.where(
+            max_uptake_rates.carbon > 0,
+            actual_carbon_gain / (max_uptake_rates.carbon * carbon_use_efficiency),
+            1,
+        )
 
     # Calculate biomass demands for nitrogen and phosphorus
     nitrogen_demand = (
