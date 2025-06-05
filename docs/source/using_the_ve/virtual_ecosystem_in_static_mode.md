@@ -1,4 +1,6 @@
 ---
+execution:
+  timeout: 60
 jupytext:
   formats: md:myst
   main_language: python
