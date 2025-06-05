@@ -109,19 +109,6 @@ static=true
    output files always have the same name and cannot be overwritten; if they
    already exist in your output folder, the model will crash.
 
-```{code-cell} ipython3
-%%bash
-# Create the directory if it doesn't exist, or clear it if it does
-if [ -d /tmp/ve_example/experiment1_out ]; then
-  rm -r /tmp/ve_example/experiment1_out
-fi
-
-mkdir /tmp/ve_example/experiment1_out
-if [ -d /tmp/ve_example/experiment1_out ]; then
-  echo "it works"
-fi
-```
-
 #### Run experiment 1
 
 To run the static model use the following command, making sure that it points to your
@@ -243,15 +230,6 @@ these steps:
 1. Create a new output folder for your experiment, for example
   `/ve_example/experiment2_out/`.
 
-```{code-cell} ipython3
-%%bash
-# Create the directory if it doesn't exist, or clear it if it does
-if [ -d /tmp/ve_example/experiment2_out ]; then
-  rm -r /tmp/ve_example/experiment2_out
-fi
-
-mkdir /tmp/ve_example/experiment2_out
-```
 
 #### Run experiment 2
 
