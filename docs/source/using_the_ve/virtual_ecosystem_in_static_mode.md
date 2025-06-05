@@ -230,7 +230,6 @@ these steps:
 1. Create a new output folder for your experiment, for example
   `/ve_example/experiment2_out/`.
 
-
 #### Run experiment 2
 
 To run the static model use the following command, making sure that it points to your
