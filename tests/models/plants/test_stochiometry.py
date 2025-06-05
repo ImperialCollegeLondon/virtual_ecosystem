@@ -19,9 +19,9 @@ def test_Stochiometry__init__(fxt_plants_model):
         community = fxt_plants_model.communities[cell_id]
 
         n_stochiometry = StemStochiometry(
+            element="N",
             tissues=[
                 FoliageTissue(
-                    element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
                         community.n_cohorts,
@@ -32,7 +32,6 @@ def test_Stochiometry__init__(fxt_plants_model):
                     reclaim_ratio=plant_consts.leaf_turnover_c_n_ratio,
                 ),
                 RootTissue(
-                    element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
                         community.n_cohorts,
@@ -43,7 +42,6 @@ def test_Stochiometry__init__(fxt_plants_model):
                     * community.stem_allometry.foliage_mass,
                 ),
                 WoodTissue(
-                    element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
                         community.n_cohorts,
@@ -53,7 +51,6 @@ def test_Stochiometry__init__(fxt_plants_model):
                     * community.stem_allometry.stem_mass,
                 ),
                 ReproductiveTissue(
-                    element_name="Nitrogen",
                     community=community,
                     ideal_ratio=np.full(
                         community.n_cohorts,
@@ -63,7 +60,6 @@ def test_Stochiometry__init__(fxt_plants_model):
                     * plant_consts.plant_reproductive_tissue_turnover_c_n_ratio,
                 ),
             ],
-            n_cohorts=community.n_cohorts,
             community=community,
         )
         assert n_stochiometry is not None
@@ -78,7 +74,6 @@ def test_Stochiometry_FoliageTissue(fxt_plants_model):
         community = fxt_plants_model.communities[cell_id]
 
         foliage_tissue = FoliageTissue(
-            element_name="Nitrogen",
             community=community,
             ideal_ratio=np.full(community.n_cohorts, plant_consts.foliage_c_n_ratio),
             actual_element_mass=community.stem_allometry.foliage_mass
@@ -97,7 +92,6 @@ def test_Stochiometry_ReproductiveTissue(fxt_plants_model):
         community = fxt_plants_model.communities[cell_id]
 
         reproductive_tissue = ReproductiveTissue(
-            element_name="Nitrogen",
             community=community,
             ideal_ratio=np.full(
                 community.n_cohorts,
@@ -118,7 +112,6 @@ def test_Stochiometry_RootTissue(fxt_plants_model):
         community = fxt_plants_model.communities[cell_id]
 
         root_tissue = RootTissue(
-            element_name="Nitrogen",
             community=community,
             ideal_ratio=np.full(
                 community.n_cohorts, plant_consts.root_turnover_c_n_ratio
@@ -140,7 +133,6 @@ def test_Stochiometry_WoodTissue(fxt_plants_model):
         community = fxt_plants_model.communities[cell_id]
 
         wood_tissue = WoodTissue(
-            element_name="Nitrogen",
             community=community,
             ideal_ratio=np.full(community.n_cohorts, plant_consts.deadwood_c_n_ratio),
             actual_element_mass=plant_consts.deadwood_c_n_ratio

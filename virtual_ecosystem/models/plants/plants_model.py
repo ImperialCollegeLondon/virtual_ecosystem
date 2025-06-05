@@ -212,7 +212,7 @@ class PlantsModel(
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
         to PlantCommunity instances for each cell."""
-        self.stochiometries: dict[int, StemStochiometry]
+        self.stochiometries: dict[int, dict[str, StemStochiometry]]
         """A dictionary keyed by cell id giving the stochiometry of each community."""
         self.allocations: dict[int, StemAllocation]
         """A dictionary keyed by cell id giving the allocation of each community."""
@@ -326,61 +326,110 @@ class PlantsModel(
 
         # Initialize the stochiometries of each cohort
         self.stochiometries = {
-            cell_id: StemStochiometry(
-                tissues=[
-                    FoliageTissue(
-                        element_name="Nitrogen",
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.foliage_c_n_ratio,
+            cell_id: {
+                "N": StemStochiometry(
+                    element="N",
+                    tissues=[
+                        FoliageTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.foliage_c_n_ratio,
+                            ),
+                            actual_element_mass=self.communities[
+                                cell_id
+                            ].stem_allometry.foliage_mass
+                            * model_constants.foliage_c_n_ratio,
+                            reclaim_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.leaf_turnover_c_n_ratio,
+                            ),
                         ),
-                        actual_element_mass=self.communities[
-                            cell_id
-                        ].stem_allometry.foliage_mass
-                        * model_constants.foliage_c_n_ratio,
-                        reclaim_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.leaf_turnover_c_n_ratio,
+                        RootTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.root_turnover_c_n_ratio,
+                            ),
+                            actual_element_mass=model_constants.root_turnover_c_n_ratio
+                            * self.communities[cell_id].stem_traits.zeta
+                            * self.communities[cell_id].stem_allometry.foliage_mass,
                         ),
-                    ),
-                    RootTissue(
-                        element_name="Nitrogen",
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.root_turnover_c_n_ratio,
+                        WoodTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.deadwood_c_n_ratio,
+                            ),
+                            actual_element_mass=model_constants.deadwood_c_n_ratio
+                            * self.communities[cell_id].stem_allometry.stem_mass,
                         ),
-                        actual_element_mass=model_constants.root_turnover_c_n_ratio
-                        * self.communities[cell_id].stem_traits.zeta
-                        * self.communities[cell_id].stem_allometry.foliage_mass,
-                    ),
-                    WoodTissue(
-                        element_name="Nitrogen",
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.deadwood_c_n_ratio,
+                        ReproductiveTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+                            ),
+                            actual_element_mass=self.communities[
+                                cell_id
+                            ].stem_allometry.reproductive_tissue_mass
+                            * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
                         ),
-                        actual_element_mass=model_constants.deadwood_c_n_ratio
-                        * self.communities[cell_id].stem_allometry.stem_mass,
-                    ),
-                    ReproductiveTissue(
-                        element_name="Nitrogen",
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+                    ],
+                    community=self.communities[cell_id],
+                ),
+                "P": StemStochiometry(
+                    element="P",
+                    tissues=[
+                        FoliageTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.foliage_c_p_ratio,
+                            ),
+                            actual_element_mass=self.communities[
+                                cell_id
+                            ].stem_allometry.foliage_mass
+                            * model_constants.foliage_c_p_ratio,
+                            reclaim_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.leaf_turnover_c_p_ratio,
+                            ),
                         ),
-                        actual_element_mass=self.communities[
-                            cell_id
-                        ].stem_allometry.reproductive_tissue_mass
-                        * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
-                    ),
-                ],
-                n_cohorts=self.communities[cell_id].n_cohorts,
-                community=self.communities[cell_id],
-            )
+                        RootTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.root_turnover_c_p_ratio,
+                            ),
+                            actual_element_mass=model_constants.root_turnover_c_p_ratio
+                            * self.communities[cell_id].stem_traits.zeta
+                            * self.communities[cell_id].stem_allometry.foliage_mass,
+                        ),
+                        WoodTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.deadwood_c_p_ratio,
+                            ),
+                            actual_element_mass=model_constants.deadwood_c_p_ratio
+                            * self.communities[cell_id].stem_allometry.stem_mass,
+                        ),
+                        ReproductiveTissue(
+                            community=self.communities[cell_id],
+                            ideal_ratio=np.full(
+                                self.communities[cell_id].n_cohorts,
+                                model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
+                            ),
+                            actual_element_mass=self.communities[
+                                cell_id
+                            ].stem_allometry.reproductive_tissue_mass
+                            * self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,  # noqa: E501
+                        ),
+                    ],
+                    community=self.communities[cell_id],
+                ),
+            }
             for cell_id in self.communities.keys()
         }
 
@@ -450,13 +499,14 @@ class PlantsModel(
         # Estimate the canopy GPP and growth with the updated this update
         self.calculate_light_use_efficiency()
         self.estimate_gpp(time_index=time_index)
+
+        # Calculate uptake from each inorganic soil nutrient pool
+        self.calculate_nutrient_uptake()
+
         self.allocate_gpp()
 
         # Calculate the turnover of each plant biomass pool
         self.calculate_turnover()
-
-        # Calculate uptake from each inorganic soil nutrient pool
-        self.calculate_nutrient_uptake()
 
         # Calculate the rate at which plants take nutrients from mycorrhizal fungi
         self.calculate_mycorrhizal_uptakes()
@@ -704,21 +754,6 @@ class PlantsModel(
                 * self.model_timing.update_interval_seconds
             ).sum(axis=0)
 
-            # Calculate N uptake (g N per stem) due to transpiration. Conversion units:
-            # - Per stem transpiration (µmol H2O per stem)
-            # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
-            # - Concentration of dissolved N (kg m^-3)
-            # - Kg to g (1000)
-            self.stochiometries[cell_id].element_surplus += (
-                self.per_stem_transpiration[cell_id]
-                * (1.8015 * pow(10.0, -11))
-                * (
-                    self.data["dissolved_ammonium"][cell_id]
-                    + self.data["dissolved_nitrate"][cell_id]
-                ).item()
-                * 1000
-            )
-
             # Calculate the total transpiration per layer in mm m2 in mm, converted from
             # an initial value is in µmol m2 s1
             transpiration[active_layers, cell_id] = (
@@ -767,7 +802,7 @@ class PlantsModel(
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
-            stochiometry = self.stochiometries[cell_id]
+            stochiometries = self.stochiometries[cell_id]
 
             # Calculate the allocation of GPP per stem
             stem_allocation = StemAllocation(
@@ -847,7 +882,8 @@ class PlantsModel(
                 )
 
             # SECOND: ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
-            stochiometry.account_for_element_loss_turnover(stem_allocation)
+            for stochiometry in stochiometries.values():
+                stochiometry.account_for_element_loss_turnover(stem_allocation)
 
             # THIRD, ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
@@ -879,9 +915,10 @@ class PlantsModel(
 
             # Subtract the N/P required from growth from the element store, and
             # redistribute it to the individual tisuses.
-            stochiometry.account_for_growth(stem_allocation)
+            for stochiometry in stochiometries.values():
+                stochiometry.account_for_growth(stem_allocation)
 
-            # Balance the N surplus/deficit with the symbiote carbon supply
+            # Balance the N & P surplus/deficit with the symbiote carbon supply
             n_weighted_avg = np.dot(
                 self.data["ecto_supply_limit_n"][cell_id]
                 + self.data["arbuscular_supply_limit_n"][cell_id],
@@ -891,35 +928,48 @@ class PlantsModel(
             n_available_per_stem = np.divide(
                 n_avaiable_per_cohort, cohorts.n_individuals
             )
+            stochiometries["N"].element_surplus = (
+                stochiometries["N"].element_surplus + n_available_per_stem
+            )
 
-            stochiometry.element_surplus = (
-                stochiometry.element_surplus + n_available_per_stem
+            p_weighted_avg = np.dot(
+                self.data["ecto_supply_limit_p"][cell_id]
+                + self.data["arbuscular_supply_limit_p"][cell_id],
+                cohorts.n_individuals,
+            )
+            p_available_per_cohort = p_weighted_avg / sum(p_weighted_avg)
+            p_available_per_stem = np.divide(
+                p_available_per_cohort, cohorts.n_individuals
+            )
+
+            stochiometries["P"].element_surplus = (
+                stochiometries["P"].element_surplus + p_available_per_stem
             )
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
-                if stochiometry.element_surplus[cohort] < 0:
-                    # Distribute deficit across the tissue types
-                    stochiometry.distribute_deficit(cohort)
+                for stochiometry in stochiometries.values():
+                    if stochiometry.element_surplus[cohort] < 0:
+                        # Distribute deficit across the tissue types
+                        stochiometry.distribute_deficit(cohort)
 
-                elif (
-                    stochiometry.element_surplus[cohort] > 0
-                    and stochiometry.tissue_deficit[cohort] > 0
-                ):
-                    # Distribute the surplus across the tissue types
-                    stochiometry.distribute_surplus(cohort)
+                    elif (
+                        stochiometry.element_surplus[cohort] > 0
+                        and stochiometry.tissue_deficit[cohort] > 0
+                    ):
+                        # Distribute the surplus across the tissue types
+                        stochiometry.distribute_surplus(cohort)
 
-                else:
-                    # NO ADJUSTMENT REQUIRED - there is a surplus in the store, but
-                    # there is no deficit in the tissue types.
-                    pass
+                    else:
+                        # NO ADJUSTMENT REQUIRED - there is a surplus in the store, but
+                        # there is no deficit in the tissue types.
+                        pass
 
             # Update community allometry with new dbh values
             community.stem_allometry = StemAllometry(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
 
-            # self.allocations[cell_id] = stem_allocation
             self.update_cn_ratios()
 
     def apply_mortality(self) -> None:
@@ -958,6 +1008,8 @@ class PlantsModel(
 
         This function updates the C:N and C:P ratios of various plant tissues, including
         deadwood, leaf turnover, plant reproductive tissue turnover, and root turnover.
+
+        # TODO: Update this to use the Stochiometry class values.
 
         Warning:
             At present, this function just sets values to original constants.
@@ -1032,7 +1084,9 @@ class PlantsModel(
         """Calculate uptake of soil nutrients by the plant community.
 
         This function calculates the rate a which plants take up inorganic nutrients
-        (ammonium, nitrate, and labile phosphorus) from the soil.
+        (ammonium, nitrate, and labile phosphorus) from the soil. The function then
+        assigns the N/P uptake values to the respective community through the
+        stochiometry class.
 
         Warning:
             At present, this function just calculates uptake based on an entirely made
@@ -1040,10 +1094,32 @@ class PlantsModel(
         """
 
         # Assume plants can take 0.1% of the available nutrient per day
-        # TODO: This is now set by transpiration?
         self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
         self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
         self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
+
+        # Calculate N/P uptake (g N/P per stem) due to transpiration. Multiply:
+        # - Per stem transpiration (µmol H2O per stem)
+        # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
+        # - Concentration of N/P uptake (kg m^-3)
+        # - Kg to g (1000)
+
+        for cell_id in self.communities.keys():
+            self.stochiometries[cell_id]["N"].element_surplus += (
+                self.per_stem_transpiration[cell_id]
+                * (1.8015 * pow(10.0, -11))
+                * (
+                    self.data["plant_ammonium_uptake"][cell_id]
+                    + self.data["plant_nitrate_uptake"][cell_id]
+                ).item()
+                * 1000
+            )
+            self.stochiometries[cell_id]["P"].element_surplus += (
+                self.per_stem_transpiration[cell_id]
+                * (1.8015 * pow(10.0, -11))
+                * (self.data["plant_phosphorus_uptake"][cell_id]).item()
+                * 1000
+            )
 
     def calculate_mycorrhizal_uptakes(self) -> None:
         """Calculate the rate at which plants take nutrients from mycorrhizal fungi.

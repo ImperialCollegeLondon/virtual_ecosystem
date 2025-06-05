@@ -30,8 +30,6 @@ class Tissue(PandasExporter, CohortMethods):
     an entry for each cohort in the data class.
     """
 
-    element_name: str
-    """The name of the element type."""
     tissue_name: str
     """The name of the tissue type."""
     community: Community
@@ -109,14 +107,12 @@ class FoliageTissue(Tissue):
 
     def __init__(
         self,
-        element_name: str,
         community: Community,
         ideal_ratio: NDArray[np.float64],
         actual_element_mass: NDArray[np.float64],
         reclaim_ratio: NDArray[np.float64],
     ):
         super().__init__(
-            element_name=element_name,
             tissue_name="Foliage",
             community=community,
             ideal_ratio=ideal_ratio,
@@ -161,13 +157,11 @@ class ReproductiveTissue(Tissue):
 
     def __init__(
         self,
-        element_name: str,
         community: Community,
         ideal_ratio: NDArray[np.float64],
         actual_element_mass: NDArray[np.float64],
     ):
         super().__init__(
-            element_name=element_name,
             tissue_name="Reproductive",
             community=community,
             ideal_ratio=ideal_ratio,
@@ -211,13 +205,11 @@ class WoodTissue(Tissue):
 
     def __init__(
         self,
-        element_name: str,
         community: Community,
         ideal_ratio: NDArray[np.float64],
         actual_element_mass: NDArray[np.float64],
     ):
         super().__init__(
-            element_name=element_name,
             tissue_name="Wood",
             community=community,
             ideal_ratio=ideal_ratio,
@@ -257,13 +249,11 @@ class RootTissue(Tissue):
 
     def __init__(
         self,
-        element_name: str,
         community: Community,
         ideal_ratio: NDArray[np.float64],
         actual_element_mass: NDArray[np.float64],
     ):
         super().__init__(
-            element_name=element_name,
             tissue_name="Roots",
             community=community,
             ideal_ratio=ideal_ratio,
@@ -313,10 +303,10 @@ class StemStochiometry(CohortMethods, PandasExporter):
     attribute of Community.
     """
 
+    element: str
+    """The name of the element (e.g., N or P)."""
     tissues: list[Tissue]
     """Tissues for the associated stems."""
-    n_cohorts: np.int64
-    """The number of cohorts represented by the Stochiometry."""
     community: Community
     """The community object that the stochiometry is associated with."""
     element_surplus: NDArray[np.float64] = field(init=False)
@@ -324,7 +314,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
 
     def __post_init__(self) -> None:
         """Initialize the element surplus for each cohort."""
-        self.element_surplus = np.zeros(self.n_cohorts, dtype=np.float64)
+        self.element_surplus = np.zeros(self.community.n_cohorts, dtype=np.float64)
 
     @property
     def total_element_mass(self) -> NDArray[np.float64]:
@@ -333,7 +323,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
         Returns:
             The total nitrogen mass for each cohort.
         """
-        mass = np.zeros(self.n_cohorts)
+        mass = np.zeros(self.community.n_cohorts)
         for tissue in self.tissues:
             mass += tissue.actual_element_mass
         return mass
@@ -345,7 +335,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
         Returns:
             The element deficit for the specified tissue.
         """
-        element_deficit = np.zeros(self.n_cohorts)
+        element_deficit = np.zeros(self.community.n_cohorts)
         for tissue in self.tissues:
             element_deficit += tissue.deficit
         return element_deficit
