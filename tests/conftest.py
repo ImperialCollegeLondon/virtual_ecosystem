@@ -497,90 +497,81 @@ def fixture_core_components(fixture_config):
 
 
 @pytest.fixture
-def dummy_carbon_data(fixture_core_components):
-    """Creates a dummy carbon data object for use in tests."""
+def dummy_litter_data(fixture_core_components):
+    """Creates a dummy litter data object for use in tests."""
 
     from virtual_ecosystem.core.data import Data
+
+    lyr_strct = fixture_core_components.layer_structure
 
     # Setup the data object with four cells.
     data = Data(fixture_core_components.grid)
 
-    # The required data is now added. This includes the five carbon pools: mineral
-    # associated organic matter, low molecular weight carbon, microbial biomass and
-    # necromass carbon and particulate organic matter. It also includes various factors
-    # of the physical environment: pH, bulk density, soil moisture, soil temperature,
-    # percentage clay in soil.
-    data_values = {
-        "soil_c_pool_lmwc": [0.05, 0.02, 0.1, 0.005],
-        "soil_c_pool_maom": [2.5, 1.7, 4.5, 0.5],
-        "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
-        "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
-        "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
-        "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
-        "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
-        "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
-        "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],
-        "soil_enzyme_maom_bacteria": [0.0356, 0.0117, 0.02509, 0.00456],
-        "soil_enzyme_pom_fungi": [0.02607, 0.00575, 0.00646, 0.00441],
-        "soil_enzyme_maom_fungi": [0.008669, 0.006826, 0.003807, 0.002163],
-        "soil_n_pool_don": [0.000571428, 0.00142857, 0.00014285, 0.002857142],
-        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
-        "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
-        "soil_n_pool_maom": [0.86538462, 0.48076923, 0.32692308, 0.09615385],
-        "soil_n_pool_ammonium": [6.9619638e-5, 0.0049914624, 0.000229067, 0.0051955339],
-        "soil_n_pool_nitrate": [0.0024219014, 0.0044442996, 0.0003428348, 0.0131405173],
-        "soil_p_pool_dop": [5.714e-6, 2.2857120e-5, 5.7142800e-5, 1.1428568e-4],
-        "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
-        "soil_p_pool_necromass": [0.00080769, 0.00011538, 0.00071538, 0.00044615],
-        "soil_p_pool_maom": [0.01307692, 0.03461538, 0.01923077, 0.00384615],
-        "soil_p_pool_primary": [0.0019594, 0.00535662, 0.00277434, 0.00059892],
-        "soil_p_pool_secondary": [0.00705668, 0.03816896, 0.01152589, 0.00733107],
-        "soil_p_pool_labile": [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
-        "pH": [3.0, 7.5, 9.0, 5.7],
-        "bulk_density": [1350.0, 1800.0, 1000.0, 1500.0],
-        "clay_fraction": [0.8, 0.3, 0.1, 0.9],
-        "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
-        "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
-        "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
-        "vertical_flow": [0.1, 0.5, 2.5, 1.59],
-        "plant_symbiote_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
-        "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
-        "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
-        "plant_nitrate_uptake": [7.5e-4, 1.0e-3, 2.5e-4, 1.0e-4],
-        "plant_phosphorus_uptake": [3.0e-6, 5e-5, 2.0e-6, 1.0e-6],
-        "plant_n_uptake_arbuscular": [2.07e-5, 3.12e-5, 3.57e-6, 6.98e-5],
-        "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
-        "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
-        "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
+    # These values are taken from SAFE Project data, albeit in a very unsystematic
+    # manner. The repeated fourth value is simply to adapt three hand validated examples
+    # to the shared fixture core components grid
+    pool_values = {
+        "litter_pool_above_metabolic": [0.319785, 0.161631, 0.086129, 0.093456],
+        "litter_pool_above_structural": [0.52097, 0.26609, 0.10019, 0.09988],
+        "litter_pool_woody": [5.1773833, 12.185701, 7.673456, 7.462192],
+        "litter_pool_below_metabolic": [0.410373, 0.375794, 0.080181, 0.083494],
+        "litter_pool_below_structural": [0.613547, 0.321674, 0.032738, 0.029168],
+        "lignin_above_structural": [0.5, 0.1, 0.7, 0.7],
+        "lignin_woody": [0.5, 0.8, 0.35, 0.35],
+        "lignin_below_structural": [0.5, 0.25, 0.75, 0.75],
+        "c_n_ratio_above_metabolic": [7.3, 8.7, 10.1, 9.8],
+        "c_n_ratio_above_structural": [37.5, 43.2, 45.8, 50.2],
+        "c_n_ratio_woody": [55.5, 63.3, 47.3, 59.1],
+        "c_n_ratio_below_metabolic": [10.7, 11.3, 15.2, 12.4],
+        "c_n_ratio_below_structural": [50.5, 55.6, 73.1, 61.2],
+        "c_p_ratio_above_metabolic": [57.3, 68.7, 100.1, 95.8],
+        "c_p_ratio_above_structural": [337.5, 473.2, 415.8, 570.2],
+        "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
+        "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
+        "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
+        "deadwood_production": [0.075, 0.099, 0.063, 0.033],
+        "leaf_turnover": [0.027, 0.0003, 0.021, 0.0285],
+        "fallen_non_propagule_c_mass": [0.003, 0.0075, 0.00255, 0.00375],
+        "root_turnover": [0.027, 0.021, 0.0003, 0.0249],
+        "stem_lignin": [0.233, 0.545, 0.612, 0.378],
+        "senesced_leaf_lignin": [0.05, 0.25, 0.3, 0.57],
+        "plant_reproductive_tissue_lignin": [0.01, 0.03, 0.04, 0.02],
+        "root_lignin": [0.2, 0.35, 0.27, 0.4],
+        "deadwood_c_n_ratio": [60.7, 57.9, 73.1, 55.1],
+        "leaf_turnover_c_n_ratio": [15.0, 25.5, 43.1, 57.4],
+        "plant_reproductive_tissue_turnover_c_n_ratio": [12.5, 23.8, 15.7, 18.2],
+        "root_turnover_c_n_ratio": [30.3, 45.6, 43.3, 37.1],
+        "deadwood_c_p_ratio": [856.5, 675.4, 933.2, 888.8],
+        "leaf_turnover_c_p_ratio": [415.0, 327.4, 554.5, 380.9],
+        "plant_reproductive_tissue_turnover_c_p_ratio": [125.5, 105.0, 145.0, 189.2],
+        "root_turnover_c_p_ratio": [656.7, 450.6, 437.3, 371.9],
+        "litter_consumption_above_metabolic": [0.019785, 0.011631, 0.016129, 0.023456],
+        "litter_consumption_above_structural": [0.02097, 0.01609, 0.01019, 0.00988],
+        "litter_consumption_woody": [0.4773833, 0.385701, 0.373456, 0.162192],
+        "litter_consumption_below_metabolic": [0.010373, 0.005794, 0.010181, 0.013494],
+        "litter_consumption_below_structural": [0.013547, 0.011674, 0.012738, 0.009168],
+        "herbivory_waste_leaf_carbon": [3e-5, 2.1e-3, 2.85e-3, 2.7e-3],
+        "herbivory_waste_leaf_nitrogen": [23.1, 33.5, 23.1, 17.3],
+        "herbivory_waste_leaf_phosphorus": [212.5, 344.8, 334.8, 420.1],
+        "herbivory_waste_leaf_lignin": [0.13, 0.08, 0.27, 0.22],
     }
 
-    for var_name, var_values in data_values.items():
-        data[var_name] = DataArray(var_values, dims=["cell_id"])
+    for var, vals in pool_values.items():
+        data[var] = DataArray(vals, dims=["cell_id"])
 
-    # The layer dependent data has to be handled separately - at present all of these
-    # are defined only for the topsoil layer
-    lyr_str = fixture_core_components.layer_structure
+    # Vertically structured variables
+    data["soil_temperature"] = lyr_strct.from_template()
+    data["soil_temperature"][lyr_strct.index_topsoil] = 20
+    data["soil_temperature"][lyr_strct.index_subsoil] = [19.5, 18.7, 18.7, 17.6]
 
-    data["soil_moisture"] = lyr_str.from_template()
-    data["soil_moisture"][lyr_str.index_all_soil] = np.array(
-        [
-            [232.61550125, 196.88733175, 126.065797, 75.63195175],
-            [66.248474, 194.91137, 121.29988, 52.04422],
-        ]
-    )
+    # At present the soil model only uses the top soil layer, so this is the
+    # only one with real test values in
+    data["matric_potential"] = lyr_strct.from_template()
+    data["matric_potential"][lyr_strct.index_topsoil] = [-10.0, -25.0, -100.0, -100.0]
+    data["matric_potential"][lyr_strct.index_subsoil] = [-11.0, -29.5, -123.0, -154.1]
 
-    data["matric_potential"] = lyr_str.from_template()
-    data["matric_potential"][lyr_str.index_all_soil] = np.array(
-        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
-    )
-
-    data["soil_temperature"] = lyr_str.from_template()
-    data["soil_temperature"][lyr_str.index_all_soil] = np.array(
-        [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
-    )
-
-    data["air_temperature"] = lyr_str.from_template()
-    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+    data["air_temperature"] = lyr_strct.from_template()
+    data["air_temperature"][lyr_strct.index_filled_atmosphere] = np.array(
         [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
     )[:, None]
 
