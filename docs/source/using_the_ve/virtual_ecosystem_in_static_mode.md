@@ -99,10 +99,10 @@ input data):
   `/ve_example/static_config/`.
 1. Set the status flags to `static = true` for all but the hydrology model, for example:
 
-    ```toml
-    [abiotic_simple]
-    static=true
-    ```
+```toml
+[abiotic_simple]
+static=true
+```
 
 1. Create a new output folder for your experiment, for example
    `/ve_example/experiment1_out/`. This is essential because the Virtual Ecosystem
@@ -228,14 +228,14 @@ these steps:
   `/ve_example/static_config/`.
 1. Check the status flags are set to `static = true`, for all but the hydrology model.
 1. Make further changes to your configuration for your experiment. Here, we modify the
-  initial soil moisture values (default 0.5):
+  initial soil moisture (default 0.5):
 
-    ```toml
-      [hydrology]
-      initial_soil_moisture = 0.3
-      initial_groundwater_saturation = 0.9
-      static = false
-    ```
+```toml
+  [hydrology]
+  initial_soil_moisture = 0.3
+  initial_groundwater_saturation = 0.9
+  static = false
+```
 
 1. Create a new output folder for your experiment, for example
   `/ve_example/experiment2_out/`.
