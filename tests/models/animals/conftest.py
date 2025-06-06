@@ -996,6 +996,33 @@ def litter_pools_by_cell_instance(litter_data_instance):
 
 
 @pytest.fixture
+def litter_pools_dict_by_cell_instance(litter_data_instance):
+    """Fixture for litter pools with correct dict[str, Resource] structure."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+
+    return {
+        cell_id: {
+            name: LitterPool(
+                pool_name=name,
+                cell_id=cell_id,
+                data=litter_data_instance,
+                cell_area=10000,
+            )
+            for name in pool_names
+        }
+        for cell_id in range(4)
+    }
+
+
+@pytest.fixture
 def herbivory_waste_pool_instance():
     """Fixture for a herbivory waste pool class to be used in tests."""
     from virtual_ecosystem.models.animal.decay import HerbivoryWaste

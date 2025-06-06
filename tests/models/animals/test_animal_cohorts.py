@@ -3034,3 +3034,66 @@ class TestAnimalCohort:
 
         result = cohort.match_vertical(VerticalOccupancy.parse(resource_occupancy))
         assert result is expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: ["above_metabolic"]}, 1),
+            # Multiple pools in one cell
+            ([1], {1: ["above_metabolic", "woody"]}, 2),
+            # Pools in multiple cells
+            ([1, 2], {1: ["above_metabolic"], 2: ["woody"]}, 2),
+            # One cell has no pool
+            ([1, 2], {1: ["above_metabolic"]}, 1),
+            # No overlapping cells
+            ([3], {1: ["above_metabolic"], 2: ["woody"]}, 0),
+        ],
+    )
+    def test_get_litter_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+        litter_pools_dict_by_cell_instance,
+    ):
+        """Test get_litter_pools."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Extract only requested pools from the full fixture
+        test_litter_pools = {
+            cell_id: {
+                pool_name: litter_pools_dict_by_cell_instance[cell_id][pool_name]
+                for pool_name in pool_names
+            }
+            for cell_id, pool_names in cell_pool_map.items()
+            if cell_id in litter_pools_dict_by_cell_instance
+        }
+
+        result = cohort.get_litter_pools(test_litter_pools)
+
+        assert len(result) == expected

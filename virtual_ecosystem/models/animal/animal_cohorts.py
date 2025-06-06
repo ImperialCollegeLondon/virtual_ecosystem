@@ -1041,7 +1041,6 @@ class AnimalCohort:
         """Handle mass assimilation from detritus (plant litter).
 
         TODO: might need mechanical conversion efficiency?
-        TODO: Make tests
 
         Args:
             litter_pools: All LitterPool objects accessible to the cohort.
@@ -1097,8 +1096,6 @@ class AnimalCohort:
     ) -> float:
         """Return mass (kg) removed from a carcass pool in one time step.
 
-        TODO: Make tests
-
         The search/handling formulation is identical to herbivory; only the resource
           list and pool class differ.
 
@@ -1123,8 +1120,6 @@ class AnimalCohort:
         carcass_pools: list[Resource],
     ) -> dict[str, float]:
         """Handle mass assimilation from carcass scavenging.
-
-        TODO: Make tests
 
         Args:
             carcass_pools: A list of CarcassPool objects available for scavenging.
@@ -1199,8 +1194,6 @@ class AnimalCohort:
         excrement_pools: list[Resource],
     ) -> dict[str, float]:
         """Handle mass assimilation from excrement (coprophagy).
-
-        TODO: Make tests
 
         Mirrors ``delta_mass_carcass_scavenging`` line-by-line.
 
@@ -1726,8 +1719,6 @@ class AnimalCohort:
         self, litter_pools: dict[int, dict[str, Resource]]
     ) -> list[Resource]:
         """Return all litter pools that fall inside this cohort's territory.
-
-        TODO: Make tests
 
         Args:
             litter_pools: The dictionary of litterpools that exist in the simulation.
