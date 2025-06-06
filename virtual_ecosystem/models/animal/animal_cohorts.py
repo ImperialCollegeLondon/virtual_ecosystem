@@ -499,6 +499,8 @@ class AnimalCohort:
     ) -> dict[str, float]:
         """Handles predation, removing individuals and distributing biomass.
 
+        TODO: does mechanical efficiency need to be moved? not sure
+
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
             predator: The predator consuming the cohort.
@@ -1009,7 +1011,7 @@ class AnimalCohort:
         litter_pools: list[Resource],
         target_pool: Resource,
     ) -> float:
-        """Return kg wet mass a cohort removes from one litter pool over Δt.
+        """Return the mass a cohort removes from one litter pool.
 
         The search/handling formulation is identical to herbivory; only the resource
           list and pool class differ.
@@ -1020,7 +1022,7 @@ class AnimalCohort:
             target_pool: The specific pool from which biomass is sought.
 
         Returns:
-            Wet mass (kg) of litter requested from ``target_pool`` during the
+            Mass (kg) of litter requested from target_pool during the
             current update.  The value is ≥ 0; if the pool is empty the
             method returns 0.0.
         """
@@ -1093,7 +1095,7 @@ class AnimalCohort:
         carcass_pools: list[Resource],
         target_pool: Resource,
     ) -> float:
-        """Return wet mass (kg) removed from a carcass pool in one time step.
+        """Return mass (kg) removed from a carcass pool in one time step.
 
         TODO: Make tests
 
@@ -1105,8 +1107,8 @@ class AnimalCohort:
             target_pool: The pool currently being evaluated.
 
         Returns:
-            Wet mass (kg) of carcass material that the cohort would attempt
-            to ingest during the 30-day step.
+            Mass (kg) of carcass material that the cohort would attempt
+            to ingest.
         """
         F = self.F_i_k(carcass_pools, target_pool)
         delta_t = 30.0
@@ -1144,7 +1146,7 @@ class AnimalCohort:
         total_gain = {k: 0.0 for k in ("carbon", "nitrogen", "phosphorus")}
 
         for pool in carcass_pools:
-            # Wet-mass the cohort *wants* to take
+            # Mass the cohort *wants* to take
             requested = self.calculate_consumed_mass_carcass(carcass_pools, pool)
             if requested is None:
                 raise ValueError(
@@ -1171,9 +1173,7 @@ class AnimalCohort:
         excrement_pools: list[Resource],
         target_pool: Resource,
     ) -> float:
-        """Return wet mass (kg) removed from an excrement pool (coprophagy).
-
-        TODO: Make tests
+        """Return Mss (kg) removed from an excrement pool (coprophagy).
 
         The search/handling formulation is identical to herbivory; only the resource
           list and pool class differ.
@@ -1183,7 +1183,7 @@ class AnimalCohort:
             target_pool: The pool currently being evaluated.
 
         Returns:
-            Wet mass (kg) of excrement ingested by the cohort over the update period.
+            Mass (kg) of excrement ingested by the cohort over the update period.
         """
         F = self.F_i_k(excrement_pools, target_pool)
         delta_t = 30.0
@@ -1224,7 +1224,7 @@ class AnimalCohort:
         total_gain = {k: 0.0 for k in ("carbon", "nitrogen", "phosphorus")}
 
         for pool in excrement_pools:
-            # Wet-mass requested from this pool
+            # Mass requested from this pool
             requested = self.calculate_consumed_mass_excrement(excrement_pools, pool)
             if requested is None:
                 raise ValueError(
