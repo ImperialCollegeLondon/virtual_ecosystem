@@ -203,12 +203,10 @@ def calculate_nutrient_uptake_rates(
             consumption_rates = find_net_nutrient_consumptions_symbiotic(
                 max_uptake_rates=max_uptake_rates,
                 actual_carbon_gain=actual_carbon_gain,
-                external_carbon_supply=external_carbon_supply,
                 nitrogen_exchange=nitrogen_exchange,
                 phosphorus_exchange=phosphorus_exchange,
                 carbon_use_efficiency=carbon_use_efficiency,
                 functional_group=functional_group,
-                ammonium_mineralisation_proportion=constants.ammonium_mineralisation_proportion,
             )
     else:
         actual_carbon_gain = calculate_actual_carbon_gain_free_living(
@@ -357,26 +355,19 @@ def find_net_nutrient_consumptions_free_living(
 def find_net_nutrient_consumptions_symbiotic(
     max_uptake_rates: MaxUptakeRates,
     actual_carbon_gain: NDArray[np.float32],
-    external_carbon_supply: NDArray[np.float32],
     nitrogen_exchange: NDArray[np.float32],
     phosphorus_exchange: NDArray[np.float32],
     carbon_use_efficiency: NDArray[np.float32],
     functional_group: MicrobialGroupConstants,
-    ammonium_mineralisation_proportion: float,
 ) -> NetNutrientConsumption:
     """Find net consumption of each nutrient class for a symbiotic microbial group.
 
-    These net consumptions can be negative as microbes can mineralise nutrients from
-    organic matter.
-
-    We assume that organic matter is always taken up at the maximum possible rate. This
-    is because organic matter contains carbon, nitrogen and phosphorus and one of these
-    will always be limiting growth. Any excess uptake through organic matter gets
-    returned (this represents overflow metabolism). If the microbial group is heavily
-    carbon limited nutrients will be returned to the soil in an inorganic form,
-    conversely if it is less carbon limited the excess nutrients will be returned in an
-    organic form. If the demand for nitrogen or phosphorus exceeds the amount provided
-    through organic matter uptake, inorganic nutrients are uptaken.
+    We assume that inorganic nutrients are preferentially taken up, as the symbiotic
+    microbes are reliant on their hosts for carbon. If the demand for nitrogen or
+    phosphorus exceeds the amount provided through inorganic matter uptake, organic
+    nutrients are uptaken. Though this implies a corresponding uptake of carbon, we do
+    not track it as we are assuming that the symbiotic partners cannot make use of this
+    carbon at all.
 
     If rates of carbon assimilation are negative, i.e. because biomass is being broken
     down to supply plant nutrient demands, the carbon and the non-limiting nutrient are
@@ -389,8 +380,6 @@ def find_net_nutrient_consumptions_symbiotic(
         max_uptake_rates: Maximum uptake rates for each nutrient class [kg m^-3 day^-1]
         actual_carbon_gain: The rate at which carbon is assimilated to biomass [kg C
             m^-3 day^-1]
-        external_carbon_supply: Additional supply of carbon to the microbial group from
-            external sources (i.e. partner plants) [kg C m^-3 day^-1]
         nitrogen_exchange: Rate of nitrogen provision partner plants demand in exchange
             for the carbon supply [kg N m^-3 day^-1]
         phosphorus_exchange: Rate of phosphorus provision partner plants demand in
@@ -399,20 +388,10 @@ def find_net_nutrient_consumptions_symbiotic(
             temperature) [unitless]
         functional_group: A data class containing the parameters defining the microbial
             functional group.
-        ammonium_mineralisation_proportion: Proportion of microbially mineralised
-            nitrogen that takes the form of ammonium [unitless]
 
     Returns:
         The net consumption/production of each nutrient class [kg m^-3 day^-1].
     """
-
-    # Determine how limiting carbon is (as a proportion)
-    carbon_limitation = np.where(
-        actual_carbon_gain > 0.0,
-        actual_carbon_gain
-        / ((max_uptake_rates.carbon + external_carbon_supply) * carbon_use_efficiency),
-        0.0,
-    )
 
     # Calculate biomass demands for nitrogen and phosphorus, if actual_carbon_gain is
     # negative cellular stoichiometry is used as only cellular biomass (and not
@@ -432,38 +411,44 @@ def find_net_nutrient_consumptions_symbiotic(
         ),
         phosphorus_exchange + (actual_carbon_gain / functional_group.c_p_ratio),
     )
-    # Next find if organic uptake satisfies demands for phosphorus and nitrogen
-    nitrogen_inorganic_demand = nitrogen_demand - max_uptake_rates.organic_nitrogen
-    phosphorus_inorganic_demand = (
-        phosphorus_demand - max_uptake_rates.organic_phosphorus
+
+    # Inorganic nutrients are preferentially taken up, so calculate how much of each of
+    # these are taken up
+    inorganic_nitrogen_demand = np.where(
+        nitrogen_demand >= max_uptake_rates.ammonium + max_uptake_rates.nitrate,
+        max_uptake_rates.ammonium + max_uptake_rates.nitrate,
+        nitrogen_demand,
+    )
+    inorganic_phosphorus_demand = np.where(
+        phosphorus_demand >= max_uptake_rates.inorganic_phosphorus,
+        max_uptake_rates.inorganic_phosphorus,
+        phosphorus_demand,
     )
 
-    # Calculate how much of the organic nitrogen and phosphorus should be returned in an
-    # organic form
-    organic_nitrogen_return = np.where(
-        nitrogen_inorganic_demand < 0,
-        -nitrogen_inorganic_demand * (1 - carbon_limitation),
-        0.0,
+    # Find how much inorganic nitrogen and phosphorus is never released, so the change
+    # is just the demand (provided that it is positive)
+    inorganic_nitrogen_uptake = np.where(
+        inorganic_nitrogen_demand >= 0, inorganic_nitrogen_demand, 0.0
     )
-    organic_phosphorus_return = np.where(
-        phosphorus_inorganic_demand < 0,
-        -phosphorus_inorganic_demand * (1 - carbon_limitation),
-        0.0,
+    inorganic_phosphorus_uptake = np.where(
+        inorganic_phosphorus_demand >= 0, inorganic_phosphorus_demand, 0.0
     )
 
-    # Find how much inorganic nitrogen and phosphorus is taken up or released
-    inorganic_nitrogen_change = np.where(
-        nitrogen_inorganic_demand >= 0,
-        nitrogen_inorganic_demand,
-        nitrogen_inorganic_demand * carbon_limitation,
+    # Organic nutrients are then taken up if the demand can't be satisfied by inorganic
+    # uptake alone. This can in theory be negative if fungal biomass is being broken
+    # down to satisfy plant nutrient demands
+    organic_nitrogen_change = np.where(
+        nitrogen_demand >= 0,
+        nitrogen_demand - inorganic_nitrogen_demand,
+        nitrogen_demand,
     )
-    inorganic_phosphorus_change = np.where(
-        phosphorus_inorganic_demand >= 0,
-        phosphorus_inorganic_demand,
-        phosphorus_inorganic_demand * carbon_limitation,
+    organic_phosphorus_change = np.where(
+        phosphorus_demand >= 0,
+        phosphorus_demand - inorganic_phosphorus_demand,
+        phosphorus_demand,
     )
 
-    # For immobilisation of nitrogen, the proportion of ammonium and nitrate taken up
+    # For inorganic nitrogen uptake, the proportion of ammonium and nitrate taken up
     # follows the proportion of the maximum uptake rates (if either is above zero)
     # I explicitly handle the divide by zero case here, so that error state is ignored
     # to prevent runtime warnings related to something that I have actually handled.
@@ -475,29 +460,20 @@ def find_net_nutrient_consumptions_symbiotic(
             0.0,
         )
 
-    # Whether the uptake proportion or the mineralisation proportion is relevant depends
-    # whether inorganic nitrogen is being taken up or not
-    ammonium_to_nitrate_proportion = np.where(
-        inorganic_nitrogen_change > 0,
-        ammonium_uptake_proportion,
-        ammonium_mineralisation_proportion,
-    )
-    ammonium_change = inorganic_nitrogen_change * ammonium_to_nitrate_proportion
-    nitrate_change = inorganic_nitrogen_change * (1 - ammonium_to_nitrate_proportion)
+    ammonium_uptake = inorganic_nitrogen_uptake * ammonium_uptake_proportion
+    nitrate_uptake = inorganic_nitrogen_uptake * (1 - ammonium_uptake_proportion)
 
     return NetNutrientConsumption(
-        organic_nitrogen=max_uptake_rates.organic_nitrogen - organic_nitrogen_return,
-        organic_phosphorus=(
-            max_uptake_rates.organic_phosphorus - organic_phosphorus_return
-        ),
+        organic_nitrogen=organic_nitrogen_change,
+        organic_phosphorus=organic_phosphorus_change,
         carbon=np.where(
             actual_carbon_gain > 0.0,
-            (actual_carbon_gain / carbon_use_efficiency) - external_carbon_supply,
-            actual_carbon_gain,
+            0.0,
+            actual_carbon_gain / carbon_use_efficiency,
         ),
-        ammonium=ammonium_change,
-        nitrate=nitrate_change,
-        inorganic_phosphorus=inorganic_phosphorus_change,
+        ammonium=ammonium_uptake,
+        nitrate=nitrate_uptake,
+        inorganic_phosphorus=inorganic_phosphorus_uptake,
     )
 
 
@@ -565,8 +541,8 @@ def calculate_actual_carbon_gain_symbiotic(
     more carbon to biomass if you are deficient in nitrogen). This is used to calculate
     the actual rate at which carbon is assimilated to biomass.
 
-    In the symbiotic case, additional carbon is supplied by the plant partners, reducing
-    carbon limitation. Plants demand that nutrients are provide in exchange for this,
+    In the symbiotic case, microbes can only use the carbon is supplied by their plant
+    partners to grow. Plants demand that nutrients are provide in exchange for this,
     increasing demand for nitrogen and phosphorus. This demand can exceed the maximum
     rate mycorrhizal fungi can take up nutrients, in which case biomass is sacrificed to
     meet the demand.
@@ -589,9 +565,7 @@ def calculate_actual_carbon_gain_symbiotic(
         day^-1].
     """
 
-    carbon_gain_max = (
-        max_uptake_rates.carbon + external_carbon_supply
-    ) * carbon_use_efficiency
+    carbon_gain_max = external_carbon_supply * carbon_use_efficiency
     nitrogen_gain_max = (
         max_uptake_rates.organic_nitrogen
         + max_uptake_rates.ammonium
