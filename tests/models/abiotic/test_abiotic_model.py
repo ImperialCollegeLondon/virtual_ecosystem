@@ -372,7 +372,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         model.update(time_index=0)
 
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([19.772212, 19.996179])[
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([17.439161, 19.762928])[
         :, None
     ]
     expected_soil_moist = lyr_strct.from_template()
@@ -384,14 +384,14 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_strct.from_template()
     exp_airtemp[lyr_strct.index_filled_atmosphere] = np.array(
-        [30.0, 29.91975, 29.414951, 28.551991, 22.650026]
+        [30.0, 26.306187, 25.823713, 24.998703, 20.455453]
     )[:, None]
 
     xr.testing.assert_allclose(model.data["air_temperature"], exp_airtemp)
 
     exp_canopytemp = lyr_strct.from_template()
     exp_canopytemp[lyr_strct.index_filled_canopy] = np.array(
-        [29.438379, 28.936632, 28.078859]
+        [23.91474, 23.446725, 22.646301]
     )[:, None]
 
     xr.testing.assert_allclose(model.data["canopy_temperature"], exp_canopytemp)

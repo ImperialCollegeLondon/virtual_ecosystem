@@ -290,44 +290,81 @@ def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_te
     np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
 
 
+def test_calculate_energy_balance_canopy():
+    """Test calculation of energy balance."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_energy_balance_canopy,
+    )
+
+    # Test inputs (2D arrays for layers and grid cells)
+    absorbed_radiation_canopy = np.array([[500.0, 500.0], [500.0, 500.0]])
+    longwave_emission_canopy = np.array([[-400.0, -400.0], [400.0, 400.0]])
+    sensible_heat_flux_canopy = np.array([[-50.0, -60.0], [70.0, 80.0]])
+    latent_heat_flux_canopy = np.array([[-30.0, -40.0], [50.0, 60.0]])
+
+    exp_energy_balance = np.array([[20.0, 0.0], [-20.0, -40.0]])
+
+    result = calculate_energy_balance_canopy(
+        absorbed_radiation_canopy=absorbed_radiation_canopy,
+        longwave_emission_canopy=longwave_emission_canopy,
+        sensible_heat_flux_canopy=sensible_heat_flux_canopy,
+        latent_heat_flux_canopy=latent_heat_flux_canopy,
+    )
+
+    np.testing.assert_allclose(result, exp_energy_balance, rtol=1e-4)
+
+
+def test_calculate_derivative_energy_balance():
+    """Test calculate derivative of energy balance."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_derivative_energy_balance,
+    )
+
+    exp_derivative = np.array([[6.088614, 5.794509], [6.029012, 5.736853]])
+
+    result = calculate_derivative_energy_balance(
+        canopy_temperature=np.array([[31.0, 26.0], [30.0, 25.0]]),
+        emissivity_leaf=0.95,
+        specific_heat_air=np.full((2, 2), 1.006),
+        density_air=np.full((2, 2), 1.293),
+        aerodynamic_resistance=np.full((2, 2), 50.0),
+        stomatal_resistance=np.full((2, 2), 100.0),
+        latent_heat_vaporisation=2268,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        saturated_pressure_slope_parameters=(
+            AbioticConsts.saturated_pressure_slope_parameters
+        ),
+    )
+
+    np.testing.assert_allclose(result, exp_derivative, rtol=1e-4)
+
+
 def test_update_air_canopy_temperature():
     """Test update air and canopy temperatures."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         update_air_canopy_temperature,
     )
 
-    # TODO test positive and negative values for fluxes, see #780
-    # Test inputs (2D arrays for layers and grid cells)
-    absorbed_radiation_canopy = np.array([[500.0, 500.0], [500.0, 500.0]])
-    longwave_emission_canopy = np.array([[400.0, 400.0], [400.0, 400.0]])
-    sensible_heat_flux_canopy = np.array([[50.0, 60.0], [70.0, 80.0]])
-    latent_heat_flux_canopy = np.array([[30.0, 40.0], [50.0, 60.0]])
     air_temperature = np.array([[30.0, 25.0], [28.0, 23.0]])
     canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
 
     # Expected outputs
-    expected_canopy_temperature = np.array([[31.328482, 26.0], [29.668271, 24.302754]])
+    expected_canopy_temperature = np.array([[31.2, 26.0], [29.8, 24.6]])
     expected_air_temperature = np.array(
-        [[30.015376, 25.015376], [28.030751, 23.030751]]
+        [[30.276762, 25.276762], [28.553523, 23.553523]]
     )
 
     # Call the function
     updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
-        absorbed_radiation_canopy=absorbed_radiation_canopy,
-        longwave_emission_canopy=longwave_emission_canopy,
-        sensible_heat_flux_canopy=sensible_heat_flux_canopy,
-        latent_heat_flux_canopy=latent_heat_flux_canopy,
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
-        emissivity_leaf=0.95,
-        specific_heat_air=np.full((2, 2), 1.006),
+        specific_heat_air=np.full((2, 2), 1006),
         density_air=np.full((2, 2), 1.293),
-        aerodynamic_resistance=np.full((2, 2), 50.0),
-        stomatal_resistance=np.full((2, 2), 100.0),
+        energy_balance_canopy=np.array([[20.0, 0.0], [-20.0, -40.0]]),
+        derivative_energy_balance_canopy=np.full((2, 2), 10),
+        aerodynamic_resistance=np.full((2, 2), 10.0),
         numerical_stability_factor=0.1,
-        latent_heat_vaporisation=2268,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        saturated_pressure_slope_parameters=AbioticConsts.saturated_pressure_slope_parameters,
+        time_interval=3600,
     )
 
     # Assertions

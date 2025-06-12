@@ -28,11 +28,14 @@ soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves
 function of the stomatal conductivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
-radiation on leaf temperature. We use a Newton-Raphson approximation to update
-leaf temperature and air temperature.
+radiation on leaf temperature. We use a Newton approximation to update
+leaf temperature and air temperature iteratively.
 
 TODO the units of fluxes are in W m-2 and we need to make sure that the input energy
 over a time interval is coherent with the calculations of fluxes in that time interval.
+
+TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
+subtracted from the energy balance
 
 """  # noqa: D205, D415
 
@@ -105,7 +108,7 @@ def initialise_canopy_temperature(
     Args:
         air_temperature: Air temperature, [C]
         canopy_temperature_ini_factor: Factor used to initialise canopy temperature as a
-            function of air temperature and absorbed shortwave radiation
+            function of air temperature and absorbed shortwave radiation, dimensionless
         absorbed_radiation: Shortwave radiation absorbed by canopy, [W m-2]
 
     Returns:
@@ -142,8 +145,9 @@ def initialise_canopy_and_soil_fluxes(
         initial_flux_value: Initial non-zero flux, [W m-2]
 
     Returns:
-        Dictionary with absorbed radiation (canopy), canopy temperature, sensible
-            and latent heat flux (canopy and soil), and ground heat flux [W m-2].
+        Dictionary with absorbed radiation (canopy), [W m-2], canopy temperature, [C],
+            sensible and latent heat flux (canopy and soil), [W m-2], and ground heat
+            flux [W m-2].
     """
 
     output = {}
@@ -277,11 +281,11 @@ def calculate_sensible_heat_flux(
     The sensible heat flux :math:`H` is calculated using the following equation:
 
     .. math::
-        H = \frac{\rho_a c_p}{r_a} (T_S - T_A)
+        H = \frac{\rho_{a} c_{p}}{r_{a}} (T_{S} - T_{A})
 
-    where :math:`\rho_a` is the density of air, :math:`c_p` is the specific heat
-    capacity of air at constant pressure, :math:`r_a` is the aerodynamic resistance of
-    the surface, :math:`T_S` is the surface temperature, and :math:`T_A` is the air
+    where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
+    capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
+    the surface, :math:`T_{S}` is the surface temperature, and :math:`T_{A}` is the air
     temperature.
 
     Args:
@@ -436,54 +440,63 @@ def update_soil_temperature(
     return soil_temperature
 
 
-def update_air_canopy_temperature(
-    canopy_temperature: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
+def calculate_energy_balance_canopy(
     absorbed_radiation_canopy: NDArray[np.float32],
     longwave_emission_canopy: NDArray[np.float32],
     sensible_heat_flux_canopy: NDArray[np.float32],
     latent_heat_flux_canopy: NDArray[np.float32],
+):
+    r"""Calculate energy balance for canopy.
+
+    The energy balance (:math:`EB`) for the canopy is given by:
+
+    .. math::
+        EB = R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE}
+
+    Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
+    :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
+    constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
+    flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
+
+    Args:
+        absorbed_radiation_canopy: Absorbed shortwave radiation at all canopy layers,
+            [W m-2]
+        longwave_emission_canopy: Longwave emission from all canopy layers, [W m-2]
+        sensible_heat_flux_canopy: Sensible heat flux from all canopy layers, [W m-2]
+        latent_heat_flux_canopy: Latent heat flux from all canopy layers, [W m-2]
+
+    Returns:
+        energy balance, [W m-2]
+    """
+    return (
+        absorbed_radiation_canopy
+        - np.abs(longwave_emission_canopy)
+        - np.abs(sensible_heat_flux_canopy)
+        - np.abs(latent_heat_flux_canopy)
+    )
+
+
+def calculate_derivative_energy_balance(
+    canopy_temperature: NDArray[np.float32],
     emissivity_leaf: float,
     specific_heat_air: NDArray[np.float32],
     density_air: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
     stomatal_resistance: float | NDArray[np.float32],
     latent_heat_vaporisation: NDArray[np.float32],
-    numerical_stability_factor: float,
     stefan_boltzmann_constant: float,
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
-    r"""Update air and canopy temperature in steady state.
+):
+    r"""Estimate derivative of energy balance.
 
-    The method linearizes the energy balance of the canopy and air temperature updates
-    using Newton approximation for temperature adjustment following
-    :cite:t:`yang_scope_2021`.
-
-    The energy balance (:math:`EB`) for the canopy is given by:
+    This function estimates the derivative of the energy balance analytically
+    :cite:p:`yang_scope_2021`:
 
     .. math::
-        EB = R_{abs} - \epsilon \sigma T_{c}^{4} - H - Q_{LE}
-
-    Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
-    :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_{c}` is the canopy temperature :math:`H` is the sensible heat
-    flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
-
-    The Newton linearization for canopy temperature update is:
-
-    .. math::
-        T_{c}^{new} =
-        T_{c}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{c}^{old}}}
-
-    where :math:`\frac{\delta EB}{\delta T_{c}^{old}}` is the first derivative of the
-    energy balance closure error to temperature, and :math:`W` is a weighting for the
-    step size to ensure numerical stability. The derivative is estimated analytically:
-
-    .. math::
-        \frac{\delta EB}{\delta T_{c}^{old}}
+        \frac{\delta EB}{\delta T_{L}^{old}}
         = \frac{\rho_{a} c_{p}} {r_{a}}
         + \frac{\rho \Delta_{v}}{(r_{a} + r_{s})} \lambda
-        + 4 \epsilon \sigma (T_{c}^{old} + 273.15)^{3}
+        + 4 \epsilon \sigma (T_{L}^{old} + 273.15)^{3}
 
     Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
     :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
@@ -491,52 +504,27 @@ def update_air_canopy_temperature(
     of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
     stomatal resistance, [s m-1], respectively.
 
-    The new air temperature :math:`T_{a}^{new}` is given by:
-
-    .. math::
-        T_{a}^{new} = T_{a}^{old} + \alpha \cdot (T_{c}^{new} - T_{a}^{new})
-
-    Where the relaxation factor :math:`\alpha` is a weighting factor for air temperature
-    update.
-
     Args:
         canopy_temperature: canopy temperatures for all true canopy layers, [C]
-        air_temperature: Air temperature for all layers around true canopy, [C]
-        absorbed_radiation_canopy: Absorbed shortwave radiation at all canopy layers,
-            [W m-2]
-        longwave_emission_canopy: Longwave emission from all canopy layers, [W m-2]
-        sensible_heat_flux_canopy: Sensible heat flux from all canopy layers, [W m-2]
-        latent_heat_flux_canopy: Latent heat flux from all canopy layers, [W m-2]
         emissivity_leaf: Leaf emissivity
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vaporisation: Latent heat of vaporisation, [kJ kg-1]
-        numerical_stability_factor: Numerical stability factor, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
 
     Returns:
-        Updated canopy and air temperatures, [C]
+        derivative of energy balance, [W m-2]
     """
-
-    # Energy balance for canopy
-    energy_balance_canopy = (
-        absorbed_radiation_canopy
-        - np.abs(longwave_emission_canopy)
-        - np.abs(sensible_heat_flux_canopy)
-        - np.abs(latent_heat_flux_canopy)
-    )
 
     slope_saturation_vapour_pressure = calculate_slope_of_saturated_pressure_curve(
         temperature=canopy_temperature,
         saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
     )
-
-    # Derivative of energy balance closure error
-    derivative = (
+    return (
         (specific_heat_air * density_air / aerodynamic_resistance)
         + (
             density_air
@@ -552,13 +540,86 @@ def update_air_canopy_temperature(
         )
     )
 
+
+def update_air_canopy_temperature(
+    canopy_temperature: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    density_air: NDArray[np.float32],
+    energy_balance_canopy: NDArray[np.float32],
+    derivative_energy_balance_canopy: NDArray[np.float32],
+    aerodynamic_resistance: float | NDArray[np.float32],
+    numerical_stability_factor: float,
+    time_interval: int,
+) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    r"""Update air and canopy temperature in steady state.
+
+    The method linearizes the energy balance of the canopy and air temperature updates
+    using Newton approximation for temperature adjustment following
+    :cite:t:`yang_scope_2021`.
+
+    The energy balance (:math:`EB`) for the canopy is given by:
+
+    .. math::
+        EB = R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE}
+
+    Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
+    :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
+    constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
+    flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
+
+    The Newton linearization for canopy temperature update is:
+
+    .. math::
+        T_{L}^{new} =
+        T_{L}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{L}^{old}}}
+
+    where :math:`\frac{\delta EB}{\delta T_{L}^{old}}` is the first derivative of the
+    energy balance closure error to temperature, and :math:`W` is a weighting for the
+    step size to ensure numerical stability. The derivative is estimated analytically:
+
+    .. math::
+        \frac{\delta EB}{\delta T_{L}^{old}}
+        = \frac{\rho_{a} c_{p}} {r_{a}}
+        + \frac{\rho \Delta_{v}}{(r_{a} + r_{s})} \lambda
+        + 4 \epsilon \sigma (T_{L}^{old} + 273.15)^{3}
+
+    Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
+    :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
+    the saturation vapour pressure curve, :math:`\lambda` is the latent heat
+    of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
+    stomatal resistance, [s m-1], respectively.
+
+    The new air temperature :math:`T_{A}^{new}` is given by:
+
+    .. math::
+        T_{A}^{new} = T_{A}^{old} + \alpha \cdot (T_{L}^{new} - T_{A}^{new})
+
+    Where the relaxation factor :math:`\alpha` is a weighting factor for air temperature
+    update.
+
+    Args:
+        canopy_temperature: canopy temperatures for all true canopy layers, [C]
+        air_temperature: Air temperature for all layers around true canopy, [C]
+        specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
+        density_air: Density of air, [kg m-3]
+        aerodynamic_resistance: Aerodynamic resistance, [s m-1]
+        energy_balance_canopy: Energy balance of the canopy, [W m-2]
+        derivative_energy_balance_canopy: Derivative of the energy balance of the
+            canopy, [W m-2]
+        numerical_stability_factor: Numerical stability factor, dimensionless
+        time_interval: Time interval, [s]
+
+    Returns:
+        Updated canopy and air temperatures, [C]
+    """
+
     # Update temperatures
     new_canopy_temperature = canopy_temperature + numerical_stability_factor * (
-        energy_balance_canopy / derivative
+        energy_balance_canopy / derivative_energy_balance_canopy
     )
 
-    # TODO in calculation of alpha, the time interval should be considered where 1.0
-    alpha = 1.0 / (density_air * specific_heat_air * aerodynamic_resistance)
+    alpha = time_interval / (density_air * specific_heat_air * aerodynamic_resistance)
     new_air_temperature = air_temperature + alpha * (
         canopy_temperature - air_temperature
     )

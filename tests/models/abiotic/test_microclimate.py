@@ -28,7 +28,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([18.411252, 19.973347])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array([15.875764, 19.522737])[:, None]
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
@@ -38,7 +38,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [24.102749, 24.194221, 24.350592]
+        [17.216726, 17.675041, 18.458077]
     )[:, None]
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
@@ -49,7 +49,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.844655, 28.870898, 27.20625, 21.054269]
+        [30.0, 20.250597, 20.541998, 21.039906, 18.885435]
     )[:, None]
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -71,7 +71,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_vp = lyr_str.from_template()
     exp_vp[lyr_str.index_filled_atmosphere] = np.array(
-        [4.233724, 4.196183, 3.966909, 3.60022, 2.503226]
+        [4.233724, 2.485561, 2.522627, 2.587084, 2.2096]
     )[:, None]
     np.testing.assert_allclose(
         result["vapour_pressure"], exp_vp, rtol=1e-04, atol=1e-04
@@ -89,7 +89,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     # Sensible heat flux, canopy only
     exp_shc = lyr_str.from_template()
     exp_shc[lyr_str.index_flux_layers] = np.array(
-        [-441.691753, -352.913442, -201.145903, -104.469552]
+        [-287.770615, -269.295041, -237.729527, -278.901252]
     )[:, None]
     np.testing.assert_allclose(
         result["sensible_heat_flux"],

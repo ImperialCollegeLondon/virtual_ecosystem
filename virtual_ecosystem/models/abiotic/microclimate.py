@@ -192,7 +192,7 @@ def run_microclimate(
         layer_structure.index_filled_atmosphere
     ].to_numpy()
 
-    iterations = 1  # TODO input var iterations (or convergence criteria)
+    iterations = 10  # TODO input var iterations (or convergence criteria)
     for _ in range(iterations):
         #  Calculate atmospheric background variables using mean air temperature
         mean_air_temperature = np.nanmean(all_air_temperature, axis=0)
@@ -325,15 +325,17 @@ def run_microclimate(
         )
 
         # Update air/canopy temperatures
-        new_canopy_temperature, new_air_temperature_canopy = (
-            energy_balance.update_air_canopy_temperature(
-                absorbed_radiation_canopy=data["shortwave_absorption"][
-                    layer_structure.index_filled_canopy
-                ].to_numpy(),
-                longwave_emission_canopy=longwave_emission_canopy,
-                sensible_heat_flux_canopy=sensible_heat_flux_canopy,
-                latent_heat_flux_canopy=latent_heat_flux_canopy,
-                air_temperature=air_temperature_canopy,
+        current_energy_balance = energy_balance.calculate_energy_balance_canopy(
+            absorbed_radiation_canopy=data["shortwave_absorption"][
+                layer_structure.index_filled_canopy
+            ].to_numpy(),
+            longwave_emission_canopy=longwave_emission_canopy,
+            sensible_heat_flux_canopy=sensible_heat_flux_canopy,
+            latent_heat_flux_canopy=latent_heat_flux_canopy,
+        )
+
+        derivative_energy_balance_canopy = (
+            energy_balance.calculate_derivative_energy_balance(
                 canopy_temperature=canopy_temperature,
                 emissivity_leaf=abiotic_constants.leaf_emissivity,
                 specific_heat_air=specific_heat_air,
@@ -346,9 +348,24 @@ def run_microclimate(
                     ].to_numpy()
                 ),
                 latent_heat_vaporisation=latent_heat_vapourisation[1:-1],
-                numerical_stability_factor=abiotic_constants.numerical_stability_factor,
                 stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
-                saturated_pressure_slope_parameters=abiotic_constants.saturated_pressure_slope_parameters,
+                saturated_pressure_slope_parameters=(
+                    abiotic_constants.saturated_pressure_slope_parameters
+                ),
+            )
+        )
+
+        new_canopy_temperature, new_air_temperature_canopy = (
+            energy_balance.update_air_canopy_temperature(
+                air_temperature=air_temperature_canopy,
+                canopy_temperature=canopy_temperature,
+                specific_heat_air=specific_heat_air,
+                density_air=density_air,
+                energy_balance_canopy=current_energy_balance,
+                derivative_energy_balance_canopy=derivative_energy_balance_canopy,
+                aerodynamic_resistance=aerodynamic_resistance_canopy,
+                numerical_stability_factor=abiotic_constants.numerical_stability_factor,
+                time_interval=time_interval,
             )
         )
 
@@ -358,6 +375,8 @@ def run_microclimate(
             density_air * specific_heat_air
         )
         new_surface_temperature = surface_air_temperature + surface_temperature_change
+
+        # TODO Check for convergence
 
         soil_temperature = new_soil_temperature
         air_temperature_canopy = new_air_temperature_canopy
