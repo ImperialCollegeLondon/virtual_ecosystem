@@ -3,9 +3,10 @@ used by AnimalCohorts, PlantResources, and Carcasses in the
 :mod:`~virtual_ecosystem.models.animal` module.
 """  # noqa: D205
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -56,3 +57,11 @@ class Resource(Protocol):
     ) -> tuple[dict[str, float], dict[str, float]]:
         """The get_eaten method defines a resource."""
         ...
+
+
+@runtime_checkable
+class ScavengeableResource(Protocol):
+    """The protocol for linking the get_eaten mixin with CNP."""
+
+    scavengeable_cnp: CNP
+    decomposed_cnp: CNP
