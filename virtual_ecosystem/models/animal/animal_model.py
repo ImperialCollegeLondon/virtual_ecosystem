@@ -1033,11 +1033,25 @@ class AnimalModel(
             carcass_pool_map = self.carcass_pools
 
             # Live plant resources
-            if diet & DietType.HERBIVORE:
+            if diet & (
+                DietType.ALGAE
+                | DietType.FLOWERS
+                | DietType.FOLIAGE
+                | DietType.FRUIT
+                | DietType.FUNGUS
+                | DietType.SEEDS
+                | DietType.NECTAR
+                | DietType.WOOD
+            ):
                 plant_list = cohort.get_plant_resources(self.plant_resources)
 
             # Live prey
-            if diet & DietType.CARNIVORE:
+            if diet & (
+                DietType.BLOOD
+                | DietType.INVERTEBRATES
+                | DietType.FISH
+                | DietType.VERTEBRATES
+            ):
                 prey_list = cohort.get_prey(self.communities)
 
             # Detritivory
@@ -1045,14 +1059,12 @@ class AnimalModel(
                 litter_list = cohort.get_litter_pools(self.litter_pools)
 
             # Carcass scavenging
-            # cohort.get_carcass_pools returns list[CarcassPool];  tell mypy
             if diet & DietType.CARCASSES:
                 scavenge_carcass_pools = cast(
                     list[Resource], cohort.get_carcass_pools(self.carcass_pools)
                 )
 
             # Coprophagy
-            # excrement_pools is list[ExcrementPool];  again cast for mypy
             if diet & DietType.WASTE:
                 scavenge_waste_pools = cast(list[Resource], excrement_pools)
 
