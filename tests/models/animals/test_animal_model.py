@@ -327,7 +327,7 @@ class TestAnimalModel:
                 )
 
     @pytest.mark.parametrize(
-        "density_values, expected_mass, c_n_ratio, c_p_ratio, expect_error",
+        "density_key, expected_key, c_n_key, c_p_key, expect_error",
         [
             ("zeros", "zeros", "ones", "ones", False),
             ("small", "small", "tens", "twenties", False),
@@ -339,19 +339,18 @@ class TestAnimalModel:
     def test_populate_litter_pools(
         self,
         animal_model_instance,
-        density_values,
-        expected_mass,
-        c_n_ratio,
-        c_p_ratio,
+        density_key,
+        expected_key,
+        c_n_key,
+        c_p_key,
         expect_error,
     ):
-        """Test litter pool population."""
+        """Test litter pool population with full structure-aware validation."""
         import numpy as np
         import xarray as xr
 
         from virtual_ecosystem.models.animal.decay import LitterPool
 
-        # Define values based on test case
         value_map = {
             "zeros": np.zeros(9),
             "small": np.full(9, 1e-10),
@@ -366,83 +365,46 @@ class TestAnimalModel:
             "huge": np.full(9, 1e6),
         }
 
-        density_values = xr.DataArray(value_map[density_values], dims=["cell_id"])
+        cell_area = animal_model_instance.data.grid.cell_area
+        density_values = xr.DataArray(value_map[density_key], dims=["cell_id"])
         expected_mass = xr.DataArray(
-            value_map[expected_mass] * animal_model_instance.data.grid.cell_area,
-            dims=["cell_id"],
+            value_map[expected_key] * cell_area, dims=["cell_id"]
         )
-        c_n_ratio = xr.DataArray(value_map[c_n_ratio], dims=["cell_id"])
-        c_p_ratio = xr.DataArray(value_map[c_p_ratio], dims=["cell_id"])
+        c_n_ratio = xr.DataArray(value_map[c_n_key], dims=["cell_id"])
+        c_p_ratio = xr.DataArray(value_map[c_p_key], dims=["cell_id"])
 
-        # Assign mock data to model
-        for pool_name in [
+        pool_names = [
             "above_metabolic",
             "above_structural",
             "woody",
             "below_metabolic",
             "below_structural",
-        ]:
-            animal_model_instance.data[f"litter_pool_{pool_name}"] = density_values
-            animal_model_instance.data[f"c_n_ratio_{pool_name}"] = c_n_ratio
-            animal_model_instance.data[f"c_p_ratio_{pool_name}"] = c_p_ratio
+        ]
+        for name in pool_names:
+            animal_model_instance.data[f"litter_pool_{name}"] = density_values
+            animal_model_instance.data[f"c_n_ratio_{name}"] = c_n_ratio
+            animal_model_instance.data[f"c_p_ratio_{name}"] = c_p_ratio
 
-        # Populate litter pools
         if expect_error:
             with pytest.raises(ValueError):
-                litter_pools = animal_model_instance.populate_litter_pools()
+                animal_model_instance.populate_litter_pools()
         else:
             litter_pools = animal_model_instance.populate_litter_pools()
+            expected_pool_set = set(pool_names)
 
-            expected_pools = [
-                "above_metabolic",
-                "above_structural",
-                "woody",
-                "below_metabolic",
-                "below_structural",
-            ]
-            assert set(litter_pools.keys()) == set(expected_pools), (
-                "Not all litter pools were initialized."
-            )
+            for cell_id, pool_dict in litter_pools.items():
+                assert set(pool_dict.keys()) == expected_pool_set
+                for pool_name, pool in pool_dict.items():
+                    assert isinstance(pool, LitterPool)
+                    assert pool.pool_name == pool_name
 
-            # Validate each pool
-            for pool_name in expected_pools:
-                assert isinstance(litter_pools[pool_name], LitterPool), (
-                    f"{pool_name} is not a LitterPool instance."
-                )
-                assert litter_pools[pool_name].pool_name == pool_name, (
-                    f"{pool_name} pool name mismatch."
-                )
+                    expected_carbon = expected_mass.values[cell_id]
+                    expected_n = expected_carbon / c_n_ratio.values[cell_id]
+                    expected_p = expected_carbon / c_p_ratio.values[cell_id]
 
-                # Ensure mass_current only tracks carbon and is correctly computed
-                assert np.allclose(
-                    litter_pools[pool_name].mass_current.values,
-                    expected_mass.values,
-                    rtol=1e-5,
-                    atol=1e-8,
-                ), f"{pool_name} mass_current mismatch."
-
-                # Extract nitrogen and phosphorus from mass_cnp list
-                actual_nitrogen = np.array(
-                    [cnp.nitrogen for cnp in litter_pools[pool_name].mass_cnp]
-                )
-                actual_phosphorus = np.array(
-                    [cnp.phosphorus for cnp in litter_pools[pool_name].mass_cnp]
-                )
-
-                # Ensure nitrogen and phosphorus are calculated correctly
-                assert np.allclose(
-                    actual_nitrogen,
-                    (expected_mass / c_n_ratio).values,
-                    rtol=1e-5,
-                    atol=1e-8,
-                ), f"{pool_name} nitrogen mass is incorrect."
-
-                assert np.allclose(
-                    actual_phosphorus,
-                    (expected_mass / c_p_ratio).values,
-                    rtol=1e-5,
-                    atol=1e-8,
-                ), f"{pool_name} phosphorus mass is incorrect."
+                    assert np.isclose(pool.mass_current, expected_carbon)
+                    assert np.isclose(pool.mass_cnp.nitrogen, expected_n)
+                    assert np.isclose(pool.mass_cnp.phosphorus, expected_p)
 
     def test_calculate_total_litter_consumption(
         self,
@@ -454,9 +416,12 @@ class TestAnimalModel:
         """Test calculation of total consumption of litter by animals is correct."""
         from copy import deepcopy
 
+        import numpy as np
+
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
         from virtual_ecosystem.models.animal.decay import LitterPool
 
+        # Create AnimalModel instance with test data
         model = AnimalModel(
             data=litter_data_instance,
             core_components=fixture_core_components,
@@ -464,8 +429,8 @@ class TestAnimalModel:
             model_constants=constants_instance,
         )
 
+        # Copy data and simulate biomass loss from each litter pool
         new_data = deepcopy(litter_data_instance)
-        # Add new values for each pool
         new_data["litter_pool_above_metabolic"] = (
             litter_data_instance["litter_pool_above_metabolic"] - 0.03
         )
@@ -480,7 +445,6 @@ class TestAnimalModel:
             litter_data_instance["litter_pool_below_structural"] - 0.01
         )
 
-        # Make an updated set of litter pools
         pool_names = [
             "above_metabolic",
             "above_structural",
@@ -488,40 +452,42 @@ class TestAnimalModel:
             "below_metabolic",
             "below_structural",
         ]
+
+        cell_ids = fixture_core_components.grid.cell_id
+        cell_area = fixture_core_components.grid.cell_area
+
+        # Construct the nested dict: cell_id → pool_name → LitterPool
         new_litter_pools = {
-            pool_name: LitterPool(
-                pool_name=pool_name,
-                data=new_data,
-                cell_area=fixture_core_components.grid.cell_area,
-            )
-            for pool_name in pool_names
+            cid: {
+                pool_name: LitterPool(
+                    pool_name=pool_name,
+                    cell_id=cid,
+                    data=new_data,
+                    cell_area=cell_area,
+                )
+                for pool_name in pool_names
+            }
+            for cid in cell_ids
         }
 
-        # Calculate litter consumption
+        # Run consumption calculation
         consumption = model.calculate_total_litter_consumption(
             litter_pools=new_litter_pools
         )
 
-        assert np.allclose(
-            consumption["litter_consumption_above_metabolic"],
-            0.03 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_above_structural"],
-            0.04 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_woody"],
-            1.2 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_below_metabolic"],
-            0.06 * np.ones(4),
-        )
-        assert np.allclose(
-            consumption["litter_consumption_below_structural"],
-            0.01 * np.ones(4),
-        )
+        # Validate consumption matches expected loss per cell
+        for pool_name, expected_loss in [
+            ("above_metabolic", 0.03),
+            ("above_structural", 0.04),
+            ("woody", 1.2),
+            ("below_metabolic", 0.06),
+            ("below_structural", 0.01),
+        ]:
+            expected = expected_loss * np.ones(len(cell_ids))
+            actual = consumption[f"litter_consumption_{pool_name}"].values
+            assert np.allclose(actual, expected), (
+                f"Mismatch in {pool_name} consumption."
+            )
 
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""
@@ -550,6 +516,7 @@ class TestAnimalModel:
 
     def test_initialize_communities(
         self,
+        mocker,
         animal_data_for_model_instance,
         fixture_core_components,
         functional_group_list_instance,
@@ -559,6 +526,11 @@ class TestAnimalModel:
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_litter_pools",
+            return_value={},
+        )
 
         # Initialize the model
         model = AnimalModel(
@@ -969,8 +941,8 @@ class TestAnimalModel:
         mock_calculate_count = mocker.patch.object(
             animal_model_instance, "calculate_offspring_count"
         )
-        mock_handle_creation = mocker.patch.object(
-            animal_model_instance, "handle_offspring_creation"
+        mock_create_offspring = mocker.patch.object(
+            animal_model_instance, "create_offspring"
         )
         mock_handle_updates = mocker.patch.object(
             animal_model_instance, "handle_post_birth_parent_updates"
@@ -994,14 +966,14 @@ class TestAnimalModel:
         )
 
         if expect_creation_called:
-            mock_handle_creation.assert_called_once_with(
+            mock_create_offspring.assert_called_once_with(
                 herbivore_cohort_instance, offspring_count
             )
             mock_handle_updates.assert_called_once_with(
                 herbivore_cohort_instance, offspring_count
             )
         else:
-            mock_handle_creation.assert_not_called()
+            mock_create_offspring.assert_not_called()
             mock_handle_updates.assert_not_called()
 
     @pytest.mark.parametrize(
@@ -1131,69 +1103,6 @@ class TestAnimalModel:
 
         # Check result
         assert result == expected_offspring
-
-    @pytest.mark.parametrize(
-        "reproductive_environment, expected_aquatic, expected_active",
-        [
-            ("aquatic", True, False),  # Aquatic offspring go into aquatic pool
-            ("terrestrial", False, True),  # Terrestrial offspring go into active pool
-        ],
-    )
-    def test_handle_offspring_creation(
-        self,
-        mocker,
-        animal_model_instance,
-        herbivore_cohort_instance,
-        reproductive_environment,
-        expected_aquatic,
-        expected_active,
-    ):
-        """Test that offspring are placed in the correct pool based on environment."""
-        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-
-        # Mock the parent cohort's functional group
-        herbivore_cohort_instance.functional_group.reproductive_environment = (
-            reproductive_environment
-        )
-
-        # Mock the offspring created by `create_offspring`
-        mock_offspring = mocker.create_autospec(AnimalCohort)
-        mock_offspring.id = "mock_offspring_id"
-        mock_offspring.centroid_key = herbivore_cohort_instance.centroid_key
-
-        # Patch `create_offspring` to return the mock offspring
-        mocker.patch.object(
-            animal_model_instance,
-            "create_offspring",
-            return_value=mock_offspring,
-        )
-
-        # Patch `update_community_occupancy` to track calls
-        mock_update_occupancy = mocker.patch.object(
-            animal_model_instance, "update_community_occupancy"
-        )
-
-        # Run the method
-        animal_model_instance.handle_offspring_creation(herbivore_cohort_instance, 3)
-
-        # Assertions
-        if expected_aquatic:
-            assert (
-                animal_model_instance.aquatic_cohorts["mock_offspring_id"]
-                == mock_offspring
-            )
-            assert "mock_offspring_id" not in animal_model_instance.active_cohorts
-            mock_update_occupancy.assert_not_called()
-
-        if expected_active:
-            assert (
-                animal_model_instance.active_cohorts["mock_offspring_id"]
-                == mock_offspring
-            )
-            assert "mock_offspring_id" not in animal_model_instance.aquatic_cohorts
-            mock_update_occupancy.assert_called_once_with(
-                mock_offspring, mock_offspring.centroid_key
-            )
 
     @pytest.mark.parametrize(
         "reproductive_type, initial_reproductive_mass, offspring_count, birth_mass_cnp,"
@@ -1439,6 +1348,9 @@ class TestAnimalModel:
     ):
         """Test offspring creation uses correct functional group and properties."""
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import (
+            ReproductiveEnvironment,
+        )
         from virtual_ecosystem.models.animal.functional_group import (
             get_functional_group_by_name,
         )
@@ -1451,7 +1363,9 @@ class TestAnimalModel:
         herbivore_cohort_instance.functional_group.reproductive_environment = (
             reproductive_environment
         )
-        herbivore_cohort_instance.centroid_key = 42
+        # Pick a valid community cell
+        valid_cell_id = next(iter(animal_model_instance.communities.keys()))
+        herbivore_cohort_instance.centroid_key = valid_cell_id
 
         # Make sure the AnimalModel has the full list of functional groups
         animal_model_instance.functional_groups = functional_group_list_instance
@@ -1461,14 +1375,17 @@ class TestAnimalModel:
 
         # Assertions - functional group & basic properties
         assert isinstance(offspring, AnimalCohort)
-        assert offspring.functional_group == parent_group
+        assert offspring.functional_group == get_functional_group_by_name(
+            functional_group_list_instance,
+            parent_group.offspring_functional_group,
+        )
         assert offspring.mass_current == parent_group.birth_mass
         assert offspring.age == 0.0
         assert offspring.individuals == 5
-        assert offspring.centroid_key == 42
+        assert offspring.centroid_key == valid_cell_id
 
         # Check aquatic residence time handling
-        if reproductive_environment == "aquatic":
+        if reproductive_environment == ReproductiveEnvironment.AQUATIC:
             assert (
                 offspring.remaining_time_away
                 == parent_group.constants.aquatic_residence_time
@@ -1560,11 +1477,14 @@ class TestAnimalModel:
             mock_get_excrement_pools_herbivore,
         )
         mocker.patch.object(
+            herbivore_cohort_instance, "get_litter_pools", mocker.Mock(return_value=[])
+        )
+        mocker.patch.object(
             herbivore_cohort_instance, "forage_cohort", mock_forage_herbivore
         )
 
         # Set up predator cohort
-        predator_cohort_instance.functional_group.diet = DietType.CARNIVORE
+        predator_cohort_instance.functional_group.diet = DietType.VERTEBRATES
         mocker.patch.object(
             predator_cohort_instance, "get_plant_resources", mocker.Mock()
         )  # Should not be called for predators
@@ -1595,8 +1515,11 @@ class TestAnimalModel:
         mock_forage_herbivore.assert_called_once_with(
             plant_list=["plant_resources"],
             animal_list=[],
+            litter_pools=[],
             excrement_pools=["excrement_pools_herbivore"],
-            carcass_pools=animal_model_instance.carcass_pools,
+            carcass_pool_map=animal_model_instance.carcass_pools,
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
         )
 
@@ -1606,8 +1529,11 @@ class TestAnimalModel:
         mock_forage_predator.assert_called_once_with(
             plant_list=[],
             animal_list=["prey"],
+            litter_pools=[],
             excrement_pools=["excrement_pools_predator"],
-            carcass_pools=animal_model_instance.carcass_pools,
+            carcass_pool_map=animal_model_instance.carcass_pools,
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
         )
 
@@ -2120,3 +2046,121 @@ class TestAnimalModel:
             f"Expected {expected_reintegrations} reintegrations, "
             f"but got {mock_reintegrate.call_count}"
         )
+
+    def test_assign_prey_groups(self, animal_model_instance, predator_cohort_instance):
+        """Test assign_prey_groups correctly filters and assigns prey groups."""
+        # Run assign_prey_groups
+        animal_model_instance.assign_prey_groups(predator_cohort_instance)
+
+        # Extract assigned prey groups
+        prey_groups = predator_cohort_instance.prey_groups
+
+        # Assertions on structure
+        assert hasattr(predator_cohort_instance, "prey_groups")
+        assert isinstance(prey_groups, dict)
+
+        # Check all prey group entries are well formed
+        for group_name, mass_range in prey_groups.items():
+            assert isinstance(group_name, str)
+            assert isinstance(mass_range, tuple)
+            assert len(mass_range) == 2
+            assert all(isinstance(val, float) for val in mass_range)
+            assert 0.0 <= mass_range[0] <= mass_range[1]
+
+        # Check that known prey group names are included
+        known_possible_prey = {
+            "herbivorous_mammal",
+            "herbivorous_insect",
+            "herbivorous_bird",
+            "caterpillar",
+        }
+        assert any(group in prey_groups for group in known_possible_prey)
+
+    def test_create_new_cohort_registers_active(
+        self,
+        mocker,
+        animal_model_instance,
+        functional_group_list_instance,
+    ):
+        """Test for create new cohort registration."""
+
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import (
+            ReproductiveEnvironment,
+        )
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        terrestrial_fg = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+        # Confirm this is indeed a terrestrial reproducer
+        assert (
+            terrestrial_fg.reproductive_environment
+            is ReproductiveEnvironment.TERRESTRIAL
+        )
+
+        # Spy on helper methods
+        spy_assign = mocker.patch.object(animal_model_instance, "assign_prey_groups")
+        spy_occupancy = mocker.patch.object(
+            animal_model_instance, "update_community_occupancy"
+        )
+
+        cohort = animal_model_instance.create_new_cohort(
+            functional_group=terrestrial_fg,
+            mass=terrestrial_fg.adult_mass,
+            age=0.0,
+            individuals=10,
+            centroid_key=0,
+            is_birth=False,
+        )
+
+        # Returned object
+        assert isinstance(cohort, AnimalCohort)
+
+        # Correct registration: active, not aquatic
+        assert cohort.id in animal_model_instance.active_cohorts
+        assert cohort.id not in animal_model_instance.aquatic_cohorts
+
+        # Helper methods called exactly once
+        spy_assign.assert_called_once_with(cohort)
+        spy_occupancy.assert_called_once_with(cohort, 0)
+
+    @pytest.mark.parametrize(
+        "fg_name, is_birth, goes_aquatic",
+        [
+            ("frog", True, True),  # tadpoles
+            ("frog", False, False),  # adult frog at init
+            ("herbivorous_mammal", True, False),  # always terrestrial
+        ],
+    )
+    def test_create_new_cohort_routing(
+        self,
+        mocker,
+        animal_model_instance,
+        functional_group_list_instance,
+        fg_name,
+        is_birth,
+        goes_aquatic,
+    ):
+        """Test for create new cohort to ensure routing works."""
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        fg = get_functional_group_by_name(functional_group_list_instance, fg_name)
+
+        spy_occ = mocker.spy(animal_model_instance, "update_community_occupancy")
+
+        cohort = animal_model_instance.create_new_cohort(
+            fg, fg.birth_mass, 0.0, 5, 0, is_birth=is_birth
+        )
+
+        if goes_aquatic:
+            assert cohort.id in animal_model_instance.aquatic_cohorts
+            assert cohort.id not in animal_model_instance.active_cohorts
+            spy_occ.assert_not_called()
+        else:
+            assert cohort.id in animal_model_instance.active_cohorts
+            spy_occ.assert_called_once_with(cohort, 0)
