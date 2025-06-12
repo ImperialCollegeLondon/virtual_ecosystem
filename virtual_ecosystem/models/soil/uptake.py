@@ -425,8 +425,8 @@ def find_net_nutrient_consumptions_symbiotic(
         phosphorus_demand,
     )
 
-    # Find how much inorganic nitrogen and phosphorus is never released, so the change
-    # is just the demand (provided that it is positive)
+    # Inorganic nitrogen and phosphorus is never released, so the uptake is just the
+    # demand (provided that it is positive)
     inorganic_nitrogen_uptake = np.where(
         inorganic_nitrogen_demand >= 0, inorganic_nitrogen_demand, 0.0
     )
