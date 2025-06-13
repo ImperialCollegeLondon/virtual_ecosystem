@@ -3097,3 +3097,45 @@ class TestAnimalCohort:
         result = cohort.get_litter_pools(test_litter_pools)
 
         assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "carbon, nitrogen, phosphorus, initial_largest_mass, expected_largest_mass",
+        [
+            # Grows, still under adult mass
+            (6.0, 1.0, 0.5, 5.0, 7.5),
+            # Grows past adult mass, should cap
+            (50.0, 10.0, 5.0, 20.0, "cap_to_adult"),
+            # No growth, mass lower than previous largest
+            (4.0, 0.5, 0.2, 10.0, 10.0),
+        ],
+    )
+    def test_update_largest_mass(
+        self,
+        herbivore_cohort_instance,
+        carbon,
+        nitrogen,
+        phosphorus,
+        initial_largest_mass,
+        expected_largest_mass,
+    ):
+        """Test update_largest_mass."""
+
+        # Set up current mass via mass_cnp
+        herbivore_cohort_instance.mass_cnp.carbon = carbon
+        herbivore_cohort_instance.mass_cnp.nitrogen = nitrogen
+        herbivore_cohort_instance.mass_cnp.phosphorus = phosphorus
+
+        # Set initial largest_mass_achieved
+        herbivore_cohort_instance.largest_mass_achieved = initial_largest_mass
+
+        # Call update
+        herbivore_cohort_instance.update_largest_mass()
+
+        # Determine expected value
+        if expected_largest_mass == "cap_to_adult":
+            expected = herbivore_cohort_instance.functional_group.adult_mass
+        else:
+            expected = expected_largest_mass
+
+        # Assertion
+        assert herbivore_cohort_instance.largest_mass_achieved == expected

@@ -165,8 +165,8 @@ class TestAnimalModel:
             "metamorphose_community",
             "metabolize_community",
             "inflict_non_predation_mortality_community",
-            "remove_dead_cohort_community",
-            "increase_age_community",
+            "update_community_bookkeeping",
+            "update_cohort_bookkeeping",
         ]
 
         # Setup mock methods using spy on the prepared_animal_model_instance itself
@@ -2164,3 +2164,43 @@ class TestAnimalModel:
         else:
             assert cohort.id in animal_model_instance.active_cohorts
             spy_occ.assert_called_once_with(cohort, 0)
+
+    def test_update_community_bookkeeping(self, mocker, prepared_animal_model_instance):
+        """Test update_community_bookkeeping."""
+
+        # Spy on the three submethods
+        mocker.spy(prepared_animal_model_instance, "update_migrated_and_aquatic")
+        mocker.spy(prepared_animal_model_instance, "reintegrate_community")
+        mocker.spy(prepared_animal_model_instance, "remove_dead_cohort_community")
+
+        # Call the bookkeeping method
+        prepared_animal_model_instance.update_community_bookkeeping(
+            dt=np.timedelta64(1, "D")
+        )
+
+        # Assert each method was called exactly once
+        assert (
+            prepared_animal_model_instance.update_migrated_and_aquatic.call_count == 1
+        )
+        assert prepared_animal_model_instance.reintegrate_community.call_count == 1
+        assert (
+            prepared_animal_model_instance.remove_dead_cohort_community.call_count == 1
+        )
+
+    def test_update_cohort_bookkeeping(self, mocker, prepared_animal_model_instance):
+        """Test update_cohort_bookkeeping."""
+
+        # Spy on each cohort's methods
+        for cohort in prepared_animal_model_instance.active_cohorts.values():
+            mocker.spy(cohort, "increase_age")
+            mocker.spy(cohort, "update_largest_mass")
+
+        # Call the bookkeeping method
+        prepared_animal_model_instance.update_cohort_bookkeeping(
+            dt=np.timedelta64(1, "D")
+        )
+
+        # Assert each cohort's methods were called once
+        for cohort in prepared_animal_model_instance.active_cohorts.values():
+            assert cohort.increase_age.call_count == 1
+            assert cohort.update_largest_mass.call_count == 1
