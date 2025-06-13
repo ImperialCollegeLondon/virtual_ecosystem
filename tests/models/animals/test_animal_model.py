@@ -2204,3 +2204,27 @@ class TestAnimalModel:
         for cohort in prepared_animal_model_instance.active_cohorts.values():
             assert cohort.increase_age.call_count == 1
             assert cohort.update_largest_mass.call_count == 1
+
+    def test_handle_ontogeny_calls_update_on_immature_cohorts(
+        self, mocker, prepared_animal_model_instance
+    ):
+        """Test handle_ontogeny."""
+
+        # Create two mock cohorts
+        mock_mature = mocker.Mock()
+        mock_mature.is_mature = True
+        mock_immature = mocker.Mock()
+        mock_immature.is_mature = False
+
+        # Add them to active_cohorts
+        prepared_animal_model_instance.active_cohorts = {
+            "mature": mock_mature,
+            "immature": mock_immature,
+        }
+
+        # Call the method
+        prepared_animal_model_instance.handle_ontogeny()
+
+        # Assert that only the immature cohort's update_largest_mass was called
+        mock_immature.update_largest_mass.assert_called_once()
+        mock_mature.update_largest_mass.assert_not_called()
