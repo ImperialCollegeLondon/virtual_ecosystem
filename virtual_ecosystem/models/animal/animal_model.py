@@ -363,9 +363,6 @@ class AnimalModel(
         events would be simultaneous. The ordering within the method is less a question
         of the science and more a question of computational logic and stability.
 
-        TODO: update so that it just cycles through the community methods, each of those
-        will cycle through all cohorts in the model
-
         Args:
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
@@ -382,10 +379,8 @@ class AnimalModel(
         self.migrate_external_community()
         self.metabolize_community(self.update_interval_timedelta)
         self.inflict_non_predation_mortality_community(self.update_interval_timedelta)
-        self.update_migrated_and_aquatic(self.update_interval_timedelta)
-        self.reintegrate_community()
-        self.remove_dead_cohort_community()
-        self.increase_age_community(self.update_interval_timedelta)
+        self.update_community_bookkeeping(self.update_interval_timedelta)
+        self.update_cohort_bookkeeping(self.update_interval_timedelta)
 
         # Now that communities have been updated information required to update the
         # soil and litter models can be extracted
@@ -400,6 +395,36 @@ class AnimalModel(
 
         # Update population densities
         self.update_population_densities()
+
+    def update_community_bookkeeping(self, dt: timedelta64) -> None:
+        """Perform status updates and cleanup at the community level.
+
+        This includes:
+        - Updating timers for migrated or aquatic cohorts
+        - Reintegration of previously inactive cohorts
+        - Removal of dead cohorts
+
+        Args:
+            dt: Time step duration [days].
+        """
+
+        self.update_migrated_and_aquatic(dt)
+        self.reintegrate_community()
+        self.remove_dead_cohort_community()
+
+    def update_cohort_bookkeeping(self, dt: timedelta64) -> None:
+        """Perform lifecycle-related updates for each cohort.
+
+        This includes:
+        - Increasing age
+        - Updating largest mass achieved
+
+        Args:
+            dt: Time step duration [days].
+        """
+        for cohort in self.active_cohorts.values():
+            cohort.increase_age(dt)
+            cohort.update_largest_mass()
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""
@@ -1138,6 +1163,16 @@ class AnimalModel(
         """
         for cohort in self.active_cohorts.values():
             cohort.increase_age(dt)
+
+    def handle_ontogeny(self) -> None:
+        """Update largest body mass achieved for immature cohorts.
+
+        This is used to support ontogeny-aware starvation calculations.
+        """
+
+        for cohort in self.active_cohorts.values():
+            if not cohort.is_mature:
+                cohort.update_largest_mass()
 
     def inflict_non_predation_mortality_community(self, dt: timedelta64) -> None:
         """This handles natural mortality for all cohorts in a community.
