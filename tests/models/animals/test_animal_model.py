@@ -165,8 +165,8 @@ class TestAnimalModel:
             "metamorphose_community",
             "metabolize_community",
             "inflict_non_predation_mortality_community",
-            "remove_dead_cohort_community",
-            "increase_age_community",
+            "update_community_bookkeeping",
+            "update_cohort_bookkeeping",
         ]
 
         # Setup mock methods using spy on the prepared_animal_model_instance itself
@@ -2164,3 +2164,65 @@ class TestAnimalModel:
         else:
             assert cohort.id in animal_model_instance.active_cohorts
             spy_occ.assert_called_once_with(cohort, 0)
+
+    def test_update_community_bookkeeping(self, mocker, prepared_animal_model_instance):
+        """Test update_community_bookkeeping."""
+
+        # Spy on the three submethods
+        mocker.spy(prepared_animal_model_instance, "update_migrated_and_aquatic")
+        mocker.spy(prepared_animal_model_instance, "reintegrate_community")
+        mocker.spy(prepared_animal_model_instance, "remove_dead_cohort_community")
+
+        # Call the bookkeeping method
+        prepared_animal_model_instance.update_community_bookkeeping(
+            dt=np.timedelta64(1, "D")
+        )
+
+        # Assert each method was called exactly once
+        assert (
+            prepared_animal_model_instance.update_migrated_and_aquatic.call_count == 1
+        )
+        assert prepared_animal_model_instance.reintegrate_community.call_count == 1
+        assert (
+            prepared_animal_model_instance.remove_dead_cohort_community.call_count == 1
+        )
+
+    def test_update_cohort_bookkeeping(self, mocker, prepared_animal_model_instance):
+        """Test that update_cohort_bookkeeping calls both age and ontogeny methods."""
+
+        # Spy on the model-level methods
+        mocker.spy(prepared_animal_model_instance, "increase_age_community")
+        mocker.spy(prepared_animal_model_instance, "handle_ontogeny")
+
+        # Call the method
+        prepared_animal_model_instance.update_cohort_bookkeeping(
+            dt=np.timedelta64(1, "M")
+        )
+
+        # Assert both were called once
+        assert prepared_animal_model_instance.increase_age_community.call_count == 1
+        assert prepared_animal_model_instance.handle_ontogeny.call_count == 1
+
+    def test_handle_ontogeny_calls_update_on_immature_cohorts(
+        self, mocker, prepared_animal_model_instance
+    ):
+        """Test handle_ontogeny."""
+
+        # Create two mock cohorts
+        mock_mature = mocker.Mock()
+        mock_mature.is_mature = True
+        mock_immature = mocker.Mock()
+        mock_immature.is_mature = False
+
+        # Add them to active_cohorts
+        prepared_animal_model_instance.active_cohorts = {
+            "mature": mock_mature,
+            "immature": mock_immature,
+        }
+
+        # Call the method
+        prepared_animal_model_instance.handle_ontogeny()
+
+        # Assert that only the immature cohort's update_largest_mass was called
+        mock_immature.update_largest_mass.assert_called_once()
+        mock_mature.update_largest_mass.assert_not_called()
