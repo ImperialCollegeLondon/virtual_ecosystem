@@ -422,9 +422,8 @@ class AnimalModel(
         Args:
             dt: Time step duration [days].
         """
-        for cohort in self.active_cohorts.values():
-            cohort.increase_age(dt)
-            cohort.update_largest_mass()
+        self.increase_age_community(dt)
+        self.handle_ontogeny()
 
     def cleanup(self) -> None:
         """Placeholder function for animal model cleanup."""

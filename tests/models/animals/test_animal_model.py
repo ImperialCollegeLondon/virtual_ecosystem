@@ -2188,22 +2188,20 @@ class TestAnimalModel:
         )
 
     def test_update_cohort_bookkeeping(self, mocker, prepared_animal_model_instance):
-        """Test update_cohort_bookkeeping."""
+        """Test that update_cohort_bookkeeping calls both age and ontogeny methods."""
 
-        # Spy on each cohort's methods
-        for cohort in prepared_animal_model_instance.active_cohorts.values():
-            mocker.spy(cohort, "increase_age")
-            mocker.spy(cohort, "update_largest_mass")
+        # Spy on the model-level methods
+        mocker.spy(prepared_animal_model_instance, "increase_age_community")
+        mocker.spy(prepared_animal_model_instance, "handle_ontogeny")
 
-        # Call the bookkeeping method
+        # Call the method
         prepared_animal_model_instance.update_cohort_bookkeeping(
-            dt=np.timedelta64(1, "D")
+            dt=np.timedelta64(1, "M")
         )
 
-        # Assert each cohort's methods were called once
-        for cohort in prepared_animal_model_instance.active_cohorts.values():
-            assert cohort.increase_age.call_count == 1
-            assert cohort.update_largest_mass.call_count == 1
+        # Assert both were called once
+        assert prepared_animal_model_instance.increase_age_community.call_count == 1
+        assert prepared_animal_model_instance.handle_ontogeny.call_count == 1
 
     def test_handle_ontogeny_calls_update_on_immature_cohorts(
         self, mocker, prepared_animal_model_instance
