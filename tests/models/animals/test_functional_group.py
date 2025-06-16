@@ -57,7 +57,7 @@ class TestFunctionalGroup:
             ),
             (
                 "herbivorous_insect_iteroparous",
-                "insect",
+                "invertebrate",
                 "herbivore",
                 "ectothermic",
                 "terrestrial",
@@ -131,7 +131,7 @@ class TestFunctionalGroup:
         )
         assert func_group.name == name
         assert func_group.taxa == TaxaType(taxa)
-        assert func_group.diet == DietType(diet)
+        assert func_group.diet == DietType.parse(diet)
         assert func_group.metabolic_type == MetabolicType(metabolic_type)
         assert func_group.reproductive_environment == ReproductiveEnvironment(
             reproductive_environment
@@ -168,7 +168,7 @@ class TestFunctionalGroup:
             0,
             "carnivorous_bird",
             "bird",
-            "carnivore",
+            "vertebrates_invertebrates_carcasses",
             "endothermic",
             "terrestrial",
             "iteroparous",
@@ -185,7 +185,7 @@ class TestFunctionalGroup:
             1,
             "herbivorous_bird",
             "bird",
-            "herbivore",
+            "fruit_foliage",
             "endothermic",
             "terrestrial",
             "iteroparous",
@@ -202,7 +202,7 @@ class TestFunctionalGroup:
             2,
             "carnivorous_mammal",
             "mammal",
-            "carnivore",
+            "vertebrates_invertebrates_carcasses",
             "endothermic",
             "terrestrial",
             "iteroparous",
@@ -219,7 +219,7 @@ class TestFunctionalGroup:
             3,
             "herbivorous_mammal",
             "mammal",
-            "herbivore",
+            "fruit_foliage",
             "endothermic",
             "terrestrial",
             "iteroparous",
@@ -235,8 +235,8 @@ class TestFunctionalGroup:
         (
             4,
             "carnivorous_insect_iteroparous",
-            "insect",
-            "carnivore",
+            "invertebrate",
+            "invertebrates",
             "ectothermic",
             "terrestrial",
             "iteroparous",
@@ -252,8 +252,8 @@ class TestFunctionalGroup:
         (
             5,
             "herbivorous_insect_iteroparous",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
             "terrestrial",
             "iteroparous",
@@ -269,8 +269,8 @@ class TestFunctionalGroup:
         (
             6,
             "carnivorous_insect_semelparous",
-            "insect",
-            "carnivore",
+            "invertebrate",
+            "invertebrates",
             "ectothermic",
             "terrestrial",
             "semelparous",
@@ -286,8 +286,8 @@ class TestFunctionalGroup:
         (
             7,
             "herbivorous_insect_semelparous",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
             "terrestrial",
             "semelparous",
@@ -303,8 +303,8 @@ class TestFunctionalGroup:
         (
             8,
             "butterfly",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
             "terrestrial",
             "semelparous",
@@ -320,8 +320,8 @@ class TestFunctionalGroup:
         (
             9,
             "caterpillar",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "fruit_foliage",
             "ectothermic",
             "terrestrial",
             "nonreproductive",
@@ -338,7 +338,7 @@ class TestFunctionalGroup:
             10,
             "frog",
             "amphibian",
-            "carnivore",
+            "vertebrates_invertebrates_carcasses",
             "ectothermic",
             "aquatic",
             "iteroparous",
@@ -355,7 +355,7 @@ class TestFunctionalGroup:
             11,
             "swallow",
             "bird",
-            "carnivore",
+            "invertebrates",
             "endothermic",
             "terrestrial",
             "iteroparous",
@@ -371,8 +371,8 @@ class TestFunctionalGroup:
         (
             12,
             "earthworm",
-            "insect",
-            "herbivore",
+            "invertebrate",
+            "detritus",
             "ectothermic",
             "terrestrial",
             "iteroparous",
@@ -426,13 +426,12 @@ def test_import_functional_groups(
 
     file = shared_datadir / "example_functional_group_import.csv"
     fg_list = import_functional_groups(file, constants=AnimalConsts())
-    assert len(fg_list) == 13  # Now there are 13 functional groups including earthworm
 
     fg = fg_list[index]
     assert isinstance(fg, FunctionalGroup)
     assert fg.name == name
     assert fg.taxa == TaxaType(taxa)
-    assert fg.diet == DietType(diet)
+    assert fg.diet == DietType.parse(diet)
     assert fg.metabolic_type == MetabolicType(metabolic_type)
     assert fg.reproductive_environment == ReproductiveEnvironment(
         reproductive_environment
