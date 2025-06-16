@@ -140,7 +140,7 @@ Drag coefficient for evaporation (–)
 The **latent heat flux** is derived by conversion of surface evaporation as
 calculated by the hydrology model.
 
-The **ground heat flux** $G$ is calculated as the residualof the energy balance:
+The **ground heat flux** $G$ is calculated as the residual of the energy balance:
 
 $$G = R_N - H_S - \lambda E_S$$
 
