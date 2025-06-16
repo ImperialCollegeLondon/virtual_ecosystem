@@ -218,7 +218,7 @@ def animal_fixture_config():
         adult_mass = 10.0
         [[animal.functional_groups]]
         name = "carnivorous_insect"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "carnivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -233,7 +233,7 @@ def animal_fixture_config():
         adult_mass = 0.01
         [[animal.functional_groups]]
         name = "herbivorous_insect"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -248,7 +248,7 @@ def animal_fixture_config():
         adult_mass = 0.005
         [[animal.functional_groups]]
         name = "butterfly"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -263,7 +263,7 @@ def animal_fixture_config():
         adult_mass = 0.005
         [[animal.functional_groups]]
         name = "caterpillar"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -308,7 +308,7 @@ def animal_fixture_config():
         adult_mass = 0.2
         [[animal.functional_groups]]
         name = "earthworm"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
         reproductive_environment = "terrestrial"
@@ -321,6 +321,52 @@ def animal_fixture_config():
         vertical_occupancy = "soil"
         birth_mass = 0.0005
         adult_mass = 0.005
+        [[animal.functional_groups]]
+        name = "dung_beetle"
+        taxa = "invertebrate"
+        diet = "waste"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "dung_beetle"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground"
+        birth_mass = 0.0003
+        adult_mass = 0.003
+        [[animal.functional_groups]]
+        name = "scavenging_mammal"
+        taxa = "mammal"
+        diet = "carcasses"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "scavenging_mammal"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
+        birth_mass = 2.0
+        adult_mass = 20.0
+        [[animal.functional_groups]]
+        name = "detritivorous_insect"
+        taxa = "invertebrate"
+        diet = "detritus"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "detritivorous_insect"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground"
+        birth_mass = 0.0004
+        adult_mass = 0.004
+
 
 
         [hydrology]
@@ -793,7 +839,7 @@ def excrement_pool_instance():
 
 
 @pytest.fixture
-def excrement_pools_instance():
+def excrement_pools_by_cell_instance():
     """Fixture for excrement pools used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
@@ -867,7 +913,7 @@ def carcass_pool_instance():
 
 
 @pytest.fixture
-def carcass_pools_instance():
+def carcass_pools_by_cell_instance():
     """Fixture for carcass pools used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
@@ -920,14 +966,60 @@ def litter_data_instance(fixture_core_components):
 
 @pytest.fixture
 def litter_pool_instance(litter_data_instance):
-    """Fixture for a litter pool class to be used in tests."""
+    """Fixture for a single LitterPool instance in cell 0."""
     from virtual_ecosystem.models.animal.decay import LitterPool
 
     return LitterPool(
         pool_name="above_metabolic",
+        cell_id=0,
         data=litter_data_instance,
         cell_area=10000,
     )
+
+
+@pytest.fixture
+def litter_pools_by_cell_instance(litter_data_instance):
+    """Fixture for litter pools used in tests."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    return {
+        cell_id: [
+            LitterPool(
+                pool_name="above_metabolic",
+                cell_id=cell_id,
+                data=litter_data_instance,
+                cell_area=10000,
+            )
+        ]
+        for cell_id in range(4)  # data has 4 valid cells: 0 to 3
+    }
+
+
+@pytest.fixture
+def litter_pools_dict_by_cell_instance(litter_data_instance):
+    """Fixture for litter pools with correct dict[str, Resource] structure."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+
+    return {
+        cell_id: {
+            name: LitterPool(
+                pool_name=name,
+                cell_id=cell_id,
+                data=litter_data_instance,
+                cell_area=10000,
+            )
+            for name in pool_names
+        }
+        for cell_id in range(4)
+    }
 
 
 @pytest.fixture
