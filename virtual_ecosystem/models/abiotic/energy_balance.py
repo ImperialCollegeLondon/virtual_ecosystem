@@ -581,7 +581,7 @@ def update_air_canopy_temperature(
     .. math::
         \frac{\delta EB}{\delta T_{L}^{old}}
         = \frac{\rho_{a} c_{p}} {r_{a}}
-        + \frac{\rho \Delta_{v}}{(r_{a} + r_{s})} \lambda
+        + \frac{\rho_{a} \Delta_{v}}{(r_{a} + r_{s})} \lambda
         + 4 \epsilon \sigma (T_{L}^{old} + 273.15)^{3}
 
     Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
