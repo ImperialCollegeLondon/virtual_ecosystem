@@ -7,16 +7,74 @@ in the animal module. This also includes plant litter which is mainly tracked in
 
 from dataclasses import dataclass, field
 
-from xarray import DataArray
-
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
-from virtual_ecosystem.models.animal.protocols import Consumer
+from virtual_ecosystem.models.animal.protocols import Consumer, ScavengeableResource
+
+
+class ScavengeableMixin:
+    """Mixin for nutrient pools that can be scavenged by animal cohorts."""
+
+    def get_eaten(
+        self: "ScavengeableResource",
+        consumed_mass: float,
+        scavenger: "Consumer",
+    ) -> tuple[dict[str, float], dict[str, float]]:
+        """Remove biomass from the scavengeable pool and return stoichiometric gain.
+
+        Args:
+            consumed_mass: Wet-mass the scavenger tries to eat [kg].
+            scavenger: The animal cohort consuming the material.
+
+        Returns:
+            Dict with keys ``"carbon"``, ``"nitrogen"``, ``"phosphorus"`` giving
+            the mass of each element actually ingested, and a second empty dict.
+
+        Raises:
+            ValueError: If ``consumed_mass`` is negative.
+        """
+        if consumed_mass < 0:
+            raise ValueError("consumed_mass cannot be negative.")
+
+        available = self.scavengeable_cnp.total
+        if available == 0.0:
+            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}, {}
+
+        taken_wet = min(consumed_mass, available)
+
+        mech_eff = scavenger.functional_group.mechanical_efficiency
+        ingested_wet = taken_wet * mech_eff
+        missed_wet = taken_wet * (1.0 - mech_eff)
+
+        frac_C = self.scavengeable_cnp.carbon / available
+        frac_N = self.scavengeable_cnp.nitrogen / available
+        frac_P = self.scavengeable_cnp.phosphorus / available
+
+        ingested_cnp = {
+            "carbon": ingested_wet * frac_C,
+            "nitrogen": ingested_wet * frac_N,
+            "phosphorus": ingested_wet * frac_P,
+        }
+
+        # Update pool states
+        self.scavengeable_cnp.update(
+            carbon=-taken_wet * frac_C,
+            nitrogen=-taken_wet * frac_N,
+            phosphorus=-taken_wet * frac_P,
+        )
+        self.decomposed_cnp.update(
+            carbon=missed_wet * frac_C,
+            nitrogen=missed_wet * frac_N,
+            phosphorus=missed_wet * frac_P,
+        )
+
+        return ingested_cnp, {}
 
 
 @dataclass
-class CarcassPool:
+class CarcassPool(ScavengeableMixin):
     """This class stores information about the carcass biomass in each grid cell."""
 
     scavengeable_cnp: CNP = field(
@@ -28,6 +86,15 @@ class CarcassPool:
         default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
     )
     """A CNP object storing decomposed nutrients in the carcass pool."""
+    cell_id: int = -1
+    """Grid position of carcass pool."""
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of carcass pool."""
+
+    @property
+    def mass_current(self) -> float:
+        """Total scavengeable carcass mass (kg)."""
+        return self.scavengeable_cnp.total
 
     def decomposed_nutrient_per_area(
         self, nutrient: str, grid_cell_area: float
@@ -86,7 +153,7 @@ class CarcassPool:
 
 
 @dataclass
-class ExcrementPool:
+class ExcrementPool(ScavengeableMixin):
     """This class stores information about the amount of excrement in each grid cell."""
 
     scavengeable_cnp: CNP = field(
@@ -98,6 +165,15 @@ class ExcrementPool:
         default_factory=lambda: CNP(carbon=0.0, nitrogen=0.0, phosphorus=0.0)
     )
     """A CNP object storing decomposed nutrients in the excrement pool."""
+    cell_id: int = -1
+    """Grid position of carcass pool."""
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of carcass pool."""
+
+    @property
+    def mass_current(self) -> float:
+        """Total scavengeable excrement mass (kg)."""
+        return self.scavengeable_cnp.total
 
     def decomposed_nutrient_per_area(
         self, nutrient: str, grid_cell_area: float
@@ -174,75 +250,98 @@ def find_decay_consumed_split(
 
 
 class LitterPool:
-    """A class that makes litter available for animal consumption.
+    """Interface between litter model variables in ``Data`` and the animal module.
 
-    This class acts as the interface between litter model data stored in the core data
-    object and the animal model.
+    One :class:`LitterPool` instance now represents **one litter type *in one grid
+    cell***.
     """
 
-    def __init__(self, pool_name: str, data: "Data", cell_area: float) -> None:
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of carcass pool."""
+
+    def __init__(
+        self,
+        pool_name: str,
+        cell_id: int,
+        data: "Data",
+        cell_area: float,
+    ) -> None:
         self.pool_name = pool_name
+        self.cell_id = cell_id
+        self.cell_area = cell_area
 
-        carbon_mass = data[f"litter_pool_{pool_name}"].to_numpy() * cell_area
-        self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].to_numpy()
-        self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].to_numpy()
+        carbon_stock = (
+            data[f"litter_pool_{pool_name}"].sel(cell_id=cell_id).item()
+        )  # kg C m⁻²
+        self.c_n_ratio = data[f"c_n_ratio_{pool_name}"].sel(cell_id=cell_id).item()
+        self.c_p_ratio = data[f"c_p_ratio_{pool_name}"].sel(cell_id=cell_id).item()
 
-        if (self.c_n_ratio <= 0).any() or (self.c_p_ratio <= 0).any():
-            raise ValueError(f"Invalid C:N or C:P ratios in {self.pool_name} pool.")
-
-        self.mass_cnp = [
-            CNP(
-                carbon=carbon_mass[i],
-                nitrogen=carbon_mass[i] / self.c_n_ratio[i],
-                phosphorus=carbon_mass[i] / self.c_p_ratio[i],
+        if min(self.c_n_ratio, self.c_p_ratio) <= 0:
+            raise ValueError(
+                f"{pool_name}: non-positive C:N or C:P ratio in cell {cell_id}."
             )
-            for i in range(len(carbon_mass))
-        ]
 
-        if any(cnp.total < 0 for cnp in self.mass_cnp):
-            raise ValueError(f"Negative values detected in {self.pool_name} pool.")
+        # Convert to absolute mass (kg) and build stoichiometry
+        carbon_mass = carbon_stock * cell_area
+        self.mass_cnp = CNP(
+            carbon=carbon_mass,
+            nitrogen=carbon_mass / self.c_n_ratio,
+            phosphorus=carbon_mass / self.c_p_ratio,
+        )
+
+        # Sanity-check
+        if self.mass_cnp.total < 0:
+            raise ValueError(
+                f"{pool_name}: negative mass detected in cell {cell_id} "
+                f"({self.mass_cnp})."
+            )
 
     @property
-    def mass_current(self) -> DataArray:
-        """Property returning the total mass of carbon in the litter pool."""
-        carbon_values = [cnp.carbon for cnp in self.mass_cnp]
-        return DataArray(carbon_values, dims=["cell_id"])
+    def mass_current(self) -> float:
+        """Return current carbon mass in the pool [kg]."""
+        return self.mass_cnp.carbon
 
     def get_eaten(
-        self, consumed_mass: float, detritivore: "Consumer", grid_cell_id: int
-    ) -> dict[str, float]:
-        """Method for handling a trophic interaction with detritivores."""
+        self,
+        consumed_mass: float,
+        detritivore: "Consumer",
+    ) -> tuple[dict[str, float], dict[str, float]]:
+        """Remove biomass when a cohort consumes this litter pool.
+
+        Args:
+            consumed_mass: Target wet-mass to consume **after** mechanical efficiency is
+              applied (kg).  Any attempt to over-consume is automatically capped.
+            detritivore: The cohort that is feeding used only to obtain mechanical
+              efficiency.
+
+        Returns:
+            Dictionary of element masses actually assimilated, keys ``carbon``,
+            ``nitrogen``, ``phosphorus`` (kg).
+        """
         if consumed_mass < 0:
-            raise ValueError("Consumed mass cannot be negative.")
+            raise ValueError("consumed_mass must be non-negative")
 
-        cell_cnp = self.mass_cnp[
-            grid_cell_id
-        ]  # Access CNP object for the given grid cell
-        total_mass_available = cell_cnp.total
-        actual_consumed_mass = (
-            min(total_mass_available, consumed_mass)
-            * detritivore.functional_group.mechanical_efficiency
-        )
+        total_available = self.mass_cnp.total
+        mech_eff = detritivore.functional_group.mechanical_efficiency
+        actual = min(consumed_mass, total_available) * mech_eff
 
-        nutrient_proportions = {
-            "carbon": cell_cnp.carbon / total_mass_available,
-            "nitrogen": cell_cnp.nitrogen / total_mass_available,
-            "phosphorus": cell_cnp.phosphorus / total_mass_available,
+        frac_C = self.mass_cnp.carbon / total_available
+        frac_N = self.mass_cnp.nitrogen / total_available
+        frac_P = self.mass_cnp.phosphorus / total_available
+
+        taken = {
+            "carbon": actual * frac_C,
+            "nitrogen": actual * frac_N,
+            "phosphorus": actual * frac_P,
         }
 
-        consumed = {
-            nutrient: actual_consumed_mass * proportion
-            for nutrient, proportion in nutrient_proportions.items()
-        }
-
-        # Update the CNP object in place
-        cell_cnp.update(
-            carbon=-consumed["carbon"],
-            nitrogen=-consumed["nitrogen"],
-            phosphorus=-consumed["phosphorus"],
+        # in-place update
+        self.mass_cnp.update(
+            carbon=-taken["carbon"],
+            nitrogen=-taken["nitrogen"],
+            phosphorus=-taken["phosphorus"],
         )
-
-        return consumed
+        return taken, {}
 
 
 class HerbivoryWaste:
