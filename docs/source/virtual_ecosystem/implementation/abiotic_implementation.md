@@ -58,45 +58,160 @@ display_markdown(
 
 ### Radiation
 
-The representation of radiation is currently limited to reflection/absorption of direct
-downward shortwave radiation and the emission of longwave radiation as part of the
-energy balance. Net radiation at the surface $R_N$ is calculated as:
+The current representation of radiation is limited to the reflection and absorption of
+direct downward shortwave radiation and the emission of longwave radiation as part of
+the surface energy balance.
+
+The net radiation $R_N$ ($\text{W}\, m^{-2}$) at the leaf or soil surface is
+calculated as:
 
 $$R_N = S_0 \cdot (1 - \alpha) - \epsilon_{s} \sigma T^{4}$$
 
-where $S_0$ is the incoming shortwave radiation, $\alpha$ is the albedo of the leaf/soil
-surface, $\epsilon$ is the emissivity of the leaf/surface and $T$ is the temperature of
-the leaf/soil surface.
+where:
 
-In the future, we aim to implement a diurnal cycle of incoming radiation including the
-effects of topography on sun angle as well as diffuse radiation.
+$S_0$
+: Incoming shortwave radiation ($\text{W}\, m^{-2}$)
+
+$\alpha$
+: Surface albedo, the fraction of shortwave radiation reflected (–)
+
+$\epsilon_s$
+: Surface emissivity, the efficiency of longwave radiation emission (–)
+
+$\sigma$
+: Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\text{W}\,m^{-2}\,K^{-4}$)
+
+$T$
+: Surface temperature (°C)
+
+Shortwave radiation $S_0$ is progressively attenuated through the canopy, as leaves
+absorb a portion of the incoming radiation.
+
+```{Note}
+In the future, we aim to implement a full diurnal cycle of incoming radiation, including:
+- the effects of topography on sun angle, and
+- the contribution of diffuse radiation.
+```
 
 ### Soil energy balance
 
-The ``models.abiotic.soil_energy_balance`` submodule determines the energy balance at
-the surface by calculating how incoming solar radiation that reaches the surface is
-partitioned in sensible, latent, and ground heat flux. The sensible heat flux from the
-soil surface is given by:
+The `models.abiotic.soil_energy_balance` submodule determines the energy balance at the
+soil surface by partitioning net radiation $R_N$ into:
 
-$$H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{b}^{A})}{r_{A}}$$
+- Sensible heat flux $H_S$ ($\text{W},m^{-2}$),
 
-where $T_{S}$ is the soil surface temperature, $T_{b}^{A}$ is the
-temperature of the bottom air layer and $r_{A}$ is the aerodynamic resistance
-of the soil surface, given by
+- Latent heat flux $\lambda E_S$ ($\text{W},m^{-2}$), and
 
-$$r_{A} = \frac {C_{S}}{u_{b}}$$
+- Ground heat flux $G$ ($\text{W},m^{-2}$).
 
-where $u_{b}$ is the wind speed in the bottom air layer and $C_{S}$ is
-the soil surface heat transfer coefficient.
+The **sensible heat flux** from the soil surface is given by:
 
-Latent heat flux $\lambda E_S$ is derived by conversion of surface evaporation as
-calculated by the hydrology model, and ground heat flux $G$ is calculated as the residual:
+$$H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{A})}{r_{A}}$$
+
+where:
+
+$T_S$
+: Soil surface temperature (°C)
+
+$T_A$
+: Air temperature in the bottom atmospheric layer (°C)
+
+$r_A$
+: Aerodynamic resistance of the soil surface ($\text{s}\,m^{-1}$)
+
+$\rho_{air}$
+: Air density ($\text{kg},m^{-3}$)
+
+$C_{air}$
+: Specific heat capacity of air ($\text{J}\,kg^{-1} K^{-1}$)
+
+The **aerodynamic resistance of the soil surface** is given by:
+
+$$r_{A} = \frac {C_{E}}{u_{A}}$$
+
+where:
+
+$u_A$
+: Wind speed at the bottom air layer ($\text{m}\,s^{-1}$)
+
+$C_E$
+: Drag coefficient for evaporation (–)
+
+The **latent heat flux** is derived by conversion of surface evaporation as
+calculated by the hydrology model.
+
+The **ground heat flux** $G$ is calculated as the residualof the energy balance:
 
 $$G = R_N - H_S - \lambda E_S$$
 
-After the flux partitioning, we determine the soil temperatures at different depths.
-At the moment, this is achieved with linear interpolation between the surface and
-soil temperature at 1 m depth. In the future, we aim for a mechanistic implementation.
+### Soil temperature update
+
+After the energy fluxes at the land surface have been partitioned, we simulate how heat
+is transported vertically through the soil profile by updating the temperature of each
+soil layer over time. This is done using an explicit finite-difference approach, which
+numerically solves the one-dimensional heat diffusion equation. The method accounts for
+thermal diffusivity and the net ground heat flux to calculate temperature changes at
+each soil depth.
+
+#### Soil Thermal Diffusivity
+
+The soil thermal diffusivity $\alpha$ ($\text{m^{2}}\, s^{-1}$) determines the rate at
+which heat is conducted through the soil. It is defined as:
+
+$$\alpha = \frac{\lambda}{\rho c}$$
+
+where:
+
+$\lambda$
+: Soil thermal conductivity ($\text{W}\,m^{-1} K^{-1}$), indicating how
+  easily heat moves through soil
+
+$\rho$
+: Soil bulk density ($\text{kg}\,m^{-3}$), including solids and pore spaces
+
+$c$
+: Soil specific heat capacity ($\text{J}\,kg^{-1} K^{-1}$), the energy required to raise
+the temperature of 1 kg of soil by 1 K.
+
+#### Temperature Update Scheme
+
+Let $T_i^t$ represent the temperature (°C or K) of the $i^\text{th}$ soil layer at time
+$t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
+and time advances in steps of $\Delta t$ (s).
+
+**Top layer update** (surface boundary condition):
+
+The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
+($\text{W}\,m^{-2}$):
+
+$$T_0^{t+\Delta t} = T_0^t + (\frac{\Delta t}{(\rho c \Delta z)}) * G$$
+
+**Interior layers update**:
+
+Each interior layer ($i = 1, \dots, n-2$) exchanges heat with adjacent layers following
+the diffusion equation:
+
+```{math}
+\begin{aligned}
+T_i^{t+\Delta t} =
+& T_i^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{i+1}^t - 2T_i^t + T_{i-1}^t)
+\end{aligned}
+```
+
+This term approximates vertical conduction using the second spatial derivative of
+temperature.
+
+**Bottom layer update** (no-flux boundary condition):
+
+A zero heat flux is assumed at the bottom boundary ($i = n-1$), so the bottom layer only
+exchanges heat with the layer above:
+
+```{math}
+\begin{aligned}
+T_{n-1}^{t+\Delta t} =
+& T_{n-1}^t + (\frac{\Delta t}{\Delta z^2}) \alpha (T_{n-2}^t - T_{n-1}^t)
+\end{aligned}
+```
 
 ### Canopy energy balance
 
