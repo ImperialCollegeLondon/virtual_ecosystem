@@ -253,17 +253,25 @@ def test_Stochiometry_account_for_element_loss_turnover(
 
 
 def test_Stochiometry_distribute_deficit(fxt_stochiometry_model):
-    """Test the distribute_deficit method of the Stochiometry class."""
+    """Test the distribute_deficit method of the Stochiometry class.
+
+    NOTE: This method should have a more robust test with a more deliberate test value.
+    This will be easier to implement once growth is functioning.
+    """
 
     # Distribute the deficit
     fxt_stochiometry_model.distribute_deficit(0)
 
-    # TODO: finish this test
+    assert np.allclose(fxt_stochiometry_model.element_surplus[0], [0])
 
 
 def test_Stochiometry_distrubte_surplus(fxt_stochiometry_model):
-    """Test the distribute_surplus method of the Stochiometry class."""
+    """Test the distribute_surplus method of the Stochiometry class.
+
+    NOTE: This method should have a more robust test with a more deliberate test value.
+    This will be easier to implement once growth is functioning.
+    """
 
     fxt_stochiometry_model.distribute_surplus(0)
 
-    # TODO: finish this test
+    assert fxt_stochiometry_model.element_surplus[0] >= 0

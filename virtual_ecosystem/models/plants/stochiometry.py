@@ -368,7 +368,13 @@ class StemStochiometry(CohortMethods, PandasExporter):
             self.element_surplus -= tissue.element_turnover(allocation)
 
     def distribute_deficit(self, cohort: int) -> None:
-        """Distribute the nitrogen deficit across the tissue types.
+        """Distribute the element deficit across the tissue types.
+
+        During the update, the information about a surplus/deficit of element are stored
+        in the element_surplus. If there is a deficit (represented by a negative element
+        surplus), this method distributes the deficit across the tissue types. Then, the
+        element surplus is reset to 0. The deficit is distributed in proportion to the
+        total element mass of each tissue type for that cohort.
 
         Args:
             cohort: The cohort to reconcile deficit.
@@ -382,7 +388,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
                 / self.total_element_mass[cohort]
             )
 
-        self.element_surplus[cohort] += deficit
+        self.element_surplus[cohort] = 0
 
     def distribute_surplus(self, cohort: int) -> None:
         """Distribute the nitrogen surplus across the tissue types for a single cohort.
