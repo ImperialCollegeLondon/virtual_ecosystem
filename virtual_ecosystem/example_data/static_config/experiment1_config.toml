@@ -67,8 +67,8 @@ c_n_ratio = 18.0
 c_p_ratio = 120.0
 
 [soil.microbial_group_definition.enzyme_production]
-pom = 0.005
-maom = 0.005
+pom = 0.0
+maom = 0.0
 
 [[soil.microbial_group_definition]]
 name = "ectomycorrhiza"
@@ -496,7 +496,7 @@ adult_mass = 10.0
 
 [[animal.functional_groups]]
 name = "carnivorous_insect"
-taxa = "insect"
+taxa = "invertebrate"
 diet = "carnivore"
 metabolic_type = "ectothermic"
 reproductive_environment = "terrestrial"
@@ -512,7 +512,7 @@ adult_mass = 0.01
 
 [[animal.functional_groups]]
 name = "herbivorous_insect"
-taxa = "insect"
+taxa = "invertebrate"
 diet = "herbivore"
 metabolic_type = "ectothermic"
 reproductive_environment = "terrestrial"
@@ -528,7 +528,7 @@ adult_mass = 0.005
 
 [[animal.functional_groups]]
 name = "butterfly"
-taxa = "insect"
+taxa = "invertebrate"
 diet = "herbivore"
 metabolic_type = "ectothermic"
 reproductive_environment = "terrestrial"
@@ -544,7 +544,7 @@ adult_mass = 0.005
 
 [[animal.functional_groups]]
 name = "caterpillar"
-taxa = "insect"
+taxa = "invertebrate"
 diet = "herbivore"
 metabolic_type = "ectothermic"
 reproductive_environment = "terrestrial"
@@ -592,7 +592,7 @@ adult_mass = 0.2
 
 [[animal.functional_groups]]
 name = "earthworm"
-taxa = "insect"
+taxa = "invertebrate"
 diet = "herbivore"
 metabolic_type = "ectothermic"
 reproductive_environment = "terrestrial"
