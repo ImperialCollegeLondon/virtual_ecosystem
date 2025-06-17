@@ -30,28 +30,30 @@ language_info:
 ## Why use Static Mode?
 
 Imagine standing in a rainforest clearing at dawn. The sun rises, mist lifts, and the
-forest slowly comes to life. Now imagine you could pause parts of this scene—hold the
-soil moisture constant, freeze the behaviour of animals, or keep the microclimate
-unchanged—while the rest of the ecosystem continues to move through time. This is the
-essence of the static mode in the Virtual Ecosystem model.
+forest slowly comes to life.
 
-In complex systems where everything interacts—plants influence climate, soils affect
-plants, animals respond to both—it can be hard to isolate what’s causing what. The
-static mode is designed to help untangle this web. It allows you to "freeze" one or
-more components of the model, such as microclimate, hydrology, or vegetation, while
-letting others remain dynamic. At each model time step, static components are reset to
-their original state - like a time loop - so that any changes in the system stem only
-from the active, dynamic parts. For example eaten leaves magically reappear.
+Now imagine you could **pause parts of this scene** — hold
+the soil moisture constant, freeze the behaviour of animals, or keep the microclimate
+unchanged — while the rest of the ecosystem continues to move through time.
+
+This is the essence of the **static mode** in the Virtual Ecosystem model.
+
+In complex systems where **everything interacts** — plants influence climate, soils
+affect plants, animals respond to both — it can be hard to isolate what’s causing what.
+**Static mode helps untangle this web** by letting you "freeze" components like plants
+or animals while others remain dynamic. At each model step, static components reset to
+their original state — like the movie 'groundhog day' — so any change comes only from
+the active, evolving parts (e.g. eaten leaves magically reappear).
 
 This setup enables controlled experiments within the full model framework. Want to
 understand how vegetation responds to changing weather without the feedback from
 shifting soil conditions? Or how animals might behave in a landscape where plant
-dynamics are held constant? Static mode makes this possible, offering a clear window
-into cause-effect relationships in an otherwise entangled system.
+dynamics are held constant? Static mode makes this possible, offering a
+**clear window into cause-effect relationships in an otherwise entangled system**.
 
 By choosing which components evolve over time and which stay fixed, we can probe the
-drivers of ecological change with precision - helping us understand not just what
-happens, but why.
+**drivers of ecological change** - helping us understand not just **what happens**, but
+**why**.
 
 ```{note}
 The Virtual Ecosystem model can, in theory, be run with any combination of one or more
@@ -81,7 +83,7 @@ In practice this means:
 
 - **Microclimate is fixed**: e.g., temperature and relative humidity stay constant
 - **Plants are static**: e.g. water uptake, transpiration, and interception do not vary
-- **Soil microbes and animals do not feedback** into hydrology
+- **Soil microbes, litter, and animals do not feedback** into hydrology
 - **Only hydrology processes evolve over time** in response to precipitation
 
 ```{note}
@@ -89,7 +91,7 @@ This guide focuses on how to technically configure and run static mode, not on
 interpreting the experimental results. This enables you to adapt the setup to suit your
 own analysis goals.
 
-The example uses %%bash for demonstration on Linux, but it is compatible with all
+The example uses `%%bash` for demonstration on Linux, but it is compatible with all
 operating systems.
 ```
 
@@ -115,6 +117,8 @@ ve_run --install-example /tmp/
 ```
 
 ```{code-cell} ipython3
+:tags: [hide-output]
+
 %%bash
 # Run the example
 ve_run /tmp/ve_example/config \
@@ -148,6 +152,8 @@ Once the baseline run is complete, you can set up the experiment with default
 Now run the model with the new configuration from you command line:
 
 ```{code-cell} ipython3
+:tags: [hide-output]
+
 %%bash
 ve_run /tmp/ve_example/static_config/experiment1_config.toml \
   --outpath /tmp/ve_example/experiment1_out/ \
@@ -188,6 +194,8 @@ variability. This makes the static mode useful for isolating the role of interna
 dynamics, but less representative of real-world conditions.
 
 ```{code-cell} ipython3
+:tags: [hide-input]
+
 # Choose the variable, cell_id to plot
 var_name = "air_temperature"
 cell_to_plot = 25
@@ -228,9 +236,11 @@ insensitive to fluctuations in abiotic conditions — or that other model compon
 dominate the response. However, understanding why this occurs would require a deeper
 investigation into the model's energy and water balance under both configurations.
 
-.. collapse:: Plot Soil moisture
+#### Plot Soil moisture
 
 ```{code-cell} ipython3
+:tags: [hide-input]
+
 # Choose the variable and cell_id to plot
 var_name = "soil_moisture"
 cell_to_plot = 25
@@ -292,6 +302,8 @@ these steps:
 Now run the model with the new configuration from you command line:
 
 ```{code-cell} ipython3
+:tags: [hide-output]
+
 %%bash
 ve_run /tmp/ve_example/static_config/experiment2_config.toml \
   --outpath /tmp/ve_example/experiment2_out/ \
@@ -325,6 +337,8 @@ further investigation to understand the underlying dynamics, especially in the c
 of a static configuration.
 
 ```{code-cell} ipython3
+:tags: [hide-input]
+
 # Choose the variable and cell_id to plot
 var_name = "soil_moisture"
 cell_to_plot = 25
