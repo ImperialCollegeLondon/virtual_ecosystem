@@ -63,7 +63,7 @@ class FunctionalGroup:
         """The name of the functional group."""
         self.taxa = TaxaType(taxa)
         """The taxa of the functional group."""
-        self.diet = DietType(diet)
+        self.diet = DietType.parse(diet)
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""
@@ -92,6 +92,8 @@ class FunctionalGroup:
         """The mass of the functional group at adulthood."""
         self.constants = constants
         """Animal constants."""
+        self.broad_diet: DietType = self.diet.coarse_category()
+        """The broad trophic category, herbivore, carnivore, omnivore."""
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
         """The proportions of carbon/nitrogen/phosphorus in the functional group,
             example {"carbon": 0.8, "nitrogen": 0.15, "phosphorus": 0.05}."""
@@ -99,11 +101,17 @@ class FunctionalGroup:
             self.metabolic_type
         ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][self.diet]
+        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][
+            self.broad_diet
+        ]
         """The coefficient and exponent of damuth's law for population density."""
-        self.conversion_efficiency = self.constants.conversion_efficiency[self.diet]
+        self.conversion_efficiency = self.constants.conversion_efficiency[
+            self.broad_diet
+        ]
         """The conversion efficiency of the functional group based on diet."""
-        self.mechanical_efficiency = self.constants.mechanical_efficiency[self.diet]
+        self.mechanical_efficiency = self.constants.mechanical_efficiency[
+            self.broad_diet
+        ]
         """The mechanical transfer efficiency of a functional group based on diet."""
         self.prey_scaling = self.constants.prey_mass_scaling_terms[self.metabolic_type][
             self.taxa

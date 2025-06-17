@@ -60,27 +60,22 @@ from tests.conftest import log_check
         ),
         pytest.param(
             True,
-            [-0.00018997, -0.00548659, 0.00256693, 0.00125277],
+            [-0.00018997, -0.00548659, 0.00224645, 0.00125277],
             {
-                "carbon": [-0.00018997, -0.00548659, 0.00074897, -0.00077433],
-                "organic_nitrogen": [
-                    9.48666511e-6,
-                    -2.62810472e-4,
-                    3.01293330e-5,
-                    1.09768119e-4,
-                ],
+                "carbon": [-0.00040488, -0.01200351, 0.0, 0.0],
+                "organic_nitrogen": [9.48666511e-6, -2.62810472e-4, 1.11462920e-5, 0.0],
                 "organic_phosphorus": [
-                    9.48620026e-8,
+                    7.70669365e-9,
                     4.33396110e-6,
-                    1.20523238e-5,
+                    4.71220460e-6,
                     4.47962952e-6,
                 ],
-                "ammonium": [2.48601084e-6, 0.0, 1.09579690e-4, -5.18619937e-6],
-                "nitrate": [8.17347789e-6, 0.0, 1.63588918e-5, -5.76244375e-7],
+                "ammonium": [2.48601084e-6, 0.0, 1.09579690e-4, 8.60057544e-5],
+                "nitrate": [8.17347789e-6, 0.0, 1.63588918e-5, 1.79999208e-5],
                 "inorganic_phosphorus": [
-                    1.02061074e-7,
+                    1.89216383e-7,
                     6.34446807e-6,
-                    1.18498714e-5,
+                    1.63394122e-5,
                     7.65342664e-6,
                 ],
             },
@@ -287,19 +282,18 @@ def test_find_net_nutrient_consumptions_symbiotic(
     max_uptake_rates,
 ):
     """Test that the function to find the net nutrient consumptions works correctly."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.uptake import (
         calculate_actual_carbon_gain_symbiotic,
         find_net_nutrient_consumptions_symbiotic,
     )
 
     expected_consumptions = {
-        "carbon": [-0.00656998, -0.00453524, 0.01115819, -0.00278693],
-        "organic_nitrogen": [4.4059034e-5, -2.0995764e-4, 8.1062253e-5, 2.9705766e-5],
-        "organic_phosphorus": [1.1706375e-6, 7.5515989e-6, 3.2426490e-5, 1.1882306e-6],
-        "ammonium": [-1.68058237e-6, 0.0, 2.94821547e-4, 1.23489350e-5],
-        "nitrate": [-1.86731375e-7, 0.0, 4.40132088e-5, 2.58447651e-6],
-        "inorganic_phosphorus": [2.3350107e-6, 1.1054755e-5, 3.109346e-5, 2.0300866e-6],
+        "carbon": [0.0, -0.009922161, 0.0, 0.0],
+        "organic_nitrogen": [0.0, -0.000209957778, 0.0, 0.0],
+        "organic_phosphorus": [1.170653794e-6, 7.5515783e-6, 0.0, 1.18821599e-6],
+        "ammonium": [9.83999773e-6, 0.0, 0.00011927802, 3.6913541e-5],
+        "nitrate": [3.23518314e-5, 0.0, 1.7806732569e-5, 7.72553903e-6],
+        "inorganic_phosphorus": [2.3350107e-6, 1.1054755e-5, 2.1051599e-5, 2.030087e-6],
     }
 
     actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
@@ -313,12 +307,10 @@ def test_find_net_nutrient_consumptions_symbiotic(
     actual_consumptions = find_net_nutrient_consumptions_symbiotic(
         max_uptake_rates=max_uptake_rates,
         actual_carbon_gain=actual_carbon_gain,
-        external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
         nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
         phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
         carbon_use_efficiency=carbon_use_efficiency,
         functional_group=functional_groups["ectomycorrhiza"],
-        ammonium_mineralisation_proportion=SoilConsts.ammonium_mineralisation_proportion,
     )
 
     for attr in dir(actual_consumptions):
@@ -361,7 +353,7 @@ def test_calculate_actual_carbon_gain_symbiotic(
         calculate_actual_carbon_gain_symbiotic,
     )
 
-    expected_carbon_gain = [0.00020176809, -0.0045352375, 0.00730189308, 0.00026054171]
+    expected_carbon_gain = [0.00020176809, -0.0045352375, 0.002336312107, 0.00026054171]
 
     actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
         max_uptake_rates=max_uptake_rates,

@@ -146,8 +146,8 @@ def microbial_groups_cfg():
         reference_temperature = 12.0
         c_n_ratio = 18.0
         c_p_ratio = 120.0
-        enzyme_production.pom = 0.005
-        enzyme_production.maom = 0.005
+        enzyme_production.pom = 0.0
+        enzyme_production.maom = 0.0
 
         [[soil.microbial_group_definition]]
         name = "ectomycorrhiza"
@@ -471,6 +471,54 @@ def fixture_config(microbial_groups_cfg):
         vertical_occupancy = "soil"
         birth_mass = 0.0005
         adult_mass = 0.005
+
+        [[animal.functional_groups]]
+        name = "dung_beetle"
+        taxa = "invertebrate"
+        diet = "waste"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "dung_beetle"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground"
+        birth_mass = 0.0003
+        adult_mass = 0.003
+
+        [[animal.functional_groups]]
+        name = "scavenging_mammal"
+        taxa = "mammal"
+        diet = "carcasses"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "scavenging_mammal"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
+        birth_mass = 2.0
+        adult_mass = 20.0
+
+        [[animal.functional_groups]]
+        name = "detritivorous_insect"
+        taxa = "invertebrate"
+        diet = "detritus"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "detritivorous_insect"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground"
+        birth_mass = 0.0004
+        adult_mass = 0.004
 
         [hydrology]
     """
