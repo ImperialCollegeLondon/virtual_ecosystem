@@ -85,28 +85,28 @@ ve_run /tmp/ve_example/config \
 
 ### Experiment 1: HydroDefault
 
-#### Set up config and directories for experiment 1
+#### Set up configuration and directories for HydroDefault
 
 Once the baseline run is complete, you can set up the experiment with default
 'hydrology-only' (no changes to parameters or input data):
 
-1. Navigate to the `/ve_example/out/` folder.
-1. Copy the `ve_full_model_configuration.toml` file and rename it, for example to
+- Navigate to the `/ve_example/out/` folder.
+- Copy the `ve_full_model_configuration.toml` file and rename it, for example to
   `experiment1_config.toml`. We moved this file to a separate folder
   `/ve_example/static_config/`.
-1. Set the status flags to `static = true` for all but the hydrology model, for example:
+- Set the status flags to `static = true` for all but the hydrology model, for example:
 
   ```toml
   [abiotic_simple]
   static=true
   ```
 
-1. Create a new output folder for your experiment, for example
+- Create a new output folder for your experiment, for example
    `/ve_example/experiment1_out/`. This is essential because the Virtual Ecosystem
    output files always have the same name and cannot be overwritten; if they
    already exist in your output folder, the model will crash.
 
-#### Run experiment 1
+#### Run HydroDefault experiment
 
 To run the static model use the following command, making sure that it points to your
 updated configuration file:
@@ -118,7 +118,7 @@ ve_run /tmp/ve_example/static_config/experiment1_config.toml \
   --logfile /tmp/ve_example/experiment1_out/experiment1.log
 ```
 
-#### Compare HydroDefauly to fully dynamic model
+#### Compare HydroDefault to fully dynamic ve_example
 
 To compare the results of the HydroDefault experiment to the fully dynamic ve_example,
 load the results from `/ve_example/out/` and `/ve_example/experiment1_out/`:
@@ -134,12 +134,12 @@ experiment1 = xarray.load_dataset(
 )
 ```
 
-If you plot a hydrology variable, for example bypass flow, you can see that it
-***behaves differently in both experiments***:
+If you plot a hydrology variable, for example the surface runoff, you can see that it
+behaves differently in the experiments. This is due to ....
 
 ```{code-cell} ipython3
 # Choose the variable and cell_id to plot
-var_name = "bypass_flow"
+var_name = "surface_runoff"
 cell_to_plot = 25
 
 
@@ -164,6 +164,9 @@ plt.title(f"{var_name} for cell {cell_to_plot}")
 plt.legend()
 plt.show()
 ```
+
+Soil moisture reaches the maximum capacity in both scenarios, so there is no difference
+between the two:
 
 ```{code-cell} ipython3
 # Choose the variable and cell_id to plot
@@ -198,7 +201,7 @@ plt.show()
 ```
 
 If you plot air temperature in the top canopy layer, you see that it does not change in
-the hydrology_only experiment.
+the HydroDefault experiment:
 
 ```{code-cell} ipython3
 # Choose the variable, cell_id to plot
@@ -234,17 +237,17 @@ plt.show()
 
 ### Experiment 2: HydroDry
 
-#### Set up config and directories for experiment 2
+#### Set up configuration and directories for HydroDry experiment
 
 To set up a hydrology-only experiment with a change in initial soil moisture, follow
 these steps:
 
-1. Navigate to the `/ve_example/out/` folder.
-1. Copy the `ve_full_model_configuration.toml` file and
+- Navigate to the `/ve_example/out/` folder.
+- Copy the `ve_full_model_configuration.toml` file and
   rename to `experiment2_config.toml`. We moved this file to a separate folder
   `/ve_example/static_config/`.
-1. Check the status flags are set to `static = true`, for all but the hydrology model.
-1. Make further changes to your configuration for your experiment. Here, we modify the
+- Check the status flags are set to `static = true`, for all but the hydrology model.
+- Make further changes to your configuration for your experiment. Here, we modify the
   initial soil moisture (default 0.5):
 
 ```toml
@@ -254,10 +257,10 @@ these steps:
   static = false
 ```
 
-1. Create a new output folder for your experiment, for example
+- Create a new output folder for your experiment, for example
   `/ve_example/experiment2_out/`.
 
-#### Run experiment 2
+#### Run HydroDry experiment
 
 To run the static model use the following command, making sure that it points to your
 updated configuration file and a clear output directory:
@@ -282,7 +285,7 @@ experiment2 = xarray.load_dataset(
 ```
 
 Now again plot the soil moisture over time. You see that the lower soil layer reaches
-the same level in both experiemnets after a few time steps. The top soil layer however
+the same level in both experiments after a few time steps. The top soil layer however
 reaches a different stable level. This indicates that the initial conditions can be
 relevant for the outcome of the overall experiment.
 
