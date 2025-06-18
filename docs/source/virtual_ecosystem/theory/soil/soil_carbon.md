@@ -165,17 +165,16 @@ temperature on the process rate, $f_{T,s}$ is a factor capturing the impact of
 temperature on the concentration at which the enzyme saturates, $f_W$ is a factor
 capturing the impact of soil moisture on the process rate, $f_{p}$ is a factor capturing
 the impact of soil pH on the process rate, and $f_{c}$ is a factor capturing the impact
-of soil clay content on the concentration at which the enzyme saturates. Definitions of
-these environmental factors can be found
-[here](./environmental_links.md#environmental-effects-on-enzymes).
+of soil clay content on the concentration at which the enzyme saturates. These factors
+are all defined in the [soil-abiotic environment links documentation
+page](./environmental_links.md#environmental-effects-on-enzymes).
 
 ### Microbial turnover
 
 The rate at which microbial biomass is lost to both cell death and protein degradation
-($d$) is temperature dependent (the modelling of this temperature dependence is
-described [here](./environmental_links.md#biomass-loss)). All of this losses get added
-to the necromass pool. The breakdown of this necromass pool to form {term}`LMWC` is
-modelled using linear kinetics as
+($d$) is [temperature dependent](./environmental_links.md#biomass-loss). All of these
+losses get added to the necromass pool. The breakdown of this necromass pool to form
+{term}`LMWC` is modelled using linear kinetics as
 
 $$D_n = k_d * N,$$
 
@@ -209,5 +208,6 @@ therefore the default value for $K_s$ is small relative to $k_s$.
 Leaching of nutrients from the soil occurs when water passing downwards through the soil
 carries dissolved nutrients away with it. By definition, any organic matter that is
 simple enough to solubilise is included in the {term}`LMWC` pool, so this is the only
-soil carbon pool to be affected by leaching. The expression we use to calculate leaching
-rates can be found [here](./environmental_links.md#soil-nutrient-leaching-rate).
+soil carbon pool to be affected by leaching. The functional form that we assume leaching
+follows is provided in the [soil-abiotic environment links
+documentation](./environmental_links.md#soil-nutrient-leaching-rate).

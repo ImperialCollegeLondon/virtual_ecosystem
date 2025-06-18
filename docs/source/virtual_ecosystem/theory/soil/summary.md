@@ -55,8 +55,8 @@ generally poorly characterised compared to the other constituent parts of terres
 ecosystems.
 
 Most processes in the soil are effected by both the environmental temperature and the
-soil moisture. The specifics of how we have implemented these known effects are provided
-[here](./environmental_links.md).
+soil moisture. Our model includes various response functions that capture these known
+[links between the abiotic environment and soil processes](./environmental_links.md).
 
 :::{admonition} Future directions 🔭
 
