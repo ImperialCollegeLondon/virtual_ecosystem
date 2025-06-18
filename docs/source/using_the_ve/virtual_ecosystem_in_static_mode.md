@@ -22,7 +22,7 @@ language_info:
   name: python
   nbconvert_exporter: python
   pygments_lexer: ipython3
-  version: 3.10.14
+  version: 3.11.14
 ---
 
 # Running the Virtual Ecosystem in Static Mode
@@ -132,6 +132,9 @@ ve_run /tmp/ve_example/config \
 Once the baseline run is complete, you can set up the experiment with default
 'hydrology-only' (no changes to parameters or input data):
 
+- **This is essential**: Create a new output folder: `/ve_example/HydroDefault_out/`.
+  the Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
+  already exist in your output directory, the model will crash.
 - Navigate to the `/ve_example/out/` folder.
 - Copy the `ve_full_model_configuration.toml` file and rename it, for example to
   `HydroDefault_config.toml`.
@@ -143,9 +146,41 @@ Once the baseline run is complete, you can set up the experiment with default
   static=true
   ```
 
-- **This is essential**: Create a new output folder: `/ve_example/HydroDefault_out/`.
-  the Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
-  already exist in your output directory, the model will crash.
+Here is how you can do these steps programmatically:
+
+```{code-cell} ipython3
+:tags: [hide-input]
+
+from pathlib import Path
+import toml
+import copy
+
+# Create output directory
+output_dir = Path("/tmp/ve_example/HydroDefault_out/")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+# Check that the directory is empty
+if output_dir.exists() and output_dir.is_dir():
+    for file in output_dir.iterdir():
+        if file.is_file():
+            file.unlink()
+
+# Load the original config
+config = toml.load("/tmp/ve_example/out/ve_full_model_configuration.toml")
+
+# Make a copy to modify
+new_config = copy.deepcopy(config)
+config["abiotic_simple"]["static"] = True
+config["plants"]["static"] = True
+config["animal"]["static"] = True
+config["soil"]["static"] = True
+config["litter"]["static"] = True
+config["core"]["data_output_options"]["out_path"] = "/tmp/ve_example/HydroDefault_out/"
+
+# Save to a new file
+with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "w") as f:
+    toml.dump(config, f)
+```
 
 #### Run HydroDefault experiment
 
@@ -281,6 +316,8 @@ plt.show()
 To set up a hydrology-only experiment with a change in initial soil moisture, follow
 these steps:
 
+- **This is essential:** Create a new output folder for your experiment, for example
+  `/ve_example/HydroDry_out/`.
 - Navigate to the `/ve_example/out/` folder.
 - Copy the `ve_full_model_configuration.toml` file and
   rename to `HydroDry_config.toml`. We moved this file to a separate folder
@@ -296,8 +333,37 @@ these steps:
   static = false
 ```
 
-- **This is essential:** Create a new output folder for your experiment, for example
-  `/ve_example/HydroDry_out/`.
+Here is how you can do these steps programmatically:
+
+```{code-cell} ipython3
+:tags: [hide-input]
+
+from pathlib import Path
+import toml
+import copy
+
+# Create output directory
+output_dir = Path("/tmp/ve_example/HydroDry_out/")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+# Check that the directory is empty
+if output_dir.exists() and output_dir.is_dir():
+    for file in output_dir.iterdir():
+        if file.is_file():
+            file.unlink()
+
+# Load the original config
+config = toml.load("/tmp/ve_example/static_config/HydroDefault_config.toml")
+
+# Make a copy to modify initial soil moisture and out_path
+new_config = copy.deepcopy(config)
+config["hydrology"]["initial_soil_moisture"] = 0.3
+config["core"]["data_output_options"]["out_path"] = "/tmp/ve_example/HydroDry_out/"
+
+# Save to a new file
+with open("/tmp/ve_example/static_config/HydroDry_config.toml", "w") as f:
+    toml.dump(config, f)
+```
 
 #### Run HydroDry experiment
 
