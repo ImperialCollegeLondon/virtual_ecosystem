@@ -58,8 +58,8 @@ activation_energy_turnover = 20000
 reference_temperature = 12.0
 c_n_ratio = 18.0
 c_p_ratio = 120.0
-enzyme_production.pom = 0.005
-enzyme_production.maom = 0.005
+enzyme_production.pom = 0.0
+enzyme_production.maom = 0.0
 
 [[soil.microbial_group_definition]]
 name = "ectomycorrhiza"

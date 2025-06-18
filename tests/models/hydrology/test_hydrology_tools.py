@@ -176,3 +176,22 @@ def test_check_precipitation_surface_raises_error():
         " canopy water balance is correct.",
     ):
         check_precipitation_surface(test_array)
+
+
+def test_calculate_effective_saturation(dummy_climate_data):
+    """Test that the calculation the effective saturation works correctly."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_effective_saturation,
+    )
+
+    soil_moistures = np.array([0.178, 0.25, 0.333, 0.5])
+
+    expected_sats = [0.00895522, 0.22388060, 0.47164179, 0.97014925]
+
+    actual_sats = calculate_effective_saturation(
+        soil_moisture=soil_moistures,
+        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+    )
+
+    assert np.allclose(actual_sats, expected_sats)

@@ -14,6 +14,9 @@ from scipy.constants import convert_temperature
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.hydrology.hydrology_tools import (
+    calculate_effective_saturation,
+)
 from virtual_ecosystem.models.litter.env_factors import (
     average_temperature_over_microbially_active_layers,
     average_water_potential_over_microbially_active_layers,
@@ -395,7 +398,8 @@ class SoilPools:
         self,
         delta_pools_ordered: dict[str, NDArray[np.float32]],
         layer_structure: LayerStructure,
-        soil_moisture_capacity: float,
+        soil_moisture_saturation: float,
+        soil_moisture_residual: float,
         top_soil_layer_thickness: float,
     ) -> NDArray[np.float32]:
         """Calculate net change for all soil pools.
@@ -419,9 +423,9 @@ class SoilPools:
                 pools are stored in the initial condition vector.
             layer_structure: The details of the layer structure used across the Virtual
                 Ecosystem.
-            soil_moisture_capacity: Soil moisture capacity, i.e. the maximum
-                (volumetric) moisture the soil can hold [unitless].
-            top_soil_layer_thickness: Thickness of the topsoil layer [mm].
+            soil_moisture_saturation: The :term:`soil moisture saturation` [unitless].
+            soil_moisture_residual: The :term:`soil moisture residual` [unitless].
+            top_soil_layer_thickness: Thickness of the topsoil layer [m].
 
         Returns:
             A vector containing net changes to each pool. Order [lmwc, maom].
@@ -443,11 +447,12 @@ class SoilPools:
         soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
             soil_moistures=self.data["soil_moisture"], layer_structure=layer_structure
         )
-        # Calculate the effective saturation of the soil (soil layer thickness needs to
-        # be converted from m to mm here to be consistent with soil moisture units)
-        # TODO - This needs to be reviewed as part of the soil abiotic links review
-        effective_saturation = soil_moisture / (
-            soil_moisture_capacity * top_soil_layer_thickness * 1e3
+        # Calculate the effective saturation of the soil (soil moistures need to be
+        # converted from mm to a unitless measure for this to work).
+        effective_saturation = calculate_effective_saturation(
+            soil_moisture=soil_moisture / (top_soil_layer_thickness * 1e3),
+            soil_moisture_saturation=soil_moisture_saturation,
+            soil_moisture_residual=soil_moisture_residual,
         )
         # Find supply rate to each plant symbiotic group
         carbon_supply = calculate_symbiotic_carbon_supply(
