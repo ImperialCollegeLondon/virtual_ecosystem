@@ -229,7 +229,7 @@ class TestAnimalCohort:
         cohort_type,
         excreta_mass,
         num_pools,
-        excrement_pools_instance,
+        excrement_pools_by_cell_instance,
     ):
         """Testing excrete method for various scenarios using the fixture."""
         # Select the appropriate cohort instance
@@ -240,7 +240,7 @@ class TestAnimalCohort:
         )
 
         # Retrieve the excrement pools from the fixture
-        excrement_pools = excrement_pools_instance[1][:num_pools]
+        excrement_pools = excrement_pools_by_cell_instance[1][:num_pools]
 
         # Store initial values before excretion
         initial_scavengeable_cnp = {
@@ -347,7 +347,7 @@ class TestAnimalCohort:
         cohort_type,
         mass_consumed,
         num_pools,
-        excrement_pools_instance,
+        excrement_pools_by_cell_instance,
     ):
         """Testing defecate method for various scenarios using the fixture."""
 
@@ -359,7 +359,7 @@ class TestAnimalCohort:
         )
 
         # Retrieve the excrement pools from the fixture
-        excrement_pools = excrement_pools_instance[1][:num_pools]
+        excrement_pools = excrement_pools_by_cell_instance[1][:num_pools]
 
         # Store initial values before defecation
         initial_scavengeable_cnp = {
@@ -639,7 +639,7 @@ class TestAnimalCohort:
         mocker,  # Inject pytest's mocker
         herbivore_cohort_instance,
         predator_cohort_instance,
-        carcass_pools_instance,
+        carcass_pools_by_cell_instance,
         initial_individuals,
         individual_mass,
         potential_consumed_mass,
@@ -665,17 +665,17 @@ class TestAnimalCohort:
         # Track initial total carcass pool mass for each nutrient
         initial_carcass_mass_c = sum(
             pool.scavengeable_cnp["carbon"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         initial_carcass_mass_n = sum(
             pool.scavengeable_cnp["nitrogen"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         initial_carcass_mass_p = sum(
             pool.scavengeable_cnp["phosphorus"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
 
@@ -695,11 +695,13 @@ class TestAnimalCohort:
         # **Mock `find_intersecting_carcass_pools` return only relevant carcass pools**
         predator_cells = predator_cohort_instance.territory
         intersecting_cells = [
-            cell for cell in predator_cells if cell in carcass_pools_instance
+            cell for cell in predator_cells if cell in carcass_pools_by_cell_instance
         ]
 
         mock_carcass_pools = [
-            pool for cell in intersecting_cells for pool in carcass_pools_instance[cell]
+            pool
+            for cell in intersecting_cells
+            for pool in carcass_pools_by_cell_instance[cell]
         ]
 
         mocker.patch.object(
@@ -713,7 +715,9 @@ class TestAnimalCohort:
 
         # When get_eaten is called
         actual_mass_consumed = herbivore_cohort_instance.get_eaten(
-            potential_consumed_mass, predator_cohort_instance, carcass_pools_instance
+            potential_consumed_mass,
+            predator_cohort_instance,
+            carcass_pools_by_cell_instance,
         )
 
         # Compute expected consumed and carcass mass
@@ -766,17 +770,17 @@ class TestAnimalCohort:
         # Track final total carcass pool mass for each nutrient
         final_carcass_mass_c = sum(
             pool.scavengeable_cnp["carbon"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         final_carcass_mass_n = sum(
             pool.scavengeable_cnp["nitrogen"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
         final_carcass_mass_p = sum(
             pool.scavengeable_cnp["phosphorus"]
-            for pools in carcass_pools_instance.values()
+            for pools in carcass_pools_by_cell_instance.values()
             for pool in pools
         )
 
@@ -840,7 +844,7 @@ class TestAnimalCohort:
         herbivore_cohort_instance,
         mass_consumed,
         expected_waste,
-        excrement_pools_instance,
+        excrement_pools_by_cell_instance,
     ):
         """Test that `eat` calls `grow` and `defecate` with correct arguments."""
 
@@ -853,13 +857,15 @@ class TestAnimalCohort:
         mock_defecate = mocker.patch.object(herbivore_cohort_instance, "defecate")
 
         # Call eat method
-        herbivore_cohort_instance.eat(mass_consumed, excrement_pools_instance)
+        herbivore_cohort_instance.eat(mass_consumed, excrement_pools_by_cell_instance)
 
         # Assert that grow was called once with the expected arguments
         mock_grow.assert_called_once_with(mass_consumed)
 
         # Assert that defecate was called once with the expected waste mass
-        mock_defecate.assert_called_once_with(excrement_pools_instance, expected_waste)
+        mock_defecate.assert_called_once_with(
+            excrement_pools_by_cell_instance, expected_waste
+        )
 
     @pytest.mark.parametrize(
         "mass_consumed, excrement_pools, expected_error_message",
@@ -1405,6 +1411,91 @@ class TestAnimalCohort:
 
         assert theta == expected_theta
 
+    def test_calculate_consumed_mass_predation_not_in_list(
+        self, predator_cohort_instance, mocker
+    ):
+        """Test behavior when target cohort is not present in the prey list."""
+        from unittest.mock import Mock
+
+        predator = predator_cohort_instance
+        prey = Mock()
+        prey.mass_current = 10.0
+        prey.individuals = 5
+
+        prey_list = []  # Empty list, so target is not present
+
+        mocker.patch.object(predator, "F_i_j_individual", return_value=0.05)
+
+        result = predator.calculate_consumed_mass_predation(prey_list, prey)
+
+        # No error expected — default formula still works, prey list isn't validated
+        assert isinstance(result, float)
+        assert result >= 0.0
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, individuals, expected_behavior",
+        [
+            (0.05, 10.0, 5, "formula"),  # normal case
+            (0.0, 10.0, 5, 0.0),  # F = 0
+            (1e6, 10.0, 5, "max"),  # very high F
+            (0.05, 10.0, 0, 0.0),  # zero individuals
+            (0.05, 0.0, 5, 0.0),  # zero mass
+        ],
+    )
+    def test_calculate_consumed_mass_predation_cases(
+        self,
+        predator_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        individuals,
+        expected_behavior,
+    ):
+        """Parametrized test for consumed mass predation with mocked prey."""
+        from math import exp, isclose
+
+        predator = predator_cohort_instance
+
+        # Use mocker to create a fake prey cohort
+        prey = mocker.Mock()
+        prey.mass_current = mass_current
+        prey.individuals = individuals
+
+        prey_list = [prey]
+
+        # Patch predation rate method to return fixed value
+        mocker.patch.object(predator, "F_i_j_individual", return_value=F_value)
+
+        # Run method under test
+        result = predator.calculate_consumed_mass_predation(prey_list, prey)
+
+        # Expected outcome logic
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = (
+                mass_current
+                * individuals
+                * (
+                    1
+                    - exp(
+                        -(
+                            F_value
+                            * delta_t
+                            * predator.constants.tau_f
+                            * predator.constants.sigma_f_t
+                        )
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current * individuals
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
+
     @pytest.mark.parametrize(
         "animal_list, carcass_pools, should_raise_error, expected_error_message,"
         "mock_consumed_mass, mock_actual_cnp, expected_total",
@@ -1543,6 +1634,63 @@ class TestAnimalCohort:
                 prey.get_eaten.assert_called_once_with(
                     mock_consumed_mass, herbivore_cohort_instance, carcass_pools
                 )
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # F very high
+            (0.05, 0.0, 0.0),  # zero mass
+        ],
+    )
+    def test_calculate_consumed_mass_herbivory_cases(
+        self,
+        herbivore_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for herbivory mass consumption with mocked plant."""
+        from math import exp, isclose
+
+        herbivore = herbivore_cohort_instance
+
+        # Create a pure mock plant resource
+        plant = mocker.Mock()
+        plant.mass_current = mass_current
+
+        plant_list = [plant]
+
+        # Patch F_i_k to return controlled F_value
+        mocker.patch.object(herbivore, "F_i_k", return_value=F_value)
+
+        # Run method under test
+        result = herbivore.calculate_consumed_mass_herbivory(plant_list, plant)
+
+        # Determine expected outcome
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * herbivore.constants.tau_f
+                        * herbivore.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
 
     @pytest.mark.parametrize(
         "num_plants, mock_consumed_mass, mock_herbivore_gain_cnp,"
@@ -1707,25 +1855,267 @@ class TestAnimalCohort:
             )
 
     @pytest.mark.parametrize(
-        "cohort_instance, diet_type, plant_list, animal_list, expected_consumed_mass,"
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # very high F
+            (0.05, 0.0, 0.0),  # zero mass
+            (0.05, -5.0, 0.0),  # negative mass (should be clamped to 0)
+        ],
+    )
+    def test_calculate_consumed_mass_detritivory_cases(
+        self,
+        herbivore_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for detritivory consumption with mocked litter pool."""
+        from math import exp, isclose
+
+        detritivore = herbivore_cohort_instance
+
+        # Mock target litter pool
+        litter = mocker.Mock()
+        litter.mass_current = mass_current
+
+        litter_list = [litter]
+
+        # Patch F_i_k to return controlled value
+        mocker.patch.object(detritivore, "F_i_k", return_value=F_value)
+
+        # Run method under test
+        result = detritivore.calculate_consumed_mass_detritivory(litter_list, litter)
+
+        # Determine expected outcome
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1.0
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * detritivore.constants.tau_f
+                        * detritivore.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            # Directly test for clamped 0.0
+            assert result == expected_behavior
+
+    @pytest.mark.parametrize(
+        "num_pools, mock_requested_mass, mock_consumed_cnp, expected_result",
+        [
+            # ✅ Case 1: Two pools
+            (
+                2,
+                5.0,
+                {"carbon": 10.0, "nitrogen": 2.0, "phosphorus": 1.0},
+                {"carbon": 20.0, "nitrogen": 4.0, "phosphorus": 2.0},
+            ),
+            # ✅ Case 2: Three pools
+            (
+                3,
+                3.0,
+                {"carbon": 2.0, "nitrogen": 0.5, "phosphorus": 0.25},
+                {"carbon": 6.0, "nitrogen": 1.5, "phosphorus": 0.75},
+            ),
+            # ✅ Case 3: One pool
+            (
+                1,
+                7.5,
+                {"carbon": 6.0, "nitrogen": 1.2, "phosphorus": 0.6},
+                {"carbon": 6.0, "nitrogen": 1.2, "phosphorus": 0.6},
+            ),
+        ],
+    )
+    def test_delta_mass_detritivory(
+        self,
+        mocker,
+        herbivore_cohort_instance,
+        litter_pools_by_cell_instance,
+        num_pools,
+        mock_requested_mass,
+        mock_consumed_cnp,
+        expected_result,
+    ):
+        """Test that `delta_mass_detritivory` sums assimilated CNP correctly."""
+        # Get subset of pools
+        all_pools = [
+            pool for pools in litter_pools_by_cell_instance.values() for pool in pools
+        ]
+        litter_pools = all_pools[:num_pools]
+
+        # Patch the detritivory mass request method
+        mocker.patch.object(
+            herbivore_cohort_instance,
+            "calculate_consumed_mass_detritivory",
+            return_value=mock_requested_mass,
+        )
+
+        # Patch get_eaten on each pool to return a known CNP and unused second value
+        for pool in litter_pools:
+            mocker.patch.object(
+                pool,
+                "get_eaten",
+                return_value=(mock_consumed_cnp, None),
+            )
+
+        # Run method under test
+        result = herbivore_cohort_instance.delta_mass_detritivory(litter_pools)
+
+        # Scale by conversion efficiency
+        eff = herbivore_cohort_instance.functional_group.conversion_efficiency
+        expected_scaled = {
+            k: pytest.approx(v * eff) for k, v in expected_result.items()
+        }
+
+        assert result == expected_scaled
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # very high F
+            (0.05, 0.0, 0.0),  # zero mass
+            (0.05, -5.0, 0.0),  # negative mass clamped to zero
+        ],
+    )
+    def test_calculate_consumed_mass_carcass_cases(
+        self,
+        predator_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for carcass mass consumption with mocked pool."""
+        from math import exp, isclose
+
+        predator = predator_cohort_instance
+
+        # Create mock carcass pool
+        carcass = mocker.Mock()
+        carcass.mass_current = mass_current
+
+        carcass_pools = [carcass]
+
+        # Patch F_i_k to controlled value
+        mocker.patch.object(predator, "F_i_k", return_value=F_value)
+
+        # Run the method under test
+        result = predator.calculate_consumed_mass_carcass(carcass_pools, carcass)
+
+        # Evaluate expected result
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1.0
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * predator.constants.tau_f
+                        * predator.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
+
+    @pytest.mark.parametrize(
+        "F_value, mass_current, expected_behavior",
+        [
+            (0.05, 10.0, "formula"),  # normal case
+            (0.0, 10.0, 0.0),  # F = 0
+            (1e6, 10.0, "max"),  # very high F
+            (0.05, 0.0, 0.0),  # zero mass
+            (0.05, -5.0, 0.0),  # negative mass clamped to zero
+        ],
+    )
+    def test_calculate_consumed_mass_excrement_cases(
+        self,
+        herbivore_cohort_instance,
+        mocker,
+        F_value,
+        mass_current,
+        expected_behavior,
+    ):
+        """Parametrized test for excrement mass consumption with mocked pool."""
+        from math import exp, isclose
+
+        consumer = herbivore_cohort_instance
+
+        # Mock target excrement pool
+        excrement = mocker.Mock()
+        excrement.mass_current = mass_current
+
+        excrement_pools = [excrement]
+
+        # Patch F_i_k to return desired F value
+        mocker.patch.object(consumer, "F_i_k", return_value=F_value)
+
+        # Run the method
+        result = consumer.calculate_consumed_mass_excrement(excrement_pools, excrement)
+
+        # Determine expected outcome
+        if expected_behavior == "formula":
+            delta_t = 30.0
+            expected = mass_current * (
+                1.0
+                - exp(
+                    -(
+                        F_value
+                        * delta_t
+                        * consumer.constants.tau_f
+                        * consumer.constants.sigma_f_t
+                    )
+                )
+            )
+            assert isclose(result, expected, rel_tol=1e-9)
+
+        elif expected_behavior == "max":
+            expected = mass_current
+            assert isclose(result, expected, rel_tol=1e-3)
+
+        else:
+            assert result == expected_behavior
+
+    @pytest.mark.parametrize(
+        "cohort_instance, diet_type, plant_list, animal_list, expected_nutrient_gain,"
         "delta_mass_mock",
         [
-            # ✅ Test Herbivore Case
             (
                 "herbivore_cohort_instance",
                 "HERBIVORE",
                 "plant_list_instance",
                 [],
-                100,
+                {"carbon": 60.0, "nitrogen": 30.0, "phosphorus": 10.0},
                 "delta_mass_herbivory",
             ),
-            # ✅ Test Carnivore Case
             (
                 "predator_cohort_instance",
                 "CARNIVORE",
                 [],
                 "animal_list_instance",
-                200,
+                {"carbon": 120.0, "nitrogen": 60.0, "phosphorus": 20.0},
                 "delta_mass_predation",
             ),
         ],
@@ -1738,67 +2128,123 @@ class TestAnimalCohort:
         diet_type,
         plant_list,
         animal_list,
-        expected_consumed_mass,
+        expected_nutrient_gain,
         delta_mass_mock,
         plant_list_instance,
         animal_list_instance,
         excrement_pool_instance,
-        carcass_pools_instance,
+        carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
     ):
-        """Test `forage_cohort`."""
-
+        """Test `forage_cohort` for correct resource routing and assimilation calls."""
         from virtual_ecosystem.models.animal.animal_traits import DietType
 
-        # Get the actual cohort instance from the fixture
         cohort = request.getfixturevalue(cohort_instance)
-
-        # Set the functional group diet type
         cohort.functional_group.diet = getattr(DietType, diet_type)
 
-        # Resolve `plant_list` and `animal_list`
         if isinstance(plant_list, str):
             plant_list = request.getfixturevalue(plant_list)
         if isinstance(animal_list, str):
             animal_list = request.getfixturevalue(animal_list)
 
-        # Set up the herbivory waste pools
         herbivory_waste_pools = {
             plant.cell_id: herbivory_waste_pool_instance
             for plant in plant_list_instance
         }
 
-        # Mock `delta_mass_herbivory` or `delta_mass_predation`
         mock_delta_mass = mocker.patch.object(
-            cohort, delta_mass_mock, return_value=expected_consumed_mass
+            cohort, delta_mass_mock, return_value=expected_nutrient_gain
         )
-
-        # Mock `eat` method
         mock_eat = mocker.patch.object(cohort, "eat")
 
-        # Call `forage_cohort`
+        # Dummy values for other inputs
+        empty_list = []
+
         cohort.forage_cohort(
-            plant_list,
-            animal_list,
-            excrement_pool_instance,
-            carcass_pools_instance,
-            herbivory_waste_pools if diet_type == "HERBIVORE" else {},
+            plant_list=plant_list,
+            animal_list=animal_list,
+            litter_pools=empty_list,
+            excrement_pools=excrement_pool_instance,
+            carcass_pool_map=carcass_pools_by_cell_instance,
+            scavenge_carcass_pools=empty_list,
+            scavenge_excrement_pools=empty_list,
+            herbivory_waste_pools=herbivory_waste_pools
+            if diet_type == "HERBIVORE"
+            else {},
         )
 
-        # Ensure the correct `delta_mass_*` method was called
+        # Assert correct foraging call
         if diet_type == "HERBIVORE":
             mock_delta_mass.assert_called_once_with(
                 plant_list_instance, herbivory_waste_pools
             )
         else:
             mock_delta_mass.assert_called_once_with(
-                animal_list_instance, carcass_pools_instance
+                animal_list_instance, carcass_pools_by_cell_instance
             )
 
-        # Ensure `eat` was called with the correct arguments
+        # Assert assimilation
         mock_eat.assert_called_once_with(
-            expected_consumed_mass, excrement_pool_instance
+            expected_nutrient_gain, excrement_pool_instance
         )
+
+    def test_forage_cohort_skips_when_no_individuals(
+        self, mocker, herbivore_cohort_instance
+    ):
+        """Ensure cohort with 0 individuals does not forage."""
+        cohort = herbivore_cohort_instance
+        cohort.individuals = 0
+        mocker.patch.object(
+            type(cohort),
+            "mass_current",
+            new_callable=mocker.PropertyMock,
+            return_value=0.0,
+        )
+        mocker.patch.object(cohort, "delta_mass_herbivory")
+        mock_eat = mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            plant_list=[],
+            animal_list=[],
+            litter_pools=[],
+            excrement_pools=[],
+            carcass_pool_map={},
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
+            herbivory_waste_pools={},
+        )
+
+        mock_eat.assert_not_called()
+
+    def test_forage_cohort_skips_when_no_mass(self, mocker, herbivore_cohort_instance):
+        """Ensure cohort with 0 mass does not forage."""
+        cohort = herbivore_cohort_instance
+        cohort.individuals = 5
+
+        # Patch the mass_current property to return 0.0
+        mocker.patch.object(
+            type(cohort),
+            "mass_current",
+            new_callable=mocker.PropertyMock,
+            return_value=0.0,
+        )
+
+        mock_delta = mocker.patch.object(cohort, "delta_mass_herbivory")
+        mock_eat = mocker.patch.object(cohort, "eat")
+
+        cohort.forage_cohort(
+            plant_list=[],
+            animal_list=[],
+            litter_pools=[],
+            excrement_pools=[],
+            carcass_pool_map={},
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
+            herbivory_waste_pools={},
+        )
+
+        mock_delta.assert_not_called()
+        mock_eat.assert_not_called()
 
     @pytest.mark.parametrize(
         "mass_current, V_disp, M_disp_ref, o_disp, expected_probability",
@@ -2024,3 +2470,672 @@ class TestAnimalCohort:
         assert result == expected_result, (
             f"\n[ASSERT FAILED] Expected {expected_result} but got {result}\n"
         )
+
+    @pytest.mark.parametrize(
+        "prey_mass, prey_individuals, vertical_match, is_same_object, expected",
+        [
+            (10.0, 5, True, False, True),  # Valid prey
+            (0.00001, 5, True, False, False),  # Too small
+            (2000.0, 5, True, False, False),  # Too large
+            (10.0, 0, True, False, False),  # No individuals
+            (10.0, 5, False, False, False),  # No vertical match
+            (10.0, 5, True, True, False),  # Same object
+        ],
+    )
+    def test_can_prey_on(
+        self,
+        prey_mass,
+        prey_individuals,
+        vertical_match,
+        is_same_object,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Parametrized test for can_prey_on across valid and invalid scenarios."""
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+        from virtual_ecosystem.models.animal.scaling_functions import (
+            prey_group_selection,
+        )
+
+        # Setup grid and functional groups
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        predator_group = get_functional_group_by_name(
+            functional_group_list_instance, "carnivorous_mammal"
+        )
+        prey_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Setup predator
+        predator = AnimalCohort(
+            functional_group=predator_group,
+            mass=40.0,
+            age=100.0,
+            individuals=10,
+            centroid_key=4,
+            grid=grid,
+            constants=constants_instance,
+        )
+
+        predator.prey_groups = prey_group_selection(
+            predator.functional_group.diet,
+            predator.functional_group.adult_mass,
+            predator.functional_group.prey_scaling,
+            functional_group_list_instance,
+        )
+
+        print(DietType.parse("vertebrates_invertebrates_carcasses"))
+
+        assert "herbivorous_mammal" in predator.prey_groups, (
+            f"herbivorous_mammal not in"
+            f"self.predator.prey_groups: {predator.prey_groups.keys()}"
+        )
+
+        # If testing same-object condition, reuse predator as prey
+        if is_same_object:
+            prey = predator
+        else:
+            prey = AnimalCohort(
+                functional_group=prey_group,
+                mass=prey_mass,
+                age=50.0,
+                individuals=prey_individuals,
+                centroid_key=4,
+                grid=grid,
+                constants=constants_instance,
+            )
+
+        # Patch vertical matching result
+        setattr(predator, "match_vertical", lambda _: vertical_match)
+
+        assert predator.can_prey_on(prey) is expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_prey_map, expected",
+        [
+            # Single valid prey in one cell
+            ([1], {1: ["valid"]}, 1),
+            # Valid and invalid prey in different cells
+            ([1, 2], {1: ["valid"], 2: ["invalid"]}, 1),
+            # All prey invalid
+            ([1, 2], {1: ["invalid"], 2: ["invalid"]}, 0),
+            # Multiple valid prey
+            ([1, 2], {1: ["valid"], 2: ["valid"]}, 2),
+            # Mixed prey in one cell
+            ([1], {1: ["valid", "invalid"]}, 1),
+        ],
+    )
+    def test_get_prey(
+        self,
+        territory,
+        cell_prey_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Parametrized test for get_prey."""
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional groups
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        predator_group = get_functional_group_by_name(
+            functional_group_list_instance, "carnivorous_mammal"
+        )
+        prey_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create predator and assign mock territory
+        predator = AnimalCohort(
+            functional_group=predator_group,
+            mass=40.0,
+            age=100.0,
+            individuals=10,
+            centroid_key=4,
+            grid=grid,
+            constants=constants_instance,
+        )
+        predator.territory = territory
+
+        # Create mock prey cohorts
+        communities = {}
+        all_prey = []
+        for cell_id, prey_types in cell_prey_map.items():
+            cell_prey = []
+            for prey_type in prey_types:
+                cohort = AnimalCohort(
+                    functional_group=prey_group,
+                    mass=10.0 if prey_type == "valid" else 2000.0,
+                    age=50.0,
+                    individuals=5,
+                    centroid_key=cell_id,
+                    grid=grid,
+                    constants=constants_instance,
+                )
+                cell_prey.append(cohort)
+                all_prey.append(cohort)
+            communities[cell_id] = cell_prey
+
+        # Patch can_prey_on to return True for mass < 1000 only
+        predator.can_prey_on = lambda prey: prey.mass_current < 1000.0
+
+        # Run and assert
+        result = predator.get_prey(communities)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "vertical_match_result, expected",
+        [
+            (True, True),  # Matching vertical occupancy: should forage
+            (False, False),  # Non-matching vertical occupancy: should not forage
+        ],
+    )
+    def test_can_forage_on(
+        self,
+        vertical_match_result,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test can_forage_on plant resource."""
+
+        from virtual_ecosystem.core.data import Data
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+        from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+
+        # Patch match_vertical to control return value
+        cohort.match_vertical = lambda vertical: vertical_match_result
+
+        # Create dummy data object and plant resource
+        dummy_data = Data(grid)
+        plant_resource = PlantResources(
+            data=dummy_data,
+            cell_id=0,
+            constants=constants_instance,
+        )
+
+        assert cohort.can_forage_on(plant_resource) is expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_resource_map, expected",
+        [
+            # Single valid resource
+            ([1], {1: ["valid"]}, 1),
+            # Valid and invalid resources in separate cells
+            ([1, 2], {1: ["valid"], 2: ["invalid"]}, 1),
+            # All resources invalid
+            ([1, 2], {1: ["invalid"], 2: ["invalid"]}, 0),
+            # Multiple valid resources
+            ([1, 2], {1: ["valid"], 2: ["valid"]}, 2),
+            # Mixed in one cell
+            ([1], {1: ["valid", "invalid"]}, 1),
+        ],
+    )
+    def test_get_plant_resources(
+        self,
+        territory,
+        cell_resource_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_plant_resources."""
+
+        from virtual_ecosystem.core.data import Data
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+        from virtual_ecosystem.models.animal.plant_resources import PlantResources
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create dummy cohort with defined territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy data
+        dummy_data = Data(grid)
+
+        # Build plant_resources dictionary with real resource objects
+        plant_resources = {}
+        all_resources = []
+
+        for cell_id, resource_types in cell_resource_map.items():
+            cell_resources = []
+            for resource_type in resource_types:
+                resource = PlantResources(
+                    data=dummy_data,
+                    cell_id=cell_id,
+                    constants=constants_instance,
+                )
+                cell_resources.append(resource)
+                all_resources.append((resource, resource_type == "valid"))
+            plant_resources[cell_id] = cell_resources
+
+        # Patch can_forage_on to return True only for resources labeled "valid"
+        cohort.can_forage_on = lambda resource: any(
+            resource is res and is_valid for res, is_valid in all_resources
+        )
+
+        result = cohort.get_plant_resources(plant_resources)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: [1]}, 1),
+            # Pools in multiple cells
+            ([1, 2], {1: [1], 2: [2]}, 2),
+            # Territory includes a cell with no pools
+            ([1, 2], {1: [1]}, 1),
+            # Territory with no matching cells
+            ([3], {1: [1], 2: [2]}, 0),
+            # Multiple pools in a single cell
+            ([1], {1: [1, 2, 3]}, 3),
+        ],
+    )
+    def test_get_excrement_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_excrement_pools returns all pools in the territory."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import ExcrementPool
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy excrement pools from simple integers
+        excrement_pools = {
+            cell_id: [ExcrementPool() for _ in pool_ids]
+            for cell_id, pool_ids in cell_pool_map.items()
+        }
+
+        result = cohort.get_excrement_pools(excrement_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: 1}, 1),
+            # Pools in multiple cells
+            ([1, 2], {1: 1, 2: 1}, 2),
+            # Territory includes a cell with no pool
+            ([1, 2], {1: 1}, 1),
+            # Territory with no matching cells
+            ([3], {1: 1, 2: 1}, 0),
+        ],
+    )
+    def test_get_herbivory_waste_pools(
+        self,
+        territory,
+        pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_herbivory_waste_pools returns all pools in the territory."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import HerbivoryWaste
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy herbivory waste pool map
+        herbivory_waste = {
+            cell_id: HerbivoryWaste("leaf") for cell_id in pool_map.keys()
+        }
+
+        result = cohort.get_herbivory_waste_pools(herbivory_waste)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: [1]}, 1),
+            # Pools in multiple cells
+            ([1, 2], {1: [1], 2: [2]}, 2),
+            # Territory includes a cell with no pool
+            ([1, 2], {1: [1]}, 1),
+            # Territory with no matching cells
+            ([3], {1: [1], 2: [2]}, 0),
+            # Multiple pools in a single cell
+            ([1], {1: [1, 2, 3]}, 3),
+        ],
+    )
+    def test_get_carcass_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_carcass_pools returns all pools in the territory."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.decay import CarcassPool
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create cohort with a known territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Create dummy carcass pools from simple identifiers
+        carcass_pools = {
+            cell_id: [CarcassPool() for _ in pool_ids]
+            for cell_id, pool_ids in cell_pool_map.items()
+        }
+
+        result = cohort.get_carcass_pools(carcass_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "cohort_occupancy, resource_occupancy, expected",
+        [
+            ("soil", "soil", True),
+            ("soil", "soil_ground", True),
+            ("soil", "ground", False),
+            ("soil", "canopy", False),
+            ("soil", "ground_canopy", False),
+            ("soil", "soil_ground_canopy", True),
+            ("ground", "ground", True),
+            ("ground", "soil_ground", True),
+            ("ground", "ground_canopy", True),
+            ("ground", "soil", False),
+            ("ground", "canopy", False),
+            ("ground", "soil_ground_canopy", True),
+            ("canopy", "canopy", True),
+            ("canopy", "ground_canopy", True),
+            ("canopy", "ground", False),
+            ("canopy", "soil", False),
+            ("canopy", "soil_ground", False),
+            ("canopy", "soil_ground_canopy", True),
+            ("soil_ground", "soil", True),
+            ("soil_ground", "ground", True),
+            ("soil_ground", "soil_ground", True),
+            ("soil_ground", "ground_canopy", True),
+            ("soil_ground", "canopy", False),
+            ("soil_ground", "soil_ground_canopy", True),
+            ("ground_canopy", "ground", True),
+            ("ground_canopy", "canopy", True),
+            ("ground_canopy", "soil_ground", True),
+            ("ground_canopy", "ground_canopy", True),
+            ("ground_canopy", "soil", False),
+            ("ground_canopy", "soil_ground_canopy", True),
+            ("soil_ground_canopy", "soil", True),
+            ("soil_ground_canopy", "ground", True),
+            ("soil_ground_canopy", "canopy", True),
+            ("soil_ground_canopy", "soil_ground", True),
+            ("soil_ground_canopy", "ground_canopy", True),
+            ("soil_ground_canopy", "soil_ground_canopy", True),
+        ],
+    )
+    def test_match_vertical(
+        self,
+        cohort_occupancy,
+        resource_occupancy,
+        expected,
+        constants_instance,
+    ):
+        """Test match_vertical correctly identifies overlapping vertical occupancy."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+        # Setup grid
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+
+        # Create functional group with given vertical occupancy
+        group = FunctionalGroup(
+            name="test",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="test",
+            excretion_type="ureotelic",
+            migration_type="none",
+            vertical_occupancy=cohort_occupancy,
+            birth_mass=1.0,
+            adult_mass=10.0,
+            constants=constants_instance,
+        )
+
+        # Create test cohort
+        cohort = AnimalCohort(
+            functional_group=group,
+            mass=10.0,
+            age=100.0,
+            individuals=5,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+
+        # Test match_vertical result
+
+        result = cohort.match_vertical(VerticalOccupancy.parse(resource_occupancy))
+        assert result is expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_pool_map, expected",
+        [
+            # Single pool in one cell
+            ([1], {1: ["above_metabolic"]}, 1),
+            # Multiple pools in one cell
+            ([1], {1: ["above_metabolic", "woody"]}, 2),
+            # Pools in multiple cells
+            ([1, 2], {1: ["above_metabolic"], 2: ["woody"]}, 2),
+            # One cell has no pool
+            ([1, 2], {1: ["above_metabolic"]}, 1),
+            # No overlapping cells
+            ([3], {1: ["above_metabolic"], 2: ["woody"]}, 0),
+        ],
+    )
+    def test_get_litter_pools(
+        self,
+        territory,
+        cell_pool_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+        litter_pools_dict_by_cell_instance,
+    ):
+        """Test get_litter_pools."""
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Extract only requested pools from the full fixture
+        test_litter_pools = {
+            cell_id: {
+                pool_name: litter_pools_dict_by_cell_instance[cell_id][pool_name]
+                for pool_name in pool_names
+            }
+            for cell_id, pool_names in cell_pool_map.items()
+            if cell_id in litter_pools_dict_by_cell_instance
+        }
+
+        result = cohort.get_litter_pools(test_litter_pools)
+
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "carbon, nitrogen, phosphorus, initial_largest_mass, expected_largest_mass",
+        [
+            # Grows, still under adult mass
+            (6.0, 1.0, 0.5, 5.0, 7.5),
+            # Grows past adult mass, should cap
+            (50.0, 10.0, 5.0, 20.0, "cap_to_adult"),
+            # No growth, mass lower than previous largest
+            (4.0, 0.5, 0.2, 10.0, 10.0),
+        ],
+    )
+    def test_update_largest_mass(
+        self,
+        herbivore_cohort_instance,
+        carbon,
+        nitrogen,
+        phosphorus,
+        initial_largest_mass,
+        expected_largest_mass,
+    ):
+        """Test update_largest_mass."""
+
+        # Set up current mass via mass_cnp
+        herbivore_cohort_instance.mass_cnp.carbon = carbon
+        herbivore_cohort_instance.mass_cnp.nitrogen = nitrogen
+        herbivore_cohort_instance.mass_cnp.phosphorus = phosphorus
+
+        # Set initial largest_mass_achieved
+        herbivore_cohort_instance.largest_mass_achieved = initial_largest_mass
+
+        # Call update
+        herbivore_cohort_instance.update_largest_mass()
+
+        # Determine expected value
+        if expected_largest_mass == "cap_to_adult":
+            expected = herbivore_cohort_instance.functional_group.adult_mass
+        else:
+            expected = expected_largest_mass
+
+        # Assertion
+        assert herbivore_cohort_instance.largest_mass_achieved == expected

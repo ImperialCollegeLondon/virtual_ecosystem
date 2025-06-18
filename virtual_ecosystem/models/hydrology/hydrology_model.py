@@ -22,7 +22,6 @@ There are still a number of open TODOs related to process implementation and imp
 .. TODO:: units and module coordination
 
     * change temperature to Kelvin
-    * plants need to return transpiration only
 
 """  # noqa: D205
 
@@ -63,7 +62,7 @@ class HydrologyModel(
     ),
     vars_updated=(
         "canopy_evaporation",
-        "precipitation_surface",  # precipitation-interception loss
+        "precipitation_surface",
         "soil_moisture",
         "surface_runoff",
         "vertical_flow",
@@ -89,13 +88,14 @@ class HydrologyModel(
         "leaf_area_index",
         "layer_heights",
         "soil_moisture",
-        "evapotranspiration",  # TODO this needs to be transpiration
+        "transpiration",
         "surface_runoff_accumulated",
         "subsurface_flow_accumulated",
         "density_air",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
         "stomatal_conductance",
+        "net_radiation",
     ),
     vars_populated_by_init=(
         "soil_moisture",
@@ -150,7 +150,7 @@ class HydrologyModel(
         """Hydrology init function.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
+        handled in :fun:`~virtual_ecosystem.hydrology.hydrology_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -220,7 +220,7 @@ class HydrologyModel(
         This function initializes variables that are required to run the
         first update().
 
-        For the within grid cell hydrology, soil moisture is initialised homogenously
+        For the within grid cell hydrology, soil moisture is initialised homogeneously
         for all soil layers and groundwater storage is set to the percentage of it's
         capacity that was defined in the model configuration. Soil and canopy
         aerodynamic resistances are set to an initial constant value. Some additional
@@ -350,9 +350,9 @@ class HydrologyModel(
 
         Many of the underlying processes are problematic at a monthly timestep, which is
         currently the only supported update interval. As a short-term work around, the
-        input precipitation is randomly distributed over 30 days and input
-        evapotranspiration is divided by 30, and the return variables are monthly means
-        or monthly accumulated values.
+        input precipitation is randomly distributed over 30 days and input canopy
+        transpiration is divided by 30, and the return variables
+        are monthly means or monthly accumulated values.
 
         Precipitation that reaches the surface is defined as incoming precipitation
         minus canopy interception, which is estimated using a stroage-based approach,
@@ -367,7 +367,7 @@ class HydrologyModel(
         : if precipitation exceeds top soil moisture capacity
         , the excess water is added to runoff and top soil moisture is set to soil
         moisture capacity value; if the top soil is not saturated, precipitation is
-        added to the current soil moisture level and runoff is set to zero.
+        added to the current topsoil moisture level and runoff is set to zero.
         The accumulated surface runoff is calculated as the sum of current runoff and
         the runoff from upstream cells at the previous time step, see
         :func:`~virtual_ecosystem.models.hydrology.above_ground.accumulate_horizontal_flow`
@@ -378,9 +378,8 @@ class HydrologyModel(
         :func:`~virtual_ecosystem.models.hydrology.above_ground.calculate_soil_evaporation`
         , and reduced to actual evaporation as a function of leaf area index.
 
-        TODO update the following when code is updated:
-
-        Vertical flow between soil layers is calculated using the Richards equation, see
+        Vertical flow between soil layers is calculated combining Richards' equation and
+        Darcy's law for unsaturated flow
         :func:`~virtual_ecosystem.models.hydrology.below_ground.calculate_vertical_flow`
         . Here, the mean vertical flow in mm per day that goes though the top soil layer
         is returned to the data object. Note that there are
@@ -390,10 +389,6 @@ class HydrologyModel(
         Soil moisture is updated by iteratively updating the soil moisture of individual
         layers under consideration of the vertical flow in and out of each layer, see
         :func:`~virtual_ecosystem.models.hydrology.below_ground.update_soil_moisture`
-        . The conversion to matric potential is based on :cite:t:`campbell_simple_1974`,
-        see
-        :func:`~virtual_ecosystem.models.hydrology.below_ground.convert_soil_moisture_to_water_potential`
-        .
 
         Groundwater storage and flows are modelled using two parallel linear
         reservoirs, see
@@ -412,13 +407,14 @@ class HydrologyModel(
         * vapour pressure deficit, [kPa]
         * precipitation, [mm]
         * wind speed, [m s-1]
-        * leaf area index, [m m-2]
+        * leaf area index, [m m-1]
         * layer heights, [m]
         * Soil moisture (previous time step), [mm]
-        * evapotranspiration (current time step), [mm]
+        * transpiration (current time step), [mm]
         * accumulated surface runoff (previous time step), [mm]
         * accumulated subsurface flow (previous time step), [mm]
         * aerodynamic_resistance_canopy, [s m-1]
+        * net radiation, [W m-2]
 
         and a number of parameters that as described in detail in
         :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
@@ -468,16 +464,11 @@ class HydrologyModel(
                 veg_density_param=self.model_constants.veg_density_param,
             )
 
-            # Calculate canopy evaporation and leaf drainage
-            # TODO net radiation is part of energy balance, check which inputs are
-            # required, in which order this is calculated, discuss also with plant model
-            net_radiation_canopy = self.layer_structure.from_template()
-            net_radiation_canopy[self.layer_structure.index_filled_canopy] = 20.0
-
+            # Calculate canopy evaporation and leaf drainage, [mm day-1]
             canopy_water_balance = above_ground.calculate_canopy_evaporation(
                 leaf_area_index=self.data["leaf_area_index"].to_numpy(),
                 interception=interception,
-                net_radiation=net_radiation_canopy.to_numpy(),
+                net_radiation=self.data["net_radiation"].to_numpy() / days,
                 vapour_pressure_deficit=self.data["vapour_pressure_deficit"].to_numpy(),
                 air_temperature=self.data["air_temperature"].to_numpy(),
                 density_air_kg=self.data["density_air"].to_numpy(),
@@ -509,8 +500,13 @@ class HydrologyModel(
             precipitation_surface = (
                 hydro_input["current_precipitation"][:, day]
                 - interception
-                + np.nansum(canopy_water_balance["leaf_drainage"], axis=0)
+                + canopy_water_balance["leaf_drainage"]
             )
+
+            hydrology_tools.check_precipitation_surface(
+                precipitation_surface=precipitation_surface
+            )
+
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]
@@ -529,6 +525,7 @@ class HydrologyModel(
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
+
             # Calculate top soil moisture after infiltration, [mm]
             soil_moisture_infiltrated = np.clip(
                 (
@@ -596,39 +593,48 @@ class HydrologyModel(
                 )
             )
 
-            # Calculate vertical flow between soil layers in mm per day
+            # Calculate vertical flow between soil layers in mm per day and soil matric
+            # potential in m (later converted to kPa for data object).
             # Note that there are severe limitations to this approach on the temporal
             # spatial scale of this model and this can only be treated as a very rough
             # approximation to discuss nutrient leaching.
             vertical_flow = below_ground.calculate_vertical_flow(
                 soil_moisture=soil_moisture_evap_mm
                 / self.soil_layer_thickness_mm,  # vol
-                soil_layer_thickness=self.soil_layer_thickness_mm,  # mm
-                soil_moisture_capacity=(
-                    self.core_constants.soil_moisture_capacity
+                soil_layer_thickness=self.soil_layer_thickness_mm / 1000.0,  # m
+                soil_layer_depth=np.abs(self.layer_structure.soil_layer_depths),  # m
+                soil_moisture_saturation=(
+                    self.model_constants.soil_moisture_saturation
                 ),  # vol
                 soil_moisture_residual=(
                     self.model_constants.soil_moisture_residual
                 ),  # vol
-                hydraulic_conductivity=(
-                    self.model_constants.hydraulic_conductivity
+                saturated_hydraulic_conductivity=(
+                    self.model_constants.saturated_hydraulic_conductivity
                 ),  # m/s
-                hydraulic_gradient=self.model_constants.hydraulic_gradient,  # m/m
+                air_entry_potential_inverse=(
+                    self.model_constants.air_entry_potential_inverse
+                ),  # m/m
                 van_genuchten_nonlinearily_parameter=(
                     self.model_constants.van_genuchten_nonlinearily_parameter
                 ),
-                groundwater_capacity=self.model_constants.groundwater_capacity,
+                pore_connectivity_parameter=(
+                    self.model_constants.pore_connectivity_parameter
+                ),
+                groundwater_capacity=self.model_constants.groundwater_capacity / 1000.0,
                 seconds_to_day=self.core_constants.seconds_to_day,
             )
-            daily_lists["vertical_flow"].append(vertical_flow)
+            daily_lists["matric_potential"].append(
+                vertical_flow["matric_potential"] * self.model_constants.m_to_kpa
+            )
+            daily_lists["vertical_flow"].append(vertical_flow["vertical_flow"])
 
             # Update soil moisture by +/- vertical flow to each layer and remove root
             # water uptake by plants (transpiration), [mm]
-            # TODO combined input from evaporation and transpiration
             soil_moisture_updated = below_ground.update_soil_moisture(
                 soil_moisture=soil_moisture_evap_mm,  # mm
-                vertical_flow=vertical_flow,  # mm
-                evapotranspiration=hydro_input["current_evapotranspiration"],  # mm
+                vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
+                transpiration=hydro_input["current_transpiration"],  # mm
                 soil_moisture_capacity=(  # mm
                     self.core_constants.soil_moisture_capacity
                     * self.soil_layer_thickness_mm
@@ -640,26 +646,10 @@ class HydrologyModel(
             )
             daily_lists["soil_moisture"].append(soil_moisture_updated)
 
-            # Convert soil moisture to matric potential
-            # TODO replace with van Genuchten implementation
-            matric_potential = below_ground.convert_soil_moisture_to_water_potential(
-                soil_moisture=(
-                    soil_moisture_updated / self.soil_layer_thickness_mm  # vol
-                ),
-                air_entry_water_potential=(
-                    self.model_constants.air_entry_water_potential
-                ),
-                campbell_pore_size_distribution=(
-                    self.model_constants.campbell_pore_size_distribution
-                ),
-                soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
-            )
-            daily_lists["matric_potential"].append(matric_potential)
-
             # calculate below ground horizontal flow and update ground water
             below_ground_flow = below_ground.update_groundwater_storage(
                 groundwater_storage=hydro_input["groundwater_storage"],
-                vertical_flow_to_groundwater=vertical_flow[-1],
+                vertical_flow_to_groundwater=vertical_flow["vertical_flow"][-1],
                 bypass_flow=bypass_flow,
                 max_percolation_rate_uzlz=(
                     self.model_constants.max_percolation_rate_uzlz
@@ -745,9 +735,9 @@ class HydrologyModel(
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][
-            self.layer_structure.index_filled_canopy
-        ] = np.array(daily_lists["canopy_evaporation"]).sum(axis=(0, 1))
+        soil_hydrology["canopy_evaporation"][:,] = np.sum(
+            daily_lists["canopy_evaporation"], axis=0
+        )
 
         soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
             np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
@@ -762,7 +752,7 @@ class HydrologyModel(
                 coords={"cell_id": self.grid.cell_id},
             )
 
-        # Return mean soil moisture, [-], and matric potential, [kPa], and add
+        # Return mean soil moisture, [mm], and soil matric potential, [kPa], and add
         # atmospheric layers (nan)
         for var in ["soil_moisture", "matric_potential"]:
             soil_hydrology[var] = self.layer_structure.from_template()
@@ -770,7 +760,7 @@ class HydrologyModel(
                 np.stack(daily_lists[var], axis=0), axis=0
             )
 
-        # Save last state of groundwater stoage, [mm]
+        # Save last state of groundwater storage, [mm]
         soil_hydrology["groundwater_storage"] = DataArray(
             daily_lists["groundwater_storage"][day],
             dims=self.data["groundwater_storage"].dims,

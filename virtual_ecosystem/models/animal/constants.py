@@ -5,6 +5,7 @@ constants" (fitting relationships taken from the literature) required by the bro
 """  # noqa: D205, D415
 
 from dataclasses import dataclass, field
+from typing import TypeVar
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -12,6 +13,8 @@ from virtual_ecosystem.models.animal.animal_traits import (
     MetabolicType,
     TaxaType,
 )
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -41,18 +44,22 @@ class AnimalConsts(ConstantsDataclass):
             TaxaType.MAMMAL: {
                 DietType.HERBIVORE: (-0.75, 4.23),
                 DietType.CARNIVORE: (-0.75, 1.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
             TaxaType.BIRD: {
                 DietType.HERBIVORE: (-0.75, 5.00),
                 DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
-            TaxaType.INSECT: {
+            TaxaType.INVERTEBRATE: {
                 DietType.HERBIVORE: (-0.75, 5.00),
                 DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
             TaxaType.AMPHIBIAN: {
                 DietType.HERBIVORE: (-0.75, 5.00),
                 DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
         }
     )
@@ -64,10 +71,12 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
+    # TODO: rework these efficiencies to be interaction-specific, not trait based
     conversion_efficiency: dict[DietType, float] = field(
         default_factory=lambda: {
             DietType.HERBIVORE: 0.1,  # Toy value
             DietType.CARNIVORE: 0.25,  # Toy value
+            DietType.OMNIVORE: 0.175,  # Toy value
         }
     )
 
@@ -75,6 +84,7 @@ class AnimalConsts(ConstantsDataclass):
         default_factory=lambda: {
             DietType.HERBIVORE: 0.9,  # Toy value
             DietType.CARNIVORE: 0.8,  # Toy value
+            DietType.OMNIVORE: 0.85,  # Toy value
         }
     )
 
@@ -87,7 +97,7 @@ class AnimalConsts(ConstantsDataclass):
                 TaxaType.BIRD: (1.0, 1.0),  # Toy values
             },
             MetabolicType.ECTOTHERMIC: {
-                TaxaType.INSECT: (1.0, 1.0),
+                TaxaType.INVERTEBRATE: (1.0, 1.0),
                 TaxaType.AMPHIBIAN: (1.0, 1.0),
             },  # Toy values
         }
@@ -97,7 +107,7 @@ class AnimalConsts(ConstantsDataclass):
         default_factory=lambda: {
             TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
             TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
-            TaxaType.INSECT: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.INVERTEBRATE: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
             TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
@@ -117,7 +127,7 @@ class AnimalConsts(ConstantsDataclass):
     """Proportion of the time step in which it's suitable to be active for functional
     group f."""
 
-    # Trophic paramters
+    # Trophic parameters
 
     alpha_0_herb = 1.0e-11  # alpha_herb_0 [Madingley] ha/(day*g)
     """Effective rate per unit mass at which a herbivore searches its environment."""

@@ -23,196 +23,222 @@ save_initial_state = true
 a_hd = 116.0
 ca_ratio = 390.43
 f_g = 0.02
+gpp_topslice = 0.1
 h_max = 25.33
 lai = 1.8
 m = 2
 n = 5
 name = 'shrub'
+p_foliage_for_reproductive_tissue = 0.05
 par_ext = 0.5
 resp_f = 0.1
 resp_r = 0.913
+resp_rt = 0.05
 resp_s = 0.044
 rho_s = 200.0
 sla = 14.0
 tau_f = 4.0
 tau_r = 1.04
-yld = 0.17
-zeta = 0.17
-resp_rt = 0.05
 tau_rt = 1
-gpp_topslice = 0.1
-p_foliage_for_reproductive_tissue = 0.05
+yld = 0.6
+zeta = 0.17
 
 [[plants.pft_definition]]
 a_hd = 116.0
 ca_ratio = 390.43
 f_g = 0.02
+gpp_topslice = 0.1
 h_max = 15.33
 lai = 1.8
 m = 2
 n = 5
 name = 'broadleaf'
+p_foliage_for_reproductive_tissue = 0.05
 par_ext = 0.5
 resp_f = 0.1
 resp_r = 0.913
+resp_rt = 0.05
 resp_s = 0.044
 rho_s = 200.0
 sla = 14.0
 tau_f = 4.0
 tau_r = 1.04
-yld = 0.17
-zeta = 0.17
-resp_rt = 0.05
 tau_rt = 1
-gpp_topslice = 0.1
-p_foliage_for_reproductive_tissue = 0.05
+yld = 0.6
+zeta = 0.17
 
 [[animal.functional_groups]]
-name = "carnivorous_bird"
-taxa = "bird"
-diet = "carnivore"
-metabolic_type = "endothermic"
-reproductive_environment = "terrestrial"
-reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "carnivorous_bird"
-excretion_type = "uricotelic"
-migration_type = "none"
-birth_mass = 0.1
 adult_mass = 1.0
-
-[[animal.functional_groups]]
-name = "herbivorous_bird"
+birth_mass = 0.1
+development_status = "adult"
+development_type = "direct"
+diet = "carnivore"
+excretion_type = "uricotelic"
+metabolic_type = "endothermic"
+migration_type = "none"
+name = "carnivorous_bird"
+offspring_functional_group = "carnivorous_bird"
+reproductive_environment = "terrestrial"
+reproductive_type = "iteroparous"
 taxa = "bird"
-diet = "herbivore"
-metabolic_type = "endothermic"
-reproductive_environment = "terrestrial"
-reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "herbivorous_bird"
-excretion_type = "uricotelic"
-migration_type = "none"
-birth_mass = 0.05
+vertical_occupancy = "ground_canopy"
+
+[[animal.functional_groups]]
 adult_mass = 0.5
-
-[[animal.functional_groups]]
-name = "carnivorous_mammal"
-taxa = "mammal"
-diet = "carnivore"
+birth_mass = 0.05
+development_status = "adult"
+development_type = "direct"
+diet = "herbivore"
+excretion_type = "uricotelic"
 metabolic_type = "endothermic"
+migration_type = "none"
+name = "herbivorous_bird"
+offspring_functional_group = "herbivorous_bird"
 reproductive_environment = "terrestrial"
 reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "carnivorous_mammal"
-excretion_type = "ureotelic"
-migration_type = "none"
-birth_mass = 4.0
+taxa = "bird"
+vertical_occupancy = "ground_canopy"
+
+[[animal.functional_groups]]
 adult_mass = 40.0
-
-[[animal.functional_groups]]
-name = "herbivorous_mammal"
-taxa = "mammal"
-diet = "herbivore"
-metabolic_type = "endothermic"
-reproductive_environment = "terrestrial"
-reproductive_type = "iteroparous"
-development_type = "direct"
+birth_mass = 4.0
 development_status = "adult"
-offspring_functional_group = "herbivorous_mammal"
-excretion_type = "ureotelic"
-migration_type = "none"
-birth_mass = 1.0
-adult_mass = 10.0
-
-[[animal.functional_groups]]
-name = "carnivorous_insect"
-taxa = "insect"
+development_type = "direct"
 diet = "carnivore"
-metabolic_type = "ectothermic"
+excretion_type = "ureotelic"
+metabolic_type = "endothermic"
+migration_type = "none"
+name = "carnivorous_mammal"
+offspring_functional_group = "carnivorous_mammal"
 reproductive_environment = "terrestrial"
 reproductive_type = "iteroparous"
-development_type = "direct"
+taxa = "mammal"
+vertical_occupancy = "ground"
+
+[[animal.functional_groups]]
+adult_mass = 10.0
+birth_mass = 1.0
 development_status = "adult"
-offspring_functional_group = "carnivorous_insect"
-excretion_type = "uricotelic"
+development_type = "direct"
+diet = "herbivore"
+excretion_type = "ureotelic"
+metabolic_type = "endothermic"
 migration_type = "none"
-birth_mass = 0.001
+name = "herbivorous_mammal"
+offspring_functional_group = "herbivorous_mammal"
+reproductive_environment = "terrestrial"
+reproductive_type = "iteroparous"
+taxa = "mammal"
+vertical_occupancy = "ground"
+
+[[animal.functional_groups]]
 adult_mass = 0.01
-
-[[animal.functional_groups]]
-name = "herbivorous_insect"
-taxa = "insect"
-diet = "herbivore"
-metabolic_type = "ectothermic"
-reproductive_environment = "terrestrial"
-reproductive_type = "semelparous"
+birth_mass = 0.001
+development_status = "adult"
 development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "herbivorous_insect"
+diet = "carnivore"
 excretion_type = "uricotelic"
+metabolic_type = "ectothermic"
 migration_type = "none"
-birth_mass = 0.0005
-adult_mass = 0.005
+name = "carnivorous_insect"
+offspring_functional_group = "carnivorous_insect"
+reproductive_environment = "terrestrial"
+reproductive_type = "iteroparous"
+taxa = "insect"
+vertical_occupancy = "soil_ground_canopy"
 
 [[animal.functional_groups]]
-name = "butterfly"
-taxa = "insect"
+adult_mass = 0.005
+birth_mass = 0.0005
+development_status = "adult"
+development_type = "direct"
 diet = "herbivore"
+excretion_type = "uricotelic"
 metabolic_type = "ectothermic"
+migration_type = "none"
+name = "herbivorous_insect"
+offspring_functional_group = "herbivorous_insect"
 reproductive_environment = "terrestrial"
 reproductive_type = "semelparous"
-development_type = "indirect"
-development_status = "adult"
-offspring_functional_group = "caterpillar"
-excretion_type = "uricotelic"
-migration_type = "none"
-birth_mass = 0.0005
-adult_mass = 0.005
+taxa = "insect"
+vertical_occupancy = "soil_ground_canopy"
 
 [[animal.functional_groups]]
-name = "caterpillar"
-taxa = "insect"
+adult_mass = 0.005
+birth_mass = 0.0005
+development_status = "adult"
+development_type = "indirect"
 diet = "herbivore"
+excretion_type = "uricotelic"
 metabolic_type = "ectothermic"
+migration_type = "none"
+name = "butterfly"
+offspring_functional_group = "caterpillar"
+reproductive_environment = "terrestrial"
+reproductive_type = "semelparous"
+taxa = "insect"
+vertical_occupancy = "ground_canopy"
+
+[[animal.functional_groups]]
+adult_mass = 0.005
+birth_mass = 0.0005
+development_status = "larval"
+development_type = "indirect"
+diet = "herbivore"
+excretion_type = "uricotelic"
+metabolic_type = "ectothermic"
+migration_type = "none"
+name = "caterpillar"
+offspring_functional_group = "butterfly"
 reproductive_environment = "terrestrial"
 reproductive_type = "nonreproductive"
-development_type = "indirect"
-development_status = "larval"
-offspring_functional_group = "butterfly"
-excretion_type = "uricotelic"
-migration_type = "none"
-birth_mass = 0.0005
-adult_mass = 0.005
+taxa = "insect"
+vertical_occupancy = "canopy"
 
 [[animal.functional_groups]]
-name = "frog"
-taxa = "amphibian"
+adult_mass = 0.5
+birth_mass = 0.005
+development_status = "adult"
+development_type = "direct"
 diet = "carnivore"
+excretion_type = "ureotelic"
 metabolic_type = "ectothermic"
+migration_type = "none"
+name = "frog"
+offspring_functional_group = "frog"
 reproductive_environment = "aquatic"
 reproductive_type = "iteroparous"
-development_type = "direct"
-development_status = "adult"
-offspring_functional_group = "frog"
-excretion_type = "ureotelic"
-migration_type = "none"
-birth_mass = 0.005
-adult_mass = 0.5
+taxa = "amphibian"
+vertical_occupancy = "ground"
 
 [[animal.functional_groups]]
-name = "swallow"
-taxa = "bird"
+adult_mass = 0.2
+birth_mass = 0.005
+development_status = "adult"
+development_type = "direct"
 diet = "carnivore"
+excretion_type = "uricotelic"
 metabolic_type = "endothermic"
+migration_type = "seasonal"
+name = "swallow"
+offspring_functional_group = "swallow"
 reproductive_environment = "terrestrial"
 reproductive_type = "iteroparous"
-development_type = "direct"
+taxa = "bird"
+vertical_occupancy = "canopy"
+
+[[animal.functional_groups]]
+adult_mass = 0.005
+birth_mass = 0.0005
 development_status = "adult"
-offspring_functional_group = "swallow"
+development_type = "direct"
+diet = "herbivore"
 excretion_type = "uricotelic"
-migration_type = "seasonal"
-birth_mass = 0.005
-adult_mass = 0.2
+metabolic_type = "ectothermic"
+migration_type = "none"
+name = "earthworm"
+offspring_functional_group = "earthworm"
+reproductive_environment = "terrestrial"
+reproductive_type = "iteroparous"
+taxa = "insect"
+vertical_occupancy = "soil"

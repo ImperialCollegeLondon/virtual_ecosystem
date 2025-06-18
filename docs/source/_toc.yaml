@@ -16,7 +16,9 @@ subtrees:
           - file: virtual_ecosystem/theory/plant_theory
           - file: virtual_ecosystem/theory/soil/summary
             entries:
-              - file: virtual_ecosystem/theory/soil/soil_theory
+              - file: virtual_ecosystem/theory/soil/soil_carbon
+              - file: virtual_ecosystem/theory/soil/macronutrients
+              - file: virtual_ecosystem/theory/soil/microbial_representation
               - file: virtual_ecosystem/theory/soil/litter_theory
               - file: virtual_ecosystem/theory/soil/environmental_links
           - file: virtual_ecosystem/theory/animals/animal_theory

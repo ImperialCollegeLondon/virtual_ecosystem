@@ -245,7 +245,7 @@ def test_calculate_nitrification_moisture_factor(
         * CoreConsts.soil_moisture_capacity
     )
 
-    expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]
+    expected_factor = [0.25880985, 0.66926154, 0.9999273, 0.84401893]
 
     actual_factor = calculate_nitrification_moisture_factor(
         effective_saturation=effective_saturation
@@ -372,6 +372,25 @@ def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
     )
 
     assert np.allclose(expected_cost, actual_cost)
+
+
+def test_calculate_carbon_use_efficiency(averaged_soil_temp):
+    """Check carbon use efficiency calculates correctly."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_carbon_use_efficiency,
+    )
+
+    expected_cues = [0.46920255, 0.45708189, 0.44501183, 0.51790586]
+
+    actual_cues = calculate_carbon_use_efficiency(
+        soil_temp=averaged_soil_temp,
+        reference_cue_logit=SoilConsts.reference_cue_logit,
+        cue_reference_temp=SoilConsts.cue_reference_temp,
+        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
+    )
+
+    assert np.allclose(actual_cues, expected_cues)
 
 
 def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):

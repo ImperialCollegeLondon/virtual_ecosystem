@@ -14,14 +14,32 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class AbioticConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `abiotic` model."""
 
-    leaf_emissivity: float = 0.97
-    """Leaf emissivity."""
+    leaf_emissivity: float = 0.98
+    """Leaf emissivity, unitless.
+    
+    Leaf emissivity is a measure of how efficiently a leaf emits thermal radiation
+    compared to a perfect blackbody, typically ranging from 0.95 to 0.99. Value for
+    tropical vegetation is taken from :cite:t:`ma_an_2019`.
+    """
 
-    bulk_density_soil: float = 1.5
-    """Bulk density of soil."""
+    leaf_albedo: float = 0.15
+    """Leaf albedo, unitless.
+    
+    Leaf albedo is the fraction of incoming solar radiation that a leaf reflects,
+    typically ranging from 0.12 to 0.18 in tropical forests due to their dark, broadleaf
+    surfaces. Value here is taken from :cite:t:`su_aerodynamic_2021`.
+    """
+
+    bulk_density_soil: float = 1.175 * 1000
+    """Bulk density of soil, [kg m-3].
+    
+    Bulk density describes the mass of dry soil per unit volume, including both the
+    solid soil particles and the pore spaces between them. Value for average rainforest
+    soil is taken from :cite:t:`gupta_soilksatdb_2021`.
+    """
 
     wind_reference_height: float = 10.0
-    """Reference height for wind speed above the canopy.
+    """Reference height for wind speed above the canopy, [m].
 
     The reference height for horizontal wind is typically 10m above ground compared to
     2m for other atmospheric variables such as temperature and relative humidity. We
@@ -66,12 +84,16 @@ class AbioticConsts(ConstantsDataclass):
     transfer, typically extending up to about 10% of the height of the roughness
     elements or features on the surface. This layer is characterized by intense
     turbulence and rapid velocity changes due to surface irregularities.
-    Implentation and value taken from :cite:p:`maclean_microclimc_2021`."""
+    Implementation and value taken from :cite:p:`maclean_microclimc_2021`."""
 
     max_ratio_wind_to_friction_velocity: float = 0.3
     """Maximum ratio of wind velocity to friction velocity, dimensionless.
 
-    Implementation and value from :cite:t:`maclean_microclimc_2021`."""
+    The maximum ratio of wind velocity to friction velocity refers to the highest
+    observed or theoretical value of the ratio between the wind speed at a given height
+    and the surface friction velocity (u*), indicating the efficiency of momentum
+    transfer from the atmosphere to the surface. Implementation and value from
+    :cite:t:`maclean_microclimc_2021`."""
 
     drag_coefficient: float = 0.2
     """Drag coefficient, dimensionless.
@@ -93,18 +115,34 @@ class AbioticConsts(ConstantsDataclass):
     surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
     canopy_temperature_ini_factor: float = 0.01
-    """Factor used to initialise canopy temperature as a function of air temperature and
-    absorbed shortwave radiation."""
+    """Factor used to initialise canopy temperature, dimensionless.
+    
+    This factor is used to initialise canopy temperature in the model setup as a
+    function of air temperature and absorbed shortwave radiation."""
 
     light_extinction_coefficient: float = 0.01
-    """Light extinction coefficient for canopy."""
+    """Light extinction coefficient for canopy, unitless.
+    
+    The light extinction coefficient for a canopy quantifies how quickly light
+    diminishes as it passes through vegetation, reflecting the canopy's ability to
+    absorb or scatter incoming radiation. This value is only used in the model setup and
+    later derived in the plant model."""
 
-    soil_thermal_conductivity: float = 0.7
-    """Soil thermal conductivity, [W m-1 K-1], :cite:p:`monteith_principles_1990`.
+    soil_thermal_conductivity: float = 1.206
+    """Soil thermal conductivity, [W m-1 K-1].
+
+    Soil thermal conductivity is a measure of the soil's ability to conduct heat,
+    influenced by factors such as moisture content, texture, and density. Value is
+    taken from :cite:t:`rasimeng_characterization_2020`.
     """
 
-    specific_heat_capacity_soil: float = 2.7e6
-    """Specific heat capacity of soil, [J kg-1 K-1], :cite:p:`monteith_principles_1990`.
+    specific_heat_capacity_soil: float = 881
+    """Specific heat capacity of soil, [J kg-1 K-1].
+   
+    Specific heat capacity of soil is the amount of heat required to raise the
+    temperature of a unit mass of soil by one degree Celsius (or Kelvin), and depends on
+    soil composition, moisture content, and organic matter. Value taken from
+    :cite:t:`molders_plant_2005`.
     """
 
     surface_albedo: float = 0.125
@@ -113,8 +151,13 @@ class AbioticConsts(ConstantsDataclass):
     The value is takes from a study that compares changes in surface albedo before and
     after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
 
-    soil_emissivity: float = 0.8
-    """Soil emissivity, dimensionless."""
+    soil_emissivity: float = 0.95
+    """Soil emissivity, dimensionless.
+    
+    Soil emissivity is a measure of how efficiently the soil surface emits thermal
+    radiation compared to a perfect blackbody, with values typically ranging from 0.90
+    to 0.98 depending on soil texture, moisture, and surface roughness. Value taken
+    from :cite:t:`molders_plant_2005`."""
 
     saturated_pressure_slope_parameters: tuple[float, float, float, float] = (
         4098.0,
@@ -124,18 +167,12 @@ class AbioticConsts(ConstantsDataclass):
     )
     """List of parameters to calculate the slope of saturated vapour pressure curve."""
 
-    water_to_air_mass_ratio: float = 0.622
-    """Ratio of the molecular mass of water vapour to dry air.
-    
-    This ratio is crucial because it determines how much water vapour contributes to
-    the total pressure in a given air parcel.
-
-    """
     dry_air_factor: float = 0.378
-    """Dry air factor, complement of water_to_air_mass_ratio.
+    """Dry air factor, dimensionless.
 
     This term accounts for the proportion of dry air when computing the partitioning
-    of total air pressure."""
+    of total air pressure. It is the complement of the
+    `molecular_weight_ratio_water_to_dry_air` in core.constants."""
 
     initial_flux_value: float = 0.001
     """Initial non-zero fill value for energy fluxes, [W m-2]."""

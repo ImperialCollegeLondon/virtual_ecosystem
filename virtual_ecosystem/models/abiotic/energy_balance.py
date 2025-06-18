@@ -188,7 +188,7 @@ def initialise_canopy_and_soil_fluxes(
     canopy_temperature[layer_structure.index_filled_canopy] = initial_canopy_temperature
     output["canopy_temperature"] = canopy_temperature
 
-    # Initialise sensible heat flux with non-zero mimimum values and write in output
+    # Initialise sensible heat flux with non-zero minimum values and write in output
     sensible_heat_flux = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
@@ -199,10 +199,10 @@ def initialise_canopy_and_soil_fluxes(
     sensible_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["sensible_heat_flux"] = sensible_heat_flux
 
-    # Initialise latent heat flux with non-zero mimimum values and write in output
+    # Initialise latent heat flux with non-zero minimum values and write in output
     output["latent_heat_flux"] = sensible_heat_flux.copy().rename("latent_heat_flux")
 
-    # Initialise latent heat flux with non-zero mimimum values and write in output
+    # Initialise latent heat flux with non-zero minimum values and write in output
     ground_heat_flux = DataArray(
         np.full_like(layer_heights, np.nan),
         dims=layer_heights.dims,
@@ -536,7 +536,7 @@ def update_humidity_vpd(
     specific_humidity: NDArray[np.float32],
     layer_thickness: NDArray[np.float32],
     atmospheric_pressure: NDArray[np.float32],
-    water_to_air_mass_ratio: float,
+    molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
 ) -> dict[str, NDArray[np.float32]]:
@@ -553,7 +553,8 @@ def update_humidity_vpd(
         specific_humidity: specific humidity, [kg kg-1]
         layer_thickness: Layer thickness, [m]
         atmospheric_pressure: Atmospheric pressure, [kPa]
-        water_to_air_mass_ratio: Ratio of water vapour to dry air mass
+        molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
+            air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         cell_area: Grid cell area, [m2]
 
@@ -585,7 +586,8 @@ def update_humidity_vpd(
     # Compute new vapor pressure [kPa]
     # Vapor pressure is limited by the saturated vapor pressure
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
-        water_to_air_mass_ratio * dry_air_factor + specific_humidity_updated
+        molecular_weight_ratio_water_to_dry_air * dry_air_factor
+        + specific_humidity_updated
     )
 
     # Ensure vapor pressure doesn't exceed the saturated vapor pressure

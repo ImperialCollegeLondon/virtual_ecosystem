@@ -7,12 +7,14 @@ To Do:
 
 """  # noqa: D205, D415
 
+from collections.abc import Sequence
 from math import ceil, exp, log
 
 import numpy as np
 
 from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
 from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
+from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
 def damuths_law(mass: float, terms: tuple) -> int:
@@ -47,7 +49,7 @@ def metabolic_rate(
     This follows the Madingley implementation, assuming a power-law relationship with
     mass and an exponential relationship with temperature.
 
-    TODO: Implement activity windows to properly paramterize sigma.
+    TODO: Implement activity windows to properly parameterize sigma.
     TODO: Move constants to constants file.
 
     Args:
@@ -95,42 +97,60 @@ def metabolic_rate(
 
 
 def prey_group_selection(
-    diet_type: DietType, mass: float, terms: tuple
+    diet_type: DietType,
+    mass: float,
+    terms: tuple,
+    functional_groups: Sequence[FunctionalGroup],
 ) -> dict[str, tuple[float, float]]:
-    """The function to set the type selection and mass scaling of predators.
-
-    Currently, this function is in a toy form. It exists so the forage_community
-    structure can be built properly. In the parameterization stage of development this
-    will be expanded into something realistic. I suspect some/much of the content will
-    be shifted into functional_group definitions.
-
-    TODO: Implement real pred-prey mass ratio.
-    TODO: Remove if unused.
+    """Selects prey groups available to a consumer based on diet and available groups.
 
     Args:
-        diet_type: A value from the DietType enumeration.
-        mass: The body-mass [kg] of an AnimalCohort
-        terms: The tuple of predator-prey scaling terms used.
+        diet_type: Consumer's DietType flag(s).
+        mass: Mass of the consumer (currently unused).
+        terms: Placeholder for mass-scaling logic.
+        functional_groups: All functional groups in the model.
 
     Returns:
-        The dictionary of functional group names and mass ranges that the predator
-        can prey upon.
-
+        A dictionary mapping prey/resource group names to mass ranges.
     """
+    from virtual_ecosystem.models.animal.animal_traits import TaxaType
 
-    if diet_type == DietType.HERBIVORE:
-        return {"plants": (0.0, 0.0)}
-    elif diet_type == DietType.CARNIVORE:
-        return {
-            "herbivorous_mammal": (0.1, 1000.0),
-            "carnivorous_mammal": (0.1, 1000.0),
-            "herbivorous_bird": (0.1, 1000.0),
-            "carnivorous_bird": (0.1, 1000.0),
-            "herbivorous_insect": (0.1, 1000.0),
-            "carnivorous_insect": (0.1, 1000.0),
-        }
-    else:
-        raise ValueError("Invalid diet type: {diet_type}")
+    result: dict[str, tuple[float, float]] = {}
+
+    # Living animal prey filtering
+    for fg in functional_groups:
+        # Vertebrate prey (birds, mammals, amphibians)
+        if diet_type & (
+            DietType.VERTEBRATES | DietType.BLOOD | DietType.FISH
+        ) and fg.taxa in {TaxaType.BIRD, TaxaType.MAMMAL, TaxaType.AMPHIBIAN}:
+            result[fg.name] = (0.0001, 1000.0)
+
+        # Invertebrate prey
+        elif diet_type & DietType.INVERTEBRATES and fg.taxa == TaxaType.INVERTEBRATE:
+            result[fg.name] = (0.0001, 1000.0)
+
+    # Plant-based resources
+    if diet_type & (
+        DietType.FOLIAGE
+        | DietType.FLOWERS
+        | DietType.FRUIT
+        | DietType.SEEDS
+        | DietType.NECTAR
+    ):
+        result["plants"] = (0.0, 0.0)
+
+    # Scavenging resources
+    if diet_type & DietType.CARCASSES:
+        result["carcasses"] = (0.0, 0.0)
+    if diet_type & DietType.WASTE:
+        result["excrement"] = (0.0, 0.0)
+    if diet_type & DietType.DETRITUS:
+        result["litter"] = (0.0, 0.0)
+
+    if not result:
+        raise ValueError(f"No prey groups matched for diet type: {diet_type}")
+
+    return result
 
 
 def background_mortality(u_bg: float) -> float:

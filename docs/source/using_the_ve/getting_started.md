@@ -1,4 +1,16 @@
 ---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,18 +21,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # Getting started
@@ -31,7 +31,7 @@ For most users the best way to get started with the Virtual Ecosystem package is
 first [install Python](https://www.python.org/downloads/). To use the Virtual Ecosystem
 you will need Python 3.10, 3.11, or 3.12.
 
-Afer installing Python, open a terminal window and use the following command to install
+After installing Python, open a terminal window and use the following command to install
 the Virtual Ecosystem using the `pip` package installer.
 
 ```sh
@@ -103,7 +103,7 @@ ve_run C:\path\ve_example\config `
 
 The [Virtual Ecosystem in use](virtual_ecosystem_in_use.md) page provides a walkthrough
 of this process, showing the typical outputs of the model run process, and also provides
-some simple plots of model inputs and ouputs.
+some simple plots of model inputs and outputs.
 
 Once you want to start digging into the structure of the model and inputs, the [example
 data](./example_data.md) pages provides a detailed description of the  contents of the

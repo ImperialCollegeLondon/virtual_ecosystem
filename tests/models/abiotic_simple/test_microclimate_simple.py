@@ -5,6 +5,9 @@ import xarray as xr
 from pyrealm.constants import CoreConst as PyrealmConst
 from xarray import DataArray
 
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+
 
 def test_log_interpolation(dummy_climate_data, fixture_core_components):
     """Test interpolation for temperature and humidity non-negative."""
@@ -163,7 +166,9 @@ def test_run_simple_microclimate(dummy_climate_data, fixture_core_components):
         data=data,
         layer_structure=lyr_strct,
         time_index=0,
-        constants=AbioticSimpleConsts(),
+        simple_constants=AbioticSimpleConsts(),
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
         bounds=AbioticSimpleBounds(),
     )
 
@@ -208,7 +213,9 @@ def test_run_microclimate_varying_canopy(
         data=data,
         layer_structure=lyr_strct,
         time_index=0,
-        constants=AbioticSimpleConsts(),
+        simple_constants=AbioticSimpleConsts(),
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
         bounds=AbioticSimpleBounds(),
     )
 

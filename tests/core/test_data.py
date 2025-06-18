@@ -740,7 +740,7 @@ def test_on_core_axis(
 def test_save_to_netcdf(
     shared_datadir,
     caplog,
-    dummy_carbon_data,
+    dummy_litter_data,
     folder,
     file_name,
     save_specific,
@@ -756,22 +756,22 @@ def test_save_to_netcdf(
 
     with raises:
         if save_specific:
-            dummy_carbon_data.save_to_netcdf(
-                out_path, variables_to_save=["soil_c_pool_lmwc"]
+            dummy_litter_data.save_to_netcdf(
+                out_path, variables_to_save=["litter_pool_woody"]
             )
         else:
-            dummy_carbon_data.save_to_netcdf(out_path)
+            dummy_litter_data.save_to_netcdf(out_path)
 
         # Load in netcdf data to check the contents
         saved_data = xr.open_dataset(out_path)
 
         # Then check that expected keys are in it
         if save_specific:
-            assert "soil_c_pool_lmwc" in saved_data
-            assert "soil_c_pool_maom" not in saved_data
+            assert "litter_pool_woody" in saved_data
+            assert "litter_pool_above_metabolic" not in saved_data
         else:
-            assert "soil_c_pool_lmwc" in saved_data
-            assert "soil_c_pool_maom" in saved_data
+            assert "litter_pool_woody" in saved_data
+            assert "litter_pool_above_metabolic" in saved_data
 
         # Close the dataset (otherwise windows has a problem)
         saved_data.close()
@@ -787,7 +787,7 @@ def test_save_to_netcdf(
             "initial.nc",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (INFO, "Replacing data array for 'litter_pool_woody'"),
                 (
                     CRITICAL,
                     "The user specified output directory (bad_folder) doesn't exist!",
@@ -799,7 +799,7 @@ def test_save_to_netcdf(
             "initial.nc",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (INFO, "Replacing data array for 'litter_pool_woody'"),
                 (
                     CRITICAL,
                     "The user specified output folder (pyproject.toml) isn't a "
@@ -812,7 +812,7 @@ def test_save_to_netcdf(
             "already_exists.nc",
             pytest.raises(ConfigurationError),
             (
-                (INFO, "Replacing data array for 'soil_c_pool_lmwc'"),
+                (INFO, "Replacing data array for 'litter_pool_woody'"),
                 (CRITICAL, "A file in the user specified output folder ("),
             ),
         ),
@@ -825,7 +825,7 @@ def test_save_to_netcdf(
     ],
 )
 def test_save_timeslice_to_netcdf(
-    caplog, shared_datadir, dummy_carbon_data, folder, file_name, raises, expected_log
+    caplog, shared_datadir, dummy_litter_data, folder, file_name, raises, expected_log
 ):
     """Test that data object can append to an existing NetCDF file."""
 
@@ -836,21 +836,21 @@ def test_save_timeslice_to_netcdf(
 
     with raises:
         # Change data to check that appending works
-        dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+        dummy_litter_data["litter_pool_woody"] = DataArray(
             [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
         )
-        dummy_carbon_data["soil_temperature"][12][0] = 15.0
+        dummy_litter_data["soil_temperature"][12][0] = 15.0
         # Append data to netcdf file
-        dummy_carbon_data.save_timeslice_to_netcdf(
+        dummy_litter_data.save_timeslice_to_netcdf(
             out_path,
-            variables_to_save=["soil_c_pool_lmwc", "soil_temperature"],
+            variables_to_save=["litter_pool_woody", "soil_temperature"],
             time_index=1,
         )
 
         # Load file, and then check that contents meet expectation
         saved_data = xr.open_dataset(out_path)
         xr.testing.assert_allclose(
-            saved_data["soil_c_pool_lmwc"],
+            saved_data["litter_pool_woody"],
             DataArray(
                 [[0.1, 0.05, 0.2, 0.01]],
                 dims=["time_index", "cell_id"],
@@ -863,8 +863,8 @@ def test_save_timeslice_to_netcdf(
                 [
                     [
                         [np.nan, np.nan, np.nan, np.nan],
-                        [15.0, 37.5, 40.0, 25.0],
-                        [22.5, 22.5, 22.5, 22.5],
+                        [15.0, 20, 20, 20],
+                        [19.5, 18.7, 18.7, 17.6],
                     ],
                 ],
                 dims=["time_index", "layers", "cell_id"],
@@ -879,7 +879,7 @@ def test_save_timeslice_to_netcdf(
 
         # Check that only expected variables were added
         assert (
-            set(saved_data.keys()) - {"soil_c_pool_lmwc", "soil_temperature"} == set()
+            set(saved_data.keys()) - {"litter_pool_woody", "soil_temperature"} == set()
         )
         # Finally, close the dataset
         saved_data.close()
@@ -932,13 +932,13 @@ def test_Data_add_from_dict(fixture_core_components, dummy_climate_data):
 
 
 @pytest.mark.parametrize("time_index", [0, 1])
-def test_output_current_state(mocker, dummy_carbon_data, time_index):
+def test_output_current_state(mocker, dummy_litter_data, time_index):
     """Test that function to output the current data state works as intended."""
 
-    # Set up the registry with the soil model
+    # Set up the registry with the litter model
     from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
 
-    register_module("virtual_ecosystem.models.soil")
+    register_module("virtual_ecosystem.models.litter")
 
     data_options = {"out_folder_continuous": "."}
 
@@ -946,7 +946,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
-    models_cfd = {"soil": MODULE_REGISTRY["soil"].model}
+    models_cfd = {"litter": MODULE_REGISTRY["litter"].model}
 
     # Only variables in the data object that are updated by a model should be output
     all_variables = [
@@ -956,7 +956,7 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     variables_to_save = [item for sublist in all_variables for item in sublist]
 
     # Then call the top level function
-    outpath = dummy_carbon_data.output_current_state(
+    outpath = dummy_litter_data.output_current_state(
         variables_to_save, data_options, time_index
     )
 
@@ -966,64 +966,59 @@ def test_output_current_state(mocker, dummy_carbon_data, time_index):
     assert mock_save.call_args == mocker.call(
         Path(f"./continuous_state{time_index:05}.nc"),
         [
-            "soil_c_pool_maom",
-            "soil_c_pool_lmwc",
-            "soil_c_pool_bacteria",
-            "soil_c_pool_fungi",
-            "soil_c_pool_pom",
-            "soil_c_pool_necromass",
-            "soil_enzyme_pom_bacteria",
-            "soil_enzyme_maom_bacteria",
-            "soil_enzyme_pom_fungi",
-            "soil_enzyme_maom_fungi",
-            "soil_n_pool_don",
-            "soil_n_pool_particulate",
-            "soil_n_pool_necromass",
-            "soil_n_pool_maom",
-            "soil_n_pool_ammonium",
-            "soil_n_pool_nitrate",
-            "soil_p_pool_dop",
-            "soil_p_pool_particulate",
-            "soil_p_pool_necromass",
-            "soil_p_pool_maom",
-            "soil_p_pool_primary",
-            "soil_p_pool_secondary",
-            "soil_p_pool_labile",
-            "dissolved_nitrate",
-            "dissolved_ammonium",
-            "dissolved_phosphorus",
+            "litter_pool_above_metabolic",
+            "litter_pool_above_structural",
+            "litter_pool_woody",
+            "litter_pool_below_metabolic",
+            "litter_pool_below_structural",
+            "lignin_above_structural",
+            "lignin_woody",
+            "lignin_below_structural",
+            "c_n_ratio_above_metabolic",
+            "c_n_ratio_above_structural",
+            "c_n_ratio_woody",
+            "c_n_ratio_below_metabolic",
+            "c_n_ratio_below_structural",
+            "c_p_ratio_above_metabolic",
+            "c_p_ratio_above_structural",
+            "c_p_ratio_woody",
+            "c_p_ratio_below_metabolic",
+            "c_p_ratio_below_structural",
+            "litter_C_mineralisation_rate",
+            "litter_N_mineralisation_rate",
+            "litter_P_mineralisation_rate",
         ],
         time_index,
     )
     assert outpath == Path(f"./continuous_state{time_index:05}.nc")
 
 
-def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
+def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
     """Test that function to merge the continuous data files works as intended."""
     from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
-    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    variables_to_save = ["litter_pool_woody", "soil_temperature"]
     data_options = {
         "out_folder_continuous": str(shared_datadir),
         "out_continuous_file_name": "all_continuous_data.nc",
     }
 
     # Save first data file
-    dummy_carbon_data.save_timeslice_to_netcdf(
+    dummy_litter_data.save_timeslice_to_netcdf(
         shared_datadir / "continuous_state1.nc",
         variables_to_save,
         1,
     )
 
     # Alter data so that files differ (slightly)
-    dummy_carbon_data["soil_c_pool_lmwc"] = DataArray(
+    dummy_litter_data["litter_pool_woody"] = DataArray(
         [0.1, 0.05, 0.2, 0.01], dims=["cell_id"], coords={"cell_id": [0, 1, 2, 3]}
     )
-    dummy_carbon_data["soil_temperature"][12][0] = 15.0
+    dummy_litter_data["soil_temperature"][12][0] = 15.0
 
     # Save second data file
-    dummy_carbon_data.save_timeslice_to_netcdf(
+    dummy_litter_data.save_timeslice_to_netcdf(
         shared_datadir / "continuous_state2.nc",
         variables_to_save,
         2,
@@ -1046,9 +1041,9 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
 
     # Check that data file is as expected
     testing.assert_allclose(
-        full_data["soil_c_pool_lmwc"],
+        full_data["litter_pool_woody"],
         DataArray(
-            [[0.05, 0.02, 0.1, 0.005], [0.1, 0.05, 0.2, 0.01]],
+            [[5.1773833, 12.185701, 7.673456, 7.462192], [0.1, 0.05, 0.2, 0.01]],
             dims=["time_index", "cell_id"],
             coords={"cell_id": [0, 1, 2, 3], "time_index": [1, 2]},
         ),
@@ -1059,13 +1054,13 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
             [
                 [
                     [np.nan, np.nan, np.nan, np.nan],
-                    [35.0, 37.5, 40.0, 25.0],
-                    [22.5, 22.5, 22.5, 22.5],
+                    [20, 20, 20, 20],
+                    [19.5, 18.7, 18.7, 17.6],
                 ],
                 [
                     [np.nan, np.nan, np.nan, np.nan],
-                    [15.0, 37.5, 40.0, 25.0],
-                    [22.5, 22.5, 22.5, 22.5],
+                    [15.0, 20, 20, 20],
+                    [19.5, 18.7, 18.7, 17.6],
                 ],
             ],
             dims=["time_index", "layers", "cell_id"],
@@ -1084,20 +1079,20 @@ def test_merge_continuous_data_files(shared_datadir, dummy_carbon_data):
 
 
 def test_merge_continuous_file_already_exists(
-    shared_datadir, caplog, dummy_carbon_data
+    shared_datadir, caplog, dummy_litter_data
 ):
     """Test that the merge continuous function fails if file name already used."""
     from virtual_ecosystem.core.data import merge_continuous_data_files
 
     # Simple and slightly more complex data for the file
-    variables_to_save = ["soil_c_pool_lmwc", "soil_temperature"]
+    variables_to_save = ["litter_pool_woody", "soil_temperature"]
     data_options = {
         "out_folder_continuous": str(shared_datadir),
         "out_continuous_file_name": "already_exists.nc",
     }
 
     # Save first data file
-    dummy_carbon_data.save_timeslice_to_netcdf(
+    dummy_litter_data.save_timeslice_to_netcdf(
         shared_datadir / "continuous_state1.nc",
         variables_to_save,
         1,

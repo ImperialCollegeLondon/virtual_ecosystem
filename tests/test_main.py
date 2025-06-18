@@ -15,38 +15,30 @@ from virtual_ecosystem.main import ve_run
 from .conftest import log_check
 
 INITIALISATION_LOG = [
-    (INFO, "Initialising models: soil"),
-    (INFO, "Initialised soil.SoilConsts from config"),
+    (INFO, "Initialising models: litter"),
+    (INFO, "Initialised litter.LitterConsts from config"),
     (
         INFO,
-        "Information required to initialise the soil model successfully extracted.",
+        "Information required to initialise the litter model successfully extracted.",
     ),
-    (DEBUG, "soil model: required var 'soil_c_pool_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_lmwc' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_fungi' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_pom' checked"),
-    (DEBUG, "soil model: required var 'soil_c_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom_bacteria' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_pom_fungi' checked"),
-    (DEBUG, "soil model: required var 'soil_enzyme_maom_fungi' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_don' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_particulate' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_ammonium' checked"),
-    (DEBUG, "soil model: required var 'soil_n_pool_nitrate' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_dop' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_particulate' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_necromass' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_maom' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_primary' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_secondary' checked"),
-    (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
-    (DEBUG, "soil model: required var 'pH' checked"),
-    (DEBUG, "soil model: required var 'bulk_density' checked"),
-    (DEBUG, "soil model: required var 'clay_fraction' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_above_metabolic' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_above_structural' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_woody' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_below_metabolic' checked"),
+    (DEBUG, "litter model: required var 'litter_pool_below_structural' checked"),
+    (DEBUG, "litter model: required var 'lignin_above_structural' checked"),
+    (DEBUG, "litter model: required var 'lignin_woody' checked"),
+    (DEBUG, "litter model: required var 'lignin_below_structural' checked"),
+    (DEBUG, "litter model: required var 'c_n_ratio_above_metabolic' checked"),
+    (DEBUG, "litter model: required var 'c_n_ratio_above_structural' checked"),
+    (DEBUG, "litter model: required var 'c_n_ratio_woody' checked"),
+    (DEBUG, "litter model: required var 'c_n_ratio_below_metabolic' checked"),
+    (DEBUG, "litter model: required var 'c_n_ratio_below_structural' checked"),
+    (DEBUG, "litter model: required var 'c_p_ratio_above_metabolic' checked"),
+    (DEBUG, "litter model: required var 'c_p_ratio_above_structural' checked"),
+    (DEBUG, "litter model: required var 'c_p_ratio_woody' checked"),
+    (DEBUG, "litter model: required var 'c_p_ratio_below_metabolic' checked"),
+    (DEBUG, "litter model: required var 'c_p_ratio_below_structural' checked"),
 ]
 
 
@@ -54,21 +46,18 @@ INITIALISATION_LOG = [
     "cfg_strings,output,raises,expected_log_entries",
     [
         pytest.param(
-            '[core.timing]\nupdate_interval = "7 days"\n[soil]\n',
-            "SoilModel(update_interval=604800 seconds)",
+            '[core.timing]\nupdate_interval = "7 days"\n[litter]\n',
+            "LitterModel(update_interval=604800 seconds)",
             does_not_raise(),
             tuple(
                 [
                     *INITIALISATION_LOG,
-                    (INFO, "Adding data array for 'dissolved_nitrate'"),
-                    (INFO, "Adding data array for 'dissolved_ammonium'"),
-                    (INFO, "Adding data array for 'dissolved_phosphorus'"),
                 ],
             ),
             id="valid config",
         ),
         pytest.param(
-            '[core.timing]\nupdate_interval = "1 minute"\n[soil]\n',
+            '[core.timing]\nupdate_interval = "1 minute"\n[litter]\n',
             None,
             pytest.raises(InitialisationError),
             tuple(
@@ -76,16 +65,16 @@ INITIALISATION_LOG = [
                     *INITIALISATION_LOG,
                     (
                         ERROR,
-                        "The update interval is faster than the soil "
+                        "The update interval is faster than the litter "
                         "lower bound of 30 minute.",
                     ),
-                    (CRITICAL, "Configuration failed for models: soil"),
+                    (CRITICAL, "Configuration failed for models: litter"),
                 ],
             ),
             id="update interval too short",
         ),
         pytest.param(
-            '[core.timing]\nupdate_interval = "1 year"\n[soil]\n',
+            '[core.timing]\nupdate_interval = "1 year"\n[litter]\n',
             None,
             pytest.raises(InitialisationError),
             tuple(
@@ -93,10 +82,10 @@ INITIALISATION_LOG = [
                     *INITIALISATION_LOG,
                     (
                         ERROR,
-                        "The update interval is slower than the soil "
+                        "The update interval is slower than the litter "
                         "upper bound of 3 month.",
                     ),
-                    (CRITICAL, "Configuration failed for models: soil"),
+                    (CRITICAL, "Configuration failed for models: litter"),
                 ],
             ),
             id="update interval too long",
@@ -105,8 +94,7 @@ INITIALISATION_LOG = [
 )
 def test_initialise_models(
     caplog,
-    dummy_carbon_data,
-    microbial_groups_cfg,
+    dummy_litter_data,
     cfg_strings,
     output,
     raises,
@@ -120,14 +108,14 @@ def test_initialise_models(
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=[cfg_strings, microbial_groups_cfg])
+    config = Config(cfg_strings=cfg_strings)
     core_components = CoreComponents(config)
     caplog.clear()
 
     with raises:
         models = initialise_models(
             config=config,
-            data=dummy_carbon_data,
+            data=dummy_litter_data,
             core_components=core_components,
             models=config.model_classes,
         )
@@ -135,7 +123,7 @@ def test_initialise_models(
         if output is None:
             assert models == [None]
         else:
-            assert repr(models["soil"]) == output
+            assert repr(models["litter"]) == output
 
     log_check(caplog, expected_log_entries)
 

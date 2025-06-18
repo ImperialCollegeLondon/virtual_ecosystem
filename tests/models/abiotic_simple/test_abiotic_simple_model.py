@@ -17,6 +17,7 @@ MODEL_VAR_CHECK_LOG = [
     (DEBUG, "abiotic_simple model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic_simple model: required var 'relative_humidity_ref' checked"),
     (INFO, "Replacing data array for 'soil_temperature'"),
+    (INFO, "Replacing data array for 'net_radiation'"),
     (INFO, "Replacing data array for 'vapour_pressure_deficit_ref'"),
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
 ]
@@ -257,3 +258,12 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         [20.0, 20.0, 20.0, 20.0],
     ]
     xr.testing.assert_allclose(model.data["soil_temperature"], exp_soil_temp)
+
+    exp_netrad = lyr_strct.from_template()
+    exp_netrad[lyr_strct.index_flux_layers] = [
+        [74.954871, 74.954709, 74.954548, 74.954548],
+        [74.95783, 74.956705, np.nan, np.nan],
+        [74.96255, np.nan, np.nan, np.nan],
+        [77.490086, 77.488875, 77.487557, 77.487557],
+    ]
+    xr.testing.assert_allclose(model.data["net_radiation"], exp_netrad)

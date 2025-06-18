@@ -70,7 +70,7 @@ class CoreConsts(ConstantsDataclass):
     :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this value.
     """
 
-    soil_moisture_capacity: float = 0.9
+    soil_moisture_capacity: float = 0.5
     """Soil moisture capacity, unitless.
 
     The soil moisture capacity, also known as field capacity or water holding capacity,

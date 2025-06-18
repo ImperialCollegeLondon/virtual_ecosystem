@@ -17,6 +17,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     ReproductiveEnvironment,
     ReproductiveType,
     TaxaType,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 
@@ -47,6 +48,7 @@ class FunctionalGroup:
         offspring_functional_group: str,
         excretion_type: str,
         migration_type: str,
+        vertical_occupancy: str,
         birth_mass: float,
         adult_mass: float,
         constants: AnimalConsts = AnimalConsts(),
@@ -61,7 +63,7 @@ class FunctionalGroup:
         """The name of the functional group."""
         self.taxa = TaxaType(taxa)
         """The taxa of the functional group."""
-        self.diet = DietType(diet)
+        self.diet = DietType.parse(diet)
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""
@@ -82,12 +84,16 @@ class FunctionalGroup:
         """The excretion type of the functional group."""
         self.migration_type = MigrationType(migration_type)
         """The migration type of the functional group."""
+        self.vertical_occupancy = VerticalOccupancy.parse(vertical_occupancy)
+        """The vertical occupancy type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
         self.constants = constants
         """Animal constants."""
+        self.broad_diet: DietType = self.diet.coarse_category()
+        """The broad trophic category, herbivore, carnivore, omnivore."""
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
         """The proportions of carbon/nitrogen/phosphorus in the functional group,
             example {"carbon": 0.8, "nitrogen": 0.15, "phosphorus": 0.05}."""
@@ -95,11 +101,17 @@ class FunctionalGroup:
             self.metabolic_type
         ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][self.diet]
+        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][
+            self.broad_diet
+        ]
         """The coefficient and exponent of damuth's law for population density."""
-        self.conversion_efficiency = self.constants.conversion_efficiency[self.diet]
+        self.conversion_efficiency = self.constants.conversion_efficiency[
+            self.broad_diet
+        ]
         """The conversion efficiency of the functional group based on diet."""
-        self.mechanical_efficiency = self.constants.mechanical_efficiency[self.diet]
+        self.mechanical_efficiency = self.constants.mechanical_efficiency[
+            self.broad_diet
+        ]
         """The mechanical transfer efficiency of a functional group based on diet."""
         self.prey_scaling = self.constants.prey_mass_scaling_terms[self.metabolic_type][
             self.taxa
@@ -151,6 +163,7 @@ def import_functional_groups(
             row.offspring_functional_group,
             row.excretion_type,
             row.migration_type,
+            row.vertical_occupancy,
             row.birth_mass,
             row.adult_mass,
             constants=constants,

@@ -1,6 +1,99 @@
 """Collection of fixtures to assist the testing of the soil model."""
 
+import numpy as np
 import pytest
+
+
+@pytest.fixture
+def dummy_carbon_data(fixture_core_components):
+    """Creates a dummy carbon data object for use in tests."""
+    from xarray import DataArray
+
+    from virtual_ecosystem.core.data import Data
+
+    # Setup the data object with four cells.
+    data = Data(fixture_core_components.grid)
+
+    # The required data is now added. This includes the five carbon pools: mineral
+    # associated organic matter, low molecular weight carbon, microbial biomass and
+    # necromass carbon and particulate organic matter. It also includes various factors
+    # of the physical environment: pH, bulk density, soil moisture, soil temperature,
+    # percentage clay in soil.
+    data_values = {
+        "soil_c_pool_lmwc": [0.05, 0.02, 0.1, 0.005],
+        "soil_c_pool_maom": [2.5, 1.7, 4.5, 0.5],
+        "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
+        "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
+        "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
+        "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
+        "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
+        "soil_c_pool_necromass": [0.058, 0.015, 0.093, 0.105],
+        "soil_enzyme_pom_bacteria": [0.022679, 0.009576, 0.050051, 0.003010],
+        "soil_enzyme_maom_bacteria": [0.0356, 0.0117, 0.02509, 0.00456],
+        "soil_enzyme_pom_fungi": [0.02607, 0.00575, 0.00646, 0.00441],
+        "soil_enzyme_maom_fungi": [0.008669, 0.006826, 0.003807, 0.002163],
+        "soil_n_pool_don": [0.000571428, 0.00142857, 0.00014285, 0.002857142],
+        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
+        "soil_n_pool_necromass": [0.00288462, 0.01788462, 0.02019231, 0.01115385],
+        "soil_n_pool_maom": [0.86538462, 0.48076923, 0.32692308, 0.09615385],
+        "soil_n_pool_ammonium": [6.9619638e-5, 0.0049914624, 0.000229067, 0.0051955339],
+        "soil_n_pool_nitrate": [0.0024219014, 0.0044442996, 0.0003428348, 0.0131405173],
+        "soil_p_pool_dop": [5.714e-6, 2.2857120e-5, 5.7142800e-5, 1.1428568e-4],
+        "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
+        "soil_p_pool_necromass": [0.00080769, 0.00011538, 0.00071538, 0.00044615],
+        "soil_p_pool_maom": [0.01307692, 0.03461538, 0.01923077, 0.00384615],
+        "soil_p_pool_primary": [0.0019594, 0.00535662, 0.00277434, 0.00059892],
+        "soil_p_pool_secondary": [0.00705668, 0.03816896, 0.01152589, 0.00733107],
+        "soil_p_pool_labile": [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
+        "pH": [3.0, 7.5, 9.0, 5.7],
+        "bulk_density": [1350.0, 1800.0, 1000.0, 1500.0],
+        "clay_fraction": [0.8, 0.3, 0.1, 0.9],
+        "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
+        "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
+        "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
+        "vertical_flow": [0.1, 0.5, 2.5, 1.59],
+        "plant_symbiote_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
+        "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
+        "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
+        "plant_nitrate_uptake": [7.5e-4, 1.0e-3, 2.5e-4, 1.0e-4],
+        "plant_phosphorus_uptake": [3.0e-6, 5e-5, 2.0e-6, 1.0e-6],
+        "plant_n_uptake_arbuscular": [2.07e-5, 3.12e-5, 3.57e-6, 6.98e-5],
+        "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
+        "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
+        "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
+    }
+
+    for var_name, var_values in data_values.items():
+        data[var_name] = DataArray(var_values, dims=["cell_id"])
+
+    # The layer dependent data has to be handled separately - at present all of these
+    # are defined only for the topsoil layer
+    lyr_str = fixture_core_components.layer_structure
+
+    data["soil_moisture"] = lyr_str.from_template()
+    data["soil_moisture"][lyr_str.index_all_soil] = np.array(
+        [
+            [232.61550125, 196.88733175, 126.065797, 75.63195175],
+            [66.248474, 194.91137, 121.29988, 52.04422],
+        ]
+    )
+
+    data["matric_potential"] = lyr_str.from_template()
+    data["matric_potential"][lyr_str.index_all_soil] = np.array(
+        [[-3.0, -10.0, -250.0, -10000.0], [-2.8625, -8.978, -137.8, -8553.25]]
+    )
+
+    data["soil_temperature"] = lyr_str.from_template()
+    data["soil_temperature"][lyr_str.index_all_soil] = np.array(
+        [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
+    )
+
+    data["air_temperature"] = lyr_str.from_template()
+    data["air_temperature"][lyr_str.index_filled_atmosphere] = np.array(
+        [30.0, 29.844995, 28.87117, 27.206405, 16.145945]
+    )[:, None]
+
+    return data
 
 
 @pytest.fixture
@@ -11,6 +104,7 @@ def fixture_soil_config(microbial_groups_cfg):
     return Config(
         cfg_strings=[
             "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            "[hydrology]",
             microbial_groups_cfg,
         ]
     )
@@ -47,18 +141,55 @@ def fixture_soil_model(
 @pytest.fixture
 def environmental_factors(dummy_carbon_data, fixture_core_components):
     """Environmental factors based on dummy carbon data."""
+    from virtual_ecosystem.models.litter.env_factors import (
+        average_water_potential_over_microbially_active_layers,
+    )
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_environmental_effect_factors,
     )
 
     return calculate_environmental_effect_factors(
-        soil_water_potential=dummy_carbon_data["matric_potential"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
+        soil_water_potential=average_water_potential_over_microbially_active_layers(
+            water_potentials=dummy_carbon_data["matric_potential"],
+            layer_structure=fixture_core_components.layer_structure,
+        ),
         pH=dummy_carbon_data["pH"].to_numpy(),
         clay_fraction=dummy_carbon_data["clay_fraction"].to_numpy(),
         constants=SoilConsts,
+    )
+
+
+@pytest.fixture
+def carbon_supply_from_plants(dummy_carbon_data):
+    """Carbon supply from plants split between the different symbiotic groups."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        calculate_symbiotic_carbon_supply,
+    )
+
+    return calculate_symbiotic_carbon_supply(
+        total_plant_supply=dummy_carbon_data["plant_symbiote_carbon_supply"]
+        / CoreConsts.max_depth_of_microbial_activity,
+        nitrogen_fixer_fraction=SoilConsts.nitrogen_fixer_supply_fraction,
+        ectomycorrhiza_fraction=SoilConsts.ectomycorrhiza_supply_fraction,
+    )
+
+
+@pytest.fixture
+def averaged_soil_temp(dummy_carbon_data, fixture_core_components):
+    """Soil temperature averaged over the microbially active layers."""
+    from virtual_ecosystem.models.litter.env_factors import (
+        average_temperature_over_microbially_active_layers,
+    )
+
+    return average_temperature_over_microbially_active_layers(
+        soil_temperatures=dummy_carbon_data["soil_temperature"],
+        surface_temperature=dummy_carbon_data["air_temperature"][
+            fixture_core_components.layer_structure.index_surface_scalar
+        ].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
     )
 
 
@@ -95,24 +226,6 @@ def enzyme_mediated_rates(
         ],
         env_factors=environmental_factors,
         enzyme_classes=enzyme_classes,
-    )
-
-
-@pytest.fixture
-def microbial_changes(
-    dummy_carbon_data, fixture_core_components, soil_pool_data, environmental_factors
-):
-    """Set of microbial changes based on dummy carbon data."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
-
-    return calculate_microbial_changes(
-        pools=soil_pool_data,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        env_factors=environmental_factors,
-        constants=SoilConsts,
     )
 
 
@@ -201,38 +314,27 @@ def enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):
 
 
 @pytest.fixture
-def biomass_losses(dummy_carbon_data, functional_groups, fixture_core_components):
+def biomass_losses(soil_pool_data, functional_groups, averaged_soil_temp):
     """Rates of biomass loss from each microbial pool."""
     from virtual_ecosystem.models.soil.pools import (
-        calculate_maintenance_biomass_synthesis,
+        calculate_biomass_losses,
     )
 
-    bacterial_biomass_loss = calculate_maintenance_biomass_synthesis(
-        microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        microbial_group=functional_groups["bacteria"],
+    return calculate_biomass_losses(
+        pools=soil_pool_data,
+        microbial_groups=functional_groups,
+        soil_temp=averaged_soil_temp,
     )
-
-    fungal_biomass_loss = calculate_maintenance_biomass_synthesis(
-        microbe_pool_size=dummy_carbon_data["soil_c_pool_fungi"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        microbial_group=functional_groups["fungi"],
-    )
-
-    return {"bacteria": bacterial_biomass_loss, "fungi": fungal_biomass_loss}
 
 
 @pytest.fixture
 def growth_rates(
+    dummy_carbon_data,
     environmental_factors,
     functional_groups,
     soil_pool_data,
-    dummy_carbon_data,
-    fixture_core_components,
+    averaged_soil_temp,
+    carbon_supply_from_plants,
 ):
     """Fixture to store growth rates of all the microbial groups."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
@@ -246,32 +348,73 @@ def growth_rates(
         soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
         microbial_pool_size=soil_pool_data.soil_c_pool_bacteria,
+        external_carbon_supply=None,
+        nitrogen_exchange=None,
+        phosphorus_exchange=None,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         constants=SoilConsts,
         functional_group=functional_groups["bacteria"],
     )
-    fungal_growth, _ = calculate_nutrient_uptake_rates(
+    saprotrophic_fungal_growth, _ = calculate_nutrient_uptake_rates(
         soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
         soil_n_pool_don=soil_pool_data.soil_n_pool_don,
         soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
         soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
         soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
         soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
-        microbial_pool_size=soil_pool_data.soil_c_pool_fungi,
+        microbial_pool_size=soil_pool_data.soil_c_pool_saprotrophic_fungi,
+        external_carbon_supply=None,
+        nitrogen_exchange=None,
+        phosphorus_exchange=None,
         water_factor=environmental_factors.water,
         pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         constants=SoilConsts,
-        functional_group=functional_groups["fungi"],
+        functional_group=functional_groups["saprotrophic_fungi"],
+    )
+    arbuscular_mycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_arbuscular_mycorrhiza,
+        external_carbon_supply=carbon_supply_from_plants.arbuscular_mycorrhiza,
+        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_arbuscular"],
+        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_arbuscular"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=averaged_soil_temp,
+        constants=SoilConsts,
+        functional_group=functional_groups["arbuscular_mycorrhiza"],
+    )
+    ectomycorrhizal_growth, _ = calculate_nutrient_uptake_rates(
+        soil_c_pool_lmwc=soil_pool_data.soil_c_pool_lmwc,
+        soil_n_pool_don=soil_pool_data.soil_n_pool_don,
+        soil_n_pool_ammonium=soil_pool_data.soil_n_pool_ammonium,
+        soil_n_pool_nitrate=soil_pool_data.soil_n_pool_nitrate,
+        soil_p_pool_dop=soil_pool_data.soil_p_pool_dop,
+        soil_p_pool_labile=soil_pool_data.soil_p_pool_labile,
+        microbial_pool_size=soil_pool_data.soil_c_pool_ectomycorrhiza,
+        external_carbon_supply=carbon_supply_from_plants.ectomycorrhiza,
+        nitrogen_exchange=dummy_carbon_data["plant_n_uptake_ecto"],
+        phosphorus_exchange=dummy_carbon_data["plant_p_uptake_ecto"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=averaged_soil_temp,
+        constants=SoilConsts,
+        functional_group=functional_groups["ectomycorrhiza"],
     )
 
-    return {"bacteria": bacterial_growth, "fungi": fungal_growth}
+    return {
+        "bacteria": bacterial_growth,
+        "saprotrophic_fungi": saprotrophic_fungal_growth,
+        "arbuscular_mycorrhiza": arbuscular_mycorrhizal_growth,
+        "ectomycorrhiza": ectomycorrhizal_growth,
+    }
 
 
 @pytest.fixture
@@ -282,4 +425,42 @@ def enzyme_production(functional_groups, growth_rates):
     return calculate_enzyme_production(
         microbial_groups=functional_groups,
         growth_rates=growth_rates,
+    )
+
+
+@pytest.fixture
+def carbon_use_efficiency(averaged_soil_temp):
+    """Fixture to store the carbon use efficiency."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_carbon_use_efficiency,
+    )
+
+    return calculate_carbon_use_efficiency(
+        soil_temp=averaged_soil_temp,
+        reference_cue_logit=SoilConsts.reference_cue_logit,
+        cue_reference_temp=SoilConsts.cue_reference_temp,
+        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
+    )
+
+
+@pytest.fixture
+def max_uptake_rates(
+    dummy_carbon_data, environmental_factors, averaged_soil_temp, functional_groups
+):
+    """Fixture containing the maximum uptake rates for each nutrient."""
+    from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
+
+    return calculate_maximum_uptake_rates(
+        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
+        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
+        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
+        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
+        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
+        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
+        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
+        water_factor=environmental_factors.water,
+        pH_factor=environmental_factors.pH,
+        soil_temp=averaged_soil_temp,
+        functional_group=functional_groups["bacteria"],
     )

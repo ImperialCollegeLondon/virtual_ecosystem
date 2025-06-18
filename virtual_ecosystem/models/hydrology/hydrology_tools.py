@@ -8,6 +8,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.hydrology import above_ground
@@ -113,7 +114,7 @@ def setup_hydrology_input_current_timestep(
     The hydrology model currently loops over 30 days per month. Atmospheric variables in
     the canopy and
     near the surface are selected here and kept constant for the whole month. Daily
-    timeseries of precipitation and evapotranspiration are generated from monthly
+    timeseries of precipitation and canopy transpiration are generated from monthly
     values in `data` to be used in the daily loop. States of other hydrology variables
     are selected and updated in the daily loop.
 
@@ -130,7 +131,7 @@ def setup_hydrology_input_current_timestep(
 
     * leaf_area_index_sum
     * current_precipitation
-    * current_evapotranspiration
+    * current_transpiration
     * current_soil_moisture
     * top_soil_moisture_capacity
     * top_soil_moisture_residual
@@ -177,8 +178,8 @@ def setup_hydrology_input_current_timestep(
     output["leaf_area_index_sum"] = np.nansum(
         data["leaf_area_index"].to_numpy(), axis=0
     )
-    output["current_evapotranspiration"] = np.nansum(
-        data["evapotranspiration"].to_numpy() / days, axis=0
+    output["current_transpiration"] = np.nansum(
+        data["transpiration"].to_numpy() / days, axis=0
     )
 
     # Select soil variables
@@ -259,4 +260,48 @@ def calculate_psychrometric_constant(
 
     return (specific_heat_air * atmospheric_pressure) / (
         latent_heat_vapourization * molecular_weight_ratio_water_to_dry_air
+    )
+
+
+def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> None:
+    """Check that precipitation at the surface is not negative.
+
+    Args:
+        precipitation_surface: Precipitation at the surface
+
+    Returns:
+        error if precipitation is negative in any grid cell
+    """
+    if (precipitation_surface < 0.0).any():
+        LOGGER.critical(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
+        raise ValueError(
+            "Surface precipitation should not be negative! Consider checking that the"
+            " canopy water balance is correct."
+        )
+
+
+def calculate_effective_saturation(
+    soil_moisture: NDArray[np.float32],
+    soil_moisture_saturation: float | NDArray[np.float32],
+    soil_moisture_residual: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate the effective soil saturation based on the soil moisture.
+
+    This is kept as a separate function because the soil model also needs to use this
+    quantity.
+
+    Args:
+        soil_moisture: Volumetric relative water content in top soil, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
+        soil_moisture_residual: Residual soil moisture, [unitless]
+
+    Returns:
+        The :term:`effective saturation` of the soil [unitless]
+    """
+
+    return (soil_moisture - soil_moisture_residual) / (
+        soil_moisture_saturation - soil_moisture_residual
     )

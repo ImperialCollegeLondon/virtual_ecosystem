@@ -45,19 +45,34 @@ def plants_data(fixture_core_components):
     for var in cohorts:
         data["plant_cohorts_" + var] = cohorts[var]
 
-    # Spatio-temporal data
+    # Spatio-temporal data - DSR here is maintaining an earlier test value
+    # of PPFD = 1000
     data["downward_shortwave_radiation"] = DataArray(
-        data=np.full((n_cells, 12), fill_value=2040),
+        data=np.full((n_cells, 12), fill_value=1000 / 2.04),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
             "time_index": np.arange(12),
         },
     )
 
+    # Subcanopy vegetation masses kg C m2
+    data["subcanopy_vegetation_biomass"] = DataArray(
+        data=np.array([0.07] * n_cells),
+        coords={"cell_id": fixture_core_components.grid.cell_id},
+    )
+    data["subcanopy_seedbank_biomass"] = DataArray(
+        data=np.array([0.07] * n_cells),
+        coords={"cell_id": fixture_core_components.grid.cell_id},
+    )
+
     # Adding soil variables
     data["dissolved_ammonium"] = DataArray(np.array([5.0e-2] * n_cells))
     data["dissolved_nitrate"] = DataArray(np.array([7.5e-1] * n_cells))
     data["dissolved_phosphorus"] = DataArray(np.array([3.0e-3] * n_cells))
+    data["ecto_supply_limit_n"] = DataArray(np.array([1.61e-3] * n_cells))
+    data["arbuscular_supply_limit_n"] = DataArray(np.array([4.32e-3] * n_cells))
+    data["ecto_supply_limit_p"] = DataArray(np.array([1.32e-4] * n_cells))
+    data["arbuscular_supply_limit_p"] = DataArray(np.array([2.34e-4] * n_cells))
 
     # TODO - This elevation data is created so that the PlantsModel.calculate_turnover
     # function works in testing. Once that function has been replaced with something
@@ -115,10 +130,12 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
 def fixture_canopy_layer_data():
     """Shared canopy layer data.
 
-    The fixture supplies a dictionary of data values expected from the cohort data in
-    the plants_data fixture. Each entry provides a tuple of the variable name to be
-    tested, the data itself and then the vertical layer indices into which to insert the
-    data.
+    The fixture supplies a dictionary of data values expected from the canopy cohort
+    data and subcanopy biomasses in the plants_data fixture.
+
+    Each entry provides a tuple of the variable name to be tested, the data itself and
+    then the vertical layer indices into which to insert the data. For the subcanopy
+    masses, which only have a single layer, the vertical layer indices is set to None.
     """
 
     return {
@@ -153,7 +170,7 @@ def fixture_canopy_layer_data():
             [0, 1, 2, 3, 4],
             # index_above, index_filled_canopy),
         ),
-        "leaf_area_index": (
+        "leaf_area_index_canopy_only": (
             "leaf_area_index",
             np.array(
                 [
@@ -164,9 +181,23 @@ def fixture_canopy_layer_data():
                 ]
             ),
             [1, 2, 3, 4],
-            # index_filled_canopy,
+            # index_filled_canopy
         ),
-        "layer_fapar": (
+        "leaf_area_index": (
+            "leaf_area_index",
+            np.array(
+                [
+                    [1.76395258e00, 1.76394186e00, 1.76400479e00, 1.79998897e00],
+                    [1.76405508e00, 1.76443550e00, 1.72228517e00, 1.14824589e-04],
+                    [1.76388228e00, 1.75668428e00, np.nan, np.nan],
+                    [1.73664971e00, np.nan, np.nan, np.nan],
+                    [0.98, 0.98, 0.98, 0.98],
+                ]
+            ),
+            [1, 2, 3, 4, 11],
+            # index_filled_canopy, index_surface
+        ),
+        "layer_fapar_canopy_only": (
             "layer_fapar",
             np.array(
                 [
@@ -177,9 +208,26 @@ def fixture_canopy_layer_data():
                 ]
             ),
             [1, 2, 3, 4],
-            # index_filled_canopy,
+            # index_filled_canopy,index_surface
+        ),
+        "layer_fapar": (
+            "layer_fapar",
+            np.array(
+                [
+                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
+                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
+                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
+                    [4.11687555e-02, np.nan, np.nan, np.nan],
+                    [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
+                ]
+            ),
+            [1, 2, 3, 4, 11],
+            # index_filled_canopy,index_surface
         ),
         "shortwave_absorption": (
+            # So identical to the fapar but converted through to the DSR
+            # values and adding the remaining radiation absorbed by subcanopy vegetation
+            # and reaching the topsoil
             "shortwave_absorption",
             np.array(
                 [
@@ -187,11 +235,13 @@ def fixture_canopy_layer_data():
                     [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
                     [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
                     [4.11687555e-02, np.nan, np.nan, np.nan],
-                    [0.02976953, 0.0711809, 0.17496926, 0.40654856],
+                    [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
+                    [1.82376010e-02, 4.36072953e-02, 1.07190786e-01, 2.49062378e-01],
                 ]
             )
-            * 1000,
-            [1, 2, 3, 4, 12],
+            * 1000
+            / 2.04,
+            [1, 2, 3, 4, 11, 12],
             # index_filled_canopy, index_topsoil
         ),
         "layer_leaf_mass": (

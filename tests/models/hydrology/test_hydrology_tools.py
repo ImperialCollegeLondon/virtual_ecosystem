@@ -12,7 +12,7 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
 def test_initialise_atmosphere_for_hydrology(
     dummy_climate_data, fixture_core_components
 ):
-    """Test initialisation of atmospheric varibales for hydrology."""
+    """Test initialisation of atmospheric variables for hydrology."""
 
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
         initialise_atmosphere_for_hydrology,
@@ -70,7 +70,7 @@ def test_setup_hydrology_input_current_timestep(
         "surface_pressure",
         "surface_wind_speed",
         "leaf_area_index_sum",
-        "current_evapotranspiration",
+        "current_transpiration",
         "top_soil_moisture_capacity",
         "top_soil_moisture_residual",
         "previous_accumulated_runoff",
@@ -159,3 +159,39 @@ def test_calculate_psychrometric_constant():
 
     # Assert that the output is as expected within a small tolerance
     np.testing.assert_allclose(output, expected_output, rtol=1e-5)
+
+
+def test_check_precipitation_surface_raises_error():
+    """Test check surface precipitation is positive."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_precipitation_surface,
+    )
+
+    test_array = np.array([1.0, 0.5, -0.2, 0.8])
+
+    with pytest.raises(
+        ValueError,
+        match="Surface precipitation should not be negative! Consider checking that the"
+        " canopy water balance is correct.",
+    ):
+        check_precipitation_surface(test_array)
+
+
+def test_calculate_effective_saturation(dummy_climate_data):
+    """Test that the calculation the effective saturation works correctly."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_effective_saturation,
+    )
+
+    soil_moistures = np.array([0.178, 0.25, 0.333, 0.5])
+
+    expected_sats = [0.00895522, 0.22388060, 0.47164179, 0.97014925]
+
+    actual_sats = calculate_effective_saturation(
+        soil_moisture=soil_moistures,
+        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+    )
+
+    assert np.allclose(actual_sats, expected_sats)

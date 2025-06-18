@@ -184,21 +184,38 @@ def calculate_canopy_evaporation(
         saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
     )
 
-    # Maximum evaporation from canopy interception pool, [mm day-1]
+    # Maximum evaporation from each layer, [mm day-1]
     maximum_evaporation = (
         potential_evaporation
         * (1.0 - np.exp(-extinction_coefficient_global_radiation * leaf_area_index))
         * time_interval
     )
 
-    # Actual evaporation, [mm day-1]
-    actual_evaporation = np.minimum(maximum_evaporation, interception)
-    output["canopy_evaporation"] = actual_evaporation
+    # Total max evaporation across layers for each grid cell
+    total_max_evaporation = np.nansum(maximum_evaporation, axis=0)
+
+    # Avoid division by zero by replacing 0s with np.nan temporarily
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scale_factor = np.where(
+            total_max_evaporation > 0,
+            np.minimum(interception / total_max_evaporation, 1.0),
+            0.0,
+        )
+
+    # Actual evaporation, constrained by energy and water
+    actual_evaporation = maximum_evaporation * scale_factor
+
+    output["canopy_evaporation"] = np.where(
+        np.isnan(leaf_area_index), np.nan, actual_evaporation
+    )
 
     # Update interception pool after evaporation
     # Ensure no negative interception
-    remaining_interception = np.maximum(interception - actual_evaporation, 0.0)
+    remaining_interception = np.maximum(
+        interception - np.nansum(actual_evaporation, axis=0), 0.0
+    )
 
+    # Total drainage per cell
     leaf_drainage = np.minimum(
         (1.0 / intercept_residence_time) * remaining_interception * time_interval,
         remaining_interception,
@@ -520,7 +537,10 @@ def distribute_monthly_rainfall(
             day = rng.integers(0, num_days, seed)  # Randomly select a day
             daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
 
-        daily_rainfall *= rainfall / np.sum(daily_rainfall)
+        if np.sum(daily_rainfall > 0):
+            daily_rainfall *= rainfall / np.sum(daily_rainfall)
+        else:
+            daily_rainfall[:] = 0
         daily_rainfall_data.append(daily_rainfall)
 
     return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)

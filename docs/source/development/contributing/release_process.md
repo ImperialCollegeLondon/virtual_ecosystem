@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.0rc1
+    jupytext_version: 1.17.1
 kernelspec:
   display_name: Python 3
   language: python
@@ -61,7 +61,7 @@ The steps of the process are:
    Log in to [https://readthedocs.org](https://readthedocs.org) which is the admin site
    controlling the build process. From the Versions tab, activate the `release/X.Y.Z`
    branch and wait for it to build. Check the Builds tab to see that it has built
-   successfully! If it has built succesfully, do check pages to make sure that page code
+   successfully! If it has built successfully, do check pages to make sure that page code
    has executed successfully, and then go back to the Versions tab and deactivate and
    hide the branch. If the release branch needs any changes, do come back and check that
    those changes have also built successfully.

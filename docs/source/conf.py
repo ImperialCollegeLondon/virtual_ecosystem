@@ -158,6 +158,7 @@ nitpick_ignore = [
     ("py:exc", "BadZipFile"),
     # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
     # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "PModel"),
     ("py:class", "Canopy"),
     ("py:class", "Flora"),
     ("py:class", "PModelConst"),

@@ -1,4 +1,16 @@
 ---
+jupytext:
+  formats: md:myst
+  main_language: python
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,18 +21,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  main_language: python
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # The configuration module
@@ -28,14 +28,21 @@ kernelspec:
 This module is used to configure a `virtual_ecosystem` simulation run. This module
 reads in a set of configuration files written using `toml`. It is setup in such a way as
 to allow a reduced set of modules to be configured (e.g. just `plants` and `soil`), and
-to allow specific module implementations to be configured (e.g. `plants_with_hydro`
-instead of `plants`). The resulting combined model configuration is validated against a
-set of [`JSON Schema`](https://json-schema.org). If this passes, a combined output file is
-saved as a permanent record of the model configuration. This configuration is also saved
-as a dictionary accessible to other modules and scripts.
+to allow specific module implementations to be configured (e.g. `abiotic_simple`
+instead of `abiotic`). It deliberately accepts multiple configuration files in order to
+allow users to maintain a library of model configuration files that can be used within
+multiple different simulations.
+
+When the run starts, the configuration inputs are combined and the resulting combined
+model configuration is validated. By default, the combined configuration is written out
+to a single file to provide a permanent record of the model configuration. All file
+paths within the combined configuration are converted to absolute paths to ensure that
+input paths across the initial configurations can be located from within the combined
+configuration - this does tie the combined configuration paths to the file system in
+which the simulation is run.
 
 ::::{dropdown} An example configuration file
-:::{literalinclude} ../../_static/vr_full_model_configuration.toml
+:::{literalinclude} ../../_static/ve_full_model_configuration.toml
 :language: toml
 :::
 ::::
@@ -61,7 +68,7 @@ size `cell_nx`).
 
 The configuration system does not require a single input config file, instead the
 configuration can be separated out into a set of config files. This allows different
-configuration files to be re-used in a modular way, allowing a library of configuration
+configuration files to be reused in a modular way, allowing a library of configuration
 options to be set up.
 
 When a simulation is run, users can identify a set of specific configuration files or

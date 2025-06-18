@@ -1,4 +1,15 @@
 ---
+jupytext:
+  formats: md:myst
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.17.1
+kernelspec:
+  display_name: Python 3 (ipykernel)
+  language: python
+  name: python3
 language_info:
   codemirror_mode:
     name: ipython
@@ -9,17 +20,6 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
-jupytext:
-  formats: md:myst
-  text_representation:
-    extension: .md
-    format_name: myst
-    format_version: 0.13
-    jupytext_version: 1.17.0rc1
-kernelspec:
-  display_name: Python 3 (ipykernel)
-  language: python
-  name: python3
 ---
 
 # The hydrology model implementation
@@ -48,7 +48,7 @@ enters and leaves the plant model.
 ```{note}
 Many of the underlying processes are problematic at a monthly timestep, which is
 currently the only supported update interval. As a short-term work around, the input
-precipitation is randomly distributed over 30 days and input evapotranspiration is
+precipitation is randomly distributed over 30 days and input canopy transpiration is
 divided by 30, and the return variables are monthly means or monthly accumulated values.
 ```
 
@@ -85,9 +85,9 @@ grid cell. This includes [above ground](../../api/models/hydrology/above_ground.
 processes such as rainfall, canopy interception and evaporation, leaf drainage, and
 surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
-infiltration, bypass flow, percolation (= vertical flow), soil moisture and matric
-potential, horizontal sub-surface flow out of the grid cell, and changes in
-groundwater storage.
+infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
+{term}`soil matric potential`, horizontal
+sub-surface flow out of the grid cell, and changes in groundwater storage.
 
 ### Canopy interception
 
@@ -162,8 +162,8 @@ to the groundwater.
 ### Surface Runoff
 
 Surface runoff is calculated with a simple bucket model based on
-{cite:t}`davis_simple_2017`: if precipitation exceeds top soil moisture capacity, the
-excess water is added to runoff and top soil moisture is set to soil
+{cite:t}`davis_simple_2017`: if precipitation exceeds top {term}`soil moisture capacity`
+, the excess water is added to runoff and top soil moisture is set to soil
 moisture capacity value; if the top soil is not saturated, precipitation is
 added to the current soil moisture level and runoff is set to zero.
 
@@ -184,11 +184,11 @@ $$\alpha = \frac{1.8 \cdot \Theta}{\Theta + 0.3}$$
 
 $$E_{g} = \frac{\rho_{air}}{R_{a}} \cdot (\alpha \cdot q_{sat}(T_{s}) - q_{g})$$
 
-where $\Theta$ is the available top soil moisture (relative volumetric water
-content), $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
+where $\Theta$ is the available top soil moisture (here {term}`relative soil moisture`)
+, $E_{g}$ is the evaporation flux (W m-2), $\rho_{air}$ is the
 density of air (kg m-3), $R_{a}$ is the aerodynamic resistance (unitless),
 $q_{sat}(T_{s})$ (unitless) is the saturated specific humidity, and
-$q_{g}$ is the surface specific humidity (unitless).
+$q_{g}$ is the {term}`specific soil moisture` near the surface (unitless).
 
 In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
 {cite:t}`supit_system_1994`:
@@ -200,7 +200,7 @@ $LAI$ is the total leaf area index.
 
 ### Infiltration
 
-Infiltration is currently handeled in a very simplistic way: the water that 'fits in the
+Infiltration is currently handled in a very simplistic way: the water that 'fits in the
 topsoil bucket' is added to the topsoil layer. We aim to implement a more realistic
 process that accounts for soil type specific infiltration capacities.
 
@@ -226,50 +226,55 @@ important as the soil gets wetter.
 
 ### Vertical flow
 
-To calculate the flow of water through unsaturated soil, we use the Richards equation.
-First, the function calculates the effective saturation $S$ and effective hydraulic
-conductivity $K(S)$ based on the moisture content $\Theta$ using the Mualem-van
-Genuchten model {cite}`van_genuchten_closed-form_1980`:
+To calculate the flow of water through unsaturated soil, we combine
+Richards' equation and Darcy's law for unsaturated flow.
+First, we calculate the effective saturation $S_{e}$ and effective unsaturated hydraulic
+conductivity $K(\Theta)$ based on the moisture content $\Theta$ using the van
+Genuchten - Mualem model
+({cite:t}`van_genuchten_closed-form_1980`, {cite:t}`mualem_new_1976`).
 
-$$S = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
+First, the effective saturation is calculated as:
 
-and
+$$S_{e} = \frac{\Theta - \Theta_{r}}{\Theta_{s} - \Theta_{r}}$$
 
-$$K(S) = K_{s} \cdot \sqrt{S} \cdot (1-(1-S^{1/m})^{m})^{2}$$
+where $\Theta_{r}$ is the {term}`soil moisture residual` and $\Theta_{s}$ is
+the {term}`soil moisture saturation`.
 
-where $\Theta_{r}$ is the residual moisture content,$\Theta_{s}$ is the saturated
-moisture content, $K_{s}$ is the saturated hydraulic conductivity, and $m=1-1/n$ is a
-shape parameter derived from the non-linearity parameter $n$. Then, the function applies
-Darcy's law to calculate the water flow rate $q$ in $\frac{m^3}{s^1}$ considering the
-effective hydraulic conductivity:
+Then, the effective unsaturated hydraulic conductivity is computed as:
 
-$$q = - K(S) \cdot (\frac{dh}{dl}-1)$$
+$$K(\Theta) = K_{s} \cdot S_{e}^{L} \cdot [1-(1-S_{e}^{\frac{1}{m}})^{m}]^{2}$$
 
-where $\frac{dh}{dl}$ is the hydraulic gradient with $l$ the length of the flow path in
-meters (here equal to the soil depth).
+where $K_{s}$ is the saturated hydraulic conductivity,
+$L$ is the pore connectivity parameter (assumed to be 0.5 in most of studies),
+and $m=1-1/n$ is a
+shape parameter derived from the non-linearity parameter $n$.
+
+The soil matric potential $\Psi_{m}$ is calculated as follows:
+
+$$\Psi_{m} = - \frac{1}{\alpha} (S_{e}^{-\frac{1}{m}}-1)^\frac{1}{n}$$
+
+where $\alpha$ is the inverse of air entry value.
+
+Then, the function applies
+Darcy's law to calculate the water flow rate $q$ in $\frac{mm}{day^1}$ considering the
+effective unsaturated hydraulic conductivity:
+
+$$q = - K(\Theta) \cdot (\frac{d \Psi_{m}}{dz} + 1)$$
+
+where $\frac{d \Psi_{m}}{dz}$ is the soil matric potential gradient with $z$
+    the elevation (gravitational potential) or {term}`gravitational head`.
 
 ```{note}
 There are severe limitations to this approach on the temporal and spatial scale of this
 model and this can only be treated as a very rough approximation!
 ```
 
-### Soil moisture and matrix potential
+### Soil moisture redistribution
 
 Soil moisture is updated for each layer by removing the vertical flow
 of the current layer and adding it to the layer below. The implementation is based
-on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the evapotranspiration is
+on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
 removed from the second soil layer.
-
-For some model functionalities, such as plant water uptake and soil microbial activity,
-soil moisture needs to be converted to matric potential. The model provides a coarse
-estimate of soil water potential :$\Psi_{m}$ taken from
-{cite:t}`campbell_simple_1974`:
-
-$$\Psi_{m} = \Psi_{e} \cdot (\frac{\Theta}{\Theta_{s}})^{b}$$
-
-where $\Psi_{e}$ is the air-entry, $\Theta$ is the volumetric water content,
-$\Theta_{s}$ is the saturated water content, and $b$ is the water retention curvature
-parameter.
 
 ### Subsurface flow and groundwater storage
 
@@ -372,7 +377,7 @@ data["elevation"] = elevation
 ```
 
 The initialisation step of the hydrology model finds all the neighbours for each grid
-cell and determine which neigbour has the lowest elevation. The code below returns the
+cell and determine which neighbour has the lowest elevation. The code below returns the
 neighbours of the grid cell with `cell_id = 56` as an example.
 
 ```{code-cell} ipython3
