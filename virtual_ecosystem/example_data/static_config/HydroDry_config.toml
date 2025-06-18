@@ -387,7 +387,7 @@ var_name = "c_p_ratio_below_structural"
 
 [core.data_output_options]
 save_initial_state = true
-out_path = "/tmp/ve_example/experiment2_out/"
+out_path = "/tmp/ve_example/HydroDry_out/"
 save_continuous_data = true
 save_final_state = true
 save_merged_config = true

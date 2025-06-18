@@ -38,35 +38,34 @@ unchanged — while the rest of the ecosystem continues to move through time.
 
 This is the essence of the **static mode** in the Virtual Ecosystem model.
 
-In complex systems where **everything interacts** — plants influence climate, soils
-affect plants, animals respond to both — it can be hard to isolate what’s causing what.
-**Static mode helps untangle this web** by letting you "freeze" components like plants
-or animals while others remain dynamic. At each model step, static components reset to
-their original state — like the movie 'groundhog day' — so any change comes only from
-the active, evolving parts (e.g. eaten leaves magically reappear).
+In complex systems where **everything interacts** it can be hard to isolate what’s
+causing what. **Static mode helps untangle this web** by letting you "freeze" components
+like plants or animals while others remain dynamic. At each model step, static
+components reset to their original state (e.g. eaten leaves magically reappear) —
+like a controlled reset — so any change comes only from the active, evolving parts.
 
-This setup enables controlled experiments within the full model framework. Want to
-understand how vegetation responds to changing weather without the feedback from
-shifting soil conditions? Or how animals might behave in a landscape where plant
-dynamics are held constant? Static mode makes this possible, offering a
-**clear window into cause-effect relationships in an otherwise entangled system**.
+This setup enables **targeted experiments** within the full model framework. For
+example, you can test how vegetation responds to changing temperatures without feedback
+from soil moisture changes, or explore animal behaviour in a fixed vegetation landscape.
 
-By choosing which components evolve over time and which stay fixed, we can probe the
-**drivers of ecological change** - helping us understand not just **what happens**, but
-**why**.
+By choosing which components evolve over time and which stay fixed, static model helps
+reveal **drivers of ecological change** - helping us understand not just
+**what happens**, but **why**.
 
 ```{note}
 The Virtual Ecosystem model can, in theory, be run with any combination of one or more
-components held static. However, not all combinations are equally meaningful. It's worth
+components held static (except `core`). However, not all combinations are equally
+meaningful. It's worth
 considering your experimental goals carefully and selecting static–dynamic
 configurations that best support the processes you want to isolate or understand.
-Thoughtful setup leads to clearer insights.
 ```
 
 ## Using the static mode
 
 This example demonstrates how to configure and run the Virtual Ecosystem with selected
-components held static. Specifically, we focus on **hydrology** by keeping the
+components held static (for more technical details,
+[see](./configuration/config.md#static-models)). Specifically, we focus on **hydrology**
+by keeping the
 microclimate, vegetation, animals, and soils fixed. This isolates hydrological
 processes and so we can examine how individual model parameters and process
 representations influence model behaviour.
@@ -76,15 +75,15 @@ We run two experiments:
 - HydroDefault: 'hydrology-only' simulation with default configuration
 - HydroDry: 'hydrology-only' simulation with reduced initial soil moisture
 
-We compare their outputs to the default setup (`ve_example`) where all components run
-dynamically.
-
 In practice this means:
 
 - **Microclimate is fixed**: e.g., temperature and relative humidity stay constant
 - **Plants are static**: e.g. water uptake, transpiration, and interception do not vary
 - **Soil microbes, litter, and animals do not feedback** into hydrology
 - **Only hydrology processes evolve over time** in response to precipitation
+
+Finally, we compare their outputs to the default setup (`ve_example`) where all
+components run dynamically.
 
 ```{note}
 This guide focuses on how to technically configure and run static mode, not on
@@ -95,7 +94,7 @@ The example uses `%%bash` for demonstration on Linux, but it is compatible with 
 operating systems.
 ```
 
-### Step 1: Run `ve_example` as a baseline
+### 1: Run `ve_example` as a baseline
 
 Before setting up static experiments, make sure you can run the model successfully.
 If you haven’t yet installed and executed the example, follow the
@@ -126,7 +125,7 @@ ve_run /tmp/ve_example/config \
   --logfile /tmp/ve_example/out/ve_example.log
 ```
 
-### Step 2: Set up HydroDefault experiment
+### 2: HydroDefault experiment
 
 #### Configure static components
 
@@ -135,35 +134,40 @@ Once the baseline run is complete, you can set up the experiment with default
 
 - Navigate to the `/ve_example/out/` folder.
 - Copy the `ve_full_model_configuration.toml` file and rename it, for example to
-  `experiment1_config.toml`.
-- In the new file, set `static = true` for all components **except hydrology**, e.g.:
+  `HydroDefault_config.toml`.
+- In the new file, set `static = true` for all components
+  **except hydrology and core**, e.g.:
 
   ```toml
   [abiotic_simple]
   static=true
   ```
 
-- Create a new output folder: `/ve_example/experiment1_out/`. **This is essential** -
+- **This is essential**: Create a new output folder: `/ve_example/HydroDefault_out/`.
   the Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
   already exist in your output directory, the model will crash.
 
 #### Run HydroDefault experiment
 
-Now run the model with the new configuration from you command line:
+Now run the model with the new configuration from you command line and make sure that
+the `--outpath` command in the second line is followed by the directory of the new
+output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`), and the
+and the `--logfile` command in the third line is followed by the same path and a new
+file name - ending in `.log`:
 
 ```{code-cell} ipython3
 :tags: [hide-output]
 
 %%bash
-ve_run /tmp/ve_example/static_config/experiment1_config.toml \
-  --outpath /tmp/ve_example/experiment1_out/ \
-  --logfile /tmp/ve_example/experiment1_out/experiment1.log
+ve_run /tmp/ve_example/static_config/HydroDefault_config.toml \
+  --outpath /tmp/ve_example/HydroDefault_out/ \
+  --logfile /tmp/ve_example/HydroDefault_out/HydroDefault.log
 ```
 
-### Step 3: Compare results
+#### Compare HydroConst results to baseline
 
 To compare the results of the HydroDefault experiment to the fully dynamic ve_example,
-load the results from `/ve_example/out/` and `/ve_example/experiment1_out/`:
+load the results from `/ve_example/out/` and `/ve_example/HydroDefault_out/`:
 
 ```{code-cell} ipython3
 import xarray
@@ -171,12 +175,12 @@ import matplotlib.pyplot as plt
 
 # Example: load or define your datasets
 ve_example = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
-experiment1 = xarray.load_dataset(
-    "/tmp/ve_example/experiment1_out/all_continuous_data.nc"
+hydrodefault = xarray.load_dataset(
+    "/tmp/ve_example/HydroDefault_out/all_continuous_data.nc"
 )
 ```
 
-#### Air temperature above the canopy
+##### Air temperature above the canopy
 
 The air temperature above the canopy is provided by an external data source at each
 time step. In the *dynamic abiotic mode*, this input is a time series to the Virtual
@@ -213,9 +217,9 @@ for layer in atmosphere_layers.values:
         color="blue",
     )
     plt.plot(
-        experiment1["time_index"],
-        experiment1[var_name].sel(cell_id=cell_to_plot, layers=layer),
-        label=f"Experiment 1 - Layer {layer}",
+        hydrodefault["time_index"],
+        hydrodefault[var_name].sel(cell_id=cell_to_plot, layers=layer),
+        label=f"HydroConst - Layer {layer}",
         linestyle="--",
         color="red",
     )
@@ -227,7 +231,7 @@ plt.legend()
 plt.show()
 ```
 
-#### Soil moisture
+##### Soil moisture
 
 The next figure shows the evolution of soil moisture over time. Interestingly, the
 results appear identical for both the `ve_example` and HydroDefault scenarios. This
@@ -235,8 +239,6 @@ suggests that, under the conditions tested, soil moisture dynamics may be relati
 insensitive to fluctuations in abiotic conditions — or that other model components
 dominate the response. However, understanding why this occurs would require a deeper
 investigation into the model's energy and water balance under both configurations.
-
-#### Plot Soil moisture
 
 ```{code-cell} ipython3
 :tags: [hide-input]
@@ -258,9 +260,9 @@ for layer in soil_layers.values:
         color="blue",
     )
     plt.plot(
-        experiment1["time_index"],
-        experiment1[var_name].sel(cell_id=cell_to_plot, layers=layer),
-        label=f"Experiment 1 - Layer {layer}",
+        hydrodefault["time_index"],
+        hydrodefault[var_name].sel(cell_id=cell_to_plot, layers=layer),
+        label=f"HydroConst {layer}",
         linestyle="--",
         color="red",
     )
@@ -272,16 +274,16 @@ plt.legend()
 plt.show()
 ```
 
-### Step 4: Set up HydroDry experiment
+### 4: HydroDry experiment
 
-#### Configure static components and initial soil moisture
+#### Configure lower initial soil moisture
 
 To set up a hydrology-only experiment with a change in initial soil moisture, follow
 these steps:
 
 - Navigate to the `/ve_example/out/` folder.
 - Copy the `ve_full_model_configuration.toml` file and
-  rename to `experiment2_config.toml`. We moved this file to a separate folder
+  rename to `HydroDry_config.toml`. We moved this file to a separate folder
   `/ve_example/static_config/`.
 - Check the status flags are set to `static = true`, for all but the hydrology model.
 - Make further changes to your configuration for your experiment. Here, we modify the
@@ -294,35 +296,37 @@ these steps:
   static = false
 ```
 
-- Create a new output folder for your experiment, for example
-  `/ve_example/experiment2_out/`.
+- **This is essential:** Create a new output folder for your experiment, for example
+  `/ve_example/HydroDry_out/`.
 
 #### Run HydroDry experiment
 
-Now run the model with the new configuration from you command line:
+Now run the model with the new configuration from you command line. Again, make sure
+that the `--outpath` command in the second line is followed by the directory of the new
+output folder that you just created (here `/tmp/ve_example/HydroDry_out/`), and the
+and the `--logfile` command in the third line is followed by the same path and a new
+file name ending in `.log`:
 
 ```{code-cell} ipython3
 :tags: [hide-output]
 
 %%bash
-ve_run /tmp/ve_example/static_config/experiment2_config.toml \
-  --outpath /tmp/ve_example/experiment2_out/ \
-  --logfile /tmp/ve_example/experiment2_out/experiment2.log
+ve_run /tmp/ve_example/static_config/HydroDry_config.toml \
+  --outpath /tmp/ve_example/HydroDry_out/ \
+  --logfile /tmp/ve_example/HydroDry_out/HydroDry.log
 ```
 
-### Step 5: Compare results HydroConst and HydroDry
+#### Compare HydroConst and HydroDry results
 
 To compare the results of different initial soil moisture levels in the hydrology-only
-configuration, load the results from `/ve_example/experiment1_out/` and
-`/ve_example/experiment2_out/`:
+configuration, load the results from `/ve_example/HydroDefault_out/` and
+`/ve_example/HydroDry_out/`:
 
 ```{code-cell} ipython3
-experiment2 = xarray.load_dataset(
-    "/tmp/ve_example/experiment2_out/all_continuous_data.nc"
-)
+hydrodry = xarray.load_dataset("/tmp/ve_example/HydroDry_out/all_continuous_data.nc")
 ```
 
-#### Soil moisture initial conditions
+##### Soil moisture initial conditions
 
 Now plot the soil moisture over time for both experiments. You will see that while the
 lower soil layer reaches a similar level in both runs after a few time steps, the top
@@ -349,16 +353,16 @@ soil_layers = ve_example.layers[-2:]
 # Plot for each of the bottom two layers
 for layer in soil_layers.values:
     plt.plot(
-        experiment1["time_index"],
-        experiment1[var_name].sel(cell_id=cell_to_plot, layers=layer),
-        label=f"Experiment 1- Layer {layer}",
+        hydrodefault["time_index"],
+        hydrodefault[var_name].sel(cell_id=cell_to_plot, layers=layer),
+        label=f"HydroConst {layer}",
         linestyle="-",
         color="blue",
     )
     plt.plot(
-        experiment2["time_index"],
-        experiment2[var_name].sel(cell_id=cell_to_plot, layers=layer),
-        label=f"Experiment 2 - Layer {layer}",
+        hydrodry["time_index"],
+        hydrodry[var_name].sel(cell_id=cell_to_plot, layers=layer),
+        label=f"HydroDry {layer}",
         linestyle="--",
         color="red",
     )
