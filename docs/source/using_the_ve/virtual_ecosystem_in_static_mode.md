@@ -36,7 +36,7 @@ Now imagine you could **pause parts of this scene** — hold
 the soil moisture constant, freeze the behaviour of animals, or keep the microclimate
 unchanged — while the rest of the ecosystem continues to move through time.
 
-This is the essence of the **static mode** in the Virtual Ecosystem model.
+This is the essence of the **Static Mode** in the Virtual Ecosystem model.
 
 In complex systems where **everything interacts** it can be hard to isolate what’s
 causing what. **Static mode helps untangle this web** by letting you "freeze" components
