@@ -39,7 +39,7 @@ unchanged — while the rest of the ecosystem continues to move through time.
 This is the essence of the **Static Mode** in the Virtual Ecosystem model.
 
 In complex systems where **everything interacts** it can be hard to isolate what’s
-causing what. **Static mode helps untangle this web** by letting you "freeze" components
+causing what. **Static Mode helps untangle this web** by letting you "freeze" components
 like plants or animals while others remain dynamic. At each model step, static
 components reset to their original state (e.g. eaten leaves magically reappear) —
 like a controlled reset — so any change comes only from the active, evolving parts.
@@ -48,7 +48,7 @@ This setup enables **targeted experiments** within the full model framework. For
 example, you can test how vegetation responds to changing temperatures without feedback
 from soil moisture changes, or explore animal behaviour in a fixed vegetation landscape.
 
-By choosing which components evolve over time and which stay fixed, static model helps
+By choosing which components evolve over time and which stay fixed, Static Mode helps
 reveal **drivers of ecological change** - helping us understand not just
 **what happens**, but **why**.
 
@@ -133,7 +133,7 @@ Once the baseline run is complete, you can set up the experiment with default
 'hydrology-only' (no changes to parameters or input data):
 
 - **This is essential**: Create a new output folder: `/ve_example/HydroDefault_out/`.
-  the Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
+  The Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
   already exist in your output directory, the model will crash.
 - Navigate to the `/ve_example/out/` folder.
 - Copy the `ve_full_model_configuration.toml` file and rename it, for example to
@@ -184,11 +184,11 @@ with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "w") as f:
 
 #### Run HydroDefault experiment
 
-Now run the model with the new configuration from you command line and make sure that
+Now run the model with the new configuration from your command line and make sure that
 the `--outpath` command in the second line is followed by the directory of the new
 output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`), and the
 and the `--logfile` command in the third line is followed by the same path and a new
-file name - ending in `.log`:
+file name ending in `.log`:
 
 ```{code-cell} ipython3
 :tags: [hide-output]
@@ -201,8 +201,8 @@ ve_run /tmp/ve_example/static_config/HydroDefault_config.toml \
 
 #### Compare HydroConst results to baseline
 
-To compare the results of the HydroDefault experiment to the fully dynamic ve_example,
-load the results from `/ve_example/out/` and `/ve_example/HydroDefault_out/`:
+To compare the results of the HydroDefault experiment to the fully dynamic `ve_example`,
+load the continuous results from `/ve_example/out/` and `/ve_example/HydroDefault_out/`:
 
 ```{code-cell} ipython3
 import xarray
@@ -367,7 +367,7 @@ with open("/tmp/ve_example/static_config/HydroDry_config.toml", "w") as f:
 
 #### Run HydroDry experiment
 
-Now run the model with the new configuration from you command line. Again, make sure
+Now run the model with the new configuration from your command line. Again, make sure
 that the `--outpath` command in the second line is followed by the directory of the new
 output folder that you just created (here `/tmp/ve_example/HydroDry_out/`), and the
 and the `--logfile` command in the third line is followed by the same path and a new
@@ -385,8 +385,7 @@ ve_run /tmp/ve_example/static_config/HydroDry_config.toml \
 #### Compare HydroConst and HydroDry results
 
 To compare the results of different initial soil moisture levels in the hydrology-only
-configuration, load the results from `/ve_example/HydroDefault_out/` and
-`/ve_example/HydroDry_out/`:
+configuration, load the continuous results from `/ve_example/HydroDry_out/`:
 
 ```{code-cell} ipython3
 hydrodry = xarray.load_dataset("/tmp/ve_example/HydroDry_out/all_continuous_data.nc")
