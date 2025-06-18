@@ -111,6 +111,10 @@ class AnimalCohort:
           cohort, {"carbon": value, "nitrogen": value, "phosphorus": value}."""
         self.largest_mass_achieved: float = mass
         """The largest body-mass ever achieved by this cohort [kg]."""
+        self.diet_category_count: int = (
+            self.functional_group.diet.count_dietary_categories()
+        )
+        """The number of different diet categories consumed by the cohort."""
 
     @property
     def mass_current(self) -> float:
