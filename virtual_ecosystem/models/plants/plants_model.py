@@ -485,6 +485,15 @@ class PlantsModel(
 
             # Partition the total stem foliage masses across cohorts vertically
             # following the leaf area within each layer.
+
+            # BUG BUG BUG BUG BUG
+            # - The calculation here needs to be robust to no plants being present in a
+            #   cell. At the moment, even with plants present, the scaling of the model
+            #   is resulting in cohort total LAI of zero, which gives zero division and
+            #   hence np.nan in the expected leaf mass per cohort per layer, which then
+            #   breaks the setting of the filled layer mask. But with actually no plants
+            #   present, the code still needs to work.
+
             # TODO - need to expose the per cohort data to allow selective herbivory. Do
             #        we need the total leaf mass per layer for anything?
             leaf_mass_per_cohort_per_layer = (
