@@ -372,7 +372,7 @@ class AnimalModel(
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
 
-        self.forage_community()
+        self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
         self.metamorphose_community()
@@ -1021,7 +1021,7 @@ class AnimalModel(
             ):
                 self.birth(cohort)
 
-    def forage_community(self) -> None:
+    def forage_community(self, dt: timedelta64) -> None:
         """Loop through every active cohort and trigger resource consumption.
 
         The diet flags on each cohort determine which resource lists are
@@ -1101,6 +1101,7 @@ class AnimalModel(
                 scavenge_carcass_pools=scavenge_carcass_pools,
                 scavenge_excrement_pools=scavenge_waste_pools,
                 herbivory_waste_pools=self.leaf_waste_pools,
+                dt=dt,
             )
 
         # Remove any cohorts that died during foraging
