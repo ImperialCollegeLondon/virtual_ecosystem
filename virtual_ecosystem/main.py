@@ -194,7 +194,6 @@ def ve_run(
 
         # Run update() method for every model
         for model in models_update.values():
-            LOGGER.info(f"Updating model {model.model_name}")
             model.update(time_index)
 
         # With updates complete increment the time_index
