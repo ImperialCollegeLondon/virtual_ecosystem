@@ -27,7 +27,61 @@ language_info:
 
 ## Model overview
 
-TODO - This section needs to be properly populated
+The soil models stores the size of a large number of soil pools within a [SoilPools
+class](virtual_ecosystem.models.soil.pools.SoilPools). These pools are generally
+densities of carbon, nitrogen of phosphorus. The soil model is updated by numerically
+integrating the [calculate_all_pool_updates
+method](virtual_ecosystem.models.soil.pools.SoilPools.calculate_all_pool_updates) of the
+class. This method calculates how much the soil pools should change based on a large
+number of processes:
+
+TODO - I NEED TO ADD DETAILS OF ANIMAL BROWN WEB CONSUMPTION, ONCE THIS IS IMPLEMENTED
+
+1. Soil receives inputs from litter decay and the decay of animal necromass (simulated
+   within the animal model). These inputs are split into dissolved and particulate forms,
+   and the nutrient content is further divided into organic and inorganic forms.
+2. Carbon is transformed between two different protected forms and a form usable by
+   microbes. The rates at which this happens is based on environmental conditions (see
+   the [environmental factors submodule](virtual_ecosystem.models.soil.env_factors)) and
+   presence of microbially produced enzymes in the soil.
+3. Microbes grow by taking up carbon, nitrogen and phosphorus from the soil, this is
+   handled by the [uptake submodule](virtual_ecosystem.models.soil.uptake). Some of the
+   carbon that microbes uptake is respired in order to gain energy, this carbon is then
+   lost to the soil.
+4. Mycorrhizal fungi are a special case of this, as they are entirely dependent on their
+   host plant for carbon. They uptake nitrogen and phosphorus (in both organic and
+   inorganic forms), some of which is used for growth and maintenance, with the rest
+   being supplied to their symbiotic plant partners.
+5. While organic nutrient flows follow the flow of carbon, nutrient cycling also
+   involves inorganic nutrients which cycle independently. These cycles couple due to
+   microbial mineralisation, which in our model occurs when microbes have an excess of
+   nutrients and so release them in an inorganic form.
+6. Inorganic nitrogen can also be formed through nitrogen fixation. Our model includes
+   both plant-associated and free-living versions of this process.
+7. This nitrogen, which is fixed in the form of ammonium, can nitrify to form nitrate,
+   another inorganic form of nitrogen that both plants and microbes can utilise. This
+   nitrate can be denitrified which causes the nitrogen contained in it to be lost from
+   the soil.
+8. Labile inorganic phosphorus can also be released from mineral forms in the soil. This
+   labile inorganic phosphorus can be used by both plants and microbes, but can become
+   inaccessible when it associates with soil minerals.
+9. Many nutrients forms are also soluble, these can then be lost from the soil due to
+   nutrient leaching.
+
+The model contains four functional groups (bacteria, saprotrophic fungi, arbuscular
+mycorrhizal fungi, and ectomycorrhizal fungi). The parameters associated with each group
+are stored using a [MicrobialGroupConstants data
+class](virtual_ecosystem.models.soil.microbial_groups.MicrobialGroupConstants), and the
+full set required for the simulation is constructed using the
+[make_full_set_of_microbial_groups
+function](virtual_ecosystem.models.soil.microbial_groups.make_full_set_of_microbial_groups).
+Similarly, enzyme classes are distinguished by whether they were produced by fungi or
+bacteria and by what substrate they break down ({term}`MAOM` or {term}`POM`). So, there
+is a total of four enzyme classes in the model. The parameters associated with each
+class are stored in an [EnzymeConstants data
+class](virtual_ecosystem.models.soil.microbial_groups.EnzymeConstants), and the full set
+of them can be constructed using the [make_full_set_of_enzymes
+function](virtual_ecosystem.models.soil.microbial_groups.make_full_set_of_enzymes).
 
 ## Model variables
 
