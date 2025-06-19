@@ -109,6 +109,8 @@ class AnimalCohort:
         self.reproductive_mass_cnp = CNP(0.0, 0.0, 0.0)
         """The reproductive mass of each stoichiometric element found in the animal
           cohort, {"carbon": value, "nitrogen": value, "phosphorus": value}."""
+        self.largest_mass_achieved: float = mass
+        """The largest body-mass ever achieved by this cohort [kg]."""
 
     @property
     def mass_current(self) -> float:
@@ -119,6 +121,19 @@ class AnimalCohort:
     def reproductive_mass(self) -> float:
         """Dynamically calculate the current reproductive mass from CNP object."""
         return self.reproductive_mass_cnp.total
+
+    def update_largest_mass(self) -> None:
+        """Update the record of the largest body-mass achieved by this cohort.
+
+        This provides a rough approximation of the development process. Once maturity
+        is achieved, adult mass becomes the reference for starvation as normal.
+
+        """
+
+        if self.mass_current > self.largest_mass_achieved:
+            self.largest_mass_achieved = min(
+                self.mass_current, self.functional_group.adult_mass
+            )
 
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
@@ -1472,7 +1487,7 @@ class AnimalCohort:
 
         t_to_maturity = self.time_to_maturity
         t_since_maturity = self.time_since_maturity
-        mass_max = self.functional_group.adult_mass  # this might not be only solution
+        mass_max = self.largest_mass_achieved  # growth to adult_mass
 
         u_bg = sf.background_mortality(
             self.constants.u_bg
