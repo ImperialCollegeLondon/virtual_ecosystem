@@ -219,38 +219,48 @@ class TestLitterPool:
 
         mock_data = mocker.MagicMock(spec=Data)
         pool_name = "above_metabolic"
+        cell_id = 2
         cell_area = 100.0
         litter_mass = np.array([0.5, 0.7, 1.0])
         c_n_ratio = np.array([20.0, 25.0, 30.0])
         c_p_ratio = np.array([100.0, 120.0, 140.0])
 
+        # Inline mock chain for sel(cell_id=...).item()
         mock_data.__getitem__.side_effect = lambda key: {
-            f"litter_pool_{pool_name}": mocker.Mock(to_numpy=lambda: litter_mass),
-            f"c_n_ratio_{pool_name}": mocker.Mock(to_numpy=lambda: c_n_ratio),
-            f"c_p_ratio_{pool_name}": mocker.Mock(to_numpy=lambda: c_p_ratio),
+            f"litter_pool_{pool_name}": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: litter_mass[cell_id])
+            ),
+            f"c_n_ratio_{pool_name}": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: c_n_ratio[cell_id])
+            ),
+            f"c_p_ratio_{pool_name}": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: c_p_ratio[cell_id])
+            ),
         }[key]
 
-        litter_pool = LitterPool(pool_name, mock_data, cell_area)
+        litter_pool = LitterPool(pool_name, cell_id, mock_data, cell_area)
 
-        for i, cnp in enumerate(litter_pool.mass_cnp):
-            assert np.isclose(cnp.carbon, litter_mass[i] * cell_area)
-            assert np.isclose(cnp.nitrogen, (litter_mass[i] * cell_area) / c_n_ratio[i])
-            assert np.isclose(
-                cnp.phosphorus, (litter_mass[i] * cell_area) / c_p_ratio[i]
-            )
+        c_mass = litter_mass[cell_id] * cell_area
+        n_mass = c_mass / c_n_ratio[cell_id]
+        p_mass = c_mass / c_p_ratio[cell_id]
+
+        assert np.isclose(litter_pool.mass_cnp.carbon, c_mass)
+        assert np.isclose(litter_pool.mass_cnp.nitrogen, n_mass)
+        assert np.isclose(litter_pool.mass_cnp.phosphorus, p_mass)
 
     def test_mass_current(self, mocker):
         """Test the mass_current property of LitterPool."""
-        import numpy as np
-
         from virtual_ecosystem.models.animal.cnp import CNP
         from virtual_ecosystem.models.animal.decay import LitterPool
 
+        # Create a mock LitterPool with a single CNP object
         litter_pool = mocker.Mock()
-        litter_pool.mass_cnp = [CNP(c, c / 2, c / 4) for c in [10.0, 20.0, 30.0]]
+        litter_pool.mass_cnp = CNP(carbon=12.34, nitrogen=1.0, phosphorus=0.5)
 
+        # Access the property via descriptor protocol
         result = LitterPool.mass_current.__get__(litter_pool)
-        assert np.allclose(result.values, [10.0, 20.0, 30.0])
+
+        assert result == 12.34
 
     def test_get_eaten(self, mocker):
         """Test `get_eaten` method of LitterPool for correct nutrient consumption."""
@@ -261,31 +271,37 @@ class TestLitterPool:
         mock_data = mocker.MagicMock()
         pool_name = "test_pool"
         cell_area = 1.0
+        cell_id = 1
         litter_mass = np.array([100.0, 200.0, 300.0])
         c_n_ratio = np.array([10.0, 20.0, 30.0])
         c_p_ratio = np.array([40.0, 50.0, 60.0])
 
         mock_data.__getitem__.side_effect = lambda key: {
-            f"litter_pool_{pool_name}": mocker.Mock(to_numpy=lambda: litter_mass),
-            f"c_n_ratio_{pool_name}": mocker.Mock(to_numpy=lambda: c_n_ratio),
-            f"c_p_ratio_{pool_name}": mocker.Mock(to_numpy=lambda: c_p_ratio),
+            f"litter_pool_{pool_name}": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: litter_mass[cell_id])
+            ),
+            f"c_n_ratio_{pool_name}": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: c_n_ratio[cell_id])
+            ),
+            f"c_p_ratio_{pool_name}": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: c_p_ratio[cell_id])
+            ),
         }[key]
 
-        litter_pool = LitterPool(pool_name, mock_data, cell_area)
+        litter_pool = LitterPool(pool_name, cell_id, mock_data, cell_area)
         detritivore = mocker.MagicMock()
         detritivore.functional_group.mechanical_efficiency = 0.8
 
-        grid_cell_id = 1
         consumed_mass = 100.0
-        cell_cnp = litter_pool.mass_cnp[grid_cell_id]
+        cell_cnp = litter_pool.mass_cnp
 
         total_mass_available = cell_cnp.total
         actual_consumed_mass = min(total_mass_available, consumed_mass) * 0.8
 
-        nutrients = litter_pool.get_eaten(consumed_mass, detritivore, grid_cell_id)
+        nutrients, _ = litter_pool.get_eaten(consumed_mass, detritivore)
 
         assert np.isclose(
-            litter_pool.mass_cnp[grid_cell_id].total,
+            litter_pool.mass_cnp.total,
             total_mass_available - actual_consumed_mass,
         )
 
