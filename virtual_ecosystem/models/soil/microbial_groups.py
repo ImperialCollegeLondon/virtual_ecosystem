@@ -349,6 +349,31 @@ def make_full_set_of_enzymes(
     }
 
 
+def find_microbial_stoichiometries(config: Config) -> dict[str, dict[str, float]]:
+    """Find the stoichiometries of each microbial functional group.
+
+    This is a helper function for the animal model, as microbial stoichiometries need to
+    be known for soil consumption reasons.
+
+    Args:
+        config: The complete virtual ecosystem config.
+
+    Returns:
+        A dictionary containing the carbon to nutrient ratios of each microbial
+        functional group, for both nitrogen and phosphorus [unitless]
+    """
+
+    enzyme_classes = make_full_set_of_enzymes(config=config)
+    microbial_groups = make_full_set_of_microbial_groups(
+        config=config, enzyme_classes=enzyme_classes
+    )
+
+    return {
+        group: {"nitrogen": params.c_n_ratio, "phosphorus": params.c_p_ratio}
+        for (group, params) in microbial_groups.items()
+    }
+
+
 @dataclass
 class CarbonSupply:
     """Rate of carbon supply to each of the plant symbiotic microbial groups."""
