@@ -47,7 +47,6 @@ def test_ve_run(capsys, mocker):
                     str(outdir),
                     "--logfile",
                     str(logfile),
-                    "--progress",
                 ]
             )
 
@@ -68,3 +67,64 @@ def test_ve_run(capsys, mocker):
             # and then fail the test.
             remove_file_logger()
             pytest.fail(reason=str(excep))
+
+
+@pytest.mark.parametrize(
+    argnames="verbosity_flags, output_length",
+    argvalues=(
+        pytest.param("-qqq", 0, id="silent"),
+        pytest.param("-qq", 3, id="minimal"),
+        pytest.param("-q", 9, id="staged"),
+        pytest.param(None, 12, id="full"),
+    ),
+)
+def test_ve_run_verbosity(capsys, tmp_path, verbosity_flags, output_length):
+    """Test that the CLI verbosity is set correctly."""
+
+    from virtual_ecosystem.core.logger import remove_file_logger
+    from virtual_ecosystem.core.registry import MODULE_REGISTRY
+    from virtual_ecosystem.core.variables import KNOWN_VARIABLES, RUN_VARIABLES_REGISTRY
+    from virtual_ecosystem.entry_points import ve_run_cli
+
+    # Need to remove any existing file log attached to LOGGER and clear the variables
+    # and modules registries.
+
+    # This is not a pleasant feature of the current UI - the persistence of variable and
+    # module states between tests is extremely confusing and makes tests really hard to
+    # debug.
+
+    remove_file_logger()
+    KNOWN_VARIABLES.clear()
+    RUN_VARIABLES_REGISTRY.clear()
+    MODULE_REGISTRY.clear()
+
+    config_file = tmp_path / "config.toml"
+    with open(config_file, "w") as cfg:
+        cfg.write(
+            """
+[core.data_output_options]
+save_initial_state = false
+save_continuous_data = false
+save_final_state = false
+save_merged_config = false
+[testing]
+"""
+        )
+
+    args_list = [
+        str(config_file),
+        "--outpath",
+        str(tmp_path),
+        "--logfile",
+        str(tmp_path / "log.log"),
+    ]
+    if verbosity_flags:
+        args_list.append(verbosity_flags)
+
+    ve_run_cli(args_list=args_list)
+
+    # Test the requested --progress output ends as expected
+    out, err = capsys.readouterr()
+
+    assert len(err.splitlines()) == 0
+    assert len(out.splitlines()) == output_length
