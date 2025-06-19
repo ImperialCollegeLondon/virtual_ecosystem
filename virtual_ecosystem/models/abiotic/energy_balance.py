@@ -41,6 +41,7 @@ subtracted from the energy balance
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.optimize import newton
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
@@ -440,18 +441,26 @@ def update_soil_temperature(
     return soil_temperature
 
 
-def calculate_energy_balance_canopy(
+def calculate_energy_balance_residual(
+    canopy_temperature_initial: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    evapotranspiration: NDArray[np.float32],
     absorbed_radiation_canopy: NDArray[np.float32],
-    longwave_emission_canopy: NDArray[np.float32],
-    sensible_heat_flux_canopy: NDArray[np.float32],
-    latent_heat_flux_canopy: NDArray[np.float32],
-):
-    r"""Calculate energy balance for canopy.
+    specific_heat_air: NDArray[np.float32],
+    density_air: NDArray[np.float32],
+    aerodynamic_resistance: NDArray[np.float32],
+    latent_heat_vapourisation: NDArray[np.float32],
+    leaf_emissivity: float,
+    stefan_boltzmann_constant: float,
+    zero_Celsius: float,
+    return_fluxes: bool,
+) -> NDArray[np.float32] | dict[str, NDArray[np.float32]]:
+    r"""Calculate energy balance residual for canopy.
 
-    The energy balance (:math:`EB`) for the canopy is given by:
+    The energy balance residual (:math:`E_{res}`) for the canopy is given by:
 
     .. math::
-        EB = R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE}
+        E_{res} = R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE}
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
@@ -459,34 +468,78 @@ def calculate_energy_balance_canopy(
     flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
 
     Args:
-        absorbed_radiation_canopy: Absorbed shortwave radiation at all canopy layers,
+        canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
+        air_temperature: Initial air temperature in canopy layers, [C]
+        evapotranspiration: Evapotranspiration, [mm]
+        absorbed_radiation_canopy: Absorbed shortwave radiation for all canopy layers,
             [W m-2]
-        longwave_emission_canopy: Longwave emission from all canopy layers, [W m-2]
-        sensible_heat_flux_canopy: Sensible heat flux from all canopy layers, [W m-2]
-        latent_heat_flux_canopy: Latent heat flux from all canopy layers, [W m-2]
+        specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
+        density_air: Density of air, [kg m-3]
+        aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
+        leaf_emissivity: Leaf emissivity, dimensionless
+        stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
+        zero_Celsius: Factor to convert between Celsius and Kelvin
+        return_fluxes: Flag to indicate if all components of the energy balance should
+            be returned. This is false for the newton approach to solve for canopy
+            temperature, but true to create the outputs in a second call afterwards.
 
     Returns:
-        energy balance, [W m-2]
+        full energy balance or energy balance residual, [W m-2]
     """
-    return (
+
+    # Longwave emission from canopy, [W m-2]
+    longwave_emission_canopy = calculate_longwave_emission(
+        temperature=canopy_temperature_initial + zero_Celsius,
+        emissivity=leaf_emissivity,
+        stefan_boltzmann=stefan_boltzmann_constant,
+    )
+
+    #  Sensible heat flux from canopy layers, [W m-2]
+    sensible_heat_flux_canopy = calculate_sensible_heat_flux(
+        density_air=density_air,
+        specific_heat_air=specific_heat_air,
+        air_temperature=air_temperature,
+        surface_temperature=canopy_temperature_initial,
+        aerodynamic_resistance=aerodynamic_resistance,
+    )
+
+    # Latent heat flux canopy, [W m-2]
+    # The current implementation converts outputs from plant and hydrology model to
+    # ensure energy conservation between modules for now.
+    # TODO cross-check with plant model, time step currently month to second
+    latent_heat_flux_canopy = (evapotranspiration / 2.628e6) * latent_heat_vapourisation
+
+    energy_balance_residual = (
         absorbed_radiation_canopy
         - np.abs(longwave_emission_canopy)
         - np.abs(sensible_heat_flux_canopy)
         - np.abs(latent_heat_flux_canopy)
     )
 
+    if return_fluxes:
+        energy_balance = {
+            "longwave_emission_canopy": longwave_emission_canopy,
+            "sensible_heat_flux_canopy": sensible_heat_flux_canopy,
+            "latent_heat_flux_canopy": latent_heat_flux_canopy,
+            "energy_balance_residual": energy_balance_residual,
+        }
+        return energy_balance
+    else:
+        return energy_balance_residual
+
 
 def calculate_derivative_energy_balance(
     canopy_temperature: NDArray[np.float32],
-    emissivity_leaf: float,
     specific_heat_air: NDArray[np.float32],
     density_air: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
     stomatal_resistance: float | NDArray[np.float32],
     latent_heat_vaporisation: NDArray[np.float32],
+    emissivity_leaf: float,
     stefan_boltzmann_constant: float,
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
-):
+) -> NDArray[np.float32]:
     r"""Estimate derivative of energy balance.
 
     This function estimates the derivative of the energy balance analytically
@@ -506,13 +559,13 @@ def calculate_derivative_energy_balance(
 
     Args:
         canopy_temperature: canopy temperatures for all true canopy layers, [C]
-        emissivity_leaf: Leaf emissivity
+        emissivity_leaf: Leaf emissivity, dimensionless
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vaporisation: Latent heat of vaporisation, [kJ kg-1]
-        stefan_boltzmann_constant: Stefan Boltzmann constant
+        stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
 
@@ -541,27 +594,33 @@ def calculate_derivative_energy_balance(
     )
 
 
-def update_air_canopy_temperature(
-    canopy_temperature: NDArray[np.float32],
+def solve_canopy_temperature(
+    canopy_temperature_initial: NDArray[np.float32],
     air_temperature: NDArray[np.float32],
+    evapotranspiration: NDArray[np.float32],
+    absorbed_radiation_canopy: NDArray[np.float32],
     specific_heat_air: NDArray[np.float32],
     density_air: NDArray[np.float32],
-    energy_balance_canopy: NDArray[np.float32],
-    derivative_energy_balance_canopy: NDArray[np.float32],
-    aerodynamic_resistance: float | NDArray[np.float32],
-    numerical_stability_factor: float,
-    time_interval: int,
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
-    r"""Update air and canopy temperature in steady state.
+    aerodynamic_resistance: NDArray[np.float32],
+    stomatal_resistance: NDArray[np.float32],
+    latent_heat_vapourisation: NDArray[np.float32],
+    emissivity_leaf: float,
+    stefan_boltzmann_constant: float,
+    zero_Celsius: float,
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+    return_fluxes: bool = False,
+    maxiter=int,
+) -> NDArray[np.float32]:
+    r"""Solve for canopy temperature where energy balance residual is zero.
 
     The method linearizes the energy balance of the canopy and air temperature updates
     using Newton approximation for temperature adjustment following
     :cite:t:`yang_scope_2021`.
 
-    The energy balance (:math:`EB`) for the canopy is given by:
+    The energy balance for the canopy is given by:
 
     .. math::
-        EB = R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE}
+        R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE} = 0
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
@@ -589,6 +648,99 @@ def update_air_canopy_temperature(
     the saturation vapour pressure curve, :math:`\lambda` is the latent heat
     of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
     stomatal resistance, [s m-1], respectively.
+    """
+
+    nrows, ncols = canopy_temperature_initial.shape
+    solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float32)
+
+    for i in range(nrows):
+        for j in range(ncols):
+
+            def residual_func(canopy_temp_scalar):
+                # Call the residual function with a 1x1 array input
+                result = calculate_energy_balance_residual(
+                    canopy_temperature_initial=np.array(
+                        [[canopy_temp_scalar]], dtype=np.float32
+                    ),
+                    air_temperature=np.array(
+                        [[air_temperature[i, j]]], dtype=np.float32
+                    ),
+                    evapotranspiration=np.array(
+                        [[evapotranspiration[i, j]]], dtype=np.float32
+                    ),
+                    absorbed_radiation_canopy=np.array(
+                        [[absorbed_radiation_canopy[i, j]]], dtype=np.float32
+                    ),
+                    specific_heat_air=np.array(
+                        [[specific_heat_air[i, j]]], dtype=np.float32
+                    ),
+                    density_air=np.array([[density_air[i, j]]], dtype=np.float32),
+                    aerodynamic_resistance=np.array(
+                        [[aerodynamic_resistance[i, j]]], dtype=np.float32
+                    ),
+                    latent_heat_vapourisation=latent_heat_vapourisation,
+                    leaf_emissivity=emissivity_leaf,
+                    stefan_boltzmann_constant=stefan_boltzmann_constant,
+                    zero_Celsius=zero_Celsius,
+                    return_fluxes=False,
+                )
+                # Extract scalar from 1x1 array or a single element array
+                if isinstance(result, np.ndarray):
+                    if result.size == 1:
+                        return result.item()
+                    else:
+                        # Choose how to reduce the array to scalar, e.g. first element
+                        return result.flat[0]
+                return result
+
+            def derivative_func(canopy_temp_scalar):
+                result = calculate_derivative_energy_balance(
+                    canopy_temperature=np.array(
+                        [[canopy_temp_scalar]], dtype=np.float32
+                    ),
+                    specific_heat_air=np.array(
+                        [[specific_heat_air[i, j]]], dtype=np.float32
+                    ),
+                    density_air=np.array([[density_air[i, j]]], dtype=np.float32),
+                    aerodynamic_resistance=aerodynamic_resistance[i, j],
+                    stomatal_resistance=stomatal_resistance[i, j],
+                    latent_heat_vaporisation=latent_heat_vapourisation,
+                    emissivity_leaf=emissivity_leaf,
+                    stefan_boltzmann_constant=stefan_boltzmann_constant,
+                    saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
+                )
+                if isinstance(result, np.ndarray):
+                    if result.size == 1:
+                        return result.item()
+                    else:
+                        # Choose how to reduce the array to scalar, e.g. first element
+                        return result.flat[0]
+                return result
+
+            x0 = canopy_temperature_initial[i, j]
+
+            try:
+                solved_temperature[i, j] = newton(
+                    func=residual_func,
+                    x0=x0,
+                    fprime=derivative_func,
+                    maxiter=maxiter,
+                )
+            except RuntimeError:
+                solved_temperature[i, j] = np.nan
+
+    return solved_temperature
+
+
+def update_air_temperature(
+    canopy_temperature: NDArray[np.float32],
+    air_temperature: NDArray[np.float32],
+    specific_heat_air: NDArray[np.float32],
+    density_air: NDArray[np.float32],
+    aerodynamic_resistance: float | NDArray[np.float32],
+    time_interval: int,
+) -> NDArray[np.float32]:
+    r"""Update air temperature in steady state.
 
     The new air temperature :math:`T_{A}^{new}` is given by:
 
@@ -604,27 +756,19 @@ def update_air_canopy_temperature(
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
-        energy_balance_canopy: Energy balance of the canopy, [W m-2]
-        derivative_energy_balance_canopy: Derivative of the energy balance of the
-            canopy, [W m-2]
-        numerical_stability_factor: Numerical stability factor, dimensionless
         time_interval: Time interval, [s]
 
     Returns:
-        Updated canopy and air temperatures, [C]
+        Updated air temperatures, [C]
     """
 
     # Update temperatures
-    new_canopy_temperature = canopy_temperature + numerical_stability_factor * (
-        energy_balance_canopy / derivative_energy_balance_canopy
-    )
-
     alpha = time_interval / (density_air * specific_heat_air * aerodynamic_resistance)
     new_air_temperature = air_temperature + alpha * (
         canopy_temperature - air_temperature
     )
 
-    return new_canopy_temperature, new_air_temperature
+    return new_air_temperature
 
 
 def update_humidity_vpd(

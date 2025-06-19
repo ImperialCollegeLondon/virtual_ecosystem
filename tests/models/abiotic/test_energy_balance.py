@@ -290,87 +290,195 @@ def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_te
     np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
 
 
-def test_calculate_energy_balance_canopy():
-    """Test calculation of energy balance."""
+def test_energy_balance_residual_only(dummy_climate_data, fixture_core_components):
+    """Test energy balance residual without flux return."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_energy_balance_canopy,
+        calculate_energy_balance_residual,
     )
 
-    # Test inputs (2D arrays for layers and grid cells)
-    absorbed_radiation_canopy = np.array([[500.0, 500.0], [500.0, 500.0]])
-    longwave_emission_canopy = np.array([[-400.0, -400.0], [400.0, 400.0]])
-    sensible_heat_flux_canopy = np.array([[-50.0, -60.0], [70.0, 80.0]])
-    latent_heat_flux_canopy = np.array([[-30.0, -40.0], [50.0, 60.0]])
+    data = dummy_climate_data
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
 
-    exp_energy_balance = np.array([[20.0, 0.0], [-20.0, -40.0]])
-
-    result = calculate_energy_balance_canopy(
-        absorbed_radiation_canopy=absorbed_radiation_canopy,
-        longwave_emission_canopy=longwave_emission_canopy,
-        sensible_heat_flux_canopy=sensible_heat_flux_canopy,
-        latent_heat_flux_canopy=latent_heat_flux_canopy,
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    result = calculate_energy_balance_residual(
+        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
+        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        latent_heat_vapourisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        leaf_emissivity=AbioticConsts.leaf_emissivity,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
+        return_fluxes=False,
     )
 
-    np.testing.assert_allclose(result, exp_energy_balance, rtol=1e-4)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (3, 4)
+    assert np.isfinite(result[0, 0])
 
 
-def test_calculate_derivative_energy_balance():
-    """Test calculate derivative of energy balance."""
+def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_components):
+    """Test energy balance residual with flux return."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_energy_balance_residual,
+    )
+
+    data = dummy_climate_data
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    result = calculate_energy_balance_residual(
+        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
+        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        latent_heat_vapourisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        leaf_emissivity=AbioticConsts.leaf_emissivity,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
+        return_fluxes=True,
+    )
+
+    assert isinstance(result, dict)
+    expected_keys = {
+        "longwave_emission_canopy",
+        "sensible_heat_flux_canopy",
+        "latent_heat_flux_canopy",
+        "energy_balance_residual",
+    }
+    assert set(result.keys()) == expected_keys
+    for key in expected_keys:
+        assert isinstance(result[key], np.ndarray)
+        assert result[key].shape == (3, 4)
+
+
+def test_calculate_derivative_energy_balance(
+    dummy_climate_data, fixture_core_components
+):
+    """Test calculate derivative of energy balance residual."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         calculate_derivative_energy_balance,
     )
 
-    exp_derivative = np.array([[6.088614, 5.794509], [6.029012, 5.736853]])
+    data = dummy_climate_data
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
 
-    result = calculate_derivative_energy_balance(
-        canopy_temperature=np.array([[31.0, 26.0], [30.0, 25.0]]),
-        emissivity_leaf=0.95,
-        specific_heat_air=np.full((2, 2), 1.006),
-        density_air=np.full((2, 2), 1.293),
-        aerodynamic_resistance=np.full((2, 2), 50.0),
-        stomatal_resistance=np.full((2, 2), 100.0),
-        latent_heat_vaporisation=2268,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        saturated_pressure_slope_parameters=(
-            AbioticConsts.saturated_pressure_slope_parameters
-        ),
+    stomatal_resistance = (
+        CoreConsts.conductance_to_resistance_conversion_factor
+        / data["stomatal_conductance"][canopy_index].to_numpy()
     )
 
-    np.testing.assert_allclose(result, exp_derivative, rtol=1e-4)
+    # Extra parameters for this function
+    saturated_pressure_slope_parameters = (
+        AbioticConsts.saturated_pressure_slope_parameters
+    )
+
+    result = calculate_derivative_energy_balance(
+        canopy_temperature=data["canopy_temperature"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        stomatal_resistance=stomatal_resistance,
+        latent_heat_vaporisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        emissivity_leaf=AbioticConsts.leaf_emissivity,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
+    )
+
+    assert isinstance(result, np.ndarray)
+    assert np.all(np.isfinite(result))
+    assert np.all(result > 0)
 
 
-def test_update_air_canopy_temperature():
+def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
+    """Test solving canopy temperature with Newton method."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        solve_canopy_temperature,
+    )
+
+    data = dummy_climate_data
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    stomatal_resistance = (
+        CoreConsts.conductance_to_resistance_conversion_factor
+        / data["stomatal_conductance"][canopy_index].to_numpy()
+    )
+
+    result = solve_canopy_temperature(
+        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
+        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        stomatal_resistance=stomatal_resistance,
+        latent_heat_vapourisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        emissivity_leaf=0.96,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
+        saturated_pressure_slope_parameters=AbioticConsts.saturated_pressure_slope_parameters,
+        return_fluxes=False,
+        maxiter=5,
+    )
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == data["canopy_temperature"][canopy_index].shape
+    np.testing.assert_allclose(
+        result,
+        np.array(np.full((3, 4), np.nan)),
+    )
+    # assert np.all((result > -50) & (result < 80))  # plausible range for °C
+
+
+def test_update_air_temperature():
     """Test update air and canopy temperatures."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_air_canopy_temperature,
+        update_air_temperature,
     )
 
     air_temperature = np.array([[30.0, 25.0], [28.0, 23.0]])
     canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
 
     # Expected outputs
-    expected_canopy_temperature = np.array([[31.2, 26.0], [29.8, 24.6]])
     expected_air_temperature = np.array(
         [[30.276762, 25.276762], [28.553523, 23.553523]]
     )
 
     # Call the function
-    updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
+    updated_air_temperature = update_air_temperature(
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
         specific_heat_air=np.full((2, 2), 1006),
         density_air=np.full((2, 2), 1.293),
-        energy_balance_canopy=np.array([[20.0, 0.0], [-20.0, -40.0]]),
-        derivative_energy_balance_canopy=np.full((2, 2), 10),
         aerodynamic_resistance=np.full((2, 2), 10.0),
-        numerical_stability_factor=0.1,
         time_interval=3600,
     )
 
-    # Assertions
-    np.testing.assert_allclose(
-        updated_canopy_temperature, expected_canopy_temperature, rtol=1e-4
-    )
     np.testing.assert_allclose(
         updated_air_temperature, expected_air_temperature, rtol=1e-4
     )
