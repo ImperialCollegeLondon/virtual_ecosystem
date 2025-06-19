@@ -436,7 +436,7 @@ def test_Config_load_config_toml_string(
             does_not_raise(),
             (
                 (INFO, "Config built from 1 file(s)"),
-                (INFO, "Config input file: path/not/used"),
+                (INFO, "Config input file: path_not_used.toml"),
             ),
             id="single_file_ok",
         ),
@@ -463,7 +463,7 @@ def test_Config_load_config_toml_string(
             does_not_raise(),
             (
                 (INFO, "Config built from 2 file(s)"),
-                (INFO, "Config input file: path/not/used"),
+                (INFO, "Config input file: path_not_used.toml"),
             ),
             id="two_files_valid",
         ),
@@ -476,7 +476,7 @@ def test_Config_load_config_toml_string(
             does_not_raise(),
             (
                 (INFO, "Config built from 3 file(s)"),
-                (INFO, "Config input file: path/not/used"),
+                (INFO, "Config input file: path_not_used.toml"),
             ),
             id="three_files_valid",
         ),
@@ -499,7 +499,7 @@ def test_Config_build_config_paths(
     from virtual_ecosystem.core.config import Config
 
     # Initialise the Config instance and manually populate the loaded TOML
-    cfg = Config(cfg_paths=["path/not/used"], auto=False)
+    cfg = Config(cfg_paths=["path_not_used.toml"], auto=False)
     cfg.toml_contents = content
     caplog.clear()
 
