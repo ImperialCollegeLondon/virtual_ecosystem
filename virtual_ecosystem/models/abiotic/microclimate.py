@@ -304,7 +304,7 @@ def run_microclimate(
         zero_Celsius=core_constants.zero_Celsius,
         saturated_pressure_slope_parameters=abiotic_constants.saturated_pressure_slope_parameters,
         return_fluxes=False,
-        maxiter=5,
+        maxiter=50,
     )
 
     # Update air temperature based on new canopy temperature, [C]

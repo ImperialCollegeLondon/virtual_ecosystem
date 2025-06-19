@@ -608,10 +608,12 @@ def solve_canopy_temperature(
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
+    maxiter: int,
     return_fluxes: bool = False,
-    maxiter=int,
 ) -> NDArray[np.float32]:
     r"""Solve for canopy temperature where energy balance residual is zero.
+
+    TODO update for scipy implementation
 
     The method linearizes the energy balance of the canopy and air temperature updates
     using Newton approximation for temperature adjustment following
@@ -648,6 +650,30 @@ def solve_canopy_temperature(
     the saturation vapour pressure curve, :math:`\lambda` is the latent heat
     of vapourisation, [kJ kg-1], :math:`r_{a}` and :math:`r_{s}` are the aerodynamic and
     stomatal resistance, [s m-1], respectively.
+
+    Args:
+        canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
+        air_temperature: Initial air temperature in canopy layers, [C]
+        evapotranspiration: Evapotranspiration, [mm]
+        absorbed_radiation_canopy: Absorbed shortwave radiation for all canopy layers,
+            [W m-2]
+        specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
+        density_air: Density of air, [kg m-3]
+        aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
+        stomatal_resistance: Stomatal resistance, [s m-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
+        emissivity_leaf: Leaf emissivity, dimensionless
+        stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
+        zero_Celsius: Factor to convert between Celsius and Kelvin
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+        maxiter: Maximum number of iterations
+        return_fluxes: Flag to indicate if all components of the energy balance should
+            be returned. This is false for the newton approach to solve for canopy
+            temperature, but true to create the outputs in a second call afterwards.
+
+    Returns:
+        canopy temperature, [C]
     """
 
     nrows, ncols = canopy_temperature_initial.shape
@@ -726,7 +752,9 @@ def solve_canopy_temperature(
                     fprime=derivative_func,
                     maxiter=maxiter,
                 )
-            except RuntimeError:
+
+            except RuntimeError as e:
+                print(f"Newton failed at ({i},{j}) with x0={x0}: {e}")
                 solved_temperature[i, j] = np.nan
 
     return solved_temperature
