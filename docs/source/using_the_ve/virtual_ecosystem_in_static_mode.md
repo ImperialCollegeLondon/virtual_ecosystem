@@ -36,10 +36,10 @@ Now imagine you could **pause parts of this scene** — hold
 the soil moisture constant, freeze the behaviour of animals, or keep the microclimate
 unchanged — while the rest of the ecosystem continues to move through time.
 
-This is the essence of the **static mode** in the Virtual Ecosystem model.
+This is the essence of the **Static Mode** in the Virtual Ecosystem model.
 
 In complex systems where **everything interacts** it can be hard to isolate what’s
-causing what. **Static mode helps untangle this web** by letting you "freeze" components
+causing what. **Static Mode helps untangle this web** by letting you "freeze" components
 like plants or animals while others remain dynamic. At each model step, static
 components reset to their original state (e.g. eaten leaves magically reappear) —
 like a controlled reset — so any change comes only from the active, evolving parts.
@@ -48,7 +48,7 @@ This setup enables **targeted experiments** within the full model framework. For
 example, you can test how vegetation responds to changing temperatures without feedback
 from soil moisture changes, or explore animal behaviour in a fixed vegetation landscape.
 
-By choosing which components evolve over time and which stay fixed, static model helps
+By choosing which components evolve over time and which stay fixed, Static Mode helps
 reveal **drivers of ecological change** - helping us understand not just
 **what happens**, but **why**.
 
@@ -102,6 +102,8 @@ If you haven’t yet installed and executed the example, follow the
 setup.
 
 ```{code-cell} ipython3
+:tags: [remove-cell]
+
 %%bash
 # Remove any existing VE data directory in the /tmp/ directory
 if [ -d /tmp/ve_example ]; then
@@ -109,11 +111,16 @@ if [ -d /tmp/ve_example ]; then
 fi
 ```
 
+Install the example code - do make sure that you don't have an old copy of this example
+code in your temporary directory before starting this exercise!
+
 ```{code-cell} ipython3
 %%bash
 # Install the example data directory from the Virtual Ecosystem package
 ve_run --install-example /tmp/
 ```
+
+Run the example model with the provided full configuration.
 
 ```{code-cell} ipython3
 :tags: [hide-output]
@@ -133,7 +140,7 @@ Once the baseline run is complete, you can set up the experiment with default
 'hydrology-only' (no changes to parameters or input data):
 
 - **This is essential**: Create a new output folder: `/ve_example/HydroDefault_out/`.
-  the Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
+  The Virtual Ecosystem output files have fixed names and cannot be overwritten; if they
   already exist in your output directory, the model will crash.
 - Navigate to the `/ve_example/out/` folder.
 - Copy the `ve_full_model_configuration.toml` file and rename it, for example to
@@ -146,14 +153,19 @@ Once the baseline run is complete, you can set up the experiment with default
   static=true
   ```
 
-Here is how you can do these steps programmatically:
-
 ```{code-cell} ipython3
-:tags: [hide-input]
+:tags: [remove-cell]
 
+# Generate the static config file programmatically
+import sys
 from pathlib import Path
-import toml
-import copy
+
+import tomli_w
+
+if sys.version_info[:2] >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 # Create output directory
 output_dir = Path("/tmp/ve_example/HydroDefault_out/")
@@ -166,29 +178,28 @@ if output_dir.exists() and output_dir.is_dir():
             file.unlink()
 
 # Load the original config
-config = toml.load("/tmp/ve_example/out/ve_full_model_configuration.toml")
+with open("/tmp/ve_example/out/ve_full_model_configuration.toml", "rb") as cfg:
+    config = tomllib.load(cfg)
 
-# Make a copy to modify
-new_config = copy.deepcopy(config)
+# Update the static settings
 config["abiotic_simple"]["static"] = True
 config["plants"]["static"] = True
 config["animal"]["static"] = True
 config["soil"]["static"] = True
 config["litter"]["static"] = True
-config["core"]["data_output_options"]["out_path"] = "/tmp/ve_example/HydroDefault_out/"
 
 # Save to a new file
-with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "w") as f:
-    toml.dump(config, f)
+with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "wb") as out:
+    tomli_w.dump(config, out)
 ```
 
 #### Run HydroDefault experiment
 
-Now run the model with the new configuration from you command line and make sure that
+Now run the model with the new configuration from your command line and make sure that
 the `--outpath` command in the second line is followed by the directory of the new
 output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`), and the
 and the `--logfile` command in the third line is followed by the same path and a new
-file name - ending in `.log`:
+file name ending in `.log`:
 
 ```{code-cell} ipython3
 :tags: [hide-output]
@@ -201,8 +212,8 @@ ve_run /tmp/ve_example/static_config/HydroDefault_config.toml \
 
 #### Compare HydroConst results to baseline
 
-To compare the results of the HydroDefault experiment to the fully dynamic ve_example,
-load the results from `/ve_example/out/` and `/ve_example/HydroDefault_out/`:
+To compare the results of the HydroDefault experiment to the fully dynamic `ve_example`,
+load the continuous results from `/ve_example/out/` and `/ve_example/HydroDefault_out/`:
 
 ```{code-cell} ipython3
 import xarray
@@ -333,41 +344,35 @@ these steps:
   static = false
 ```
 
-Here is how you can do these steps programmatically:
-
 ```{code-cell} ipython3
-:tags: [hide-input]
-
-from pathlib import Path
-import toml
-import copy
+:tags: [remove-cell]
 
 # Create output directory
 output_dir = Path("/tmp/ve_example/HydroDry_out/")
-output_dir.mkdir(parents=True, exist_ok=True)
 
-# Check that the directory is empty
+# If the directory exists, make sure it is empty otherwise create it
 if output_dir.exists() and output_dir.is_dir():
     for file in output_dir.iterdir():
         if file.is_file():
             file.unlink()
+else:
+    output_dir.mkdir(parents=True, exist_ok=True)
 
 # Load the original config
-config = toml.load("/tmp/ve_example/static_config/HydroDefault_config.toml")
+with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "rb") as cfg:
+    config = tomllib.load(cfg)
 
-# Make a copy to modify initial soil moisture and out_path
-new_config = copy.deepcopy(config)
+# Modify initial soil moisture
 config["hydrology"]["initial_soil_moisture"] = 0.3
-config["core"]["data_output_options"]["out_path"] = "/tmp/ve_example/HydroDry_out/"
 
 # Save to a new file
-with open("/tmp/ve_example/static_config/HydroDry_config.toml", "w") as f:
-    toml.dump(config, f)
+with open("/tmp/ve_example/static_config/HydroDry_config.toml", "wb") as out:
+    tomli_w.dump(config, out)
 ```
 
 #### Run HydroDry experiment
 
-Now run the model with the new configuration from you command line. Again, make sure
+Now run the model with the new configuration from your command line. Again, make sure
 that the `--outpath` command in the second line is followed by the directory of the new
 output folder that you just created (here `/tmp/ve_example/HydroDry_out/`), and the
 and the `--logfile` command in the third line is followed by the same path and a new
@@ -385,8 +390,7 @@ ve_run /tmp/ve_example/static_config/HydroDry_config.toml \
 #### Compare HydroConst and HydroDry results
 
 To compare the results of different initial soil moisture levels in the hydrology-only
-configuration, load the results from `/ve_example/HydroDefault_out/` and
-`/ve_example/HydroDry_out/`:
+configuration, load the continuous results from `/ve_example/HydroDry_out/`:
 
 ```{code-cell} ipython3
 hydrodry = xarray.load_dataset("/tmp/ve_example/HydroDry_out/all_continuous_data.nc")

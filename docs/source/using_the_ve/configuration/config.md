@@ -201,46 +201,83 @@ downstream functions can make use of it. This is as a simple nested dictionary.
 
 ## Static models
 
-All models (except `core`) accept a boolean configuration option, `static`, that
-indicates if such a model should be updated every iteration (`static=false`, the
-default behaviour) or not.
+When a model is included in a Virtual Ecosystem simulation, it runs a sequence of data
+variable creation and updating:
 
-There are various use cases for the static functionality. In development this could be
-used for debugging, by keeping all models but one static in order to isolate and
-assess changes. It could also be used when using the model to explore individual models
-or combinations of models to understand the interactions without running the entire
-complex model. For an example of how to use the static model, see
-[this tutorial](../virtual_ecosystem_in_static_mode.md).
+* All data needed by the model to set up is read in.
+* The initial model setup adds new variables provided by the model.
+* When the model updates at the first time step it create additional new variables.
+* At each time step, it then updates a set of variables.
 
-Even when the model is run in static mode the model constants and variables need to be
-populated, for use by any models that are not in static mode. The way these variables
-are populated depends on the data provided at the start of the simulation in the
-[`Data` object](../data/data.md).
+This sequence of changing data drives the interactions between models and leads to
+complex ecological behaviour. However, this complexity can be problematic and it can be
+useful to set some models to keep their data in a static state. For example:
 
-* If the data object has all variables in the model's `vars_populated_by_init`, then the
-model `_setup` function is skipped.
-* If the data object contains all `vars_populated_by_first_update` then the `update` is
-skipped, otherwise it is run once to initialise the variables and then frozen for the
-rest of the simulation run.
+* In development this could be used for debugging, by keeping all models but one static
+  in order to isolate and  assess changes.
 
-In practice there are two ways to run the static mode.
+* It could also be used to explore individual models or combinations of models to
+  understand the interactions without running the entire complex model.
 
-* Standard initial data is provided to the model, without any of the variables set by
-logic in `_setup` or `update`. This is the simplest and most common use cases. In this
-instance, `_setup` will run and `update` will run once for each static model, before
-freezing for the rest of the simulation.
-* All model variables are predefined. The most likely case for this is when using a
-previously run model configuration file, which includes all the variables initialised by
-the `_setup` and `update` functions.
+To implement this, all models (except `core`) accept a boolean configuration option,
+`static`, that indicates if such the model data should held static. Changing the default
+configuration `static=false` to `static=true` puts a model into static mode. For an
+example of this in use, see [this tutorial](../virtual_ecosystem_in_static_mode.md).
 
-Providing some but not all of the variables will result in an error in all cases.
+However, even when the model is run in static mode the model constants and variables
+need to be populated, for use by any models that are not in static mode. Because of
+this, you still need to provide any model configuration and data. You do have some
+choices for providing data that give increasingly fine control on what values are passed
+to the other models.
+
+1. You **must** provide all the required data to initialise the model. The
+  list of required variables is stored in the model's `vars_required_for_init`
+  attribute: see for example the [plant model required
+  variables](../../virtual_ecosystem/implementation/plants_implementation.md#required-variables).
+
+   If you only provide the required variables, then the model will take this data and
+   run the setup and first update steps and then go into static mode.
+
+2. You can additionally provide all of the variables created by the model initial setup.
+   The list of these variables is stored in the model's `vars_populated_by_init`
+   attribute: see for example the [plant model generated
+   variables](../../virtual_ecosystem/implementation/plants_implementation.md#generated-variables).
+
+   If you only provide the setup generated variables, then the model will skip the setup
+   steps and use your provided values to run the first update step before going into
+   static mode.
+
+3. Finally, you can additionally provide all of the variables created by the model first
+   update. The list of these variables is stored in the model's
+   `vars_populated_by_first_update` attribute: again, see for example the [plant model
+   generated
+   variables](../../virtual_ecosystem/implementation/plants_implementation.md#generated-variables).
+
+   If you provide the first update variables as well, then there is nothing left for the
+   model to calculate for itself, and it will go into static mode without running setup
+   or the first update.
+
+   This approach allows you to dictate every value provided by your static model to the
+   rest of the simulation. This is powerful but it is very demanding to get the details
+   right. A good start could be to run a full simulation for a single time step and then
+   use and modify the model outputs from that run as inputs to a static model
+   configuration.
+
+These different scenarios are identified automatically when the simulation starts by
+comparing the different sets of required variables to what has been loaded into
+the [`Data` object](../data/data.md) from the configuration. In addition, note that:
+
+* Providing some but not all of the variables required in steps 2 or 3 above will result
+  in an error.
+* The stages above form a hierarchy - you cannot just provide the first update variables
+  without providing the initial data.
 
 In summary,
 
-| Static | _setup | _update | Comments                                                 |
+| Static | Setup data provided | First update data provided | Behaviour                |
 | ------ | ------ | ------- | ---------------------------------------------------------|
-| No     | Yes    | Yes     | Default model behaviour.                                 |
-| Yes    | Yes    | Once    | Update once and freeze.                                  |
-| Yes    | No     | No      | All setup and update data are provided from the config.  |
-| Yes    | No     | Once    | Improper configuration, will not run.                    |
-| Yes    | Yes    | No      | Improper configuration, will not run.                    |
+| No     | ---    | ---     | Default model behaviour.                                 |
+| Yes    | No     | No      | Model sets up and runs first update from initial data    |
+| Yes    | Yes    | No      | Model skips setup and runs first update                  |
+| Yes    | Yes    | Yes     | Model skips setup and first update                       |
+| Yes    | No     | Yes     | Improper configuration, will not run.                    |
