@@ -71,6 +71,7 @@ class TestAnimalModel:
                     ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
+                    (INFO, "Updating animal model"),
                     (INFO, "Adding data array for 'decomposed_excrement_carbon'"),
                     (INFO, "Adding data array for 'decomposed_excrement_nitrogen'"),
                     (INFO, "Adding data array for 'decomposed_excrement_phosphorus'"),

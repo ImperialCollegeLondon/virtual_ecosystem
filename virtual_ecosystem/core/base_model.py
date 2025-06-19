@@ -417,12 +417,20 @@ class BaseModel(ABC):
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+
+        log_message = f"Updating {self.model_name} model"
+
         if self._static:
             if not self._run_initial_static_update:
+                LOGGER.info(f"Model {self.model_name} in static mode, no update.")
                 return
             else:
                 self._run_initial_static_update = False
+                log_message = (
+                    f"Running initial update for {self.model_name} model in static mode"
+                )
 
+        LOGGER.info(log_message)
         self._update(time_index, **kwargs)
 
     @abstractmethod
