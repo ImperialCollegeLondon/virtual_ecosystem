@@ -70,8 +70,8 @@ def test_PlantsModel__init__(
     assert plants_model.flora == flora
     assert len(plants_model.communities) == n_cells
 
-    # Check the canopy has been initialised and updated, using the full layer heights
-    # data
+    # Check the canopy and subcanopy vegetation has been initialised and updated,
+    # using the test cases providing full details, not the canopy only test cases.
     # TODO - amend this as and when layer heights gets centralised
 
     data_validator(
@@ -79,7 +79,6 @@ def test_PlantsModel__init__(
         fixture_canopy_layer_data,
         skip=[
             "layer_heights_canopy",
-            "layer_leaf_mass",
             "leaf_area_index_canopy",
             "layer_fapar_canopy",
         ],
@@ -178,9 +177,8 @@ def test_PlantsModel_from_config(
         fixture_canopy_layer_data,
         skip=[
             "layer_heights_canopy",
-            "layer_leaf_mass",
-            "leaf_area_index_canopy_only",
-            "layer_fapar_canopy_only",
+            "leaf_area_index_canopy",
+            "layer_fapar_canopy",
         ],
     )
 
@@ -200,18 +198,17 @@ def test_PlantsModel_update_canopy_layers(fxt_plants_model, fixture_canopy_layer
     # Calling the method resets to the expected values
     fxt_plants_model.update_canopy_layers()
 
-    # Check the resulting repopulated canopy data, but omitting the
-    # shortwave_absorption, which should not have been regenerated yet and also use the
-    # LAI and fAPAR data that omit the subcanopy vegetation layer
+    # Check the resulting repopulated canopy data - this will only repopulate the active
+    # canopy layers so do not use the full layer test cases and also omit
+    # shortwave_absorption, which should not have been regenerated yet.
     data_validator(
         fxt_plants_model,
         fixture_canopy_layer_data,
         skip=[
             "shortwave_absorption",
             "layer_heights_full",
-            "layer_leaf_mass",
-            "leaf_area_index",
-            "layer_fapar",
+            "leaf_area_index_full",
+            "layer_fapar_full",
         ],
     )
 
@@ -239,9 +236,9 @@ def test_PlantsModel_set_shortwave_absorption(
         fixture_canopy_layer_data,
         skip=[
             "layer_heights_full",
-            "layer_leaf_mass",
-            "leaf_area_index_canopy_only",
-            "layer_fapar_canopy_only",
+            # "layer_leaf_mass",
+            "leaf_area_index_canopy",
+            "layer_fapar_canopy",
         ],
     )
 
@@ -349,8 +346,8 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
         fixture_canopy_layer_data,
         skip=[
             "layer_heights_full",
-            "leaf_area_index_canopy_only",
-            "layer_fapar_canopy_only",
+            "leaf_area_index_canopy",
+            "layer_fapar_canopy",
         ],
     )
 

@@ -488,8 +488,9 @@ class PlantsModel(
             # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
             fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-            # Calculate the leaf mass per stem per layer as:
-            #  - stem leaf area * (1/sigma) * L
+            # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L) and
+            # then scale up to the number of individuals and sum across cohorts to give
+            # a total mass per layer within the cell.
             # TODO - need to expose the per cohort data to allow selective herbivory.
             # BUG  - The calculation here needs to be robust to no plants being present
             #        in a cell. At the moment, even with plants present, the scaling of
@@ -498,12 +499,13 @@ class PlantsModel(
             #        per layer, which then breaks the setting of the filled layer mask.
             #        But with actually no plants present, the code still needs to work.
 
-            leaf_mass_per_cohort_per_layer = (
+            cohort_leaf_mass_per_layer = (
                 canopy.cohort_data.stem_leaf_area
                 * (1 / community.stem_traits.sla)
                 * community.stem_traits.lai
-            )
-            mass[fill_idx] = leaf_mass_per_cohort_per_layer.sum(axis=1, keepdims=True)
+            ) * community.cohorts.n_individuals
+
+            mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
 
             # LAI - insert community average LAI values from light capture model
             lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
