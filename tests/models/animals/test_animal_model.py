@@ -15,6 +15,7 @@ def prepared_animal_model_instance(
     fixture_core_components,
     functional_group_list_instance,
     constants_instance,
+    microbial_c_n_p_ratios,
 ):
     """Animal model instance in which setup has already been run."""
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -24,6 +25,7 @@ def prepared_animal_model_instance(
         core_components=fixture_core_components,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
     return model
 
@@ -37,6 +39,7 @@ class TestAnimalModel:
         fixture_core_components,
         functional_group_list_instance,
         constants_instance,
+        microbial_c_n_p_ratios,
     ):
         """Test `AnimalModel` initialization."""
         from virtual_ecosystem.core.base_model import BaseModel
@@ -48,6 +51,7 @@ class TestAnimalModel:
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
         # In cases where it passes then checks that the object has the right properties
@@ -407,12 +411,62 @@ class TestAnimalModel:
                     assert np.isclose(pool.mass_cnp.nitrogen, expected_n)
                     assert np.isclose(pool.mass_cnp.phosphorus, expected_p)
 
+    def test_populate_soil_pools(self, animal_model_instance):
+        """Test that populating of the soil resource pools works as expected."""
+
+        expected_pool_set = {"pom", "bacteria", "fungi"}
+        expected_carbon = {
+            "pom": np.full(9, 303.75),
+            "bacteria": np.full(9, 303.75),
+            "fungi": np.full(9, 911.25),
+        }
+        expected_nitrogen = {
+            "pom": np.full(9, 303.75),
+            "bacteria": np.full(9, 58.413461),
+            "fungi": np.full(9, 80.480769),
+        }
+        expected_phosphorus = {
+            "pom": np.full(9, 303.75),
+            "bacteria": np.full(9, 18.984375),
+            "fungi": np.full(9, 12.65625),
+        }
+
+        soil_pools = animal_model_instance.populate_soil_pools()
+
+        for cell_id, pool_dict in soil_pools.items():
+            assert set(pool_dict.keys()) == expected_pool_set
+            for pool_name, pool in pool_dict.items():
+                assert np.isclose(
+                    pool.mass_current, expected_carbon[pool_name][cell_id]
+                )
+                assert np.isclose(
+                    pool.mass_cnp.nitrogen, expected_nitrogen[pool_name][cell_id]
+                )
+                assert np.isclose(
+                    pool.mass_cnp.phosphorus,
+                    expected_phosphorus[pool_name][cell_id],
+                )
+
+    def test_populate_soil_pools_negative(self, animal_model_instance):
+        """Test that trying to populate a negative soil pool causes an error."""
+        from xarray import DataArray
+
+        animal_model_instance.data["soil_c_pool_pom"] = DataArray(
+            np.full(9, -3.75), dims=["cell_id"]
+        )
+
+        with pytest.raises(ValueError) as err:
+            _ = animal_model_instance.populate_soil_pools()
+
+        assert "pom: negative mass detected in cell 0" in str(err.value)
+
     def test_calculate_total_litter_consumption(
         self,
-        litter_data_instance,
+        litter_soil_data_instance,
         fixture_core_components,
         functional_group_list_instance,
         constants_instance,
+        microbial_c_n_p_ratios,
     ):
         """Test calculation of total consumption of litter by animals is correct."""
         from copy import deepcopy
@@ -424,26 +478,29 @@ class TestAnimalModel:
 
         # Create AnimalModel instance with test data
         model = AnimalModel(
-            data=litter_data_instance,
+            data=litter_soil_data_instance,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
         # Copy data and simulate biomass loss from each litter pool
-        new_data = deepcopy(litter_data_instance)
+        new_data = deepcopy(litter_soil_data_instance)
         new_data["litter_pool_above_metabolic"] = (
-            litter_data_instance["litter_pool_above_metabolic"] - 0.03
+            litter_soil_data_instance["litter_pool_above_metabolic"] - 0.03
         )
         new_data["litter_pool_above_structural"] = (
-            litter_data_instance["litter_pool_above_structural"] - 0.04
+            litter_soil_data_instance["litter_pool_above_structural"] - 0.04
         )
-        new_data["litter_pool_woody"] = litter_data_instance["litter_pool_woody"] - 1.2
+        new_data["litter_pool_woody"] = (
+            litter_soil_data_instance["litter_pool_woody"] - 1.2
+        )
         new_data["litter_pool_below_metabolic"] = (
-            litter_data_instance["litter_pool_below_metabolic"] - 0.06
+            litter_soil_data_instance["litter_pool_below_metabolic"] - 0.06
         )
         new_data["litter_pool_below_structural"] = (
-            litter_data_instance["litter_pool_below_structural"] - 0.01
+            litter_soil_data_instance["litter_pool_below_structural"] - 0.01
         )
 
         pool_names = [
@@ -522,6 +579,7 @@ class TestAnimalModel:
         fixture_core_components,
         functional_group_list_instance,
         constants_instance,
+        microbial_c_n_p_ratios,
     ):
         """Test that `_initialize_communities` generates cohorts."""
 
@@ -532,6 +590,10 @@ class TestAnimalModel:
             "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_litter_pools",
             return_value={},
         )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_soil_pools",
+            return_value={},
+        )
 
         # Initialize the model
         model = AnimalModel(
@@ -539,6 +601,7 @@ class TestAnimalModel:
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
         # Call the method to initialize communities

@@ -44,6 +44,7 @@ from virtual_ecosystem.models.animal.decay import (
     ExcrementPool,
     HerbivoryWaste,
     LitterPool,
+    SoilPool,
 )
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
@@ -54,6 +55,9 @@ from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
     prey_group_selection,
+)
+from virtual_ecosystem.models.soil.microbial_groups import (
+    find_microbial_stoichiometries,
 )
 
 
@@ -166,8 +170,12 @@ class AnimalModel(
         """The carcass pools in the model with associated grid cell ids."""
         self.leaf_waste_pools: dict[int, HerbivoryWaste]
         """A pool for leaves removed by herbivory but not actually consumed."""
-        self.litter_pools: dict[int, dict[str, Resource]] = self.populate_litter_pools()
+        self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
+        """The C:N:P ratios of the different microbial functional groups."""
+        self.litter_pools: dict[int, dict[str, Resource]]
         """The litter pools with associated grid cell ids."""
+        self.soil_pools: dict[int, dict[str, Resource]]
+        """The animal consumable soil pools with associated grid cell ids."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -232,6 +240,9 @@ class AnimalModel(
             for k in config["animal"]["functional_groups"]
         ]
 
+        # Find microbial stoichiometries based on the config
+        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=config)
+
         LOGGER.info(
             "Information required to initialise the animal model successfully "
             "extracted."
@@ -243,21 +254,27 @@ class AnimalModel(
             static=static,
             functional_groups=functional_groups,
             model_constants=model_constants,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
     def _setup(
         self,
         functional_groups: list[FunctionalGroup],
+        microbial_c_n_p_ratios: dict[str, dict[str, float]],
         model_constants: AnimalConsts = AnimalConsts(),
         **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
 
         This method initializes the data variables required by the animal model.
+        Microbial stoichiometries have to be supplied so that the availability of
+        nutrients to soil consuming taxa can be found.
 
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.
+            microbial_c_n_p_ratios: Biomass stochiometry of each microbial functional
+                group.
             model_constants: Set of constants for the animal model.
             **kwargs: Further arguments to the setup method.
         """
@@ -307,6 +324,13 @@ class AnimalModel(
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
+
+        # Microbial C:N:P ratios are then found, and the size of the initial litter and
+        # soil pools are populated
+        self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
+        # TODO - THESE POOLS NEED TO BE REPOPULATED AS PART OF THE UPDATE
+        self.litter_pools = self.populate_litter_pools()
+        self.soil_pools = self.populate_soil_pools()
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
@@ -461,6 +485,35 @@ class AnimalModel(
                     cell_area=self.data.grid.cell_area,  # OK while area is uniform
                 )
                 for lt in litter_types
+            }
+            for cell_id in self.data.grid.cell_id
+        }
+
+    def populate_soil_pools(self) -> dict[int, dict[str, Resource]]:
+        """Populate the soil pools that animals can consume from.
+
+        Returns:
+            A dictionary where keys represent the pool types and values are the
+            corresponding SoilPool objects. The following pools are included:
+
+            - "pom": Particulate organic matter
+            - "bacteria": Bacteria
+            - "fungi": Fungi (i.e. all fungal functional groups)
+        """
+
+        soil_organic_matter_types = ("pom", "bacteria", "fungi")
+
+        return {
+            cell_id: {
+                som_type: SoilPool(
+                    pool_name=som_type,
+                    cell_id=cell_id,
+                    data=self.data,
+                    cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                    max_depth_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+                    c_n_p_ratios=self.microbial_c_n_p_ratios,
+                )
+                for som_type in soil_organic_matter_types
             }
             for cell_id in self.data.grid.cell_id
         }
