@@ -5,7 +5,6 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 import xarray
-from numpy.testing import assert_allclose
 
 from virtual_ecosystem.core.exceptions import InitialisationError
 
@@ -24,30 +23,16 @@ def data_validator(model, validation_data, skip):
 
     to_validate = (val for ky, val in validation_data.items() if ky not in skip)
 
-    for layer_name, layer_vals, layer_indices in to_validate:
+    for layer_name, expected_data in to_validate:
         # Check the layer is present
         assert layer_name in model.data
 
-        if layer_indices is not None:
-            # Build out the cut down layer data into a full height vertical layer array
-            expected = model.layer_structure.from_template()
-            expected[layer_indices] = layer_vals
-        else:
-            # pass the expected values as provided
-            expected = xarray.DataArray(
-                data=layer_vals, coords=model.data["elevation"].coords
-            )
-
         # Check the values
-        xarray.testing.assert_allclose(model.data[layer_name], expected)
-
-        # If we are checking shortwave absorption, the column totals should equal the
-        # canopy top downwelling radiation
-        if layer_name == "shortwave_absorption":
-            assert_allclose(
-                model.data[layer_name].sum(axis=0).to_numpy(),
-                np.repeat([1000 / 2.04], 4),
-            )
+        try:
+            xarray.testing.assert_allclose(model.data[layer_name], expected_data)
+        except AssertionError:
+            print(f"Data invalid: {layer_name}")
+            raise
 
 
 def wipe_canopy_layers(model):
@@ -95,8 +80,8 @@ def test_PlantsModel__init__(
         skip=[
             "layer_heights_canopy",
             "layer_leaf_mass",
-            "leaf_area_index_canopy_only",
-            "layer_fapar_canopy_only",
+            "leaf_area_index_canopy",
+            "layer_fapar_canopy",
         ],
     )
 

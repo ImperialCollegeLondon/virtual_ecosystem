@@ -215,6 +215,11 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.below_canopy_light_fraction: NDArray[np.float32]
+        """The fraction of light transmitted through the canopy."""
+        self.ground_incident_light_fraction: NDArray[np.float32]
+        """The fraction of light reaching the ground through the canopy and subcanopy
+        vegetation."""
         self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
         self.per_stem_gpp: dict[int, NDArray[np.float32]]
@@ -514,6 +519,14 @@ class PlantsModel(
             heights[0, :] + self.layer_structure.above_canopy_height_offset
         )
 
+        # Update the below canopy light fraction
+        self.below_canopy_light_fraction = np.array(
+            [
+                cnpy.community_data.transmission_to_ground
+                for cnpy in self.canopies.values()
+            ]
+        )
+
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
 
@@ -550,7 +563,7 @@ class PlantsModel(
 
         # Add the remaining irradiance at the surface layer level
         absorbed_irradiance[self.layer_structure.index_topsoil] = (
-            canopy_top_swd - np.nansum(absorbed_irradiance, axis=0)
+            canopy_top_swd * self.ground_incident_light_fraction
         )
 
         self.data["shortwave_absorption"] = absorbed_irradiance
@@ -1054,14 +1067,20 @@ class PlantsModel(
             * self.model_constants.subcanopy_specific_leaf_area
         )
 
-        # Beer-Lambert transmission
-        subcanopy_transmission = np.exp(
+        # Beer-Lambert transmission - note that this is 1 when there is no biomass and
+        # so no light is absorbed by the vegetation and all of the subcanopy light
+        # reaches the ground.
+        subcanopy_light_transmission = np.exp(
             -self.model_constants.subcanopy_extinction_coef * subcanopy_lai
         )
 
-        # fAPAR of remaining subcanopy light
-        sub_canopy_fapar = (1 - self.data["layer_fapar"].sum(axis=0)) * (
-            1 - subcanopy_transmission
+        # Absorb a fraction of the below canopy light and pass the rest on to the ground
+        # incident light fraction
+        sub_canopy_fapar = self.below_canopy_light_fraction * (
+            1 - subcanopy_light_transmission
+        )
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * subcanopy_light_transmission
         )
 
         # Store those values
