@@ -1359,15 +1359,15 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "hypothesis"
-version = "6.135.11"
+version = "6.135.13"
 description = "A library for property-based testing"
 optional = false
 python-versions = ">=3.9"
 groups = ["test"]
 markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
 files = [
-    {file = "hypothesis-6.135.11-py3-none-any.whl", hash = "sha256:3e45c8d4d601c5cdb82d335aa1d0e9d3e9ff147ac7d07f3ef6cbfbd161d90117"},
-    {file = "hypothesis-6.135.11.tar.gz", hash = "sha256:de2881633c06bd96f8fd4f83b4e62a0c060d488dfe2ea61fe1ede0081e2f16af"},
+    {file = "hypothesis-6.135.13-py3-none-any.whl", hash = "sha256:02f757c0ca75ea7999521e02c11b318ead902d287e37c906817861f218d9422a"},
+    {file = "hypothesis-6.135.13.tar.gz", hash = "sha256:6009c0a11753554efd5413c2145a5badfdb391cdf19f60619613ce5430762ad3"},
 ]
 
 [package.dependencies]
@@ -3408,16 +3408,14 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyrealm"
-version = "2.0.0rc4"
+version = "2.0.0-rc.4"
 description = "Python tools for modelling plant productivity and demography."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
-files = [
-    {file = "pyrealm-2.0.0rc4-py3-none-any.whl", hash = "sha256:458b773b64887c9e3752567d366ccd66a5efe8d0b1d374ba4252f089568444b7"},
-    {file = "pyrealm-2.0.0rc4.tar.gz", hash = "sha256:016da2ba2f8938d23ead5d5973ac74757094dcbd79ef62f054dfb19b88ce4f98"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 dacite = ">1.6.0"
@@ -3427,6 +3425,12 @@ numpy = ">=2.1"
 pandas = ">=2.2.2"
 scipy = ">=1.7.3"
 tabulate = ">=0.8.10"
+
+[package.source]
+type = "git"
+url = "https://github.com/ImperialCollegeLondon/pyrealm.git"
+reference = "develop"
+resolved_reference = "5ac0e89b0246f97fe7612bf55b63f9dce4d7322b"
 
 [[package]]
 name = "pytest"
@@ -4771,7 +4775,6 @@ description = "A lil' TOML parser"
 optional = false
 python-versions = ">=3.8"
 groups = ["main", "devenv", "docs", "test"]
-markers = "python_version < \"3.11\""
 files = [
     {file = "tomli-2.2.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:678e4fa69e4575eb77d103de3df8a895e1591b48e740211bd1067378c69e8249"},
     {file = "tomli-2.2.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:023aa114dd824ade0100497eb2318602af309e5a55595f76b626d6d9f3b7b0a6"},
@@ -4806,6 +4809,7 @@ files = [
     {file = "tomli-2.2.1-py3-none-any.whl", hash = "sha256:cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc"},
     {file = "tomli-2.2.1.tar.gz", hash = "sha256:cd45e1dc79c835ce60f7404ec8119f2eb06d38b1deba146f07ced3bbc44505ff"},
 ]
+markers = {main = "python_version < \"3.11\"", devenv = "python_version < \"3.11\"", docs = "python_version < \"3.11\"", test = "python_full_version <= \"3.11.0a6\""}
 
 [[package]]
 name = "tomli-w"
@@ -5194,4 +5198,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "ca38fce387a90d3ce8a29f4389b8925f7e8520a28978544c2cc6b9288e41f510"
+content-hash = "354ae0a160b9fdbf80ce539a2bbefd2e6b7a30a1454f51b5f4343ffb3c58d9a4"

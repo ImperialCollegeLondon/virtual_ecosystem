@@ -481,30 +481,27 @@ class PlantsModel(
 
             # Insert canopy fapar:
             # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
-            fapar[fill_idx] = canopy.community_data.fapar.reshape((-1, 1))
+            fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-            # Partition the total stem foliage masses across cohorts vertically
-            # following the leaf area within each layer.
+            # Calculate the leaf mass per stem per layer as:
+            #  - stem leaf area * (1/sigma) * L
+            # TODO - need to expose the per cohort data to allow selective herbivory.
+            # BUG  - The calculation here needs to be robust to no plants being present
+            #        in a cell. At the moment, even with plants present, the scaling of
+            #        the model is resulting in cohort total LAI of zero, which gives
+            #        zero division and hence np.nan in the expected leaf mass per cohort
+            #        per layer, which then breaks the setting of the filled layer mask.
+            #        But with actually no plants present, the code still needs to work.
 
-            # BUG BUG BUG BUG BUG
-            # - The calculation here needs to be robust to no plants being present in a
-            #   cell. At the moment, even with plants present, the scaling of the model
-            #   is resulting in cohort total LAI of zero, which gives zero division and
-            #   hence np.nan in the expected leaf mass per cohort per layer, which then
-            #   breaks the setting of the filled layer mask. But with actually no plants
-            #   present, the code still needs to work.
-
-            # TODO - need to expose the per cohort data to allow selective herbivory. Do
-            #        we need the total leaf mass per layer for anything?
             leaf_mass_per_cohort_per_layer = (
-                community.stem_allometry.foliage_mass
-                * community.cohorts.n_individuals
-                * (canopy.cohort_data.lai / canopy.cohort_data.lai.sum(axis=0))
+                canopy.cohort_data.stem_leaf_area
+                * (1 / community.stem_traits.sla)
+                * community.stem_traits.lai
             )
             mass[fill_idx] = leaf_mass_per_cohort_per_layer.sum(axis=1, keepdims=True)
 
-            # LAI - add up LAI across cohorts within layers
-            lai[fill_idx] = canopy.cohort_data.lai.sum(axis=1, keepdims=True)
+            # LAI - insert community average LAI values from light capture model
+            lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
@@ -647,16 +644,10 @@ class PlantsModel(
             #    * time elapsed     scalar                        [s]
             # Units:
             #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
-            #
-            # NOTE: I _think_ that the canopy.cohort_data.stem_fapar data is bogus. The
-            #       cohort_fapar calculation gets the fraction of light across all of
-            #       the leaf area within a cohort. That _is_ the fAPAR experienced by
-            #       each stem of the cohort within the community area. The stem_fapar
-            #       divides through by the number of individuals, which is incorrect
 
             per_layer_gpp = (
                 self.pmodel.lue[active_layers, :][:, [cell_id]]  # gC mol-1
-                * canopy.cohort_data.cohort_fapar  # unitless
+                * canopy.cohort_data.fapar  # unitless
                 * canopy_top_ppfd[cell_id]  # µmol m-1 s-1
                 * canopy.cohort_data.stem_leaf_area  # m2
                 * self.model_timing.update_interval_seconds  # second

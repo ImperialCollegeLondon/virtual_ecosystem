@@ -38,7 +38,8 @@ netcdf4 = "^1.6.5"
 numpy = "^2.0"
 openpyxl = "^3.1.5"
 pint = "^0.24.1"
-pyrealm = {version = "^2.0.0rc3", allow-prereleases = true}
+pyrealm = {git = "https://github.com/ImperialCollegeLondon/pyrealm.git", branch = "develop"}
+# pyrealm = {version = "^2.0.0rc4", allow-prereleases = true}
 python = ">=3.10,<3.14"
 scipy = "^1.9.0"
 tomli = {version = "^2.0.1", python = "<3.11"}
