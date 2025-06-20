@@ -121,6 +121,51 @@
             "static": {
                "type": "boolean",
                "default": false
+            },
+            "community_data_export": {
+               "description": "An array of plant functional types definitions",
+               "type": "array",
+               "items": {
+                  "type": "object",
+                  "properties": {
+                     "cohort_data_path": {
+                        "type": [
+                           "string",
+                           "null"
+                        ],
+                        "default": null
+                     },
+                     "layer_data_path": {
+                        "type": [
+                           "string",
+                           "null"
+                        ],
+                        "default": null
+                     },
+                     "cohort_attributes": {
+                        "description": "Depth and number of soil layers to simulate",
+                        "type": "array",
+                        "items": {
+                           "type": "string"
+                        },
+                        "uniqueItems": true,
+                        "default": [
+                           "dbh"
+                        ]
+                     },
+                     "canopy_attributes": {
+                        "description": "Depth and number of soil layers to simulate",
+                        "type": "array",
+                        "items": {
+                           "type": "string"
+                        },
+                        "uniqueItems": true,
+                        "default": [
+                           "stem_leaf_area"
+                        ]
+                     }
+                  }
+               }
             }
          },
          "default": {},
