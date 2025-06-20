@@ -236,7 +236,6 @@ def test_PlantsModel_set_shortwave_absorption(
         fixture_canopy_layer_data,
         skip=[
             "layer_heights_full",
-            # "layer_leaf_mass",
             "leaf_area_index_canopy",
             "layer_fapar_canopy",
         ],
