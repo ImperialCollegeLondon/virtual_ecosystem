@@ -28,6 +28,7 @@ from virtual_ecosystem.models.plants.canopy import (
 )
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
+from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
 
@@ -187,6 +188,7 @@ class PlantsModel(
         self,
         data: Data,
         core_components: CoreComponents,
+        exporter: CommunityDataExporter,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -228,6 +230,11 @@ class PlantsModel(
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
 
+        # Define and populate model specific attributes
+        self.exporter: CommunityDataExporter = exporter
+        """A CommunityDataExporter instance providing configuration and methods for
+        export of community data."""
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -250,6 +257,9 @@ class PlantsModel(
         # Generate the flora
         flora = get_flora_from_config(config=config)
 
+        # Create a CommunityDataExporter instance from config
+        exporter = CommunityDataExporter.from_config(config=config)
+
         # Try and create the instance - safeguard against exceptions from __init__
         try:
             inst = cls(
@@ -258,6 +268,7 @@ class PlantsModel(
                 static=static,
                 flora=flora,
                 model_constants=model_constants,
+                exporter=exporter,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -352,6 +363,9 @@ class PlantsModel(
             1 - model_constants.per_stem_annual_mortality_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
+        # Run the community data exporter
+        self.exporter.dump(communities=self.communities, canopies=self.canopies)
+
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 
@@ -394,6 +408,9 @@ class PlantsModel(
 
         # Calculate the subcanopy vegetation
         self.calculate_subcanopy_dynamics()
+
+        # Run the community data exporter
+        self.exporter.dump(communities=self.communities, canopies=self.canopies)
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""

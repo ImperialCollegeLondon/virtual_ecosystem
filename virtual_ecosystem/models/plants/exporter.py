@@ -54,6 +54,10 @@ class CommunityDataExporter:
             canopy_attributes=exporter_config["canopy_attributes"],
         )
 
-    def dump(cohorts, canopies) -> None:
+    def dump(self, communities, canopies) -> None:
         """Dump community data to the configured files."""
+
+        if not self.active:
+            return
+
         pass
