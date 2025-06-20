@@ -469,6 +469,10 @@ class SoilPool:
         choose a specific fungal functional group to eat. This means that the biomass
         for all three groups is combined into one.
 
+        It's possible for the soil model to produce slightly negative mycorrhizal fungal
+        abundances, when that happens this will be treated as zero abundance, to prevent
+        the possibility of a negative rate of animal consumption.
+
         Args:
             data: The Virtual Ecosystem data object
             biotic_activity_depth: The soil depth at which biotic activity is assumed to
@@ -481,10 +485,18 @@ class SoilPool:
             data["soil_c_pool_saprotrophic_fungi"].sel(cell_id=self.cell_id).item()
         )
         arbuscular_mycorrhizal_stock = (
-            data["soil_c_pool_arbuscular_mycorrhiza"].sel(cell_id=self.cell_id).item()
+            data["soil_c_pool_arbuscular_mycorrhiza"]
+            .sel(cell_id=self.cell_id)
+            .where(lambda x: x >= 0)
+            .fillna(0)
+            .item()
         )
         ectomycorrhizal_stock = (
-            data["soil_c_pool_ectomycorrhiza"].sel(cell_id=self.cell_id).item()
+            data["soil_c_pool_ectomycorrhiza"]
+            .sel(cell_id=self.cell_id)
+            .where(lambda x: x >= 0)
+            .fillna(0)
+            .item()
         )
         # Individual stock sizes now used to find total stock and the overall C:N and
         # C:P ratios of this total stock

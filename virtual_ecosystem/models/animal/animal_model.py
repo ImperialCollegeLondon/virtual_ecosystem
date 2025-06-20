@@ -328,7 +328,6 @@ class AnimalModel(
         # Microbial C:N:P ratios are then found, and the size of the initial litter and
         # soil pools are populated
         self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
-        # TODO - THESE POOLS NEED TO BE REPOPULATED AS PART OF THE UPDATE
         self.litter_pools = self.populate_litter_pools()
         self.soil_pools = self.populate_soil_pools()
 
@@ -395,6 +394,11 @@ class AnimalModel(
         # TODO: merge problems as community looping is not internal to comm methods
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
+
+        # The litter and soil pools have to be populated again to reflect the changes
+        # that will have happened in the last time step for those models
+        self.litter_pools = self.populate_litter_pools()
+        self.soil_pools = self.populate_soil_pools()
 
         self.forage_community()
         self.migrate_community()
