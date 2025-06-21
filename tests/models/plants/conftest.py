@@ -19,6 +19,16 @@ def flora(fixture_config):
 
 
 @pytest.fixture
+def fixture_exporter(fixture_config):
+    """Construct a minimal Flora object."""
+    from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+
+    exporter = CommunityDataExporter.from_config(fixture_config)
+
+    return exporter
+
+
+@pytest.fixture
 def plants_data(fixture_core_components):
     """Construct a minimal data object with plant cohort data."""
     from virtual_ecosystem.core.data import Data
@@ -114,7 +124,7 @@ def plants_data(fixture_core_components):
 
 
 @pytest.fixture
-def fxt_plants_model(plants_data, flora, fixture_core_components):
+def fxt_plants_model(plants_data, flora, fixture_core_components, fixture_exporter):
     """Return a simple PlantsModel instance."""
 
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
@@ -123,6 +133,7 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        exporter=fixture_exporter,
     )
 
 

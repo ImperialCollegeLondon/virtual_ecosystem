@@ -64,7 +64,11 @@ def wipe_canopy_layers(model):
 
 
 def test_PlantsModel__init__(
-    plants_data, flora, fixture_core_components, fixture_canopy_layer_data
+    plants_data,
+    flora,
+    fixture_core_components,
+    fixture_canopy_layer_data,
+    fixture_exporter,
 ):
     """Test the PlantsModel.__init__ method."""
 
@@ -74,6 +78,7 @@ def test_PlantsModel__init__(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        exporter=fixture_exporter,
     )
 
     # Test the flora and community are as expected

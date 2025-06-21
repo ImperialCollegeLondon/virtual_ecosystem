@@ -198,8 +198,6 @@ class PlantsModel(
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
-
         self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
         self.model_constant: PlantsConsts
@@ -234,6 +232,9 @@ class PlantsModel(
         self.exporter: CommunityDataExporter = exporter
         """A CommunityDataExporter instance providing configuration and methods for
         export of community data."""
+
+        # Run the base model __init__
+        super().__init__(data, core_components, static, **kwargs)
 
     @classmethod
     def from_config(
