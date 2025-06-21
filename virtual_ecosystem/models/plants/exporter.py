@@ -34,8 +34,15 @@ class CommunityDataExporter:
         self.active: bool = active
         """Attribute."""
 
+        if self.active:
+            self._check_configuration()
+
+    def _check_configuration(self):
+        """Check the configured settings."""
+
         # TODO - check the paths do not exist but are writeable.
         # TODO - check the export attributes.
+        pass
 
     @classmethod
     def from_config(cls, config: Config) -> CommunityDataExporter:
@@ -44,6 +51,7 @@ class CommunityDataExporter:
         exporter_config = config["plants"]["community_data_export"]
 
         return cls(
+            active=exporter_config["active"],
             cohort_data_path=exporter_config["cohort_data_path"],
             layer_data_path=exporter_config["layer_data_path"],
             cohort_attributes=exporter_config["cohort_attributes"],
