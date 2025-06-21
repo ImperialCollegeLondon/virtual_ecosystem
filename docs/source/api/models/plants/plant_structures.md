@@ -66,3 +66,11 @@ This page documents submodules of the `plants` module used to support the centra
     :autosummary:
     :members:
 ```
+
+## The plant {mod}`~virtual_ecosystem.models.plants.exporter` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.exporter
+    :autosummary:
+    :members:
+```
