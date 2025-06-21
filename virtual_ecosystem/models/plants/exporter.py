@@ -16,27 +16,23 @@ class CommunityDataExporter:
 
     def __init__(
         self,
-        cohort_data_path: Path | None,
-        layer_data_path: Path | None,
+        cohort_data_path: Path,
+        layer_data_path: Path,
         cohort_attributes: tuple[str, ...],
         canopy_attributes: tuple[str, ...],
+        active: bool = False,
     ) -> None:
         # Set the class attributes
-        self.cohort_data_path: Path | None = cohort_data_path
+        self.cohort_data_path: Path = cohort_data_path
         """Attribute."""
-        self.layer_data_path: Path | None = layer_data_path
+        self.layer_data_path: Path = layer_data_path
         """Attribute."""
         self.cohort_attributes: tuple[str, ...] = cohort_attributes
         """Attribute."""
         self.canopy_attributes: tuple[str, ...] = canopy_attributes
         """Attribute."""
-        self.active: bool = True
+        self.active: bool = active
         """Attribute."""
-
-        # Is the exporter active - at least one of the paths is defined
-        if self.cohort_data_path is None and self.layer_data_path is None:
-            self.active = False
-            return
 
         # TODO - check the paths do not exist but are writeable.
         # TODO - check the export attributes.
