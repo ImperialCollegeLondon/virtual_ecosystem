@@ -19,6 +19,15 @@ def flora(fixture_config):
 
 
 @pytest.fixture
+def fixture_plants_constants():
+    """Shareable plants constants object."""
+
+    from virtual_ecosystem.models.plants.constants import PlantsConsts
+
+    return PlantsConsts()
+
+
+@pytest.fixture
 def plants_data(fixture_core_components):
     """Construct a minimal data object with plant cohort data."""
     from virtual_ecosystem.core.data import Data
