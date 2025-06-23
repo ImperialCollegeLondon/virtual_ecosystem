@@ -185,7 +185,7 @@ class AnimalModel(
         self.leaf_waste_pools: dict[int, HerbivoryWaste]
         """A pool for leaves removed by herbivory but not actually consumed."""
         self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
-        """The C:N:P ratios of the different microbial functional groups."""
+        """The CNP ratios of the different microbial functional groups."""
         self.litter_pools: dict[int, dict[str, Resource]]
         """The litter pools with associated grid cell ids."""
         self.soil_pools: dict[int, dict[str, SoilPool]]
