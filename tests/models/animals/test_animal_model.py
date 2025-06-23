@@ -84,6 +84,32 @@ class TestAnimalModel:
                     (INFO, "Adding data array for 'decomposed_carcasses_phosphorus'"),
                     (
                         INFO,
+                        "Adding data array for 'animal_pom_consumption_carbon'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_pom_consumption_nitrogen'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_pom_consumption_phosphorus'",
+                    ),
+                    (INFO, "Adding data array for 'animal_bacteria_consumption'"),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_saprotrophic_fungi_consumption'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_ectomycorrhiza_consumption'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_arbuscular_mycorrhiza_"
+                        "consumption'",
+                    ),
+                    (
+                        INFO,
                         "Adding data array for 'litter_consumption_above_metabolic'",
                     ),
                     (

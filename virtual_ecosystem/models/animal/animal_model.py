@@ -100,6 +100,13 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -118,6 +125,13 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
     ),
 ):
     """A class describing the animal model.
@@ -414,14 +428,13 @@ class AnimalModel(
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
         litter_consumption = self.calculate_total_litter_consumption(self.litter_pools)
-        # TODO - INTEGRATE THIS INTO THE ACTUAL SIMULATION FLOW
-        _ = self.calculate_total_soil_consumption(self.soil_pools)
+        soil_consumption = self.calculate_total_soil_consumption(self.soil_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
 
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(
-            additions_to_soil | litter_consumption | litter_additions
-        )  # TODO - TEST THIS!
+            additions_to_soil | soil_consumption | litter_consumption | litter_additions
+        )
 
         # Update population densities
         self.update_population_densities()
