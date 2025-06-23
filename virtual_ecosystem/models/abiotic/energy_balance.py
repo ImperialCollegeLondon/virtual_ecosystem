@@ -538,6 +538,7 @@ def calculate_derivative_energy_balance(
     latent_heat_vaporisation: NDArray[np.float32],
     emissivity_leaf: float,
     stefan_boltzmann_constant: float,
+    zero_Celsius: float,
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
 ) -> NDArray[np.float32]:
     r"""Estimate derivative of energy balance.
@@ -566,6 +567,7 @@ def calculate_derivative_energy_balance(
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vaporisation: Latent heat of vaporisation, [kJ kg-1]
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
+        zero_Celsius: Factor to convert between degrees Celsius and kalvin
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
 
@@ -589,7 +591,7 @@ def calculate_derivative_energy_balance(
             4
             * emissivity_leaf
             * stefan_boltzmann_constant
-            * (canopy_temperature + 273.15) ** 3
+            * (canopy_temperature + zero_Celsius) ** 3
         )
     )
 
@@ -613,7 +615,7 @@ def solve_canopy_temperature(
 ) -> NDArray[np.float32]:
     r"""Solve for canopy temperature where energy balance residual is zero.
 
-    TODO update for scipy implementation
+    TODO update docstring for scipy implementation
 
     The method linearizes the energy balance of the canopy and air temperature updates
     using Newton approximation for temperature adjustment following
@@ -708,8 +710,9 @@ def solve_canopy_temperature(
                     leaf_emissivity=emissivity_leaf,
                     stefan_boltzmann_constant=stefan_boltzmann_constant,
                     zero_Celsius=zero_Celsius,
-                    return_fluxes=False,
+                    return_fluxes=return_fluxes,
                 )
+
                 # Extract scalar from 1x1 array or a single element array
                 if isinstance(result, np.ndarray):
                     if result.size == 1:
@@ -733,6 +736,7 @@ def solve_canopy_temperature(
                     latent_heat_vaporisation=latent_heat_vapourisation,
                     emissivity_leaf=emissivity_leaf,
                     stefan_boltzmann_constant=stefan_boltzmann_constant,
+                    zero_Celsius=zero_Celsius,
                     saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
                 )
                 if isinstance(result, np.ndarray):

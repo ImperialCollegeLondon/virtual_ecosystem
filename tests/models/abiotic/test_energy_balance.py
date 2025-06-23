@@ -331,6 +331,7 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
     )
 
     data = dummy_climate_data
+
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
 
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
@@ -381,8 +382,6 @@ def test_calculate_derivative_energy_balance(
         CoreConsts.conductance_to_resistance_conversion_factor
         / data["stomatal_conductance"][canopy_index].to_numpy()
     )
-
-    # Extra parameters for this function
     saturated_pressure_slope_parameters = (
         AbioticConsts.saturated_pressure_slope_parameters
     )
@@ -400,6 +399,7 @@ def test_calculate_derivative_energy_balance(
         ].to_numpy(),
         emissivity_leaf=AbioticConsts.leaf_emissivity,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
         saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
     )
 
