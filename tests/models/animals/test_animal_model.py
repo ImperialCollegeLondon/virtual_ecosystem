@@ -1506,7 +1506,7 @@ class TestAnimalModel:
         }
 
         # Run the forage_community method
-        animal_model_instance.forage_community()
+        animal_model_instance.forage_community(dt=30)
 
         # Verify that herbivores forage plant resources and not animal prey
         mock_get_plant_resources.assert_called_once_with(
@@ -1522,6 +1522,7 @@ class TestAnimalModel:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
+            dt=30,
         )
 
         # Verify that predators forage prey and not plant resources
@@ -1536,6 +1537,7 @@ class TestAnimalModel:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools=animal_model_instance.leaf_waste_pools,
+            dt=30,
         )
 
     def test_metabolize_community(
