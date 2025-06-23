@@ -547,6 +547,137 @@ class TestAnimalModel:
                 f"Mismatch in {pool_name} consumption."
             )
 
+    def test_calculate_total_soil_consumption(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+    ):
+        """Test calculation of total consumption of soil by animals is correct."""
+        from copy import deepcopy
+
+        import numpy as np
+
+        from virtual_ecosystem.core.constants import CoreConsts
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.decay import SoilPool
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+
+        # Copy data and simulate biomass loss from each soil pool
+        new_data = deepcopy(litter_soil_data_instance)
+        pom_change = 0.03
+        pom_c_n_ratio = (
+            litter_soil_data_instance["soil_c_pool_pom"]
+            / litter_soil_data_instance["soil_n_pool_particulate"]
+        )
+        pom_c_p_ratio = (
+            litter_soil_data_instance["soil_c_pool_pom"]
+            / litter_soil_data_instance["soil_p_pool_particulate"]
+        )
+        new_data["soil_c_pool_pom"] = (
+            litter_soil_data_instance["soil_c_pool_pom"] - pom_change
+        )
+        new_data["soil_n_pool_particulate"] = litter_soil_data_instance[
+            "soil_n_pool_particulate"
+        ] - (pom_change / pom_c_n_ratio)
+        new_data["soil_p_pool_particulate"] = litter_soil_data_instance[
+            "soil_p_pool_particulate"
+        ] - (pom_change / pom_c_p_ratio)
+        new_data["soil_c_pool_bacteria"] = (
+            litter_soil_data_instance["soil_c_pool_bacteria"] - 0.55
+        )
+        fungal_loss = 0.33
+        total_fungi = (
+            litter_soil_data_instance["soil_c_pool_saprotrophic_fungi"]
+            + litter_soil_data_instance["soil_c_pool_arbuscular_mycorrhiza"]
+            + litter_soil_data_instance["soil_c_pool_ectomycorrhiza"]
+        )
+        new_data["soil_c_pool_saprotrophic_fungi"] = litter_soil_data_instance[
+            "soil_c_pool_saprotrophic_fungi"
+        ] - (
+            fungal_loss
+            * litter_soil_data_instance["soil_c_pool_saprotrophic_fungi"]
+            / total_fungi
+        )
+        new_data["soil_c_pool_ectomycorrhiza"] = litter_soil_data_instance[
+            "soil_c_pool_ectomycorrhiza"
+        ] - (
+            fungal_loss
+            * litter_soil_data_instance["soil_c_pool_ectomycorrhiza"]
+            / total_fungi
+        )
+        new_data["soil_c_pool_arbuscular_mycorrhiza"] = litter_soil_data_instance[
+            "soil_c_pool_arbuscular_mycorrhiza"
+        ] - (
+            fungal_loss
+            * litter_soil_data_instance["soil_c_pool_arbuscular_mycorrhiza"]
+            / total_fungi
+        )
+
+        pool_names = ["pom", "fungi", "bacteria"]
+
+        cell_ids = fixture_core_components.grid.cell_id
+        cell_area = fixture_core_components.grid.cell_area
+
+        # Construct the nested dict: cell_id → pool_name → LitterPool
+        new_soil_pools = {
+            cid: {
+                pool_name: SoilPool(
+                    pool_name=pool_name,
+                    cell_id=cid,
+                    data=new_data,
+                    cell_area=cell_area,
+                    max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+                    c_n_p_ratios=microbial_c_n_p_ratios,
+                )
+                for pool_name in pool_names
+            }
+            for cid in cell_ids
+        }
+
+        # Run consumption calculation
+        consumption = model.calculate_total_soil_consumption(soil_pools=new_soil_pools)
+
+        # Validate consumption matches expected loss per cell
+        for consumption_type, expected_consumption in [
+            ("animal_pom_consumption_carbon", np.full(4, 0.002142857)),
+            (
+                "animal_pom_consumption_nitrogen",
+                np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
+            ),
+            (
+                "animal_pom_consumption_phosphorus",
+                np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+            ),
+            ("animal_bacteria_consumption", np.full(4, 0.03928571)),
+            (
+                "animal_saprotrophic_fungi_consumption",
+                np.array([0.0104371, 0.0177721, 0.0050429, 0.0061680]),
+            ),
+            (
+                "animal_ectomycorrhiza_consumption",
+                np.array([0.0055117, 0.0027438, 0.0095837, 0.0051219]),
+            ),
+            (
+                "animal_arbuscular_mycorrhiza_consumption",
+                np.array([0.0076226, 0.00305556, 0.00894482, 0.0122816]),
+            ),
+        ]:
+            actual = consumption[consumption_type].values
+            assert np.allclose(actual, expected_consumption), (
+                f"Mismatch for {consumption_type}."
+            )
+
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""
 
