@@ -197,18 +197,16 @@ def run_microclimate(
     ].to_numpy()
 
     # -------------------------------------------------------------------------
-    #  Calculate atmospheric background variables using mean air temperature
+    #  Calculate atmospheric background variables
     # -------------------------------------------------------------------------
 
     density_air = abiotic_tools.calculate_air_density(
-        # air_temperature=mean_air_temperature,
         air_temperature=all_air_temperature,
         atmospheric_pressure=atmospheric_pressure[0],  # all layers identical
         specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
         celsius_to_kelvin=core_constants.zero_Celsius,
     )
     specific_heat_air = calc_specific_heat(
-        # tc=mean_air_temperature,
         tc=all_air_temperature,
     )
 
@@ -225,7 +223,7 @@ def run_microclimate(
     # Longwave emission from soil, [W m-2]
     longwave_emission_soil = energy_balance.calculate_longwave_emission(
         temperature=soil_temperature[0] + core_constants.zero_Celsius,
-        emissivity=abiotic_constants.leaf_emissivity,
+        emissivity=abiotic_constants.soil_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
@@ -296,7 +294,7 @@ def run_microclimate(
         density_water=core_constants.density_water,
         aerodynamic_resistance=aerodynamic_resistance_canopy,
         latent_heat_vapourisation=data["latent_heat_vapourisation"][1:-1].to_numpy(),
-        emissivity_leaf=0.95,
+        emissivity_leaf=abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_day=core_constants.seconds_to_day,
