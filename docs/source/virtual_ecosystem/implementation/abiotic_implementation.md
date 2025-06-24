@@ -100,7 +100,7 @@ soil surface by partitioning net radiation $R_N$ into:
 
 - Sensible heat flux $H_S$ ($\mathrm{W\,m^{-2}}$),
 
-- Latent heat flux $\lambda E_S$ ($\mathrm{W\,m^{-2}}$), and
+- Latent heat flux $Q_{\text{LE}}$ ($\mathrm{W\,m^{-2}}$), and
 
 - Ground heat flux $G$ ($\mathrm{W\,m^{-2}}$).
 
@@ -142,7 +142,7 @@ calculated by the hydrology model.
 
 The **ground heat flux** $G$ is calculated as the residual of the energy balance:
 
-$$G = R_N - H_S - \lambda E_S$$
+$$G = R_N - H_S - Q_{\text{LE}}$$
 
 ### Soil temperature update
 
@@ -182,7 +182,7 @@ and time advances in steps of $\Delta t$ (s).
 The topmost layer ($i = 0$) is updated using the net ground heat flux $G$
 ($\mathrm{W\,m^{-2}}$):
 
-$$T_0^{t+\Delta t} = T_0^t + (\frac{\Delta t}{(\rho c \Delta z)}) G$$
+$$T_0^{t+\Delta t} = T_0^t + \left(\frac{\Delta t}{\rho c \Delta z}\right) G$$
 
 **Interior layers update**:
 
@@ -222,28 +222,29 @@ vapour exchange must be modelled as transient processes, and heat storage by the
 and the exchange of heat between different layers of the canopy, must be considered
 explicitly, see {cite:t}`maclean_microclimc_2021`. This is currently not implemented.)
 
-Under steady-state, the balance equation for the leaves in each canopy layer is as
+Under steady-state, the balance equation $EB$ for the leaves in each canopy layer is as
 follows (after {cite:t}`maclean_microclimc_2021`):
 
 ```{math}
-    & R_{abs} - R_{em} - H - Q_{LE} \\
-    & = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
+    & EB \\
+    & = R_{\text{abs}} - R_{\text{em}} - H - Q_{\text{LE}} \\
+    & = R_{\text{abs}} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
     - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{A}} \\
     & = 0
 ```
 
 where:
 
-$R_{abs}$:
+$R_{\text{abs}}$:
 Shortwave radiation absorbed by the canopy ($\mathrm{W\,m^{-2}}$)
 
-$R_{em}$:
+$R_{\text{em}}$:
 Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
 
 $H$:
 Sensible heat flux from the canopy to the air ($\mathrm{W\,m^{-2}}$)
 
-$Q_{LE}$:
+$Q_{\text{LE}}$:
 Latent heat flux associated with transpiration from the canopy to the air
 ($\mathrm{W\,m^{-2}}$)
 
@@ -316,7 +317,8 @@ temperature changes.
 
 #### Derivative of energy balance
 
-The temperature derivative of the energy balance is calculated analytically as:
+The temperature derivative of the energy balance as formulated above
+is calculated analytically as:
 
 ```{math}
 \frac{\partial EB}{\partial T_L^{\text{old}}} =
