@@ -197,7 +197,7 @@ def run_microclimate(
     ].to_numpy()
 
     # -------------------------------------------------------------------------
-    #  Calculate atmospheric background variables using mean air temperature
+    #  Calculate atmospheric background variables
     # -------------------------------------------------------------------------
 
     density_air = abiotic_tools.calculate_air_density(
