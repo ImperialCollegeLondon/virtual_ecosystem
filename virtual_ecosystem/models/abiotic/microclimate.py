@@ -251,10 +251,12 @@ def run_microclimate(
     )
 
     # Latent heat flux topsoil, [W m-2]
-    # TODO cross-check with hydrology model, time step currently month to second
+    # TODO cross-check with hydrology model, time step currently day to second
     latent_heat_flux_soil = (
-        data["soil_evaporation"].to_numpy() / 2.628e6 * latent_heat_vapourisation[-1]
-    )
+        data["soil_evaporation"].to_numpy()
+        * core_constants.density_water
+        * latent_heat_vapourisation[-1]
+    ) / core_constants.seconds_to_day
 
     # Ground heat flux, [W m-2]
     ground_heat_flux = (

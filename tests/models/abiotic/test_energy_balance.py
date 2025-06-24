@@ -32,7 +32,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_componen
         light_extinction_coefficient=0.01,
     )
 
-    exp_result = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
+    exp_result = np.array([[0.89955] * 4, [0.898651] * 4, [0.897753] * 4])
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -81,7 +81,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         initial_flux_value=0.001,
     )
 
-    exp_abs = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
+    exp_abs = np.array([[0.89955] * 4, [0.898651] * 4, [0.897753] * 4])
 
     for var in [
         "canopy_temperature",
@@ -387,8 +387,7 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
         evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 30,
-        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy()
-        * 45,
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         density_water=1000.0,
