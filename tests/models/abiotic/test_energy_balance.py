@@ -307,6 +307,7 @@ def test_energy_balance_residual_only(dummy_climate_data, fixture_core_component
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
+        density_water=np.full_like(data["density_air"][canopy_index], 1000),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
             canopy_index
         ].to_numpy(),
@@ -316,6 +317,7 @@ def test_energy_balance_residual_only(dummy_climate_data, fixture_core_component
         leaf_emissivity=AbioticConsts.leaf_emissivity,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
         zero_Celsius=CoreConsts.zero_Celsius,
+        seconds_to_day=CoreConsts.seconds_to_day,
         return_fluxes=False,
     )
 
@@ -342,6 +344,7 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
+        density_water=np.full_like(data["density_air"][canopy_index], 1000),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
             canopy_index
         ].to_numpy(),
@@ -351,6 +354,7 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
         leaf_emissivity=AbioticConsts.leaf_emissivity,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
         zero_Celsius=CoreConsts.zero_Celsius,
+        seconds_to_day=CoreConsts.seconds_to_day,
         return_fluxes=True,
     )
 
@@ -367,47 +371,6 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
         assert result[key].shape == (3, 4)
 
 
-def test_calculate_derivative_energy_balance(
-    dummy_climate_data, fixture_core_components
-):
-    """Test calculate derivative of energy balance residual."""
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_derivative_energy_balance,
-    )
-
-    data = dummy_climate_data
-    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
-    stomatal_resistance = (
-        CoreConsts.conductance_to_resistance_conversion_factor
-        / data["stomatal_conductance"][canopy_index].to_numpy()
-    )
-    saturated_pressure_slope_parameters = (
-        AbioticConsts.saturated_pressure_slope_parameters
-    )
-
-    result = calculate_derivative_energy_balance(
-        canopy_temperature=data["canopy_temperature"][canopy_index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-        density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
-        stomatal_resistance=stomatal_resistance,
-        latent_heat_vaporisation=data["latent_heat_vapourisation"][
-            canopy_index
-        ].to_numpy(),
-        emissivity_leaf=AbioticConsts.leaf_emissivity,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
-        zero_Celsius=CoreConsts.zero_Celsius,
-        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
-    )
-
-    assert isinstance(result, np.ndarray)
-    assert np.all(np.isfinite(result))
-    assert np.all(result > 0)
-
-
 def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
     """Test solving canopy temperature with Newton method."""
 
@@ -419,30 +382,26 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
 
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
-    stomatal_resistance = (
-        CoreConsts.conductance_to_resistance_conversion_factor
-        / data["stomatal_conductance"][canopy_index].to_numpy()
-    )
 
     result = solve_canopy_temperature(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 30,
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy()
-        * 30,
+        * 45,
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
+        density_water=1000.0,
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
             canopy_index
         ].to_numpy(),
-        stomatal_resistance=stomatal_resistance,
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
         ].to_numpy(),
         emissivity_leaf=0.96,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
         zero_Celsius=CoreConsts.zero_Celsius,
-        saturated_pressure_slope_parameters=AbioticConsts.saturated_pressure_slope_parameters,
+        seconds_to_day=86400,
         return_fluxes=False,
         maxiter=100,
     )

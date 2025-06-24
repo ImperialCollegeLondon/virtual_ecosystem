@@ -115,3 +115,6 @@ class CoreConsts(ConstantsDataclass):
     
     This factor is used to convert between stomatal conductance in mmol m-2 s-1 and
     stomatal resistance in s m-1."""
+
+    density_water: float = 1000.0
+    """Density of water, [kg m-3]."""

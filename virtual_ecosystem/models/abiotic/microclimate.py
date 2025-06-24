@@ -276,8 +276,8 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Update canopy and air temperatures using the Newton method
     # -------------------------------------------------------------------------
-    # Get combined evapotranspiration from plant and hydrology model
-    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    # Get combined evapotranspiration from plant and hydrology model, per day
+    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]) / 30.0
 
     # Solve energy balance for canopy temperature, [C]
     new_canopy_temperature = energy_balance.solve_canopy_temperature(
@@ -291,18 +291,13 @@ def run_microclimate(
         ].to_numpy(),
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
+        density_water=core_constants.density_water,
         aerodynamic_resistance=aerodynamic_resistance_canopy,
-        stomatal_resistance=(
-            core_constants.conductance_to_resistance_conversion_factor
-            / data["stomatal_conductance"][
-                layer_structure.index_filled_canopy
-            ].to_numpy()
-        ),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][1:-1].to_numpy(),
         emissivity_leaf=0.95,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
-        saturated_pressure_slope_parameters=abiotic_constants.saturated_pressure_slope_parameters,
+        seconds_to_day=core_constants.seconds_to_day,
         return_fluxes=False,
         maxiter=50,
     )
@@ -330,10 +325,12 @@ def run_microclimate(
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
+        density_water=core_constants.density_water,
         aerodynamic_resistance=aerodynamic_resistance_canopy,
         latent_heat_vapourisation=latent_heat_vapourisation[1:-1],
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
+        seconds_to_day=core_constants.seconds_to_day,
         return_fluxes=True,
     )
 
@@ -459,7 +456,7 @@ def run_microclimate(
         "latent_heat_flux_canopy"
     ]
     latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
-    output["latent_heat_flux"] = latent_heat_flux * time_interval
+    output["latent_heat_flux"] = latent_heat_flux  # * time_interval
 
     soil_temperature_out = layer_structure.from_template()
     soil_temperature_out[layer_structure.index_all_soil] = new_soil_temperature
