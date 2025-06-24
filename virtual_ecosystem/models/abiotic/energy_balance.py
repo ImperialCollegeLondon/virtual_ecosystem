@@ -722,39 +722,14 @@ def solve_canopy_temperature(
                         return result.flat[0]
                 return result
 
-            def derivative_func(canopy_temp_scalar):
-                result = calculate_derivative_energy_balance(
-                    canopy_temperature=np.array(
-                        [[canopy_temp_scalar]], dtype=np.float32
-                    ),
-                    specific_heat_air=np.array(
-                        [[specific_heat_air[i, j]]], dtype=np.float32
-                    ),
-                    density_air=np.array([[density_air[i, j]]], dtype=np.float32),
-                    aerodynamic_resistance=aerodynamic_resistance[i, j],
-                    stomatal_resistance=stomatal_resistance[i, j],
-                    latent_heat_vaporisation=latent_heat_vapourisation,
-                    emissivity_leaf=emissivity_leaf,
-                    stefan_boltzmann_constant=stefan_boltzmann_constant,
-                    zero_Celsius=zero_Celsius,
-                    saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
-                )
-                if isinstance(result, np.ndarray):
-                    if result.size == 1:
-                        return result.item()
-                    else:
-                        # Choose how to reduce the array to scalar, e.g. first element
-                        return result.flat[0]
-                return result
-
             x0 = canopy_temperature_initial[i, j]
 
             try:
                 solved_temperature[i, j] = newton(
                     func=residual_func,
                     x0=x0,
-                    fprime=derivative_func,
                     maxiter=maxiter,
+                    tol=0.01,
                 )
 
             except RuntimeError as e:

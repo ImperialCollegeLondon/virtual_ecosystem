@@ -428,7 +428,8 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
         evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
-        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy()
+        * 30,
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
@@ -443,16 +444,12 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
         zero_Celsius=CoreConsts.zero_Celsius,
         saturated_pressure_slope_parameters=AbioticConsts.saturated_pressure_slope_parameters,
         return_fluxes=False,
-        maxiter=5,
+        maxiter=100,
     )
 
     assert isinstance(result, np.ndarray)
     assert result.shape == data["canopy_temperature"][canopy_index].shape
-    np.testing.assert_allclose(
-        result,
-        np.array(np.full((3, 4), np.nan)),
-    )
-    # assert np.all((result > -50) & (result < 80))  # plausible range for °C
+    assert np.all((result > -50) & (result < 80))  # plausible range for °C
 
 
 def test_update_air_temperature():
