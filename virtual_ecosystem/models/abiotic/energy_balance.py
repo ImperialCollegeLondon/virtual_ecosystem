@@ -11,12 +11,12 @@ Under steady-state, the balance equation for the leaves in each canopy layer is 
 follows (after :cite:t:`maclean_microclimc_2021`):
 
 .. math::
-    R_{abs} - R_{em} - H - Q_{LE}
+    R_{abs} - R_{em} - H - \lambda E - PP
     = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{a}} = 0
+    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{a}} - PP = 0
 
 where :math:`R_{abs}` is absorbed radiation, :math:`R_{em}` emitted radiation, :math:`H`
-the sensible heat flux, :math:`Q_{LE}` the latent heat flux, :math:`\epsilon_{s}` the
+the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{s}` the
 emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{L}` the
 absolute temperature of the leaf, :math:`T_{A}` the absolute temperature of the air
 surrounding the leaf, :math:`\lambda` the latent heat of vapourisation of water,
@@ -25,7 +25,7 @@ pressure of air and :math:`p_{a}` atmospheric pressure. :math:`\rho_a` is the de
 air, :math:`c_{p}` is the specific heat capacity of air
 at constant pressure, :math:`r_a` is the aerodynamic resistance of the surface (leaf or
 soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
-function of the stomatal conductivity.
+function of the stomatal conductivity, :math:`PP` stantds for primary productivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a Newton approximation to update
@@ -173,7 +173,9 @@ def initialise_canopy_and_soil_fluxes(
 
     # Replace np.nan with new values and write in output dict
     absorbed_radiation[layer_heights_canopy.indexes] = initial_absorbed_radiation
-    absorbed_radiation[layer_structure.index_topsoil] = 0.0
+    absorbed_radiation[layer_structure.index_topsoil] = topofcanopy_radiation - np.sum(
+        initial_absorbed_radiation, axis=0
+    )
     output["shortwave_absorption"] = absorbed_radiation
 
     # Initialize canopy temperature DataArray
@@ -241,30 +243,6 @@ def calculate_longwave_emission(
         Longwave emission, [W m-2]
     """
     return emissivity * stefan_boltzmann * temperature**4
-
-
-def calculate_net_radiation(
-    incoming_radiation: NDArray[np.float32],
-    absorbed_radiation: NDArray[np.float32],
-    longwave_emission: NDArray[np.float32],
-    albedo: float,
-) -> NDArray[np.float32]:
-    """Calculate net radiation, [W m-2].
-
-    This function calculates net radiation as the difference between incoming shortwave
-    radiation, shortwave absorption, and longwave emission. The absorption of longwave
-    radiation is currently not considered.
-
-    Args:
-        incoming_radiation: Incoming radiation, [W m-2]
-        absorbed_radiation: Absorbed radiation, [W m-2]
-        longwave_emission: Longwave emission, [W m-2]
-        albedo: Albedo, [-]
-
-    Returns:
-        net radiation, [W m-2]
-    """
-    return incoming_radiation * (1 - albedo) - absorbed_radiation - longwave_emission
 
 
 def calculate_sensible_heat_flux(
@@ -456,18 +434,18 @@ def calculate_energy_balance_residual(
 ) -> NDArray[np.float32] | dict[str, NDArray[np.float32]]:
     r"""Calculate energy balance residual for canopy.
 
-    The energy balance residual (:math:`E_{res}`) for the canopy is given by:
+    The energy balance residual (:math:`\frac{dQ}{dt}`) for the canopy is given by:
 
     .. math::
-        E_{res} = R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE}
+        \frac{dQ}{dt} = R_{abs} - \epsilon \sigma T_{L}^{4} - H - \lambda E - PP
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
     constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
-    flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
+    flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy,
+    :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
-    TODO a fraction of the absorbed light is used in photosynthesis and needs to be
-    removed from the equation.
+    TODO PP to be separated from absorbed radiation and subtracted from the balance
 
     Args:
         canopy_temperature_initial: Initial leaf temperature for all canopy layers, [C]
@@ -522,6 +500,7 @@ def calculate_energy_balance_residual(
         - np.abs(longwave_emission_canopy)
         - np.abs(sensible_heat_flux_canopy)
         - np.abs(latent_heat_flux_canopy)
+        # - np.abs(absorption_par)
     )
 
     if return_fluxes:
@@ -563,13 +542,16 @@ def solve_canopy_temperature(
     The energy balance for the canopy is given by:
 
     .. math::
-        R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE} = 0
+        R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE} - PP = 0
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
     constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
-    flux from the canopy, and :math:`Q_{LE}` is the latent heat flux from the canopy.
+    flux from the canopy, :math:`Q_{LE}` is the latent heat flux from the canopy, and
+    :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
+
     Note that the latent heat flux is currently a constant given by the plant model.
+    PP is not considered explicitly but will also be treated as a constant.
 
     The Newton linearization for canopy temperature update is:
 
@@ -675,9 +657,16 @@ def solve_canopy_temperature(
 
             x0 = canopy_temperature_initial[i, j]
 
+            best_estimate = [x0]  # use a mutable object to track updates
+
+            # Wrapper to extract best estimate if function does not converge
+            def tracked_func(x):
+                best_estimate[0] = x  # update best estimate
+                return residual_func(x)
+
             try:
                 solved_temperature[i, j] = newton(
-                    func=residual_func,
+                    func=tracked_func,
                     x0=x0,
                     maxiter=maxiter,
                     tol=0.01,
@@ -685,7 +674,7 @@ def solve_canopy_temperature(
 
             except RuntimeError as e:
                 print(f"Newton failed at ({i},{j}) with x0={x0}: {e}")
-                solved_temperature[i, j] = np.nan
+                solved_temperature[i, j] = best_estimate[0]  # use last known good value
 
     return solved_temperature
 
@@ -696,17 +685,26 @@ def update_air_temperature(
     specific_heat_air: NDArray[np.float32],
     density_air: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
+    mixing_layer_thickness: NDArray[np.float32],
     time_interval: int,
 ) -> NDArray[np.float32]:
     r"""Update air temperature in steady state.
 
-    The new air temperature :math:`T_{A}^{new}` is given by:
+    The new air temperature :math:`T_{A}^{new}` is updated following
+    :cite:t:`bonan_climate_2019`:
+
+    .. math ::
+        H = \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
+
+    and
 
     .. math::
-        T_{A}^{new} = T_{A}^{old} + \alpha \cdot (T_{L}^{new} - T_{A}^{new})
+        T_{A}^{new} = T_{A}^{old} + \frac{H \Delta t}{\rho_a c_p z}
 
-    Where the relaxation factor :math:`\alpha` is a weighting factor for air temperature
-    update.
+    where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
+    capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
+    the surface, :math:`T_{S}` is the surface temperature, :math:`T_{A}` is the air
+    temperature, and :math:`z` is the thickness of the air layer we are updating.
 
     Args:
         canopy_temperature: canopy temperatures for all true canopy layers, [C]
@@ -714,6 +712,7 @@ def update_air_temperature(
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
+        mixing_layer_thickness: thickness of the air layer we are updating, [m]
         time_interval: Time interval, [s]
 
     Returns:
@@ -721,9 +720,13 @@ def update_air_temperature(
     """
 
     # Update temperatures
-    alpha = time_interval / (density_air * specific_heat_air * aerodynamic_resistance)
-    new_air_temperature = air_temperature + alpha * (
-        canopy_temperature - air_temperature
+    sensible_heat_flux = (
+        density_air * specific_heat_air * (canopy_temperature - air_temperature)
+    ) / aerodynamic_resistance
+
+    # Update air temperature over a layer of height z (e.g., canopy height)
+    new_air_temperature = air_temperature + (sensible_heat_flux * time_interval) / (
+        density_air * specific_heat_air * mixing_layer_thickness
     )
 
     return new_air_temperature

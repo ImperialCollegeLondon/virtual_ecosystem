@@ -10,6 +10,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
@@ -227,16 +228,10 @@ def run_microclimate(
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
-    # Net radiation topsoil, shortwave in * (1-albedo) - longwave out, [W m-2]
-    net_radiation_soil = energy_balance.calculate_net_radiation(
-        incoming_radiation=data["downward_shortwave_radiation"]
-        .isel(time_index=time_index)
-        .to_numpy(),
-        absorbed_radiation=data["shortwave_absorption"][
-            layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        longwave_emission=longwave_emission_soil,
-        albedo=abiotic_constants.surface_albedo,
+    # Net radiation topsoil, shortwave in - longwave out, [W m-2]
+    net_radiation_soil = (
+        data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        - longwave_emission_soil
     )
 
     #  Sensible heat flux from topsoil, [W m-2]
@@ -299,7 +294,7 @@ def run_microclimate(
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_day=core_constants.seconds_to_day,
         return_fluxes=False,
-        maxiter=50,
+        maxiter=10000,
     )
 
     # Update air temperature based on new canopy temperature, [C]
@@ -309,7 +304,8 @@ def run_microclimate(
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
         aerodynamic_resistance=aerodynamic_resistance_canopy,
-        time_interval=time_interval,
+        mixing_layer_thickness=above_ground_layer_thickness[1:-1],
+        time_interval=1,  # TODO needs calibrating
     )
 
     # Calculate new energy balance and return all fluxes, [W m-2]
@@ -335,15 +331,18 @@ def run_microclimate(
     )
 
     # Net radiation canopy, [W m-2]
-    net_radiation_canopy = energy_balance.calculate_net_radiation(
-        incoming_radiation=data["downward_shortwave_radiation"]
-        .isel(time_index=time_index)
-        .to_numpy(),
-        absorbed_radiation=data["shortwave_absorption"][
-            layer_structure.index_filled_canopy
-        ].to_numpy(),
-        longwave_emission=new_energy_balance_canopy["longwave_emission_canopy"],
-        albedo=abiotic_constants.leaf_albedo,
+    if not isinstance(new_energy_balance_canopy, dict):
+        to_raise = ValueError("The energy balance has not returned any fluxes!")
+        LOGGER.error(to_raise)
+        raise to_raise
+
+    longwave_emission_canopy = new_energy_balance_canopy["longwave_emission_canopy"]
+    latent_heat_flux_canopy = new_energy_balance_canopy["latent_heat_flux_canopy"]
+    sensible_heat_flux_canopy = new_energy_balance_canopy["sensible_heat_flux_canopy"]
+
+    net_radiation_canopy = (
+        data["shortwave_absorption"][layer_structure.index_filled_canopy].to_numpy()
+        - longwave_emission_canopy
     )
     #  TODO check Update surface/soil temperature, use same function as canopy?
     # TODO add vertical mixing, not urgent
@@ -419,9 +418,7 @@ def run_microclimate(
     # Combine longwave emission in one variable
     # Assumption: accumulated emission in time interval based on accumulated input
     longwave_emission = layer_structure.from_template()
-    longwave_emission[layer_structure.index_filled_canopy] = new_energy_balance_canopy[
-        "longwave_emission_canopy"
-    ]
+    longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
     output["longwave_emission"] = longwave_emission
 
@@ -443,18 +440,14 @@ def run_microclimate(
     output["latent_heat_vapourisation"] = latent_heat_vapourisation_out
     # Combine sensible heat flux in one variable, TODO consider time interval
     sensible_heat_flux = layer_structure.from_template()
-    sensible_heat_flux[layer_structure.index_filled_canopy] = new_energy_balance_canopy[
-        "sensible_heat_flux_canopy"
-    ]
+    sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
     output["sensible_heat_flux"] = sensible_heat_flux  # * time_interval
 
     # Combine latent heat flux in one variable, TODO consider time interval
     # TODO adjust to model timestep, currently per second
     latent_heat_flux = layer_structure.from_template()
-    latent_heat_flux[layer_structure.index_filled_canopy] = new_energy_balance_canopy[
-        "latent_heat_flux_canopy"
-    ]
+    latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
     latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
     output["latent_heat_flux"] = latent_heat_flux  # * time_interval
 

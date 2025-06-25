@@ -649,7 +649,7 @@ def dummy_climate_data(fixture_core_components):
         "atmospheric_pressure_ref": 96.0,
         "atmospheric_co2_ref": 400.0,
         "precipitation": 200.0,
-        "downward_shortwave_radiation": 900.0,
+        "downward_shortwave_radiation": 500.0,
     }
 
     for var, value in ref_values.items():

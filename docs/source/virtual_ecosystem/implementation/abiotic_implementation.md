@@ -56,11 +56,58 @@ display_markdown(
 
 ## Model overview
 
-### Radiation
+The exchange of energy between the Earth's surface or canopy and the surrounding
+atmosphere involves five important processes:
 
-The current representation of radiation is limited to the reflection and absorption of
-direct downward shortwave radiation and the emission of longwave radiation as part of
-the surface energy balance.
+- *Absorption* and *emission* of electromagnetic radiation by the surface/canopy
+- *Thermal conduction* of heat energy within the ground
+- *Turbulent transfer* of heat energy towards or away from the surface within the
+  atmosphere
+- *Evaporation* and *condensation* of water
+- *Primary productivity*
+
+Each of these processes can be associated with an energy flux density, which is the rate
+of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$).
+
+The energy balance of a surface layer of finite depth and unit horizontal area can be
+written as:
+
+$$\frac{dQ}{dt} = R_N - G - H - \lambda E (- PP)$$
+
+where:
+
+$Q$:
+Total heat energy stored in the surface layer.
+
+$R_N$:
+Net surface irradiance (commonly referred to as the net radiation). It
+represents the gain of energy by the surface from radiation. It is a positive number
+when it is towards the surface.
+
+$G$:
+Ground Heat Flux. It is the loss of energy by heat conduction through the
+lower boundary. It is a positive number when it is directed away from the surface into
+ground. The value at the surface is denoted G0.
+
+$H$:
+Sensible Heat Flux. It represents the loss of energy by the
+surface by heat transfer to the atmosphere. It is positive when directed
+away from the surface into the atmosphere.
+
+$\lambda E$:
+Latent Heat Flux. It represents a loss of energy from the
+surface due to evaporation. ($\lambda$  is the specific latent heat of evaporation,
+units $\mathrm{J\,kg^{-1}}$ and E is the evaporation rate, with units
+$\mathrm{kg\,m^{-2}\,s^{-1}}$).
+
+$PP$:
+Primary productivity, represents the energy that plants use to photosynthesize.
+
+### Net radiation
+
+The current representation of the radiation balance is limited to the reflection and
+absorption of direct downward shortwave radiation and the emission of longwave radiation
+as part of the surface energy balance.
 
 The net radiation $R_N$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
 calculated as:
@@ -96,13 +143,7 @@ In the future, we aim to implement a full diurnal cycle of incoming radiation, i
 ### Soil energy balance
 
 The `models.abiotic.soil_energy_balance` submodule determines the energy balance at the
-soil surface by partitioning net radiation $R_N$ into:
-
-- Sensible heat flux $H_S$ ($\mathrm{W\,m^{-2}}$),
-
-- Latent heat flux $Q_{\text{LE}}$ ($\mathrm{W\,m^{-2}}$), and
-
-- Ground heat flux $G$ ($\mathrm{W\,m^{-2}}$).
+soil surface by partitioning net radiation $R_N$ into different fluxes.
 
 The **sensible heat flux** from the soil surface is given by:
 
@@ -125,7 +166,7 @@ Air density ($\mathrm{kg\,m^{-3}}$)
 $C_{air}$:
 Specific heat capacity of air ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
 
-The **aerodynamic resistance of the soil surface** is given by:
+The aerodynamic resistance of the soil surface is given by:
 
 $$r_{A} = \frac {C_{E}}{u}$$
 
@@ -140,9 +181,9 @@ Drag coefficient for evaporation (–)
 The **latent heat flux** is derived by conversion of surface evaporation as
 calculated by the hydrology model.
 
-The **ground heat flux** $G$ is calculated as the residual of the energy balance:
+The **ground heat flux** is calculated as the residual of the energy balance:
 
-$$G = R_N - H_S - Q_{\text{LE}}$$
+$$G = R_N - H_S - \lambda E_S$$
 
 ### Soil temperature update
 
@@ -156,11 +197,11 @@ each soil depth.
 The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
 at which heat is conducted through the soil. It is defined as:
 
-$$\alpha = \frac{\lambda}{\rho c}$$
+$$\alpha = \frac{k}{\rho c}$$
 
 where:
 
-$\lambda$:
+$k$:
 Soil thermal conductivity ($\mathrm{W\,m^{-1}\,K^{-1}}$), indicating how
   easily heat moves through soil
 
@@ -168,8 +209,8 @@ $\rho$:
 Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces
 
 $c$:
-Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to raise
-the temperature of 1 kg of soil by 1 K.
+Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
+raise the temperature of 1 kg of soil by 1 K.
 
 #### Temperature Update Scheme
 
@@ -222,21 +263,23 @@ vapour exchange must be modelled as transient processes, and heat storage by the
 and the exchange of heat between different layers of the canopy, must be considered
 explicitly, see {cite:t}`maclean_microclimc_2021`. This is currently not implemented.)
 
-Under steady-state, the balance equation $EB$ for the leaves in each canopy layer is as
-follows (after {cite:t}`maclean_microclimc_2021`):
+Under steady-state, the balance equation $\frac{dQ}{dt}$ for the leaves in each canopy
+layer is as follows:
 
 ```{math}
-    & EB \\
-    & = R_{\text{abs}} - R_{\text{em}} - H - Q_{\text{LE}} \\
-    & = R_{\text{abs}} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{A}} \\
+    & \frac{dQ}{dt} \\
+    & = R_{N} - H - \lambda E (- PP)\\
+    & = R_{\text{abs}} - \epsilon_{s} \sigma T_{L}^{4} -
+    \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
+    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{A}} (- PP)\\
     & = 0
 ```
 
 where:
 
 $R_{\text{abs}}$:
-Shortwave radiation absorbed by the canopy ($\mathrm{W\,m^{-2}}$)
+Shortwave radiation absorbed by the canopy, equivalent to $S_0 (1-\alpha)$
+($\mathrm{W\,m^{-2}}$)
 
 $R_{\text{em}}$:
 Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
@@ -244,7 +287,7 @@ Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
 $H$:
 Sensible heat flux from the canopy to the air ($\mathrm{W\,m^{-2}}$)
 
-$Q_{\text{LE}}$:
+$\lambda E$:
 Latent heat flux associated with transpiration from the canopy to the air
 ($\mathrm{W\,m^{-2}}$)
 
@@ -276,6 +319,9 @@ $g_{v}$:
 Conductance for vapour loss from the leaves ($\mathrm{mol\,m^{-2}\,s^{-1}}$) as a
 function of the stomatal conductance $g_{c}$ ($\mathrm{s\,m^{-1}}$)
 
+$PP$:
+Primary productivity, represents the energy that plants use to photosynthesize
+
 ### Air and canopy temperature update
 
 A challenge in solving this equation is the dependency of latent heat and emitted
@@ -288,12 +334,12 @@ energy balance at the leaf surface, see previous section.
 
 #### Newton Linearization
 
-To iteratively solve for the leaf temperature that satisfies the energy balance $EB$, we
-use the Newton method:
+To iteratively solve for the leaf temperature that satisfies the energy balance
+$\frac{dQ}{dt}$ = 0, we use the Newton method:
 
 ```{math}
-T_L^{\text{new}} =
-T_L^{\text{old}} + W \cdot \frac{EB}{\frac{\partial EB}{\partial T_L^{\text{old}}}}
+T_L^{\text{new}} = T_L^{\text{old}} + W \cdot
+\frac{\frac{dQ}{dt}}{\frac{\partial \frac{dQ}{dt}}{\partial T_L^{\text{old}}}}
 ```
 
 where:
@@ -307,7 +353,7 @@ Updated estimate of leaf temperature (°C)
 $W$:
 Step-size weighting factor (–), typically between 0.1 and 1
 
-$\frac{\partial EB}{\partial T_L^{\text{old}}}$:
+$\frac{\partial \frac{dQ}{dt}}{\partial T_L^{\text{old}}}$:
 The first derivative of the energy balance with respect to temperature
 
 This update adjusts the leaf temperature proportionally to the energy imbalance, scaled
@@ -321,7 +367,7 @@ The temperature derivative of the energy balance as formulated above
 is calculated analytically as:
 
 ```{math}
-\frac{\partial EB}{\partial T_L^{\text{old}}} =
+\frac{\partial \frac{dQ}{dt}}{\partial T_L^{\text{old}}} =
 \frac{\rho_a c_p}{r_a} +
 \frac{\rho_a \Delta_v}{r_a + r_s} \lambda +
 4 \epsilon \sigma (T_L^{\text{old}} + 273.15)^3
@@ -362,24 +408,23 @@ accounts for the nonlinear temperature dependence, especially of radiative loss.
 
 #### Air Temperature Coupling
 
-After updating the canopy temperature, we optionally update the air temperature in the
-adjacent canopy layer to reflect its coupling with the leaf temperature:
+After updating the canopy temperature, we update the air temperature in the
+adjacent canopy layer to reflect its coupling with the leaf temperature following
+{cite:t}`bonan_climate_2019`:
 
-```{math}
-T_A^{\text{new}} = T_A^{\text{old}} + \alpha \cdot (T_L^{\text{new}} - T_A^{\text{new}})
-```
+$$H = \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})$$
+
+and
+
+$$T_{A}^{new} = T_{A}^{old} + \frac{H \Delta t}{\rho_a c_p z}$$
 
 where:
 
 $T_A$:
-Air temperature (K)
+Air temperature, (°C)
 
-$\alpha$:
-Relaxation factor (–), typically < 1 for stability
-
-This update assumes the leaf acts as a source or sink of heat for the air layer, and
-relaxes the air temperature toward the new leaf temperature. The relaxation factor
-$\alpha$ controls how tightly coupled the two temperatures are.
+$z$:
+Thickness of the air layer we are updating, (m)
 
 ```{note}
 There is currently no vertical mixing between layers and no heat is transferred to the

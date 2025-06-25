@@ -32,7 +32,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_componen
         light_extinction_coefficient=0.01,
     )
 
-    exp_result = np.array([[0.89955] * 4, [0.898651] * 4, [0.897753] * 4])
+    exp_result = np.array([[0.49975] * 4, [0.499251] * 4, [0.498752] * 4])
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -81,7 +81,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         initial_flux_value=0.001,
     )
 
-    exp_abs = np.array([[0.89955] * 4, [0.898651] * 4, [0.897753] * 4])
+    exp_abs = np.array([[0.49975] * 4, [0.499251] * 4, [0.498752] * 4])
 
     for var in [
         "canopy_temperature",
@@ -146,49 +146,6 @@ def test_calculate_sensible_heat_flux(
 
     # Assert all elements are close
     np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
-
-
-@pytest.mark.parametrize(
-    "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
-    [
-        # Test case 1: Typical inputs
-        (
-            np.array([400.0, 500.0, 600.0], dtype=np.float32),
-            np.array([100.0, 150.0, 200.0], dtype=np.float32),
-            np.array([50.0, 75.0, 100.0], dtype=np.float32),
-            0.2,
-            np.array([170.0, 175.0, 180.0], dtype=np.float32),
-        ),
-        # Test case 2: Edge case with zero values
-        (
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-            0.0,
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-        ),
-        # Test case 3: Nighttime condition with negative incoming radiation
-        (
-            np.array([-200.0, -150.0, -100.0], dtype=np.float32),
-            np.array([50.0, 75.0, 100.0], dtype=np.float32),
-            np.array([20.0, 30.0, 40.0], dtype=np.float32),
-            0.1,
-            np.array([-250.0, -240.0, -230.0], dtype=np.float32),
-        ),
-    ],
-)
-def test_calculate_net_radiation(
-    incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected
-):
-    """Test net radiation."""
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_net_radiation,
-    )
-
-    result = calculate_net_radiation(
-        incoming_radiation, absorbed_radiation, longwave_emission, albedo
-    )
-    np.testing.assert_allclose(result, expected, rtol=1e-5)
 
 
 def test_calculate_aerodynamic_resistance(
@@ -420,9 +377,7 @@ def test_update_air_temperature():
     canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
 
     # Expected outputs
-    expected_air_temperature = np.array(
-        [[30.276762, 25.276762], [28.553523, 23.553523]]
-    )
+    expected_air_temperature = np.array([[30.6, 25.6], [29.2, 24.2]])
 
     # Call the function
     updated_air_temperature = update_air_temperature(
@@ -431,7 +386,8 @@ def test_update_air_temperature():
         specific_heat_air=np.full((2, 2), 1006),
         density_air=np.full((2, 2), 1.293),
         aerodynamic_resistance=np.full((2, 2), 10.0),
-        time_interval=3600,
+        mixing_layer_thickness=np.full((2, 2), 10),
+        time_interval=60,
     )
 
     np.testing.assert_allclose(
