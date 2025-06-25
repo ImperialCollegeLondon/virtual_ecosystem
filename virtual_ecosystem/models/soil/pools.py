@@ -1241,13 +1241,19 @@ def calculate_enzyme_production(
 
     for group in microbial_groups.values():
         for substrate in group.find_enzyme_substrates():
-            if f"{group.taxonomic_group}_{substrate}" in production_rates.keys():
-                production_rates[f"{group.taxonomic_group}_{substrate}"] += (
-                    growth_rates[group.name] * group.enzyme_production[substrate]
+            enzyme_class = f"{group.taxonomic_group}_{substrate}"
+
+            # This step catches negative growth rates (which can occur for mycorrhizal
+            # fungi, but shouldn't produce a negative amount of enzyme)
+            growth = np.where(growth_rates[group.name] > 0, growth_rates[group.name], 0)
+
+            if enzyme_class in production_rates.keys():
+                production_rates[enzyme_class] += (
+                    growth * group.enzyme_production[substrate]
                 )
             else:
-                production_rates[f"{group.taxonomic_group}_{substrate}"] = (
-                    growth_rates[group.name] * group.enzyme_production[substrate]
+                production_rates[enzyme_class] = (
+                    growth * group.enzyme_production[substrate]
                 )
 
     return production_rates

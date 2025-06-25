@@ -414,15 +414,15 @@ def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_clas
             -0.00010931,
         ],
         "net_change_pom_fungi": [
-            -6.29372863e-4,
-            -2.34035315e-4,
-            -1.07468399e-4,
+            -0.000625573463,
+            -0.000124303515,
+            -0.000107468399,
             -8.01794976e-5,
         ],
         "net_change_maom_fungi": [
-            -2.11748863e-4,
-            -2.59859315e-4,
-            -4.37963990e-5,
+            -0.000207949463,
+            -0.000150127515,
+            -4.3796399e-5,
             -2.62514976e-5,
         ],
         "denaturation_maom_bacteria": [0.0008544, 0.0002808, 0.00060216, 0.00010944],
@@ -479,8 +479,8 @@ def test_calculate_enzyme_production(functional_groups, growth_rates):
     expected_production = {
         "bacteria_pom": [2.77675102e-07, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
         "bacteria_maom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
-        "fungi_pom": [-3.69286270e-6, -9.60353150e-5, 4.75716010e-5, 2.56605024e-5],
-        "fungi_maom": [-3.69286270e-6, -9.60353150e-5, 4.75716010e-5, 2.56605024e-5],
+        "fungi_pom": [1.065373e-7, 1.3696485e-5, 4.7571601e-5, 2.56605024e-5],
+        "fungi_maom": [1.065373e-7, 1.3696485e-5, 4.7571601e-5, 2.56605024e-5],
     }
 
     actual_production = calculate_enzyme_production(
