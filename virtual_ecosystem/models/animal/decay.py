@@ -465,7 +465,7 @@ class SoilPool:
     ):
         """Extract the CNP masses of the soil fungi pools.
 
-        Animals are assumed to just generically eat soi fungi rather than being able to
+        Animals are assumed to just generically eat soil fungi rather than being able to
         choose a specific fungal functional group to eat. This means that the biomass
         for all three groups is combined into one.
 
