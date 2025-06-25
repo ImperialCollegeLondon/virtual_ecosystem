@@ -610,6 +610,8 @@ def solve_canopy_temperature(
     else:
         density_water_array = density_water
 
+    # TODO this loop might be a potential performance bottleneck.
+    # The function only takes scalar values
     for i in range(nrows):
         for j in range(ncols):
 
