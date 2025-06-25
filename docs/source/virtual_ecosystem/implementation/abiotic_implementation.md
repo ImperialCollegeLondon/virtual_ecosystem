@@ -214,7 +214,7 @@ raise the temperature of 1 kg of soil by 1 K.
 
 #### Temperature Update Scheme
 
-Let $T_i^t$ represent the temperature (°C or K) of the $i^\text{th}$ soil layer at time
+Let $T_i^t$ represent the temperature (°C or K) of the $i^{\text{th}}$ soil layer at time
 $t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
 and time advances in steps of $\Delta t$ (s).
 
@@ -416,7 +416,7 @@ $$H = \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})$$
 
 and
 
-$$T_{A}^{new} = T_{A}^{old} + \frac{H \Delta t}{\rho_a c_p z}$$
+$$T_{A}^{\text{new}} = T_{A}^{\text{old}} + \frac{H \Delta t}{\rho_a c_p z}$$
 
 where:
 
