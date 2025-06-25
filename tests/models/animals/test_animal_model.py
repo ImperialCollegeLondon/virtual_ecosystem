@@ -2449,3 +2449,13 @@ class TestAnimalModel:
         # Assert that only the immature cohort's update_largest_mass was called
         mock_immature.update_largest_mass.assert_called_once()
         mock_mature.update_largest_mass.assert_not_called()
+
+
+def test_to_per_day(prepared_animal_model_instance):
+    """Test that helper function to convert to per day rates works."""
+
+    rates = prepared_animal_model_instance.to_per_day(
+        change=np.array([10.0, 25.0, 99.0, 34.7])
+    )
+
+    assert np.allclose(rates, [0.714285714, 1.7857143, 7.0714286, 2.4785714])

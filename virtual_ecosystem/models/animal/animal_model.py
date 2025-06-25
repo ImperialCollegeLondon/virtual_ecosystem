@@ -22,7 +22,8 @@ from math import ceil, sqrt
 from random import choice, random
 from typing import Any, cast
 
-from numpy import array, inf, timedelta64, where, zeros
+from numpy import array, float32, inf, timedelta64, where, zeros
+from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -293,6 +294,8 @@ class AnimalModel(
             **kwargs: Further arguments to the setup method.
         """
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
+        self.update_interval_in_days = days_as_float
+        """Store update interval as a number of days."""
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
         """Convert pint update_interval to timedelta64 once during initialization."""
 
@@ -684,40 +687,22 @@ class AnimalModel(
         )
 
         return {
-            "animal_pom_consumption_carbon": DataArray(
-                pom_consumption_carbon
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
-            ),
-            "animal_pom_consumption_nitrogen": DataArray(
+            "animal_pom_consumption_carbon": self.to_per_day(pom_consumption_carbon),
+            "animal_pom_consumption_nitrogen": self.to_per_day(
                 pom_consumption_nitrogen
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "animal_pom_consumption_phosphorus": DataArray(
+            "animal_pom_consumption_phosphorus": self.to_per_day(
                 pom_consumption_phosphorus
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "animal_bacteria_consumption": DataArray(
-                bacteria_consumption
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
-            ),
-            "animal_saprotrophic_fungi_consumption": DataArray(
+            "animal_bacteria_consumption": self.to_per_day(bacteria_consumption),
+            "animal_saprotrophic_fungi_consumption": self.to_per_day(
                 saprotrophic_fungi_consumption
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "animal_ectomycorrhiza_consumption": DataArray(
+            "animal_ectomycorrhiza_consumption": self.to_per_day(
                 ectomycorrhiza_consumption
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "animal_arbuscular_mycorrhiza_consumption": DataArray(
+            "animal_arbuscular_mycorrhiza_consumption": self.to_per_day(
                 arbuscular_mycorrhiza_consumption
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
         }
 
@@ -820,37 +805,38 @@ class AnimalModel(
 
         # Create the output DataArray for each nutrient
         return {
-            "decomposed_excrement_carbon": DataArray(
+            "decomposed_excrement_carbon": self.to_per_day(
                 array(decomposed_excrement["carbon"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_excrement_nitrogen": DataArray(
+            "decomposed_excrement_nitrogen": self.to_per_day(
                 array(decomposed_excrement["nitrogen"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_excrement_phosphorus": DataArray(
+            "decomposed_excrement_phosphorus": self.to_per_day(
                 array(decomposed_excrement["phosphorus"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_carcasses_carbon": DataArray(
+            "decomposed_carcasses_carbon": self.to_per_day(
                 array(decomposed_carcasses["carbon"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_carcasses_nitrogen": DataArray(
+            "decomposed_carcasses_nitrogen": self.to_per_day(
                 array(decomposed_carcasses["nitrogen"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_carcasses_phosphorus": DataArray(
+            "decomposed_carcasses_phosphorus": self.to_per_day(
                 array(decomposed_carcasses["phosphorus"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
         }
+
+    def to_per_day(self, change: NDArray[float32]) -> DataArray:
+        """Method to convert a change caused by the animal model into a per day rate.
+
+        Args:
+            change: Change in pool caused by the animal model [kg m^-3].
+
+        Returns:
+            Change converted to a per day rate (which are the units the soil model needs
+            it in) units [kg m^-3 day^-1].
+        """
+
+        return DataArray(change / self.update_interval_in_days, dims="cell_id")
 
     def update_population_densities(self) -> None:
         """Updates the densities for each functional group in each community."""
