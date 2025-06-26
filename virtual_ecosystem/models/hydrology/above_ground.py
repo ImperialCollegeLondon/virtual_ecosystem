@@ -231,7 +231,7 @@ def calculate_soil_evaporation(
     atmospheric_pressure: NDArray[np.float32],
     soil_moisture: NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
-    soil_moisture_capacity: float | NDArray[np.float32],
+    soil_moisture_saturation: float | NDArray[np.float32],
     leaf_area_index: NDArray[np.float32],
     wind_speed_surface: NDArray[np.float32],
     density_air: float | NDArray[np.float32],
@@ -274,7 +274,7 @@ def calculate_soil_evaporation(
         atmospheric_pressure: Atmospheric pressure at reference height, [kPa]
         soil_moisture: Volumetric relative water content, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
-        soil_moisture_capacity: Soil moisture capacity, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
         wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
         density_air: Density if air, [kg m-3]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
@@ -296,7 +296,7 @@ def calculate_soil_evaporation(
     soil_moisture_free = np.clip(
         (soil_moisture - soil_moisture_residual),
         0.0,
-        (soil_moisture_capacity - soil_moisture_residual),
+        (soil_moisture_saturation - soil_moisture_residual),
     )
 
     # Estimate alpha using the Barton (1979) equation
@@ -614,30 +614,30 @@ def convert_mm_flow_to_m3_per_second(
 def calculate_surface_runoff(
     precipitation_surface: NDArray[np.float32],
     top_soil_moisture: NDArray[np.float32],
-    top_soil_moisture_capacity: NDArray[np.float32],
+    top_soil_moisture_saturation: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Calculate surface runoff, [mm].
 
     Surface runoff is calculated with a simple bucket model based on
-    :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
+    :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture saturation
     , the excess water is added to runoff and top soil moisture is set to soil
-    moisture capacity value; if the top soil is not saturated, precipitation is
+    moisture saturation value; if the top soil is not saturated, precipitation is
     added to the current soil moisture level and runoff is set to zero.
 
-    TODO adjust capacity to account for new set of soil layers #535
+    TODO adjust saturation to account for new set of soil layers #535
 
     Args:
         precipitation_surface: Precipitation that reaches surface, [mm]
         top_soil_moisture: Water content of top soil layer, [mm]
-        top_soil_moisture_capacity: Soil mositure capacity of top soil layer, [mm]
+        top_soil_moisture_saturation: Soil mositure saturation of top soil layer, [mm]
     """
 
-    # Calculate how much water can be added to soil before capacity is reached, [mm]
-    free_capacity_mm = top_soil_moisture_capacity - top_soil_moisture
+    # Calculate how much water can be added to soil before saturation is reached, [mm]
+    free_saturation_mm = top_soil_moisture_saturation - top_soil_moisture
 
     # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
     return np.where(
-        precipitation_surface > free_capacity_mm,
-        precipitation_surface - free_capacity_mm,
+        precipitation_surface > free_saturation_mm,
+        precipitation_surface - free_saturation_mm,
         0,
     )
