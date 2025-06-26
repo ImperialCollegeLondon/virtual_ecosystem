@@ -8,7 +8,7 @@ To Do:
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
-from math import ceil, exp, log
+from math import exp, log
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
-def damuths_law(mass: float, terms: tuple) -> int:
+def damuths_law(mass: float, terms: tuple) -> float:
     """The function set initial population densities .
 
         Currently, this function just employs Damuth's Law (Damuth 1987) for
@@ -35,7 +35,7 @@ def damuths_law(mass: float, terms: tuple) -> int:
 
     """
 
-    return ceil(terms[1] * mass ** terms[0])
+    return terms[1] * mass ** terms[0]
 
 
 def metabolic_rate(

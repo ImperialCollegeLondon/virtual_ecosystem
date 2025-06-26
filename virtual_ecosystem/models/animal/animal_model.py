@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import uuid
 from math import ceil, sqrt
-from random import choice, random
+from random import choice
 from typing import Any, cast
 
-from numpy import array, inf, timedelta64, zeros
+from numpy import array, inf, random, timedelta64, zeros
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -168,6 +168,11 @@ class AnimalModel(
         """A pool for leaves removed by herbivory but not actually consumed."""
         self.litter_pools: dict[int, dict[str, Resource]] = self.populate_litter_pools()
         """The litter pools with associated grid cell ids."""
+        # TODO: make the following two modifiable
+        self.target_cohorts_per_fg: int = 1
+        """The target number of cohorts per functional group in each grid cell."""
+        self.minimum_cohort_size: int = 5
+        """The minimum number of individuals to initialize a cohort at init."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -180,31 +185,100 @@ class AnimalModel(
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
-        """Initialize the animal communities by creating and populating animal cohorts.
+        """Revised initialization process.
 
         Args:
             functional_groups: The list of functional groups that will populate the
             model.
+
         """
-        # Initialize communities dictionary with cell IDs as keys and empty lists for
-        # cohorts
-        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
-        # Iterate over each cell and functional group to create and populate cohorts
-        for cell_id in self.data.grid.cell_id:
-            for functional_group in functional_groups:
-                # Calculate the number of individuals using Damuth's Law
-                individuals = damuths_law(
-                    functional_group.adult_mass, functional_group.damuths_law_terms
-                )
+        self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
 
+        for fg in functional_groups:
+            total_individuals = self._estimate_total_individuals(fg)
+            cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
+            cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
+
+            for size, cell_id in zip(cohort_sizes, cohort_locations):
                 self.create_new_cohort(
-                    functional_group=functional_group,
-                    mass=functional_group.adult_mass,
+                    functional_group=fg,
+                    mass=fg.adult_mass,
                     age=0.0,
-                    individuals=individuals,
+                    individuals=size,
                     centroid_key=cell_id,
                 )
+
+    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
+        """Estimates the total number of individuals of a functional group.
+
+        Args:
+            functional_group: The specific functional group having its individuals
+                estimated.
+
+        Returns: The integer number of individuals of the group.
+
+        """
+
+        total_area = self.data.grid.n_cells * self.data.grid.cell_area
+
+        if functional_group.density_individuals_m2 is not None:
+            return int(functional_group.density_individuals_m2 * total_area)
+        else:
+            return ceil(
+                damuths_law(
+                    functional_group.adult_mass, functional_group.damuths_law_terms
+                )
+                * len(self.data.grid.cell_id)
+            )
+
+    def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
+        """Distribute individuals into cohorts respecting minimum size.
+
+        Args:
+            total_individuals: The number of individuals to distribute.
+
+        Returns:
+            A list of cohort sizes.
+        """
+        n_target = self.target_cohorts_per_fg  # ideal number of cohorts
+        min_size = self.minimum_cohort_size  # minimum size of cohorts
+
+        if total_individuals < n_target * min_size:
+            # if I don't have enough individuals to meet my size and number targets
+            # reduce the number of cohorts
+            n_target = max(1, total_individuals // min_size)
+
+        base_size = total_individuals // n_target  # the number of indiv in each cohorts
+        remainder = total_individuals % n_target  # the leftover number of indiv
+
+        # evenly distribute the remained and return the list of cohort sizes
+        return [base_size + 1 if i < remainder else base_size for i in range(n_target)]
+
+    def _assign_cohort_locations(self, n_cohorts: int) -> list[int]:
+        """Assign each cohort to a grid cell.
+
+        Args:
+            n_cohorts: Number of cohorts to distribute.
+
+        Returns:
+            A list of grid cell IDs for each cohort.
+        """
+        cell_ids = list(self.data.grid.cell_id)  # a list of all the grid cell ids
+        n_cells = len(cell_ids)  # the number of grid cells
+
+        if n_cohorts <= n_cells:  # if more cells than cohorts
+            # assign one random cell per cohort without replacement
+            return random.choice(cell_ids, size=n_cohorts, replace=False).tolist()
+        else:  # if more cohorts than cells
+            # one cohort per cell, to start
+            locations = cell_ids.copy()
+            # randomly select grid cell ids equal to number of remaining cohorts
+            extra = random.choice(
+                cell_ids, size=n_cohorts - n_cells, replace=True
+            ).tolist()
+            locations.extend(extra)  # assign the extras to the location list
+            return locations
 
     @classmethod
     def from_config(
@@ -762,7 +836,8 @@ class AnimalModel(
                 self.model_constants.dispersal_mass_threshold
             )
             is_juvenile_and_migrate = (
-                cohort.age == 0.0 and random() <= cohort.migrate_juvenile_probability()
+                cohort.age == 0.0
+                and random.random() <= cohort.migrate_juvenile_probability()
             )
             migrate = is_starving or is_juvenile_and_migrate
 
