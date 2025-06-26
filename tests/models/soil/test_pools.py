@@ -782,7 +782,7 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
 
 def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_components):
     """Test that calculation of the rate of nitrification is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
 
@@ -791,10 +791,10 @@ def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_compone
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
 
-    expected_rate = [1.48136406e-06, 2.88209167e-04, 1.93117164e-05, 1.73005910e-04]
+    expected_rate = [1.83335539e-06, 3.03095957e-04, 1.93106767e-05, 1.71056181e-04]
 
     actual_rate = calculate_rate_of_nitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -812,7 +812,7 @@ def test_negative_nitrification_rate_impossible(
     dummy_carbon_data, fixture_core_components
 ):
     """Test that negative nitrification rates can't occur."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
 
@@ -821,13 +821,13 @@ def test_negative_nitrification_rate_impossible(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
     ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
     ammonium_data[0] = -0.0001
     ammonium_data[3] = -3e-4
 
-    expected_rate = [0.0, 2.88209167e-04, 1.93117164e-05, 0.0]
+    expected_rate = [0.0, 3.03095957e-04, 1.93106767e-05, 0.0]
 
     actual_rate = calculate_rate_of_nitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -843,7 +843,7 @@ def test_negative_nitrification_rate_impossible(
 
 def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_components):
     """Test that calculation of the rate of denitrification is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_denitrification
 
@@ -852,10 +852,10 @@ def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_compo
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
 
-    expected_rate = [9.37815950e-04, 1.38175611e-03, 4.86522454e-05, 3.14642097e-04]
+    expected_rate = [9.01399413e-04, 1.32810083e-03, 4.67630194e-05, 3.02424161e-04]
 
     actual_rate = calculate_rate_of_denitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -873,7 +873,7 @@ def test_negative_denitrification_rate_impossible(
     dummy_carbon_data, fixture_core_components
 ):
     """Test that negative denitrification rates can't occur."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_denitrification
 
@@ -882,13 +882,13 @@ def test_negative_denitrification_rate_impossible(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
     nitrate_data = dummy_carbon_data["soil_n_pool_nitrate"]
     nitrate_data[1] = -0.0001
     nitrate_data[2] = -7e-4
 
-    expected_rate = [0.00093782, 0.0, 0.0, 0.00031464]
+    expected_rate = [0.0009014, 0.0, 0.0, 0.00030242]
 
     actual_rate = calculate_rate_of_denitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
