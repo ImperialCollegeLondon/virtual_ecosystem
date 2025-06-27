@@ -371,7 +371,11 @@ class PlantsModel(
         ) ** (1 / self.model_timing.updates_per_year)
 
         # Run the community data exporter
-        self.exporter.dump(communities=self.communities, canopies=self.canopies)
+        self.exporter.dump(
+            communities=self.communities,
+            canopies=self.canopies,
+            time=self.model_timing.start_time,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -421,7 +425,12 @@ class PlantsModel(
         self.calculate_subcanopy_dynamics()
 
         # Run the community data exporter
-        self.exporter.dump(communities=self.communities, canopies=self.canopies)
+        self.exporter.dump(
+            communities=self.communities,
+            canopies=self.canopies,
+            time=self.model_timing.start_time
+            + time_index * self.model_timing.update_interval,
+        )
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
