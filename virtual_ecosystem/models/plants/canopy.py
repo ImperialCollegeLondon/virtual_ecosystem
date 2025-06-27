@@ -106,6 +106,8 @@ def calculate_canopies(
     canopies: dict[int, Canopy] = {}
     for cell_id, community in communities.items():
         # Calculate the PPA canopy model for the community in the cell
+        # TODO - the PPA here is being protected from bad input by the DBH clipping in
+        #        PlantsModel.allocate_gpp. Maybe keep an eye open here too.
         canopies[cell_id] = Canopy(community, fit_ppa=True)
 
         # Fail if canopy representation has more layers than the configuration.

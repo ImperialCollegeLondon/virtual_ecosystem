@@ -123,7 +123,159 @@ def plants_data(fixture_core_components):
 
 
 @pytest.fixture
-def fxt_plants_model(plants_data, flora, fixture_core_components):
+def fixture_canopy_layer_data(
+    plants_data, fixture_plants_constants, flora, fixture_core_components
+):
+    """Shared canopy layer data.
+
+    The fixture supplies a dictionary of data values expected from the canopy cohort
+    data and subcanopy biomasses in the plants_data fixture. Each entry provides a tuple
+    of the variable name to be tested and a dataarray containing the variables to be
+    tested. Some variables have multiple test cases to allow different stages of the
+    data population process to be checked.
+
+    The expected values are derived here from first principles using pyrealm and direct
+    calculations. This avoids hard coding test values and the point of this test is to
+    check that the values obtained directly match what is assembled through the plants
+    model.
+    """
+
+    from pyrealm.demography.canopy import Canopy
+    from pyrealm.demography.community import Cohorts, Community
+
+    # Package the community data up into cell groups
+    community_data = plants_data[
+        [
+            "plant_cohorts_cell_id",
+            "plant_cohorts_dbh",
+            "plant_cohorts_pft",
+            "plant_cohorts_n",
+        ]
+    ]
+    cells = community_data.groupby("plant_cohorts_cell_id")
+
+    # Build the pyrealm community for each cell
+    communities = [
+        Community(
+            flora=flora,
+            cell_area=fixture_core_components.grid.cell_area,
+            cell_id=int(cell_id),
+            cohorts=Cohorts(
+                dbh_values=cell_data["plant_cohorts_dbh"].to_numpy(),
+                n_individuals=cell_data["plant_cohorts_n"].to_numpy(),
+                pft_names=cell_data["plant_cohorts_pft"].to_numpy(),
+            ),
+        )
+        for cell_id, cell_data in cells
+    ]
+
+    # Fit the PPA solution for each cell
+    canopies = [Canopy(cmnty, fit_ppa=True) for cmnty in communities]
+
+    # Extract direct pyrealm canopy data for different variable test cases.
+    lyr_struct = fixture_core_components.layer_structure
+
+    # Create a dictionary of test cases of pairs of data object variable names and empty
+    # layer structure data arrays from the template.
+    expected = {
+        test_case: (var_name, lyr_struct.from_template())
+        for test_case, var_name in (
+            ("layer_heights_canopy", "layer_heights"),  # canopy heights
+            ("layer_heights_full", "layer_heights"),  #   + ground layer heights
+            ("leaf_area_index_canopy", "leaf_area_index"),  # canopy lai
+            ("leaf_area_index_full", "leaf_area_index"),  #   + subcanopy vegetation
+            ("layer_fapar_canopy", "layer_fapar"),  # canopy fapar
+            ("layer_fapar_full", "layer_fapar"),  #   + subcanopy vegetation
+            ("layer_leaf_mass", "layer_leaf_mass"),
+        )
+    }
+
+    # Fill in the plant canopy data
+    for idx, (cmty, cnpy) in enumerate(zip(communities, canopies)):
+        # Heights - need to add top of canopy and reference height and remove the zero
+        #           that is always included in pyrealm list of heights.
+        heights = np.concat(
+            [
+                [cnpy.max_stem_height + lyr_struct.above_canopy_height_offset],
+                [cnpy.max_stem_height],
+                cnpy.heights[:-1, 0],
+            ]
+        )
+
+        cnpy_height_idx = np.arange(0, heights.size)
+        expected["layer_heights_full"][1][cnpy_height_idx, idx] = heights
+        expected["layer_heights_canopy"][1][cnpy_height_idx, idx] = heights
+
+        # Populate the canopy LAI and fAPAR values
+        cnpy_idx = np.arange(1, heights.size)
+        expected["leaf_area_index_canopy"][1][cnpy_idx, idx] = (
+            cnpy.community_data.average_layer_lai
+        )
+        expected["leaf_area_index_full"][1][cnpy_idx, idx] = (
+            cnpy.community_data.average_layer_lai
+        )
+        expected["layer_fapar_canopy"][1][cnpy_idx, idx] = (
+            cnpy.community_data.average_layer_fapar
+        )
+        expected["layer_fapar_full"][1][cnpy_idx, idx] = (
+            cnpy.community_data.average_layer_fapar
+        )
+
+        # Leaf mass - calculate from stem leaf area
+        # TODO - maybe pyrealm should provide stem_leaf_mass?
+        expected["layer_leaf_mass"][1][cnpy_idx, idx] = (
+            cnpy.cohort_data.stem_leaf_area
+            * (1 / cmty.stem_traits.sla)
+            * cmty.stem_traits.lai
+            * cmty.cohorts.n_individuals
+        ).sum(axis=1)
+
+    # Fill soil and surface layer depths
+    expected["layer_heights_full"][1][lyr_struct.index_surface] = (
+        lyr_struct.surface_layer_height
+    )
+    expected["layer_heights_full"][1][lyr_struct.index_all_soil] = (
+        lyr_struct.soil_layer_depths[:, None]
+    )
+
+    # Fill in subcanopy vegetation details
+    # - calculate the through canopy transmission as 1 - sum of canopy fapar.
+    through_canopy_transmission = 1 - expected["layer_fapar_canopy"][1].sum(axis=0)
+
+    # - Beer Lambert transmission from subcanopy vegetation
+    subcanopy_vegetation_lai = (
+        plants_data["subcanopy_vegetation_biomass"]
+        * fixture_plants_constants.subcanopy_specific_leaf_area
+    )
+    subcanopy_transmission = np.exp(
+        -fixture_plants_constants.subcanopy_extinction_coef * subcanopy_vegetation_lai
+    )
+
+    # Update appropriate rows - add subcanopy vegetation leaf area to surface layer
+    expected["leaf_area_index_full"][1][lyr_struct.index_surface] = (
+        subcanopy_vegetation_lai
+    )
+    # Calculate fAPAR for subcanopy vegetation
+    expected["layer_fapar_full"][1][lyr_struct.index_surface] = (
+        through_canopy_transmission * (1 - subcanopy_transmission)
+    )
+
+    # Shortwave radiation is the fraction of canopy top DSR that is absorbed by each
+    # layer plus what reaches the ground
+    dsr_t0 = plants_data["downward_shortwave_radiation"][:, 0].drop_vars("time_index")
+    dsr_by_layer = expected["layer_fapar_full"][1] * dsr_t0
+    ground_incident_dsr = dsr_t0 - dsr_by_layer.sum(axis=0)
+    dsr_by_layer[lyr_struct.index_topsoil] = ground_incident_dsr
+
+    expected["shortwave_absorption"] = ("shortwave_absorption", dsr_by_layer)
+
+    return expected
+
+
+@pytest.fixture
+def fxt_plants_model(
+    plants_data, flora, fixture_core_components, fixture_plants_constants
+):
     """Return a simple PlantsModel instance."""
 
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
@@ -132,138 +284,5 @@ def fxt_plants_model(plants_data, flora, fixture_core_components):
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        model_constants=fixture_plants_constants,
     )
-
-
-@pytest.fixture
-def fixture_canopy_layer_data():
-    """Shared canopy layer data.
-
-    The fixture supplies a dictionary of data values expected from the canopy cohort
-    data and subcanopy biomasses in the plants_data fixture.
-
-    Each entry provides a tuple of the variable name to be tested, the data itself and
-    then the vertical layer indices into which to insert the data. For the subcanopy
-    masses, which only have a single layer, the vertical layer indices is set to None.
-    """
-
-    return {
-        "layer_heights_full": (
-            "layer_heights",
-            np.array(
-                [
-                    [31.66797952, 31.66797952, 31.66797952, 31.66797952],
-                    [29.66797952, 29.66797952, 29.66797952, 29.66797952],
-                    [28.57219268, 28.34012822, 27.87517919, 1.02256003],
-                    [27.87517997, 27.35745311, np.nan, np.nan],
-                    [27.05144791, np.nan, np.nan, np.nan],
-                    [0.1, 0.1, 0.1, 0.1],
-                    [-0.5, -0.5, -0.5, -0.5],
-                    [-1.0, -1.0, -1.0, -1.0],
-                ]
-            ),
-            [0, 1, 2, 3, 4, 11, 12, 13],
-            # index_filled_atmosphere, index_surface, index_all_soil
-        ),
-        "layer_heights_canopy": (
-            "layer_heights",
-            np.array(
-                [
-                    [31.66797952, 31.66797952, 31.66797952, 31.66797952],
-                    [29.66797952, 29.66797952, 29.66797952, 29.66797952],
-                    [28.57219268, 28.34012822, 27.87517919, 1.02256003],
-                    [27.87517997, 27.35745311, np.nan, np.nan],
-                    [27.05144791, np.nan, np.nan, np.nan],
-                ],
-            ),
-            [0, 1, 2, 3, 4],
-            # index_above, index_filled_canopy),
-        ),
-        "leaf_area_index_canopy_only": (
-            "leaf_area_index",
-            np.array(
-                [
-                    [1.76395258e00, 1.76394186e00, 1.76400479e00, 1.79998897e00],
-                    [1.76405508e00, 1.76443550e00, 1.72228517e00, 1.14824589e-04],
-                    [1.76388228e00, 1.75668428e00, np.nan, np.nan],
-                    [1.73664971e00, np.nan, np.nan, np.nan],
-                ]
-            ),
-            [1, 2, 3, 4],
-            # index_filled_canopy
-        ),
-        "leaf_area_index": (
-            "leaf_area_index",
-            np.array(
-                [
-                    [1.76395258e00, 1.76394186e00, 1.76400479e00, 1.79998897e00],
-                    [1.76405508e00, 1.76443550e00, 1.72228517e00, 1.14824589e-04],
-                    [1.76388228e00, 1.75668428e00, np.nan, np.nan],
-                    [1.73664971e00, np.nan, np.nan, np.nan],
-                    [0.98, 0.98, 0.98, 0.98],
-                ]
-            ),
-            [1, 2, 3, 4, 11],
-            # index_filled_canopy, index_surface
-        ),
-        "layer_fapar_canopy_only": (
-            "layer_fapar",
-            np.array(
-                [
-                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
-                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
-                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
-                    [4.11687555e-02, np.nan, np.nan, np.nan],
-                ]
-            ),
-            [1, 2, 3, 4],
-            # index_filled_canopy,index_surface
-        ),
-        "layer_fapar": (
-            "layer_fapar",
-            np.array(
-                [
-                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
-                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
-                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
-                    [4.11687555e-02, np.nan, np.nan, np.nan],
-                    [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
-                ]
-            ),
-            [1, 2, 3, 4, 11],
-            # index_filled_canopy,index_surface
-        ),
-        "shortwave_absorption": (
-            # So identical to the fapar but converted through to the DSR
-            # values and adding the remaining radiation absorbed by subcanopy vegetation
-            # and reaching the topsoil
-            "shortwave_absorption",
-            np.array(
-                [
-                    [5.86036011e-01, 5.86033790e-01, 5.86046818e-01, 5.93428098e-01],
-                    [2.42606587e-01, 2.42640479e-01, 2.38983923e-01, 2.33415558e-05],
-                    [1.00419115e-01, 1.00144835e-01, np.nan, np.nan],
-                    [4.11687555e-02, np.nan, np.nan, np.nan],
-                    [1.15319309e-02, 2.75736001e-02, 6.77784728e-02, 1.57486182e-01],
-                    [1.82376010e-02, 4.36072953e-02, 1.07190786e-01, 2.49062378e-01],
-                ]
-            )
-            * 1000
-            / 2.04,
-            [1, 2, 3, 4, 11, 12],
-            # index_filled_canopy, index_topsoil
-        ),
-        "layer_leaf_mass": (
-            "layer_leaf_mass",
-            np.array(
-                [
-                    [1.02057257e03, 1.02056636e03, 1.02060277e03, 1.04142219e03],
-                    [1.02063187e03, 1.02085197e03, 9.96464992e02, 6.64342267e-02],
-                    [1.02053189e03, 1.01636733e03, np.nan, np.nan],
-                    [1.00477590e03, np.nan, np.nan, np.nan],
-                ]
-            ),
-            [1, 2, 3, 4],
-            # index_filled_canopy,
-        ),
-    }
