@@ -6,21 +6,32 @@ from virtual_ecosystem.models.animal.scaling_functions import DietType
 
 
 @pytest.mark.parametrize(
-    "mass, population_density, terms, scenario_id",
+    "mass, terms",
     [
-        pytest.param(100000.0, 1.0, (-0.75, 4.23), "large_mass_low_density"),
-        pytest.param(0.07, 32.0, (-0.75, 4.23), "small_mass_high_density"),
-        pytest.param(1.0, 5.0, (-0.75, 4.23), "medium_mass_medium_density"),
+        (100000.0, (-0.75, 4.23)),
+        (0.07, (-0.75, 4.23)),
+        (1.0, (-0.75, 4.23)),
+        (15.5, (-0.75, 4.23)),
+        (0.001, (-0.75, 4.23)),
+    ],
+    ids=[
+        "very_large_mass",
+        "very_small_mass",
+        "unit_mass",
+        "medium_mass",
+        "tiny_mass",
     ],
 )
-def test_damuths_law(mass, population_density, terms, scenario_id):
-    """Testing damuth's law for various body-masses."""
+def test_damuths_law_computes_expected_value(mass, terms):
+    """Test damuth's law returns the expected continuous value."""
 
     from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
-    testing_pop = damuths_law(mass, terms)
-    assert testing_pop == pytest.approx(population_density), (
-        f"Scenario {scenario_id} failed: Expect {population_density}, got {testing_pop}"
+    expected = terms[1] * mass ** terms[0]
+    actual = damuths_law(mass, terms)
+
+    assert actual == pytest.approx(expected), (
+        f"Expected {expected} for mass {mass} and terms {terms}, got {actual}"
     )
 
 
