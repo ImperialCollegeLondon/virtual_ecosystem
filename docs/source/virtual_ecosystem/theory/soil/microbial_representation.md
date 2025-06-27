@@ -44,7 +44,68 @@ of fungi) to produce reproductive bodies.
 
 ### Nutrient uptake and growth
 
-TODO - EXPLAIN, WITH THE RELEVANT EQUATIONS HOW MICROBIAL UPTAKE WORKS
+In the model microbes can take up the following resources: carbon in the form of
+{term}`LMWC`, inorganic nitrogen in the form of ammonium and nitrate, and inorganic
+labile phosphorus. When microbes take up carbon they also take up organic nitrogen and
+phosphorus with it (these fractions are termed {term}`DON` and {term}`DOP`,
+respectively), so organic nutrient uptake is not tracked as a separate process. The
+maximum uptake rate for each resource is found using
+
+$$m_{i,j} = \frac{k_{i,j}*f_{T,r}*f_W*f_{p}*R_j*C_i}{R_j + f_{T,s}*K_{i,j}},$$
+
+where $k_{i,j}$ is the rate constant for uptake of resource $j$ by microbial group $i$
+$C_i$ is the abundance of microbial group $i$, $R_j$ is the availability of resource
+$j$, $f_{T,r}$ is a factor capturing the impact of temperature on the uptake rate,
+$f_{T,s}$ is a factor capturing the impact of temperature on the concentration at which
+the uptake saturates, $f_W$ is a factor capturing the impact of soil moisture on the
+uptake rate, and $f_{p}$ is a factor capturing the impact of soil pH on the uptake rate.
+These factors are all defined in the [soil-abiotic environment links documentation
+page](./environmental_links.md#environmental-effects-on-enzymes).
+
+The maximum rate that carbon can be incorporated into biomass is then found by
+multiplying the [carbon use
+efficiency](./environmental_links.md#microbial-growth-efficiency) by the maximum rate of
+{term}`LMWC` uptake. This will only be the growth rate when the microbial group is
+carbon (rather than nitrogen or phosphorus limited). Each microbial group has a
+stoichiometry for new biomass, which is an weighted average of their cellular biomass
+stoichiometric ratios and the stoichiometric ratios of the extracellular enzymes that
+they produce. This is average is weighted by the fraction of new biomass allocation to
+growth vs each type of enzyme production. The limitation that each nutrient places on
+carbon assimilation is then found by multiplying the stoichiometric ratio for each
+nutrient by the sum of the maximum uptake rates for all forms of the nutrient (organic
+and inorganic). The actual growth rate is then found as
+
+$$G = min(G_C,G_N,G_P),$$
+
+where $G_C$ is the maximum growth rate possible due to the availability of carbon,
+$G_N$ is the maximum growth rate (in carbon terms) due to the availability of nitrogen,
+and $G_P$ is the maximum growth rate (in carbon terms) due to the availability of
+phosphorus.
+
+Organic nutrients are preferentially taken up, this is because organic matter will
+always be needed for growth as it contains all three potential limiting factors. Any
+nutrient demand not met by organic uptake is met by the uptake of inorganic nutrients.
+In the case of nitrogen, this inorganic uptake is split between ammonium and nitrate
+based on the ratio of their maximum uptake rates. It's important to note that while the
+maximum rate of organic nutrient uptake is determined by the product of maximum rate of
+{term}`LMWC` uptake and the stoichiometry of the LMWC pool the actual uptake rate can be
+higher than the product of the **actual** rate of LMWC uptake and the pool
+stoichiometry. This represents LMWC being taken up, nutrients being extracted, and then
+surplus carbon being exuded.
+
+Microbes can also acquire an excess of nutrients through organic matter uptake and need
+to exude them. However, there are multiple forms in which these nutrients can be exuded
+as. We assume that the fraction that gets returned in organic form can be estimated
+based on the degree of carbon limitation as
+
+$$L_C = \frac{G}{m_{i,c} * \epsilon_i},$$
+
+where $m_{i,c}$ is the maximum uptake rate of carbon for microbial group $i$ and
+$\epsilon_i$ is the carbon use efficiency for microbial group $i$. There isn't anything
+mechanistic to base the split between ammonium and nitrate on, so instead we introduce a
+(configurable) [ammonium mineralisation
+proportion](virtual_ecosystem.models.soil.constants.SoilConsts.ammonium_mineralisation_proportion)
+constant to determine how nitrogen mineralisation is split between the two.
 
 ### Enzyme production
 
@@ -65,3 +126,4 @@ IMPLEMENTED)
 ### Mycorrhiza
 
 TODO - EXPLAIN HOW MYCORRHIZAL FUNGI DIFFER
+TODO - MENTION THAT INORGANIC NUTRIENTS ARE PREFERENTIALLY TAKEN UP
