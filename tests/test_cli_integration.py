@@ -75,7 +75,7 @@ def test_ve_run(capsys, mocker):
         pytest.param("-qqq", 0, id="silent"),
         pytest.param("-qq", 3, id="minimal"),
         pytest.param("-q", 9, id="staged"),
-        pytest.param(None, 12, id="full"),
+        pytest.param(None, 11, id="full"),
     ),
 )
 def test_ve_run_verbosity(capsys, tmp_path, verbosity_flags, output_length):
@@ -127,4 +127,5 @@ save_merged_config = false
     out, err = capsys.readouterr()
 
     assert len(err.splitlines()) == 0
-    assert len(out.splitlines()) == output_length
+    output = [v for v in out.splitlines() if v]  # drop blank lines
+    assert len(output) == output_length
