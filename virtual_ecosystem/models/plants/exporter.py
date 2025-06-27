@@ -6,6 +6,7 @@ TODO - Why not the data object?
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from virtual_ecosystem.core.config import Config
@@ -22,27 +23,43 @@ class CommunityDataExporter:
         canopy_attributes: tuple[str, ...],
         active: bool = False,
     ) -> None:
-        # Set the class attributes
+        # Set the path attributes but only do any validation if the exporter is actually
+        # active
         self.cohort_data_path: Path = cohort_data_path
         """Attribute."""
         self.layer_data_path: Path = layer_data_path
         """Attribute."""
+
+        # Need to validate these but maybe delay until first dump and interogate
+        # instances rather than hardcoding allowable attributes in __init__.
         self.cohort_attributes: tuple[str, ...] = cohort_attributes
         """Attribute."""
         self.canopy_attributes: tuple[str, ...] = canopy_attributes
         """Attribute."""
+
         self.active: bool = active
         """Attribute."""
 
         if self.active:
-            self._check_configuration()
+            self._check_paths()
 
-    def _check_configuration(self):
-        """Check the configured settings."""
+    def _check_paths(self) -> None:
+        """Check paths do not exist and are in existing writeable locations."""
 
-        # TODO - check the paths do not exist but are writeable.
-        # TODO - check the export attributes.
-        pass
+        for arg, fname in (
+            ("cohort_data_path", self.cohort_data_path),
+            ("layer_data_path", self.layer_data_path),
+        ):
+            if fname.exists():
+                raise ValueError(
+                    f"The {arg} exporter path must not be an existing file: {fname}"
+                )
+
+            if not (fname.parent.exists() and os.access(fname.parent, os.W_OK)):
+                raise ValueError(
+                    f"The {arg} exporter path must be in an existing "
+                    f"writeable directory: {fname}"
+                )
 
     @classmethod
     def from_config(cls, config: Config) -> CommunityDataExporter:
@@ -61,7 +78,16 @@ class CommunityDataExporter:
     def dump(self, communities, canopies) -> None:
         """Dump community data to the configured files."""
 
+        # TODO - check the export attributes. These probably are checked dynamically
+        #        against object attributes, so need to be delayed until those objects
+        #        are provided to dump. Unless we can import and interrogate the class
+        #        objects themselves and not instances
+
         if not self.active:
             return
 
-        pass
+        with open(self.cohort_data_path, "a") as cohort_out:
+            cohort_out.write("Hello")
+
+        with open(self.layer_data_path, "a") as layer_out:
+            layer_out.write("World")

@@ -18,6 +18,7 @@ def flora(fixture_config):
     return flora
 
 
+@pytest.fixture
 def fixture_plants_constants():
     """Shareable plants constants object."""
 
@@ -28,7 +29,11 @@ def fixture_plants_constants():
 
 @pytest.fixture
 def fixture_exporter(fixture_config):
-    """Construct a minimal Flora object."""
+    """Construct a minimal CommunityDataExporter object.
+
+    This exporter uses the default setting active=False and so is not suitable for
+    actual exporting.
+    """
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
     exporter = CommunityDataExporter.from_config(fixture_config)
@@ -283,7 +288,11 @@ def fixture_canopy_layer_data(
 
 @pytest.fixture
 def fxt_plants_model(
-    plants_data, flora, fixture_core_components, fixture_plants_constants
+    plants_data,
+    flora,
+    fixture_core_components,
+    fixture_plants_constants,
+    fixture_exporter,
 ):
     """Return a simple PlantsModel instance."""
 
