@@ -109,8 +109,22 @@ constant to determine how nitrogen mineralisation is split between the two.
 
 ### Enzyme production
 
-TODO - FILL OUT ALL THE RELEVANT DETAIL HERE
-TODO - NEED TO TALK ABOUT HOW ENZYME ARE PARAMETRISED
+Microbial groups in the model can produce extra-cellular enzymes that drive soil
+processes. Which enzymes are produced and the allocation to production of each type is
+controlled by the parameterisation of the specific microbial functional groups. Enzyme
+classes are differentiated by the substrate they break down (at present this can be
+{term}`POM` or {term}`MAOM`) and by whether they were produced by bacteria or fungi. The
+reason for splitting enzymes by source is that, due to their substantially larger
+genomes, fungi can produce significantly more complex enzymes, which we feel is an
+important difference to capture. Much like microbial functional groups, the keys
+parameters of each enzyme class are individually configurable.
+
+In the model, microbial groups allocate a (configurable) fraction of their synthesis of
+new biomass to the production of each type of enzyme that they produce. This comes from
+the synthesis of new biomass rather than net change in biomass so that enzymes are
+actually produced when microbial populations are at steady-state. The abundance of
+extra-cellular enzymes in the soil can also decline due to denaturation, with these
+denatured enzymes being added to the soil necromass pool.
 
 ## Microbial functional groups
 
