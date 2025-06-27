@@ -25,29 +25,37 @@ language_info:
 
 # Microbial representation
 
-Microbes are represented as carbon pools, each of which produces a set of enzymes. Each
-microbial group will be represented by a separate pool, and will either produce a
-different set of enzymes, or the same set in differing proportions.
-
-TODO - REALLY SHOULD EXPLAIN THE PARAMETERISATION IN DETAIL, AND THEN NEED A SEGUE INTO
-THE SUBSECTIONS
+The microbial groups we include are represented as separate carbon pools. These pools
+can produce enzymes which drive many of the key processes in the soil model. Most of the
+parameters related to the activity of each microbial group can be configured separately.
+This includes their uptake rates for different resources, their turnover rates, their
+stoichiometric ratios, their thermal responses, and details of the enzymes they produce.
+The processes that microbial groups are involved in and the different functional groups
+we represent in the model will now be explained in more detail.
 
 ## Microbial processes
 
-TODO - SHORT INTRO
+Microbial activity is one of the biggest drivers of soil organic matter turnover, so it
+is important to capture the underlying processes in detail. In our model, microbes take
+up carbon, nitrogen and phosphorus (in organic and inorganic forms). This is then used
+to synthesis new biomass, which can be used to replace lost biomass (from cell death and
+cellular maintenance), to grow, to produce externally secreted enzymes or (in the case
+of fungi) to produce reproductive bodies.
 
 ### Nutrient uptake and growth
 
-TODO - FILL OUT ALL THE RELEVANT DETAIL HERE
+TODO - EXPLAIN, WITH THE RELEVANT EQUATIONS HOW MICROBIAL UPTAKE WORKS
 
 ### Enzyme production
 
 TODO - FILL OUT ALL THE RELEVANT DETAIL HERE
+TODO - NEED TO TALK ABOUT HOW ENZYME ARE PARAMETRISED
 
 ## Microbial functional groups
 
 TODO - INTRO JUSTIFYING WHY WE CHOSE THE 4 GROUPS WE DID + WHY WE DIDN'T INCLUDE
 NITROGEN FIXERS, NITRIFIERS ETC
+TODO - SEGUE INTO, THESE ARE THE SPECIAL PROCESSES AND WHY WE INCLUDE THEM
 
 ### Fungal fruiting
 
