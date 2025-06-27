@@ -128,9 +128,20 @@ denatured enzymes being added to the soil necromass pool.
 
 ## Microbial functional groups
 
-TODO - INTRO JUSTIFYING WHY WE CHOSE THE 4 GROUPS WE DID + WHY WE DIDN'T INCLUDE
-NITROGEN FIXERS, NITRIFIERS ETC
-TODO - SEGUE INTO, THESE ARE THE SPECIAL PROCESSES AND WHY WE INCLUDE THEM
+We include a total of four microbial functional groups in the model: bacteria,
+saprotrophic fungi, arbuscular mycorrhizal fungi and ectomycorrhizal fungi. We
+differentiate between bacteria and fungi because it's a major taxonomic division and so
+should be expected to show meaningfully different responses to environmental change. We
+treat saprotrophic and mycorrhizal fungi separately because they acquire carbon in a
+very different manner. Finally, we split mycorrhizal fungi into the two most common
+mycorrhizal types (ecto and arbuscular) because ectomycorrhizal fungi commit
+substantially more resources to the production of enzymes. There are more microbial
+groups that we could have included explicitly in the model (e.g. nitrogen fixing
+bacteria, nitrifying bacteria, etc). However, for these groups there tends to be a real
+lack of field data on the abundance of these groups and so we don't include them.
+
+Details of processes that the model includes that are not shared between all
+microbial functional groups are given below.
 
 ### Fungal fruiting
 
