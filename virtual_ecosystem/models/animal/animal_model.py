@@ -169,9 +169,9 @@ class AnimalModel(
         self.litter_pools: dict[int, dict[str, Resource]] = self.populate_litter_pools()
         """The litter pools with associated grid cell ids."""
         # TODO: make the following two modifiable
-        self.target_cohorts_per_fg: int = 1
+        self.target_cohorts_per_fg: int
         """The target number of cohorts per functional group in each grid cell."""
-        self.minimum_cohort_size: int = 5
+        self.minimum_cohort_size: int
         """The minimum number of individuals to initialize a cohort at init."""
 
     def _setup_grid_neighbours(self) -> None:
@@ -381,6 +381,11 @@ class AnimalModel(
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
+
+        self.target_cohorts_per_fg = len(self.data.grid.cell_id)
+        """The target number of cohorts per functional group in each grid cell."""
+        self.minimum_cohort_size = 5
+        """The minimum number of individuals to initialize a cohort at init."""
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
