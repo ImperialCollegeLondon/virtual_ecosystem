@@ -171,29 +171,17 @@ def run_simple_microclimate(
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
-    net_radiation_canopy = energy_balance.calculate_net_radiation(
-        incoming_radiation=data["downward_shortwave_radiation"]
-        .isel(time_index=time_index)
-        .to_numpy(),
-        absorbed_radiation=data["shortwave_absorption"].to_numpy(),
-        longwave_emission=canopy_longwave_emission,
-        albedo=abiotic_constants.leaf_albedo,
+    net_radiation_canopy = (
+        data["shortwave_absorption"][layer_structure.index_filled_canopy].to_numpy()
+        - canopy_longwave_emission[layer_structure.index_filled_canopy]
     )
-    net_radiation_soil = energy_balance.calculate_net_radiation(
-        incoming_radiation=data["downward_shortwave_radiation"]
-        .isel(time_index=time_index)
-        .to_numpy(),
-        absorbed_radiation=data["shortwave_absorption"][
-            layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        longwave_emission=soil_longwave_emission,
-        albedo=abiotic_constants.surface_albedo,
+    net_radiation_soil = (
+        data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        - soil_longwave_emission
     )
 
     net_radiation = layer_structure.from_template()
-    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy[
-        layer_structure.index_filled_canopy
-    ]
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
     output["net_radiation"] = net_radiation
 

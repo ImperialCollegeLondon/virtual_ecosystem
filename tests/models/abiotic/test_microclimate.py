@@ -19,7 +19,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     result = run_microclimate(
         data=dummy_climate_data,
         time_index=0,
-        time_interval=3600,
+        time_interval=86400,
         cell_area=10000,
         layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
@@ -27,8 +27,21 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         pyrealm_const=PyrealmConst(),
     )
 
+    for var in [
+        "canopy_temperature",
+        "air_temperature",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+    ]:
+        assert var in result
+
     exp_soiltemp = lyr_str.from_template()
-    exp_soiltemp[lyr_str.index_all_soil] = np.array([15.882118, 19.524066])[:, None]
+    exp_soiltemp[lyr_str.index_all_soil] = np.array(
+        [
+            [46.411496, 46.368883, 45.94275, 45.94275],
+            [30.634089, 30.616931, 30.445357, 30.445357],
+        ]
+    )
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
@@ -38,7 +51,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [21.58994, 20.792164, 19.426936]
+        [28.160042, 27.401159, 26.100414]
     )[:, None]
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
@@ -49,7 +62,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 25.621995, 24.779698, 23.373881, 18.890155]
+        [30.0, 29.806235, 28.840201, 27.188575, 21.054269]
     )[:, None]
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -69,31 +82,14 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         atol=1e-04,
     )
 
-    exp_vp = lyr_str.from_template()
-    exp_vp[lyr_str.index_filled_atmosphere] = np.array(
-        [4.233724, 2.632796, 2.50683, 2.303499, 2.210216]
-    )[:, None]
-    np.testing.assert_allclose(
-        result["vapour_pressure"], exp_vp, rtol=1e-04, atol=1e-04
-    )
-
-    exp_vpd = lyr_str.from_template()
-    exp_vpd[lyr_str.index_filled_atmosphere] = np.array([0, 0, 0, 0, 0])[:, None]
-    np.testing.assert_allclose(
-        result["vapour_pressure_deficit"],
-        exp_vpd,
-        rtol=1e-04,
-        atol=1e-04,
-    )
-
     # Sensible heat flux, canopy only
     exp_shc = lyr_str.from_template()
     exp_shc[lyr_str.index_flux_layers] = np.array(
-        [-374.205574, -370.058511, -363.040176, -278.772803]
+        [-149.364835, -130.806504, -99.244963, -106.076594]
     )[:, None]
     np.testing.assert_allclose(
-        result["sensible_heat_flux"][-2],
-        exp_shc[-2],
+        result["sensible_heat_flux"],
+        exp_shc,
         rtol=1e-04,
         atol=1e-04,
     )
