@@ -743,6 +743,8 @@ class PlantsModel(
             #
             #       We could kill stems where the new D <=0 but adds loads of code and
             #       for the moment we just want to avoid passing pyrealm negative sizes.
+            #       If the np.where is removed and this is set directly, then pyrealm
+            #       will detect D <= 0 and raise an exception.
 
             new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
