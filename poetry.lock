@@ -3297,14 +3297,14 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyrealm"
-version = "2.0.0rc3"
+version = "2.0.0rc4"
 description = "Python tools for modelling plant productivity and demography."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pyrealm-2.0.0rc3-py3-none-any.whl", hash = "sha256:605ac157f84f16b3977355f4223cfb6f8c9724018c3e7702ad1bd51466677386"},
-    {file = "pyrealm-2.0.0rc3.tar.gz", hash = "sha256:1ab07b57eda52c224cf4e4bdf39d7835645db018b53b1d2ca6becd58f41d8ad9"},
+    {file = "pyrealm-2.0.0rc4-py3-none-any.whl", hash = "sha256:458b773b64887c9e3752567d366ccd66a5efe8d0b1d374ba4252f089568444b7"},
+    {file = "pyrealm-2.0.0rc4.tar.gz", hash = "sha256:016da2ba2f8938d23ead5d5973ac74757094dcbd79ef62f054dfb19b88ce4f98"},
 ]
 
 [package.dependencies]
