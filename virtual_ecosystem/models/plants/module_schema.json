@@ -140,7 +140,7 @@
                         "type": "string",
                         "default": ""
                      },
-                     "cohort_attributes": {
+                     "cohort_attribute_subset": {
                         "description": "Depth and number of soil layers to simulate",
                         "type": "array",
                         "items": {
@@ -151,7 +151,7 @@
                            "dbh"
                         ]
                      },
-                     "canopy_attributes": {
+                     "canopy_attribute_subset": {
                         "description": "Depth and number of soil layers to simulate",
                         "type": "array",
                         "items": {
@@ -168,10 +168,10 @@
                   "active": false,
                   "cohort_data_path": "",
                   "layer_data_path": "",
-                  "cohort_attributes": [
+                  "cohort_attribute_subset": [
                      "dbh"
                   ],
-                  "canopy_attributes": [
+                  "canopy_attribute_subset": [
                      "stem_leaf_area"
                   ]
                }

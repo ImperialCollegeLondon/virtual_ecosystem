@@ -211,6 +211,10 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.stem_allocations: dict[int, StemAllocation]
+        """A dictionary giving the stem allocation of GPP for the community in each grid
+       cell. The dictionary is only populated by the update method - before that the
+       dictionary will be empty."""
         self.below_canopy_light_fraction: NDArray[np.float32]
         """The fraction of light transmitted through the canopy."""
         self.ground_incident_light_fraction: NDArray[np.float32]
@@ -348,6 +352,10 @@ class PlantsModel(
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
 
+        # Set the stem allocations to be an empty dictionary - this attribute is
+        # populated by the update method but not at setup.
+        self.stem_allocations = {}
+
         # TODO - #697 these need to be configurable
         self.pmodel_consts = PModelConst()
         self.pmodel_core_consts = CoreConst()
@@ -374,6 +382,7 @@ class PlantsModel(
         self.exporter.dump(
             communities=self.communities,
             canopies=self.canopies,
+            stem_allocations=self.stem_allocations,
             time=self.model_timing.start_time,
         )
 
@@ -428,6 +437,7 @@ class PlantsModel(
         self.exporter.dump(
             communities=self.communities,
             canopies=self.canopies,
+            stem_allocations=self.stem_allocations,
             time=self.model_timing.start_time
             + time_index * self.model_timing.update_interval,
         )
@@ -755,12 +765,13 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate the allocation of GPP per stem
+            # Calculate the allocation of GPP per stem and store it in the attribute
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
+            self.stem_allocations[cell_id] = stem_allocation
 
             # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
