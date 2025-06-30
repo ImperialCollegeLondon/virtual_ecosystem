@@ -380,11 +380,10 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     expected_soil_temp1 = lyr_strct.from_template()
     expected_soil_temp1[lyr_strct.index_all_soil] = np.array(
         [
-            [20.583357, 19.997764, 14.141714, 14.141714],
-            [20.000587, 20.000299, 19.997418, 19.997418],
+            [19.799014, 19.327233, 14.608319, 14.608319],
+            [20.000167, 19.999918, 19.997422, 19.997422],
         ],
     )
-    # TODO should be uniform like np.array([19.788683, 19.996455])[ :, None]
     expected_soil_moist = lyr_strct.from_template()
     expected_soil_moist[lyr_strct.index_all_soil] = np.array([5.0, 500])[:, None]
     xr.testing.assert_allclose(
@@ -395,10 +394,10 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[0] = 30.0
     exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
-        [29.91966, 29.414891, 28.551932]
+        [29.91969, 29.414891, 28.551932]
     )[:, None]
     exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
-        [22.640423, 22.596865, 22.161273, 22.161273]
+        [22.58099, 22.545335, 22.188705, 22.188705]
     )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 

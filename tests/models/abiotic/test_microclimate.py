@@ -19,7 +19,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     result = run_microclimate(
         data=dummy_climate_data,
         time_index=0,
-        time_interval=86400,
+        time_interval=86400 * 30,
         cell_area=10000,
         layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
@@ -38,8 +38,8 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_soiltemp = lyr_str.from_template()
     exp_soiltemp[lyr_str.index_all_soil] = np.array(
         [
-            [19.995571, 19.952958, 19.526825, 19.526825],
-            [20.0, 20.0, 19.999998, 19.999998],
+            [17.008741, 16.759161, 14.261534, 14.261534],
+            [19.989465, 19.988586, 19.979794, 19.979794],
         ]
     )
     np.testing.assert_allclose(
@@ -61,9 +61,13 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_airtemp = lyr_str.from_template()
-    exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.806235, 28.840201, 27.188575, 21.054269]
+    exp_airtemp[lyr_str.index_above_scalar] = 30.0
+    exp_airtemp[lyr_str.index_filled_canopy] = np.array(
+        [29.806235, 28.840201, 27.188575]
     )[:, None]
+    exp_airtemp[lyr_str.index_surface_scalar] = np.array(
+        [20.815152, 20.795201, 20.595545, 20.595545]
+    )
     np.testing.assert_allclose(
         result["air_temperature"],
         exp_airtemp,
@@ -84,9 +88,12 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     # Sensible heat flux, canopy only
     exp_shc = lyr_str.from_template()
-    exp_shc[lyr_str.index_flux_layers] = np.array(
-        [-149.364835, -130.806504, -99.244963, -106.076594]
+    exp_shc[lyr_str.index_filled_canopy] = np.array(
+        [-149.364835, -130.806504, -99.244963]
     )[:, None]
+    exp_shc[lyr_str.index_topsoil_scalar] = np.array(
+        [-382.756473, -405.841545, -636.859806, -636.859806]
+    )
     np.testing.assert_allclose(
         result["sensible_heat_flux"],
         exp_shc,

@@ -176,7 +176,6 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Initialise variables to iterate energy balance to update temperatures
     # -------------------------------------------------------------------------
-    # TODO check if it actually makes sense to preselect indices, seems messy
 
     all_air_temperature = data["air_temperature"][
         layer_structure.index_filled_atmosphere
@@ -203,7 +202,7 @@ def run_microclimate(
 
     density_air = abiotic_tools.calculate_air_density(
         air_temperature=all_air_temperature,
-        atmospheric_pressure=atmospheric_pressure[0],  # all layers identical
+        atmospheric_pressure=atmospheric_pressure,
         specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
         celsius_to_kelvin=core_constants.zero_Celsius,
     )
@@ -221,7 +220,7 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Soil energy balance
     # -------------------------------------------------------------------------
-    # Daily loop
+    # Daily loop to ensure numerical stability
     daily_time_interval = int(time_interval / core_constants.seconds_to_day)
 
     for _ in range(daily_time_interval):
@@ -238,7 +237,7 @@ def run_microclimate(
                 layer_structure.index_topsoil_scalar
             ].to_numpy()
             / daily_time_interval
-            - longwave_emission_soil
+            - longwave_emission_soil * daily_time_interval
         )
 
         #  Sensible heat flux from topsoil, [W m-2]
@@ -259,12 +258,13 @@ def run_microclimate(
 
         # Ground heat flux, [W m-2]
         ground_heat_flux = (
-            net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
+            net_radiation_soil
+            - latent_heat_flux_soil
+            - sensible_heat_flux_soil * daily_time_interval
         )
 
         # Update soil temperatures, [C]
         # TODO Soil parameter currently constants, replace with soil maps
-        # TODO something wrong with the dimensions, tests to return homogeneous layers
         soil_temperature = energy_balance.update_soil_temperature(
             ground_heat_flux=ground_heat_flux,
             soil_temperature=soil_temperature,
