@@ -194,11 +194,11 @@ def test_CommunityDataExporter_check_paths(
         pytest.param(
             True,
             set(["dbh", "crown_area"]),
-            set(),
-            set(),
+            set(["average_layer_fapar", "transmission_profile"]),
+            set(["stem_leaf_area"]),
             does_not_raise(),
             None,
-            id="valid_cohort_subset",
+            id="all_valid",
         ),
         pytest.param(
             True,
@@ -208,7 +208,27 @@ def test_CommunityDataExporter_check_paths(
             pytest.raises(ConfigurationError),
             "The cohort_attributes exporter configuration contains "
             "unknown attributes: crow_narea",
-            id="valid_cohort_subset",
+            id="invalid cohort attr",
+        ),
+        pytest.param(
+            True,
+            set(),
+            set(["mean_layer_fapar"]),
+            set(),
+            pytest.raises(ConfigurationError),
+            "The community_canopy_attributes exporter configuration contains "
+            "unknown attributes: mean_layer_fapar",
+            id="invalid community canopy attr",
+        ),
+        pytest.param(
+            True,
+            set(),
+            set(),
+            set(["steam_leaf_are"]),
+            pytest.raises(ConfigurationError),
+            "The stem_canopy_attributes exporter configuration contains "
+            "unknown attributes: steam_leaf_are",
+            id="invalid stem community attr",
         ),
     ),
 )

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pyrealm.demography.canopy import Canopy, CommunityCanopyData
+from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyData
 from pyrealm.demography.community import Cohorts
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
@@ -112,6 +112,14 @@ class CommunityDataExporter:
                     "heights",
                     "cell_id",
                     *CommunityCanopyData.array_attrs,
+                ]
+            ),
+            "stem_canopy_attributes": set(
+                [
+                    "canopy_layer_index",
+                    "cohort_id",
+                    "cell_id",
+                    *CohortCanopyData.array_attrs,
                 ]
             ),
         }
