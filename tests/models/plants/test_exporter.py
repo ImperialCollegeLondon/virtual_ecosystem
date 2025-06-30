@@ -264,11 +264,14 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
     )
 
     # Simple checks - files exists, can be read, have the right number of rows.
-    cohort_n_rows = sum([cmty.n_cohorts for _, cmty in communities.items()])
-    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows)
+    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
+    cell_n_layers = np.array([len(cpy.heights) for cpy in canopies.values()])
 
-    layer_n_rows = sum([len(cpy.heights) for cpy in canopies.values()])
-    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows)
+    csv_row_check(path=cohort_data_path, n_rows=cell_n_cohorts.sum())
+    csv_row_check(path=community_canopy_data_path, n_rows=cell_n_layers.sum())
+    csv_row_check(
+        path=stem_canopy_data_path, n_rows=(cell_n_cohorts * cell_n_layers).sum()
+    )
 
     # Second dump to check mode switching from write to append and provided stem
     # allocations: expected behaviour in update
@@ -280,8 +283,11 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
     )
 
     # Repeat row count check - should now be doubled.
-    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows * 2)
-    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows * 2)
+    csv_row_check(path=cohort_data_path, n_rows=cell_n_cohorts.sum() * 2)
+    csv_row_check(path=community_canopy_data_path, n_rows=cell_n_layers.sum() * 2)
+    csv_row_check(
+        path=stem_canopy_data_path, n_rows=(cell_n_cohorts * cell_n_layers).sum() * 2
+    )
 
 
 def test_CommunityDataExporter_in_model(
@@ -309,7 +315,7 @@ def test_CommunityDataExporter_in_model(
         active=True,
     )
 
-    plants_model = PlantsModel(
+    model = PlantsModel(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
@@ -317,15 +323,22 @@ def test_CommunityDataExporter_in_model(
     )
 
     # Simple checks - file exists, can be read, has right number of rows.
-    cohort_n_rows = sum([cmty.n_cohorts for cmty in plants_model.communities.values()])
-    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows)
+    # Simple checks - files exists, can be read, have the right number of rows.
+    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in model.communities.items()])
+    cell_n_layers = np.array([len(cpy.heights) for cpy in model.canopies.values()])
 
-    layer_n_rows = sum([len(cpy.heights) for cpy in plants_model.canopies.values()])
-    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows)
+    csv_row_check(path=cohort_data_path, n_rows=cell_n_cohorts.sum())
+    csv_row_check(path=community_canopy_data_path, n_rows=cell_n_layers.sum())
+    csv_row_check(
+        path=stem_canopy_data_path, n_rows=(cell_n_cohorts * cell_n_layers).sum()
+    )
 
     # Update the model to trigger a second dump
-    plants_model.update(time_index=0)
+    model.update(time_index=0)
 
     # Check the files are ok and have doubled the number of rows
-    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows * 2)
-    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows * 2)
+    csv_row_check(path=cohort_data_path, n_rows=cell_n_cohorts.sum() * 2)
+    csv_row_check(path=community_canopy_data_path, n_rows=cell_n_layers.sum() * 2)
+    csv_row_check(
+        path=stem_canopy_data_path, n_rows=(cell_n_cohorts * cell_n_layers).sum() * 2
+    )

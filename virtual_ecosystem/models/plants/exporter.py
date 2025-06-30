@@ -209,6 +209,7 @@ class CommunityDataExporter:
             community_canopy_data = []
             for cell_id, canopy in canopies.items():
                 data = canopy.community_data.to_pandas()
+                data["canopy_layer_index"] = data.index
                 data["heights"] = canopy.heights
                 data["cell_id"] = cell_id
                 community_canopy_data.append(data)
@@ -227,7 +228,30 @@ class CommunityDataExporter:
             LOGGER.info(f"Plant model community canopy data dumped at time: {time}")
 
         if self.stem_canopy_data_path:
-            pass
+            stem_canopy_data = []
+            for (cell_id, canopy), community in zip(
+                canopies.items(), communities.values()
+            ):
+                data = canopy.cohort_data.to_pandas()
+                data["canopy_layer_index"] = data.index
+                data["cell_id"] = cell_id
+                data["cohort_id"] = np.repeat(
+                    community.cohorts.cohort_id, len(canopy.heights)
+                )
+                stem_canopy_data.append(data)
+
+            # Concatenate the cells into a single data frame
+            stem_canopy_data_compiled = pd.concat(stem_canopy_data)
+
+            # Export stem canopy data
+            stem_canopy_data_compiled.to_csv(
+                self.stem_canopy_data_path,
+                mode=self._output_mode,
+                header=self._output_mode == "w",
+                index=False,
+                float_format="%0.5g",  # TODO - make this configurable
+            )
+            LOGGER.info(f"Plant model stem canopy data dumped at time: {time}")
 
         # Update the output mode, so that all subsequent dump calls use append
         self._output_mode = "a"
