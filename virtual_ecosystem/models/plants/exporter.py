@@ -144,6 +144,7 @@ class CommunityDataExporter:
         if not self.active:
             return
 
+        # Export cohort data if requested
         if self.cohort_data_path:
             # If a cohort data path is provided then compile cohort data - collect per
             # cell pandas dataframes into an list for use with row-wise pd.concat()
@@ -197,10 +198,31 @@ class CommunityDataExporter:
                 index=False,
                 float_format="%0.5g",  # TODO - make this configurable
             )
+            LOGGER.info(f"Plant model cohort data dumped at time: {time}")
 
-        # TODO - actual layer data
-        with open(self.layer_data_path, "a") as layer_out:
-            layer_out.write("World")
+        # Export community level canopy layer data if requested
+        if self.layer_data_path:
+            community_layer_data = []
+            for cell_id, canopy in canopies.items():
+                canopy_layer_data = canopy.community_data.to_pandas()
+                canopy_layer_data["heights"] = canopy.heights
+                canopy_layer_data["cell_id"] = cell_id
+                community_layer_data.append(canopy_layer_data)
+
+            # Concatenate the cells into a single data frame
+            community_layer_data_compiled = pd.concat(community_layer_data)
+
+            # Export community layer data
+            community_layer_data_compiled.to_csv(
+                self.layer_data_path,
+                mode=self._output_mode,
+                header=self._output_mode == "w",
+                index=False,
+                float_format="%0.5g",  # TODO - make this configurable
+            )
+            LOGGER.info(
+                f"Plant model community canopy layer data dumped at time: {time}"
+            )
 
         # Update the output mode, so that all subsequent dump calls use append
         self._output_mode = "a"

@@ -25,7 +25,7 @@ def fixture_exporter_components(flora):
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
-    data = Data(grid=Grid(cell_ny=2, cell_nx=2))
+    data = Data(grid=Grid(cell_ny=2, cell_nx=2, cell_area=625))
     cohort_data = (
         (
             "plant_cohorts_cell_id",
@@ -33,7 +33,7 @@ def fixture_exporter_components(flora):
         ),
         ("plant_cohorts_n", DataArray(np.array([5] * 10))),
         ("plant_cohorts_pft", DataArray(np.array(["shrub", "broadleaf"] * 5))),
-        ("plant_cohorts_dbh", DataArray(np.array([0.1] * 10))),
+        ("plant_cohorts_dbh", DataArray(np.array([1] * 10))),
     )
 
     for var, value in cohort_data:
@@ -228,11 +228,16 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
         time=np.datetime64("2000-01-01"),
     )
 
-    # Simple checks - file exists, can be read, has right number of rows.
-    expected_n_rows = sum([cmty.n_cohorts for _, cmty in communities.items()])
+    # Simple checks - files exists, can be read, have the right number of rows.
+    cohort_n_rows = sum([cmty.n_cohorts for _, cmty in communities.items()])
     assert cohort_path.exists()
     content = pd.read_csv(cohort_path)
-    assert len(content) == expected_n_rows
+    assert len(content) == cohort_n_rows
+
+    layer_n_rows = sum([len(cpy.heights) for cpy in canopies.values()])
+    assert layer_path.exists()
+    content = pd.read_csv(layer_path)
+    assert len(content) == layer_n_rows
 
     # Second dump to check mode switching from write to append and provided stem
     # allocations: expected behaviour in update
@@ -245,9 +250,10 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
 
     # Repeat row count check - should now be doubled.
     content = pd.read_csv(cohort_path)
-    assert len(content) == expected_n_rows * 2
+    assert len(content) == cohort_n_rows * 2
 
-    assert layer_path.exists()
+    content = pd.read_csv(layer_path)
+    assert len(content) == layer_n_rows * 2
 
 
 def test_CommunityDataExporter_in_model(
