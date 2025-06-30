@@ -26,7 +26,7 @@ class CommunityDataExporter:
 
     An instance of this class can be configured to write detailed plant community data
     from inside a PlantsModel instance to CSV files. The community data is split across
-    three possible output files:
+    three output files:
 
     * cohort data: details about each cohort, including the stem
       allometry of cohorts and the GPP allocation of the stem.
@@ -35,7 +35,22 @@ class CommunityDataExporter:
     * stem canopy data: details of contribution in leaf area and fAPAR from each stem to
       the community canopy model.
 
-    Each file
+    To output a particular data type, a valid path needs to be provided: this must be to
+    a new, writeable filepath. If the data path is set to None, then that data file will
+    not be saved. In addition, an attribute list can be used to specify a subset of data
+    attributes for each file. If an attribute list is provided (which is the default)
+    then the exporter will write all attributes.
+
+    Args:
+        cohort_data_path: Output path for cohort data
+        community_canopy_data_path: Output path for community level canopy data
+        stem_canopy_data_path: Output path for stem level canopy data
+        cohort_attributes: An optional subset of cohort attributes to export
+        community_canopy_attributes: An optional subset of community canopy attributes
+            to export
+        stem_canopy_attributes: An optional subset of stem canopy attributes
+            to export
+        active: A logical switch to turn exporting on or off.
     """
 
     def __init__(
@@ -115,6 +130,7 @@ class CommunityDataExporter:
             "cohort_attributes": set(
                 [
                     "cell_id",
+                    "time",
                     *StemAllometry.array_attrs,
                     *Cohorts.array_attrs,
                     StemAllocation.array_attrs,
@@ -125,6 +141,7 @@ class CommunityDataExporter:
                     "canopy_layer_index",
                     "heights",
                     "cell_id",
+                    "time",
                     *CommunityCanopyData.array_attrs,
                 ]
             ),
@@ -133,6 +150,7 @@ class CommunityDataExporter:
                     "canopy_layer_index",
                     "cohort_id",
                     "cell_id",
+                    "time",
                     *CohortCanopyData.array_attrs,
                 ]
             ),
@@ -179,7 +197,17 @@ class CommunityDataExporter:
         stem_allocations: dict[int, StemAllocation],
         time: np.datetime64,
     ) -> None:
-        """Dump community data to the configured files."""
+        """Export plant community data to file.
+
+        The method accepts the main community components of the PlantsModel as arguments
+        and compiles the cohort and canopy data to write to file.
+
+        Args:
+            communities: A PlantCommunities instance.
+            canopies: A dictionary of Canopy instances, keyed by cell id.
+            stem_allocations: A dictionary of StemAllocations, also keyed by cell id
+            time: A datetime to be used as a timestamp in the output files.
+        """
 
         if not self.active:
             return
@@ -248,6 +276,7 @@ class CommunityDataExporter:
                 data["canopy_layer_index"] = data.index
                 data["heights"] = canopy.heights
                 data["cell_id"] = cell_id
+                data["time"] = time
                 community_canopy_data.append(data)
 
             # Concatenate the cells into a single data frame
@@ -274,6 +303,7 @@ class CommunityDataExporter:
                 data["cohort_id"] = np.repeat(
                     community.cohorts.cohort_id, len(canopy.heights)
                 )
+                data["time"] = time
                 stem_canopy_data.append(data)
 
             # Concatenate the cells into a single data frame
