@@ -221,52 +221,60 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Soil energy balance
     # -------------------------------------------------------------------------
-    # Longwave emission from soil, [W m-2]
-    longwave_emission_soil = energy_balance.calculate_longwave_emission(
-        temperature=soil_temperature[0] + core_constants.zero_Celsius,
-        emissivity=abiotic_constants.soil_emissivity,
-        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
-    )
+    # Daily loop
+    daily_time_interval = int(time_interval / core_constants.seconds_to_day)
 
-    # Net radiation topsoil, shortwave in - longwave out, [W m-2]
-    net_radiation_soil = (
-        data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
-        - longwave_emission_soil
-    )
+    for _ in range(daily_time_interval):
+        # Longwave emission from soil, [W m-2]
+        longwave_emission_soil = energy_balance.calculate_longwave_emission(
+            temperature=soil_temperature[0] + core_constants.zero_Celsius,
+            emissivity=abiotic_constants.soil_emissivity,
+            stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+        )
 
-    #  Sensible heat flux from topsoil, [W m-2]
-    sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
-        density_air=density_air[-1],
-        specific_heat_air=specific_heat_air[-1],
-        air_temperature=surface_air_temperature,
-        surface_temperature=soil_temperature[0],
-        aerodynamic_resistance=aerodynamic_resistance_soil,
-    )
+        # Net radiation topsoil, shortwave in - longwave out, [W m-2]
+        net_radiation_soil = (
+            data["shortwave_absorption"][
+                layer_structure.index_topsoil_scalar
+            ].to_numpy()
+            / daily_time_interval
+            - longwave_emission_soil
+        )
 
-    # Latent heat flux topsoil, [W m-2]
-    # TODO cross-check with hydrology model, time step currently day to second
-    latent_heat_flux_soil = (
-        data["soil_evaporation"].to_numpy()
-        * core_constants.density_water
-        * latent_heat_vapourisation[-1]
-    ) / core_constants.seconds_to_day
+        #  Sensible heat flux from topsoil, [W m-2]
+        sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
+            density_air=density_air[-1],
+            specific_heat_air=specific_heat_air[-1],
+            air_temperature=surface_air_temperature,
+            surface_temperature=soil_temperature[0],
+            aerodynamic_resistance=aerodynamic_resistance_soil,
+        )
 
-    # Ground heat flux, [W m-2]
-    ground_heat_flux = (
-        net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
-    )
+        # Latent heat flux topsoil, [W m-2]
+        latent_heat_flux_soil = (
+            data["soil_evaporation"].to_numpy()
+            * core_constants.density_water
+            * latent_heat_vapourisation[-1]
+        ) / daily_time_interval
 
-    # Update soil temperatures, [C]
-    # TODO Soil parameter currently constants, replace with soil maps
-    new_soil_temperature = energy_balance.update_soil_temperature(
-        ground_heat_flux=ground_heat_flux,
-        soil_temperature=soil_temperature,
-        soil_layer_thickness=layer_structure.soil_layer_thickness,
-        soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
-        soil_bulk_density=abiotic_constants.bulk_density_soil,
-        specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
-        time_interval=time_interval,
-    )
+        # Ground heat flux, [W m-2]
+        ground_heat_flux = (
+            net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
+        )
+
+        # Update soil temperatures, [C]
+        # TODO Soil parameter currently constants, replace with soil maps
+        # TODO something wrong with the dimensions, tests to return homogeneous layers
+        soil_temperature = energy_balance.update_soil_temperature(
+            ground_heat_flux=ground_heat_flux,
+            soil_temperature=soil_temperature,
+            soil_layer_thickness=layer_structure.soil_layer_thickness,
+            soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
+            soil_bulk_density=abiotic_constants.bulk_density_soil,
+            specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
+            time_interval=daily_time_interval,
+        )
+    new_soil_temperature = soil_temperature
 
     # -------------------------------------------------------------------------
     # Update canopy and air temperatures using the Newton method

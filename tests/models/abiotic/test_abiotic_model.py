@@ -336,9 +336,13 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     # Test that air temperature was interpolated correctly
     exp_air_temp = lyr_strct.from_template()
-    exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
-        [30, 29.91965, 29.414851, 28.551891, 22.81851]
+    exp_air_temp[0] = 30.0
+    exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
+        [29.91965, 29.414851, 28.551891]
     )[:, None]
+    exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
+        [22.81851, 22.81851, 22.81851, 22.81851]
+    )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     # Test other variables have been inserted and some check values
@@ -376,8 +380,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     expected_soil_temp1 = lyr_strct.from_template()
     expected_soil_temp1[lyr_strct.index_all_soil] = np.array(
         [
-            [22.735381, 22.733608, 22.715879, 22.715879],
-            [20.04589, 20.04586, 20.045562, 20.045562],
+            [20.583357, 19.997764, 14.141714, 14.141714],
+            [20.000587, 20.000299, 19.997418, 19.997418],
         ],
     )
     # TODO should be uniform like np.array([19.788683, 19.996455])[ :, None]
@@ -388,12 +392,15 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     )
     xr.testing.assert_allclose(model.data["soil_moisture"], expected_soil_moist)
 
-    exp_airtemp = lyr_strct.from_template()
-    exp_airtemp[lyr_strct.index_filled_atmosphere] = np.array(
-        [30.0, 29.91969, 29.414891, 28.551932, 22.650026]
+    exp_air_temp = lyr_strct.from_template()
+    exp_air_temp[0] = 30.0
+    exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
+        [29.91966, 29.414891, 28.551932]
     )[:, None]
-
-    xr.testing.assert_allclose(model.data["air_temperature"], exp_airtemp)
+    exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
+        [22.640423, 22.596865, 22.161273, 22.161273]
+    )
+    xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     exp_canopytemp = lyr_strct.from_template()
     exp_canopytemp[lyr_strct.index_filled_canopy] = np.array(

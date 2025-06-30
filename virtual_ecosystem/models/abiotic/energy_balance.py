@@ -333,7 +333,7 @@ def update_soil_temperature(
     soil_thermal_conductivity: float | NDArray[np.float32],
     soil_bulk_density: float | NDArray[np.float32],
     specific_heat_capacity_soil: float | NDArray[np.float32],
-    time_interval: float,
+    time_interval: int,
 ) -> NDArray[np.float32]:
     r"""Update soil temperature using heat diffusion.
 
