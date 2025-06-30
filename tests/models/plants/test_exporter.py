@@ -216,7 +216,8 @@ def test_CommunityDataExporter_check_attribute_subsets(
     with outcome as excep:
         exporter = CommunityDataExporter(
             cohort_data_path=tmp_path / "cohort_data.csv",
-            layer_data_path=tmp_path / "layer_data.csv",
+            community_canopy_data_path=tmp_path / "community_canopy_data.csv",
+            stem_canopy_data_path=tmp_path / "stem_canopy_data.csv",
             cohort_attribute_subset=cohort_attributes,
             canopy_attribute_subset=layer_attributes,
             active=active,
@@ -239,16 +240,15 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
 
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-    # Create an output directory and the output file names
-    writeable_dir = tmp_path / "cde_test"
-    cohort_path = writeable_dir / "cohort_data.csv"
-    layer_path = writeable_dir / "layer_data.csv"
-    writeable_dir.mkdir(exist_ok=False)
+    cohort_data_path = tmp_path / "cohort_data.csv"
+    community_canopy_data_path = tmp_path / "community_canopy_data.csv"
+    stem_canopy_data_path = tmp_path / "stem_canopy_data.csv"
 
     # Create the exporter
     exporter = CommunityDataExporter(
-        cohort_data_path=tmp_path / cohort_path,
-        layer_data_path=tmp_path / layer_path,
+        cohort_data_path=cohort_data_path,
+        community_canopy_data_path=community_canopy_data_path,
+        stem_canopy_data_path=stem_canopy_data_path,
         cohort_attribute_subset={},
         canopy_attribute_subset={},
         active=True,
@@ -265,10 +265,10 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
 
     # Simple checks - files exists, can be read, have the right number of rows.
     cohort_n_rows = sum([cmty.n_cohorts for _, cmty in communities.items()])
-    csv_row_check(path=cohort_path, n_rows=cohort_n_rows)
+    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows)
 
     layer_n_rows = sum([len(cpy.heights) for cpy in canopies.values()])
-    csv_row_check(path=layer_path, n_rows=layer_n_rows)
+    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows)
 
     # Second dump to check mode switching from write to append and provided stem
     # allocations: expected behaviour in update
@@ -280,8 +280,8 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
     )
 
     # Repeat row count check - should now be doubled.
-    csv_row_check(path=cohort_path, n_rows=cohort_n_rows * 2)
-    csv_row_check(path=layer_path, n_rows=layer_n_rows * 2)
+    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows * 2)
+    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows * 2)
 
 
 def test_CommunityDataExporter_in_model(
@@ -297,11 +297,13 @@ def test_CommunityDataExporter_in_model(
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
     cohort_data_path = tmp_path / "cohort_data.csv"
-    layer_data_path = tmp_path / "layer_data.csv"
+    community_canopy_data_path = tmp_path / "community_canopy_data.csv"
+    stem_canopy_data_path = tmp_path / "stem_canopy_data.csv"
 
     exporter = CommunityDataExporter(
         cohort_data_path=cohort_data_path,
-        layer_data_path=layer_data_path,
+        community_canopy_data_path=community_canopy_data_path,
+        stem_canopy_data_path=stem_canopy_data_path,
         cohort_attribute_subset={},
         canopy_attribute_subset={},
         active=True,
@@ -319,11 +321,11 @@ def test_CommunityDataExporter_in_model(
     csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows)
 
     layer_n_rows = sum([len(cpy.heights) for cpy in plants_model.canopies.values()])
-    csv_row_check(path=layer_data_path, n_rows=layer_n_rows)
+    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows)
 
     # Update the model to trigger a second dump
     plants_model.update(time_index=0)
 
     # Check the files are ok and have doubled the number of rows
     csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows * 2)
-    csv_row_check(path=layer_data_path, n_rows=layer_n_rows * 2)
+    csv_row_check(path=community_canopy_data_path, n_rows=layer_n_rows * 2)

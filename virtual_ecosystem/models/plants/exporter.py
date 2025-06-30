@@ -43,9 +43,9 @@ class CommunityDataExporter:
         self.cohort_data_path: Path = cohort_data_path
         """The output path for cohort level data."""
         self.community_canopy_data_path: Path = community_canopy_data_path
-        """The output path for community canopy layer data."""
+        """The output path for community canopy data."""
         self.stem_canopy_data_path: Path = stem_canopy_data_path
-        """The output path for stem canopy layer data."""
+        """The output path for stem canopy data."""
 
         # Only bother to validate paths if the exporter is actually active - avoids
         # trying to validate default empty strings.
@@ -204,29 +204,30 @@ class CommunityDataExporter:
             )
             LOGGER.info(f"Plant model cohort data dumped at time: {time}")
 
-        # Export community level canopy layer data if requested
+        # Export community level canopy canopy data if requested
         if self.community_canopy_data_path:
-            community_layer_data = []
+            community_canopy_data = []
             for cell_id, canopy in canopies.items():
-                canopy_layer_data = canopy.community_data.to_pandas()
-                canopy_layer_data["heights"] = canopy.heights
-                canopy_layer_data["cell_id"] = cell_id
-                community_layer_data.append(canopy_layer_data)
+                data = canopy.community_data.to_pandas()
+                data["heights"] = canopy.heights
+                data["cell_id"] = cell_id
+                community_canopy_data.append(data)
 
             # Concatenate the cells into a single data frame
-            community_layer_data_compiled = pd.concat(community_layer_data)
+            community_canopy_data_compiled = pd.concat(community_canopy_data)
 
-            # Export community layer data
-            community_layer_data_compiled.to_csv(
+            # Export community canopy data
+            community_canopy_data_compiled.to_csv(
                 self.community_canopy_data_path,
                 mode=self._output_mode,
                 header=self._output_mode == "w",
                 index=False,
                 float_format="%0.5g",  # TODO - make this configurable
             )
-            LOGGER.info(
-                f"Plant model community canopy layer data dumped at time: {time}"
-            )
+            LOGGER.info(f"Plant model community canopy data dumped at time: {time}")
+
+        if self.stem_canopy_data_path:
+            pass
 
         # Update the output mode, so that all subsequent dump calls use append
         self._output_mode = "a"
