@@ -1,6 +1,7 @@
 """Tests the models.plants.exporter.CommunityDataExporter class."""
 
 from contextlib import nullcontext as does_not_raise
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -54,6 +55,17 @@ def fixture_exporter_components(flora):
     }
 
     return communities, canopies, stem_allocations
+
+
+def csv_row_check(path: Path, n_rows: int) -> None:
+    """Shared test function for exported CSV.
+
+    Assert a file exists, can be loaded and has the right number of rows.
+    """
+
+    assert path.exists()
+    content = pd.read_csv(path)
+    assert len(content) == n_rows
 
 
 @pytest.mark.parametrize(
@@ -230,14 +242,10 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
 
     # Simple checks - files exists, can be read, have the right number of rows.
     cohort_n_rows = sum([cmty.n_cohorts for _, cmty in communities.items()])
-    assert cohort_path.exists()
-    content = pd.read_csv(cohort_path)
-    assert len(content) == cohort_n_rows
+    csv_row_check(path=cohort_path, n_rows=cohort_n_rows)
 
     layer_n_rows = sum([len(cpy.heights) for cpy in canopies.values()])
-    assert layer_path.exists()
-    content = pd.read_csv(layer_path)
-    assert len(content) == layer_n_rows
+    csv_row_check(path=layer_path, n_rows=layer_n_rows)
 
     # Second dump to check mode switching from write to append and provided stem
     # allocations: expected behaviour in update
@@ -249,11 +257,8 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
     )
 
     # Repeat row count check - should now be doubled.
-    content = pd.read_csv(cohort_path)
-    assert len(content) == cohort_n_rows * 2
-
-    content = pd.read_csv(layer_path)
-    assert len(content) == layer_n_rows * 2
+    csv_row_check(path=cohort_path, n_rows=cohort_n_rows * 2)
+    csv_row_check(path=layer_path, n_rows=layer_n_rows * 2)
 
 
 def test_CommunityDataExporter_in_model(
@@ -287,15 +292,15 @@ def test_CommunityDataExporter_in_model(
     )
 
     # Simple checks - file exists, can be read, has right number of rows.
-    expected_n_rows = sum(
-        [cmty.n_cohorts for _, cmty in plants_model.communities.items()]
-    )
-    assert cohort_data_path.exists()
-    content = pd.read_csv(cohort_data_path)
-    assert len(content) == expected_n_rows
+    cohort_n_rows = sum([cmty.n_cohorts for cmty in plants_model.communities.values()])
+    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows)
 
+    layer_n_rows = sum([len(cpy.heights) for cpy in plants_model.canopies.values()])
+    csv_row_check(path=layer_data_path, n_rows=layer_n_rows)
+
+    # Update the model to trigger a second dump
     plants_model.update(time_index=0)
 
-    # Simple checks - file can be read, has right number of rows.
-    content = pd.read_csv(cohort_data_path)
-    assert len(content) == expected_n_rows * 2
+    # Check the files are ok and have doubled the number of rows
+    csv_row_check(path=cohort_data_path, n_rows=cohort_n_rows * 2)
+    csv_row_check(path=layer_data_path, n_rows=layer_n_rows * 2)
