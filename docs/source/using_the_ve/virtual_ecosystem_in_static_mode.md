@@ -186,7 +186,7 @@ with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "w") as f:
 
 Now run the model with the new configuration from your command line and make sure that
 the `--outpath` command in the second line is followed by the directory of the new
-output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`), and the
+output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`),
 and the `--logfile` command in the third line is followed by the same path and a new
 file name ending in `.log`:
 
