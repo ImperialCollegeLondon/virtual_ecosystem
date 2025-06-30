@@ -161,8 +161,9 @@ def test_CommunityDataExporter_check_paths(
             cohort_data_path=tmp_path / cohort_data_path,
             community_canopy_data_path=tmp_path / community_canopy_data_path,
             stem_canopy_data_path=tmp_path / stem_canopy_data_path,
-            cohort_attribute_subset=[],
-            canopy_attribute_subset=[],
+            cohort_attributes={},
+            community_canopy_attributes={},
+            stem_canopy_attributes={},
             active=active,
         )
 
@@ -283,7 +284,7 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
         community_canopy_data_path=community_canopy_data_path,
         stem_canopy_data_path=stem_canopy_data_path,
         cohort_attributes={},
-        community_canopy_attributes={"fapar"},
+        community_canopy_attributes={},
         stem_canopy_attributes={},
         active=True,
     )

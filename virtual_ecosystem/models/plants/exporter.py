@@ -22,16 +22,27 @@ from virtual_ecosystem.models.plants.communities import PlantCommunities
 
 
 class CommunityDataExporter:
-    """CommunityDataExporter.
+    """The CommunityDataExporter class.
 
-    TODO - write docstring and add logging.
+    An instance of this class can be configured to write detailed plant community data
+    from inside a PlantsModel instance to CSV files. The community data is split across
+    three possible output files:
+
+    * cohort data: details about each cohort, including the stem
+      allometry of cohorts and the GPP allocation of the stem.
+    * community canopy data: community wide data on the canopy
+      structure, such as the heights of the canopy layers and the light transmission.
+    * stem canopy data: details of contribution in leaf area and fAPAR from each stem to
+      the community canopy model.
+
+    Each file
     """
 
     def __init__(
         self,
-        cohort_data_path: Path,
-        community_canopy_data_path: Path,
-        stem_canopy_data_path: Path,
+        cohort_data_path: Path | None,
+        community_canopy_data_path: Path | None,
+        stem_canopy_data_path: Path | None,
         cohort_attributes: set[str] = set(),
         community_canopy_attributes: set[str] = set(),
         stem_canopy_attributes: set[str] = set(),
@@ -41,11 +52,11 @@ class CommunityDataExporter:
         """Sets if the exporter is actually active."""
 
         # Set the path attributes
-        self.cohort_data_path: Path = cohort_data_path
+        self.cohort_data_path: Path | None = cohort_data_path
         """The output path for cohort level data."""
-        self.community_canopy_data_path: Path = community_canopy_data_path
+        self.community_canopy_data_path: Path | None = community_canopy_data_path
         """The output path for community canopy data."""
-        self.stem_canopy_data_path: Path = stem_canopy_data_path
+        self.stem_canopy_data_path: Path | None = stem_canopy_data_path
         """The output path for stem canopy data."""
 
         # Only bother to validate paths if the exporter is actually active - avoids
@@ -81,6 +92,9 @@ class CommunityDataExporter:
             ("community_canopy_data_path", self.community_canopy_data_path),
             ("stem_canopy_data_path", self.stem_canopy_data_path),
         ):
+            if fname is None:
+                continue
+
             if fname.exists():
                 msg = f"The {arg} exporter path must not be an existing file: {fname}"
                 LOGGER.error(msg)
