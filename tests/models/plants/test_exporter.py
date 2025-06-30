@@ -69,39 +69,55 @@ def csv_row_check(path: Path, n_rows: int) -> None:
 
 
 @pytest.mark.parametrize(
-    argnames="active, cohort_data_path, layer_data_path, outcome, msg",
+    argnames=(
+        "active, cohort_data_path, community_canopy_data_path, "
+        "stem_canopy_data_path, outcome, msg"
+    ),
     argvalues=(
         pytest.param(
-            False, "any_old", "rubbish_passes", does_not_raise(), None, id="inactive"
+            False, "any_old", "rubbish", "passes", does_not_raise(), None, id="inactive"
         ),
         pytest.param(
             True,
             "cde_test/cohort_data.csv",
-            "cde_test/layer_data.csv",
+            "cde_test/community_canopy_data.csv",
+            "cde_test/stem_canopy_data.csv",
             does_not_raise(),
             None,
-            id="both_good",
+            id="all_good",
         ),
         pytest.param(
             True,
-            "cde_test/existing_cohort_data.csv",
-            "cde_test/layer_data.csv",
+            "cde_test/existing_file.csv",
+            "cde_test/community_canopy_data.csv",
+            "cde_test/stem_canopy_data.csv",
             pytest.raises(ConfigurationError),
-            "The cohort_data_path exporter path must not be an existing file:",
+            "The cohort_data_path exporter path must not be an existing file",
             id="cohort_exists",
         ),
         pytest.param(
             True,
             "cde_test/cohort_data.csv",
-            "cde_test/existing_layer_data.csv",
+            "cde_test/existing_file.csv",
+            "cde_test/stem_canopy_data.csv",
             pytest.raises(ConfigurationError),
-            "The layer_data_path exporter path must not be an existing file:",
-            id="layer_exists",
+            "The community_canopy_data_path exporter path must not be an existing file",
+            id="community_canopy_exists",
+        ),
+        pytest.param(
+            True,
+            "cde_test/cohort_data.csv",
+            "cde_test/community_canopy_data.csv",
+            "cde_test/existing_file.csv",
+            pytest.raises(ConfigurationError),
+            "The stem_canopy_data_path exporter path must not be an existing file",
+            id="stem_canopy_exists",
         ),
         pytest.param(
             True,
             "no_such_directory/cohort_data.csv",
-            "no_such_directory/layer_data.csv",
+            "no_such_directory/community_canopy_data.csv",
+            "no_such_directory/stem_canopy_data.csv",
             pytest.raises(ConfigurationError),
             "The cohort_data_path exporter path must be in an existing writeable",
             id="directory does not exist",
@@ -109,7 +125,8 @@ def csv_row_check(path: Path, n_rows: int) -> None:
         pytest.param(
             True,
             "cde_test_read_only/cohort_data.csv",
-            "cde_test_read_only/layer_data.csv",
+            "cde_test_read_only/community_canopy_data.csv",
+            "cde_test_read_only/stem_canopy_data.csv",
             pytest.raises(ConfigurationError),
             "The cohort_data_path exporter path must be in an existing writeable",
             id="directory not writeable",
@@ -117,27 +134,33 @@ def csv_row_check(path: Path, n_rows: int) -> None:
     ),
 )
 def test_CommunityDataExporter_check_paths(
-    tmp_path, active, cohort_data_path, layer_data_path, outcome, msg
+    tmp_path,
+    active,
+    cohort_data_path,
+    community_canopy_data_path,
+    stem_canopy_data_path,
+    outcome,
+    msg,
 ):
     """Test the path validation of CommunityDataExporter."""
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-    # Create an output directory and touch some existing paths
-    writeable_dir = tmp_path / "cde_test"
-    readable_dir = tmp_path / "cde_test_read_only"
-    cohort_path = writeable_dir / "existing_cohort_data.csv"
-    layer_path = writeable_dir / "existing_layer_data.csv"
+    # Create writeable and read only output directories
+    w_dir = tmp_path / "cde_test"
+    w_dir.mkdir(exist_ok=False)
+    r_dir = tmp_path / "cde_test_read_only"
+    r_dir.mkdir(mode=0o555, exist_ok=False)  # readable and executable but not writeable
 
-    writeable_dir.mkdir(exist_ok=False)
-    readable_dir.mkdir(mode=0o555)  # readable and executable but not writeable
-    cohort_path.touch(exist_ok=False)
-    layer_path.touch(exist_ok=False)
+    # Create a file in the writeable directory
+    existing_file = w_dir / "existing_file.csv"
+    existing_file.touch(exist_ok=False)
 
     # Create the exporter
     with outcome as excep:
         exporter = CommunityDataExporter(
             cohort_data_path=tmp_path / cohort_data_path,
-            layer_data_path=tmp_path / layer_data_path,
+            community_canopy_data_path=tmp_path / community_canopy_data_path,
+            stem_canopy_data_path=tmp_path / stem_canopy_data_path,
             cohort_attribute_subset=[],
             canopy_attribute_subset=[],
             active=active,

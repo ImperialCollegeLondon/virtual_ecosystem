@@ -30,7 +30,8 @@ class CommunityDataExporter:
     def __init__(
         self,
         cohort_data_path: Path,
-        layer_data_path: Path,
+        community_canopy_data_path: Path,
+        stem_canopy_data_path: Path,
         cohort_attribute_subset: set[str] = set(),
         canopy_attribute_subset: set[str] = set(),
         active: bool = False,
@@ -41,8 +42,10 @@ class CommunityDataExporter:
         # Set the path attributes
         self.cohort_data_path: Path = cohort_data_path
         """The output path for cohort level data."""
-        self.layer_data_path: Path = layer_data_path
-        """The output path for layer level data."""
+        self.community_canopy_data_path: Path = community_canopy_data_path
+        """The output path for community canopy layer data."""
+        self.stem_canopy_data_path: Path = stem_canopy_data_path
+        """The output path for stem canopy layer data."""
 
         # Only bother to validate paths if the exporter is actually active - avoids
         # trying to validate default empty strings.
@@ -72,7 +75,8 @@ class CommunityDataExporter:
 
         for arg, fname in (
             ("cohort_data_path", self.cohort_data_path),
-            ("layer_data_path", self.layer_data_path),
+            ("community_canopy_data_path", self.community_canopy_data_path),
+            ("stem_canopy_data_path", self.stem_canopy_data_path),
         ):
             if fname.exists():
                 msg = f"The {arg} exporter path must not be an existing file: {fname}"
@@ -201,7 +205,7 @@ class CommunityDataExporter:
             LOGGER.info(f"Plant model cohort data dumped at time: {time}")
 
         # Export community level canopy layer data if requested
-        if self.layer_data_path:
+        if self.community_canopy_data_path:
             community_layer_data = []
             for cell_id, canopy in canopies.items():
                 canopy_layer_data = canopy.community_data.to_pandas()
@@ -214,7 +218,7 @@ class CommunityDataExporter:
 
             # Export community layer data
             community_layer_data_compiled.to_csv(
-                self.layer_data_path,
+                self.community_canopy_data_path,
                 mode=self._output_mode,
                 header=self._output_mode == "w",
                 index=False,
