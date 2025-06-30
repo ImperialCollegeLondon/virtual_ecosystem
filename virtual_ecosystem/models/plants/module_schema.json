@@ -144,7 +144,7 @@
                         "type": "string",
                         "default": ""
                      },
-                     "cohort_attribute_subset": {
+                     "cohort_attributes": {
                         "description": "A list of cohort attributes to write to file.",
                         "type": "array",
                         "items": {
@@ -155,7 +155,7 @@
                            "dbh"
                         ]
                      },
-                     "community_canopy_attribute_subset": {
+                     "community_canopy_attributes": {
                         "description": "A list of community canopy attributes to write to file.",
                         "type": "array",
                         "items": {
@@ -166,7 +166,7 @@
                            "stem_leaf_area"
                         ]
                      },
-                     "stem_canopy_attribute_subset": {
+                     "stem_canopy_attributes": {
                         "description": "A list of stem canopy attributes to write to file.",
                         "type": "array",
                         "items": {
@@ -184,9 +184,9 @@
                   "cohort_data_path": "",
                   "community_canopy_data_path": "",
                   "stem_canopy_data_path": "",
-                  "cohort_attribute_subset": [],
-                  "community_canopy_attribute_subset": [],
-                  "stem_canopy_attribute_subset": []
+                  "cohort_attributes": [],
+                  "community_canopy_attributes": [],
+                  "stem_canopy_attributes": []
                }
             }
          },

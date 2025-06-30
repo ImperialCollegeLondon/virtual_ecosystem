@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pyrealm.demography.canopy import Canopy
+from pyrealm.demography.canopy import Canopy, CommunityCanopyData
 from pyrealm.demography.community import Cohorts
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
@@ -32,8 +32,9 @@ class CommunityDataExporter:
         cohort_data_path: Path,
         community_canopy_data_path: Path,
         stem_canopy_data_path: Path,
-        cohort_attribute_subset: set[str] = set(),
-        canopy_attribute_subset: set[str] = set(),
+        cohort_attributes: set[str] = set(),
+        community_canopy_attributes: set[str] = set(),
+        stem_canopy_attributes: set[str] = set(),
         active: bool = False,
     ) -> None:
         self.active: bool = active
@@ -61,10 +62,12 @@ class CommunityDataExporter:
         # interogate
         # instances rather than hardcoding allowable attributes in __init__.
 
-        self.cohort_attribute_subset: set[str] = cohort_attribute_subset
-        """An optional list providing a subset of cohort attributes to export."""
-        self.canopy_attribute_subset: set[str] = canopy_attribute_subset
-        """An optional list providing a subset of layer attributes to export."""
+        self.cohort_attributes: set[str] = cohort_attributes
+        """A subset of cohort attribute names to export."""
+        self.community_canopy_attributes: set[str] = community_canopy_attributes
+        """A subset of community canopy attribute names to export."""
+        self.stem_canopy_attributes: set[str] = stem_canopy_attributes
+        """A subset of community canopy attribute names to export."""
 
         if self.active:
             self._check_attribute_subsets()
@@ -94,26 +97,37 @@ class CommunityDataExporter:
     def _check_attribute_subsets(self) -> None:
         """Check attribute subsets contain available fields."""
 
-        # If a cohort attribute subset is requested check they are all valid
-        if self.cohort_attribute_subset:
-            # Available attributes
-            cohort_attributes = set(
+        available_attributes = {
+            "cohort_attributes": set(
                 [
                     "cell_id",
                     *StemAllometry.array_attrs,
                     *Cohorts.array_attrs,
                     StemAllocation.array_attrs,
                 ]
-            )
+            ),
+            "community_canopy_attributes": set(
+                [
+                    "canopy_layer_index",
+                    "heights",
+                    "cell_id",
+                    *CommunityCanopyData.array_attrs,
+                ]
+            ),
+        }
 
-            not_found = self.cohort_attribute_subset.difference(cohort_attributes)
-            if not_found:
-                msg = (
-                    f"The cohort_attribute_subset exporter configuration contains "
-                    f"unknown columns: {', '.join(not_found)}"
-                )
-                LOGGER.error(msg)
-                raise ConfigurationError(msg)
+        for subset_name, available in available_attributes.items():
+            subset = getattr(self, subset_name)
+            # If subset is provided, check the values are all valid
+            if subset:
+                not_found = subset.difference(available)
+                if not_found:
+                    msg = (
+                        f"The {subset_name} exporter configuration contains "
+                        f"unknown attributes: {', '.join(not_found)}"
+                    )
+                    LOGGER.error(msg)
+                    raise ConfigurationError(msg)
 
     @classmethod
     def from_config(cls, config: Config) -> CommunityDataExporter:
@@ -188,9 +202,9 @@ class CommunityDataExporter:
             cohort_data_compiled["time"] = time
 
             # Reduce to requested attributes
-            if self.cohort_attribute_subset:
+            if self.cohort_attributes:
                 cohort_data_compiled = cohort_data_compiled[
-                    list(self.cohort_attribute_subset)
+                    list(self.cohort_attributes)
                 ]
 
             # Export cohort data - this switches from write mode with headers to append

@@ -174,22 +174,27 @@ def test_CommunityDataExporter_check_paths(
 
 
 @pytest.mark.parametrize(
-    argnames="active, cohort_attributes, layer_attributes, outcome, msg",
+    argnames=(
+        "active, cohort_attributes, community_canopy_attributes, "
+        "stem_canopy_attributes, outcome, msg"
+    ),
     argvalues=(
         pytest.param(
-            False, "any_old", "rubbish_passes", does_not_raise(), None, id="inactive"
+            False, "any_old", "rubbish", "passes", does_not_raise(), None, id="inactive"
         ),
         pytest.param(
             True,
+            set(),
             set(),
             set(),
             does_not_raise(),
             None,
-            id="both_good",
+            id="all_unset",
         ),
         pytest.param(
             True,
             set(["dbh", "crown_area"]),
+            set(),
             set(),
             does_not_raise(),
             None,
@@ -199,15 +204,22 @@ def test_CommunityDataExporter_check_paths(
             True,
             set(["dbh", "crow_narea"]),
             set(),
+            set(),
             pytest.raises(ConfigurationError),
-            "The cohort_attribute_subset exporter configuration contains "
-            "unknown columns: crow_narea",
+            "The cohort_attributes exporter configuration contains "
+            "unknown attributes: crow_narea",
             id="valid_cohort_subset",
         ),
     ),
 )
 def test_CommunityDataExporter_check_attribute_subsets(
-    tmp_path, active, cohort_attributes, layer_attributes, outcome, msg
+    tmp_path,
+    active,
+    cohort_attributes,
+    community_canopy_attributes,
+    stem_canopy_attributes,
+    outcome,
+    msg,
 ):
     """Test the path validation of CommunityDataExporter."""
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
@@ -218,8 +230,9 @@ def test_CommunityDataExporter_check_attribute_subsets(
             cohort_data_path=tmp_path / "cohort_data.csv",
             community_canopy_data_path=tmp_path / "community_canopy_data.csv",
             stem_canopy_data_path=tmp_path / "stem_canopy_data.csv",
-            cohort_attribute_subset=cohort_attributes,
-            canopy_attribute_subset=layer_attributes,
+            cohort_attributes=cohort_attributes,
+            community_canopy_attributes=community_canopy_attributes,
+            stem_canopy_attributes=stem_canopy_attributes,
             active=active,
         )
 
@@ -249,8 +262,9 @@ def test_CommunityDataExporter_dump(tmp_path, fixture_exporter_components):
         cohort_data_path=cohort_data_path,
         community_canopy_data_path=community_canopy_data_path,
         stem_canopy_data_path=stem_canopy_data_path,
-        cohort_attribute_subset={},
-        canopy_attribute_subset={},
+        cohort_attributes={},
+        community_canopy_attributes={"fapar"},
+        stem_canopy_attributes={},
         active=True,
     )
 
@@ -297,7 +311,7 @@ def test_CommunityDataExporter_in_model(
     fixture_core_components,
     fixture_canopy_layer_data,
 ):
-    """Test the exporter runs in the context of a PlantsModel."""
+    """Test the exporter runs as expected from within a PlantsModel."""
 
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
@@ -310,8 +324,9 @@ def test_CommunityDataExporter_in_model(
         cohort_data_path=cohort_data_path,
         community_canopy_data_path=community_canopy_data_path,
         stem_canopy_data_path=stem_canopy_data_path,
-        cohort_attribute_subset={},
-        canopy_attribute_subset={},
+        cohort_attributes={},
+        community_canopy_attributes={},
+        stem_canopy_attributes={},
         active=True,
     )
 
@@ -322,7 +337,6 @@ def test_CommunityDataExporter_in_model(
         exporter=exporter,
     )
 
-    # Simple checks - file exists, can be read, has right number of rows.
     # Simple checks - files exists, can be read, have the right number of rows.
     cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in model.communities.items()])
     cell_n_layers = np.array([len(cpy.heights) for cpy in model.canopies.values()])
