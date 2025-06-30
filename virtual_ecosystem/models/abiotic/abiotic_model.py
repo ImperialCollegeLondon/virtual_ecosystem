@@ -240,11 +240,11 @@ class AbioticModel(
             time_index: The index of the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
-        # Run microclimate model (TODO time interval = 1 h only for fluxes)
+        # Run microclimate model
         update_dict = run_microclimate(
             data=self.data,
             time_index=time_index,
-            time_interval=3600,
+            time_interval=self.model_timing.update_interval_seconds,
             cell_area=self.grid.cell_area,
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,

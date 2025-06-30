@@ -18,7 +18,7 @@ from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 def run_microclimate(
     data: Data,
     time_index: int,
-    time_interval: int,
+    time_interval: float,
     cell_area: float,
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConsts,
