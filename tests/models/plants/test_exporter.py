@@ -1,6 +1,6 @@
 """Tests the models.plants.exporter.CommunityDataExporter class."""
 
-import stat
+import sys
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 
@@ -113,6 +113,8 @@ def fixture_exporter_components(flora):
             id="directory does not exist",
         ),
         pytest.param(
+            # A read-only directory cannot be easily set up and tested on Windows, so is
+            # skipped on Windows platforms.
             True,
             "cde_test_read_only/cohort_data.csv",
             "cde_test_read_only/community_canopy_data.csv",
@@ -120,6 +122,7 @@ def fixture_exporter_components(flora):
             pytest.raises(ConfigurationError),
             "The cohort_data_path exporter path must be in an existing writeable",
             id="directory not writeable",
+            marks=pytest.mark.skipif(sys.platform.startswith("win")),
         ),
     ),
 )
@@ -140,7 +143,6 @@ def test_CommunityDataExporter_check_paths(
     w_dir.mkdir(exist_ok=False)
     r_dir = tmp_path / "cde_test_read_only"
     r_dir.mkdir(mode=0o555, exist_ok=False)  # readable and executable but not writeable
-    r_dir.chmod(mode=stat.S_IREAD)  # Attempt to make Windows listen...
 
     # Create a file in the writeable directory
     existing_file = w_dir / "existing_file.csv"
