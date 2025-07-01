@@ -58,7 +58,7 @@ def test_setup_hydrology_input_current_timestep(
         seed=42,
         layer_structure=lyr_strct,
         soil_layer_thickness_mm=lyr_strct.soil_layer_thickness * 1000,
-        soil_moisture_capacity=0.9,
+        soil_moisture_saturation=0.9,
         soil_moisture_residual=0.1,
     )
 
@@ -71,7 +71,7 @@ def test_setup_hydrology_input_current_timestep(
         "surface_wind_speed",
         "leaf_area_index_sum",
         "current_transpiration",
-        "top_soil_moisture_capacity",
+        "top_soil_moisture_saturation",
         "top_soil_moisture_residual",
         "previous_accumulated_runoff",
         "previous_subsurface_flow_accumulated",

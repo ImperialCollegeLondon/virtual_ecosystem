@@ -1421,12 +1421,15 @@ class TestAnimalCohort:
         prey = Mock()
         prey.mass_current = 10.0
         prey.individuals = 5
+        adjusted_dt = 10
 
         prey_list = []  # Empty list, so target is not present
 
         mocker.patch.object(predator, "F_i_j_individual", return_value=0.05)
 
-        result = predator.calculate_consumed_mass_predation(prey_list, prey)
+        result = predator.calculate_consumed_mass_predation(
+            prey_list, prey, adjusted_dt
+        )
 
         # No error expected — default formula still works, prey list isn't validated
         assert isinstance(result, float)
@@ -1460,33 +1463,25 @@ class TestAnimalCohort:
         prey = mocker.Mock()
         prey.mass_current = mass_current
         prey.individuals = individuals
-
+        adjusted_dt = 7.5 / predator_cohort_instance.diet_category_count
         prey_list = [prey]
 
         # Patch predation rate method to return fixed value
         mocker.patch.object(predator, "F_i_j_individual", return_value=F_value)
 
         # Run method under test
-        result = predator.calculate_consumed_mass_predation(prey_list, prey)
+        result = predator.calculate_consumed_mass_predation(
+            prey_list, prey, adjusted_dt
+        )
 
-        # Expected outcome logic
         if expected_behavior == "formula":
-            delta_t = 30.0
-            expected = (
-                mass_current
-                * individuals
-                * (
-                    1
-                    - exp(
-                        -(
-                            F_value
-                            * delta_t
-                            * predator.constants.tau_f
-                            * predator.constants.sigma_f_t
-                        )
-                    )
-                )
-            )
+            delta_t = 30
+            diet_count = predator.diet_category_count
+            tau = predator.constants.tau_f
+            sigma = predator.constants.sigma_f_t
+            effective_time = delta_t * tau * sigma / diet_count
+
+            expected = mass_current * individuals * (1 - exp(-F_value * effective_time))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -1599,6 +1594,8 @@ class TestAnimalCohort:
                 for k, v in carcass_pools.items()
             }
 
+        adjusted_dt = 10
+
         # Mock `calculate_consumed_mass_predation`
         mock_calculate = mocker.patch.object(
             herbivore_cohort_instance,
@@ -1613,12 +1610,12 @@ class TestAnimalCohort:
         if should_raise_error:
             with pytest.raises(ValueError, match=expected_error_message):
                 herbivore_cohort_instance.delta_mass_predation(
-                    animal_list, carcass_pools
+                    animal_list, carcass_pools, adjusted_dt=10
                 )
         else:
             # Call method
             result = herbivore_cohort_instance.delta_mass_predation(
-                animal_list, carcass_pools
+                animal_list, carcass_pools, adjusted_dt
             )
 
             # Ensure correct mass summation
@@ -1657,37 +1654,35 @@ class TestAnimalCohort:
 
         herbivore = herbivore_cohort_instance
 
-        # Create a pure mock plant resource
+        # Mock plant
         plant = mocker.Mock()
         plant.mass_current = mass_current
-
         plant_list = [plant]
 
-        # Patch F_i_k to return controlled F_value
+        # Adjust for diet partitioning
+        adjusted_dt = 7.5 / herbivore.diet_category_count
+
+        # Patch functional response
         mocker.patch.object(herbivore, "F_i_k", return_value=F_value)
 
-        # Run method under test
-        result = herbivore.calculate_consumed_mass_herbivory(plant_list, plant)
+        # Call method under test
+        result = herbivore.calculate_consumed_mass_herbivory(
+            plant_list, plant, adjusted_dt
+        )
 
-        # Determine expected outcome
+        # Expectation logic
         if expected_behavior == "formula":
-            delta_t = 30.0
-            expected = mass_current * (
-                1
-                - exp(
-                    -(
-                        F_value
-                        * delta_t
-                        * herbivore.constants.tau_f
-                        * herbivore.constants.sigma_f_t
-                    )
-                )
-            )
+            delta_t = 30  # corresponds to unadjusted full timestep
+            tau = herbivore.constants.tau_f
+            sigma = herbivore.constants.sigma_f_t
+            diet_count = herbivore.diet_category_count
+            effective_time = delta_t * tau * sigma / diet_count
+
+            expected = mass_current * (1 - exp(-F_value * effective_time))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
-            expected = mass_current
-            assert isclose(result, expected, rel_tol=1e-3)
+            assert isclose(result, mass_current, rel_tol=1e-3)
 
         else:
             assert result == expected_behavior
@@ -1764,10 +1759,11 @@ class TestAnimalCohort:
                 "get_eaten",
                 return_value=(mock_herbivore_gain_cnp, mock_plant_litter_cnp),
             )
+        adjusted_dt = 10
 
         # Call `delta_mass_herbivory`
         result = herbivore_cohort_instance.delta_mass_herbivory(
-            plant_list, herbivory_waste_pools
+            plant_list, herbivory_waste_pools, adjusted_dt
         )
 
         # ✅ FIX: Use `pytest.approx` to handle floating-point precision
@@ -1851,7 +1847,7 @@ class TestAnimalCohort:
         # Ensure error is raised correctly
         with pytest.raises(expected_error, match=expected_message):
             herbivore_cohort_instance.delta_mass_herbivory(
-                plant_list, herbivory_waste_pools
+                plant_list, herbivory_waste_pools, adjusted_dt=10
             )
 
     @pytest.mark.parametrize(
@@ -1877,32 +1873,32 @@ class TestAnimalCohort:
 
         detritivore = herbivore_cohort_instance
 
-        # Mock target litter pool
+        # Mock litter pool
         litter = mocker.Mock()
         litter.mass_current = mass_current
 
         litter_list = [litter]
 
-        # Patch F_i_k to return controlled value
+        # Adjust for diet time partitioning
+        adjusted_dt = 7.5 / detritivore.diet_category_count
+
+        # Patch functional response
         mocker.patch.object(detritivore, "F_i_k", return_value=F_value)
 
-        # Run method under test
-        result = detritivore.calculate_consumed_mass_detritivory(litter_list, litter)
+        # Call method under test
+        result = detritivore.calculate_consumed_mass_detritivory(
+            litter_list, litter, adjusted_dt
+        )
 
         # Determine expected outcome
         if expected_behavior == "formula":
-            delta_t = 30.0
-            expected = mass_current * (
-                1.0
-                - exp(
-                    -(
-                        F_value
-                        * delta_t
-                        * detritivore.constants.tau_f
-                        * detritivore.constants.sigma_f_t
-                    )
-                )
-            )
+            delta_t = 30  # total model timestep
+            tau = detritivore.constants.tau_f
+            sigma = detritivore.constants.sigma_f_t
+            diet_count = detritivore.diet_category_count
+            effective_time = delta_t * tau * sigma / diet_count
+
+            expected = mass_current * (1 - exp(-F_value * effective_time))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -1910,7 +1906,7 @@ class TestAnimalCohort:
             assert isclose(result, expected, rel_tol=1e-3)
 
         else:
-            # Directly test for clamped 0.0
+            # Directly test for 0 return in edge cases
             assert result == expected_behavior
 
     @pytest.mark.parametrize(
@@ -1970,9 +1966,12 @@ class TestAnimalCohort:
                 "get_eaten",
                 return_value=(mock_consumed_cnp, None),
             )
+        adjusted_dt = 10
 
         # Run method under test
-        result = herbivore_cohort_instance.delta_mass_detritivory(litter_pools)
+        result = herbivore_cohort_instance.delta_mass_detritivory(
+            litter_pools, adjusted_dt
+        )
 
         # Scale by conversion efficiency
         eff = herbivore_cohort_instance.functional_group.conversion_efficiency
@@ -2005,32 +2004,31 @@ class TestAnimalCohort:
 
         predator = predator_cohort_instance
 
-        # Create mock carcass pool
+        # Mock carcass resource
         carcass = mocker.Mock()
         carcass.mass_current = mass_current
 
         carcass_pools = [carcass]
 
-        # Patch F_i_k to controlled value
+        # Adjust dt to reflect time sharing among diets
+        adjusted_dt = 7.5 / predator.diet_category_count
+
+        # Patch feeding rate function
         mocker.patch.object(predator, "F_i_k", return_value=F_value)
 
         # Run the method under test
-        result = predator.calculate_consumed_mass_carcass(carcass_pools, carcass)
+        result = predator.calculate_consumed_mass_carcass(
+            carcass_pools, carcass, adjusted_dt
+        )
 
-        # Evaluate expected result
         if expected_behavior == "formula":
-            delta_t = 30.0
-            expected = mass_current * (
-                1.0
-                - exp(
-                    -(
-                        F_value
-                        * delta_t
-                        * predator.constants.tau_f
-                        * predator.constants.sigma_f_t
-                    )
-                )
-            )
+            delta_t = 30  # full ecosystem timestep
+            tau = predator.constants.tau_f
+            sigma = predator.constants.sigma_f_t
+            diet_count = predator.diet_category_count
+            effective_time = delta_t * tau * sigma / diet_count
+
+            expected = mass_current * (1 - exp(-F_value * effective_time))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -2063,32 +2061,31 @@ class TestAnimalCohort:
 
         consumer = herbivore_cohort_instance
 
-        # Mock target excrement pool
+        # Mock excrement pool
         excrement = mocker.Mock()
         excrement.mass_current = mass_current
-
         excrement_pools = [excrement]
 
-        # Patch F_i_k to return desired F value
+        # Adjust time step for diet partitioning
+        adjusted_dt = 7.5 / consumer.diet_category_count
+
+        # Patch functional response
         mocker.patch.object(consumer, "F_i_k", return_value=F_value)
 
-        # Run the method
-        result = consumer.calculate_consumed_mass_excrement(excrement_pools, excrement)
+        # Call method under test
+        result = consumer.calculate_consumed_mass_excrement(
+            excrement_pools, excrement, adjusted_dt
+        )
 
-        # Determine expected outcome
+        # Compute expected result
         if expected_behavior == "formula":
-            delta_t = 30.0
-            expected = mass_current * (
-                1.0
-                - exp(
-                    -(
-                        F_value
-                        * delta_t
-                        * consumer.constants.tau_f
-                        * consumer.constants.sigma_f_t
-                    )
-                )
-            )
+            delta_t = 30
+            tau = consumer.constants.tau_f
+            sigma = consumer.constants.sigma_f_t
+            diet_count = consumer.diet_category_count
+            effective_time = delta_t * tau * sigma / diet_count
+
+            expected = mass_current * (1 - exp(-F_value * effective_time))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -2171,16 +2168,16 @@ class TestAnimalCohort:
             herbivory_waste_pools=herbivory_waste_pools
             if diet_type == "HERBIVORE"
             else {},
+            dt=30,
         )
 
-        # Assert correct foraging call
         if diet_type == "HERBIVORE":
             mock_delta_mass.assert_called_once_with(
-                plant_list_instance, herbivory_waste_pools
+                plant_list_instance, herbivory_waste_pools, mocker.ANY
             )
         else:
             mock_delta_mass.assert_called_once_with(
-                animal_list_instance, carcass_pools_by_cell_instance
+                animal_list_instance, carcass_pools_by_cell_instance, mocker.ANY
             )
 
         # Assert assimilation
@@ -2212,6 +2209,7 @@ class TestAnimalCohort:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools={},
+            dt=30,
         )
 
         mock_eat.assert_not_called()
@@ -2241,6 +2239,7 @@ class TestAnimalCohort:
             scavenge_carcass_pools=[],
             scavenge_excrement_pools=[],
             herbivory_waste_pools={},
+            dt=30,
         )
 
         mock_delta.assert_not_called()

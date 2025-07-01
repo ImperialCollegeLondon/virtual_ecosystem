@@ -649,7 +649,7 @@ def dummy_climate_data(fixture_core_components):
         "atmospheric_pressure_ref": 96.0,
         "atmospheric_co2_ref": 400.0,
         "precipitation": 200.0,
-        "downward_shortwave_radiation": 100.0,
+        "downward_shortwave_radiation": 500.0,
     }
 
     for var, value in ref_values.items():
@@ -692,9 +692,6 @@ def dummy_climate_data(fixture_core_components):
     data["leaf_area_index"] = from_template()
     data["leaf_area_index"][lyr_str.index_filled_canopy] = 1.0
 
-    data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_flux_layers] = 1.0
-
     data["layer_heights"] = from_template()
     data["layer_heights"][lyr_str.index_filled_atmosphere] = np.array(
         [32.0, 30.0, 20.0, 10.0, lyr_str.surface_layer_height]
@@ -736,10 +733,10 @@ def dummy_climate_data(fixture_core_components):
         [0.14, 0.2, 0.2, 0.2, 0.14]
     )[:, None]
 
-    data["shortwave_absorption"] = from_template()
-    data["shortwave_absorption"][lyr_str.index_flux_layers] = 10.0
-
     flux_index = np.logical_or(lyr_str.index_above, lyr_str.index_flux_layers)
+
+    data["shortwave_absorption"] = from_template()
+    data["shortwave_absorption"][flux_index] = 450.0
 
     data["sensible_heat_flux"] = from_template()
     data["sensible_heat_flux"][flux_index] = 0.0
@@ -854,12 +851,12 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     sw_indexes = [1, 2, 3, 13]
     dummy_climate_data["shortwave_absorption"][sw_indexes] = [
-        [10.0, 10.0, 10.0, 10.0],
-        [10.0, 10.0, np.nan, np.nan],
-        [10.0, np.nan, np.nan, np.nan],
-        [0, 0, 0, 0],
+        [450.0, 450.0, 450.0, 450.0],
+        [450.0, 450.0, np.nan, np.nan],
+        [450.0, np.nan, np.nan, np.nan],
+        [450.0, 450.0, 450.0, 450],
     ]
-    dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
+    # dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
     dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
         [12.5, 12.5, 12.5, 12.5],

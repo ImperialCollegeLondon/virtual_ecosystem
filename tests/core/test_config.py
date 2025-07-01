@@ -434,7 +434,10 @@ def test_Config_load_config_toml_string(
         pytest.param(
             {"filename1.toml": {"core": {"grid": {"cell_nx": 10, "cell_ny": 10}}}},
             does_not_raise(),
-            ((INFO, "Config built from 1 file(s)"),),
+            (
+                (INFO, "Config built from 1 file(s)"),
+                (INFO, "Config input file: path_not_used.toml"),
+            ),
             id="single_file_ok",
         ),
         pytest.param(
@@ -458,7 +461,10 @@ def test_Config_load_config_toml_string(
                 "filename2.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             does_not_raise(),
-            ((INFO, "Config built from 2 file(s)"),),
+            (
+                (INFO, "Config built from 2 file(s)"),
+                (INFO, "Config input file: path_not_used.toml"),
+            ),
             id="two_files_valid",
         ),
         pytest.param(
@@ -468,7 +474,10 @@ def test_Config_load_config_toml_string(
                 "filename3.toml": {"core": {"grid": {"cell_ny": 10}}},
             },
             does_not_raise(),
-            ((INFO, "Config built from 3 file(s)"),),
+            (
+                (INFO, "Config built from 3 file(s)"),
+                (INFO, "Config input file: path_not_used.toml"),
+            ),
             id="three_files_valid",
         ),
         pytest.param(
@@ -490,7 +499,7 @@ def test_Config_build_config_paths(
     from virtual_ecosystem.core.config import Config
 
     # Initialise the Config instance and manually populate the loaded TOML
-    cfg = Config(cfg_paths=["path/not/used"], auto=False)
+    cfg = Config(cfg_paths=["path_not_used.toml"], auto=False)
     cfg.toml_contents = content
     caplog.clear()
 
