@@ -122,16 +122,17 @@ through the exchange of
 energy, water, and carbon and can be described with the general energy balance equation:
 
 $$
-R_N & = (1 - \alpha) S_\downarrow + L_\downarrow - \epsilon \sigma (T_{sfc} + 273.15)^4 \\
-    & = H + L_{v}E + G + NPP
+  &\frac{dQ}{dt}
+  & = (1 - \alpha) S_\downarrow + L_\downarrow - \epsilon \sigma (T_{sfc} + 273.15)^4 \\
+  & = H + L_{v}E + G + PP
 $$
 
-where $R_N$ is the net radiation at the surface, $\alpha$ is the surface albedo,
+where $\frac{dQ}{dt}$ is the change in heat storage, $\alpha$ is the surface albedo,
 $S_\downarrow$ and $L_\downarrow$ are downwelling shortwave and longwave radiation,
 respectively. $\epsilon$ is the emissivity of the surface, $\sigma$ is the
 Stefan-Boltzmann constant, and $T_sfc$ is the surface temperature in Celsius.
-$H$ is the sensible heat flux, $L_v E$ is the latent heat flux, $G$ is the ground heat
-flux, and $NPP$ stands for net primary productivity.
+$H$ is the sensible heat flux, $\lambda E$ is the latent heat flux, $G$ is the ground
+heat flux, and NPP$ stands for primary productivity.
 
 * **Radiation balance**: The radiation balance refers to the equilibrium between incoming
 solar radiation and outgoing terrestrial radiation within an ecosystem. How much
