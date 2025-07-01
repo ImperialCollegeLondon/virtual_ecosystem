@@ -32,14 +32,14 @@ language_info:
 Imagine standing in a rainforest clearing at dawn. The sun rises, mist lifts, and the
 forest slowly comes to life.
 
-Now imagine you could **pause parts of this scene** — hold
+Now imagine you could pause parts of this scene — hold
 the soil moisture constant, freeze the behaviour of animals, or keep the microclimate
 unchanged — while the rest of the ecosystem continues to move through time.
 
-This is the essence of the **Static Mode** in the Virtual Ecosystem model.
+This is the essence of the Static Mode in the Virtual Ecosystem model.
 
-In complex systems where **everything interacts** it can be hard to isolate what’s
-causing what. **Static Mode helps untangle this web** by letting you "freeze" components
+In complex systems where everything interacts it can be hard to isolate what’s
+causing what. Static Mode helps untangle this web by letting you "freeze" components
 like plants or animals while others remain dynamic. At each model step, static
 components reset to their original state (e.g. eaten leaves magically reappear) —
 like a controlled reset — so any change comes only from the active, evolving parts.
@@ -49,8 +49,8 @@ example, you can test how vegetation responds to changing temperatures without f
 from soil moisture changes, or explore animal behaviour in a fixed vegetation landscape.
 
 By choosing which components evolve over time and which stay fixed, Static Mode helps
-reveal **drivers of ecological change** - helping us understand not just
-**what happens**, but **why**.
+reveal drivers of ecological change - helping us understand not just
+what happens, but why.
 
 ```{note}
 The Virtual Ecosystem model can, in theory, be run with any combination of one or more
@@ -66,7 +66,7 @@ This example demonstrates how to configure and run the Virtual Ecosystem with se
 components held static (for more technical details,
 [see](./configuration/config.md#static-models)). Specifically, we focus on **hydrology**
 by keeping the
-microclimate, vegetation, animals, and soils fixed. This isolates hydrological
+microclimate, vegetation, animals, litter, and soils fixed. This isolates hydrological
 processes and so we can examine how individual model parameters and process
 representations influence model behaviour.
 
@@ -77,10 +77,10 @@ We run two experiments:
 
 In practice this means:
 
-- **Microclimate is fixed**: e.g., temperature and relative humidity stay constant
-- **Plants are static**: e.g. water uptake, transpiration, and interception do not vary
-- **Soil microbes, litter, and animals do not feedback** into hydrology
-- **Only hydrology processes evolve over time** in response to precipitation
+- Microclimate is fixed: e.g., temperature and relative humidity stay constant
+- Plants are static: e.g. water uptake, transpiration, and interception do not vary
+- Soil microbes, litter, and animals do not feedback into hydrology
+- Only hydrology processes evolve over time in response to precipitation
 
 Finally, we compare their outputs to the default setup (`ve_example`) where all
 components run dynamically.
@@ -90,8 +90,11 @@ This guide focuses on how to technically configure and run static mode, not on
 interpreting the experimental results. This enables you to adapt the setup to suit your
 own analysis goals.
 
-The example uses `%%bash` for demonstration on Linux, but it is compatible with all
-operating systems.
+The code below to run the Virtual Ecosystem and plot results uses a mixture of the
+command line (e.g. `bash` on Linux or MacOS, `powershell` on Windows) and python code.
+For the code run at the command line, we currently only show the syntax for using
+`bash`. On Windows, you will need to change the paths (for example, to
+`C:\Users\username\Temp\...`). 
 ```
 
 ### 1: Run `ve_example` as a baseline
@@ -101,7 +104,7 @@ If you haven’t yet installed and executed the example, follow the
 [example instructions](./virtual_ecosystem_in_use.md) to familiarise yourself with the
 setup.
 
-```{code-cell} ipython3
+```{code-cell} bash
 :tags: [remove-cell]
 
 %%bash
@@ -114,7 +117,9 @@ fi
 Install the example code - do make sure that you don't have an old copy of this example
 code in your temporary directory before starting this exercise!
 
-```{code-cell} ipython3
+```{code-cell} bash
+:tags: [hide-output]
+
 %%bash
 # Install the example data directory from the Virtual Ecosystem package
 ve_run --install-example /tmp/
@@ -122,7 +127,7 @@ ve_run --install-example /tmp/
 
 Run the example model with the provided full configuration.
 
-```{code-cell} ipython3
+```{code-cell} bash
 :tags: [hide-output]
 
 %%bash
@@ -201,7 +206,7 @@ output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`),
 and the `--logfile` command in the third line is followed by the same path and a new
 file name ending in `.log`:
 
-```{code-cell} ipython3
+```{code-cell} bash
 :tags: [hide-output]
 
 %%bash
@@ -378,7 +383,7 @@ output folder that you just created (here `/tmp/ve_example/HydroDry_out/`),
 and the `--logfile` command in the third line is followed by the same path and a new
 file name ending in `.log`:
 
-```{code-cell} ipython3
+```{code-cell} bash
 :tags: [hide-output]
 
 %%bash
