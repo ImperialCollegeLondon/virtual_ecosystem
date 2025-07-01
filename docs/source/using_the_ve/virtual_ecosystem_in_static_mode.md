@@ -102,6 +102,8 @@ If you haven’t yet installed and executed the example, follow the
 setup.
 
 ```{code-cell} ipython3
+:tags: [remove-cell]
+
 %%bash
 # Remove any existing VE data directory in the /tmp/ directory
 if [ -d /tmp/ve_example ]; then
@@ -109,11 +111,16 @@ if [ -d /tmp/ve_example ]; then
 fi
 ```
 
+Install the example code - do make sure that you don't have an old copy of this example
+code in your temporary directory before starting this exercise!
+
 ```{code-cell} ipython3
 %%bash
 # Install the example data directory from the Virtual Ecosystem package
 ve_run --install-example /tmp/
 ```
+
+Run the example model with the provided full configuration.
 
 ```{code-cell} ipython3
 :tags: [hide-output]
@@ -146,14 +153,19 @@ Once the baseline run is complete, you can set up the experiment with default
   static=true
   ```
 
-Here is how you can do these steps programmatically:
-
 ```{code-cell} ipython3
-:tags: [hide-input]
+:tags: [remove-cell]
 
+# Generate the static config file programmatically
+import sys
 from pathlib import Path
-import toml
-import copy
+
+import tomli_w
+
+if sys.version_info[:2] >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 # Create output directory
 output_dir = Path("/tmp/ve_example/HydroDefault_out/")
@@ -166,20 +178,19 @@ if output_dir.exists() and output_dir.is_dir():
             file.unlink()
 
 # Load the original config
-config = toml.load("/tmp/ve_example/out/ve_full_model_configuration.toml")
+with open("/tmp/ve_example/out/ve_full_model_configuration.toml", "rb") as cfg:
+    config = tomllib.load(cfg)
 
-# Make a copy to modify
-new_config = copy.deepcopy(config)
+# Update the static settings
 config["abiotic_simple"]["static"] = True
 config["plants"]["static"] = True
 config["animal"]["static"] = True
 config["soil"]["static"] = True
 config["litter"]["static"] = True
-config["core"]["data_output_options"]["out_path"] = "/tmp/ve_example/HydroDefault_out/"
 
 # Save to a new file
-with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "w") as f:
-    toml.dump(config, f)
+with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "wb") as out:
+    tomli_w.dump(config, out)
 ```
 
 #### Run HydroDefault experiment
@@ -333,36 +344,30 @@ these steps:
   static = false
 ```
 
-Here is how you can do these steps programmatically:
-
 ```{code-cell} ipython3
-:tags: [hide-input]
-
-from pathlib import Path
-import toml
-import copy
+:tags: [remove-cell]
 
 # Create output directory
 output_dir = Path("/tmp/ve_example/HydroDry_out/")
-output_dir.mkdir(parents=True, exist_ok=True)
 
-# Check that the directory is empty
+# If the directory exists, make sure it is empty otherwise create it
 if output_dir.exists() and output_dir.is_dir():
     for file in output_dir.iterdir():
         if file.is_file():
             file.unlink()
+else:
+    output_dir.mkdir(parents=True, exist_ok=True)
 
 # Load the original config
-config = toml.load("/tmp/ve_example/static_config/HydroDefault_config.toml")
+with open("/tmp/ve_example/static_config/HydroDefault_config.toml", "rb") as cfg:
+    config = tomllib.load(cfg)
 
-# Make a copy to modify initial soil moisture and out_path
-new_config = copy.deepcopy(config)
+# Modify initial soil moisture
 config["hydrology"]["initial_soil_moisture"] = 0.3
-config["core"]["data_output_options"]["out_path"] = "/tmp/ve_example/HydroDry_out/"
 
 # Save to a new file
-with open("/tmp/ve_example/static_config/HydroDry_config.toml", "w") as f:
-    toml.dump(config, f)
+with open("/tmp/ve_example/static_config/HydroDry_config.toml", "wb") as out:
+    tomli_w.dump(config, out)
 ```
 
 #### Run HydroDry experiment
