@@ -171,17 +171,42 @@ class CommunityDataExporter:
 
     @classmethod
     def from_config(cls, config: Config) -> CommunityDataExporter:
-        """Factory class to create a CommunityDataExporter from a configuration."""
+        """Factory class to create a CommunityDataExporter from a configuration.
 
-        # Try and build the arguments as a dictionary from the config
+        The configuration requires that the following configuration section is present:
+
+
+        """
+
+        # Try and build the arguments as a dictionary from the config, substituting
+        # explicit None values for empty strings
         try:
-            exporter_config = config["plants"]["community_data_export"]
+            cfg = config["plants"]["community_data_export"]
+
+            # Convert path strings to Path or None
+            if cfg["cohort_data_path"]:
+                cohort_data_path = Path(cfg["cohort_data_path"])
+            else:
+                cohort_data_path = None
+
+            if cfg["community_canopy_data_path"]:
+                community_canopy_data_path = Path(cfg["community_canopy_data_path"])
+            else:
+                community_canopy_data_path = None
+
+            if cfg["stem_canopy_data_path"]:
+                stem_canopy_data_path = Path(cfg["stem_canopy_data_path"])
+            else:
+                stem_canopy_data_path = None
+
             args = dict(
-                active=exporter_config["active"],
-                cohort_data_path=exporter_config["cohort_data_path"],
-                layer_data_path=exporter_config["layer_data_path"],
-                cohort_attribute_subset=set(exporter_config["cohort_attribute_subset"]),
-                canopy_attribute_subset=set(exporter_config["canopy_attribute_subset"]),
+                active=cfg["active"],
+                cohort_data_path=cohort_data_path,
+                community_canopy_data_path=community_canopy_data_path,
+                stem_canopy_data_path=stem_canopy_data_path,
+                cohort_attributes=set(cfg["cohort_attributes"]),
+                community_canopy_attributes=set(cfg["community_canopy_attributes"]),
+                stem_canopy_attributes=set(cfg["stem_canopy_attributes"]),
             )
         except KeyError as excep:
             LOGGER.error(excep)
@@ -282,6 +307,12 @@ class CommunityDataExporter:
             # Concatenate the cells into a single data frame
             community_canopy_data_compiled = pd.concat(community_canopy_data)
 
+            # Reduce to requested attributes
+            if self.community_canopy_attributes:
+                community_canopy_data_compiled = community_canopy_data_compiled[
+                    list(self.community_canopy_attributes)
+                ]
+
             # Export community canopy data
             community_canopy_data_compiled.to_csv(
                 self.community_canopy_data_path,
@@ -308,6 +339,12 @@ class CommunityDataExporter:
 
             # Concatenate the cells into a single data frame
             stem_canopy_data_compiled = pd.concat(stem_canopy_data)
+
+            # Reduce to requested attributes
+            if self.stem_canopy_attributes:
+                stem_canopy_data_compiled = stem_canopy_data_compiled[
+                    list(self.stem_canopy_attributes)
+                ]
 
             # Export stem canopy data
             stem_canopy_data_compiled.to_csv(
