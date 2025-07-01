@@ -122,7 +122,9 @@ def fixture_exporter_components(flora):
             pytest.raises(ConfigurationError),
             "The cohort_data_path exporter path must be in an existing writeable",
             id="directory not writeable",
-            marks=pytest.mark.skipif(sys.platform.startswith("win")),
+            marks=pytest.mark.skipif(
+                sys.platform.startswith("win"), reason="Cannot test on Windows"
+            ),
         ),
     ),
 )
