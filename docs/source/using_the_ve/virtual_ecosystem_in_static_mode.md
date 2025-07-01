@@ -94,7 +94,7 @@ The code below to run the Virtual Ecosystem and plot results uses a mixture of t
 command line (e.g. `bash` on Linux or MacOS, `powershell` on Windows) and python code.
 For the code run at the command line, we currently only show the syntax for using
 `bash`. On Windows, you will need to change the paths (for example, to
-`C:\Users\username\Temp\...`). 
+`C:\Users\username\Temp\...`).
 ```
 
 ### 1: Run `ve_example` as a baseline
@@ -104,7 +104,7 @@ If you haven’t yet installed and executed the example, follow the
 [example instructions](./virtual_ecosystem_in_use.md) to familiarise yourself with the
 setup.
 
-```{code-cell} bash
+```{code-cell} ipython3
 :tags: [remove-cell]
 
 %%bash
@@ -117,7 +117,7 @@ fi
 Install the example code - do make sure that you don't have an old copy of this example
 code in your temporary directory before starting this exercise!
 
-```{code-cell} bash
+```{code-cell} ipython3
 :tags: [hide-output]
 
 %%bash
@@ -127,7 +127,7 @@ ve_run --install-example /tmp/
 
 Run the example model with the provided full configuration.
 
-```{code-cell} bash
+```{code-cell} ipython3
 :tags: [hide-output]
 
 %%bash
@@ -206,7 +206,7 @@ output folder that you just created (here `/tmp/ve_example/HydroDefault_out/`),
 and the `--logfile` command in the third line is followed by the same path and a new
 file name ending in `.log`:
 
-```{code-cell} bash
+```{code-cell} ipython3
 :tags: [hide-output]
 
 %%bash
@@ -383,7 +383,7 @@ output folder that you just created (here `/tmp/ve_example/HydroDry_out/`),
 and the `--logfile` command in the third line is followed by the same path and a new
 file name ending in `.log`:
 
-```{code-cell} bash
+```{code-cell} ipython3
 :tags: [hide-output]
 
 %%bash
