@@ -37,9 +37,9 @@ class CommunityDataExporter:
 
     To output a particular data type, a valid path needs to be provided: this must be to
     a new, writeable filepath. If the data path is set to None, then that data file will
-    not be saved. In addition, an attribute list can be used to specify a subset of data
-    attributes for each file. If an attribute list is provided (which is the default)
-    then the exporter will write all attributes.
+    not be saved. In addition, the attribute sets can be used to specify a subset of
+    data attributes to be exported in each file. If an empty attribute set is provided
+    (which is the default) then the exporter will write all attributes.
 
     Args:
         cohort_data_path: Output path for cohort data
@@ -173,9 +173,23 @@ class CommunityDataExporter:
     def from_config(cls, config: Config) -> CommunityDataExporter:
         """Factory class to create a CommunityDataExporter from a configuration.
 
-        The configuration requires that the following configuration section is present:
+        The configuration requires that the following details are present in the plants
+        model section of the configuration
 
+        .. code-block:: toml
 
+            [plants.community_data_export]
+            active = true
+            cohort_data_path = "path/to/cohort_data.csv"
+            community_canopy_data_path = "path/to/community_canopy_data.csv"
+            stem_canopy_data_path = "path/to/stem_canopy_data.csv"
+            cohort_attributes = []
+            community_canopy_attributes = []
+            stem_canopy_attributes = []
+
+        If the "attributes" sections are empty arrays, then all attributes are written
+        to file, but specific fields may be named here to reduce the amount of data
+        exported.
         """
 
         # Try and build the arguments as a dictionary from the config, substituting
@@ -225,7 +239,7 @@ class CommunityDataExporter:
         """Export plant community data to file.
 
         The method accepts the main community components of the PlantsModel as arguments
-        and compiles the cohort and canopy data to write to file.
+        and compiles the configured cohort and canopy data to write to file.
 
         Args:
             communities: A PlantCommunities instance.
