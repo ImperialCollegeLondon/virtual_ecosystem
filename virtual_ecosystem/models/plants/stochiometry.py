@@ -103,7 +103,7 @@ class FoliageTissue(Tissue):
     """A class to hold foliage stochiometry data for a set of plant cohorts."""
 
     # reclaim_ratio: NDArray[np.float64]
-    """The ratio of the element that can be r eclaimed from the sensced tissue."""
+    """The ratio of the element that can be reclaimed from the senesced tissue."""
 
     def __init__(
         self,
