@@ -139,6 +139,7 @@ def test_CommunityDataExporter_check_paths(
     w_dir.mkdir(exist_ok=False)
     r_dir = tmp_path / "cde_test_read_only"
     r_dir.mkdir(mode=0o555, exist_ok=False)  # readable and executable but not writeable
+    r_dir.chmod(mode=0o555)  # Attempt to make Windows listen...
 
     # Create a file in the writeable directory
     existing_file = w_dir / "existing_file.csv"
