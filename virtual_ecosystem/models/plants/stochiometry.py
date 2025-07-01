@@ -1,12 +1,12 @@
 """The :mod:`~virtual_ecosystem.models.plants.stochiometry` module contains the class
 for managing plant cohort stochiometry ratios. The carbon mass is stored in plant
-alloemetry or allocation, so this class uses those as the anchor weights and stores
+allometry or allocation, so this class uses those as the anchor weights and stores
 CN and CP ratios.
 
 The class holds current CN and CP ratios for foliage, reproductive tissue, wood, and
-roots on the cohort level. Each tissue also has an idea CN and CP ratio, which is used
+roots on the cohort level. Each tissue also has an ideal CN and CP ratio, which is used
 as a comparison in the case of any nutrient deficit. Senesced leaves also have fixed CN
-and CP ratios, which is used for leaf turnover.
+and CP ratios, which are used for leaf turnover.
 
 In the future, the ideal CN and CP ratios will be PFT traits.
 """  # noqa: D205

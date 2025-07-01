@@ -914,37 +914,24 @@ class PlantsModel(
             cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
 
             # Subtract the N/P required from growth from the element store, and
-            # redistribute it to the individual tisuses.
+            # redistribute it to the individual tissues.
             for stochiometry in stochiometries.values():
                 stochiometry.account_for_growth(stem_allocation)
 
             # Balance the N & P surplus/deficit with the symbiote carbon supply
-            n_weighted_avg = np.dot(
-                self.data["ecto_supply_limit_n"][cell_id]
-                + self.data["arbuscular_supply_limit_n"][cell_id],
-                cohorts.n_individuals,
-            )
-            n_avaiable_per_cohort = n_weighted_avg / sum(n_weighted_avg)
-            n_available_per_stem = np.divide(
-                n_avaiable_per_cohort, cohorts.n_individuals
-            )
-            stochiometries["N"].element_surplus = (
-                stochiometries["N"].element_surplus + n_available_per_stem
-            )
-
-            p_weighted_avg = np.dot(
-                self.data["ecto_supply_limit_p"][cell_id]
-                + self.data["arbuscular_supply_limit_p"][cell_id],
-                cohorts.n_individuals,
-            )
-            p_available_per_cohort = p_weighted_avg / sum(p_weighted_avg)
-            p_available_per_stem = np.divide(
-                p_available_per_cohort, cohorts.n_individuals
-            )
-
-            stochiometries["P"].element_surplus = (
-                stochiometries["P"].element_surplus + p_available_per_stem
-            )
+            for element in ["N", "P"]:
+                element_weighted_avg = np.dot(
+                    self.data["ecto_supply_limit_" + element.lower()][cell_id]
+                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id],
+                    cohorts.n_individuals,
+                )
+                element_available_per_cohort = (
+                    element_weighted_avg / sum(element_weighted_avg)
+                )
+                element_available_per_stem = np.divide(
+                    element_available_per_cohort, cohorts.n_individuals
+                )
+                stochiometries[element].element_surplus += element_available_per_stem
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
@@ -1107,7 +1094,7 @@ class PlantsModel(
         for cell_id in self.communities.keys():
             self.stochiometries[cell_id]["N"].element_surplus += (
                 self.per_stem_transpiration[cell_id]
-                * (1.8015 * pow(10.0, -11))
+                * 1.8015e-11
                 * (
                     self.data["plant_ammonium_uptake"][cell_id]
                     + self.data["plant_nitrate_uptake"][cell_id]
