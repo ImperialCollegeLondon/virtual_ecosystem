@@ -438,6 +438,12 @@ class TestExporterDump:
             required_data=required,
         )
 
+        if required:
+            assert exporter._active
+
+        assert exporter._output_mode == "w"
+        assert exporter._write_header
+
         # First dump in write mode with no allocations: expected behaviour in setup
         communities, canopies, stem_allocations = fixture_exporter_components
         exporter.dump(
@@ -446,6 +452,10 @@ class TestExporterDump:
             stem_allocations={},
             time=np.datetime64("2000-01-01"),
         )
+
+        if required:
+            assert exporter._output_mode == "a"
+            assert not exporter._write_header
 
         expected_n = self.calculate_expected_n(communities, canopies)
         self.check_output(tmp_path, exporter, required, expected_n)
@@ -483,12 +493,23 @@ class TestExporterDump:
             required_data=required,
         )
 
+        if required:
+            assert exporter._active
+
+        assert exporter._output_mode == "w"
+        assert exporter._write_header
+
+        # Create plant model to run PlantsModel._setup and hence the dump method
         model = PlantsModel(
             data=plants_data,
             core_components=fixture_core_components,
             flora=flora,
             exporter=exporter,
         )
+
+        if required:
+            assert exporter._output_mode == "a"
+            assert not exporter._write_header
 
         # Simple checks - files exists, can be read, have the right number of rows.
         expected_n = self.calculate_expected_n(model.communities, model.canopies)
@@ -523,5 +544,7 @@ class TestExporterDump:
         """
 
         config = Config(cfg_strings=toml)
+        exporter = CommunityDataExporter.from_config(config=config)
 
-        CommunityDataExporter.from_config(config=config)
+        if required:
+            assert exporter._active
