@@ -125,58 +125,56 @@
             "community_data_export": {
                "description": "Configuration of plant community data export",
                "type": "object",
-               "items": {
-                  "type": "object",
-                  "properties": {
-                     "required_data": {
-                        "type": "array",
-                        "items": {
-                           "type": "string"
-                        },
-                        "uniqueItems": true,
-                        "default": []
+               "properties": {
+                  "required_data": {
+                     "type": "array",
+                     "items": {
+                        "type": "string"
                      },
-                     "cohort_attributes": {
-                        "description": "A list of cohort attributes to write to file.",
-                        "type": "array",
-                        "items": {
-                           "type": "string"
-                        },
-                        "uniqueItems": true,
-                        "default": []
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "cohort_attributes": {
+                     "description": "A list of cohort attributes to write to file.",
+                     "type": "array",
+                     "items": {
+                        "type": "string"
                      },
-                     "community_canopy_attributes": {
-                        "description": "A list of community canopy attributes to write to file.",
-                        "type": "array",
-                        "items": {
-                           "type": "string"
-                        },
-                        "uniqueItems": true,
-                        "default": []
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "community_canopy_attributes": {
+                     "description": "A list of community canopy attributes to write to file.",
+                     "type": "array",
+                     "items": {
+                        "type": "string"
                      },
-                     "stem_canopy_attributes": {
-                        "description": "A list of stem canopy attributes to write to file.",
-                        "type": "array",
-                        "items": {
-                           "type": "string"
-                        },
-                        "uniqueItems": true,
-                        "default": []
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "stem_canopy_attributes": {
+                     "description": "A list of stem canopy attributes to write to file.",
+                     "type": "array",
+                     "items": {
+                        "type": "string"
                      },
-                     "float_format": {
-                        "description": "A float format string to control data precision.",
-                        "type": "string",
-                        "default": "%0.5f"
-                     }
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "float_format": {
+                     "description": "A float format string to control data precision.",
+                     "type": "string",
+                     "default": "%0.5f"
                   }
                },
-               "default": {
-                  "required_data": [],
-                  "cohort_attributes": [],
-                  "community_canopy_attributes": [],
-                  "stem_canopy_attributes": [],
-                  "float_format": "%0.5f"
-               }
+               "default": {},
+               "required": [
+                  "required_data",
+                  "cohort_attributes",
+                  "community_canopy_attributes",
+                  "stem_canopy_attributes",
+                  "float_format"
+               ]
             }
          },
          "default": {},
@@ -191,6 +189,10 @@
                   "pft_definitions_path"
                ]
             }
+         ],
+         "required": [
+            "community_data_export",
+            "static"
          ]
       }
    },

@@ -234,19 +234,24 @@ class CommunityDataExporter:
             out_path = config["core"]["data_output_options"]["out_path"]
             xcfg = config["plants"]["community_data_export"]
 
-            args = dict(
-                output_directory=out_path,
-                required_data=xcfg["required_data"],
-                cohort_attributes=set(xcfg["cohort_attributes"]),
-                community_canopy_attributes=set(xcfg["community_canopy_attributes"]),
-                stem_canopy_attributes=set(xcfg["stem_canopy_attributes"]),
-            )
+            # Get arguments and convert inputs
+            output_directory = Path(out_path)
+            required_data = set(xcfg["required_data"])
+            cohort_attributes = set(xcfg["cohort_attributes"])
+            community_canopy_attributes = set(xcfg["community_canopy_attributes"])
+            stem_canopy_attributes = set(xcfg["stem_canopy_attributes"])
         except KeyError as excep:
             LOGGER.error(excep)
             raise
 
         # Return the instance
-        return cls(**args)
+        return cls(
+            output_directory=output_directory,
+            required_data=required_data,
+            cohort_attributes=cohort_attributes,
+            community_canopy_attributes=community_canopy_attributes,
+            stem_canopy_attributes=stem_canopy_attributes,
+        )
 
     def dump(
         self,
