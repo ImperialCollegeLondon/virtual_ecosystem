@@ -162,13 +162,20 @@
                         },
                         "uniqueItems": true,
                         "default": []
+                     },
+                     "float_format": {
+                        "description": "A float format string to control data precision.",
+                        "type": "string",
+                        "default": []
                      }
                   }
                },
                "default": {
+                  "required_data": [],
                   "cohort_attributes": [],
                   "community_canopy_attributes": [],
-                  "stem_canopy_attributes": []
+                  "stem_canopy_attributes": [],
+                  "float_format": "0.5f"
                }
             }
          },

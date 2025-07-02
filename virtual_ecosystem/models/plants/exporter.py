@@ -1,7 +1,12 @@
 """The exporter module provides the CommunityDataExporter, which is used to control the
-output of plant community data at each time step.
+output of plant community data at each time step. An instance of the class is required
+by the PlantsModel, which calls the ``dump()`` method within the setup and update steps
+to export data continuously during the model run.
 
-TODO - Why not the data object?
+The exporter can be configured to write three different levels of data: cohort level
+data and canopy structure data at both the community and individual stem levels. The
+data being exported is best structured as data frames and is highly ragged across cells,
+so is less well suited for export through the central data object.
 """  # noqa: D205
 
 from __future__ import annotations
@@ -53,6 +58,7 @@ class CommunityDataExporter:
             to export
         stem_canopy_attributes: An optional subset of stem canopy attributes
             to export
+        float_format: A float format string used when writing data.
     """
 
     _outputs: ClassVar[dict[str, tuple[str, str]]] = dict(
@@ -79,6 +85,7 @@ class CommunityDataExporter:
         cohort_attributes: set[str] = set(),
         community_canopy_attributes: set[str] = set(),
         stem_canopy_attributes: set[str] = set(),
+        float_format: str = "0.5f",
     ) -> None:
         # Store the argument values
         self.output_directory: Path = output_directory
@@ -91,6 +98,8 @@ class CommunityDataExporter:
         """A subset of community canopy attribute names to export."""
         self.stem_canopy_attributes: set[str] = stem_canopy_attributes
         """A subset of community canopy attribute names to export."""
+        self.float_format = float_format
+        """The float format for data export."""
 
         # Type and set internal attributes
         self._output_mode: str = "w"
@@ -314,7 +323,7 @@ class CommunityDataExporter:
             communities: A PlantCommunities instance.
             canopies: A dictionary of Canopy instances, keyed by cell id.
             stem_allocations: A dictionary of StemAllocations, also keyed by cell id
-            time: A datetime to be used as a timestamp in the output files.):
+            time: A datetime to be used as a timestamp in the output files
         """
 
         # If the data has not been requested - so the path is None - then exit
@@ -366,9 +375,9 @@ class CommunityDataExporter:
         cohort_data_compiled.to_csv(
             self._cohort_path,
             mode=self._output_mode,
-            header=self._output_mode == "w",
+            header=self._write_header,
             index=False,
-            float_format="%0.5g",  # TODO - make this configurable
+            float_format=self.float_format,
         )
         LOGGER.info(f"Plant model cohort data dumped at time: {time}")
 
@@ -377,6 +386,12 @@ class CommunityDataExporter:
         canopies: dict[int, Canopy],
         time: np.datetime64,
     ):
+        """Dump community canopy data to file.
+
+        Args:
+            canopies: A dictionary of Canopy instances, keyed by cell id.
+            time: A datetime to be used as a timestamp in the output files
+        """
         # If the data has not been requested - so the path is None - then exit
         if self._community_canopy_path is None:
             return
@@ -403,9 +418,9 @@ class CommunityDataExporter:
         community_canopy_data_compiled.to_csv(
             self._community_canopy_path,
             mode=self._output_mode,
-            header=self._output_mode == "w",
+            header=self._write_header,
             index=False,
-            float_format="%0.5g",  # TODO - make this configurable
+            float_format=self.float_format,
         )
         LOGGER.info(f"Plant model community canopy data dumped at time: {time}")
 
@@ -415,6 +430,13 @@ class CommunityDataExporter:
         canopies: dict[int, Canopy],
         time: np.datetime64,
     ) -> None:
+        """Dump stem canopy data to file.
+
+        Args:
+            communities: A PlantCommunities instance.
+            canopies: A dictionary of Canopy instances, keyed by cell id.
+            time: A datetime to be used as a timestamp in the output files
+        """
         # If the data has not been requested - so the path is None - then exit
         if self._stem_canopy_path is None:
             return
@@ -443,8 +465,8 @@ class CommunityDataExporter:
         stem_canopy_data_compiled.to_csv(
             self._stem_canopy_path,
             mode=self._output_mode,
-            header=self._output_mode == "w",
+            header=self._write_header,
             index=False,
-            float_format="%0.5g",  # TODO - make this configurable
+            float_format=self.float_format,
         )
         LOGGER.info(f"Plant model stem canopy data dumped at time: {time}")
