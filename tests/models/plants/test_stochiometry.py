@@ -186,7 +186,7 @@ def test_Stochiometry_tissue_deficit(fxt_stochiometry_model):
     # Calculate the tissue deficit
     tissue_deficit = fxt_stochiometry_model.tissue_deficit
 
-    expected_deficit = np.array([0.0, 0.0, 0.0])
+    expected_deficit = np.array([1.01616593e03, 3.30162938e01, 3.88354401e-01])
     assert np.allclose(tissue_deficit, expected_deficit)
 
 

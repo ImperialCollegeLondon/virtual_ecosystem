@@ -324,114 +324,118 @@ class PlantsModel(
             data=self.data, flora=self.flora, grid=self.grid
         )
 
-        # Initialize the stochiometries of each cohort
-        self.stochiometries = {
-            cell_id: {
-                "N": StemStochiometry(
-                    element="N",
-                    tissues=[
-                        FoliageTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.foliage_c_n_ratio,
-                            ),
-                            actual_element_mass=self.communities[
-                                cell_id
-                            ].stem_allometry.foliage_mass
-                            * model_constants.foliage_c_n_ratio,
-                            reclaim_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.leaf_turnover_c_n_ratio,
-                            ),
+        # Initialize the stochiometries of each cohort. Each StemStochiometry object
+        # contains a list of StemTissue objects, which are the tissues that make up the
+        # stochiometry of the stem. The initial values for N and P are based on the
+        # ideal stochiometric ratios defined in the PlantsConsts class.
+        # TODO: #697 - these need to be configurable
+        self.stochiometries = {}
+        for cell_id in self.communities.keys():
+            self.stochiometries[cell_id] = {}
+            self.stochiometries[cell_id]["N"] = StemStochiometry(
+                element="N",
+                tissues=[
+                    FoliageTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.foliage_c_n_ratio,
                         ),
-                        RootTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.root_turnover_c_n_ratio,
-                            ),
-                            actual_element_mass=model_constants.root_turnover_c_n_ratio
-                            * self.communities[cell_id].stem_traits.zeta
-                            * self.communities[cell_id].stem_allometry.foliage_mass,
+                        actual_element_mass=self.communities[
+                            cell_id
+                        ].stem_allometry.foliage_mass
+                        * model_constants.foliage_c_n_ratio,
+                        reclaim_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.leaf_turnover_c_n_ratio,
                         ),
-                        WoodTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.deadwood_c_n_ratio,
-                            ),
-                            actual_element_mass=model_constants.deadwood_c_n_ratio
-                            * self.communities[cell_id].stem_allometry.stem_mass,
+                    ),
+                    RootTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.root_turnover_c_n_ratio,
                         ),
-                        ReproductiveTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
-                            ),
-                            actual_element_mass=self.communities[
-                                cell_id
-                            ].stem_allometry.reproductive_tissue_mass
-                            * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
+                        actual_element_mass=model_constants.root_turnover_c_n_ratio
+                        * self.communities[cell_id].stem_traits.zeta
+                        * self.communities[cell_id].stem_allometry.foliage_mass
+                        * self.communities[cell_id].stem_traits.sla,
+                    ),
+                    WoodTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.deadwood_c_n_ratio,
                         ),
-                    ],
-                    community=self.communities[cell_id],
-                ),
-                "P": StemStochiometry(
-                    element="P",
-                    tissues=[
-                        FoliageTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.foliage_c_p_ratio,
-                            ),
-                            actual_element_mass=self.communities[
-                                cell_id
-                            ].stem_allometry.foliage_mass
-                            * model_constants.foliage_c_p_ratio,
-                            reclaim_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.leaf_turnover_c_p_ratio,
-                            ),
+                        actual_element_mass=model_constants.deadwood_c_n_ratio
+                        * self.communities[cell_id].stem_allometry.stem_mass,
+                    ),
+                    ReproductiveTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
                         ),
-                        RootTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.root_turnover_c_p_ratio,
-                            ),
-                            actual_element_mass=model_constants.root_turnover_c_p_ratio
-                            * self.communities[cell_id].stem_traits.zeta
-                            * self.communities[cell_id].stem_allometry.foliage_mass,
+                        actual_element_mass=self.communities[
+                            cell_id
+                        ].stem_allometry.reproductive_tissue_mass
+                        * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
+                    ),
+                ],
+                community=self.communities[cell_id],
+            )
+            self.stochiometries[cell_id]["P"] = StemStochiometry(
+                element="P",
+                tissues=[
+                    FoliageTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.foliage_c_p_ratio,
                         ),
-                        WoodTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.deadwood_c_p_ratio,
-                            ),
-                            actual_element_mass=model_constants.deadwood_c_p_ratio
-                            * self.communities[cell_id].stem_allometry.stem_mass,
+                        actual_element_mass=self.communities[
+                            cell_id
+                        ].stem_allometry.foliage_mass
+                        * model_constants.foliage_c_p_ratio,
+                        reclaim_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.leaf_turnover_c_p_ratio,
                         ),
-                        ReproductiveTissue(
-                            community=self.communities[cell_id],
-                            ideal_ratio=np.full(
-                                self.communities[cell_id].n_cohorts,
-                                model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
-                            ),
-                            actual_element_mass=self.communities[
-                                cell_id
-                            ].stem_allometry.reproductive_tissue_mass
-                            * self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,  # noqa: E501
+                    ),
+                    RootTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.root_turnover_c_p_ratio,
                         ),
-                    ],
-                    community=self.communities[cell_id],
-                ),
-            }
-            for cell_id in self.communities.keys()
-        }
+                        actual_element_mass=model_constants.root_turnover_c_p_ratio
+                        * self.communities[cell_id].stem_traits.zeta
+                        * self.communities[cell_id].stem_allometry.foliage_mass
+                        * self.communities[cell_id].stem_traits.sla,
+                    ),
+                    WoodTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.deadwood_c_p_ratio,
+                        ),
+                        actual_element_mass=model_constants.deadwood_c_p_ratio
+                        * self.communities[cell_id].stem_allometry.stem_mass,
+                    ),
+                    ReproductiveTissue(
+                        community=self.communities[cell_id],
+                        ideal_ratio=np.full(
+                            self.communities[cell_id].n_cohorts,
+                            model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
+                        ),
+                        actual_element_mass=self.communities[
+                            cell_id
+                        ].stem_allometry.reproductive_tissue_mass
+                        * self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,  # noqa: E501
+                    ),
+                ],
+                community=self.communities[cell_id],
+            )
 
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
@@ -925,8 +929,8 @@ class PlantsModel(
                     + self.data["arbuscular_supply_limit_" + element.lower()][cell_id],
                     cohorts.n_individuals,
                 )
-                element_available_per_cohort = (
-                    element_weighted_avg / sum(element_weighted_avg)
+                element_available_per_cohort = element_weighted_avg / sum(
+                    element_weighted_avg
                 )
                 element_available_per_stem = np.divide(
                     element_available_per_cohort, cohorts.n_individuals
@@ -1090,6 +1094,7 @@ class PlantsModel(
         # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
         # - Concentration of N/P uptake (kg m^-3)
         # - Kg to g (1000)
+        # TODO: scale by atmospheric pressure and temperature (#927)
 
         for cell_id in self.communities.keys():
             self.stochiometries[cell_id]["N"].element_surplus += (

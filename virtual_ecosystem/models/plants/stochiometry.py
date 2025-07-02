@@ -11,6 +11,7 @@ and CP ratios, which are used for leaf turnover.
 In the future, the ideal CN and CP ratios will be PFT traits.
 """  # noqa: D205
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -21,7 +22,7 @@ from pyrealm.demography.tmodel import StemAllocation
 
 
 @dataclass
-class Tissue(PandasExporter, CohortMethods):
+class Tissue(ABC):
     """A dataclass to hold tissue stochiometry data for a set of plant cohorts.
 
     This class holds the current quantity of a given element (generally N or P) for a
@@ -30,11 +31,9 @@ class Tissue(PandasExporter, CohortMethods):
     an entry for each cohort in the data class.
     """
 
-    tissue_name: str
-    """The name of the tissue type."""
     community: Community
     """The community object that the tissue is associated with."""
-    # Should this be stored only in stochiometry and not in tissue?
+    # TODO: consider where best to store shared attributes like community.
 
     ideal_ratio: NDArray[np.float64]
     """The ideal ratio of the element for the tissue type."""
@@ -42,21 +41,8 @@ class Tissue(PandasExporter, CohortMethods):
     """The actual mass of the element for the tissue type."""
 
     def __post_init__(self) -> None:
-        """Initialize the Tissue object."""
+        """Post-initialization to properly format the actual element mass."""
         self.actual_element_mass = self.actual_element_mass.squeeze()
-
-    @property
-    def carbon_mass(self) -> NDArray[np.float64]:
-        """Get the carbon mass for the tissue type.
-
-        This method should be implemented by subclasses to return the carbon mass for
-        the specific tissue type.
-
-        Returns:
-            The carbon mass for the specified tissue.
-        """
-        # This method should be implemented by subclasses
-        raise NotImplementedError("Carbon mass must be defined in subclasses.")
 
     @property
     def deficit(self) -> NDArray[np.float64]:
@@ -67,28 +53,6 @@ class Tissue(PandasExporter, CohortMethods):
         """
         return self.ideal_ratio * self.carbon_mass - self.actual_element_mass
 
-    def element_needed_for_growth(
-        self, allocation: StemAllocation
-    ) -> NDArray[np.float64]:
-        """Calculate the element needed for growth for the tissue type.
-
-        Returns:
-            The element needed for growth for the specified tissue.
-        """
-        raise NotImplementedError(
-            "Element needed for growth must be defined in subclasses."
-        )
-
-    def element_turnover(self, allocation: StemAllocation) -> NDArray[np.float64]:
-        """Calculate the element lost to turnover for the tissue type.
-
-        Returns:
-            The element lost to turnover for the specified tissue.
-        """
-        raise NotImplementedError(
-            "Element needed for growth must be defined in subclasses."
-        )
-
     @property
     def Cx_ratio(self) -> NDArray[np.float64]:
         """Get the carbon to element ratio for the tissue type.
@@ -98,28 +62,28 @@ class Tissue(PandasExporter, CohortMethods):
         """
         return self.carbon_mass / self.actual_element_mass
 
+    @property
+    @abstractmethod
+    def carbon_mass(self) -> NDArray[np.float64]:
+        """Calculate the carbon mass for the tissue type."""
 
+    @abstractmethod
+    def element_needed_for_growth(
+        self, allocation: StemAllocation
+    ) -> NDArray[np.float64]:
+        """Calculate the element needed for growth for the tissue type."""
+
+    @abstractmethod
+    def element_turnover(self, allocation: StemAllocation) -> NDArray[np.float64]:
+        """Calculate the element lost to turnover for the tissue type."""
+
+
+@dataclass
 class FoliageTissue(Tissue):
     """A class to hold foliage stochiometry data for a set of plant cohorts."""
 
-    # reclaim_ratio: NDArray[np.float64]
+    reclaim_ratio: NDArray[np.float64]
     """The ratio of the element that can be reclaimed from the senesced tissue."""
-
-    def __init__(
-        self,
-        community: Community,
-        ideal_ratio: NDArray[np.float64],
-        actual_element_mass: NDArray[np.float64],
-        reclaim_ratio: NDArray[np.float64],
-    ):
-        super().__init__(
-            tissue_name="Foliage",
-            community=community,
-            ideal_ratio=ideal_ratio,
-            actual_element_mass=actual_element_mass,
-        )
-        self.reclaim_ratio = reclaim_ratio
-        """The ratio of the element that can be reclaimed from the senesced tissue."""
 
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
@@ -133,10 +97,10 @@ class FoliageTissue(Tissue):
     def element_needed_for_growth(
         self, allocation: StemAllocation
     ) -> NDArray[np.float64]:
-        """Calculate the nitrogen needed for growth for foliage tissue.
+        """Calculate the element quantity needed for growth for foliage tissue.
 
         Returns:
-            The nitrogen needed for growth for foliage tissue.
+            The element quantity needed for growth for foliage tissue.
         """
         return (allocation.delta_foliage_mass * (1 / self.ideal_ratio)).squeeze()
 
@@ -144,7 +108,7 @@ class FoliageTissue(Tissue):
         """Calculate the element mass lost to turnover for foliage tissue.
 
         Returns:
-            The nitrogen lost to turnover for foliage tissue.
+            The element quantity lost to turnover for foliage tissue.
         """
         return (
             allocation.foliage_turnover
@@ -152,21 +116,9 @@ class FoliageTissue(Tissue):
         ).squeeze()
 
 
+@dataclass
 class ReproductiveTissue(Tissue):
     """Holds reproductive tissue stochiometry data for a set of plant cohorts."""
-
-    def __init__(
-        self,
-        community: Community,
-        ideal_ratio: NDArray[np.float64],
-        actual_element_mass: NDArray[np.float64],
-    ):
-        super().__init__(
-            tissue_name="Reproductive",
-            community=community,
-            ideal_ratio=ideal_ratio,
-            actual_element_mass=actual_element_mass,
-        )
 
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
@@ -180,10 +132,10 @@ class ReproductiveTissue(Tissue):
     def element_needed_for_growth(
         self, allocation: StemAllocation
     ) -> NDArray[np.float64]:
-        """Calculate the nitrogen needed for growth for reproductive tissue.
+        """Calculate the element needed for growth for reproductive tissue.
 
         Returns:
-            The nitrogen needed for growth for reproductive tissue.
+            The element quantity needed for growth for reproductive tissue.
         """
         return (
             allocation.delta_foliage_mass
@@ -200,21 +152,9 @@ class ReproductiveTissue(Tissue):
         return (allocation.reproductive_tissue_turnover * (1 / self.Cx_ratio)).squeeze()
 
 
+@dataclass
 class WoodTissue(Tissue):
     """A class to hold wood stochiometry data for a set of plant cohorts."""
-
-    def __init__(
-        self,
-        community: Community,
-        ideal_ratio: NDArray[np.float64],
-        actual_element_mass: NDArray[np.float64],
-    ):
-        super().__init__(
-            tissue_name="Wood",
-            community=community,
-            ideal_ratio=ideal_ratio,
-            actual_element_mass=actual_element_mass,
-        )
 
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
@@ -228,10 +168,10 @@ class WoodTissue(Tissue):
     def element_needed_for_growth(
         self, allocation: StemAllocation
     ) -> NDArray[np.float64]:
-        """Calculate the nitrogen needed for growth for wood tissue.
+        """Calculate the element needed for growth for wood tissue.
 
         Returns:
-            The nitrogen needed for growth for wood tissue.
+            The element needed for growth for wood tissue.
         """
         return (allocation.delta_stem_mass * (1 / self.ideal_ratio)).squeeze()
 
@@ -244,21 +184,9 @@ class WoodTissue(Tissue):
         return np.zeros(self.community.n_cohorts)
 
 
+@dataclass
 class RootTissue(Tissue):
     """A class to hold root stochiometry data for a set of plant cohorts."""
-
-    def __init__(
-        self,
-        community: Community,
-        ideal_ratio: NDArray[np.float64],
-        actual_element_mass: NDArray[np.float64],
-    ):
-        super().__init__(
-            tissue_name="Roots",
-            community=community,
-            ideal_ratio=ideal_ratio,
-            actual_element_mass=actual_element_mass,
-        )
 
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
@@ -268,21 +196,31 @@ class RootTissue(Tissue):
             The carbon mass for root tissue.
         """
         return (
-            self.community.stem_allometry.foliage_mass * self.community.stem_traits.zeta
+            self.community.stem_allometry.foliage_mass
+            * self.community.stem_traits.zeta
+            * self.community.stem_traits.sla
         ).squeeze()
 
     def element_needed_for_growth(
         self, allocation: StemAllocation
     ) -> NDArray[np.float64]:
-        """Calculate the nitrogen needed for growth for root tissue.
+        """Calculate the element needed for growth for root tissue.
+
+        The calculation is the NC ratio (1 / CN ratio) multiplied by the change in root
+        mass (change in foliage mass * zeta * SLA).
+
+        Delta foliage mass (g C)
+        Zeta: Ratio of fine-root mass to foliage area (kg C / m2)
+        SLA: Specific leaf area (m2 / kg C)
 
         Returns:
-            The nitrogen needed for growth for root tissue.
+            The element needed for growth for root tissue.
         """
         return (
-            allocation.delta_foliage_mass
-            * (1 / self.ideal_ratio)
+            (1 / self.ideal_ratio)
+            * allocation.delta_foliage_mass
             * self.community.stem_traits.zeta
+            * self.community.stem_traits.sla
         ).squeeze()
 
     def element_turnover(self, allocation: StemAllocation) -> NDArray[np.float64]:
@@ -296,17 +234,20 @@ class RootTissue(Tissue):
 
 @dataclass
 class StemStochiometry(CohortMethods, PandasExporter):
-    """A class holding the ratios of Carbon to Nitrogen and Phosphorous for stems.
+    """A class holding elemental weights for a set of plant cohorts and tissues.
 
     This class holds the current ratios across tissue type for a community object, which
     in essence is a series of cohorts. It acts in parallel with StemAllometry, a class
     attribute of Community.
+
+    The class is designed to be element-agnostic, so it can be used for any element as
+    required.
     """
 
     element: str
-    """The name of the element (e.g., N or P)."""
+    """The name of the element."""
     tissues: list[Tissue]
-    """Tissues for the associated stems."""
+    """Tissues for the associated cohorts."""
     community: Community
     """The community object that the stochiometry is associated with."""
     element_surplus: NDArray[np.float64] = field(init=False)
@@ -321,7 +262,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
         """Calculate the total element mass for each cohort.
 
         Returns:
-            The total nitrogen mass for each cohort.
+            The total element mass for each cohort.
         """
         mass = np.zeros(self.community.n_cohorts)
         for tissue in self.tissues:
@@ -391,7 +332,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
         self.element_surplus[cohort] = 0
 
     def distribute_surplus(self, cohort: int) -> None:
-        """Distribute the nitrogen surplus across the tissue types for a single cohort.
+        """Distribute the element surplus across the tissue types for a single cohort.
 
         Args:
             cohort: The cohort to reconcile surplus.
