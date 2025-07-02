@@ -109,11 +109,11 @@ class CommunityDataExporter:
         self._active: bool = True
         """Has any data export has been requested."""
 
-        # Declare and type private data output path attributes - populated to a checked
-        # path for requested data or set to None for data that has not been requested.
-        self._cohort_path: Path | None
-        self._community_canopy_path: Path | None
-        self._stem_canopy_path: Path | None
+        # Initialise private data output path attributes - if set in required data,
+        # these are updated to provide a checked path for requested data
+        self._cohort_path: Path | None = None
+        self._community_canopy_path: Path | None = None
+        self._stem_canopy_path: Path | None = None
 
         # Validate the required data argument
         unknown_options = required_data.difference(self._outputs.keys())
@@ -145,9 +145,8 @@ class CommunityDataExporter:
         """
 
         for out_option, (fname, attr) in self._outputs.items():
-            # Set the output path for unrequired data to None
+            # Leave the path attribute at initial None value
             if out_option not in self.required_data:
-                setattr(self, attr, None)
                 continue
 
             # Otherwise check no data will be overwritten and export.
@@ -157,6 +156,7 @@ class CommunityDataExporter:
                 LOGGER.error(msg)
                 raise ConfigurationError(msg)
 
+            # Set the path attribute to the output path.
             setattr(self, attr, data_path)
 
     def _check_attribute_subsets(self) -> None:

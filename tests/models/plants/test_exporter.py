@@ -1,6 +1,5 @@
 """Tests the models.plants.exporter.CommunityDataExporter class."""
 
-import sys
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 
@@ -59,114 +58,62 @@ def fixture_exporter_components(flora):
 
 
 @pytest.mark.parametrize(
-    argnames=(
-        "active, cohort_data_path, community_canopy_data_path, "
-        "stem_canopy_data_path, outcome, msg"
-    ),
+    argnames=("requested"),
     argvalues=(
         pytest.param(
-            False, "any_old", "rubbish", "passes", does_not_raise(), None, id="inactive"
+            {"cohorts", "community_canopy", "stem_canopy"},
+            id="all_requested",
         ),
         pytest.param(
-            True,
-            "cde_test/cohort_data.csv",
-            "cde_test/community_canopy_data.csv",
-            "cde_test/stem_canopy_data.csv",
-            does_not_raise(),
-            None,
-            id="all_good",
+            {"community_canopy", "stem_canopy"},
+            id="two_requested",
         ),
         pytest.param(
-            True,
-            "cde_test/existing_file.csv",
-            "cde_test/community_canopy_data.csv",
-            "cde_test/stem_canopy_data.csv",
-            pytest.raises(ConfigurationError),
-            "The cohort_data_path exporter path must not be an existing file",
-            id="cohort_exists",
+            {"cohorts"},
+            id="one_requested",
         ),
         pytest.param(
-            True,
-            "cde_test/cohort_data.csv",
-            "cde_test/existing_file.csv",
-            "cde_test/stem_canopy_data.csv",
-            pytest.raises(ConfigurationError),
-            "The community_canopy_data_path exporter path must not be an existing file",
-            id="community_canopy_exists",
-        ),
-        pytest.param(
-            True,
-            "cde_test/cohort_data.csv",
-            "cde_test/community_canopy_data.csv",
-            "cde_test/existing_file.csv",
-            pytest.raises(ConfigurationError),
-            "The stem_canopy_data_path exporter path must not be an existing file",
-            id="stem_canopy_exists",
-        ),
-        pytest.param(
-            True,
-            "no_such_directory/cohort_data.csv",
-            "no_such_directory/community_canopy_data.csv",
-            "no_such_directory/stem_canopy_data.csv",
-            pytest.raises(ConfigurationError),
-            "The cohort_data_path exporter path must be in an existing writeable",
-            id="directory does not exist",
-        ),
-        pytest.param(
-            # A read-only directory cannot be easily set up and tested on Windows, so is
-            # skipped on Windows platforms.
-            True,
-            "cde_test_read_only/cohort_data.csv",
-            "cde_test_read_only/community_canopy_data.csv",
-            "cde_test_read_only/stem_canopy_data.csv",
-            pytest.raises(ConfigurationError),
-            "The cohort_data_path exporter path must be in an existing writeable",
-            id="directory not writeable",
-            marks=pytest.mark.skipif(
-                sys.platform.startswith("win"), reason="Cannot test on Windows"
-            ),
+            set(),
+            id="none_requested",
         ),
     ),
 )
-def test_CommunityDataExporter_check_paths(
+def test_CommunityDataExporter_check_and_set_paths(
     tmp_path,
-    active,
-    cohort_data_path,
-    community_canopy_data_path,
-    stem_canopy_data_path,
-    outcome,
-    msg,
+    requested,
 ):
     """Test the path validation of CommunityDataExporter."""
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-    # Create writeable and read only output directories
-    w_dir = tmp_path / "cde_test"
-    w_dir.mkdir(exist_ok=False)
-    r_dir = tmp_path / "cde_test_read_only"
-    r_dir.mkdir(mode=0o555, exist_ok=False)  # readable and executable but not writeable
-
-    # Create a file in the writeable directory
-    existing_file = w_dir / "existing_file.csv"
-    existing_file.touch(exist_ok=False)
-
     # Create the exporter
-    with outcome as excep:
+    exporter = CommunityDataExporter(output_directory=tmp_path, required_data=requested)
+
+    # Check the populated attributes
+    for opt, (fname, attr) in exporter._outputs.items():
+        attr_value = getattr(exporter, attr)
+        if opt in requested:
+            assert attr_value == tmp_path / fname
+        else:
+            assert attr_value is None
+
+    # Now create files that would be overwritten and check it raises - this does not
+    # work for the case with no requested files, because there are no files being
+    # written, so exit early for that case
+
+    if not requested:
+        return
+
+    for opt, (fname, attr) in exporter._outputs.items():
+        if opt in requested:
+            existing_file = tmp_path / fname
+            existing_file.touch(exist_ok=False)
+
+    with pytest.raises(ConfigurationError) as excep:
         exporter = CommunityDataExporter(
-            cohort_data_path=tmp_path / cohort_data_path,
-            community_canopy_data_path=tmp_path / community_canopy_data_path,
-            stem_canopy_data_path=tmp_path / stem_canopy_data_path,
-            cohort_attributes={},
-            community_canopy_attributes={},
-            stem_canopy_attributes={},
-            active=active,
+            output_directory=tmp_path, required_data=requested
         )
 
-        # Double check property set when the creation succeeds
-        assert exporter.active == active
-
-    if excep:
-        assert str(excep.value).startswith(msg)
+    assert str(excep.value).startswith("An output file for ")
 
 
 @pytest.mark.parametrize(
