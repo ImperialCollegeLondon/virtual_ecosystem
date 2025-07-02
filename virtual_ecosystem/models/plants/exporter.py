@@ -227,7 +227,7 @@ class CommunityDataExporter:
         .. code-block:: toml
 
             [plants.community_data_export]
-            required_data = ["cohorts", "community_canopy", ""stem_canopy"]
+            required_data = ["cohorts", "community_canopy", "stem_canopy"]
             cohort_attributes = []
             community_canopy_attributes = []
             stem_canopy_attributes = []

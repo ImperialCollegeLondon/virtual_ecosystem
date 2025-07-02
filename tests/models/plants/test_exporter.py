@@ -271,6 +271,8 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     stem_canopy_attributes ={inputs["scan_attrs"]}
     """
 
+    print(toml)
+
     config = Config(cfg_strings=toml)
 
     with outcome as excep:
