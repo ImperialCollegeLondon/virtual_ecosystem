@@ -161,7 +161,7 @@ class CommunityDataExporter:
             # If subset is provided, check the values are all valid
             if not subset:
                 continue
-            
+
             not_found = subset.difference(available)
             if not_found:
                 msg = (
