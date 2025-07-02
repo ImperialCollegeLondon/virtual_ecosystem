@@ -159,15 +159,17 @@ class CommunityDataExporter:
         for subset_name, available in available_attributes.items():
             subset = getattr(self, subset_name)
             # If subset is provided, check the values are all valid
-            if subset:
-                not_found = subset.difference(available)
-                if not_found:
-                    msg = (
-                        f"The {subset_name} exporter configuration contains "
-                        f"unknown attributes: {', '.join(not_found)}"
-                    )
-                    LOGGER.error(msg)
-                    raise ConfigurationError(msg)
+            if not subset:
+                continue
+            
+            not_found = subset.difference(available)
+            if not_found:
+                msg = (
+                    f"The {subset_name} exporter configuration contains "
+                    f"unknown attributes: {', '.join(not_found)}"
+                )
+                LOGGER.error(msg)
+                raise ConfigurationError(msg)
 
     @classmethod
     def from_config(cls, config: Config) -> CommunityDataExporter:
