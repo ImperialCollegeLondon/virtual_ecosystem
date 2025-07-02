@@ -189,28 +189,95 @@ def test_CommunityDataExporter_check_attribute_subsets(
         assert str(excep.value).startswith(msg)
 
 
-def test_CommunityDataExporter_from_config():
+@pytest.mark.parametrize(
+    argnames="inputs,outcome,msg",
+    argvalues=(
+        pytest.param(
+            dict(
+                path="",
+                required=["cohorts", "community_canopy", "stem_canopy"],
+                cohort_attrs=[],
+                ccan_attrs=[],
+                scan_attrs=[],
+            ),
+            does_not_raise(),
+            None,
+            id="all_good",
+        ),
+        pytest.param(
+            dict(
+                path="bad/path/",
+                required=["cohorts", "community_canopy", "stem_canopy"],
+                cohort_attrs=[],
+                ccan_attrs=[],
+                scan_attrs=[],
+            ),
+            pytest.raises(ConfigurationError),
+            "The plant community data output directory does not exist or",
+            id="bad_path",
+        ),
+        pytest.param(
+            dict(
+                path="",
+                required=["cohorts", "community_canopies", "stem_canopy"],
+                cohort_attrs=[],
+                ccan_attrs=[],
+                scan_attrs=[],
+            ),
+            pytest.raises(ConfigurationError),
+            "The required_data setting contains unknown data output options",
+            id="bad required",
+        ),
+        pytest.param(
+            dict(
+                path="",
+                required=["cohorts", "community_canopy", "stem_canopy"],
+                cohort_attrs=["dbh", "crown_area"],
+                ccan_attrs=["average_layer_fapar", "transmission_profile"],
+                scan_attrs=["stem_leaf_area"],
+            ),
+            does_not_raise(),
+            None,
+            id="all_good_with_subset",
+        ),
+        pytest.param(
+            dict(
+                path="",
+                required=["cohorts", "community_canopy", "stem_canopy"],
+                cohort_attrs=["dbh", "crow_narea"],
+                ccan_attrs=["average_layer_fapar", "transmission_profile"],
+                scan_attrs=["stem_leaf_area"],
+            ),
+            pytest.raises(ConfigurationError),
+            "The cohort_attributes exporter configuration contains unknown attributes",
+            id="bad_subset",
+        ),
+    ),
+)
+def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     """Test the from_config factory method."""
 
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-    toml = """
+    toml = f"""[core.data_output_options]
+    out_path = "{tmp_path / inputs["path"]}"
     [plants]
     pft_definitions_path = "does/not/need/to/exist"
     [plants.community_data_export]
-    active = true
-    cohort_data_path = ""
-    community_canopy_data_path = ""
-    stem_canopy_data_path = ""
-    cohort_attributes = []
-    community_canopy_attributes = []
-    stem_canopy_attributes = []
+    required_data = {inputs["required"]}
+    cohort_attributes = {inputs["cohort_attrs"]}
+    community_canopy_attributes = {inputs["ccan_attrs"]}
+    stem_canopy_attributes ={inputs["scan_attrs"]}
     """
 
     config = Config(cfg_strings=toml)
 
-    CommunityDataExporter.from_config(config=config)
+    with outcome as excep:
+        CommunityDataExporter.from_config(config=config)
+
+    if excep:
+        assert str(excep.value).startswith(msg)
 
 
 def csv_row_check(path: Path | None, n_rows: int, attr: list[str] = []) -> None:
@@ -523,7 +590,7 @@ class TestExporterDump:
             tmp_path, exporter, required, {k: v * 2 for k, v in expected_n.items()}
         )
 
-    def test_CommunityDataExporter_from_config(
+    def test_CommunityDataExporter_through_config(
         self,
         tmp_path,
         fixture_exporter_components,
@@ -548,3 +615,19 @@ class TestExporterDump:
 
         if required:
             assert exporter._active
+
+        assert exporter._output_mode == "w"
+        assert exporter._write_header
+
+        # First dump in write mode with no allocations: expected behaviour in setup
+        communities, canopies, stem_allocations = fixture_exporter_components
+        exporter.dump(
+            communities=communities,
+            canopies=canopies,
+            stem_allocations={},
+            time=np.datetime64("2000-01-01"),
+        )
+
+        if required:
+            assert exporter._output_mode == "a"
+            assert not exporter._write_header

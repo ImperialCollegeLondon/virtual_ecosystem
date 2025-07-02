@@ -144,6 +144,16 @@ class CommunityDataExporter:
         it should not be written) or to a validated output path.
         """
 
+        # Otherwise check no data will be overwritten and export.
+
+        if not (self.output_directory.exists() and self.output_directory.is_dir()):
+            msg = (
+                f"The plant community data output directory does not exist or is not "
+                f"a directory: {self.output_directory}"
+            )
+            LOGGER.error(msg)
+            raise ConfigurationError(msg)
+
         for out_option, (fname, attr) in self._outputs.items():
             # Leave the path attribute at initial None value
             if out_option not in self.required_data:
