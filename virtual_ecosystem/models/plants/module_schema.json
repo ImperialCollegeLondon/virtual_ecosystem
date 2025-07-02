@@ -123,26 +123,18 @@
                "default": false
             },
             "community_data_export": {
-               "description": "An array of plant functional types definitions",
+               "description": "Configuration of plant community data export",
                "type": "object",
                "items": {
                   "type": "object",
                   "properties": {
-                     "active": {
-                        "type": "boolean",
-                        "default": false
-                     },
-                     "cohort_data_path": {
-                        "type": "string",
-                        "default": ""
-                     },
-                     "community_canopy_data_path": {
-                        "type": "string",
-                        "default": ""
-                     },
-                     "stem_canopy_data_path": {
-                        "type": "string",
-                        "default": ""
+                     "required_data": {
+                        "type": "array",
+                        "items": {
+                           "type": "string"
+                        },
+                        "uniqueItems": true,
+                        "default": []
                      },
                      "cohort_attributes": {
                         "description": "A list of cohort attributes to write to file.",
@@ -151,9 +143,7 @@
                            "type": "string"
                         },
                         "uniqueItems": true,
-                        "default": [
-                           "dbh"
-                        ]
+                        "default": []
                      },
                      "community_canopy_attributes": {
                         "description": "A list of community canopy attributes to write to file.",
@@ -162,9 +152,7 @@
                            "type": "string"
                         },
                         "uniqueItems": true,
-                        "default": [
-                           "stem_leaf_area"
-                        ]
+                        "default": []
                      },
                      "stem_canopy_attributes": {
                         "description": "A list of stem canopy attributes to write to file.",
@@ -173,17 +161,11 @@
                            "type": "string"
                         },
                         "uniqueItems": true,
-                        "default": [
-                           "stem_leaf_area"
-                        ]
+                        "default": []
                      }
                   }
                },
                "default": {
-                  "active": false,
-                  "cohort_data_path": "",
-                  "community_canopy_data_path": "",
-                  "stem_canopy_data_path": "",
                   "cohort_attributes": [],
                   "community_canopy_attributes": [],
                   "stem_canopy_attributes": []
