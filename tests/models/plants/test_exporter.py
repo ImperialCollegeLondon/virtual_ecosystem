@@ -260,8 +260,8 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-    toml = rf"""[core.data_output_options]
-    out_path = "{tmp_path / inputs["path"]}"
+    toml = f"""[core.data_output_options]
+    out_path = '{tmp_path / inputs["path"]}'
     [plants]
     pft_definitions_path = "does/not/need/to/exist"
     [plants.community_data_export]
@@ -601,9 +601,9 @@ class TestExporterDump:
         from virtual_ecosystem.core.config import Config
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-        toml = rf"""
+        toml = f"""
         [core.data_output_options]
-        out_path = "{tmp_path!s}"
+        out_path = '{tmp_path!s}'
         [plants]
         pft_definitions_path = "does/not/need/to/exist"
         [plants.community_data_export]
