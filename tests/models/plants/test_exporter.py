@@ -117,16 +117,9 @@ def test_CommunityDataExporter_check_and_set_paths(
 
 
 @pytest.mark.parametrize(
-    argnames=(
-        "active, cohort_attributes, community_canopy_attributes, "
-        "stem_canopy_attributes, outcome, msg"
-    ),
+    argnames="cohort_attr, community_canopy_attr, stem_canopy_attr, outcome, msg",
     argvalues=(
         pytest.param(
-            False, "any_old", "rubbish", "passes", does_not_raise(), None, id="inactive"
-        ),
-        pytest.param(
-            True,
             set(),
             set(),
             set(),
@@ -135,7 +128,6 @@ def test_CommunityDataExporter_check_and_set_paths(
             id="all_unset",
         ),
         pytest.param(
-            True,
             set(["dbh", "crown_area"]),
             set(["average_layer_fapar", "transmission_profile"]),
             set(["stem_leaf_area"]),
@@ -144,7 +136,6 @@ def test_CommunityDataExporter_check_and_set_paths(
             id="all_valid",
         ),
         pytest.param(
-            True,
             set(["dbh", "crow_narea"]),
             set(),
             set(),
@@ -154,7 +145,6 @@ def test_CommunityDataExporter_check_and_set_paths(
             id="invalid cohort attr",
         ),
         pytest.param(
-            True,
             set(),
             set(["mean_layer_fapar"]),
             set(),
@@ -164,7 +154,6 @@ def test_CommunityDataExporter_check_and_set_paths(
             id="invalid community canopy attr",
         ),
         pytest.param(
-            True,
             set(),
             set(),
             set(["steam_leaf_are"]),
@@ -177,10 +166,9 @@ def test_CommunityDataExporter_check_and_set_paths(
 )
 def test_CommunityDataExporter_check_attribute_subsets(
     tmp_path,
-    active,
-    cohort_attributes,
-    community_canopy_attributes,
-    stem_canopy_attributes,
+    cohort_attr,
+    community_canopy_attr,
+    stem_canopy_attr,
     outcome,
     msg,
 ):
@@ -189,18 +177,13 @@ def test_CommunityDataExporter_check_attribute_subsets(
 
     # Create the exporter
     with outcome as excep:
-        exporter = CommunityDataExporter(
-            cohort_data_path=tmp_path / "cohort_data.csv",
-            community_canopy_data_path=tmp_path / "community_canopy_data.csv",
-            stem_canopy_data_path=tmp_path / "stem_canopy_data.csv",
-            cohort_attributes=cohort_attributes,
-            community_canopy_attributes=community_canopy_attributes,
-            stem_canopy_attributes=stem_canopy_attributes,
-            active=active,
+        _ = CommunityDataExporter(
+            output_directory=tmp_path,
+            required_data={"cohorts", "community_canopy", "stem_canopy"},
+            cohort_attributes=cohort_attr,
+            community_canopy_attributes=community_canopy_attr,
+            stem_canopy_attributes=stem_canopy_attr,
         )
-
-        # Double check property set when the creation succeeds
-        assert exporter.active == active
 
     if excep:
         assert str(excep.value).startswith(msg)
