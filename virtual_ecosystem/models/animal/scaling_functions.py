@@ -38,6 +38,26 @@ def damuths_law(mass: float, terms: tuple) -> float:
     return terms[1] * mass ** terms[0]
 
 
+def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
+    """Estimate individual density from adult mass using Madingley biomass scaling.
+
+    This converts biomass density scaling into individual density scaling by dividing
+    biomass density by adult body mass.
+
+        Biomass Density = B * Mass^A
+        Individuals Density = Biomass Density / Mass = B * Mass^(A - 1)
+
+    Args:
+        adult_mass: Adult body mass of the cohort (kg).
+        terms: A tuple (A, B) with exponent and scalar for the biomass scaling law.
+
+    Returns:
+        Estimated individual density (individuals/km²).
+    """
+    exponent, scalar = terms
+    return scalar * adult_mass ** (exponent - 1)
+
+
 def metabolic_rate(
     mass: float,
     temperature: float,

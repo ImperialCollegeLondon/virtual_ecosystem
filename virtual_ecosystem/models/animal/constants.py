@@ -64,6 +64,8 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
+    MADINGLEY_BIOMASS_SCALING_TERMS = (0.6, 300000.0)
+
     energy_density: dict[str, float] = field(
         default_factory=lambda: {
             "meat": 7000.0,  # Energy of mammal meat [J/g]
