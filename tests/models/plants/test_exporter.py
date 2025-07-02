@@ -233,6 +233,50 @@ def csv_row_check(path: Path | None, n_rows: int, attr: list[str]) -> None:
 
 
 @pytest.mark.parametrize(
+    argnames="required,cohort_attributes",
+    argvalues=(
+        pytest.param(set(), [], id="no_cohort"),
+        pytest.param({"cohorts"}, set(), id="all_cohort"),
+        pytest.param({"cohorts"}, {"dbh", "cell_id"}, id="some_cohort"),
+    ),
+)
+def test_CommunityDataExporter_dump_cohort_data(
+    tmp_path, fixture_exporter_components, required, cohort_attributes
+):
+    """Test CommunityDataExporter _dump_cohort_data method."""
+
+    from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+
+    # Create the exporter
+    exporter = CommunityDataExporter(
+        output_directory=tmp_path,
+        required_data=required,
+        cohort_attributes=cohort_attributes,
+    )
+
+    # First dump in write mode with no allocations: expected behaviour in setup
+    communities, canopies, stem_allocations = fixture_exporter_components
+    exporter._dump_cohort_data(
+        communities=communities,
+        canopies=canopies,
+        stem_allocations={},
+        time=np.datetime64("2000-01-01"),
+    )
+
+    out_path = tmp_path / "plants_cohort_data.csv"
+
+    # Check the output file does not exist if the output is not required
+    if not required:
+        assert not out_path.exists()
+        return
+
+    # Otherwise check it exists and has the requested attributes
+    assert out_path.exists()
+    cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
+    csv_row_check(path=out_path, n_rows=cell_n_cohorts.sum(), attr=cohort_attributes)
+
+
+@pytest.mark.parametrize(
     argnames="cohort_data_path,cohort_attributes",
     argvalues=(
         pytest.param("", [], id="no_cohort"),

@@ -119,7 +119,7 @@ class CommunityDataExporter:
         unknown_options = required_data.difference(self._outputs.keys())
         if unknown_options:
             msg = (
-                f"The required_data setting contains unknown data"
+                f"The required_data setting contains unknown data "
                 f"output options: {', '.join(unknown_options)}"
             )
             LOGGER.error(msg)
