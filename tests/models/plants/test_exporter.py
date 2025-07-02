@@ -260,7 +260,7 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-    toml = f"""[core.data_output_options]
+    toml = rf"""[core.data_output_options]
     out_path = "{tmp_path / inputs["path"]}"
     [plants]
     pft_definitions_path = "does/not/need/to/exist"
@@ -270,8 +270,6 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     community_canopy_attributes = {inputs["ccan_attrs"]}
     stem_canopy_attributes ={inputs["scan_attrs"]}
     """
-
-    print(toml)
 
     config = Config(cfg_strings=toml)
 
@@ -603,7 +601,7 @@ class TestExporterDump:
         from virtual_ecosystem.core.config import Config
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-        toml = f"""
+        toml = rf"""
         [core.data_output_options]
         out_path = "{tmp_path!s}"
         [plants]
