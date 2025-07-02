@@ -166,7 +166,7 @@
                      "float_format": {
                         "description": "A float format string to control data precision.",
                         "type": "string",
-                        "default": []
+                        "default": "%0.5f"
                      }
                   }
                },
@@ -175,7 +175,7 @@
                   "cohort_attributes": [],
                   "community_canopy_attributes": [],
                   "stem_canopy_attributes": [],
-                  "float_format": "0.5f"
+                  "float_format": "%0.5f"
                }
             }
          },

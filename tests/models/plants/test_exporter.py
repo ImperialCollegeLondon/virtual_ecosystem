@@ -58,59 +58,59 @@ def fixture_exporter_components(flora):
 
 
 @pytest.mark.parametrize(
-    argnames=("requested"),
+    argnames=("required"),
     argvalues=(
         pytest.param(
             {"cohorts", "community_canopy", "stem_canopy"},
-            id="all_requested",
+            id="all_required",
         ),
         pytest.param(
             {"community_canopy", "stem_canopy"},
-            id="two_requested",
+            id="two_required",
         ),
         pytest.param(
             {"cohorts"},
-            id="one_requested",
+            id="one_required",
         ),
         pytest.param(
             set(),
-            id="none_requested",
+            id="none_required",
         ),
     ),
 )
 def test_CommunityDataExporter_check_and_set_paths(
     tmp_path,
-    requested,
+    required,
 ):
     """Test the path validation of CommunityDataExporter."""
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
     # Create the exporter
-    exporter = CommunityDataExporter(output_directory=tmp_path, required_data=requested)
+    exporter = CommunityDataExporter(output_directory=tmp_path, required_data=required)
 
     # Check the populated attributes
     for opt, (fname, attr) in exporter._outputs.items():
         attr_value = getattr(exporter, attr)
-        if opt in requested:
+        if opt in required:
             assert attr_value == tmp_path / fname
         else:
             assert attr_value is None
 
     # Now create files that would be overwritten and check it raises - this does not
-    # work for the case with no requested files, because there are no files being
+    # work for the case with no required files, because there are no files being
     # written, so exit early for that case
 
-    if not requested:
+    if not required:
         return
 
     for opt, (fname, attr) in exporter._outputs.items():
-        if opt in requested:
+        if opt in required:
             existing_file = tmp_path / fname
             existing_file.touch(exist_ok=False)
 
     with pytest.raises(ConfigurationError) as excep:
         exporter = CommunityDataExporter(
-            output_directory=tmp_path, required_data=requested
+            output_directory=tmp_path, required_data=required
         )
 
     assert str(excep.value).startswith("An output file for ")
@@ -213,7 +213,7 @@ def test_CommunityDataExporter_from_config():
     CommunityDataExporter.from_config(config=config)
 
 
-def csv_row_check(path: Path | None, n_rows: int, attr: list[str]) -> None:
+def csv_row_check(path: Path | None, n_rows: int, attr: list[str] = []) -> None:
     """Shared test function for exported CSV.
 
     Assert a file exists, can be loaded, has the right number of rows and - if the
@@ -366,69 +366,76 @@ def test_CommunityDataExporter_dump_stem_canopy_data(
 
 
 @pytest.mark.parametrize(
-    argnames="cohort_data_path,cohort_attributes",
+    argnames=("required"),
     argvalues=(
-        pytest.param("", [], id="no_cohort"),
-        pytest.param("cohort_data.csv", [], id="all_cohort"),
-        pytest.param("cohort_data.csv", ["dbh", "cell_id"], id="some_cohort"),
-    ),
-)
-@pytest.mark.parametrize(
-    argnames="ccan_data_path,ccan_attributes",
-    argvalues=(
-        pytest.param("", [], id="no_ccan"),
-        pytest.param("ccan_data.csv", [], id="all_ccan"),
         pytest.param(
-            "ccan_data.csv", ["transmission_profile", "cell_id"], id="some_ccan"
+            {"cohorts", "community_canopy", "stem_canopy"},
+            id="all_required",
+        ),
+        pytest.param(
+            {"community_canopy", "stem_canopy"},
+            id="two_required",
+        ),
+        pytest.param(
+            {"cohorts"},
+            id="one_required",
+        ),
+        pytest.param(
+            set(),
+            id="none_required",
         ),
     ),
 )
-@pytest.mark.parametrize(
-    argnames="scan_data_path,scan_attributes",
-    argvalues=(
-        pytest.param("", [], id="no_scan"),
-        pytest.param("scan_data.csv", [], id="all_scan"),
-        pytest.param("scan_data.csv", ["fapar", "cell_id"], id="some_scan"),
-    ),
-)
-class TestExporterInUse:
-    """Common testing of various setup options.
+class TestExporterDump:
+    """Common testing of the dump method by various routes.
 
-    This class uses all combinations of settings for each of the three files - which is
-    arguably overkill, could use fewer representative configurations - and then uses
-    those to check the exporter running outside of a model, inside of a model and then
-    the creation of the exporter from configurations.
+    This class uses combinations of settings for each of the three files and then uses
+    those to check the exporter created directly and running outside of a model,
+    through an exporter created from config, and then through a model.
     """
+
+    @staticmethod
+    def calculate_expected_n(communities, canopies):
+        """Calculate expected numbers of rows in the three data files."""
+        cht_by_cell = np.array([c.n_cohorts for c in communities.values()])
+        lyrs_by_cell = np.array([len(cpy.heights) for cpy in canopies.values()])
+
+        return dict(
+            cohorts=cht_by_cell.sum(),
+            community_canopy=lyrs_by_cell.sum(),
+            stem_canopy=(cht_by_cell * lyrs_by_cell).sum(),
+        )
+
+    def check_output(self, path, exporter, required, expected_n):
+        """Shared validation function."""
+        # Loop over the possible values in required_data and check the file paths are
+        # set and then that the file exists and has the expected number of rows. If the
+        # file is not required, just check the attribute is set.
+        for opt, (fname, attr) in exporter._outputs.items():
+            attr_value = getattr(exporter, attr)
+
+            if opt in required:
+                data_path = path / fname
+                assert attr_value == data_path
+                csv_row_check(path=data_path, n_rows=expected_n[opt])
+
+            else:
+                assert attr_value is None
 
     def test_CommunityDataExporter_dump(
         self,
         tmp_path,
         fixture_exporter_components,
-        cohort_data_path,
-        cohort_attributes,
-        ccan_data_path,
-        ccan_attributes,
-        scan_data_path,
-        scan_attributes,
+        required,
     ):
         """Test the from_config factory method."""
 
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
-        # Convert path strings to Path or None
-        cht_path = (tmp_path / cohort_data_path) if cohort_data_path else None
-        ccan_path = (tmp_path / ccan_data_path) if ccan_data_path else None
-        scan_path = (tmp_path / scan_data_path) if scan_data_path else None
-
         # Create the exporter
         exporter = CommunityDataExporter(
-            cohort_data_path=cht_path,
-            community_canopy_data_path=ccan_path,
-            stem_canopy_data_path=scan_path,
-            cohort_attributes=set(cohort_attributes),
-            community_canopy_attributes=set(ccan_attributes),
-            stem_canopy_attributes=set(scan_attributes),
-            active=True,
+            output_directory=tmp_path,
+            required_data=required,
         )
 
         # First dump in write mode with no allocations: expected behaviour in setup
@@ -440,16 +447,8 @@ class TestExporterInUse:
             time=np.datetime64("2000-01-01"),
         )
 
-        # Simple checks - files exists, can be read, have the right number of rows.
-        cell_n_cohorts = np.array([cmty.n_cohorts for _, cmty in communities.items()])
-        cell_n_layers = np.array([len(cpy.heights) for cpy in canopies.values()])
-        cell_n_stem_layers = (cell_n_cohorts * cell_n_layers).sum()
-
-        csv_row_check(
-            path=cht_path, n_rows=cell_n_cohorts.sum(), attr=cohort_attributes
-        )
-        csv_row_check(path=ccan_path, n_rows=cell_n_layers.sum(), attr=ccan_attributes)
-        csv_row_check(path=scan_path, n_rows=cell_n_stem_layers, attr=scan_attributes)
+        expected_n = self.calculate_expected_n(communities, canopies)
+        self.check_output(tmp_path, exporter, required, expected_n)
 
         # Second dump to check mode switching from write to append and provided stem
         # allocations: expected behaviour in update
@@ -460,16 +459,9 @@ class TestExporterInUse:
             time=np.datetime64("2001-01-01"),
         )
 
-        # Repeat row count check - should now be doubled.
         # Check the files are ok and have doubled the number of rows
-        csv_row_check(
-            path=cht_path, n_rows=cell_n_cohorts.sum() * 2, attr=cohort_attributes
-        )
-        csv_row_check(
-            path=ccan_path, n_rows=cell_n_layers.sum() * 2, attr=ccan_attributes
-        )
-        csv_row_check(
-            path=scan_path, n_rows=cell_n_stem_layers * 2, attr=scan_attributes
+        self.check_output(
+            tmp_path, exporter, required, {k: v * 2 for k, v in expected_n.items()}
         )
 
     def test_CommunityDataExporter_in_model(
@@ -479,31 +471,16 @@ class TestExporterInUse:
         flora,
         fixture_core_components,
         fixture_canopy_layer_data,
-        cohort_data_path,
-        cohort_attributes,
-        ccan_data_path,
-        ccan_attributes,
-        scan_data_path,
-        scan_attributes,
+        required,
     ):
         """Test the exporter runs as expected from within a PlantsModel."""
 
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
         from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
-        # Convert path strings to Path or None
-        cht_path = (tmp_path / cohort_data_path) if cohort_data_path else None
-        ccan_path = (tmp_path / ccan_data_path) if ccan_data_path else None
-        scan_path = (tmp_path / scan_data_path) if scan_data_path else None
-
         exporter = CommunityDataExporter(
-            cohort_data_path=cht_path,
-            community_canopy_data_path=ccan_path,
-            stem_canopy_data_path=scan_path,
-            cohort_attributes=set(cohort_attributes),
-            community_canopy_attributes=set(ccan_attributes),
-            stem_canopy_attributes=set(scan_attributes),
-            active=True,
+            output_directory=tmp_path,
+            required_data=required,
         )
 
         model = PlantsModel(
@@ -514,40 +491,22 @@ class TestExporterInUse:
         )
 
         # Simple checks - files exists, can be read, have the right number of rows.
-        cell_n_cohorts = np.array(
-            [cmty.n_cohorts for _, cmty in model.communities.items()]
-        )
-        cell_n_layers = np.array([len(cpy.heights) for cpy in model.canopies.values()])
-        cell_n_stem_layers = (cell_n_cohorts * cell_n_layers).sum()
-
-        csv_row_check(
-            path=cht_path, n_rows=cell_n_cohorts.sum(), attr=cohort_attributes
-        )
-        csv_row_check(path=ccan_path, n_rows=cell_n_layers.sum(), attr=ccan_attributes)
-        csv_row_check(path=scan_path, n_rows=cell_n_stem_layers, attr=scan_attributes)
+        expected_n = self.calculate_expected_n(model.communities, model.canopies)
+        self.check_output(tmp_path, exporter, required, expected_n)
 
         # Update the model to trigger a second dump
         model.update(time_index=0)
 
         # Check the files are ok and have doubled the number of rows
-        csv_row_check(
-            path=cht_path, n_rows=cell_n_cohorts.sum() * 2, attr=cohort_attributes
-        )
-        csv_row_check(
-            path=ccan_path, n_rows=cell_n_layers.sum() * 2, attr=ccan_attributes
-        )
-        csv_row_check(
-            path=scan_path, n_rows=cell_n_stem_layers * 2, attr=scan_attributes
+        self.check_output(
+            tmp_path, exporter, required, {k: v * 2 for k, v in expected_n.items()}
         )
 
     def test_CommunityDataExporter_from_config(
         self,
-        cohort_data_path,
-        cohort_attributes,
-        ccan_data_path,
-        ccan_attributes,
-        scan_data_path,
-        scan_attributes,
+        tmp_path,
+        fixture_exporter_components,
+        required,
     ):
         """Test the from_config factory method."""
 
@@ -555,16 +514,12 @@ class TestExporterInUse:
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
         toml = f"""
+        [core.data_output_options]
+        out_path = "{tmp_path!s}"
         [plants]
         pft_definitions_path = "does/not/need/to/exist"
         [plants.community_data_export]
-        active = true
-        cohort_data_path = "{cohort_data_path}"
-        community_canopy_data_path = "{ccan_data_path}"
-        stem_canopy_data_path = "{scan_data_path}"
-        cohort_attributes = {cohort_attributes!r}
-        community_canopy_attributes = {ccan_attributes!r}
-        stem_canopy_attributes = {scan_attributes!r}
+        required_data = {list(required)}
         """
 
         config = Config(cfg_strings=toml)

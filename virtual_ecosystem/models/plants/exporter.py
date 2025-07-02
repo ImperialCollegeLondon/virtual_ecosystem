@@ -85,7 +85,7 @@ class CommunityDataExporter:
         cohort_attributes: set[str] = set(),
         community_canopy_attributes: set[str] = set(),
         stem_canopy_attributes: set[str] = set(),
-        float_format: str = "0.5f",
+        float_format: str = "%0.5f",
     ) -> None:
         # Store the argument values
         self.output_directory: Path = output_directory
@@ -212,53 +212,34 @@ class CommunityDataExporter:
         """Factory class to create a CommunityDataExporter from a configuration.
 
         The configuration requires that the following details are present in the plants
-        model section of the configuration
+        model section of the configuration;
 
         .. code-block:: toml
 
             [plants.community_data_export]
-            active = true
-            cohort_data_path = "path/to/cohort_data.csv"
-            community_canopy_data_path = "path/to/community_canopy_data.csv"
-            stem_canopy_data_path = "path/to/stem_canopy_data.csv"
+            required_data = ["cohorts", "community_canopy", ""stem_canopy"]
             cohort_attributes = []
             community_canopy_attributes = []
             stem_canopy_attributes = []
 
-        If the "attributes" sections are empty arrays, then all attributes are written
-        to file, but specific fields may be named here to reduce the amount of data
-        exported.
+        The ``required_data`` section specifies which community data files are to be
+        exported. If the "attributes" sections are empty arrays, then all attributes are
+        written to file, but specific fields may be named here to reduce the amount of
+        data exported.
         """
 
         # Try and build the arguments as a dictionary from the config, substituting
         # explicit None values for empty strings
         try:
-            cfg = config["plants"]["community_data_export"]
-
-            # Convert path strings to Path or None
-            if cfg["cohort_data_path"]:
-                cohort_data_path = Path(cfg["cohort_data_path"])
-            else:
-                cohort_data_path = None
-
-            if cfg["community_canopy_data_path"]:
-                community_canopy_data_path = Path(cfg["community_canopy_data_path"])
-            else:
-                community_canopy_data_path = None
-
-            if cfg["stem_canopy_data_path"]:
-                stem_canopy_data_path = Path(cfg["stem_canopy_data_path"])
-            else:
-                stem_canopy_data_path = None
+            out_path = config["core"]["data_output_options"]["out_path"]
+            xcfg = config["plants"]["community_data_export"]
 
             args = dict(
-                active=cfg["active"],
-                cohort_data_path=cohort_data_path,
-                community_canopy_data_path=community_canopy_data_path,
-                stem_canopy_data_path=stem_canopy_data_path,
-                cohort_attributes=set(cfg["cohort_attributes"]),
-                community_canopy_attributes=set(cfg["community_canopy_attributes"]),
-                stem_canopy_attributes=set(cfg["stem_canopy_attributes"]),
+                output_directory=out_path,
+                required_data=xcfg["required_data"],
+                cohort_attributes=set(xcfg["cohort_attributes"]),
+                community_canopy_attributes=set(xcfg["community_canopy_attributes"]),
+                stem_canopy_attributes=set(xcfg["stem_canopy_attributes"]),
             )
         except KeyError as excep:
             LOGGER.error(excep)
