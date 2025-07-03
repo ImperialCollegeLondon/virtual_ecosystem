@@ -31,8 +31,9 @@ def fixture_plants_constants():
 def fixture_exporter(fixture_config):
     """Construct a minimal CommunityDataExporter object.
 
-    This exporter uses the default setting active=False and so is not suitable for
-    testing actual exporting.
+    This exporter uses the default exporter settings that do not output plant community
+    data files and so is not suitable for testing actual exporting, but is required to
+    initialise a PlantsModel.
     """
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
