@@ -105,10 +105,10 @@ class FunctionalGroup:
             self.metabolic_type
         ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][
-            self.broad_diet
-        ]
-        """The coefficient and exponent of damuth's law for population density."""
+        self.population_density_terms = self.constants.get_population_density_terms(
+            self.taxa, self.broad_diet
+        )
+        """The coefficient and exponent terms for the population density scaling."""
         self.conversion_efficiency = self.constants.conversion_efficiency[
             self.broad_diet
         ]

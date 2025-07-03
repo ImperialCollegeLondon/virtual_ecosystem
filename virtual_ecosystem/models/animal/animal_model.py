@@ -53,6 +53,7 @@ from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
+    madingley_individuals_density,
     prey_group_selection,
 )
 
@@ -134,6 +135,7 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
+        density_scaling_method: str = "damuth",
         **kwargs: Any,
     ):
         """Animal init function.
@@ -144,6 +146,8 @@ class AnimalModel(
 
         super().__init__(data, core_components, static, **kwargs)
 
+        self.density_scaling_method = density_scaling_method
+        """Which density scaling equations are used, "damuth" or "madingley"."""
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
         self.active_cohorts: dict[uuid.UUID, AnimalCohort] = {}
@@ -156,7 +160,9 @@ class AnimalModel(
         """Convert pint update_interval to timedelta64 once during initialization."""
         self.functional_groups: list[FunctionalGroup]
         """List of functional groups in the model."""
-        self.model_constants: AnimalConsts
+        self.model_constants: AnimalConsts = AnimalConsts(
+            density_scaling_method=self.density_scaling_method
+        )
         """Animal constants."""
         self.plant_resources: dict[int, list[Resource]]
         """The plant resource pools in the model with associated grid cell ids."""
@@ -223,14 +229,26 @@ class AnimalModel(
         total_area = self.data.grid.n_cells * self.data.grid.cell_area
 
         if functional_group.density_individuals_m2 is not None:
+            # User-provided empirical density overrides scaling laws
             return int(functional_group.density_individuals_m2 * total_area)
-        else:
-            return ceil(
-                damuths_law(
-                    functional_group.adult_mass, functional_group.damuths_law_terms
-                )
-                * len(self.data.grid.cell_id)
+
+        # No empirical density → use selected scaling method
+        if self.density_scaling_method == "damuth":
+            density = damuths_law(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
             )
+        elif self.density_scaling_method == "madingley":
+            density = madingley_individuals_density(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported density scaling method: {self.density_scaling_method}"
+            )
+
+        return ceil(density * len(self.data.grid.cell_id))
 
     def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
         """Distribute individuals into cohorts respecting minimum size.
