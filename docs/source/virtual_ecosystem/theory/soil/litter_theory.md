@@ -131,7 +131,7 @@ from saplings and then eat only the easy to chew bits). This excess plant biomas
 added to the litter.
 
 The litter model does not track the decay of animal excrement or carcasses. This is
-because the animal model already models their decay (explained
-[here](../animals/carcasses_and_excrement.md)), tracking these within the litter model
+because the [animal model already models their
+decay](../animals/carcasses_and_excrement.md)), tracking these within the litter model
 would essentially force them to decay twice. Instead the flow of decayed matter from
 carcasses and excrement flows straight from the animal model to the soil model.

@@ -208,8 +208,7 @@ temperature.
 ### Impact of soil moisture on enzyme saturation
 
 The response of enzymatic rates to changing soil water potential is modelled using the
-same approach as for the below ground litter pools (described
-[here](#litter-decay-moisture-response)).
+same approach as for the [below ground litter pools](#litter-decay-moisture-response).
 
 ## Direct environmental impacts on microbes
 
@@ -224,7 +223,7 @@ degradation.
 The uptake of resources by microbes is effected by a wide range of environmental
 factors, affecting both uptake rate and saturation. We use the same approach to
 calculate the environmental impacts on uptake rate and saturation as was used for
-enzymatic rate and saturation (described [here](#environmental-effects-on-enzymes)).
+[enzymatic rate and saturation](#environmental-effects-on-enzymes).
 
 ### Microbial growth efficiency
 
@@ -250,9 +249,8 @@ and 1 as it is a proportion.
 
 ### Biomass loss
 
-The impact of temperature on the rate of biomass loss is assumed to follow the Arrhenius
-equation, which is described in detail
-[here](#impact-of-temperature-on-enzyme-rate-and-saturation).
+The impact of temperature on the rate of biomass loss is assumed to follow the [Arrhenius
+equation](#impact-of-temperature-on-enzyme-rate-and-saturation).
 
 ## Soil nutrient leaching rate
 

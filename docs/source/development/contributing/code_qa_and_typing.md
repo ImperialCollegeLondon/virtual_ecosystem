@@ -143,6 +143,6 @@ This should not be done lightly: we are using these QA tools for a reason.
   be ignored to avoid missing other issues:  `# type: ignore[operator]`.
 * `markdownlint` catches issues in Markdown files and uses a range of [HTML comment
   tags](https://github.com/DavidAnson/markdownlint?tab=readme-ov-file#configuration) to
-  suppress format warnings. An example is `<!-- markdownlint-disable-line MD001 -->` and
-  a list of the rule codes can be found
-  [here](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md).
+  suppress format warnings. An example is `<!-- markdownlint-disable-line MD001 -->` but
+  see the [full list of the rule
+  codes](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md) for details.

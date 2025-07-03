@@ -18,9 +18,8 @@ We use the
 [`autodoc`](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html)
 extension to `sphinx` to convert the docstrings in code modules into rendered HTML.
 
-The results of using `autodoc` on the code below are shown [here](api_generation.md).
+The results of using `autodoc` on the code below are shown in the [API generation
+page](api_generation.md).
 
-```{eval-rst}
-.. include:: ./docstring_style.py
-    :code: python
+```{literalinclude} ./docstring_style.py
 ```

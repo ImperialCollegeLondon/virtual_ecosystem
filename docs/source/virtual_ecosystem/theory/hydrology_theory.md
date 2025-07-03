@@ -36,8 +36,8 @@ hydrological [data collection](#data-collection) and [modelling](#hydrology-mode
 approaches as well as open
 [challenges and limitations](#challenges-and-limitations) in hydrological research.
 
-The implementation of these concepts in the Virtual Ecosystem is described in detail
-[here](../implementation/hydrology_implementation.md).
+See the further documentation for [details of the implementation of hydrological
+concepts](../implementation/hydrology_implementation.md) in the Virtual Ecosystem.
 
 ## Definition
 

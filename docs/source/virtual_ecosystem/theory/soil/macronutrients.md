@@ -159,10 +159,10 @@ moisture. The nitrification rate is calculated at follows
 $$r_n = k_n * f_{T,n} * f_{w,n} * \ce{NH_{4}^{+}},$$
 
 where $k_n$ is the rate constant for nitrification, $f_{T,n}$ is a factor capturing the
-impact of soil temperature on nitrification rate (defined
-[here](./environmental_links.md#nitrification-temperature-factor)), $f_{w,n}$ is a
-factor capturing the impact of soil moisture on nitrification rate (defined
-[here](./environmental_links.md#nitrification-moisture-factor)) and $\ce{NH_{4}^{+}}$ is
+impact of [soil temperature on nitrification
+rate](./environmental_links.md#nitrification-temperature-factor), $f_{w,n}$ is a factor
+capturing the impact of [soil moisture on nitrification
+rate](./environmental_links.md#nitrification-moisture-factor) and $\ce{NH_{4}^{+}}$ is
 the concentration of ammonium in the soil.
 
 #### Denitrification
@@ -178,11 +178,11 @@ follows
 $$r_d = k_d * f_{T,d} * f_{w,d} * \ce{NO_{3}^{-}},$$
 
 where $k_d$ is the rate constant for denitrification, $f_{T,d}$ is a factor capturing
-the impact of soil temperature on denitrification rate (defined
-[here](./environmental_links.md#denitrification-temperature-factor)), $f_{w,d}$ is a
-factor capturing the impact of soil moisture on denitrification rate (defined
-[here](./environmental_links.md#denitrification-moisture-factor)) and $\ce{NO_{3}^{-}}$
-is the concentration of nitrate in the soil.
+the impact of [soil temperature on denitrification
+rate](./environmental_links.md#denitrification-temperature-factor), $f_{w,d}$ is a
+factor capturing the impact of [soil moisture on denitrification
+rate](./environmental_links.md#denitrification-moisture-factor) and $\ce{NO_{3}^{-}}$ is
+the concentration of nitrate in the soil.
 
 ## Inorganic phosphorus cycling
 

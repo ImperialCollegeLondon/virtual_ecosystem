@@ -42,5 +42,5 @@ team.
 
 ## Model documentation
 
-The full documentation for the Virtual Ecosystem model can be viewed
-[here](https://virtual-ecosystem.readthedocs.io/en/latest/).
+See our ReadTheDocs page for [full documentation of the Virtual Ecosystem
+model](https://virtual-ecosystem.readthedocs.io/en/latest/).
