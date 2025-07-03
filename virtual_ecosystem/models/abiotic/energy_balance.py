@@ -302,7 +302,7 @@ def calculate_energy_balance_residual(
     leaf_emissivity: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
-    seconds_to_day: float,
+    seconds_to_hour: float,
     return_fluxes: bool,
 ) -> NDArray[np.float32] | dict[str, NDArray[np.float32]]:
     r"""Calculate energy balance residual for canopy.
@@ -334,7 +334,7 @@ def calculate_energy_balance_residual(
         leaf_emissivity: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
-        seconds_to_day: Factor to convert between days and seconds
+        seconds_to_hour: Factor to convert between hours and seconds
         return_fluxes: Flag to indicate if all components of the energy balance should
             be returned. This is false for the newton approach to solve for canopy
             temperature, but true to create the outputs in a second call afterwards.
@@ -362,10 +362,10 @@ def calculate_energy_balance_residual(
     # Latent heat flux canopy, [W m-2]
     # The current implementation converts outputs from plant and hydrology model to
     # ensure energy conservation between modules for now.
-    # TODO cross-check units with plant model, time step currently month to second
+    # TODO cross-check units with plant model, time step currently hour to second
     latent_heat_flux_canopy = (
         evapotranspiration * density_water * latent_heat_vapourisation
-    ) / seconds_to_day
+    ) / seconds_to_hour
 
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
@@ -401,7 +401,7 @@ def solve_canopy_temperature(
     emissivity_leaf: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
-    seconds_to_day: float,
+    seconds_to_hour: float,
     maxiter: int,
     return_fluxes: bool = False,
 ) -> NDArray[np.float32]:
@@ -463,7 +463,7 @@ def solve_canopy_temperature(
         emissivity_leaf: Leaf emissivity, dimensionless
         stefan_boltzmann_constant: Stefan Boltzmann constant, [W m-2 K-4]
         zero_Celsius: Factor to convert between Celsius and Kelvin
-        seconds_to_day: Factor to convert between days and seconds
+        seconds_to_hour: Factor to convert between hours and seconds
         saturated_pressure_slope_parameters: List of parameters to calculate
             the slope of the saturated vapour pressure curve
         maxiter: Maximum number of iterations
@@ -517,7 +517,7 @@ def solve_canopy_temperature(
                     leaf_emissivity=emissivity_leaf,
                     stefan_boltzmann_constant=stefan_boltzmann_constant,
                     zero_Celsius=zero_Celsius,
-                    seconds_to_day=seconds_to_day,
+                    seconds_to_hour=seconds_to_hour,
                     return_fluxes=return_fluxes,
                 )
 

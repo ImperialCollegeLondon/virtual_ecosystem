@@ -222,6 +222,7 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Run hourly loop to ensure numerical stability
     hourly_time_interval = int(time_interval / core_constants.seconds_to_hour)
+
     for _ in range(hourly_time_interval):
         # Longwave emission from soil, [W m-2]
         longwave_emission_soil = energy_balance.calculate_longwave_emission(
@@ -275,8 +276,10 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Update canopy and air temperatures using the Newton method
     # -------------------------------------------------------------------------
-    # Get combined evapotranspiration from plant and hydrology model, per day
-    evapotranspiration = (data["canopy_evaporation"] + data["transpiration"]) / 30.0
+    # Get combined evapotranspiration from plant and hydrology model, per hour
+    evapotranspiration = (
+        data["canopy_evaporation"] + data["transpiration"]
+    ) / hourly_time_interval
 
     # Solve energy balance for canopy temperature, [C]
     new_canopy_temperature = energy_balance.solve_canopy_temperature(
@@ -296,7 +299,7 @@ def run_microclimate(
         emissivity_leaf=abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
-        seconds_to_day=core_constants.seconds_to_day,
+        seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=False,
         maxiter=10000,
     )
@@ -330,7 +333,7 @@ def run_microclimate(
         latent_heat_vapourisation=latent_heat_vapourisation[1:-1],
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
-        seconds_to_day=core_constants.seconds_to_day,
+        seconds_to_hour=core_constants.seconds_to_hour,
         return_fluxes=True,
     )
 

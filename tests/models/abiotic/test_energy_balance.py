@@ -211,7 +211,7 @@ def test_energy_balance_residual_only(dummy_climate_data, fixture_core_component
         leaf_emissivity=AbioticConsts.leaf_emissivity,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
         zero_Celsius=CoreConsts.zero_Celsius,
-        seconds_to_day=CoreConsts.seconds_to_day,
+        seconds_to_hour=CoreConsts.seconds_to_hour,
         return_fluxes=False,
     )
 
@@ -248,7 +248,7 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
         leaf_emissivity=AbioticConsts.leaf_emissivity,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
         zero_Celsius=CoreConsts.zero_Celsius,
-        seconds_to_day=CoreConsts.seconds_to_day,
+        seconds_to_hour=CoreConsts.seconds_to_hour,
         return_fluxes=True,
     )
 
@@ -280,7 +280,7 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
     result = solve_canopy_temperature(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 30,
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 730,
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
@@ -294,14 +294,14 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
         emissivity_leaf=0.96,
         stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
         zero_Celsius=CoreConsts.zero_Celsius,
-        seconds_to_day=86400,
+        seconds_to_hour=CoreConsts.seconds_to_hour,
         return_fluxes=False,
         maxiter=100,
     )
 
     assert isinstance(result, np.ndarray)
     assert result.shape == data["canopy_temperature"][canopy_index].shape
-    assert np.all((result > -50) & (result < 80))  # plausible range for °C
+    assert np.all((result > 0) & (result < 50))  # plausible range for °C
 
 
 def test_update_air_temperature():

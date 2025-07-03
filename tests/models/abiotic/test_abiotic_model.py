@@ -388,7 +388,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     exp_canopytemp = lyr_strct.from_template()
     exp_canopytemp[lyr_strct.index_filled_canopy] = np.array(
-        [30.475916, 29.933651, 29.007254]
+        [30.856688, 30.313976, 29.386791]
     )[:, None]
 
     xr.testing.assert_allclose(model.data["canopy_temperature"], exp_canopytemp)
