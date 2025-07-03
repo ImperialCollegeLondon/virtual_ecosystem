@@ -46,84 +46,84 @@ from virtual_ecosystem.models.soil.uptake import calculate_nutrient_uptake_rates
 class MicrobialChanges:
     """Changes due to microbial uptake, biomass production and losses."""
 
-    lmwc_uptake: NDArray[np.float32]
+    lmwc_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of low molecular weight carbon.
     
     Units of [kg C m^-3 day^-1]."""
 
-    don_uptake: NDArray[np.float32]
+    don_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of dissolved organic nitrogen.
     
     Units of [kg N m^-3 day^-1]."""
 
-    ammonium_change: NDArray[np.float32]
+    ammonium_change: NDArray[np.floating]
     """Total change in the ammonium pool due to microbial activity [kg N m^-3 day^-1].
     
     This change arises from the balance of immobilisation and mineralisation of
     ammonium. A positive value indicates a net immobilisation (uptake) of ammonium."""
 
-    nitrate_change: NDArray[np.float32]
+    nitrate_change: NDArray[np.floating]
     """Total change in the nitrate pool due to microbial activity [kg N m^-3 day^-1].
 
     This change arises from the balance of immobilisation and mineralisation of
     nitrate. A positive value indicates a net immobilisation (uptake) of nitrate."""
 
-    dop_uptake: NDArray[np.float32]
+    dop_uptake: NDArray[np.floating]
     """Total rate of microbial uptake of dissolved organic phosphorus.
     
     Units of [kg P m^-3 day^-1]."""
 
-    labile_p_change: NDArray[np.float32]
+    labile_p_change: NDArray[np.floating]
     """Total change in the labile inorganic phosphorus pool due to microbial activity.
     
     Units of [kg P m^-3 day^-1]. This change arises from the balance of immobilisation
     and mineralisation of labile P. A positive value indicates a net immobilisation
     (uptake) of P. """
 
-    bacteria_change: NDArray[np.float32]
+    bacteria_change: NDArray[np.floating]
     """Rate of change of bacterial biomass pool [kg C m^-3 day^-1]."""
 
-    saprotrophic_fungi_change: NDArray[np.float32]
+    saprotrophic_fungi_change: NDArray[np.floating]
     """Rate of change of saprotrophic fungal biomass pool [kg C m^-3 day^-1]."""
 
-    arbuscular_mycorrhiza_change: NDArray[np.float32]
+    arbuscular_mycorrhiza_change: NDArray[np.floating]
     """Rate of change of arbuscular mycorrhizal fungi biomass pool [kg C m^-3 day^-1].
     """
 
-    ectomycorrhiza_change: NDArray[np.float32]
+    ectomycorrhiza_change: NDArray[np.floating]
     """Rate of change of ectomycorrhizal fungi biomass pool [kg C m^-3 day^-1]."""
 
-    pom_enzyme_bacteria_change: NDArray[np.float32]
+    pom_enzyme_bacteria_change: NDArray[np.floating]
     """Rate of change for the bacterially produced :term:`POM` degrading enzymes.
 
     Units of [kg C m^-3 day^-1].
     """
 
-    maom_enzyme_bacteria_change: NDArray[np.float32]
+    maom_enzyme_bacteria_change: NDArray[np.floating]
     """Rate of change for the bacterially produced :term:`MAOM` degrading enzymes.
     
     Units of [kg C m^-3 day^-1].
     """
 
-    pom_enzyme_fungi_change: NDArray[np.float32]
+    pom_enzyme_fungi_change: NDArray[np.floating]
     """Rate of change for the fungally produced :term:`POM` degrading enzymes.
 
     Units of [kg C m^-3 day^-1].
     """
 
-    maom_enzyme_fungi_change: NDArray[np.float32]
+    maom_enzyme_fungi_change: NDArray[np.floating]
     """Rate of change for the fungally produced :term:`MAOM` degrading enzymes.
     
     Units of [kg C m^-3 day^-1].
     """
 
-    necromass_generation: NDArray[np.float32]
+    necromass_generation: NDArray[np.floating]
     """Rate at which necromass is being produced [kg C m^-3 day^-1]."""
 
-    necromass_n_flow: NDArray[np.float32]
+    necromass_n_flow: NDArray[np.floating]
     """Nitrogen flow associated with necromass generation [kg N m^-3 day^-1]."""
 
-    necromass_p_flow: NDArray[np.float32]
+    necromass_p_flow: NDArray[np.floating]
     """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
 
 
@@ -131,13 +131,13 @@ class MicrobialChanges:
 class EnzymeMediatedRates:
     """Rates of each enzyme mediated transfer between pools."""
 
-    pom_to_lmwc: NDArray[np.float32]
+    pom_to_lmwc: NDArray[np.floating]
     """Rate of particulate organic matter decomposition to low molecular weight carbon.
     
     Units of [kg C m^-3 day^-1].
     """
 
-    maom_to_lmwc: NDArray[np.float32]
+    maom_to_lmwc: NDArray[np.floating]
     """Rate of mineral associated organic matter decomposition to LMWC.
 
     Units of [kg C m^-3 day^-1].
@@ -148,49 +148,49 @@ class EnzymeMediatedRates:
 class EnzymePoolChanges:
     """Changes to the different enzyme pools due to production and denaturation."""
 
-    net_change_pom_bacteria: NDArray[np.float32]
+    net_change_pom_bacteria: NDArray[np.floating]
     """Net change in the bacterially produced enzyme pool that breaks down :term:`POM`.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    net_change_maom_bacteria: NDArray[np.float32]
+    net_change_maom_bacteria: NDArray[np.floating]
     """Net change in the bacterially produced enzyme pool that breaks down :term:`MAOM`.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    net_change_pom_fungi: NDArray[np.float32]
+    net_change_pom_fungi: NDArray[np.floating]
     """Net change in the fungally produced enzyme pool that breaks down :term:`POM`.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    net_change_maom_fungi: NDArray[np.float32]
+    net_change_maom_fungi: NDArray[np.floating]
     """Net change in the fungally produced enzyme pool that breaks down :term:`MAOM`.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    denaturation_pom_bacteria: NDArray[np.float32]
+    denaturation_pom_bacteria: NDArray[np.floating]
     """Denaturation rate for the :term:`POM` degrading enzyme produced by bacteria.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    denaturation_maom_bacteria: NDArray[np.float32]
+    denaturation_maom_bacteria: NDArray[np.floating]
     """Denaturation rate for the :term:`MAOM` degrading enzyme produced by bacteria.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    denaturation_pom_fungi: NDArray[np.float32]
+    denaturation_pom_fungi: NDArray[np.floating]
     """Denaturation rate for the :term:`POM` degrading enzyme produced by fungi.
     
     Units of [kg C m^-3 day^-1]
     """
 
-    denaturation_maom_fungi: NDArray[np.float32]
+    denaturation_maom_fungi: NDArray[np.floating]
     """Denaturation rate for the :term:`MAOM` degrading enzyme produced by fungi.
     
     Units of [kg C m^-3 day^-1]
@@ -201,16 +201,16 @@ class EnzymePoolChanges:
 class BiomassLosses:
     """Losses of biomass from each microbial functional group due to turnover."""
 
-    bacteria: NDArray[np.float32]
+    bacteria: NDArray[np.floating]
     """Rate of loss of bacterial biomass [kg C m^-3 day^-1]."""
 
-    saprotrophic_fungi: NDArray[np.float32]
+    saprotrophic_fungi: NDArray[np.floating]
     """Rate of loss of saprotrophic fungal biomass [kg C m^-3 day^-1]."""
 
-    ectomycorrhiza: NDArray[np.float32]
+    ectomycorrhiza: NDArray[np.floating]
     """Rate of loss of ectomycorrhizal fungal biomass [kg C m^-3 day^-1]."""
 
-    arbuscular_mycorrhiza: NDArray[np.float32]
+    arbuscular_mycorrhiza: NDArray[np.floating]
     """Rate of loss of arbuscular mycorrhizal fungal biomass [kg C m^-3 day^-1]."""
 
 
@@ -218,22 +218,22 @@ class BiomassLosses:
 class LeachingRates:
     """Leaching rate for each soluble nutrient pool."""
 
-    lmwc: NDArray[np.float32]
+    lmwc: NDArray[np.floating]
     """Leaching rate for the low molecular weight carbon pool [kg C m^-3 day^-1]."""
 
-    don: NDArray[np.float32]
+    don: NDArray[np.floating]
     """Loss of dissolved organic nitrogen due to LMWC leaching [kg N m^-3 day^-1]."""
 
-    dop: NDArray[np.float32]
+    dop: NDArray[np.floating]
     """Loss of dissolved organic phosphorus due to LMWC leaching [kg P m^-3 day^-1]."""
 
-    ammonium: NDArray[np.float32]
+    ammonium: NDArray[np.floating]
     """Leaching rate for the soil ammonium pool [kg N m^-3 day^-1]."""
 
-    nitrate: NDArray[np.float32]
+    nitrate: NDArray[np.floating]
     """Leaching rate for the soil nitrate pool [kg N m^-3 day^-1]."""
 
-    labile_P: NDArray[np.float32]
+    labile_P: NDArray[np.floating]
     """Leaching rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
 
 
@@ -241,28 +241,28 @@ class LeachingRates:
 class LitterMineralisationFluxes:
     """Fluxes into each soil pool due to mineralisation from litter model."""
 
-    lmwc: NDArray[np.float32]
+    lmwc: NDArray[np.floating]
     """Mineralisation into the low molecular weight carbon pool [kg C m^-3 day^-1]."""
 
-    pom: NDArray[np.float32]
+    pom: NDArray[np.floating]
     """Mineralisation into the particulate organic matter pool [kg C m^-3 day^-1]."""
 
-    don: NDArray[np.float32]
+    don: NDArray[np.floating]
     """Mineralisation into the dissolved organic nitrogen pool [kg N m^-3 day^-1]."""
 
-    ammonium: NDArray[np.float32]
+    ammonium: NDArray[np.floating]
     """Mineralisation into the ammonium pool [kg N m^-3 day^-1]."""
 
-    particulate_n: NDArray[np.float32]
+    particulate_n: NDArray[np.floating]
     """Mineralisation into the particulate organic nitrogen pool [kg N m^-3 day^-1]."""
 
-    dop: NDArray[np.float32]
+    dop: NDArray[np.floating]
     """Mineralisation into the dissolved organic phosphorus pool [kg P m^-3 day^-1]."""
 
-    labile_p: NDArray[np.float32]
+    labile_p: NDArray[np.floating]
     """Mineralisation into the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
 
-    particulate_p: NDArray[np.float32]
+    particulate_p: NDArray[np.floating]
     """Mineralisation into the particulate organic phosphorus pool.
     
     Units of [kg P m^-3 day^-1].
@@ -273,85 +273,85 @@ class LitterMineralisationFluxes:
 class PoolData:
     """Data class collecting the full set of soil pools updated by the soil model."""
 
-    soil_c_pool_maom: NDArray[np.float32]
+    soil_c_pool_maom: NDArray[np.floating]
     """Mineral associated organic matter pool [kg C m^-3]."""
 
-    soil_c_pool_lmwc: NDArray[np.float32]
+    soil_c_pool_lmwc: NDArray[np.floating]
     """Low molecular weight carbon pool [kg C m^-3]."""
 
-    soil_c_pool_bacteria: NDArray[np.float32]
+    soil_c_pool_bacteria: NDArray[np.floating]
     """Bacterial biomass pool [kg C m^-3]."""
 
-    soil_c_pool_saprotrophic_fungi: NDArray[np.float32]
+    soil_c_pool_saprotrophic_fungi: NDArray[np.floating]
     """Saprotrophic fungi biomass pool [kg C m^-3]."""
 
-    soil_c_pool_arbuscular_mycorrhiza: NDArray[np.float32]
+    soil_c_pool_arbuscular_mycorrhiza: NDArray[np.floating]
     """Arbuscular mycorrhizal fungi biomass pool [kg C m^-3]."""
 
-    soil_c_pool_ectomycorrhiza: NDArray[np.float32]
+    soil_c_pool_ectomycorrhiza: NDArray[np.floating]
     """Ectomycorrhizal fungi biomass pool [kg C m^-3]."""
 
-    soil_c_pool_pom: NDArray[np.float32]
+    soil_c_pool_pom: NDArray[np.floating]
     """Particulate organic matter pool [kg C m^-3]."""
 
-    soil_c_pool_necromass: NDArray[np.float32]
+    soil_c_pool_necromass: NDArray[np.floating]
     """Microbial necromass pool [kg C m^-3]."""
 
-    soil_enzyme_pom_bacteria: NDArray[np.float32]
+    soil_enzyme_pom_bacteria: NDArray[np.floating]
     """Bacteria produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
 
-    soil_enzyme_maom_bacteria: NDArray[np.float32]
+    soil_enzyme_maom_bacteria: NDArray[np.floating]
     """Bacteria produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
 
-    soil_enzyme_pom_fungi: NDArray[np.float32]
+    soil_enzyme_pom_fungi: NDArray[np.floating]
     """Fungi produced enzyme class which breaks down :term:`POM` [kg C m^-3]."""
 
-    soil_enzyme_maom_fungi: NDArray[np.float32]
+    soil_enzyme_maom_fungi: NDArray[np.floating]
     """Fungi produced enzyme class which breaks down :term:`MAOM` [kg C m^-3]."""
 
-    soil_n_pool_don: NDArray[np.float32]
+    soil_n_pool_don: NDArray[np.floating]
     """Organic nitrogen content of the low molecular weight carbon pool [kg N m^-3].
     
     This also gets termed the dissolved organic nitrogen (DON) pool.
     """
 
-    soil_n_pool_particulate: NDArray[np.float32]
+    soil_n_pool_particulate: NDArray[np.floating]
     """Organic nitrogen content of the particulate organic matter pool [kg N m^-3]."""
 
-    soil_n_pool_necromass: NDArray[np.float32]
+    soil_n_pool_necromass: NDArray[np.floating]
     """Organic nitrogen content of the microbial necromass pool [kg N m^-3]."""
 
-    soil_n_pool_maom: NDArray[np.float32]
+    soil_n_pool_maom: NDArray[np.floating]
     """Organic nitrogen content of the :term:`MAOM` pool [kg N m^-3]."""
 
-    soil_n_pool_ammonium: NDArray[np.float32]
+    soil_n_pool_ammonium: NDArray[np.floating]
     r"""Soil ammonium (:math:`\ce{NH4+}`) pool [kg N m^-3]."""
 
-    soil_n_pool_nitrate: NDArray[np.float32]
+    soil_n_pool_nitrate: NDArray[np.floating]
     r"""Soil nitrate (:math:`\ce{NO3-}`) pool [kg N m^-3]."""
 
-    soil_p_pool_dop: NDArray[np.float32]
+    soil_p_pool_dop: NDArray[np.floating]
     """Organic phosphorus content of the low molecular weight carbon pool [kg P m^-3].
     
     This also gets termed the dissolved organic phosphorus (DOP) pool.
     """
 
-    soil_p_pool_particulate: NDArray[np.float32]
+    soil_p_pool_particulate: NDArray[np.floating]
     """Organic phosphorus content of the particulate organic matter pool [kg P m^-3]."""
 
-    soil_p_pool_necromass: NDArray[np.float32]
+    soil_p_pool_necromass: NDArray[np.floating]
     """Organic phosphorus content of the microbial necromass pool [kg P m^-3]."""
 
-    soil_p_pool_maom: NDArray[np.float32]
+    soil_p_pool_maom: NDArray[np.floating]
     """Organic phosphorus content of the :term:`MAOM` pool [kg P m^-3]."""
 
-    soil_p_pool_primary: NDArray[np.float32]
+    soil_p_pool_primary: NDArray[np.floating]
     """Primary mineral phosphorus pool [kg P m^-3]."""
 
-    soil_p_pool_secondary: NDArray[np.float32]
+    soil_p_pool_secondary: NDArray[np.floating]
     """Secondary (inorganic) mineral phosphorus pool [kg P m^-3]."""
 
-    soil_p_pool_labile: NDArray[np.float32]
+    soil_p_pool_labile: NDArray[np.floating]
     """Inorganic labile phosphorus pool [kg P m^-3]."""
 
 
@@ -367,7 +367,7 @@ class SoilPools:
     def __init__(
         self,
         data: Data,
-        pools: dict[str, NDArray[np.float32]],
+        pools: dict[str, NDArray[np.floating]],
         constants: SoilConsts,
         functional_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
@@ -396,12 +396,12 @@ class SoilPools:
 
     def calculate_all_pool_updates(
         self,
-        delta_pools_ordered: dict[str, NDArray[np.float32]],
+        delta_pools_ordered: dict[str, NDArray[np.floating]],
         layer_structure: LayerStructure,
         soil_moisture_saturation: float,
         soil_moisture_residual: float,
         top_soil_layer_thickness: float,
-    ) -> NDArray[np.float32]:
+    ) -> NDArray[np.floating]:
         """Calculate net change for all soil pools.
 
         This function calls lower level functions which calculate the transfers between
@@ -759,8 +759,8 @@ class SoilPools:
         return np.concatenate(list(delta_pools_ordered.values()))
 
     def to_per_volume(
-        self, input_rate: float | NDArray[np.float32]
-    ) -> NDArray[np.float32]:
+        self, input_rate: float | NDArray[np.floating]
+    ) -> NDArray[np.floating]:
         """Method to convert an external input rate from per area to per volume units.
 
         Args:
@@ -779,16 +779,16 @@ class SoilPools:
 
 def calculate_microbial_changes(
     pools: PoolData,
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
     constants: SoilConsts,
     microbial_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
     carbon_supply: CarbonSupply,
-    plant_n_uptake_arbuscular: NDArray[np.float32],
-    plant_p_uptake_arbuscular: NDArray[np.float32],
-    plant_n_uptake_ecto: NDArray[np.float32],
-    plant_p_uptake_ecto: NDArray[np.float32],
+    plant_n_uptake_arbuscular: NDArray[np.floating],
+    plant_p_uptake_arbuscular: NDArray[np.floating],
+    plant_n_uptake_ecto: NDArray[np.floating],
+    plant_p_uptake_ecto: NDArray[np.floating],
 ) -> MicrobialChanges:
     """Calculate the changes for the microbial biomass and enzyme pools.
 
@@ -986,7 +986,7 @@ def calculate_microbial_changes(
 def calculate_biomass_losses(
     pools: PoolData,
     microbial_groups: dict[str, MicrobialGroupConstants],
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
 ) -> BiomassLosses:
     """Calculate the rate of biomass loss for each microbial group.
 
@@ -1013,7 +1013,7 @@ def calculate_biomass_losses(
 
 def calculate_enzyme_mediated_rates(
     pools: PoolData,
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
     enzyme_classes: dict[str, EnzymeConstants],
 ) -> EnzymeMediatedRates:
@@ -1055,14 +1055,14 @@ def calculate_enzyme_mediated_rates(
 
 
 def calculate_nutrient_leaching(
-    soil_c_pool_lmwc: NDArray[np.float32],
-    soil_n_pool_don: NDArray[np.float32],
-    soil_p_pool_dop: NDArray[np.float32],
-    soil_n_pool_ammonium: NDArray[np.float32],
-    soil_n_pool_nitrate: NDArray[np.float32],
-    soil_p_pool_labile: NDArray[np.float32],
-    vertical_flow_rate: NDArray[np.float32],
-    soil_moisture: NDArray[np.float32],
+    soil_c_pool_lmwc: NDArray[np.floating],
+    soil_n_pool_don: NDArray[np.floating],
+    soil_p_pool_dop: NDArray[np.floating],
+    soil_n_pool_ammonium: NDArray[np.floating],
+    soil_n_pool_nitrate: NDArray[np.floating],
+    soil_p_pool_labile: NDArray[np.floating],
+    vertical_flow_rate: NDArray[np.floating],
+    soil_moisture: NDArray[np.floating],
     constants: SoilConsts,
 ) -> LeachingRates:
     """Calculate the rate a which each soluble nutrient pool is leached.
@@ -1134,7 +1134,7 @@ def calculate_nutrient_leaching(
 
 def calculate_enzyme_changes(
     pools: PoolData,
-    enzyme_production: dict[str, NDArray[np.float32]],
+    enzyme_production: dict[str, NDArray[np.floating]],
     enzyme_classes: dict[str, EnzymeConstants],
 ) -> EnzymePoolChanges:
     """Calculate the change in each of the soil enzyme pools.
@@ -1188,10 +1188,10 @@ def calculate_enzyme_changes(
 
 
 def calculate_net_enzyme_change(
-    enzyme_pool_size: NDArray[np.float32],
-    enzyme_production: NDArray[np.float32],
+    enzyme_pool_size: NDArray[np.floating],
+    enzyme_production: NDArray[np.floating],
     enzyme_turnover_rate: float,
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Calculate the change in concentration for a specific enzyme pool.
 
     Enzyme production rates are assumed to scale linearly with the total biomass loss
@@ -1219,8 +1219,8 @@ def calculate_net_enzyme_change(
 
 def calculate_enzyme_production(
     microbial_groups: dict[str, MicrobialGroupConstants],
-    growth_rates: dict[str, NDArray[np.float32]],
-) -> dict[str, NDArray[np.float32]]:
+    growth_rates: dict[str, NDArray[np.floating]],
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the total production of each enzyme class.
 
     This function checks which substrates each functional group produces enzymes for,
@@ -1237,7 +1237,7 @@ def calculate_enzyme_production(
         m^-3 day^-1]
     """
 
-    production_rates: dict[str, NDArray[np.float32]] = {}
+    production_rates: dict[str, NDArray[np.floating]] = {}
 
     for group in microbial_groups.values():
         for substrate in group.find_enzyme_substrates():
@@ -1260,10 +1260,10 @@ def calculate_enzyme_production(
 
 
 def calculate_maintenance_biomass_synthesis(
-    microbe_pool_size: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    microbe_pool_size: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     microbial_group: MicrobialGroupConstants,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate biomass synthesis rate required to offset losses for a microbial pool.
 
     In order for a microbial population to not decline it must synthesise enough new
@@ -1290,8 +1290,8 @@ def calculate_maintenance_biomass_synthesis(
 
 
 def calculate_enzyme_turnover(
-    enzyme_pool: NDArray[np.float32], turnover_rate: float
-) -> NDArray[np.float32]:
+    enzyme_pool: NDArray[np.floating], turnover_rate: float
+) -> NDArray[np.floating]:
     """Calculate the turnover rate of a specific enzyme class.
 
     Args:
@@ -1306,12 +1306,12 @@ def calculate_enzyme_turnover(
 
 
 def calculate_enzyme_mediated_decomposition(
-    soil_c_pool: NDArray[np.float32],
-    soil_enzyme: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    soil_c_pool: NDArray[np.floating],
+    soil_enzyme: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     env_factors: EnvironmentalEffectFactors,
     enzyme_class: EnzymeConstants,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate rate of a enzyme mediated decomposition process.
 
     This function calculates various environmental factors that effect enzyme activity,
@@ -1363,7 +1363,7 @@ def calculate_enzyme_mediated_decomposition(
 
 
 def calculate_maom_desorption(
-    soil_c_pool_maom: NDArray[np.float32], desorption_rate_constant: float
+    soil_c_pool_maom: NDArray[np.floating], desorption_rate_constant: float
 ):
     """Calculate the rate of mineral associated organic matter (MAOM) desorption.
 
@@ -1384,7 +1384,7 @@ def calculate_maom_desorption(
 
 
 def calculate_sorption_to_maom(
-    soil_c_pool: NDArray[np.float32], sorption_rate_constant: float
+    soil_c_pool: NDArray[np.floating], sorption_rate_constant: float
 ):
     """Calculate that a carbon pool sorbs to become mineral associated organic matter.
 
@@ -1408,8 +1408,8 @@ def calculate_sorption_to_maom(
 
 
 def calculate_necromass_breakdown(
-    soil_c_pool_necromass: NDArray[np.float32], necromass_decay_rate: float
-) -> NDArray[np.float32]:
+    soil_c_pool_necromass: NDArray[np.floating], necromass_decay_rate: float
+) -> NDArray[np.floating]:
     """Calculate breakdown rate of necromass into low molecular weight carbon (LMWC).
 
     This function calculate necromass breakdown to LMWC as a simple exponential decay.
@@ -1430,9 +1430,9 @@ def calculate_necromass_breakdown(
 
 
 def calculate_litter_mineralisation_fluxes(
-    litter_C_mineralisation_rate: NDArray[np.float32],
-    litter_N_mineralisation_rate: NDArray[np.float32],
-    litter_P_mineralisation_rate: NDArray[np.float32],
+    litter_C_mineralisation_rate: NDArray[np.floating],
+    litter_N_mineralisation_rate: NDArray[np.floating],
+    litter_P_mineralisation_rate: NDArray[np.floating],
     constants: SoilConsts,
 ) -> LitterMineralisationFluxes:
     """Calculate the split of the litter mineralisation fluxes between soil pools.
@@ -1494,8 +1494,8 @@ def calculate_litter_mineralisation_fluxes(
 
 
 def calculate_litter_mineralisation_split(
-    mineralisation_rate: NDArray[np.float32], litter_leaching_coefficient: float
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+    mineralisation_rate: NDArray[np.floating], litter_leaching_coefficient: float
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Determine how nutrients from litter mineralisation get split between soil pools.
 
     All nutrients that we track (carbon, nitrogen and phosphorus) get divided between
@@ -1522,10 +1522,10 @@ def calculate_litter_mineralisation_split(
 
 
 def calculate_soil_nutrient_mineralisation(
-    pool_carbon: NDArray[np.float32],
-    pool_nutrient: NDArray[np.float32],
-    breakdown_rate: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    pool_carbon: NDArray[np.floating],
+    pool_nutrient: NDArray[np.floating],
+    breakdown_rate: NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Calculate mineralisation rate from soil organic matter for a specific nutrient.
 
     This function assumes that nutrients are mineralised in direct proportion to their
@@ -1554,7 +1554,7 @@ def calculate_nutrient_flows_to_necromass(
     enzyme_changes: EnzymePoolChanges,
     microbial_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Calculate the rate at which nutrients flow into the necromass pool.
 
     These flows comprise of the nitrogen and phosphorus content of the dead cells and
@@ -1602,12 +1602,12 @@ def calculate_nutrient_flows_to_necromass(
 
 
 def find_necromass_nutrient_outflows(
-    necromass_carbon: NDArray[np.float32],
-    necromass_nitrogen: NDArray[np.float32],
-    necromass_phosphorus: NDArray[np.float32],
-    necromass_decay: NDArray[np.float32],
-    necromass_sorption: NDArray[np.float32],
-) -> dict[str, NDArray[np.float32]]:
+    necromass_carbon: NDArray[np.floating],
+    necromass_nitrogen: NDArray[np.floating],
+    necromass_phosphorus: NDArray[np.floating],
+    necromass_decay: NDArray[np.floating],
+    necromass_sorption: NDArray[np.floating],
+) -> dict[str, NDArray[np.floating]]:
     """Find the amount of each nutrient flowing out of the necromass pool.
 
     There are two sources for this outflow. Firstly, the decay of necromass to dissolved
@@ -1647,16 +1647,16 @@ def find_necromass_nutrient_outflows(
 
 
 def calculate_net_nutrient_transfers_from_maom_to_lmwc(
-    lmwc_carbon: NDArray[np.float32],
-    lmwc_nitrogen: NDArray[np.float32],
-    lmwc_phosphorus: NDArray[np.float32],
-    maom_carbon: NDArray[np.float32],
-    maom_nitrogen: NDArray[np.float32],
-    maom_phosphorus: NDArray[np.float32],
-    maom_breakdown: NDArray[np.float32],
-    maom_desorption: NDArray[np.float32],
-    lmwc_sorption: NDArray[np.float32],
-) -> dict[str, NDArray[np.float32]]:
+    lmwc_carbon: NDArray[np.floating],
+    lmwc_nitrogen: NDArray[np.floating],
+    lmwc_phosphorus: NDArray[np.floating],
+    maom_carbon: NDArray[np.floating],
+    maom_nitrogen: NDArray[np.floating],
+    maom_phosphorus: NDArray[np.floating],
+    maom_breakdown: NDArray[np.floating],
+    maom_desorption: NDArray[np.floating],
+    lmwc_sorption: NDArray[np.floating],
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the net rate of transfer of nutrients between MAOM and LMWC.
 
     Args:
@@ -1706,11 +1706,11 @@ def calculate_net_nutrient_transfers_from_maom_to_lmwc(
 
 
 def calculate_rate_of_nitrification(
-    soil_temp: NDArray[np.float32],
-    effective_saturation: NDArray[np.float32],
-    soil_n_pool_ammonium: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
+    effective_saturation: NDArray[np.floating],
+    soil_n_pool_ammonium: NDArray[np.floating],
     constants: SoilConsts,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the rate at which ammonium nitrifies to form nitrate.
 
     This is an empirical relationship that we have taken from
@@ -1748,11 +1748,11 @@ def calculate_rate_of_nitrification(
 
 
 def calculate_rate_of_denitrification(
-    soil_temp: NDArray[np.float32],
-    effective_saturation: NDArray[np.float32],
-    soil_n_pool_nitrate: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
+    effective_saturation: NDArray[np.floating],
+    soil_n_pool_nitrate: NDArray[np.floating],
     constants: SoilConsts,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the rate at which nitrate denitrifies (and leaves the soil).
 
     This is an empirical relationship that we have taken from
@@ -1788,10 +1788,10 @@ def calculate_rate_of_denitrification(
 
 
 def calculate_symbiotic_nitrogen_fixation(
-    carbon_supply: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    carbon_supply: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     constants: SoilConsts,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate rate of nitrogen fixation by plant symbionts.
 
     The nitrogen is considered to be fixed solely in the form of ammonium.
@@ -1819,12 +1819,12 @@ def calculate_symbiotic_nitrogen_fixation(
 
 
 def calculate_free_living_nitrogen_fixation(
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     fixation_at_reference: float,
     reference_temperature: float,
     q10_nitrogen_fixation: float,
     active_depth: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate rate of nitrogen fixation by free living microbes.
 
     These are microbes not in a symbiotic association with plants. They are considered
@@ -1864,11 +1864,11 @@ def calculate_free_living_nitrogen_fixation(
 
 
 def calculate_net_formation_of_secondary_P(
-    soil_p_pool_labile: NDArray[np.float32],
-    soil_p_pool_secondary: NDArray[np.float32],
+    soil_p_pool_labile: NDArray[np.floating],
+    soil_p_pool_secondary: NDArray[np.floating],
     secondary_p_breakdown_rate: float,
     labile_p_sorption_rate: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate net rate of secondary mineral phosphorus formation.
 
     This is the combination of labile inorganic phosphorus associating with minerals and

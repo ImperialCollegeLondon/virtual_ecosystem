@@ -9,10 +9,10 @@ from numpy.typing import NDArray
 
 
 def calculate_zero_plane_displacement(
-    canopy_height: NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
+    canopy_height: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
     zero_plane_scaling_parameter: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate zero plane displacement height, [m].
 
     The zero plane displacement height is a concept used in micrometeorology to describe
@@ -45,16 +45,16 @@ def calculate_zero_plane_displacement(
 
 
 def calculate_roughness_length_momentum(
-    canopy_height: NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
+    canopy_height: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    zero_plane_displacement: NDArray[np.floating],
     substrate_surface_drag_coefficient: float,
     roughness_element_drag_coefficient: float,
     roughness_sublayer_depth_parameter: float,
     max_ratio_wind_to_friction_velocity: float,
     min_roughness_length: float,
     von_karman_constant: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate roughness length governing momentum transfer, [m].
 
     Roughness length is defined as the height at which the mean velocity is zero due to
@@ -119,13 +119,13 @@ def calculate_roughness_length_momentum(
 
 
 def calculate_wind_profile(
-    reference_wind_speed: NDArray[np.float32],
-    reference_height: float | NDArray[np.float32],
-    wind_heights: NDArray[np.float32],
-    roughness_length: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
+    reference_wind_speed: NDArray[np.floating],
+    reference_height: float | NDArray[np.floating],
+    wind_heights: NDArray[np.floating],
+    roughness_length: NDArray[np.floating],
+    zero_plane_displacement: NDArray[np.floating],
     min_wind_speed: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Calculate wind speed profile, [m s-1].
 
     The wind speed at different heights is calculated using the following equation:
@@ -166,12 +166,12 @@ def calculate_wind_profile(
 
 
 def calculate_friction_velocity(
-    reference_wind_speed: NDArray[np.float32],
-    reference_height: NDArray[np.float32],
-    roughness_length: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
+    reference_wind_speed: NDArray[np.floating],
+    reference_height: NDArray[np.floating],
+    roughness_length: NDArray[np.floating],
+    zero_plane_displacement: NDArray[np.floating],
     von_karman_constant: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Calculate friction velocity, [m s-1].
 
     Friction velocity is a measure of the shear stress exerted by the wind on the

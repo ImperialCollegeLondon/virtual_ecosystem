@@ -578,7 +578,7 @@ class HydrologyModel(
             )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
-            soil_moisture_evap_mm: NDArray[np.float32] = np.concatenate(
+            soil_moisture_evap_mm: NDArray[np.floating] = np.concatenate(
                 (
                     np.expand_dims(
                         np.clip(

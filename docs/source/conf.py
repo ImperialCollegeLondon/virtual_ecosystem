@@ -134,7 +134,7 @@ nitpick_ignore = [
     ("py:class", "np.str_"),
     ("py:class", "np.bool_"),
     ("py:class", "numpy.bool_"),
-    ("py:class", "np.float32"),
+    ("py:class", "np.float64"),
     ("py:class", "np.float64"),
     ("py:class", "np.datetime64"),
     ("py:class", "np.ndarray"),

@@ -48,11 +48,11 @@ from virtual_ecosystem.core.core_components import LayerStructure
 
 
 def initialise_absorbed_radiation(
-    topofcanopy_radiation: NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
-    layer_heights: NDArray[np.float32],
+    topofcanopy_radiation: NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    layer_heights: NDArray[np.floating],
     light_extinction_coefficient: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Calculate initial light absorption profile.
 
     This function calculates the fraction of radiation absorbed by a multi-layered
@@ -97,10 +97,10 @@ def initialise_absorbed_radiation(
 
 
 def initialise_canopy_temperature(
-    air_temperature: NDArray[np.float32],
-    absorbed_radiation: NDArray[np.float32],
+    air_temperature: NDArray[np.floating],
+    absorbed_radiation: NDArray[np.floating],
     canopy_temperature_ini_factor: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Initialise canopy temperature.
 
     Args:
@@ -223,10 +223,10 @@ def initialise_canopy_and_soil_fluxes(
 
 
 def calculate_longwave_emission(
-    temperature: NDArray[np.float32],
-    emissivity: float | NDArray[np.float32],
+    temperature: NDArray[np.floating],
+    emissivity: float | NDArray[np.floating],
     stefan_boltzmann: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate longwave emission using the Stefan Boltzmann law, [W m-2].
 
     According to the Stefan Boltzmann law, the amount of radiation emitted per unit time
@@ -246,12 +246,12 @@ def calculate_longwave_emission(
 
 
 def calculate_sensible_heat_flux(
-    density_air: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    surface_temperature: NDArray[np.float32],
-    aerodynamic_resistance: float | NDArray[np.float32],
-) -> NDArray[np.float32]:
+    density_air: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    surface_temperature: NDArray[np.floating],
+    aerodynamic_resistance: float | NDArray[np.floating],
+) -> NDArray[np.floating]:
     r"""Calculate sensible heat flux, [W m-2].
 
     The sensible heat flux :math:`H` is calculated using the following equation:
@@ -280,12 +280,12 @@ def calculate_sensible_heat_flux(
 
 
 def calculate_aerodynamic_resistance(
-    wind_heights: NDArray[np.float32],
-    roughness_length: NDArray[np.float32],
-    zero_plane_displacement: NDArray[np.float32],
-    friction_velocity: NDArray[np.float32],
+    wind_heights: NDArray[np.floating],
+    roughness_length: NDArray[np.floating],
+    zero_plane_displacement: NDArray[np.floating],
+    friction_velocity: NDArray[np.floating],
     von_karman_constant: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Calculate aerodynamic resistance in canopy, [s m-1].
 
     The aerodynamic resistance :math:`r_{a}` is calculated as:
@@ -327,14 +327,14 @@ def calculate_aerodynamic_resistance(
 
 
 def update_soil_temperature(
-    ground_heat_flux: NDArray[np.float32],
-    soil_temperature: NDArray[np.float32],
-    soil_layer_thickness: NDArray[np.float32],
-    soil_thermal_conductivity: float | NDArray[np.float32],
-    soil_bulk_density: float | NDArray[np.float32],
-    specific_heat_capacity_soil: float | NDArray[np.float32],
+    ground_heat_flux: NDArray[np.floating],
+    soil_temperature: NDArray[np.floating],
+    soil_layer_thickness: NDArray[np.floating],
+    soil_thermal_conductivity: float | NDArray[np.floating],
+    soil_bulk_density: float | NDArray[np.floating],
+    specific_heat_capacity_soil: float | NDArray[np.floating],
     time_interval: int,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Update soil temperature using heat diffusion.
 
     The function applies an explicit finite-difference approach to update
@@ -417,21 +417,21 @@ def update_soil_temperature(
 
 
 def calculate_energy_balance_residual(
-    canopy_temperature_initial: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    evapotranspiration: NDArray[np.float32],
-    absorbed_radiation_canopy: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    density_air: NDArray[np.float32],
-    density_water: float | NDArray[np.float32],
-    aerodynamic_resistance: NDArray[np.float32],
-    latent_heat_vapourisation: NDArray[np.float32],
+    canopy_temperature_initial: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    evapotranspiration: NDArray[np.floating],
+    absorbed_radiation_canopy: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    density_water: float | NDArray[np.floating],
+    aerodynamic_resistance: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
     leaf_emissivity: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
     seconds_to_day: float,
     return_fluxes: bool,
-) -> NDArray[np.float32] | dict[str, NDArray[np.float32]]:
+) -> NDArray[np.floating] | dict[str, NDArray[np.floating]]:
     r"""Calculate energy balance residual for canopy.
 
     The energy balance residual (:math:`\frac{dQ}{dt}`) for the canopy is given by:
@@ -516,22 +516,22 @@ def calculate_energy_balance_residual(
 
 
 def solve_canopy_temperature(
-    canopy_temperature_initial: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    evapotranspiration: NDArray[np.float32],
-    absorbed_radiation_canopy: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    density_air: NDArray[np.float32],
-    density_water: float | NDArray[np.float32],
-    aerodynamic_resistance: NDArray[np.float32],
-    latent_heat_vapourisation: NDArray[np.float32],
+    canopy_temperature_initial: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    evapotranspiration: NDArray[np.floating],
+    absorbed_radiation_canopy: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    density_water: float | NDArray[np.floating],
+    aerodynamic_resistance: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
     emissivity_leaf: float,
     stefan_boltzmann_constant: float,
     zero_Celsius: float,
     seconds_to_day: float,
     maxiter: int,
     return_fluxes: bool = False,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Solve for canopy temperature where energy balance residual is zero.
 
     The method linearizes the energy balance of the canopy and air temperature updates
@@ -603,7 +603,7 @@ def solve_canopy_temperature(
     """
 
     nrows, ncols = canopy_temperature_initial.shape
-    solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float32)
+    solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float64)
 
     if isinstance(density_water, float):
         density_water_array = np.full(solved_temperature.shape, density_water)
@@ -619,26 +619,26 @@ def solve_canopy_temperature(
                 # Call the residual function with a 1x1 array input
                 result = calculate_energy_balance_residual(
                     canopy_temperature_initial=np.array(
-                        [[canopy_temp_scalar]], dtype=np.float32
+                        [[canopy_temp_scalar]], dtype=np.float64
                     ),
                     air_temperature=np.array(
-                        [[air_temperature[i, j]]], dtype=np.float32
+                        [[air_temperature[i, j]]], dtype=np.float64
                     ),
                     evapotranspiration=np.array(
-                        [[evapotranspiration[i, j]]], dtype=np.float32
+                        [[evapotranspiration[i, j]]], dtype=np.float64
                     ),
                     absorbed_radiation_canopy=np.array(
-                        [[absorbed_radiation_canopy[i, j]]], dtype=np.float32
+                        [[absorbed_radiation_canopy[i, j]]], dtype=np.float64
                     ),
                     specific_heat_air=np.array(
-                        [[specific_heat_air[i, j]]], dtype=np.float32
+                        [[specific_heat_air[i, j]]], dtype=np.float64
                     ),
-                    density_air=np.array([[density_air[i, j]]], dtype=np.float32),
+                    density_air=np.array([[density_air[i, j]]], dtype=np.float64),
                     density_water=np.array(
-                        [[density_water_array[i, j]]], dtype=np.float32
+                        [[density_water_array[i, j]]], dtype=np.float64
                     ),
                     aerodynamic_resistance=np.array(
-                        [[aerodynamic_resistance[i, j]]], dtype=np.float32
+                        [[aerodynamic_resistance[i, j]]], dtype=np.float64
                     ),
                     latent_heat_vapourisation=latent_heat_vapourisation,
                     leaf_emissivity=emissivity_leaf,
@@ -682,14 +682,14 @@ def solve_canopy_temperature(
 
 
 def update_air_temperature(
-    canopy_temperature: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    density_air: NDArray[np.float32],
-    aerodynamic_resistance: float | NDArray[np.float32],
-    mixing_layer_thickness: NDArray[np.float32],
+    canopy_temperature: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    aerodynamic_resistance: float | NDArray[np.floating],
+    mixing_layer_thickness: NDArray[np.floating],
     time_interval: int,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
 
     The new air temperature :math:`T_{A}^{new}` is updated following
@@ -735,16 +735,16 @@ def update_air_temperature(
 
 
 def update_humidity_vpd(
-    evapotranspiration: NDArray[np.float32],
-    soil_evaporation: NDArray[np.float32],
-    saturated_vapour_pressure: NDArray[np.float32],
-    specific_humidity: NDArray[np.float32],
-    layer_thickness: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
+    evapotranspiration: NDArray[np.floating],
+    soil_evaporation: NDArray[np.floating],
+    saturated_vapour_pressure: NDArray[np.floating],
+    specific_humidity: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
 
     TODO at the moment we get 100% relative humididty and VPD=0, likely because the

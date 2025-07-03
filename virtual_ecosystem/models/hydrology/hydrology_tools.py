@@ -105,10 +105,10 @@ def setup_hydrology_input_current_timestep(
     days: int,
     seed: None | int,
     layer_structure: LayerStructure,
-    soil_layer_thickness_mm: NDArray[np.float32],
-    soil_moisture_saturation: float | NDArray[np.float32],
-    soil_moisture_residual: float | NDArray[np.float32],
-) -> dict[str, NDArray[np.float32]]:
+    soil_layer_thickness_mm: NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+) -> dict[str, NDArray[np.floating]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
 
     The hydrology model currently loops over 30 days per month. Atmospheric variables in
@@ -208,7 +208,7 @@ def setup_hydrology_input_current_timestep(
 def initialise_soil_moisture_mm(
     layer_structure: LayerStructure,
     initial_soil_moisture: float,
-    soil_layer_thickness: NDArray[np.float32],
+    soil_layer_thickness: NDArray[np.floating],
 ) -> DataArray:
     """Initialise soil moisture in mm.
 
@@ -238,9 +238,9 @@ def initialise_soil_moisture_mm(
 
 
 def calculate_psychrometric_constant(
-    atmospheric_pressure: NDArray[np.float32],
-    latent_heat_vapourization: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
+    atmospheric_pressure: NDArray[np.floating],
+    latent_heat_vapourization: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
 ):
     """Calculate the psychrometric constant.
@@ -263,7 +263,7 @@ def calculate_psychrometric_constant(
     )
 
 
-def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> None:
+def check_precipitation_surface(precipitation_surface: NDArray[np.floating]) -> None:
     """Check that precipitation at the surface is not negative.
 
     Args:
@@ -284,10 +284,10 @@ def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> N
 
 
 def calculate_effective_saturation(
-    soil_moisture: NDArray[np.float32],
-    soil_moisture_saturation: float | NDArray[np.float32],
-    soil_moisture_residual: float | NDArray[np.float32],
-) -> NDArray[np.float32]:
+    soil_moisture: NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Calculate the effective soil saturation based on the soil moisture.
 
     This is kept as a separate function because the soil model also needs to use this

@@ -211,17 +211,17 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
-        self.below_canopy_light_fraction: NDArray[np.float32]
+        self.below_canopy_light_fraction: NDArray[np.floating]
         """The fraction of light transmitted through the canopy."""
-        self.ground_incident_light_fraction: NDArray[np.float32]
+        self.ground_incident_light_fraction: NDArray[np.floating]
         """The fraction of light reaching the ground through the canopy and subcanopy
         vegetation."""
         self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
-        self.per_stem_gpp: dict[int, NDArray[np.float32]]
+        self.per_stem_gpp: dict[int, NDArray[np.floating]]
         """A dictionary keyed by cell id giving the GPP values over the course of a 
         model update for each stem within the cohorts in the community (µg C)."""
-        self.per_stem_transpiration: dict[int, NDArray[np.float32]]
+        self.per_stem_transpiration: dict[int, NDArray[np.floating]]
         """A dictionary keyed by cell id giving an array of per stem transpiration
         values in for each cohort in the cell community (mm H2O)"""
         self.pmodel: PModel
@@ -1097,8 +1097,8 @@ class PlantsModel(
         self.data["transpiration"] += subcanopy_transpiration
 
     def partition_reproductive_tissue(
-        self, reproductive_tissue_mass: NDArray[np.float64]
-    ) -> tuple[NDArray[np.int_], NDArray[np.float64]]:
+        self, reproductive_tissue_mass: NDArray[np.floating]
+    ) -> tuple[NDArray[np.int_], NDArray[np.floating]]:
         """Partition reproductive tissue into propagules and non-propagules.
 
         This function partitions the reproductive tissue of each cohort into
@@ -1120,8 +1120,8 @@ class PlantsModel(
         return n_propagules, non_propagule_mass
 
     def convert_to_litter_units(
-        self, input_mass: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+        self, input_mass: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
         """Helper function to convert plant quantities into litter model units.
 
         The plant model records the plant biomass in units of mass (kg) per grid square,
@@ -1139,8 +1139,8 @@ class PlantsModel(
         return input_mass / self.grid.cell_area
 
     def convert_to_soil_units(
-        self, input_mass: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+        self, input_mass: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
         """Helper function to convert plant quantities into soil model units.
 
         The plant model records the GPP allocations (summed over stems) in units of mass
