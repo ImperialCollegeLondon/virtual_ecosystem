@@ -818,7 +818,7 @@ class PlantsModel(
         turnover values.
         """
 
-        # First, initialize all turnover variables to 0 with the proper dimensions.
+        # Initialize all turnover variables to 0 with the proper dimensions.
         # Most variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
@@ -854,7 +854,7 @@ class PlantsModel(
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
 
-            # FIRST, ALLOCATE TO TURNOVER:
+            # ALLOCATE TO TURNOVER:
             # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
             # HACK: The current code prevents stems shrinking to zero and below. This is
@@ -938,11 +938,11 @@ class PlantsModel(
                     canopy_non_propagule_mass * cohort_n_stems
                 )
 
-            # SECOND: ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
+            # ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
             for stochiometry in stochiometries.values():
                 stochiometry.account_for_element_loss_turnover(stem_allocation)
 
-            # THIRD, ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
+            # ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
             # nutrient pathways
             self.data["root_carbohydrate_exudation"][cell_id] = (
