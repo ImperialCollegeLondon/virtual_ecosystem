@@ -10,7 +10,6 @@ from logging import CRITICAL, DEBUG, ERROR, INFO
 import pytest
 
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
-from virtual_ecosystem.main import ve_run
 
 from .conftest import log_check
 
@@ -164,6 +163,8 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
     names should not pass schema validation, but incorrect config data can still pass
     schema validation.
     """
+    from virtual_ecosystem.main import ve_run
+
     # TODO: Once models are adapted, this can be removed
     mocker.patch("virtual_ecosystem.core.variables.register_all_variables")
 
@@ -171,3 +172,49 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
         ve_run(cfg_strings=config_content)
 
     log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
+
+
+@pytest.mark.parametrize(
+    argnames="progress_value, output_length",
+    argvalues=(
+        pytest.param(0, 0, id="silent"),
+        pytest.param(1, 3, id="minimal"),
+        pytest.param(2, 9, id="staged"),
+        pytest.param(3, 11, id="full"),
+    ),
+)
+def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_length):
+    """Test the function that initialises the models.
+
+    The progress report is muted when the log is not written to file, so this writes the
+    log out to a temporary file.
+    """
+
+    from virtual_ecosystem.core import variables
+    from virtual_ecosystem.core.logger import remove_file_logger
+    from virtual_ecosystem.main import ve_run
+
+    # Need to remove any existing file log attached to LOGGER and clear the variables
+    # registry
+    remove_file_logger()
+    variables.KNOWN_VARIABLES.clear()
+
+    # Run ve_run with just a minimal TestingModel used and don't save any outputs
+    ve_run(
+        cfg_strings="""
+[core.data_output_options]
+save_initial_state = false
+save_continuous_data = false
+save_final_state = false
+save_merged_config = false
+[testing]
+""",
+        progress=progress_value,
+        logfile=tmp_path / "log.log",
+    )
+
+    out, err = capsys.readouterr()
+
+    assert len(err.splitlines()) == 0
+    output = [v for v in out.splitlines() if v]  # drop blank lines
+    assert len(output) == output_length

@@ -39,7 +39,6 @@ numpy = "^2.0"
 openpyxl = "^3.1.5"
 pint = "^0.24.1"
 pyrealm = {git = "https://github.com/ImperialCollegeLondon/pyrealm.git", branch = "develop"}
-# pyrealm = {version = "^2.0.0rc4", allow-prereleases = true}
 python = ">=3.10,<3.14"
 scipy = "^1.9.0"
 tomli = {version = "^2.0.1", python = "<3.11"}
@@ -73,7 +72,7 @@ mdformat_frontmatter = ">=0.4.1,<2.1.0"
 mdformat_tables = ">=0.4.1,<1.1.0"
 mypy = "^1.5.1"
 pre-commit = ">=3,<5"
-ruff = ">=0.9.1,<0.12.0"
+ruff = ">=0.9.1,<0.13.0"
 
 [tool.poetry.group.docs.dependencies]
 autodocsumm = "^0.2.8"

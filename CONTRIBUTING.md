@@ -8,9 +8,10 @@ To make contributing as seamless as possible, please note these developer guidel
 
 ## Development setup
 
-Further notes are available [here](source/docs/develop/developer_setup.md) but - once
-you have cloned the Virtual Ecosystem repository to your own machine - you will need to
-set up our development toolchain on your machine to contribute to the project.
+We provide a detailed description of the required [developer
+setup](source/docs/develop/developer_setup.md). In brief, once you have cloned the
+Virtual Ecosystem repository to your own machine, you will need to set up our
+development toolchain on your machine to contribute to the project.
 
 * We use [`poetry`](https://https://python-poetry.org/) to manage the package
   development. Once you have installed `poetry`, you can use `poetry install` within

@@ -31,6 +31,7 @@ from virtual_ecosystem.models.plants.canopy import (
 )
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
+from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
 
@@ -192,6 +193,7 @@ class PlantsModel(
         self,
         data: Data,
         core_components: CoreComponents,
+        exporter: CommunityDataExporter,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -200,8 +202,6 @@ class PlantsModel(
         The init function is used only to define class attributes. Any logic should be
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
-
-        super().__init__(data, core_components, static, **kwargs)
 
         self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
@@ -215,6 +215,10 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.stem_allocations: dict[int, StemAllocation]
+        """A dictionary giving the stem allocation of GPP for the community in each grid
+       cell. The dictionary is only populated by the update method - before that the
+       dictionary will be empty."""
         self.below_canopy_light_fraction: NDArray[np.float32]
         """The fraction of light transmitted through the canopy."""
         self.ground_incident_light_fraction: NDArray[np.float32]
@@ -238,6 +242,14 @@ class PlantsModel(
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
 
+        # Define and populate model specific attributes
+        self.exporter: CommunityDataExporter = exporter
+        """A CommunityDataExporter instance providing configuration and methods for
+        export of community data."""
+
+        # Run the base model __init__
+        super().__init__(data, core_components, static, **kwargs)
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -260,6 +272,9 @@ class PlantsModel(
         # Generate the flora
         flora = get_flora_from_config(config=config)
 
+        # Create a CommunityDataExporter instance from config
+        exporter = CommunityDataExporter.from_config(config=config)
+
         # Try and create the instance - safeguard against exceptions from __init__
         try:
             inst = cls(
@@ -268,6 +283,7 @@ class PlantsModel(
                 static=static,
                 flora=flora,
                 model_constants=model_constants,
+                exporter=exporter,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -365,6 +381,10 @@ class PlantsModel(
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
 
+        # Set the stem allocations to be an empty dictionary - this attribute is
+        # populated by the update method but not at setup.
+        self.stem_allocations = {}
+
         # TODO - #697 these need to be configurable
         self.pmodel_consts = PModelConst()
         self.pmodel_core_consts = CoreConst()
@@ -391,6 +411,14 @@ class PlantsModel(
         self.per_update_interval_propagule_recruitment_probability = 1 - (
             1 - model_constants.per_propagule_annual_recruitment_probability
         ) ** (1 / self.model_timing.updates_per_year)
+
+        # Run the community data exporter
+        self.exporter.dump(
+            communities=self.communities,
+            canopies=self.canopies,
+            stem_allocations=self.stem_allocations,
+            time=self.model_timing.start_time,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -439,6 +467,15 @@ class PlantsModel(
 
         # Calculate the subcanopy vegetation
         self.calculate_subcanopy_dynamics()
+
+        # Run the community data exporter
+        self.exporter.dump(
+            communities=self.communities,
+            canopies=self.canopies,
+            stem_allocations=self.stem_allocations,
+            time=self.model_timing.start_time
+            + time_index * self.model_timing.update_interval,
+        )
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -531,6 +568,14 @@ class PlantsModel(
 
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
+
+        # Update the below canopy light fraction
+        self.below_canopy_light_fraction = np.array(
+            [
+                cnpy.community_data.transmission_to_ground
+                for cnpy in self.canopies.values()
+            ]
+        )
 
         # Update the internal canopy layer mask
         self.filled_canopy_mask = np.logical_not(np.isnan(self.data["layer_leaf_mass"]))
@@ -651,6 +696,13 @@ class PlantsModel(
             # layers, whose dimensions vary between grid cells
             active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
 
+            # HACK? Need to consider empty cells - not done systematically at the moment
+            #       and there is an issue with identifying cells with a single canopy
+            #       layer. I think this line might be right to handle the empty cell,
+            #       but is currently a sticking plaster for wider problems.
+            if active_layers.size == 0:
+                continue
+
             # GPP for each later is estimated as (value, dimensions, units):
             #    LUE                (n_active_layers, 1)          [gC mol-1]
             #    * cohort fAPAR     (n_active_layers, n_cohorts)  [-]
@@ -696,7 +748,8 @@ class PlantsModel(
                 ),
                 core_const=self.pmodel_core_consts,
             )
-            # Calculate and store total stem transpiration in mm  per stem and total
+
+            # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
             self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
                 axis=0
@@ -761,12 +814,22 @@ class PlantsModel(
                 stem_allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
+            self.stem_allocations[cell_id] = stem_allocation
 
             # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            cohorts.dbh_values = (
-                cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
-            )
+            # HACK: The current code prevents stems shrinking to zero and below. This is
+            #       temporary until we fix what happens with stem shrinkage and carbon
+            #       starvation to something biological.
+            #
+            #       We could kill stems where the new D <=0 but adds loads of code and
+            #       for the moment we just want to avoid passing pyrealm negative sizes.
+            #       If the np.where is removed and this is set directly, then pyrealm
+            #       will detect D <= 0 and raise an exception.
+
+            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh
+            cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
+
             # Sum of turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = self.convert_to_litter_units(
                 input_mass=np.sum(
@@ -1081,6 +1144,7 @@ class PlantsModel(
         sub_canopy_fapar = self.below_canopy_light_fraction * (
             1 - subcanopy_light_transmission
         )
+
         self.ground_incident_light_fraction = (
             self.below_canopy_light_fraction * subcanopy_light_transmission
         )
@@ -1182,7 +1246,7 @@ class PlantsModel(
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule
-        )
+        ).astype(np.float64)
 
         return n_propagules, non_propagule_mass
 
