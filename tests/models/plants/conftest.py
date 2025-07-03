@@ -28,6 +28,20 @@ def fixture_plants_constants():
 
 
 @pytest.fixture
+def fixture_exporter(fixture_config):
+    """Construct a minimal CommunityDataExporter object.
+
+    This exporter uses the default setting active=False and so is not suitable for
+    testing actual exporting.
+    """
+    from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+
+    exporter = CommunityDataExporter.from_config(fixture_config)
+
+    return exporter
+
+
+@pytest.fixture
 def plants_data(fixture_core_components):
     """Construct a minimal data object with plant cohort data."""
     from virtual_ecosystem.core.data import Data
@@ -274,7 +288,11 @@ def fixture_canopy_layer_data(
 
 @pytest.fixture
 def fxt_plants_model(
-    plants_data, flora, fixture_core_components, fixture_plants_constants
+    plants_data,
+    flora,
+    fixture_core_components,
+    fixture_plants_constants,
+    fixture_exporter,
 ):
     """Return a simple PlantsModel instance."""
 
@@ -284,5 +302,6 @@ def fxt_plants_model(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        exporter=fixture_exporter,
         model_constants=fixture_plants_constants,
     )

@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -54,9 +54,8 @@ Explicitly represented microbes presents major data challenges, as soils are
 generally poorly characterised compared to the other constituent parts of terrestrial
 ecosystems.
 
-Most processes in the soil are effected by both the environmental temperature and the
-soil moisture. The specifics of how we have implemented these known effects are provided
-[here](./environmental_links.md).
+Most processes in the soil are additionally affected by both the [environmental
+temperature and the soil moisture](./environmental_links.md).
 
 :::{admonition} Future directions 🔭
 

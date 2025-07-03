@@ -29,6 +29,7 @@ from virtual_ecosystem.models.plants.canopy import (
 )
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
+from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
 
@@ -188,6 +189,7 @@ class PlantsModel(
         self,
         data: Data,
         core_components: CoreComponents,
+        exporter: CommunityDataExporter,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -196,8 +198,6 @@ class PlantsModel(
         The init function is used only to define class attributes. Any logic should be
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
-
-        super().__init__(data, core_components, static, **kwargs)
 
         self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
@@ -211,6 +211,10 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.stem_allocations: dict[int, StemAllocation]
+        """A dictionary giving the stem allocation of GPP for the community in each grid
+       cell. The dictionary is only populated by the update method - before that the
+       dictionary will be empty."""
         self.below_canopy_light_fraction: NDArray[np.floating]
         """The fraction of light transmitted through the canopy."""
         self.ground_incident_light_fraction: NDArray[np.floating]
@@ -234,6 +238,14 @@ class PlantsModel(
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
 
+        # Define and populate model specific attributes
+        self.exporter: CommunityDataExporter = exporter
+        """A CommunityDataExporter instance providing configuration and methods for
+        export of community data."""
+
+        # Run the base model __init__
+        super().__init__(data, core_components, static, **kwargs)
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -256,6 +268,9 @@ class PlantsModel(
         # Generate the flora
         flora = get_flora_from_config(config=config)
 
+        # Create a CommunityDataExporter instance from config
+        exporter = CommunityDataExporter.from_config(config=config)
+
         # Try and create the instance - safeguard against exceptions from __init__
         try:
             inst = cls(
@@ -264,6 +279,7 @@ class PlantsModel(
                 static=static,
                 flora=flora,
                 model_constants=model_constants,
+                exporter=exporter,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -336,6 +352,10 @@ class PlantsModel(
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
 
+        # Set the stem allocations to be an empty dictionary - this attribute is
+        # populated by the update method but not at setup.
+        self.stem_allocations = {}
+
         # TODO - #697 these need to be configurable
         self.pmodel_consts = PModelConst()
         self.pmodel_core_consts = CoreConst()
@@ -357,6 +377,14 @@ class PlantsModel(
         self.per_update_interval_stem_mortality_probability = 1 - (
             1 - model_constants.per_stem_annual_mortality_probability
         ) ** (1 / self.model_timing.updates_per_year)
+
+        # Run the community data exporter
+        self.exporter.dump(
+            communities=self.communities,
+            canopies=self.canopies,
+            stem_allocations=self.stem_allocations,
+            time=self.model_timing.start_time,
+        )
 
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
@@ -404,6 +432,15 @@ class PlantsModel(
 
         # Calculate the subcanopy vegetation
         self.calculate_subcanopy_dynamics()
+
+        # Run the community data exporter
+        self.exporter.dump(
+            communities=self.communities,
+            canopies=self.canopies,
+            stem_allocations=self.stem_allocations,
+            time=self.model_timing.start_time
+            + time_index * self.model_timing.update_interval,
+        )
 
     def cleanup(self) -> None:
         """Placeholder function for plants model cleanup."""
@@ -728,12 +765,13 @@ class PlantsModel(
             community = self.communities[cell_id]
             cohorts = community.cohorts
 
-            # Calculate the allocation of GPP per stem
+            # Calculate the allocation of GPP per stem and store it in the attribute
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
                 whole_crown_gpp=self.per_stem_gpp[cell_id],
             )
+            self.stem_allocations[cell_id] = stem_allocation
 
             # Grow the plants by increasing the stem dbh
             # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
