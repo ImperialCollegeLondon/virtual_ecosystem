@@ -180,7 +180,7 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
         pytest.param(0, 0, id="silent"),
         pytest.param(1, 3, id="minimal"),
         pytest.param(2, 9, id="staged"),
-        pytest.param(3, 12, id="full"),
+        pytest.param(3, 11, id="full"),
     ),
 )
 def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_length):
@@ -216,4 +216,5 @@ save_merged_config = false
     out, err = capsys.readouterr()
 
     assert len(err.splitlines()) == 0
-    assert len(out.splitlines()) == output_length
+    output = [v for v in out.splitlines() if v]  # drop blank lines
+    assert len(output) == output_length
