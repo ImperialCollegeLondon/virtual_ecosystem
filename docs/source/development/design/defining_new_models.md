@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -303,11 +303,11 @@ run from a set of configuration files, the model now needs to define two things:
 ### The model configuration schema
 
 The [JSONSchema](https://json-schema.org/) document in the module root directory defines
-the configuration options for the model. A detailed description of the configuration
-system works can be found [here](../../using_the_ve/configuration/config.md) but the
-schema definition is used to validate configuration files for a Virtual Ecosystem
-simulation that uses your model. Essentially, it defines all of the `__init__` arguments
-that are unique to your model.
+the configuration options for the model. We also provide a detailed description of [how
+the configuration system works](../../using_the_ve/configuration/config.md) but, in
+brief, the schema definition is used to validate configuration files for a Virtual
+Ecosystem simulation that uses your model. Essentially, it defines all of the `__init__`
+arguments that are unique to your model.
 
 Writing JSONSchema documents can be very tedious. The following tools may be of use:
 

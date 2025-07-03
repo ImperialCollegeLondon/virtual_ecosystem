@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -130,8 +130,8 @@ from plants than they actually consume (e.g. elephants with pull off entire bran
 from saplings and then eat only the easy to chew bits). This excess plant biomass gets
 added to the litter.
 
-The litter model does not track the decay of animal excrement or carcasses. This is
-because the animal model already models their decay (explained
-[here](../animals/carcasses_and_excrement.md)), tracking these within the litter model
-would essentially force them to decay twice. Instead the flow of decayed matter from
-carcasses and excrement flows straight from the animal model to the soil model.
+The litter model does not track the decay of animal excrement or carcasses. As the
+[animal model already models their decay](../animals/carcasses_and_excrement.md),
+tracking these within the litter model would essentially force them to decay twice.
+Instead the flow of decayed matter from carcasses and excrement flows straight from the
+animal model to the soil model.
