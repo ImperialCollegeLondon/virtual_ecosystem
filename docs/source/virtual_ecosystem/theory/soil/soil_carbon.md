@@ -205,7 +205,7 @@ therefore the default value for $K_s$ is small relative to $k_s$.
 
 ### Leaching of soil carbon
 
-[Leaching of nutrients]((./environmental_links.md#soil-nutrient-leaching-rate)) from the
+[Leaching of nutrients](./environmental_links.md#soil-nutrient-leaching-rate) from the
 soil occurs when water passing downwards through the soil carries dissolved nutrients
 away with it. By definition, any organic matter that is simple enough to solubilise is
 included in the {term}`LMWC` pool, so this is the only soil carbon pool to be affected
