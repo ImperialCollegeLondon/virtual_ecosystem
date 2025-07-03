@@ -125,7 +125,7 @@ def test_calculate_aerodynamic_resistance(
             1.2,
             1300.0,
             800.0,
-            3600,  # time_interval (1 hour)
+            3600.0,  # time_interval (1 hour)
             2,
             np.array(
                 [
@@ -150,7 +150,7 @@ def test_calculate_aerodynamic_resistance(
             np.repeat(1.2, 4),
             np.repeat(1300.0, 4),
             np.repeat(800.0, 4),
-            3600,  # time_interval (1 hour)
+            3600.0,  # time_interval (1 hour)
             5,
             np.array(
                 [

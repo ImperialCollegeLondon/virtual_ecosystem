@@ -220,10 +220,9 @@ def run_microclimate(
     # -------------------------------------------------------------------------
     # Soil energy balance
     # -------------------------------------------------------------------------
-    # Daily loop to ensure numerical stability
-    daily_time_interval = int(time_interval / core_constants.seconds_to_day)
-
-    for _ in range(daily_time_interval):
+    # Run hourly loop to ensure numerical stability
+    hourly_time_interval = int(time_interval / core_constants.seconds_to_hour)
+    for _ in range(hourly_time_interval):
         # Longwave emission from soil, [W m-2]
         longwave_emission_soil = energy_balance.calculate_longwave_emission(
             temperature=soil_temperature[0] + core_constants.zero_Celsius,
@@ -253,7 +252,7 @@ def run_microclimate(
             data["soil_evaporation"].to_numpy()
             * core_constants.density_water
             * latent_heat_vapourisation[-1]
-        ) / daily_time_interval
+        ) / core_constants.seconds_to_hour
 
         # Ground heat flux, [W m-2]
         ground_heat_flux = (
@@ -269,7 +268,7 @@ def run_microclimate(
             soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
             soil_bulk_density=abiotic_constants.bulk_density_soil,
             specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
-            time_interval=daily_time_interval,
+            time_interval=core_constants.seconds_to_hour,
         )
     new_soil_temperature = soil_temperature
 
