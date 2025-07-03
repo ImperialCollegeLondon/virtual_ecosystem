@@ -106,7 +106,7 @@ def setup_hydrology_input_current_timestep(
     seed: None | int,
     layer_structure: LayerStructure,
     soil_layer_thickness_mm: NDArray[np.float32],
-    soil_moisture_capacity: float | NDArray[np.float32],
+    soil_moisture_saturation: float | NDArray[np.float32],
     soil_moisture_residual: float | NDArray[np.float32],
 ) -> dict[str, NDArray[np.float32]]:
     """Select and pre-process inputs for hydrology.update() for current time step.
@@ -133,7 +133,7 @@ def setup_hydrology_input_current_timestep(
     * current_precipitation
     * current_transpiration
     * current_soil_moisture
-    * top_soil_moisture_capacity
+    * top_soil_moisture_saturation
     * top_soil_moisture_residual
     * previous_accumulated_runoff
     * previous_subsurface_flow_accumulated
@@ -147,7 +147,7 @@ def setup_hydrology_input_current_timestep(
         seed: Seed for random rainfall generator
         layer_structure: The LayerStructure instance for a simulation.
         soil_layer_thickness_mm: The thickness of the soil layer, [mm]
-        soil_moisture_capacity: Soil moisture capacity, unitless
+        soil_moisture_saturation: Soil moisture saturation, unitless
         soil_moisture_residual: Soil moisture residual, unitless
 
     Returns:
@@ -183,8 +183,8 @@ def setup_hydrology_input_current_timestep(
     )
 
     # Select soil variables
-    output["top_soil_moisture_capacity"] = (
-        soil_moisture_capacity * soil_layer_thickness_mm[0]
+    output["top_soil_moisture_saturation"] = (
+        soil_moisture_saturation * soil_layer_thickness_mm[0]
     )
     output["top_soil_moisture_residual"] = (
         soil_moisture_residual * soil_layer_thickness_mm[0]
@@ -281,3 +281,27 @@ def check_precipitation_surface(precipitation_surface: NDArray[np.float32]) -> N
             "Surface precipitation should not be negative! Consider checking that the"
             " canopy water balance is correct."
         )
+
+
+def calculate_effective_saturation(
+    soil_moisture: NDArray[np.float32],
+    soil_moisture_saturation: float | NDArray[np.float32],
+    soil_moisture_residual: float | NDArray[np.float32],
+) -> NDArray[np.float32]:
+    """Calculate the effective soil saturation based on the soil moisture.
+
+    This is kept as a separate function because the soil model also needs to use this
+    quantity.
+
+    Args:
+        soil_moisture: Volumetric relative water content in top soil, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
+        soil_moisture_residual: Residual soil moisture, [unitless]
+
+    Returns:
+        The :term:`effective saturation` of the soil [unitless]
+    """
+
+    return (soil_moisture - soil_moisture_residual) / (
+        soil_moisture_saturation - soil_moisture_residual
+    )

@@ -32,7 +32,7 @@ def test_initialise_absorbed_radiation(dummy_climate_data, fixture_core_componen
         light_extinction_coefficient=0.01,
     )
 
-    exp_result = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
+    exp_result = np.array([[0.49975] * 4, [0.499251] * 4, [0.498752] * 4])
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
@@ -81,7 +81,7 @@ def test_initialise_canopy_and_soil_fluxes(dummy_climate_data, fixture_core_comp
         initial_flux_value=0.001,
     )
 
-    exp_abs = np.array([[0.09995] * 4, [0.09985] * 4, [0.09975] * 4])
+    exp_abs = np.array([[0.49975] * 4, [0.499251] * 4, [0.498752] * 4])
 
     for var in [
         "canopy_temperature",
@@ -112,7 +112,7 @@ def test_calculate_longwave_emission():
         emissivity=AbioticConsts.soil_emissivity,
         stefan_boltzmann=CoreConsts.stefan_boltzmann_constant,
     )
-    np.testing.assert_allclose(result, np.repeat(320.84384, 3), rtol=1e-04, atol=1e-04)
+    np.testing.assert_allclose(result, np.repeat(381.002069, 3), rtol=1e-04, atol=1e-04)
 
 
 def test_calculate_sensible_heat_flux(
@@ -146,49 +146,6 @@ def test_calculate_sensible_heat_flux(
 
     # Assert all elements are close
     np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
-
-
-@pytest.mark.parametrize(
-    "incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected",
-    [
-        # Test case 1: Typical inputs
-        (
-            np.array([400.0, 500.0, 600.0], dtype=np.float32),
-            np.array([100.0, 150.0, 200.0], dtype=np.float32),
-            np.array([50.0, 75.0, 100.0], dtype=np.float32),
-            0.2,
-            np.array([170.0, 175.0, 180.0], dtype=np.float32),
-        ),
-        # Test case 2: Edge case with zero values
-        (
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-            0.0,
-            np.array([0.0, 0.0, 0.0], dtype=np.float32),
-        ),
-        # Test case 3: Nighttime condition with negative incoming radiation
-        (
-            np.array([-200.0, -150.0, -100.0], dtype=np.float32),
-            np.array([50.0, 75.0, 100.0], dtype=np.float32),
-            np.array([20.0, 30.0, 40.0], dtype=np.float32),
-            0.1,
-            np.array([-250.0, -240.0, -230.0], dtype=np.float32),
-        ),
-    ],
-)
-def test_calculate_net_radiation(
-    incoming_radiation, absorbed_radiation, longwave_emission, albedo, expected
-):
-    """Test net radiation."""
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_net_radiation,
-    )
-
-    result = calculate_net_radiation(
-        incoming_radiation, absorbed_radiation, longwave_emission, albedo
-    )
-    np.testing.assert_allclose(result, expected, rtol=1e-5)
 
 
 def test_calculate_aerodynamic_resistance(
@@ -290,46 +247,149 @@ def test_update_soil_temperature(g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_te
     np.testing.assert_allclose(updated_temperature, exp_temp, rtol=1e-4, atol=1e-4)
 
 
-def test_update_air_canopy_temperature():
+def test_energy_balance_residual_only(dummy_climate_data, fixture_core_components):
+    """Test energy balance residual without flux return."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_energy_balance_residual,
+    )
+
+    data = dummy_climate_data
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    result = calculate_energy_balance_residual(
+        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
+        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        density_water=np.full_like(data["density_air"][canopy_index], 1000),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        latent_heat_vapourisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        leaf_emissivity=AbioticConsts.leaf_emissivity,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
+        seconds_to_day=CoreConsts.seconds_to_day,
+        return_fluxes=False,
+    )
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (3, 4)
+    assert np.isfinite(result[0, 0])
+
+
+def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_components):
+    """Test energy balance residual with flux return."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_energy_balance_residual,
+    )
+
+    data = dummy_climate_data
+
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+    result = calculate_energy_balance_residual(
+        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
+        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy(),
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        density_water=np.full_like(data["density_air"][canopy_index], 1000),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        latent_heat_vapourisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        leaf_emissivity=AbioticConsts.leaf_emissivity,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
+        seconds_to_day=CoreConsts.seconds_to_day,
+        return_fluxes=True,
+    )
+
+    assert isinstance(result, dict)
+    expected_keys = {
+        "longwave_emission_canopy",
+        "sensible_heat_flux_canopy",
+        "latent_heat_flux_canopy",
+        "energy_balance_residual",
+    }
+    assert set(result.keys()) == expected_keys
+    for key in expected_keys:
+        assert isinstance(result[key], np.ndarray)
+        assert result[key].shape == (3, 4)
+
+
+def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
+    """Test solving canopy temperature with Newton method."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        solve_canopy_temperature,
+    )
+
+    data = dummy_climate_data
+    canopy_index = fixture_core_components.layer_structure.index_filled_canopy
+
+    evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
+    result = solve_canopy_temperature(
+        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
+        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+        evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 30,
+        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+        density_air=data["density_air"][canopy_index].to_numpy(),
+        density_water=1000.0,
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
+            canopy_index
+        ].to_numpy(),
+        latent_heat_vapourisation=data["latent_heat_vapourisation"][
+            canopy_index
+        ].to_numpy(),
+        emissivity_leaf=0.96,
+        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        zero_Celsius=CoreConsts.zero_Celsius,
+        seconds_to_day=86400,
+        return_fluxes=False,
+        maxiter=100,
+    )
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == data["canopy_temperature"][canopy_index].shape
+    assert np.all((result > -50) & (result < 80))  # plausible range for °C
+
+
+def test_update_air_temperature():
     """Test update air and canopy temperatures."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        update_air_canopy_temperature,
+        update_air_temperature,
     )
 
-    # Test inputs (2D arrays for layers and grid cells)
-    absorbed_radiation_canopy = np.array([[290.0, 340.0], [390.0, 440.0]])
-    longwave_emission_canopy = np.array([[100.0, 100.0], [100.0, 100.0]])
-    sensible_heat_flux_canopy = np.array([[-50.0, -60.0], [-70.0, -80.0]])
-    latent_heat_flux_canopy = np.array([[-30.0, -40.0], [-50.0, -60.0]])
-    air_temperature = np.array([[300.0, 295.0], [290.0, 285.0]])
-    canopy_temperature = np.array([[305.0, 300.0], [295.0, 290.0]])
+    air_temperature = np.array([[30.0, 25.0], [28.0, 23.0]])
+    canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
 
     # Expected outputs
-    expected_canopy_temperature = np.array(
-        [[357.378642, 369.30703], [382.892166, 398.304809]]
-    )
-    expected_air_temperature = np.array([[300.5, 295.5], [290.5, 285.5]])
+    expected_air_temperature = np.array([[30.6, 25.6], [29.2, 24.2]])
 
     # Call the function
-    updated_canopy_temperature, updated_air_temperature = update_air_canopy_temperature(
-        absorbed_radiation_canopy=absorbed_radiation_canopy,
-        longwave_emission_canopy=longwave_emission_canopy,
-        sensible_heat_flux_canopy=sensible_heat_flux_canopy,
-        latent_heat_flux_canopy=latent_heat_flux_canopy,
+    updated_air_temperature = update_air_temperature(
         air_temperature=air_temperature,
         canopy_temperature=canopy_temperature,
-        emissivity_leaf=0.8,
-        specific_heat_air=np.full((2, 2), 1.006),
+        specific_heat_air=np.full((2, 2), 1006),
         density_air=np.full((2, 2), 1.293),
-        aerodynamic_resistance=np.full((2, 2), 200.0),
-        relaxation_factor=0.1,
-        stefan_boltzmann_constant=CoreConsts.stefan_boltzmann_constant,
+        aerodynamic_resistance=np.full((2, 2), 10.0),
+        mixing_layer_thickness=np.full((2, 2), 10),
+        time_interval=60,
     )
 
-    # Assertions
-    np.testing.assert_allclose(
-        updated_canopy_temperature, expected_canopy_temperature, rtol=1e-4
-    )
     np.testing.assert_allclose(
         updated_air_temperature, expected_air_temperature, rtol=1e-4
     )

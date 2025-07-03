@@ -6,6 +6,10 @@ matric potential, groundwater storage, and subsurface horizontal flow.
 import numpy as np
 from numpy.typing import NDArray
 
+from virtual_ecosystem.models.hydrology.hydrology_tools import (
+    calculate_effective_saturation,
+)
+
 
 def calculate_vertical_flow(
     soil_moisture: NDArray[np.float32],
@@ -92,9 +96,10 @@ def calculate_vertical_flow(
     shape_parameter = 1 - 1 / van_genuchten_nonlinearily_parameter
 
     # Calculate soil effective saturation in rel. vol. water content for each layer:
-    # TODO make this function a tool
-    effective_saturation = (soil_moisture - soil_moisture_residual) / (
-        soil_moisture_saturation - soil_moisture_residual
+    effective_saturation = calculate_effective_saturation(
+        soil_moisture=soil_moisture,
+        soil_moisture_saturation=soil_moisture_saturation,
+        soil_moisture_residual=soil_moisture_residual,
     )
 
     # Calculate matric potential for each grid point and depth
@@ -150,7 +155,7 @@ def update_soil_moisture(
     soil_moisture: NDArray[np.float32],
     vertical_flow: NDArray[np.float32],
     transpiration: NDArray[np.float32],
-    soil_moisture_capacity: NDArray[np.float32],
+    soil_moisture_saturation: NDArray[np.float32],
     soil_moisture_residual: NDArray[np.float32],
 ) -> NDArray[np.float32]:
     """Update soil moisture profile.
@@ -164,7 +169,7 @@ def update_soil_moisture(
         soil_moisture: Soil moisture after infiltration and surface evaporation, [mm]
         vertical_flow: Vertical flow between all layers, [mm]
         transpiration: Canopy transpiration, [mm]
-        soil_moisture_capacity: Soil moisture capacity for each layer, [mm]
+        soil_moisture_saturation: Soil moisture saturation for each layer, [mm]
         soil_moisture_residual: Residual soil moisture for each layer, [mm]
 
     Returns:
@@ -175,7 +180,7 @@ def update_soil_moisture(
     top_soil_moisture = np.clip(
         soil_moisture[0] - vertical_flow[0],
         soil_moisture_residual[0],
-        soil_moisture_capacity[0],
+        soil_moisture_saturation[0],
     )
 
     # Add topsoil vertical flow to layer below and remove that layers flow as well as
@@ -183,7 +188,7 @@ def update_soil_moisture(
     root_soil_moisture = np.clip(
         soil_moisture[1] + vertical_flow[0] - vertical_flow[1] - transpiration,
         soil_moisture_residual[1],
-        soil_moisture_capacity[1],
+        soil_moisture_saturation[1],
     )
 
     # For all further soil layers, add the vertical flow from the layer above, remove
@@ -196,7 +201,7 @@ def update_soil_moisture(
             np.clip(
                 (soil_moisture[i + 1] + vertical_flow[i] - vertical_flow[i + 1]),
                 soil_moisture_residual[i + 1],
-                soil_moisture_capacity[i + 1],
+                soil_moisture_saturation[i + 1],
             )
             for sm, vf in zip(
                 soil_moisture[2:],

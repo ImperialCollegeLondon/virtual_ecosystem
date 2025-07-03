@@ -113,7 +113,7 @@ def test_calculate_soil_evaporation(dens_air, latvap):
         atmospheric_pressure=np.array([101.0, 101.0, 101.0]),
         soil_moisture=np.array([1.0, 2.0, 5.0]),
         soil_moisture_residual=0.1,
-        soil_moisture_capacity=0.9,
+        soil_moisture_saturation=0.9,
         leaf_area_index=np.array([3.0, 4.0, 5.0]),
         density_air=dens_air,
         latent_heat_vapourisation=latvap,
@@ -361,7 +361,7 @@ def test_calculate_surface_runoff():
     result = calculate_surface_runoff(
         precipitation_surface=np.array([100, 200, 300]),
         top_soil_moisture=np.array([150, 150, 150]),
-        top_soil_moisture_capacity=np.array([200, 400, 400]),
+        top_soil_moisture_saturation=np.array([200, 400, 400]),
     )
 
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

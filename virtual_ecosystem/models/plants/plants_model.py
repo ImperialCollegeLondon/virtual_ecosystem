@@ -11,6 +11,7 @@ import numpy as np
 import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
+from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
@@ -221,14 +222,19 @@ class PlantsModel(
         a shorter reference to self.layer_structure.index_canopy."""
         self.canopies: dict[int, Canopy]
         """A dictionary giving the canopy structure of each grid cell."""
+        self.below_canopy_light_fraction: NDArray[np.float32]
+        """The fraction of light transmitted through the canopy."""
+        self.ground_incident_light_fraction: NDArray[np.float32]
+        """The fraction of light reaching the ground through the canopy and subcanopy
+        vegetation."""
         self.filled_canopy_mask: NDArray[np.bool_]
         """A boolean array showing which layers contain canopy by cell."""
         self.per_stem_gpp: dict[int, NDArray[np.float32]]
-        """A dictionary keyed by cell id giving an array of per stem GPP values for each
-        cohort in the community."""
+        """A dictionary keyed by cell id giving the GPP values over the course of a 
+        model update for each stem within the cohorts in the community (µg C)."""
         self.per_stem_transpiration: dict[int, NDArray[np.float32]]
         """A dictionary keyed by cell id giving an array of per stem transpiration
-        values for each cohort in the cell community"""
+        values in for each cohort in the cell community (mm H2O)"""
         self.pmodel: PModel
         """A P Model instance providing estimates of light use efficiency through the
         canopy and across cells."""
@@ -496,6 +502,10 @@ class PlantsModel(
         """
 
         # Update the canopy layers
+        self.canopies = calculate_canopies(
+            communities=self.communities,
+            max_canopy_layers=self.layer_structure.n_canopy_layers,
+        )
         self.update_canopy_layers()
         self.set_subcanopy_light_capture()
         self.set_shortwave_absorption(time_index=time_index)
@@ -567,21 +577,29 @@ class PlantsModel(
 
             # Insert canopy fapar:
             # TODO - #695 currently 1D, not 2D - consistency in pyrealm? keepdims?
-            fapar[fill_idx] = canopy.community_data.fapar.reshape((-1, 1))
+            fapar[fill_idx] = canopy.community_data.average_layer_fapar[:, None]
 
-            # Partition the total stem foliage masses across cohorts vertically
-            # following the leaf area within each layer.
-            # TODO - need to expose the per cohort data to allow selective herbivory. Do
-            #        we need the total leaf mass per layer for anything?
-            leaf_mass_per_cohort_per_layer = (
-                community.stem_allometry.foliage_mass
-                * community.cohorts.n_individuals
-                * (canopy.cohort_data.lai / canopy.cohort_data.lai.sum(axis=0))
-            )
-            mass[fill_idx] = leaf_mass_per_cohort_per_layer.sum(axis=1, keepdims=True)
+            # Calculate the per stem leaf mass  as (stem leaf area * (1/sigma) * L) and
+            # then scale up to the number of individuals and sum across cohorts to give
+            # a total mass per layer within the cell.
+            # TODO - need to expose the per cohort data to allow selective herbivory.
+            # BUG  - The calculation here needs to be robust to no plants being present
+            #        in a cell. At the moment, even with plants present, the scaling of
+            #        the model is resulting in cohort total LAI of zero, which gives
+            #        zero division and hence np.nan in the expected leaf mass per cohort
+            #        per layer, which then breaks the setting of the filled layer mask.
+            #        But with actually no plants present, the code still needs to work.
 
-            # LAI - add up LAI across cohorts within layers
-            lai[fill_idx] = canopy.cohort_data.lai.sum(axis=1, keepdims=True)
+            cohort_leaf_mass_per_layer = (
+                canopy.cohort_data.stem_leaf_area
+                * (1 / community.stem_traits.sla)
+                * community.stem_traits.lai
+            ) * community.cohorts.n_individuals
+
+            mass[fill_idx] = cohort_leaf_mass_per_layer.sum(axis=1, keepdims=True)
+
+            # LAI - insert community average LAI values from light capture model
+            lai[fill_idx] = canopy.community_data.average_layer_lai[:, None]
 
         # Insert the canopy layers into the data objects
         self.data["layer_heights"][self._canopy_layer_indices, :] = heights
@@ -596,6 +614,14 @@ class PlantsModel(
 
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
+
+        # Update the below canopy light fraction
+        self.below_canopy_light_fraction = np.array(
+            [
+                cnpy.community_data.transmission_to_ground
+                for cnpy in self.canopies.values()
+            ]
+        )
 
         # Update the internal canopy layer mask
         self.filled_canopy_mask = np.logical_not(np.isnan(self.data["layer_leaf_mass"]))
@@ -630,7 +656,7 @@ class PlantsModel(
 
         # Add the remaining irradiance at the surface layer level
         absorbed_irradiance[self.layer_structure.index_topsoil] = (
-            canopy_top_swd - np.nansum(absorbed_irradiance, axis=0)
+            canopy_top_swd * self.ground_incident_light_fraction
         )
 
         self.data["shortwave_absorption"] = absorbed_irradiance
@@ -646,11 +672,10 @@ class PlantsModel(
         # Estimate the light use efficiency of leaves within each canopy layer within
         # each grid cell. The LUE is set purely by the environmental conditions, which
         # are shared across cohorts so we can calculate all layers in all cells.
-        # Some unit conversion needed - PATM and VPD in kPa to Pa.
         pmodel_env = PModelEnvironment(
             tc=self.data["air_temperature"].to_numpy(),
-            vpd=self.data["vapour_pressure_deficit"].to_numpy() * 1000,
-            patm=self.data["atmospheric_pressure"].to_numpy() * 1000,
+            vpd=self.data["vapour_pressure_deficit"].to_numpy(),
+            patm=self.data["atmospheric_pressure"].to_numpy(),
             co2=self.data["atmospheric_co2"].to_numpy(),
             core_const=self.pmodel_core_consts,
             pmodel_const=self.pmodel_consts,
@@ -717,54 +742,68 @@ class PlantsModel(
             # layers, whose dimensions vary between grid cells
             active_layers = np.where(self.filled_canopy_mask[:, cell_id])[0]
 
-            # GPP is estimated as:
-            #    LUE * per stem per layer fAPAR * the canopy top PPFD.
-            # Dimensions:
-            #    (n_active_layers, 1) * (n_active_layers, n_cohorts) * scalar
-            #    = (n_active_layers, n_cohorts)
+            # HACK? Need to consider empty cells - not done systematically at the moment
+            #       and there is an issue with identifying cells with a single canopy
+            #       layer. I think this line might be right to handle the empty cell,
+            #       but is currently a sticking plaster for wider problems.
+            if active_layers.size == 0:
+                continue
+
+            # GPP for each later is estimated as (value, dimensions, units):
+            #    LUE                (n_active_layers, 1)          [gC mol-1]
+            #    * cohort fAPAR     (n_active_layers, n_cohorts)  [-]
+            #    * canopy top PPFD  scalar                        [µmol m-2 s-1]
+            #    * stem leaf area   (n_active_layers, n_cohorts)  [m2]
+            #    * time elapsed     scalar                        [s]
             # Units:
-            #    gC mol-1  * µmol m-2 s-1 * (-) = µg m-2 s-1
-            per_stem_gpp_rate = (
-                self.pmodel.lue[active_layers, :][:, [cell_id]]
-                * canopy.cohort_data.stem_fapar
-                * canopy_top_ppfd[cell_id]
+            #    g C mol-1 * (-) * µmol m-2 s-1 * m2 * s = µg C
+
+            per_layer_gpp = (
+                self.pmodel.lue[active_layers, :][:, [cell_id]]  # gC mol-1
+                * canopy.cohort_data.fapar  # unitless
+                * canopy_top_ppfd[cell_id]  # µmol m-1 s-1
+                * canopy.cohort_data.stem_leaf_area  # m2
+                * self.model_timing.update_interval_seconds  # second
             )
 
-            # The transpiration associated with that GPP is then:
-            #    (GPP / (Mc * 1e6)) * iwue
-            # Dimensions:
-            #    ((n_layer, n_cohorts) / scalar) * (n_layer, 1)
+            # Calculate and store whole stem GPP in kg C
+            self.per_stem_gpp[cell_id] = per_layer_gpp.sum(axis=0) * 1e-9
+
+            # The per layer transpiration associated with that GPP then needs GPP in
+            # moles of Carbon  (GPP in µg C / (Molar mass carbon * 1e6))):
+            #   GPP in mols   (n_layer, n_cohorts)  [mol C]
+            #   * IWUE        (n_layer, 1)          [µmol mol -1]
             # Units:
-            #    ((µgC m-2 s-1) / (µg mol-1)) * µmol mol -1 = µmol m2 s-1
-            per_stem_transpiration_rate = (
-                per_stem_gpp_rate / (self.pmodel_core_consts.k_c_molmass * 1e6)
+            #    mol C  * µmol H2O mol C -1 = µmol H2O
+            per_layer_transpiration_micromolar = (
+                per_layer_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
             ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
 
-            # Now scale up and aggregate those values
+            # Convert to mm
+            per_layer_transpiration_mm = convert_water_moles_to_mm(
+                water_moles=per_layer_transpiration_micromolar * 1e-6,
+                tc=np.repeat(
+                    self.pmodel.env.tc[active_layers, :][:, [cell_id]],
+                    canopy.n_cohorts,
+                    axis=1,
+                ),
+                patm=np.repeat(
+                    self.pmodel.env.patm[active_layers, :][:, [cell_id]],
+                    canopy.n_cohorts,
+                    axis=1,
+                ),
+                core_const=self.pmodel_core_consts,
+            )
 
-            # Per stem GPP since last update: sum GPP *  whole stem leaf area
-            # and scale by elapsed time in seconds
-            self.per_stem_gpp[cell_id] = (
-                per_stem_gpp_rate
-                * canopy.cohort_data.stem_leaf_area
-                * self.model_timing.update_interval_seconds
-            ).sum(axis=0)
+            # Calculate and store total stem transpiration in mm  per stem and total
+            # grid cell transpiration in mm m-2 since last update
+            self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
+                axis=0
+            )
 
-            # Calculate total stem transpiration in µmol per stem and total grid cell
-            # transpiration in mm m-2 since last update
-            self.per_stem_transpiration[cell_id] = (
-                per_stem_transpiration_rate
-                * canopy.cohort_data.stem_leaf_area
-                * self.model_timing.update_interval_seconds
-            ).sum(axis=0)
-
-            # Calculate the total transpiration per layer in mm m2 in mm, converted from
-            # an initial value is in µmol m2 s1
+            # Calculate the total transpiration per layer in m2 in mm
             transpiration[active_layers, cell_id] = (
-                community.cohorts.n_individuals
-                * per_stem_transpiration_rate
-                * self.model_timing.update_interval_seconds
-                * 1.8e-8
+                community.cohorts.n_individuals * per_layer_transpiration_mm
             ).sum(axis=1)
 
         # Pass values to data object
@@ -816,6 +855,20 @@ class PlantsModel(
             )
 
             # FIRST, ALLOCATE TO TURNOVER:
+            # Grow the plants by increasing the stem dbh
+            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
+            # HACK: The current code prevents stems shrinking to zero and below. This is
+            #       temporary until we fix what happens with stem shrinkage and carbon
+            #       starvation to something biological.
+            #
+            #       We could kill stems where the new D <=0 but adds loads of code and
+            #       for the moment we just want to avoid passing pyrealm negative sizes.
+            #       If the np.where is removed and this is set directly, then pyrealm
+            #       will detect D <= 0 and raise an exception.
+
+            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh
+            cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
+
             # Sum of turnover from all cohorts in a grid cell
             self.data["leaf_turnover"][cell_id] = self.convert_to_litter_units(
                 input_mass=np.sum(
@@ -1159,14 +1212,21 @@ class PlantsModel(
             * self.model_constants.subcanopy_specific_leaf_area
         )
 
-        # Beer-Lambert transmission
-        subcanopy_transmission = np.exp(
+        # Beer-Lambert transmission - note that this is 1 when there is no biomass and
+        # so no light is absorbed by the vegetation and all of the subcanopy light
+        # reaches the ground.
+        subcanopy_light_transmission = np.exp(
             -self.model_constants.subcanopy_extinction_coef * subcanopy_lai
         )
 
-        # fAPAR of remaining subcanopy light
-        sub_canopy_fapar = (1 - self.data["layer_fapar"].sum(axis=0)) * (
-            1 - subcanopy_transmission
+        # Absorb a fraction of the below canopy light and pass the rest on to the ground
+        # incident light fraction
+        sub_canopy_fapar = self.below_canopy_light_fraction * (
+            1 - subcanopy_light_transmission
+        )
+
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * subcanopy_light_transmission
         )
 
         # Store those values
@@ -1266,7 +1326,7 @@ class PlantsModel(
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule
-        )
+        ).astype(np.integer)
 
         return n_propagules, non_propagule_mass
 
