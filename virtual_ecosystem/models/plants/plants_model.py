@@ -965,11 +965,6 @@ class PlantsModel(
                 )
             )
 
-            # FOURTH, ALLOCATE TO GROWTH:
-            # Grow the plants by increasing the stem dbh
-            # TODO: dimension mismatch (1d vs 2d array) - check in pyrealm
-            cohorts.dbh_values = cohorts.dbh_values + stem_allocation.delta_dbh
-
             # Subtract the N/P required from growth from the element store, and
             # redistribute it to the individual tissues.
             for stochiometry in stochiometries.values():
