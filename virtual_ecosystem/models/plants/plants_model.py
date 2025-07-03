@@ -827,7 +827,7 @@ class PlantsModel(
             #       If the np.where is removed and this is set directly, then pyrealm
             #       will detect D <= 0 and raise an exception.
 
-            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh
+            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
             # Sum of turnover from all cohorts in a grid cell
@@ -966,45 +966,42 @@ class PlantsModel(
         recruitment rate across all plant functional types.
         """
 
-        # Get the PFR sequence in the data.
+        # Get the sequence of PFT names in the data array
         pft_sequence = self.data["plant_pft_propagules"]["pft"].to_numpy()
 
+        # Get recruitment across all cells
+        # TODO - swap out p with a per PFT trait array.
+        recruitment = np.random.binomial(
+            n=self.data["plant_pft_propagules"],
+            p=self.per_update_interval_propagule_recruitment_probability,
+        )
+
+        # Remove recruitment from propagule pool.
+        self.data["plant_pft_propagules"] -= recruitment
+
         # Loop over each grid cell
-        for cell_id in self.communities.keys():
-            # Calculate the number of individuals recruited
-            recruitment = np.random.binomial(
-                self.data["plant_pft_propagules"][cell_id],
-                self.per_update_interval_propagule_recruitment_probability,
-            )
+        for cell_id, community in self.communities.items():
+            # Which PFTs have any recruitment in this community
+            recruiting_pfts = recruitment[cell_id, :] > 0
 
-            # Check to see if there is any recruitment.
-            if recruitment.sum() > 0:
-                # Decrease number of propagules by recruitment
-                self.data["plant_pft_propagules"][cell_id] -= recruitment
-
-                # Weed out PFTs with no recruitment to generate a Cohorts object
-                pfts_with_recruitment = [
-                    (pft, r) for pft, r in zip(pft_sequence, recruitment) if r > 0
-                ]
-                new_pfts, new_n_indiv = zip(*pfts_with_recruitment)
-
-                # Initial DBH values
-                # TODO - We need to allocate the seed mass to growing a tiny tree.
-                #        Probably that would be by using StemAllocation with an initial
-                #        value of zero and a potential GPP equal to the seed mass, but
-                #        the equations aren't defined for DBH=0. Not sure how to self
-                #        start these, so using a 2mm DBH
-                new_dbh_values = np.repeat(0.002, len(new_pfts))
+            # If there is any recruitment, create a new set of Cohorts with a rubbish
+            # guess at initial DBH values.
+            #
+            # TODO - We need to allocate the seed mass to growing a tiny tree.
+            #        Probably that would be by using StemAllocation with an initial
+            #        value of zero and a potential GPP equal to the seed mass, but
+            #        the equations aren't defined for DBH=0. Not sure how to self
+            #        start these, so using a 2mm DBH. Need a DBH given mass solver.
+            n_recruiting = recruiting_pfts.sum()
+            if n_recruiting:
+                cohorts = Cohorts(
+                    n_individuals=recruitment[cell_id, recruiting_pfts],
+                    pft_names=pft_sequence[recruiting_pfts],
+                    dbh_values=np.repeat(0.002, n_recruiting),
+                )
 
                 # Add recruited cohorts
-                community = self.communities[cell_id]
-                community.add_cohorts(
-                    new_data=Cohorts(
-                        n_individuals=np.array(new_n_indiv),
-                        pft_names=np.array(new_pfts),
-                        dbh_values=new_dbh_values,
-                    )
-                )
+                community.add_cohorts(new_data=cohorts)
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
