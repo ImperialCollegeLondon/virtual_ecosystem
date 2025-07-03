@@ -253,3 +253,7 @@ html_sidebars = {
 hoverxref_roles = ["term"]
 
 hoverxref_role_types = {"term": "tooltip"}
+
+# Allow for longer runtime
+nb_execution_mode = "force"
+nb_execution_timeout = 300

@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -143,10 +143,11 @@ energy at a surface, for example the soil surface or the canopy. This balance is
 coupled to the radiation balance through net radiation, which is partitioned into
 turbulent fluxes (latent, sensible, and ground heat flux), used for photosynthesis, and
 changes in heat storage.
-* **Water balance**: The water balance refers to the equilibrium of absorbed and released
-water by different (here abiotic) ecosystem components. This balance is linked to the
-energy balance via evapotranspiration and latent heat flux from the soil surface.
-The hydrology on catchment scale is described in more detail [here](./hydrology_theory.md).
+* **Water balance**: The water balance refers to the equilibrium of absorbed and
+released water by different (here abiotic) ecosystem components. This balance is linked
+to the energy balance via evapotranspiration and latent heat flux from the soil surface.
+Beyond the local water balance, we also consider [hydrology at the catchment
+scale](./hydrology_theory.md).
 * **Carbon balance**: The carbon balance is linked to the radiation, energy and water
 balance by net primary productivity: the conversion of light, atmospheric carbon, water,
 (and nutrients) into biomass minus respiration. The carbon cycle continues as plant biomass
