@@ -130,6 +130,7 @@ def test_PlantsModel__init__errors(
     flora,
     fixture_core_components,
     fixture_canopy_layer_data,
+    fixture_exporter,
     new_data,
     context_manager,
     error_message,
@@ -151,6 +152,7 @@ def test_PlantsModel__init__errors(
             data=plants_data,
             core_components=fixture_core_components,
             flora=flora,
+            exporter=fixture_exporter,
         )
         return
 
