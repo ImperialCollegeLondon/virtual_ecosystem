@@ -438,6 +438,10 @@ class PlantsModel(
             **kwargs: Further arguments to the update method.
         """
 
+        # Apply mortality and recruitment to plant cohorts
+        self.apply_mortality()
+        self.apply_recruitment()
+
         # Update the canopy layers
         self.canopies = calculate_canopies(
             communities=self.communities,
@@ -460,10 +464,6 @@ class PlantsModel(
 
         # Calculate the rate at which plants take nutrients from mycorrhizal fungi
         self.calculate_mycorrhizal_uptakes()
-
-        # Apply mortality to plant cohorts
-        self.apply_mortality()
-        self.apply_recruitment()
 
         # Calculate the subcanopy vegetation
         self.calculate_subcanopy_dynamics()
