@@ -38,8 +38,8 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_soiltemp = lyr_str.from_template()
     exp_soiltemp[lyr_str.index_all_soil] = np.array(
         [
-            [17.008741, 16.759161, 14.261534, 14.261534],
-            [19.989465, 19.988586, 19.979794, 19.979794],
+            [20.12272, 18.944219, 7.156909, 7.156909],
+            [20.000273, 19.997652, 19.971446, 19.971446],
         ]
     )
     np.testing.assert_allclose(
@@ -66,7 +66,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         [29.806235, 28.840201, 27.188575]
     )[:, None]
     exp_airtemp[lyr_str.index_surface_scalar] = np.array(
-        [20.815152, 20.795201, 20.595545, 20.595545]
+        [21.009713, 20.918322, 20.004237, 20.004237]
     )
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -92,7 +92,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
         [-149.364835, -130.806504, -99.244963]
     )[:, None]
     exp_shc[lyr_str.index_topsoil_scalar] = np.array(
-        [-382.756473, -405.841545, -636.859806, -636.859806]
+        [-95.064986, -200.811136, -1258.465378, -1258.465378]
     )
     np.testing.assert_allclose(
         result["sensible_heat_flux"],

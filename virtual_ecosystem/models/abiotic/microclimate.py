@@ -236,8 +236,7 @@ def run_microclimate(
             data["shortwave_absorption"][
                 layer_structure.index_topsoil_scalar
             ].to_numpy()
-            / daily_time_interval
-            - longwave_emission_soil * daily_time_interval
+            - longwave_emission_soil
         )
 
         #  Sensible heat flux from topsoil, [W m-2]
@@ -258,9 +257,7 @@ def run_microclimate(
 
         # Ground heat flux, [W m-2]
         ground_heat_flux = (
-            net_radiation_soil
-            - latent_heat_flux_soil
-            - sensible_heat_flux_soil * daily_time_interval
+            net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
         )
 
         # Update soil temperatures, [C]
