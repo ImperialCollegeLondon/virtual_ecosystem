@@ -151,15 +151,15 @@ def run_simple_microclimate(
         lower_bound=lower,
     )
 
-    # Calculate net radiation, [W m-2].
-    canopy_temperature = energy_balance.initialise_canopy_temperature(
-        air_temperature=output["air_temperature"].to_numpy(),
-        absorbed_radiation=data["shortwave_absorption"].to_numpy(),
-        canopy_temperature_ini_factor=abiotic_constants.canopy_temperature_ini_factor,
-    )
+    # Initialise canopy temperature, [C]
+    canopy_temperature = layer_structure.from_template()
+    canopy_temperature[layer_structure.index_filled_canopy] = output["air_temperature"][
+        layer_structure.index_filled_canopy
+    ]
 
+    # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
-        temperature=canopy_temperature,
+        temperature=canopy_temperature.to_numpy(),
         emissivity=abiotic_constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )

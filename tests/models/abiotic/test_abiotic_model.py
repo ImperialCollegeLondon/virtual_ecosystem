@@ -20,7 +20,6 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic model: required var 'downward_shortwave_radiation' checked"),
     (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic model: required var 'layer_heights' checked"),
     (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
@@ -38,7 +37,6 @@ SETUP_MANIPULATIONS = (
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Replacing data array for 'soil_temperature'"),
     (INFO, "Replacing data array for 'net_radiation'"),
-    (INFO, "Replacing data array for 'shortwave_absorption'"),
     (INFO, "Replacing data array for 'canopy_temperature'"),
     (INFO, "Replacing data array for 'sensible_heat_flux'"),
     (INFO, "Replacing data array for 'latent_heat_flux'"),
@@ -112,11 +110,6 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
             (
                 ERROR,
                 "abiotic model: init data missing required var 'relative_humidity_ref'",
-            ),
-            (
-                ERROR,
-                "abiotic model: init data missing required var "
-                "'downward_shortwave_radiation'",
             ),
             (
                 ERROR,
@@ -351,16 +344,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "shortwave_absorption",
     ]:
         assert var in model.data
-
-    exp_shortwave_abs = lyr_strct.from_template()
-    indices = [1, 2, 3, 12]
-    exp_shortwave_abs[indices] = np.array([0.49975, 0.499251, 0.498752, 498.502248])[
-        :, None
-    ]
-    xr.testing.assert_allclose(model.data["shortwave_absorption"], exp_shortwave_abs)
 
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         expected_vals = lyr_strct.from_template()
@@ -394,16 +379,16 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[0] = 30.0
     exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
-        [29.91969, 29.414891, 28.551932]
+        [29.91965, 29.414851, 28.551891]
     )[:, None]
     exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
-        [22.58099, 22.545335, 22.188705, 22.188705]
+        [22.580912, 22.545256, 22.188626, 22.188626]
     )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     exp_canopytemp = lyr_strct.from_template()
     exp_canopytemp[lyr_strct.index_filled_canopy] = np.array(
-        [35.718666, 35.170399, 34.233372]
+        [30.475916, 29.933651, 29.007254]
     )[:, None]
 
     xr.testing.assert_allclose(model.data["canopy_temperature"], exp_canopytemp)
