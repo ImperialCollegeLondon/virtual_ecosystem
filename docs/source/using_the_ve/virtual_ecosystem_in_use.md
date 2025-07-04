@@ -1,6 +1,6 @@
 ---
 execution:
-  timeout: 90
+  timeout: 120
 jupytext:
   formats: md:myst
   text_representation:

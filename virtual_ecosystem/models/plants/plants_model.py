@@ -558,14 +558,6 @@ class PlantsModel(
             heights[0, :] + self.layer_structure.above_canopy_height_offset
         )
 
-        # Update the below canopy light fraction
-        self.below_canopy_light_fraction = np.array(
-            [
-                cnpy.community_data.transmission_to_ground
-                for cnpy in self.canopies.values()
-            ]
-        )
-
         # Update the filled canopy layers
         self.layer_structure.set_filled_canopy(canopy_heights=heights)
 
