@@ -343,6 +343,7 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
 
     wipe_canopy_layers(fxt_plants_model)
 
+    # Set the mortality and recruitment to zero
     fxt_plants_model.per_update_interval_propagule_recruitment_probability = 0
     fxt_plants_model.per_update_interval_stem_mortality_probability = 0
 
