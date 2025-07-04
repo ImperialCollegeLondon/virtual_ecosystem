@@ -21,21 +21,23 @@ def damuths_law(mass: float, terms: tuple) -> float:
     """The function set initial population densities .
 
         Currently, this function just employs Damuth's Law (Damuth 1987) for
-        terrestrial herbivorous mammals. Later, it will be expanded to other types. The
-        current form takes the ceiling of the population density to ensure there is a
-        minimum of 1 individual and integer values. This will be corrected once the
-        multi-grid occupation system for large animal is implemented.
+        terrestrial herbivorous mammals. Later, it will be expanded to other types.
+        Damuth assumes body mass in g and final density in indiv/km2.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         terms: The tuple of population density terms used, default to Damuth.
 
     Returns:
-        The population density of that AnimalCohort [individuals/km2].
+        The population density of that AnimalCohort [individuals/m2].
 
     """
 
-    return terms[1] * mass ** terms[0]
+    individual_density_km2 = terms[1] * (mass * 1000) ** terms[0]
+
+    individual_density_m2 = individual_density_km2 / 1e6
+
+    return individual_density_m2
 
 
 def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
@@ -52,10 +54,17 @@ def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
         terms: A tuple (A, B) with exponent and scalar for the biomass scaling law.
 
     Returns:
-        Estimated individual density (individuals/km²).
+        Estimated individual density (individuals/m²).
     """
     exponent, scalar = terms
-    return scalar * adult_mass ** (exponent - 1)
+
+    biomass_density = scalar * (adult_mass * 1000) ** exponent
+
+    individual_density_km2 = biomass_density / (adult_mass * 1000)
+
+    individual_density_m2 = individual_density_km2 / 1e6
+
+    return individual_density_m2
 
 
 def metabolic_rate(

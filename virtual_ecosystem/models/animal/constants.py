@@ -25,7 +25,7 @@ class AnimalConsts(ConstantsDataclass):
 
     """
 
-    density_scaling_method: str = "madingley"
+    density_scaling_method: str = "damuth"
 
     def get_population_density_terms(
         self, taxa: TaxaType, diet: DietType

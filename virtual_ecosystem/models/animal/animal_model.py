@@ -125,9 +125,13 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        functional_groups: The list of animal functional groups present in the
-            simulation.
-        model_constants: Set of constants for the animal model.
+        static: If True, runs in static mode.
+        density_scaling_method: Which density scaling equation to use in initialization.
+            Options:
+                - "damuth": Classic Damuth's Law (individual density scaling).
+                - "madingley": Biomass-density scaling converted to individuals.
+            Default is "madingley".
+        **kwargs: Additional arguments for the base model.
     """
 
     def __init__(
@@ -135,7 +139,7 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        density_scaling_method: str = "damuth",
+        density_scaling_method: str = "madingley",
         **kwargs: Any,
     ):
         """Animal init function.
@@ -144,10 +148,15 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
-
         self.density_scaling_method = density_scaling_method
         """Which density scaling equations are used, "damuth" or "madingley"."""
+        self.model_constants: AnimalConsts = AnimalConsts(
+            density_scaling_method=self.density_scaling_method
+        )
+        """Animal constants."""
+
+        super().__init__(data, core_components, static, **kwargs)  # runs _setup
+
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
         self.active_cohorts: dict[uuid.UUID, AnimalCohort] = {}
@@ -160,10 +169,6 @@ class AnimalModel(
         """Convert pint update_interval to timedelta64 once during initialization."""
         self.functional_groups: list[FunctionalGroup]
         """List of functional groups in the model."""
-        self.model_constants: AnimalConsts = AnimalConsts(
-            density_scaling_method=self.density_scaling_method
-        )
-        """Animal constants."""
         self.plant_resources: dict[int, list[Resource]]
         """The plant resource pools in the model with associated grid cell ids."""
         self.excrement_pools: dict[int, list[ExcrementPool]]
@@ -248,7 +253,7 @@ class AnimalModel(
                 f"Unsupported density scaling method: {self.density_scaling_method}"
             )
 
-        return ceil(density * len(self.data.grid.cell_id))
+        return ceil(density * total_area)
 
     def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
         """Distribute individuals into cohorts respecting minimum size.
@@ -318,6 +323,10 @@ class AnimalModel(
         model_constants = load_constants(config, "animal", "AnimalConsts")
         static = config["animal"]["static"]
 
+        density_scaling_method = config["animal"].get(
+            "density_scaling_method", "madingley"
+        )
+
         # Load functional groups
         functional_groups = [
             FunctionalGroup(**k, constants=model_constants)
@@ -335,12 +344,12 @@ class AnimalModel(
             static=static,
             functional_groups=functional_groups,
             model_constants=model_constants,
+            density_scaling_method=density_scaling_method,
         )
 
     def _setup(
         self,
         functional_groups: list[FunctionalGroup],
-        model_constants: AnimalConsts = AnimalConsts(),
         **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
@@ -350,7 +359,6 @@ class AnimalModel(
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.
-            model_constants: Set of constants for the animal model.
             **kwargs: Further arguments to the setup method.
         """
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
@@ -360,7 +368,7 @@ class AnimalModel(
         self._setup_grid_neighbours()
         """Determine grid square adjacency."""
         self.functional_groups = functional_groups
-        self.model_constants = model_constants
+        self.model_constants = self.model_constants
         self.plant_resources = {
             cell_id: [
                 PlantResources(

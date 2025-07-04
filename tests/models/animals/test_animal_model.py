@@ -573,30 +573,51 @@ class TestAnimalModel:
         assert len(model.active_cohorts) <= total_expected
 
     @pytest.mark.parametrize(
-        "density,expect_damuth_call",
+        "density,expect_damuth_call,scaling_method",
         [
-            (0.05, False),
-            (None, True),
-            (0.00001, False),
-            (0.0, False),
-            (1000.0, False),
-            (0.333, False),
-            (-0.1, False),
+            (0.05, False, "damuth"),
+            (None, True, "damuth"),
+            (0.00001, False, "damuth"),
+            (0.0, False, "damuth"),
+            (1000.0, False, "damuth"),
+            (0.333, False, "damuth"),
+            (-0.1, False, "damuth"),
+            (0.05, False, "madingley"),
+            (None, True, "madingley"),
+            (0.00001, False, "madingley"),
+            (0.0, False, "madingley"),
+            (1000.0, False, "madingley"),
+            (0.333, False, "madingley"),
+            (-0.1, False, "madingley"),
         ],
         ids=[
-            "standard_empirical",
-            "damuth_fallback",
-            "very_low_density",
-            "zero_density",
-            "very_high_density",
-            "fractional_density",
-            "negative_density",
+            "standard_empirical_damuth",
+            "damuth_fallback_damuth",
+            "very_low_density_damuth",
+            "zero_density_damuth",
+            "very_high_density_damuth",
+            "fractional_density_damuth",
+            "negative_density_damuth",
+            "standard_empirical_madingley",
+            "madingley_fallback_madingley",
+            "very_low_density_madingley",
+            "zero_density_madingley",
+            "very_high_density_madingley",
+            "fractional_density_madingley",
+            "negative_density_madingley",
         ],
     )
     def test_estimate_total_individuals(
-        self, mocker, animal_model_instance, density, expect_damuth_call
+        self,
+        mocker,
+        animal_model_instance,
+        animal_model_damuth_instance,
+        density,
+        expect_damuth_call,
+        scaling_method,
     ):
         """Parametrized test for _estimate_total_individuals."""
+
         from math import ceil
 
         from virtual_ecosystem.models.animal.constants import AnimalConsts
@@ -608,7 +629,10 @@ class TestAnimalModel:
             return_value=42.0,
         )
 
-        model = animal_model_instance
+        if scaling_method == "damuth":
+            model = animal_model_damuth_instance
+        elif scaling_method == "madingley":
+            model = animal_model_instance
 
         n_cells = model.data.grid.n_cells
         cell_area = model.data.grid.cell_area
@@ -628,7 +652,7 @@ class TestAnimalModel:
             vertical_occupancy="ground",
             birth_mass=0.1,
             adult_mass=10.0,
-            constants=AnimalConsts(),
+            constants=AnimalConsts(density_scaling_method=scaling_method),
             density_individuals_m2=density,
         )
 
@@ -643,7 +667,7 @@ class TestAnimalModel:
             # Damuth path
             expected_total = ceil(42.0 * n_cells)
             assert result == expected_total
-            mock_damuth.assert_called_once_with(10.0, fg.damuths_law_terms)
+            mock_damuth.assert_called_once_with(10.0, fg.population_density_terms)
 
     @pytest.mark.parametrize(
         "total_individuals,target_cohorts,min_cohort_size,expected_n_cohorts",

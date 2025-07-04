@@ -75,6 +75,15 @@
                 "static": {
                     "type": "boolean",
                     "default": false
+                },
+                "density_scaling_method": {
+                    "description": "Specifies which density scaling equation to use for initialization. Options are 'damuth' or 'madingley'.",
+                    "type": "string",
+                    "enum": [
+                        "damuth",
+                        "madingley"
+                    ],
+                    "default": "madingley"
                 }
             },
             "default": {},
