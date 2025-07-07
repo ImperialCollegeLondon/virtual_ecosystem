@@ -347,7 +347,9 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
@@ -383,7 +385,9 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
         soil_n_pool_ammonium=ammonium_data,
         soil_n_pool_nitrate=nitrate_data,
         soil_p_pool_labile=labile_p_data,
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        vertical_flow_rate=dummy_carbon_data["vertical_flow"][
+            fixture_core_components.layer_structure.index_topsoil_scalar
+        ].to_numpy(),
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),

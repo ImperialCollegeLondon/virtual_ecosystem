@@ -508,7 +508,9 @@ class SoilPools:
             soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
-            vertical_flow_rate=self.data["vertical_flow"].to_numpy(),
+            vertical_flow_rate=self.data["vertical_flow"][
+                layer_structure.index_topsoil_scalar
+            ].to_numpy(),
             soil_moisture=soil_moisture,
             constants=self.constants,
         )
