@@ -70,20 +70,6 @@ class CoreConsts(ConstantsDataclass):
     :cite:t:`fatichi_mechanistic_2019`. No empirical source is provided for this value.
     """
 
-    soil_moisture_capacity: float = 0.5
-    """Soil moisture capacity, unitless.
-
-    The soil moisture capacity, also known as field capacity or water holding capacity,
-    refers to the maximum amount of water that a soil can retain against the force of
-    gravity after it has been saturated and excess water has drained away. The value is
-    soil type specific, the format here is volumetric relative water content (unitless,
-    between 0 and 1).
-
-    TODO - This constant also exists in the hydrology model. There really should be a
-    single location for this, but I didn't want to force a refactor of the hydrology
-    code. This should be reviewed when the soil-abiotic links are reviewed.
-    """
-
     meters_to_mm: float = 1000.0
     """Factor to convert variable unit from meters to millimeters."""
 
@@ -115,3 +101,6 @@ class CoreConsts(ConstantsDataclass):
     
     This factor is used to convert between stomatal conductance in mmol m-2 s-1 and
     stomatal resistance in s m-1."""
+
+    density_water: float = 1000.0
+    """Density of water, [kg m-3]."""

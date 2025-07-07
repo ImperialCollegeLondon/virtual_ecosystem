@@ -163,6 +163,7 @@ nitpick_ignore = [
     ("py:class", "Flora"),
     ("py:class", "PModelConst"),
     ("py:class", "CoreConst"),
+    ("py:class", "StemAllocation"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -252,3 +253,7 @@ html_sidebars = {
 hoverxref_roles = ["term"]
 
 hoverxref_role_types = {"term": "tooltip"}
+
+# Allow for longer runtime
+nb_execution_mode = "force"
+nb_execution_timeout = 300
