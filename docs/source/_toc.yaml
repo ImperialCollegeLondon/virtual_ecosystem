@@ -4,6 +4,8 @@ subtrees:
     maxdepth: 0
     caption: The Virtual Ecosystem
     entries:
+      - file: project_team
+        title: The Project Team
       - file: virtual_ecosystem/theory/theory
         title: Theory
         entries:
@@ -44,6 +46,7 @@ subtrees:
           - file: using_the_ve/ve_run
           - file: using_the_ve/example_data
           - file: using_the_ve/virtual_ecosystem_in_use
+          - file: using_the_ve/virtual_ecosystem_in_static_mode
       - file: using_the_ve/configuration/config
         title: Configuring your model
         entries:

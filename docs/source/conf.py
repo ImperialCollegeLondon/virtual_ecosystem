@@ -11,6 +11,7 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
+import datetime
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -48,12 +49,11 @@ variables.output_known_variables(varfile)
 
 
 # -- Project information -----------------------------------------------------
+# Ideally the copyright would have a link to the team page, but neither an RST link, nor
+# an HTML <a> link works - they just get rendered as is.
 
 project = "Virtual Ecosystem"
-copyright = (
-    "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
-    "Jaideep Joshi, Taran Rallings, Vivienne Groner"
-)
+copyright = f"{datetime.date.today().year}, The Virtual Ecosystem project team"
 author = (
     "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
     "Taran Rallings, Vivienne Groner"
@@ -163,6 +163,7 @@ nitpick_ignore = [
     ("py:class", "Flora"),
     ("py:class", "PModelConst"),
     ("py:class", "CoreConst"),
+    ("py:class", "StemAllocation"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -239,6 +240,11 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+# These paths are relative to html_static_path
+html_css_files = [
+    "css/custom.css",
+]
+
 html_sidebars = {
     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 }
@@ -247,3 +253,7 @@ html_sidebars = {
 hoverxref_roles = ["term"]
 
 hoverxref_role_types = {"term": "tooltip"}
+
+# Allow for longer runtime
+nb_execution_mode = "force"
+nb_execution_timeout = 300

@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -226,5 +226,5 @@ ecosystem impacts within the same model.
 :::
 
 Both animal carcasses and excrement are important resources for animals to scavenge
-from, as such their decay is tracked as part of the animal model. How they are tracked
-is explained [here](./carcasses_and_excrement.md).
+from, as such the [decay of carcasses and excrement](./carcasses_and_excrement.md) is
+tracked as part of the animal model.

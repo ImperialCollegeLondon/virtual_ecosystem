@@ -72,6 +72,7 @@ class AbioticModel(
         "stomatal_conductance",
         "shortwave_absorption",
         "aerodynamic_resistance_surface",
+        "soil_evaporation",
     ),
     vars_populated_by_init=(
         "soil_temperature",
@@ -79,21 +80,18 @@ class AbioticModel(
         "vapour_pressure_deficit_ref",
         "air_temperature",
         "relative_humidity",
+        "vapour_pressure",
         "vapour_pressure_deficit",
         "wind_speed",
         "atmospheric_pressure",
         "atmospheric_co2",
-        "shortwave_absorption",
         "canopy_temperature",
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
         "net_radiation",
     ),
-    vars_populated_by_first_update=(
-        "longwave_emission",
-        "specific_heat_air",
-    ),
+    vars_populated_by_first_update=("longwave_emission",),
 ):
     """A class describing the abiotic model.
 

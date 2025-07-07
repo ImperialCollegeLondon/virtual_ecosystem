@@ -438,7 +438,7 @@ class HydrologyModel(
             seed=seed,
             layer_structure=self.layer_structure,
             soil_layer_thickness_mm=self.soil_layer_thickness_mm,
-            soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
+            soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
             soil_moisture_residual=self.model_constants.soil_moisture_residual,
         )
 
@@ -513,14 +513,16 @@ class HydrologyModel(
             surface_runoff = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
-                top_soil_moisture_capacity=hydro_input["top_soil_moisture_capacity"],
+                top_soil_moisture_saturation=hydro_input[
+                    "top_soil_moisture_saturation"
+                ],
             )
             daily_lists["surface_runoff"].append(surface_runoff)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
-                sat_top_soil_moisture=hydro_input["top_soil_moisture_capacity"],
+                sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
                 available_water=precipitation_surface - surface_runoff,
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
@@ -535,7 +537,7 @@ class HydrologyModel(
                     - bypass_flow,
                 ),
                 0,
-                hydro_input["top_soil_moisture_capacity"],
+                hydro_input["top_soil_moisture_saturation"],
             ).squeeze()
 
             # Prepare inputs for soil evaporation function
@@ -550,7 +552,7 @@ class HydrologyModel(
                 atmospheric_pressure=hydro_input["surface_pressure"],
                 soil_moisture=top_soil_moisture_vol,
                 soil_moisture_residual=self.model_constants.soil_moisture_residual,
-                soil_moisture_capacity=self.core_constants.soil_moisture_capacity,
+                soil_moisture_saturation=self.model_constants.soil_moisture_saturation,
                 leaf_area_index=hydro_input["leaf_area_index_sum"],
                 wind_speed_surface=hydro_input["surface_wind_speed"],
                 density_air=self.data["density_air"][
@@ -585,7 +587,7 @@ class HydrologyModel(
                                 - soil_evaporation["soil_evaporation"]
                             ),
                             hydro_input["top_soil_moisture_residual"],
-                            hydro_input["top_soil_moisture_capacity"],
+                            hydro_input["top_soil_moisture_saturation"],
                         ),
                         axis=0,
                     ),
@@ -635,8 +637,8 @@ class HydrologyModel(
                 soil_moisture=soil_moisture_evap_mm,  # mm
                 vertical_flow=vertical_flow["vertical_flow"],  # mm day-1
                 transpiration=hydro_input["current_transpiration"],  # mm
-                soil_moisture_capacity=(  # mm
-                    self.core_constants.soil_moisture_capacity
+                soil_moisture_saturation=(  # mm
+                    self.model_constants.soil_moisture_saturation
                     * self.soil_layer_thickness_mm
                 ),
                 soil_moisture_residual=(  # mm
@@ -739,12 +741,6 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"], axis=0
         )
 
-        soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
-            np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
-            dims="cell_id",
-            coords={"cell_id": self.grid.cell_id},
-        )
-
         for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
             soil_hydrology[var] = DataArray(
                 np.mean(np.stack(daily_lists[var], axis=1), axis=1),
@@ -754,7 +750,7 @@ class HydrologyModel(
 
         # Return mean soil moisture, [mm], and soil matric potential, [kPa], and add
         # atmospheric layers (nan)
-        for var in ["soil_moisture", "matric_potential"]:
+        for var in ["soil_moisture", "matric_potential", "vertical_flow"]:
             soil_hydrology[var] = self.layer_structure.from_template()
             soil_hydrology[var][self.layer_structure.index_all_soil] = np.mean(
                 np.stack(daily_lists[var], axis=0), axis=0

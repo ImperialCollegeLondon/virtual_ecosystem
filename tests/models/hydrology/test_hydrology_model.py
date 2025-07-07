@@ -115,24 +115,22 @@ def test_hydrology_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "cfg_string,sm_capacity,raises,expected_log_entries",
+    "cfg_string,sm_saturation,raises,expected_log_entries",
     [
         pytest.param(
             "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.9\n",
-            0.9,
+            "initial_groundwater_saturation = 0.51\n",
+            0.51,
             does_not_raise(),
-            tuple(
-                [
-                    (INFO, "Initialised hydrology.HydroConsts from config"),
-                    (
-                        INFO,
-                        "Information required to initialise the hydrology model "
-                        "successfully extracted.",
-                    ),
-                    *MODEL_VAR_CHECK_LOG,
-                ]
+            (
+                (INFO, "Initialised hydrology.HydroConsts from config"),
+                (
+                    INFO,
+                    "Information required to initialise the hydrology model "
+                    "successfully extracted.",
+                ),
+                *MODEL_VAR_CHECK_LOG,
             ),
             id="default_config",
         ),
@@ -140,19 +138,17 @@ def test_hydrology_model_initialization(
             "[core]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
-            "[core.constants.CoreConsts]\nsoil_moisture_capacity = 0.7\n",
+            "[hydrology.constants.HydroConsts]\nsoil_moisture_saturation = 0.7\n",
             0.7,
             does_not_raise(),
-            tuple(
-                [
-                    (INFO, "Initialised hydrology.HydroConsts from config"),
-                    (
-                        INFO,
-                        "Information required to initialise the hydrology model "
-                        "successfully extracted.",
-                    ),
-                    *MODEL_VAR_CHECK_LOG,
-                ]
+            (
+                (INFO, "Initialised hydrology.HydroConsts from config"),
+                (
+                    INFO,
+                    "Information required to initialise the hydrology model "
+                    "successfully extracted.",
+                ),
+                *MODEL_VAR_CHECK_LOG,
             ),
             id="modified_config_correct",
         ),
@@ -176,7 +172,7 @@ def test_generate_hydrology_model(
     caplog,
     dummy_climate_data,
     cfg_string,
-    sm_capacity,
+    sm_saturation,
     raises,
     expected_log_entries,
 ):
@@ -187,14 +183,10 @@ def test_generate_hydrology_model(
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
-    # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
     core_components = CoreComponents(config)
     caplog.clear()
 
-    # Check whether model is initialised (or not) as expected
-    # We patch the _setup step as it is tested separately
-    expected_const = HydroConsts()
     with (
         patch_run_update(HydrologyModel),
         patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
@@ -209,15 +201,24 @@ def test_generate_hydrology_model(
                     core_components=core_components,
                     config=config,
                 )
-                mock_setup.assert_called_once_with(
-                    initial_soil_moisture=config["hydrology"]["initial_soil_moisture"],
-                    initial_groundwater_saturation=config["hydrology"][
-                        "initial_groundwater_saturation"
-                    ],
-                    model_constants=expected_const,
+                mock_setup.assert_called_once()
+
+                # Check arguments passed to _setup
+                called_args, called_kwargs = mock_setup.call_args
+                assert (
+                    called_kwargs["initial_soil_moisture"]
+                    == config["hydrology"]["initial_soil_moisture"]
+                )
+                assert (
+                    called_kwargs["initial_groundwater_saturation"]
+                    == config["hydrology"]["initial_groundwater_saturation"]
                 )
 
-    # Final check that expected logging entries are produced
+                model_constants = called_kwargs["model_constants"]
+                assert isinstance(model_constants, HydroConsts)
+                if sm_saturation is not None:
+                    assert model_constants.soil_moisture_saturation == sm_saturation
+
     log_check(caplog, expected_log_entries)
 
 
@@ -303,12 +304,16 @@ def test_setup(
             # Test 2d variables
             expected_2d = {
                 "soil_moisture": [
-                    [247.25352, 247.25352, 247.25352, 247.25352],
-                    [218.999041, 218.999041, 218.999041, 218.999041],
+                    [248.938056, 248.937037, 248.935933, 248.936385],
+                    [218.994795, 218.994795, 218.994795, 218.994795],
                 ],
                 "matric_potential": [
-                    [-66.550207, -66.550207, -66.550207, -66.550207],
-                    [-217.596714, -217.596714, -217.596714, -217.596714],
+                    [-56.432398, -56.438614, -56.44538, -56.442609],
+                    [-217.596626, -217.596626, -217.596626, -217.596626],
+                ],
+                "vertical_flow": [
+                    [0.00017, 0.00017, 0.00017, 0.00017],
+                    [0.000526, 0.000526, 0.000526, 0.000526],
                 ],
             }
 
@@ -325,10 +330,9 @@ def test_setup(
 
             # Test one dimensional variables
             expected_1d = {
-                "vertical_flow": [6.916e-05, 6.916e-05, 6.916e-05, 6.916e-05],
-                "total_river_discharge": [0, 0, 69035, 22660],
-                "surface_runoff": [122.432417, 122.432417, 122.432417, 122.432417],
-                "surface_runoff_accumulated": [0, 0, 10530, 3300],
+                "total_river_discharge": [0, 0, 67002, 22095],
+                "surface_runoff": [20.343781, 20.66599, 20.896484, 20.443394],
+                "surface_runoff_accumulated": [0, 0, 1470, 330],
                 "soil_evaporation": [5.870856, 5.870856, 5.870856, 5.870856],
             }
 

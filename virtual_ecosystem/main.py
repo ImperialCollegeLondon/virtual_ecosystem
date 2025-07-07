@@ -4,7 +4,9 @@ model.
 """  # noqa: D205
 
 import os
+import sys
 from collections.abc import Sequence
+from enum import IntEnum
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,15 @@ from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
+
+
+class Progress(IntEnum):
+    """Integer enumeration to manage ve_run output verbosity."""
+
+    SILENT = 0
+    MINIMAL = 1
+    STAGED = 2
+    FULL = 3
 
 
 def initialise_models(
@@ -66,7 +77,7 @@ def ve_run(
     cfg_strings: str | list[str] = [],
     override_params: dict[str, Any] = {},
     logfile: Path | None = None,
-    progress: bool = False,
+    progress: Progress = Progress.FULL,
 ) -> None:
     """Perform a Virtual Ecosystem simulation.
 
@@ -81,20 +92,24 @@ def ve_run(
         override_params: Extra parameters provided by the user
         logfile: An optional path to a log file, otherwise logging will print to the
             console.
-        progress: A logical switch to turn on simple progress reporting, mostly for
-            visual confirmation of progress when the log is not printed to the console.
+        progress: A Progress enum instance setting the level of output to be printed to
+            the console when ve_run is running.
     """
 
-    if progress:
+    # Mute the progress information when the log is written to stdout.
+    if logfile is None:
+        progress = Progress.SILENT
+
+    if progress > Progress.SILENT:
         print("Starting Virtual Ecosystem simulation.")
 
     # Switch from console logging to file logging
     if logfile is not None:
         add_file_logger(logfile)
-        if progress:
-            print(f"* Logging to: {logfile}")
+        if progress > Progress.SILENT:
+            print(f"Logging to: {logfile}")
 
-    if progress:
+    if progress > Progress.MINIMAL:
         print("* Loading configuration")
 
     variables.register_all_variables()
@@ -107,18 +122,18 @@ def ve_run(
     if data_opt["save_merged_config"]:
         outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
         config.export_config(outfile)
-        if progress:
+        if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")
 
     # Build core elements
     grid = Grid.from_config(config)
     core_components = CoreComponents(config=config)
-    if progress:
+    if progress > Progress.MINIMAL:
         print("* Built core model components")
 
     data = Data(grid)
     data.load_data_config(config)
-    if progress:
+    if progress > Progress.MINIMAL:
         print("* Initial data loaded")
 
     # Setup the variables for the requested modules and verify consistency
@@ -128,7 +143,6 @@ def ve_run(
 
     # Verify that all variables have the correct axis
     variables.verify_variables_axis()
-
     LOGGER.info("All models found in the registry, now attempting to configure them.")
 
     # Get the model initialisation sequence and initialise
@@ -143,8 +157,8 @@ def ve_run(
         core_components=core_components,
         models=init_sequence,
     )
-    if progress:
-        print(f"* Models initialised: {', '.join(init_sequence.keys())}")
+    if progress > Progress.MINIMAL:
+        print(f"* Models initialised: {', '.join(config.model_classes.keys())}")
 
     LOGGER.info("All models successfully initialised.")
 
@@ -159,7 +173,7 @@ def ve_run(
         data.save_to_netcdf(
             out_path / config["core"]["data_output_options"]["out_initial_file_name"]
         )
-        if progress:
+        if progress > Progress.MINIMAL:
             print("* Saved model initial state")
 
     # If no path for saving continuous data is specified, fall back on using out_path
@@ -180,11 +194,16 @@ def ve_run(
         model_name: models_init[model_name]
         for model_name in variables.get_model_order("update")
     }
-    if progress:
+    if progress > Progress.MINIMAL:
         print("* Starting simulation")
 
-    # Setup the timing loop
-    pbar = tqdm(total=core_components.model_timing.n_updates)
+    # Setup the timing loop, adding a progress bar to print output. The output of the
+    # progress bar is suppressed when progress is not set to Progress.FULL
+    pbar = tqdm(
+        total=core_components.model_timing.n_updates,
+        file=sys.stdout,
+        disable=progress < Progress.FULL,
+    )
     time_index = 0
     current_time = core_components.model_timing.start_time
     while current_time < core_components.model_timing.end_time:
@@ -194,7 +213,6 @@ def ve_run(
 
         # Run update() method for every model
         for model in models_update.values():
-            LOGGER.info(f"Updating model {model.model_name}")
             model.update(time_index)
 
         # With updates complete increment the time_index
@@ -211,7 +229,7 @@ def ve_run(
 
     pbar.close()
 
-    if progress:
+    if progress > Progress.MINIMAL:
         print("* Simulation completed")
 
     # Merge all files together based on a list
@@ -219,7 +237,7 @@ def ve_run(
         merge_continuous_data_files(
             config["core"]["data_output_options"], continuous_data_files
         )
-        if progress:
+        if progress > Progress.MINIMAL:
             print("* Merged time series data")
 
     # Save the final model state
@@ -227,7 +245,7 @@ def ve_run(
         data.save_to_netcdf(
             out_path / config["core"]["data_output_options"]["out_final_file_name"]
         )
-        if progress:
+        if progress > Progress.MINIMAL:
             print("* Saved final model state")
 
     LOGGER.info("Virtual Ecosystem model run completed!")
@@ -236,5 +254,5 @@ def ve_run(
     if logfile is not None:
         remove_file_logger()
 
-    if progress:
+    if progress > Progress.SILENT:
         print("Virtual Ecosystem run complete.")

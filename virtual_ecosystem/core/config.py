@@ -466,6 +466,8 @@ class Config(dict):
             LOGGER.info("Config built from config string")
         else:
             LOGGER.info(f"Config built from {len(input_dicts)} file(s)")
+            for file in self.cfg_paths:
+                LOGGER.info(f"Config input file: {file}")
 
     def build_schema(self) -> None:
         """Build a schema to validate the model configuration.

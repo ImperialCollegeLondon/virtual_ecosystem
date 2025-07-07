@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3
   language: python
@@ -73,14 +73,10 @@ The research is based at [Imperial College London](https://imperial.ac.uk):
 
 :::{grid-item-card} Project Team
 
-- Professor Robert Ewers
-- Olivia Daniel
-- Dr. Jaideep Joshi
-- Dr. David Orme
-- Dr. Vivienne Groner
-- Dr. Jacob Cook
-- Dr. Taran Rallings
-- Professor Priyanga Amarasekare
+The project team is an international group of research scientists and software
+developers, lead by [Professor Robert Ewers](https://profiles.imperial.ac.uk/r.ewers)
+(Imperial College London). For more details, please see our [team
+page](project_team.md).
 
 The research team are supported by the Imperial College London
 [Research Software Engineering](https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/)

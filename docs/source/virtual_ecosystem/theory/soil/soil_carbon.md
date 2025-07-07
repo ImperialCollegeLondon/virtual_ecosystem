@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.1
+    jupytext_version: 1.17.2
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -165,9 +165,9 @@ temperature on the process rate, $f_{T,s}$ is a factor capturing the impact of
 temperature on the concentration at which the enzyme saturates, $f_W$ is a factor
 capturing the impact of soil moisture on the process rate, $f_{p}$ is a factor capturing
 the impact of soil pH on the process rate, and $f_{c}$ is a factor capturing the impact
-of soil clay content on the concentration at which the enzyme saturates. These factors
-are all defined in the [soil-abiotic environment links documentation
-page](./environmental_links.md#environmental-effects-on-enzymes).
+of soil clay content on the concentration at which the enzyme saturates. See the
+[definitions of environmental
+factors](./environmental_links.md#environmental-effects-on-enzymes) for more detail.
 
 ### Microbial turnover
 

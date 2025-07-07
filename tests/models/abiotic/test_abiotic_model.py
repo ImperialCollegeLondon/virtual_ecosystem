@@ -353,7 +353,9 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     exp_shortwave_abs = lyr_strct.from_template()
     indices = [1, 2, 3, 12]
-    exp_shortwave_abs[indices] = np.array([0.09995, 0.09985, 0.09975, 0])[:, None]
+    exp_shortwave_abs[indices] = np.array([0.49975, 0.499251, 0.498752, 498.502248])[
+        :, None
+    ]
     xr.testing.assert_allclose(model.data["shortwave_absorption"], exp_shortwave_abs)
 
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
@@ -372,12 +374,30 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         model.update(time_index=0)
 
     expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array([17.46605, 19.765925])[
-        :, None
-    ]
+    expected_soil_temp1[lyr_strct.index_all_soil] = np.array(
+        [
+            [22.735381, 22.733608, 22.715879, 22.715879],
+            [20.04589, 20.04586, 20.045562, 20.045562],
+        ],
+    )
+    # TODO should be uniform like np.array([19.788683, 19.996455])[ :, None]
     expected_soil_moist = lyr_strct.from_template()
     expected_soil_moist[lyr_strct.index_all_soil] = np.array([5.0, 500])[:, None]
     xr.testing.assert_allclose(
         model.data["soil_temperature"], expected_soil_temp1, rtol=1e-3
     )
     xr.testing.assert_allclose(model.data["soil_moisture"], expected_soil_moist)
+
+    exp_airtemp = lyr_strct.from_template()
+    exp_airtemp[lyr_strct.index_filled_atmosphere] = np.array(
+        [30.0, 29.91969, 29.414891, 28.551932, 22.650026]
+    )[:, None]
+
+    xr.testing.assert_allclose(model.data["air_temperature"], exp_airtemp)
+
+    exp_canopytemp = lyr_strct.from_template()
+    exp_canopytemp[lyr_strct.index_filled_canopy] = np.array(
+        [35.718666, 35.170399, 34.233372]
+    )[:, None]
+
+    xr.testing.assert_allclose(model.data["canopy_temperature"], exp_canopytemp)
