@@ -980,6 +980,55 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Rate at which carbon component of soil particulate organic matter is being consumed by animals"
+name = "animal_pom_consumption_carbon"
+unit = "kg C m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which nitrogen component of soil particulate organic matter is being consumed by animals"
+name = "animal_pom_consumption_nitrogen"
+unit = "kg N m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which phosphorus component of soil particulate organic matter is being consumed by animals"
+name = "animal_pom_consumption_phosphorus"
+unit = "kg P m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which soil bacteria are being consumed by animals"
+name = "animal_bacteria_consumption"
+unit = "kg C m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which saprotrophic soil fungi are being consumed by animals"
+name = "animal_saprotrophic_fungi_consumption"
+unit = "kg C m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which ectomycorrhizal soil fungi are being consumed by animals"
+name = "animal_ectomycorrhiza_consumption"
+unit = "kg C m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which arbuscular mycorrhizal soil fungi are being consumed by animals"
+name = "animal_arbuscular_mycorrhiza_consumption"
+unit = "kg C m^-3 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Amount of dead wood produced since last update"
 name = "deadwood_production"
 unit = "kg C m^-2"

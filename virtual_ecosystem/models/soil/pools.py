@@ -652,18 +652,26 @@ class SoilPools:
             - enzyme_mediated.maom_to_lmwc
             - maom_desorption_to_lmwc
         )
-        delta_pools_ordered["soil_c_pool_bacteria"] = microbial_changes.bacteria_change
+        delta_pools_ordered["soil_c_pool_bacteria"] = (
+            microbial_changes.bacteria_change
+            - self.data["animal_bacteria_consumption"].to_numpy()
+        )
         delta_pools_ordered["soil_c_pool_saprotrophic_fungi"] = (
             microbial_changes.saprotrophic_fungi_change
+            - self.data["animal_saprotrophic_fungi_consumption"].to_numpy()
         )
         delta_pools_ordered["soil_c_pool_arbuscular_mycorrhiza"] = (
             microbial_changes.arbuscular_mycorrhiza_change
+            - self.data["animal_arbuscular_mycorrhiza_consumption"].to_numpy()
         )
         delta_pools_ordered["soil_c_pool_ectomycorrhiza"] = (
             microbial_changes.ectomycorrhiza_change
+            - self.data["animal_ectomycorrhiza_consumption"].to_numpy()
         )
         delta_pools_ordered["soil_c_pool_pom"] = (
-            litter_mineralisation_flux.pom - enzyme_mediated.pom_to_lmwc
+            litter_mineralisation_flux.pom
+            - enzyme_mediated.pom_to_lmwc
+            - self.data["animal_pom_consumption_carbon"].to_numpy()
         )
         delta_pools_ordered["soil_c_pool_necromass"] = (
             microbial_changes.necromass_generation
@@ -691,7 +699,9 @@ class SoilPools:
             - nutrient_leaching.don
         )
         delta_pools_ordered["soil_n_pool_particulate"] = (
-            litter_mineralisation_flux.particulate_n - pom_n_mineralisation
+            litter_mineralisation_flux.particulate_n
+            - pom_n_mineralisation
+            - self.data["animal_pom_consumption_nitrogen"].to_numpy()
         )
         delta_pools_ordered["soil_n_pool_necromass"] = (
             microbial_changes.necromass_n_flow
@@ -729,7 +739,9 @@ class SoilPools:
             - nutrient_leaching.dop
         )
         delta_pools_ordered["soil_p_pool_particulate"] = (
-            litter_mineralisation_flux.particulate_p - pom_p_mineralisation
+            litter_mineralisation_flux.particulate_p
+            - pom_p_mineralisation
+            - self.data["animal_pom_consumption_phosphorus"].to_numpy()
         )
         delta_pools_ordered["soil_p_pool_necromass"] = (
             microbial_changes.necromass_p_flow

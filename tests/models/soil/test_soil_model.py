@@ -358,32 +358,32 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
             Dataset(
                 data_vars=dict(
                     soil_c_pool_lmwc=DataArray(
-                        [0.11130987, 0.10952013, 0.22503828, 0.02241626], dims="cell_id"
+                        [0.11129228, 0.10949153, 0.2250187, 0.02241553], dims="cell_id"
                     ),
                     soil_c_pool_maom=DataArray(
-                        [2.51940087, 1.70920775, 4.53482025, 0.53791706], dims="cell_id"
+                        [2.51940014, 1.70920764, 4.53482003, 0.53791686], dims="cell_id"
                     ),
                     soil_c_pool_bacteria=DataArray(
-                        [5.77889227, 2.29145481, 11.25658092, 0.99683258],
+                        [5.7759676, 2.29140555, 11.25608838, 0.99660844],
                         dims="cell_id",
                     ),
                     soil_c_pool_saprotrophic_fungi=DataArray(
-                        [0.88679013, 8.51913763, 2.20174378, 4.52566622],
+                        [0.88651762, 8.51906329, 2.2016764, 4.52523939],
                         dims="cell_id",
                     ),
                     soil_c_pool_arbuscular_mycorrhiza=DataArray(
-                        [0.64717766, 1.45307082, 3.9062627, 9.01256406],
+                        [0.64700644, 1.45285667, 3.90596321, 9.01244923],
                         dims="cell_id",
                     ),
                     soil_c_pool_ectomycorrhiza=DataArray(
-                        [0.46739377, 1.3021928, 4.18468398, 3.75846787],
+                        [0.46691852, 1.30200112, 4.18449585, 3.75799708],
                         dims="cell_id",
                     ),
                     soil_c_pool_pom=DataArray(
-                        [0.10019111, 0.98701484, 0.6890763, 0.35261012], dims="cell_id"
+                        [0.09607891, 0.9827386, 0.68662586, 0.34901081], dims="cell_id"
                     ),
                     soil_c_pool_necromass=DataArray(
-                        [0.06031718, 0.05107944, 0.12718463, 0.11319455], dims="cell_id"
+                        [0.0603111, 0.05107857, 0.12718286, 0.11319285], dims="cell_id"
                     ),
                     soil_enzyme_pom_bacteria=DataArray(
                         [0.02240911, 0.00946258, 0.04945798, 0.00297422], dims="cell_id"
@@ -398,19 +398,19 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00856584, 0.00675208, 0.00378588, 0.00214806], dims="cell_id"
                     ),
                     soil_n_pool_don=DataArray(
-                        [0.00150084, 0.0050075, 0.00265, 0.00405533], dims="cell_id"
+                        [0.00150082, 0.00500748, 0.00264999, 0.00405532], dims="cell_id"
                     ),
                     soil_n_pool_particulate=DataArray(
-                        [0.00709876, 0.00073966, 0.0029022, 0.01428834], dims="cell_id"
+                        [0.00709874, 0.00073964, 0.00290216, 0.01428832], dims="cell_id"
                     ),
                     soil_n_pool_necromass=DataArray(
-                        [0.0058284, 0.01711988, 0.02216215, 0.01114677], dims="cell_id"
+                        [0.00582739, 0.01711981, 0.02216192, 0.01114658], dims="cell_id"
                     ),
                     soil_n_pool_maom=DataArray(
-                        [0.86652874, 0.48604324, 0.33400692, 0.10001766], dims="cell_id"
+                        [0.86652862, 0.48604323, 0.3340069, 0.10001764], dims="cell_id"
                     ),
                     soil_n_pool_ammonium=DataArray(
-                        [0.00017843, 0.01031858, 0.00024426, 0.00482445], dims="cell_id"
+                        [0.00017843, 0.0103186, 0.00024426, 0.00482445], dims="cell_id"
                     ),
                     soil_n_pool_nitrate=DataArray(
                         [0.00010727, 0.0002677, -0.00017899, 0.01262905], dims="cell_id"
@@ -419,14 +419,14 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00015755, 0.00011028, 0.00024629, 0.00018744], dims="cell_id"
                     ),
                     soil_p_pool_particulate=DataArray(
-                        [3.19672137e-5, 2.82555874e-4, 1.13865131e-4, 5.71534199e-4],
+                        [3.19589948e-5, 2.82519177e-4, 1.13848538e-4, 5.71508650e-4],
                         dims="cell_id",
                     ),
                     soil_p_pool_necromass=DataArray(
-                        [0.00170704, 0.00124221, 0.00309624, 0.00101001], dims="cell_id"
+                        [0.00170673, 0.0012422, 0.00309618, 0.00100997], dims="cell_id"
                     ),
                     soil_p_pool_maom=DataArray(
-                        [0.01351864, 0.03480957, 0.01990663, 0.00410603], dims="cell_id"
+                        [0.0135186, 0.03480957, 0.01990662, 0.00410602], dims="cell_id"
                     ),
                     soil_p_pool_primary=DataArray(
                         [0.0019594, 0.00535662, 0.00277434, 0.00059892], dims="cell_id"
@@ -435,7 +435,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
                         [0.00705642, 0.03816755, 0.0115255, 0.00733095], dims="cell_id"
                     ),
                     soil_p_pool_labile=DataArray(
-                        [3.95099648e-6, -7.05836282e-5, 3.40484629e-5, 1.78656777e-4],
+                        [3.95117286e-6, -7.05836091e-5, 3.40489885e-5, 1.78657279e-4],
                         dims="cell_id",
                     ),
                 ),
@@ -529,6 +529,13 @@ def test_order_independance(
         "plant_n_uptake_ecto",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -657,26 +664,26 @@ def test_construct_full_soil_model(
         4.8705495e-3,
         5.67937268e-2,
         7.27579158e-2,
-        -4.24905130e-02,
-        -1.71526872e-02,
-        -8.74103820e-02,
-        -6.36922124e-03,
-        -6.50731332e-03,
-        -6.21196757e-02,
-        -1.68034651e-02,
-        -2.89162644e-02,
-        -5.75698095e-3,
-        -3.40601643e-2,
-        -2.85852046e-2,
-        -5.51963071e-2,
-        -5.29546622e-3,
-        -3.58039027e-2,
-        -3.06921307e-2,
-        -2.31935960e-2,
-        3.73447584e-4,
-        -2.62977207e-2,
-        -2.214249e-2,
-        5.219897e-3,
+        -0.048350513,
+        -0.0172513872,
+        -0.088397382,
+        -0.00681822124,
+        -0.00705331332,
+        -0.0622686757,
+        -0.0169384651,
+        -0.0297712644,
+        -0.00609998095,
+        -0.0344891643,
+        -0.0291852046,
+        -0.0554263071,
+        -0.00624746622,
+        -0.0361879027,
+        -0.0310691307,
+        -0.024136596,
+        -0.007886552416,
+        -0.0349077207,
+        -0.02708249,
+        -0.001980103,
         0.0059195,
         0.09042042,
         0.08573325,
@@ -701,10 +708,10 @@ def test_construct_full_soil_model(
         7.28019864e-3,
         5.18532940e-3,
         2.42006926e-3,
-        -8.93041e-5,
-        5.105645e-5,
-        9.035108e-5,
-        5.212779e-6,
+        -8.93527e-5,
+        5.102785e-5,
+        9.028158e-5,
+        5.163279e-6,
         7.37406e-3,
         -1.87488e-3,
         4.96976e-3,
@@ -725,10 +732,10 @@ def test_construct_full_soil_model(
         1.02602825e-4,
         1.44074015e-4,
         8.15796967e-5,
-        6.820884e-6,
-        -6.40228e-6,
-        -8.6718e-7,
-        2.094258e-7,
+        6.804384e-6,
+        -6.47598e-6,
+        -9.0058e-7,
+        1.583258e-7,
         0.00225261,
         0.00282114,
         0.00596048,
