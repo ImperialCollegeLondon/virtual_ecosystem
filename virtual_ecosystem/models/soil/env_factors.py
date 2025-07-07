@@ -20,18 +20,18 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 class EnvironmentalEffectFactors:
     """The various factors through which the environment effects soil cycling rates."""
 
-    water: NDArray[np.float32]
+    water: NDArray[np.floating]
     """Impact of soil water potential on enzymatic rates [unitless]."""
-    pH: NDArray[np.float32]
+    pH: NDArray[np.floating]
     """Impact of soil pH on enzymatic rates [unitless]."""
-    clay_saturation: NDArray[np.float32]
+    clay_saturation: NDArray[np.floating]
     """Impact of soil clay fraction on enzyme saturation constants [unitless]."""
 
 
 def calculate_environmental_effect_factors(
-    soil_water_potential: NDArray[np.float32],
-    pH: NDArray[np.float32],
-    clay_fraction: NDArray[np.float32],
+    soil_water_potential: NDArray[np.floating],
+    pH: NDArray[np.floating],
+    clay_fraction: NDArray[np.floating],
     constants: SoilConsts,
 ) -> EnvironmentalEffectFactors:
     """Calculate the effects that the environment has on relevant biogeochemical rates.
@@ -82,10 +82,10 @@ def calculate_environmental_effect_factors(
 
 
 def calculate_temperature_effect_on_microbes(
-    soil_temperature: NDArray[np.float32],
+    soil_temperature: NDArray[np.floating],
     activation_energy: float,
     reference_temperature: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the effect that temperature has on microbial metabolic rates.
 
     This uses a standard Arrhenius equation to calculate the impact of temperature.
@@ -118,11 +118,11 @@ def calculate_temperature_effect_on_microbes(
 
 
 def calculate_water_potential_impact_on_microbes(
-    water_potential: NDArray[np.float32],
+    water_potential: NDArray[np.floating],
     water_potential_halt: float,
     water_potential_opt: float,
     response_curvature: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the effect that soil water potential has on microbial rates.
 
     This function only returns valid output for soil water potentials that are less than
@@ -158,12 +158,12 @@ def calculate_water_potential_impact_on_microbes(
 
 
 def calculate_pH_suitability(
-    soil_pH: NDArray[np.float32],
+    soil_pH: NDArray[np.floating],
     maximum_pH: float,
     minimum_pH: float,
     upper_optimum_pH: float,
     lower_optimum_pH: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the suitability of the soil pH for microbial activity.
 
     This function is taken from :cite:t:`orwin_organic_2011`. pH values within the
@@ -220,10 +220,10 @@ def calculate_pH_suitability(
 
 
 def calculate_clay_impact_on_enzyme_saturation(
-    clay_fraction: NDArray[np.float32],
+    clay_fraction: NDArray[np.floating],
     base_protection: float,
     protection_with_clay: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the impact that the soil clay fraction has on enzyme saturation.
 
     This factor impacts enzyme saturation constants, based on the assumption that finely
@@ -245,11 +245,11 @@ def calculate_clay_impact_on_enzyme_saturation(
 
 
 def calculate_nitrification_temperature_factor(
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     optimum_temp: float,
     max_temp: float,
     thermal_sensitivity: int,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate factor that captures the effect of temperature on nitrification rate.
 
     Form of this function is taken from :cite:t:`xu-ri_terrestrial_2008`.
@@ -282,7 +282,7 @@ def calculate_nitrification_temperature_factor(
     )
 
 
-def calculate_nitrification_moisture_factor(effective_saturation: NDArray[np.float32]):
+def calculate_nitrification_moisture_factor(effective_saturation: NDArray[np.floating]):
     """Calculate factor that captures the effect of soil moisture on nitrification rate.
 
     Form of this function is taken from :cite:t:`fatichi_mechanistic_2019`, where it is
@@ -300,7 +300,7 @@ def calculate_nitrification_moisture_factor(effective_saturation: NDArray[np.flo
 
 
 def calculate_denitrification_temperature_factor(
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     factor_at_infinity: float,
     minimum_temp: float,
     thermal_sensitivity: float,
@@ -337,7 +337,7 @@ def calculate_denitrification_temperature_factor(
 
 
 def calculate_symbiotic_nitrogen_fixation_carbon_cost(
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     cost_at_zero_celsius: float,
     infinite_temp_cost_offset: float,
     thermal_sensitivity: float,
@@ -383,11 +383,11 @@ def calculate_symbiotic_nitrogen_fixation_carbon_cost(
 
 
 def calculate_leaching_rate(
-    solute_density: NDArray[np.float32],
-    vertical_flow_rate: NDArray[np.float32],
-    soil_moisture: NDArray[np.float32],
+    solute_density: NDArray[np.floating],
+    vertical_flow_rate: NDArray[np.floating],
+    soil_moisture: NDArray[np.floating],
     solubility_coefficient: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate leaching rate for a given solute based on flow rate.
 
     This functional form is adapted from :cite:t:`porporato_hydrologic_2003`. The amount
@@ -411,11 +411,11 @@ def calculate_leaching_rate(
 
 
 def calculate_carbon_use_efficiency(
-    soil_temp: NDArray[np.float32],
+    soil_temp: NDArray[np.floating],
     reference_cue_logit: float,
     cue_reference_temp: float,
     logit_cue_with_temp: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the (temperature dependent) carbon use efficiency.
 
     We model the carbon use efficiency using a logistic function. This is to ensure that
@@ -443,7 +443,7 @@ def calculate_carbon_use_efficiency(
 def find_total_soil_moisture_for_microbially_active_depth(
     soil_moistures: DataArray,
     layer_structure: LayerStructure,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Find total soil moisture for the microbially active depth.
 
     The proportion of each soil layer that lies within the microbially active zone is

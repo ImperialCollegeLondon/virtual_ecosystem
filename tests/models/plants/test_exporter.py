@@ -260,6 +260,10 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 
+    # Note that the single quotes around the out_path are _required_ here: TOML uses
+    # single quotes to indicate raw strings and hence protect the backslashes in Windows
+    # path names from being interpreted as escape sequences.
+
     toml = f"""[core.data_output_options]
     out_path = '{tmp_path / inputs["path"]}'
     [plants]
@@ -600,6 +604,10 @@ class TestExporterDump:
 
         from virtual_ecosystem.core.config import Config
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+
+        # Note that the single quotes around the out_path are _required_ here: TOML uses
+        # single quotes to indicate raw strings and hence protect the backslashes in
+        # Windows path names from being interpreted as escape sequences.
 
         toml = f"""
         [core.data_output_options]

@@ -142,6 +142,13 @@ class SoilModel(
         "plant_n_uptake_ecto",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -455,8 +462,8 @@ class SoilModel(
         }
 
     def to_per_area(
-        self, output_rate: float | NDArray[np.float32]
-    ) -> NDArray[np.float32]:
+        self, output_rate: float | NDArray[np.floating]
+    ) -> NDArray[np.floating]:
         """Method to convert an soil model rates from per volume to per area units.
 
         Per area units are used by the plant model, so quantities returned to the plant
@@ -585,17 +592,17 @@ class SoilModel(
 
 
 def find_maximum_mycorrhizal_supply(
-    soil_c_pool_lmwc: NDArray[np.float32],
-    soil_n_pool_don: NDArray[np.float32],
-    soil_n_pool_ammonium: NDArray[np.float32],
-    soil_n_pool_nitrate: NDArray[np.float32],
-    soil_p_pool_dop: NDArray[np.float32],
-    soil_p_pool_labile: NDArray[np.float32],
-    microbe_pool_size: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    soil_c_pool_lmwc: NDArray[np.floating],
+    soil_n_pool_don: NDArray[np.floating],
+    soil_n_pool_ammonium: NDArray[np.floating],
+    soil_n_pool_nitrate: NDArray[np.floating],
+    soil_p_pool_dop: NDArray[np.floating],
+    soil_p_pool_labile: NDArray[np.floating],
+    microbe_pool_size: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     microbial_group: MicrobialGroupConstants,
     env_factors: EnvironmentalEffectFactors,
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Find maximum amount of nutrients mycorrhizal fungi can supply to plant partners.
 
     The assumption underlying this function is that mycorrhizal fungi are prepared to
@@ -668,11 +675,11 @@ def find_maximum_mycorrhizal_supply(
 
 def construct_full_soil_model(
     t: float,
-    pools: NDArray[np.float32],
+    pools: NDArray[np.floating],
     data: Data,
     no_cells: int,
     layer_structure: LayerStructure,
-    delta_pools_ordered: dict[str, NDArray[np.float32]],
+    delta_pools_ordered: dict[str, NDArray[np.floating]],
     model_constants: SoilConsts,
     functional_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
@@ -680,7 +687,7 @@ def construct_full_soil_model(
     soil_moisture_saturation: float,
     soil_moisture_residual: float,
     top_soil_layer_thickness: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Function that constructs the full soil model in a solve_ivp friendly form.
 
     Args:

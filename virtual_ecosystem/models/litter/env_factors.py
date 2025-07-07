@@ -93,11 +93,11 @@ def calculate_environmental_factors(
 
 
 def calculate_temperature_effect_on_litter_decomp(
-    temperature: NDArray[np.float32],
+    temperature: NDArray[np.floating],
     reference_temp: float,
     offset_temp: float,
     temp_response: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the effect that temperature has on litter decomposition rates.
 
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -121,11 +121,11 @@ def calculate_temperature_effect_on_litter_decomp(
 
 
 def calculate_soil_water_effect_on_litter_decomp(
-    water_potential: NDArray[np.float32],
+    water_potential: NDArray[np.floating],
     water_potential_halt: float,
     water_potential_opt: float,
     moisture_response_curvature: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the effect that soil water potential has on litter decomposition rates.
 
     This function is only relevant for the below ground litter pools. Its functional
@@ -158,9 +158,9 @@ def calculate_soil_water_effect_on_litter_decomp(
 
 def average_temperature_over_microbially_active_layers(
     soil_temperatures: DataArray,
-    surface_temperature: NDArray[np.float32],
+    surface_temperature: NDArray[np.floating],
     layer_structure: LayerStructure,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Average soil temperatures over the microbially active layers.
 
     First the average temperature is found for each layer. Then an average across the
@@ -202,7 +202,7 @@ def average_temperature_over_microbially_active_layers(
 def average_water_potential_over_microbially_active_layers(
     water_potentials: DataArray,
     layer_structure: LayerStructure,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Average water potentials over the microbially active layers.
 
     The average water potential is found for each layer apart from the top layer. This
