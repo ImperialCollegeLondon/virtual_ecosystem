@@ -319,7 +319,7 @@ def test_update_air_temperature():
     # Call the function
     updated_air_temperature = update_air_temperature(
         air_temperature=air_temperature,
-        canopy_temperature=canopy_temperature,
+        surface_temperature=canopy_temperature,
         specific_heat_air=np.full((2, 2), 1006),
         density_air=np.full((2, 2), 1.293),
         aerodynamic_resistance=np.full((2, 2), 10.0),

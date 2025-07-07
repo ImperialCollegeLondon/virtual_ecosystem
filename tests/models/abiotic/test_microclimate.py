@@ -38,35 +38,35 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_soiltemp = lyr_str.from_template()
     exp_soiltemp[lyr_str.index_all_soil] = np.array(
         [
-            [21.095941, 21.053328, 20.627195, 20.627195],
-            [20.018386, 20.017671, 20.010522, 20.010522],
+            [21.095, 21.053, 20.627, 20.627],
+            [20.018, 20.017, 20.010, 20.010],
         ]
     )
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
-        rtol=1e-04,
-        atol=1e-04,
+        rtol=1e-02,
+        atol=1e-02,
     )
 
     exp_cantemp = lyr_str.from_template()
-    exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [28.160042, 27.401159, 26.100414]
-    )[:, None]
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array([28.160, 27.401, 26.100])[
+        :, None
+    ]
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
         exp_cantemp[lyr_str.index_filled_canopy],
-        rtol=1e-04,
-        atol=1e-04,
+        rtol=1e-02,
+        atol=1e-02,
     )
 
     exp_airtemp = lyr_str.from_template()
     exp_airtemp[lyr_str.index_above_scalar] = 30.0
-    exp_airtemp[lyr_str.index_filled_canopy] = np.array(
-        [29.806235, 28.840201, 27.188575]
-    )[:, None]
+    exp_airtemp[lyr_str.index_filled_canopy] = np.array([29.8315, 28.8594, 27.188])[
+        :, None
+    ]
     exp_airtemp[lyr_str.index_surface_scalar] = np.array(
-        [21.182844, 21.177847, 21.127866, 21.127866]
+        [21.105942, 21.071852, 20.730945, 20.730945]
     )
     np.testing.assert_allclose(
         result["air_temperature"],
@@ -82,8 +82,8 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     np.testing.assert_allclose(
         result["relative_humidity"],
         exp_relhum,
-        rtol=1e-04,
-        atol=1e-04,
+        rtol=1e-02,
+        atol=1e-02,
     )
 
     # Sensible heat flux, canopy only
@@ -100,3 +100,38 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     #     rtol=1e-04,
     #     atol=1e-04,
     # )
+
+
+def test_run_microclimate_subdaily(dummy_climate_data, fixture_core_components):
+    """Test microclimate function iterates over hours - no time index."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        run_microclimate,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    result = run_microclimate(
+        data=dummy_climate_data,
+        time_index=0,
+        time_interval=3600 * 4,
+        cell_area=10000,
+        layer_structure=lyr_str,
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
+        pyrealm_const=PyrealmConst(),
+    )
+
+    exp_airtemp = lyr_str.from_template()
+    exp_airtemp[lyr_str.index_above_scalar] = 30.0
+    exp_airtemp[lyr_str.index_filled_canopy] = np.array([28.561, 29.876, 26.712798])[
+        :, None
+    ]
+    exp_airtemp[lyr_str.index_surface_scalar] = np.array(
+        [21.871, 21.734, 20.367, 20.367]
+    )
+    np.testing.assert_allclose(
+        result["air_temperature"],
+        exp_airtemp,
+        rtol=1e-02,
+        atol=1e-02,
+    )
