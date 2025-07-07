@@ -142,6 +142,13 @@ class SoilModel(
         "plant_n_uptake_ecto",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
     ),
     vars_updated=(
         "soil_c_pool_maom",

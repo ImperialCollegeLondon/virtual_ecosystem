@@ -51,7 +51,6 @@ def dummy_carbon_data(fixture_core_components):
         "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
         "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
         "litter_P_mineralisation_rate": [7.32e-6, 1.41404e-6, 2.82808e-6, 6.53332e-7],
-        "vertical_flow": [0.1, 0.5, 2.5, 1.59],
         "plant_symbiote_carbon_supply": [0.01, 0.25, 0.0075, 0.0047],
         "root_carbohydrate_exudation": [0.025, 0.01, 0.05, 0.0025],
         "plant_ammonium_uptake": [5.0e-5, 2.5e-5, 1.0e-5, 1.0e-4],
@@ -61,6 +60,13 @@ def dummy_carbon_data(fixture_core_components):
         "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
         "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
         "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
+        "animal_pom_consumption_carbon": [8.26e-3, 8.61e-3, 4.94e-3, 7.20e-3],
+        "animal_pom_consumption_nitrogen": [4.86e-8, 2.86e-8, 6.95e-8, 4.95e-8],
+        "animal_pom_consumption_phosphorus": [1.65e-8, 7.37e-8, 3.34e-8, 5.11e-8],
+        "animal_bacteria_consumption": [5.86e-3, 9.87e-5, 9.87e-4, 4.49e-4],
+        "animal_saprotrophic_fungi_consumption": [5.46e-4, 1.49e-4, 1.35e-4, 8.55e-4],
+        "animal_ectomycorrhiza_consumption": [9.52e-4, 3.84e-4, 3.77e-4, 9.43e-4],
+        "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
     }
 
     for var_name, var_values in data_values.items():
@@ -86,6 +92,11 @@ def dummy_carbon_data(fixture_core_components):
     data["soil_temperature"] = lyr_str.from_template()
     data["soil_temperature"][lyr_str.index_all_soil] = np.array(
         [[35.0, 37.5, 40.0, 25.0], [22.5, 22.5, 22.5, 22.5]]
+    )
+
+    data["vertical_flow"] = lyr_str.from_template()
+    data["vertical_flow"][lyr_str.index_all_soil] = np.array(
+        [[0.1, 0.5, 2.5, 1.59], [0.1, 0.5, 2.5, 1.59]]
     )
 
     data["air_temperature"] = lyr_str.from_template()

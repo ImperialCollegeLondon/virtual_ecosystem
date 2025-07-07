@@ -311,6 +311,10 @@ def test_setup(
                     [-56.432398, -56.438614, -56.44538, -56.442609],
                     [-217.596626, -217.596626, -217.596626, -217.596626],
                 ],
+                "vertical_flow": [
+                    [0.00017, 0.00017, 0.00017, 0.00017],
+                    [0.000526, 0.000526, 0.000526, 0.000526],
+                ],
             }
 
             for var_name, expected_vals in expected_2d.items():
@@ -326,7 +330,6 @@ def test_setup(
 
             # Test one dimensional variables
             expected_1d = {
-                "vertical_flow": [6.916e-05, 6.916e-05, 6.916e-05, 6.916e-05],
                 "total_river_discharge": [0, 0, 67002, 22095],
                 "surface_runoff": [20.343781, 20.66599, 20.896484, 20.443394],
                 "surface_runoff_accumulated": [0, 0, 1470, 330],
