@@ -104,3 +104,19 @@ class CoreConsts(ConstantsDataclass):
 
     density_water: float = 1000.0
     """Density of water, [kg m-3]."""
+
+    fungal_fruiting_bodies_c_n_ratio: float = 10.0
+    """Carbon to nitrogen ratio of fungal fruiting bodies, [unitless].
+    
+    This constant is stored in the CoreConsts as it is used by both the animal model
+    (to work out consumption flows) and the soil model (to work out production rates).
+    The current default value is very much a guess.
+    """
+
+    fungal_fruiting_bodies_c_p_ratio: float = 75.0
+    """Carbon to phosphorus ratio of fungal fruiting bodies, [unitless].
+    
+    This constant is stored in the CoreConsts as it is used by both the animal model (to
+    work out consumption flows) and the soil model (to work out production rates). The
+    current default value is very much a guess.
+    """

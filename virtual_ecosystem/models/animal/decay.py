@@ -249,6 +249,52 @@ def find_decay_consumed_split(
     return microbial_decay_rate / (animal_scavenging_rate + microbial_decay_rate)
 
 
+class FungalFruitPool:
+    """A class to track the mass of fungal fruiting bodies in each grid cell.
+
+    TODO - A proper explanation as I add stuff
+    """
+
+    def __init__(
+        self,
+        cell_id: int,
+        data: "Data",
+        cell_area: float,
+        c_n_ratio: float,
+        c_p_ratio: float,
+    ) -> None:
+        self.cell_id = cell_id
+        self.cell_area = cell_area
+
+        carbon_stock = (
+            data["fungal_fruiting_bodies"].sel(cell_id=cell_id).item()
+        )  # kg C m⁻²
+
+        self.c_n_ratio = c_n_ratio
+        self.c_p_ratio = c_p_ratio
+
+        if min(self.c_n_ratio, self.c_p_ratio) <= 0:
+            raise ValueError(
+                f"Fungal fruiting bodies: non-positive C:N or C:P ratio in cell "
+                f"{cell_id}."
+            )
+
+        # Convert to absolute mass (kg) and build stoichiometry
+        carbon_mass = carbon_stock * cell_area
+        self.mass_cnp = CNP(
+            carbon=carbon_mass,
+            nitrogen=carbon_mass / self.c_n_ratio,
+            phosphorus=carbon_mass / self.c_p_ratio,
+        )
+
+        # Sanity-check
+        if self.mass_cnp.total < 0:
+            raise ValueError(
+                f"Fungal fruiting bodies: negative mass detected in cell {cell_id} "
+                f"({self.mass_cnp})."
+            )
+
+
 class LitterPool:
     """Interface between litter model variables in ``Data`` and the animal module.
 

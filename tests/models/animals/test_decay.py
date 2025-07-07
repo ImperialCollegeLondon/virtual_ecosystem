@@ -209,6 +209,46 @@ def test_find_decay_consumed_split(decay_rate, scavenging_rate, expected_split):
     assert actual_split == expected_split
 
 
+class TestFungalFruitPool:
+    """Test the FungalFruitPool class."""
+
+    def test_initialization(self, mocker):
+        """Test initialization of FungalFruitPool."""
+        import numpy as np
+
+        from virtual_ecosystem.core.constants import CoreConsts
+        from virtual_ecosystem.core.data import Data
+        from virtual_ecosystem.models.animal.decay import FungalFruitPool
+
+        mock_data = mocker.MagicMock(spec=Data)
+        cell_id = 2
+        cell_area = 100.0
+        fungi_mass = np.array([0.5, 0.7, 1.0])
+
+        # Inline mock chain for sel(cell_id=...).item()
+        mock_data.__getitem__.side_effect = lambda key: {
+            "fungal_fruiting_bodies": mocker.Mock(
+                sel=lambda **kwargs: mocker.Mock(item=lambda: fungi_mass[cell_id])
+            ),
+        }[key]
+
+        litter_pool = FungalFruitPool(
+            cell_id=cell_id,
+            data=mock_data,
+            cell_area=cell_area,
+            c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
+            c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+        )
+
+        c_mass = fungi_mass[cell_id] * cell_area
+        n_mass = c_mass / 10.0
+        p_mass = c_mass / 75.0
+
+        assert np.isclose(litter_pool.mass_cnp.carbon, c_mass)
+        assert np.isclose(litter_pool.mass_cnp.nitrogen, n_mass)
+        assert np.isclose(litter_pool.mass_cnp.phosphorus, p_mass)
+
+
 class TestLitterPool:
     """Test the LitterPool class."""
 
