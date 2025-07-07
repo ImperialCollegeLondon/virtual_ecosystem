@@ -12,18 +12,18 @@ from virtual_ecosystem.models.hydrology.hydrology_tools import (
 
 
 def calculate_vertical_flow(
-    soil_moisture: NDArray[np.float32],
-    soil_layer_thickness: NDArray[np.float32],
-    soil_layer_depth: NDArray[np.float32],
-    soil_moisture_saturation: float | NDArray[np.float32],
-    soil_moisture_residual: float | NDArray[np.float32],
-    saturated_hydraulic_conductivity: float | NDArray[np.float32],
+    soil_moisture: NDArray[np.floating],
+    soil_layer_thickness: NDArray[np.floating],
+    soil_layer_depth: NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+    saturated_hydraulic_conductivity: float | NDArray[np.floating],
     air_entry_potential_inverse: float,
     van_genuchten_nonlinearily_parameter: float,
     pore_connectivity_parameter: float,
-    groundwater_capacity: float | NDArray[np.float32],
+    groundwater_capacity: float | NDArray[np.floating],
     seconds_to_day: float,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     r"""Calculate vertical water flow through soil column, [mm d-1].
 
     To calculate the flow of water through unsaturated soil, this function combines
@@ -152,12 +152,12 @@ def calculate_vertical_flow(
 
 
 def update_soil_moisture(
-    soil_moisture: NDArray[np.float32],
-    vertical_flow: NDArray[np.float32],
-    transpiration: NDArray[np.float32],
-    soil_moisture_saturation: NDArray[np.float32],
-    soil_moisture_residual: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    soil_moisture: NDArray[np.floating],
+    vertical_flow: NDArray[np.floating],
+    transpiration: NDArray[np.floating],
+    soil_moisture_saturation: NDArray[np.floating],
+    soil_moisture_residual: NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Update soil moisture profile.
 
     This function calculates soil moisture for each layer by removing the vertical flow
@@ -217,10 +217,10 @@ def update_soil_moisture(
 
 
 def calculate_matric_potential(
-    effective_saturation: NDArray[np.float32],
+    effective_saturation: NDArray[np.floating],
     air_entry_potential_inverse: float,
     van_genuchten_nonlinearily_parameter: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Convert soil moisture into an estimate of water potential.
 
     This function estimates soil water potential :math:`\Psi_{m}` as using the van
@@ -255,14 +255,14 @@ def calculate_matric_potential(
 
 
 def update_groundwater_storage(
-    groundwater_storage: NDArray[np.float32],
-    vertical_flow_to_groundwater: NDArray[np.float32],
-    bypass_flow: NDArray[np.float32],
-    max_percolation_rate_uzlz: float | NDArray[np.float32],
-    groundwater_loss: float | NDArray[np.float32],
-    reservoir_const_upper_groundwater: float | NDArray[np.float32],
-    reservoir_const_lower_groundwater: float | NDArray[np.float32],
-) -> dict[str, NDArray[np.float32]]:
+    groundwater_storage: NDArray[np.floating],
+    vertical_flow_to_groundwater: NDArray[np.floating],
+    bypass_flow: NDArray[np.floating],
+    max_percolation_rate_uzlz: float | NDArray[np.floating],
+    groundwater_loss: float | NDArray[np.floating],
+    reservoir_const_upper_groundwater: float | NDArray[np.floating],
+    reservoir_const_lower_groundwater: float | NDArray[np.floating],
+) -> dict[str, NDArray[np.floating]]:
     r"""Update groundwater storage and calculate below ground horizontal flow.
 
     Groundwater storage and transport are modelled using two parallel linear reservoirs,

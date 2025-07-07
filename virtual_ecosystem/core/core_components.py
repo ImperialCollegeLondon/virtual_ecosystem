@@ -302,7 +302,7 @@ class LayerStructure:
     # Attributes populated by __post_init__
     n_canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layer_depths: NDArray[np.float32] = field(init=False)
+    soil_layer_depths: NDArray[np.floating] = field(init=False)
     """A list of the depths of soil layer boundaries."""
     n_soil_layers: int = field(init=False)
     """The number of soil layers."""
@@ -333,9 +333,9 @@ class LayerStructure:
     """An integer index showing the lowest filled canopy layer for each grid cell"""
     n_canopy_layers_filled: int = field(init=False)
     """The current number of filled canopy layers across grid cells"""
-    soil_layer_thickness: NDArray[np.float32] = field(init=False)
+    soil_layer_thickness: NDArray[np.floating] = field(init=False)
     """Thickness of each soil layer (m)"""
-    soil_layer_active_thickness: NDArray[np.float32] = field(init=False)
+    soil_layer_active_thickness: NDArray[np.floating] = field(init=False)
     """Thickness of the microbially active soil in each soil layer (m)"""
     _array_template: DataArray = field(init=False)
     """A private data array template. Access copies using get_template."""
@@ -517,7 +517,7 @@ class LayerStructure:
         self._role_indices_bool[name] = bool_values
         self._role_indices_int[name] = np.nonzero(bool_values)[0]
 
-    def set_filled_canopy(self, canopy_heights: NDArray[np.float32]) -> None:
+    def set_filled_canopy(self, canopy_heights: NDArray[np.floating]) -> None:
         """Set the dynamic canopy indices and attributes.
 
         The layer structure includes a fixed number of canopy layers but these layers
@@ -589,57 +589,57 @@ class LayerStructure:
         return template_copy
 
     @property
-    def index_above(self) -> NDArray:
+    def index_above(self) -> NDArray[np.bool_]:
         """Layer indices for the above layer."""
         return self._role_indices_bool["above"]
 
     @property
-    def index_canopy(self) -> NDArray:
+    def index_canopy(self) -> NDArray[np.bool_]:
         """Layer indices for the above canopy layers."""
         return self._role_indices_bool["canopy"]
 
     @property
-    def index_surface(self) -> NDArray:
+    def index_surface(self) -> NDArray[np.bool_]:
         """Layer indices for the surface layer."""
         return self._role_indices_bool["surface"]
 
     @property
-    def index_topsoil(self) -> NDArray:
+    def index_topsoil(self) -> NDArray[np.bool_]:
         """Layer indices for the topsoil layer."""
         return self._role_indices_bool["topsoil"]
 
     @property
-    def index_subsoil(self) -> NDArray:
+    def index_subsoil(self) -> NDArray[np.bool_]:
         """Layer indices for the subsoil layers."""
         return self._role_indices_bool["subsoil"]
 
     @property
-    def index_all_soil(self) -> NDArray:
+    def index_all_soil(self) -> NDArray[np.bool_]:
         """Layer indices for all soil layers."""
         return self._role_indices_bool["all_soil"]
 
     @property
-    def index_atmosphere(self) -> NDArray:
+    def index_atmosphere(self) -> NDArray[np.bool_]:
         """Layer indices for all atmospheric layers."""
         return self._role_indices_bool["atmosphere"]
 
     @property
-    def index_active_soil(self) -> NDArray:
+    def index_active_soil(self) -> NDArray[np.bool_]:
         """Layer indices for microbially active soil layers."""
         return self._role_indices_bool["active_soil"]
 
     @property
-    def index_filled_canopy(self) -> NDArray:
+    def index_filled_canopy(self) -> NDArray[np.bool_]:
         """Layer indices for the filled canopy layers."""
         return self._role_indices_bool["filled_canopy"]
 
     @property
-    def index_filled_atmosphere(self) -> NDArray:
+    def index_filled_atmosphere(self) -> NDArray[np.bool_]:
         """Layer indices for the filled atmospheric layers."""
         return self._role_indices_bool["filled_atmosphere"]
 
     @property
-    def index_flux_layers(self) -> NDArray:
+    def index_flux_layers(self) -> NDArray[np.bool_]:
         """Layer indices for the flux layers."""
         return self._role_indices_bool["flux_layers"]
 

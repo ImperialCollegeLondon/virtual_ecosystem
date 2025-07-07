@@ -141,9 +141,9 @@ def test_calculate_psychrometric_constant():
         calculate_psychrometric_constant,
     )
 
-    atmospheric_pressure = np.array([101.3], dtype=np.float32)  # in kPa
-    latent_heat_vapourization = np.array([2268.0], dtype=np.float32)  # in kJ/kg
-    specific_heat_air = np.array([1.005], dtype=np.float32)  # in kJ/kg·K
+    atmospheric_pressure = np.array([101.3], dtype=np.float64)  # in kPa
+    latent_heat_vapourization = np.array([2268.0], dtype=np.float64)  # in kJ/kg
+    specific_heat_air = np.array([1.005], dtype=np.float64)  # in kJ/kg·K
     molecular_weight_ratio_water_to_dry_air = 0.622  # dimensionless
 
     # Expected result calculated manually or using a known value

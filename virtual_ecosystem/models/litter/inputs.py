@@ -19,58 +19,58 @@ from virtual_ecosystem.models.litter.constants import LitterConsts
 class LitterInputs:
     """The full set input flows to the litter model."""
 
-    leaf_mass: NDArray[np.float32]
+    leaf_mass: NDArray[np.floating]
     """Total leaf input mass to litter [kg C m^-2]"""
-    root_mass: NDArray[np.float32]
+    root_mass: NDArray[np.floating]
     """Total root input mass to litter [kg C m^-2]"""
-    deadwood_mass: NDArray[np.float32]
+    deadwood_mass: NDArray[np.floating]
     """Total deadwood input mass to litter [kg C m^-2]"""
-    reprod_mass: NDArray[np.float32]
+    reprod_mass: NDArray[np.floating]
     """Total plant reproductive tissue input mass to litter [kg C m^-2]"""
 
-    leaf_lignin: NDArray[np.float32]
+    leaf_lignin: NDArray[np.floating]
     """Lignin proportion of leaf input [unitless]"""
-    root_lignin: NDArray[np.float32]
+    root_lignin: NDArray[np.floating]
     """Lignin proportion of root input [unitless]"""
-    stem_lignin: NDArray[np.float32]
+    stem_lignin: NDArray[np.floating]
     """Lignin proportion of deadwood input [unitless]"""
-    reprod_lignin: NDArray[np.float32]
+    reprod_lignin: NDArray[np.floating]
     """Lignin proportion of reproductive tissue input [unitless]"""
 
-    leaf_nitrogen: NDArray[np.float32]
+    leaf_nitrogen: NDArray[np.floating]
     """Carbon nitrogen ratio of leaf input [unitless]"""
-    root_nitrogen: NDArray[np.float32]
+    root_nitrogen: NDArray[np.floating]
     """Carbon nitrogen ratio of root input [unitless]"""
-    deadwood_nitrogen: NDArray[np.float32]
+    deadwood_nitrogen: NDArray[np.floating]
     """Carbon nitrogen ratio of deadwood input [unitless]"""
-    reprod_nitrogen: NDArray[np.float32]
+    reprod_nitrogen: NDArray[np.floating]
     """Carbon nitrogen ratio of reproductive tissue input [unitless]"""
 
-    leaf_phosphorus: NDArray[np.float32]
+    leaf_phosphorus: NDArray[np.floating]
     """Carbon phosphorus ratio of leaf input [unitless]"""
-    root_phosphorus: NDArray[np.float32]
+    root_phosphorus: NDArray[np.floating]
     """Carbon phosphorus ratio of root input [unitless]"""
-    deadwood_phosphorus: NDArray[np.float32]
+    deadwood_phosphorus: NDArray[np.floating]
     """Carbon phosphorus ratio of deadwood input [unitless]"""
-    reprod_phosphorus: NDArray[np.float32]
+    reprod_phosphorus: NDArray[np.floating]
     """Carbon phosphorus ratio of reproductive tissue input [unitless]"""
 
-    leaves_meta_split: NDArray[np.float32]
+    leaves_meta_split: NDArray[np.floating]
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
-    reproduct_meta_split: NDArray[np.float32]
+    reproduct_meta_split: NDArray[np.floating]
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
-    roots_meta_split: NDArray[np.float32]
+    roots_meta_split: NDArray[np.floating]
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
 
-    input_woody: NDArray[np.float32]
+    input_woody: NDArray[np.floating]
     """Total input to the woody litter pool [kg C m^-2]"""
-    input_above_metabolic: NDArray[np.float32]
+    input_above_metabolic: NDArray[np.floating]
     """Total input to the above ground metabolic litter pool [kg C m^-2]"""
-    input_above_structural: NDArray[np.float32]
+    input_above_structural: NDArray[np.floating]
     """Total input to the above ground structural litter pool [kg C m^-2]"""
-    input_below_metabolic: NDArray[np.float32]
+    input_below_metabolic: NDArray[np.floating]
     """Total input to the below ground metabolic litter pool [kg C m^-2]"""
-    input_below_structural: NDArray[np.float32]
+    input_below_structural: NDArray[np.floating]
     """Total input to the below ground structural litter pool [kg C m^-2]"""
 
     @classmethod
@@ -109,7 +109,7 @@ class LitterInputs:
         return LitterInputs(**metabolic_splits, **plant_inputs, **total_input)
 
 
-def combine_input_sources(data: Data) -> dict[str, NDArray[np.float32]]:
+def combine_input_sources(data: Data) -> dict[str, NDArray[np.floating]]:
     """Combine the plant death and herbivory inputs into a single total input.
 
     The total input for each plant matter type (leaves, roots, deadwood,
@@ -200,8 +200,8 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.float32]]:
 
 
 def calculate_metabolic_proportions_of_input(
-    total_input: dict[str, NDArray[np.float32]], constants: LitterConsts
-) -> dict[str, NDArray[np.float32]]:
+    total_input: dict[str, NDArray[np.floating]], constants: LitterConsts
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the proportion of each input type that flows to the metabolic pool.
 
     This function is used for roots, leaves and reproductive tissue, but not deadwood
@@ -256,8 +256,8 @@ def calculate_metabolic_proportions_of_input(
 
 
 def partion_plant_inputs_between_pools(
-    total_input: dict[str, NDArray[np.float32]],
-    metabolic_splits: dict[str, NDArray[np.float32]],
+    total_input: dict[str, NDArray[np.floating]],
+    metabolic_splits: dict[str, NDArray[np.floating]],
 ):
     """Function to partition input biomass between the various litter pools.
 
@@ -309,13 +309,13 @@ def partion_plant_inputs_between_pools(
 
 
 def split_pool_into_metabolic_and_structural_litter(
-    lignin_proportion: NDArray[np.float32],
-    carbon_nitrogen_ratio: NDArray[np.float32],
-    carbon_phosphorus_ratio: NDArray[np.float32],
+    lignin_proportion: NDArray[np.floating],
+    carbon_nitrogen_ratio: NDArray[np.floating],
+    carbon_phosphorus_ratio: NDArray[np.floating],
     max_metabolic_fraction: float,
     split_sensitivity_nitrogen: float,
     split_sensitivity_phosphorus: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the split of input biomass between metabolic and structural pools.
 
     This division depends on the lignin and nitrogen content of the input biomass, the
@@ -367,11 +367,11 @@ def split_pool_into_metabolic_and_structural_litter(
 
 
 def merge_input_chemical_proportions(
-    turnover_mass: NDArray[np.float32],
-    herbivory_waste_mass: NDArray[np.float32],
-    total_mass: NDArray[np.float32],
-    turnover_chemical_proportion: NDArray[np.float32],
-    herbivory_waste_chemical_proportion: NDArray[np.float32],
+    turnover_mass: NDArray[np.floating],
+    herbivory_waste_mass: NDArray[np.floating],
+    total_mass: NDArray[np.floating],
+    turnover_chemical_proportion: NDArray[np.floating],
+    herbivory_waste_chemical_proportion: NDArray[np.floating],
 ):
     """Merge the chemical proportions of two input sources to the same litter pool.
 

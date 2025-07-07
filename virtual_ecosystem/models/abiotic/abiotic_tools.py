@@ -14,12 +14,12 @@ from xarray import DataArray
 
 
 def calculate_molar_density_air(
-    temperature: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
+    temperature: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
     standard_mole: float,
     standard_pressure: float,
     celsius_to_kelvin: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate temperature-dependent molar density of air.
 
     Implementation after :cite:t:`maclean_microclimc_2021`.
@@ -46,8 +46,8 @@ def calculate_molar_density_air(
 
 
 def calculate_air_density(
-    air_temperature: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
+    air_temperature: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
     specific_gas_constant_dry_air: float,
     celsius_to_kelvin: float,
 ):
@@ -72,10 +72,10 @@ def calculate_air_density(
 
 
 def calculate_latent_heat_vapourisation(
-    temperature: NDArray[np.float32],
+    temperature: NDArray[np.floating],
     celsius_to_kelvin: float,
     latent_heat_vap_equ_factors: tuple[float, float],
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate latent heat of vapourisation.
 
     Implementation after Eq. 8, :cite:t:`henderson-sellers_new_1984`.
@@ -95,7 +95,7 @@ def calculate_latent_heat_vapourisation(
     return (a * (temperature_kelvin / (temperature_kelvin - b)) ** 2) / 1000.0
 
 
-def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
+def find_last_valid_row(array: NDArray[np.floating]) -> NDArray[np.floating]:
     """Find last valid value in array for each column.
 
     This function looks for the last valid value in each column of a 2-dimensional
@@ -127,9 +127,9 @@ def find_last_valid_row(array: NDArray[np.float32]) -> NDArray[np.float32]:
 
 
 def calculate_slope_of_saturated_pressure_curve(
-    temperature: NDArray[np.float32],
+    temperature: NDArray[np.floating],
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Calculate slope of the saturated pressure curve.
 
     Args:
