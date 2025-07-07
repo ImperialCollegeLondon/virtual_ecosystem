@@ -741,12 +741,6 @@ class HydrologyModel(
             daily_lists["canopy_evaporation"], axis=0
         )
 
-        soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
-            np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
-            dims="cell_id",
-            coords={"cell_id": self.grid.cell_id},
-        )
-
         for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
             soil_hydrology[var] = DataArray(
                 np.mean(np.stack(daily_lists[var], axis=1), axis=1),
@@ -756,7 +750,7 @@ class HydrologyModel(
 
         # Return mean soil moisture, [mm], and soil matric potential, [kPa], and add
         # atmospheric layers (nan)
-        for var in ["soil_moisture", "matric_potential"]:
+        for var in ["soil_moisture", "matric_potential", "vertical_flow"]:
             soil_hydrology[var] = self.layer_structure.from_template()
             soil_hydrology[var][self.layer_structure.index_all_soil] = np.mean(
                 np.stack(daily_lists[var], axis=0), axis=0
