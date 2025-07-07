@@ -547,8 +547,7 @@ def solve_canopy_temperature(
                     tol=0.01,
                 )
 
-            except RuntimeError as e:
-                print(f"Newton failed at ({i},{j}) with x0={x0}: {e}")
+            except RuntimeError:
                 solved_temperature[i, j] = best_estimate[0]  # use last known good value
 
     return solved_temperature
