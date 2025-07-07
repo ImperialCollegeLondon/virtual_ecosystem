@@ -378,18 +378,18 @@ def find_microbial_stoichiometries(config: Config) -> dict[str, dict[str, float]
 class CarbonSupply:
     """Rate of carbon supply to each of the plant symbiotic microbial groups."""
 
-    nitrogen_fixers: NDArray[np.float32]
+    nitrogen_fixers: NDArray[np.floating]
     """Carbon supply to the nitrogen fixing bacteria [kg C m^-3 day^-1]."""
 
-    ectomycorrhiza: NDArray[np.float32]
+    ectomycorrhiza: NDArray[np.floating]
     """Carbon supply to ectomycorrhizal fungi [kg C m^-3 day^-1]."""
 
-    arbuscular_mycorrhiza: NDArray[np.float32]
+    arbuscular_mycorrhiza: NDArray[np.floating]
     """Carbon supply to arbuscular mycorrhizal fungi [kg C m^-3 day^-1]."""
 
 
 def calculate_symbiotic_carbon_supply(
-    total_plant_supply: NDArray[np.float32],
+    total_plant_supply: NDArray[np.floating],
     nitrogen_fixer_fraction: float,
     ectomycorrhiza_fraction: float,
 ) -> CarbonSupply:

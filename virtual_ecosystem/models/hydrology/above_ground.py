@@ -22,15 +22,15 @@ from virtual_ecosystem.models.abiotic.abiotic_tools import (
 
 
 def potential_evaporation_leaf(
-    net_radiation: NDArray[np.float32],
-    vapour_pressure_deficit: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    density_air_kg: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    aerodynamic_resistance: NDArray[np.float32],
-    stomatal_resistance: NDArray[np.float32],
-    latent_heat_vapourisation: NDArray[np.float32],
-    psychrometric_constant: NDArray[np.float32],
+    net_radiation: NDArray[np.floating],
+    vapour_pressure_deficit: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    density_air_kg: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    aerodynamic_resistance: NDArray[np.floating],
+    stomatal_resistance: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
+    psychrometric_constant: NDArray[np.floating],
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
 ):
     r"""Calculate canopy potential evaporation rate using Penman-Monteith equation.
@@ -97,22 +97,22 @@ def potential_evaporation_leaf(
 
 
 def calculate_canopy_evaporation(
-    leaf_area_index: NDArray[np.float32],
-    interception: NDArray[np.float32],
-    net_radiation: NDArray[np.float32],
-    vapour_pressure_deficit: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    density_air_kg: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    aerodynamic_resistance: NDArray[np.float32],
-    stomatal_resistance: NDArray[np.float32],
-    latent_heat_vapourisation: NDArray[np.float32],
-    psychrometric_constant: NDArray[np.float32],
+    leaf_area_index: NDArray[np.floating],
+    interception: NDArray[np.floating],
+    net_radiation: NDArray[np.floating],
+    vapour_pressure_deficit: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    density_air_kg: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    aerodynamic_resistance: NDArray[np.floating],
+    stomatal_resistance: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
+    psychrometric_constant: NDArray[np.floating],
     saturated_pressure_slope_parameters: tuple[float, float, float, float],
     time_interval: float,
     intercept_residence_time: float,
     extinction_coefficient_global_radiation: float,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     r"""Calculate evaporation of intercepted water from the canopy, [mm].
 
     This function calculates evaporation of intercepted water from the canopy following
@@ -226,22 +226,22 @@ def calculate_canopy_evaporation(
 
 
 def calculate_soil_evaporation(
-    temperature: NDArray[np.float32],
-    relative_humidity: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
-    soil_moisture: NDArray[np.float32],
-    soil_moisture_residual: float | NDArray[np.float32],
-    soil_moisture_saturation: float | NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
-    wind_speed_surface: NDArray[np.float32],
-    density_air: float | NDArray[np.float32],
-    latent_heat_vapourisation: float | NDArray[np.float32],
+    temperature: NDArray[np.floating],
+    relative_humidity: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
+    soil_moisture: NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    wind_speed_surface: NDArray[np.floating],
+    density_air: float | NDArray[np.floating],
+    latent_heat_vapourisation: float | NDArray[np.floating],
     gas_constant_water_vapour: float,
     drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
     time_interval: float,
     pyrealm_const: PyrealmConst,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux
@@ -444,11 +444,11 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
 
 
 def calculate_interception(
-    leaf_area_index: NDArray[np.float32],
-    precipitation: NDArray[np.float32],
+    leaf_area_index: NDArray[np.floating],
+    precipitation: NDArray[np.floating],
     intercept_parameters: tuple[float, float, float],
     veg_density_param: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Estimate canopy interception.
 
     This function estimates canopy interception using the following storage-based
@@ -509,10 +509,10 @@ def calculate_interception(
 
 
 def distribute_monthly_rainfall(
-    total_monthly_rainfall: NDArray[np.float32],
+    total_monthly_rainfall: NDArray[np.floating],
     num_days: int,
     seed: int | None = None,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Distributes total monthly rainfall over the specified number of days.
 
     At the moment, this function allocates each millimeter of monthly rainfall to a
@@ -547,11 +547,11 @@ def distribute_monthly_rainfall(
 
 
 def calculate_bypass_flow(
-    top_soil_moisture: NDArray[np.float32],
-    sat_top_soil_moisture: NDArray[np.float32],
-    available_water: NDArray[np.float32],
+    top_soil_moisture: NDArray[np.floating],
+    sat_top_soil_moisture: NDArray[np.floating],
+    available_water: NDArray[np.floating],
     bypass_flow_coefficient: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Calculate preferential bypass flow.
 
     Bypass flow is here defined as the flow that bypasses the soil matrix and drains
@@ -589,12 +589,12 @@ def calculate_bypass_flow(
 
 
 def convert_mm_flow_to_m3_per_second(
-    river_discharge_mm: NDArray[np.float32],
+    river_discharge_mm: NDArray[np.floating],
     area: int | float,
     days: int,
     seconds_to_day: float,
     meters_to_millimeters: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Convert river discharge from millimeters to m3 s-1.
 
     Args:
@@ -612,10 +612,10 @@ def convert_mm_flow_to_m3_per_second(
 
 
 def calculate_surface_runoff(
-    precipitation_surface: NDArray[np.float32],
-    top_soil_moisture: NDArray[np.float32],
-    top_soil_moisture_saturation: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    precipitation_surface: NDArray[np.floating],
+    top_soil_moisture: NDArray[np.floating],
+    top_soil_moisture_saturation: NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Calculate surface runoff, [mm].
 
     Surface runoff is calculated with a simple bucket model based on
