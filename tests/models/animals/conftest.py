@@ -611,6 +611,9 @@ def dummy_animal_data(animal_fixture_core_components):
     data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
     data["soil_c_pool_ectomycorrhiza"] = soil_pools
 
+    # Also need to add a pool to track the amount of fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = litter_pools
+
     return data
 
 

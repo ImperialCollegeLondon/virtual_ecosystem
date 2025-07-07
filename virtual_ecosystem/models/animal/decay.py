@@ -294,6 +294,53 @@ class FungalFruitPool:
                 f"({self.mass_cnp})."
             )
 
+    @property
+    def mass_current(self) -> float:
+        """Return current carbon mass in the pool [kg]."""
+        return self.mass_cnp.carbon
+
+    def get_eaten(
+        self,
+        consumed_mass: float,
+        detritivore: "Consumer",
+    ) -> tuple[dict[str, float], dict[str, float]]:
+        """Remove biomass when a cohort consumes fungal fruiting bodies.
+
+        Args:
+            consumed_mass: Target wet-mass to consume **after** mechanical efficiency is
+              applied (kg).  Any attempt to over-consume is automatically capped.
+            detritivore: The cohort that is feeding used only to obtain mechanical
+              efficiency.
+
+        Returns:
+            Dictionary of element masses actually assimilated, keys ``carbon``,
+            ``nitrogen``, ``phosphorus`` (kg).
+        """
+        if consumed_mass < 0:
+            raise ValueError("consumed_mass must be non-negative")
+
+        total_available = self.mass_cnp.total
+        mech_eff = detritivore.functional_group.mechanical_efficiency
+        actual = min(consumed_mass, total_available) * mech_eff
+
+        frac_C = self.mass_cnp.carbon / total_available
+        frac_N = self.mass_cnp.nitrogen / total_available
+        frac_P = self.mass_cnp.phosphorus / total_available
+
+        taken = {
+            "carbon": actual * frac_C,
+            "nitrogen": actual * frac_N,
+            "phosphorus": actual * frac_P,
+        }
+
+        # in-place update
+        self.mass_cnp.update(
+            carbon=-taken["carbon"],
+            nitrogen=-taken["nitrogen"],
+            phosphorus=-taken["phosphorus"],
+        )
+        return taken, {}
+
 
 class LitterPool:
     """Interface between litter model variables in ``Data`` and the animal module.
@@ -605,7 +652,8 @@ class SoilPool:
             raise ValueError("consumed_mass must be non-negative")
 
         total_available = self.mass_cnp.total
-        actual = min(consumed_mass, total_available)
+        mech_eff = detritivore.functional_group.mechanical_efficiency
+        actual = min(consumed_mass, total_available) * mech_eff
 
         frac_C = self.mass_cnp.carbon / total_available
         frac_N = self.mass_cnp.nitrogen / total_available
