@@ -257,7 +257,7 @@ class LitterPool:
     """
 
     vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
-    """Vertical position of carcass pool."""
+    """Vertical position of litter pool."""
 
     def __init__(
         self,
@@ -324,6 +324,242 @@ class LitterPool:
         total_available = self.mass_cnp.total
         mech_eff = detritivore.functional_group.mechanical_efficiency
         actual = min(consumed_mass, total_available) * mech_eff
+
+        frac_C = self.mass_cnp.carbon / total_available
+        frac_N = self.mass_cnp.nitrogen / total_available
+        frac_P = self.mass_cnp.phosphorus / total_available
+
+        taken = {
+            "carbon": actual * frac_C,
+            "nitrogen": actual * frac_N,
+            "phosphorus": actual * frac_P,
+        }
+
+        # in-place update
+        self.mass_cnp.update(
+            carbon=-taken["carbon"],
+            nitrogen=-taken["nitrogen"],
+            phosphorus=-taken["phosphorus"],
+        )
+        return taken, {}
+
+
+class SoilPool:
+    """Interface between litter model variables in ``Data`` and the animal module.
+
+    One :class:`SoilPool` instance now represents **one soil pool type *in one grid
+    cell***.
+    """
+
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of soil pool."""
+
+    def __init__(
+        self,
+        pool_name: str,
+        cell_id: int,
+        data: "Data",
+        cell_area: float,
+        max_depth_microbial_activity: float,
+        c_n_p_ratios: dict[str, dict[str, float]],
+    ) -> None:
+        accepted_names = ["pom", "bacteria", "fungi"]
+
+        if pool_name not in accepted_names:
+            err = ValueError(
+                f"Invalid soil pool name provided ({pool_name}), pools available for "
+                f"animal consumption are: {accepted_names}"
+            )
+            LOGGER.critical(err)
+            raise err
+
+        self.pool_name = pool_name
+        self.cell_id = cell_id
+        self.cell_area = cell_area
+
+        if pool_name == "pom":
+            self.mass_cnp = self._extract_pom_cnp_mass(
+                data=data,
+                biotic_activity_depth=max_depth_microbial_activity,
+            )
+        elif pool_name == "bacteria":
+            self.mass_cnp = self._extract_bacteria_cnp_mass(
+                data=data,
+                biotic_activity_depth=max_depth_microbial_activity,
+                c_n_p_ratios_bacteria=c_n_p_ratios["bacteria"],
+            )
+        else:
+            self.mass_cnp = self._extract_fungi_cnp_mass(
+                data=data,
+                biotic_activity_depth=max_depth_microbial_activity,
+                c_n_p_ratios=c_n_p_ratios,
+            )
+
+        # Sanity-check
+        if self.mass_cnp.total < 0:
+            raise ValueError(
+                f"{pool_name}: negative mass detected in cell {cell_id} "
+                f"({self.mass_cnp})."
+            )
+
+    def _extract_pom_cnp_mass(self, data: Data, biotic_activity_depth: float):
+        """Extract the CNP masses of the :term`POM` soil pool.
+
+        Args:
+            data: The Virtual Ecosystem data object
+            biotic_activity_depth: The soil depth at which biotic activity is assumed to
+                halt [m]
+        """
+
+        carbon_stock = data["soil_c_pool_pom"].sel(cell_id=self.cell_id).item()
+        nitrogen_stock = (
+            data["soil_n_pool_particulate"].sel(cell_id=self.cell_id).item()
+        )
+        phosphorus_stock = (
+            data["soil_p_pool_particulate"].sel(cell_id=self.cell_id).item()
+        )
+
+        # Convert stocks (kg m^-3) into masses by multiplying by grid square area and by
+        # soil active depth
+        carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
+        nitrogen_mass = nitrogen_stock * self.cell_area * biotic_activity_depth
+        phosphorus_mass = phosphorus_stock * self.cell_area * biotic_activity_depth
+
+        return CNP(
+            carbon=carbon_mass, nitrogen=nitrogen_mass, phosphorus=phosphorus_mass
+        )
+
+    def _extract_bacteria_cnp_mass(
+        self,
+        data: Data,
+        biotic_activity_depth: float,
+        c_n_p_ratios_bacteria: dict[str, float],
+    ):
+        """Extract the CNP masses of the soil bacteria pool.
+
+        Args:
+            data: The Virtual Ecosystem data object
+            biotic_activity_depth: The soil depth at which biotic activity is assumed to
+                halt [m]
+            c_n_p_ratios_bacteria: Carbon to nitrogen and carbon to phosphorus ratios
+                for bacterial biomass [unitless]
+        """
+
+        carbon_stock = data["soil_c_pool_bacteria"].sel(cell_id=self.cell_id).item()
+
+        # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
+        # soil active depth
+        carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
+        nitrogen_mass = carbon_mass / c_n_p_ratios_bacteria["nitrogen"]
+        phosphorus_mass = carbon_mass / c_n_p_ratios_bacteria["phosphorus"]
+
+        return CNP(
+            carbon=carbon_mass, nitrogen=nitrogen_mass, phosphorus=phosphorus_mass
+        )
+
+    def _extract_fungi_cnp_mass(
+        self,
+        data: Data,
+        biotic_activity_depth: float,
+        c_n_p_ratios: dict[str, dict[str, float]],
+    ):
+        """Extract the CNP masses of the soil fungi pools.
+
+        Animals are assumed to just generically eat soil fungi rather than being able to
+        choose a specific fungal functional group to eat. This means that the biomass
+        for all three groups is combined into one.
+
+        It's possible for the soil model to produce slightly negative mycorrhizal fungal
+        abundances, when that happens this will be treated as zero abundance, to prevent
+        the possibility of a negative rate of animal consumption.
+
+        Args:
+            data: The Virtual Ecosystem data object
+            biotic_activity_depth: The soil depth at which biotic activity is assumed to
+                halt [m]
+            c_n_p_ratios: Carbon to nitrogen and carbon to phosphorus ratios for soil
+                microbial pools [unitless]
+        """
+
+        saprotrophic_stock = (
+            data["soil_c_pool_saprotrophic_fungi"].sel(cell_id=self.cell_id).item()
+        )
+        arbuscular_mycorrhizal_stock = (
+            data["soil_c_pool_arbuscular_mycorrhiza"]
+            .sel(cell_id=self.cell_id)
+            .where(lambda x: x >= 0)
+            .fillna(0)
+            .item()
+        )
+        ectomycorrhizal_stock = (
+            data["soil_c_pool_ectomycorrhiza"]
+            .sel(cell_id=self.cell_id)
+            .where(lambda x: x >= 0)
+            .fillna(0)
+            .item()
+        )
+        # Individual stock sizes now used to find total stock and the overall C:N and
+        # C:P ratios of this total stock
+        carbon_stock = (
+            saprotrophic_stock + arbuscular_mycorrhizal_stock + ectomycorrhizal_stock
+        )
+        nitrogen_stock = (
+            (saprotrophic_stock / c_n_p_ratios["saprotrophic_fungi"]["nitrogen"])
+            + (
+                arbuscular_mycorrhizal_stock
+                / c_n_p_ratios["arbuscular_mycorrhiza"]["nitrogen"]
+            )
+            + (ectomycorrhizal_stock / c_n_p_ratios["ectomycorrhiza"]["nitrogen"])
+        )
+        phosphorus_stock = (
+            (saprotrophic_stock / c_n_p_ratios["saprotrophic_fungi"]["phosphorus"])
+            + (
+                arbuscular_mycorrhizal_stock
+                / c_n_p_ratios["arbuscular_mycorrhiza"]["phosphorus"]
+            )
+            + (ectomycorrhizal_stock / c_n_p_ratios["ectomycorrhiza"]["phosphorus"])
+        )
+
+        # Convert stock (kg m^-3) into mass by multiplying by grid square area and by
+        # soil active depth
+        carbon_mass = carbon_stock * self.cell_area * biotic_activity_depth
+        nitrogen_mass = nitrogen_stock * self.cell_area * biotic_activity_depth
+        phosphorus_mass = phosphorus_stock * self.cell_area * biotic_activity_depth
+
+        return CNP(
+            carbon=carbon_mass, nitrogen=nitrogen_mass, phosphorus=phosphorus_mass
+        )
+
+    @property
+    def mass_current(self) -> float:
+        """Return current carbon mass in the pool [kg]."""
+        return self.mass_cnp.carbon
+
+    def get_eaten(
+        self,
+        consumed_mass: float,
+        detritivore: "Consumer",
+    ) -> tuple[dict[str, float], dict[str, float]]:
+        """Remove biomass when a cohort consumes this soil pool.
+
+        In contrast to the LitterPool case, for soil pools mechanical efficiency is
+        assumed to be 100% so does not factor into this calculation.
+
+        Args:
+            consumed_mass: Target wet-mass to consume (kg). Any attempt to over-consume
+                is automatically capped.
+            detritivore: The cohort that is feeding, this is only needed to maintain
+                same function signature as SoilPool case
+
+        Returns:
+            Dictionary of element masses actually assimilated, keys ``carbon``,
+            ``nitrogen``, ``phosphorus`` (kg).
+        """
+        if consumed_mass < 0:
+            raise ValueError("consumed_mass must be non-negative")
+
+        total_available = self.mass_cnp.total
+        actual = min(consumed_mass, total_available)
 
         frac_C = self.mass_cnp.carbon / total_available
         frac_N = self.mass_cnp.nitrogen / total_available

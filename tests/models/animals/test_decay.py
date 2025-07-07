@@ -3,6 +3,8 @@
 This module tests the functionality of decay.py
 """
 
+from contextlib import nullcontext as does_not_raise
+
 import pytest
 
 
@@ -303,6 +305,121 @@ class TestLitterPool:
         assert np.isclose(
             litter_pool.mass_cnp.total,
             total_mass_available - actual_consumed_mass,
+        )
+
+        nutrient_proportions = cell_cnp.get_proportions()
+        expected_nutrients = {
+            "carbon": actual_consumed_mass * nutrient_proportions["carbon"],
+            "nitrogen": actual_consumed_mass * nutrient_proportions["nitrogen"],
+            "phosphorus": actual_consumed_mass * nutrient_proportions["phosphorus"],
+        }
+
+        for key in expected_nutrients:
+            assert np.isclose(nutrients[key], expected_nutrients[key]), (
+                f"{key} nutrient mismatch. Expected {expected_nutrients[key]},"
+                f" got {nutrients[key]}"
+            )
+
+
+class TestSoilPool:
+    """Test the SoilPool class."""
+
+    @pytest.mark.parametrize(
+        argnames=["pool_name", "expected_mass", "expected_error"],
+        argvalues=[
+            (
+                "pom",
+                {"carbon": 17.5, "nitrogen": 0.0714285, "phosphorus": 0.00285714},
+                does_not_raise(),
+            ),
+            (
+                "bacteria",
+                {"carbon": 282.5, "nitrogen": 54.326923, "phosphorus": 17.65625},
+                does_not_raise(),
+            ),
+            (
+                "fungi",
+                {"carbon": 258.25, "nitrogen": 19.7777778, "phosphorus": 3.07291667},
+                does_not_raise(),
+            ),
+            ("lmwc", {}, pytest.raises(ValueError)),
+        ],
+    )
+    def test_initialization(
+        self,
+        litter_soil_data_instance,
+        microbial_c_n_p_ratios,
+        pool_name,
+        expected_mass,
+        expected_error,
+    ):
+        """Test initialization of LitterPool."""
+        import numpy as np
+
+        from virtual_ecosystem.core.constants import CoreConsts
+        from virtual_ecosystem.models.animal.decay import SoilPool
+
+        with expected_error:
+            litter_pool = SoilPool(
+                pool_name=pool_name,
+                cell_id=2,
+                data=litter_soil_data_instance,
+                cell_area=100.0,
+                max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+                c_n_p_ratios=microbial_c_n_p_ratios,
+            )
+
+            assert np.isclose(litter_pool.mass_cnp.carbon, expected_mass["carbon"])
+            assert np.isclose(litter_pool.mass_cnp.nitrogen, expected_mass["nitrogen"])
+            assert np.isclose(
+                litter_pool.mass_cnp.phosphorus, expected_mass["phosphorus"]
+            )
+
+    def test_mass_current(self, mocker):
+        """Test the mass_current property of LitterPool."""
+        from virtual_ecosystem.models.animal.cnp import CNP
+        from virtual_ecosystem.models.animal.decay import SoilPool
+
+        # Create a mock LitterPool with a single CNP object
+        soil_pool = mocker.Mock()
+        soil_pool.mass_cnp = CNP(carbon=12.34, nitrogen=1.0, phosphorus=0.5)
+
+        # Access the property via descriptor protocol
+        result = SoilPool.mass_current.__get__(soil_pool)
+
+        assert result == 12.34
+
+    def test_get_eaten(self, mocker, litter_soil_data_instance, microbial_c_n_p_ratios):
+        """Test `get_eaten` method of SoilPool for correct nutrient consumption."""
+        import numpy as np
+
+        from virtual_ecosystem.core.constants import CoreConsts
+        from virtual_ecosystem.models.animal.decay import SoilPool
+
+        pool_name = "pom"
+        cell_area = 1.0
+        cell_id = 1
+
+        soil_pool = SoilPool(
+            pool_name=pool_name,
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=cell_area,
+            max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+            c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+
+        detritivore = mocker.MagicMock()
+        consumed_mass = 0.2
+        cell_cnp = soil_pool.mass_cnp
+
+        total_mass_available = cell_cnp.total
+        actual_consumed_mass = min(total_mass_available, consumed_mass)
+
+        nutrients, _ = soil_pool.get_eaten(consumed_mass, detritivore=detritivore)
+
+        assert np.isclose(
+            soil_pool.mass_cnp.total, total_mass_available - actual_consumed_mass
         )
 
         nutrient_proportions = cell_cnp.get_proportions()

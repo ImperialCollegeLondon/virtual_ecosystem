@@ -60,6 +60,13 @@ def dummy_carbon_data(fixture_core_components):
         "plant_n_uptake_ecto": [3.07e-5, 4.20e-5, 4.02e-6, 2.98e-5],
         "plant_p_uptake_arbuscular": [1.57e-6, 5.07e-5, 2.13e-6, 1.81e-6],
         "plant_p_uptake_ecto": [1.78e-6, 5.64e-5, 1.07e-6, 9.90e-7],
+        "animal_pom_consumption_carbon": [8.26e-3, 8.61e-3, 4.94e-3, 7.20e-3],
+        "animal_pom_consumption_nitrogen": [4.86e-8, 2.86e-8, 6.95e-8, 4.95e-8],
+        "animal_pom_consumption_phosphorus": [1.65e-8, 7.37e-8, 3.34e-8, 5.11e-8],
+        "animal_bacteria_consumption": [5.86e-3, 9.87e-5, 9.87e-4, 4.49e-4],
+        "animal_saprotrophic_fungi_consumption": [5.46e-4, 1.49e-4, 1.35e-4, 8.55e-4],
+        "animal_ectomycorrhiza_consumption": [9.52e-4, 3.84e-4, 3.77e-4, 9.43e-4],
+        "animal_arbuscular_mycorrhiza_consumption": [3.43e-4, 4.29e-4, 6.0e-4, 2.30e-4],
     }
 
     for var_name, var_values in data_values.items():
