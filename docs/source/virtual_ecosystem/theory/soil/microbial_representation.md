@@ -150,5 +150,40 @@ IMPLEMENTED)
 
 ### Mycorrhiza
 
-TODO - EXPLAIN HOW MYCORRHIZAL FUNGI DIFFER
-TODO - MENTION THAT INORGANIC NUTRIENTS ARE PREFERENTIALLY TAKEN UP
+Mycorrhizal fungi differ from both bacteria and saprotrophic fungi in that they cannot
+use the forms of carbon that can be taken up from the soil to grow. Instead, they are
+entirely dependent on their symbiotic plant partners for the carbon they need to grow.
+Because of this mycorrhizal fungi are assumed to preferentially take up inorganic forms
+of nutrients. They can take up organic matter if the availability of inorganic matter is
+insufficient, but this is used solely for the acquisition of nutrients and the carbon
+contained in this organic matter is returned to the soil as {term}`LMWC`.
+
+In return for the carbon they depend on, mycorrhizal fungi supply nutrients to the
+plants. Before each plant model time step the mycorrhizal fungal groups calculate the
+maximum rate at which they can supply nutrients to the plants, this is calculated using
+the assumption that the mycorrhizal fungi will not supply a nutrient if it means they
+can no longer maintain a steady population. So, the maximum rate that mycorrhizal fungal
+group will supply a nutrient to the plants is the difference between the maximum uptake
+rate for the nutrient and the demand for this nutrient for maintenance biomass
+synthesis. The plants then decide how much nutrients to take from the mycorrhizal fungal
+groups based on this maximum. If they take less than the maximum for both nitrogen and
+phosphorus then the mycorrhizal fungi can synthesis additional biomass on top of their
+maintenance requirements and therefore grow.
+
+The rate at which the plants take nutrients from their mycorrhizal partners is set by
+the plants model, and so it cannot vary as the soil model is updated. This creates
+problems as the amount of nutrients that the mycorrhizal fungi can uptake will fluctuate
+as conditions in the soil change. A decline in nutrient availability can mean that
+mycorrhizal fungi cannot synthesis biomass at a high enough rate to balance maintenance
+costs, while also supplying nutrients to plants at the required rate. For extreme enough
+changes in conditions, mycorrhizal fungi can be forced to breakdown biomass to satisfy
+the nutrient demand from plants. The limiting nutrients in this broken down biomass are
+supplied to plants and the carbon and non-limiting nutrients are return to the soil in
+labile forms. This doesn't represent a real biological process (in reality mycorrhizal
+fungi would just stop supplying nutrients), rather it is a way of maintaining nutrient
+balance between two models that are updated separately.
+
+We include two different mycorrhizal groups in the soil model, ectomycorrhizal fungi and
+arbuscular mycorrhizal fungi. The only difference between these groups are how they are
+parametrised, with arbuscular mycorrhizal fungi investing far less in the production of
+extracellular enzymes.
