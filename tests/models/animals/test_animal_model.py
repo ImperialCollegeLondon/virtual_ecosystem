@@ -1,7 +1,7 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import INFO
+from logging import DEBUG, INFO
 
 import numpy as np
 import pytest
@@ -72,6 +72,10 @@ class TestAnimalModel:
                         INFO,
                         "Information required to initialise the animal model"
                         " successfully extracted.",
+                    ),
+                    (
+                        DEBUG,
+                        "animal model: required var 'fungal_fruiting_bodies' checked",
                     ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
@@ -473,6 +477,20 @@ class TestAnimalModel:
                     expected_phosphorus[pool_name][cell_id],
                 )
 
+    def test_populate_fungal_fruiting_bodies(self, animal_model_instance):
+        """Test that populating of fungal fruiting bodies pools works as expected."""
+
+        expected_carbon = np.full(9, 12150.0)
+        expected_nitrogen = np.full(9, 1215.0)
+        expected_phosphorus = np.full(9, 162.0)
+
+        fungal_fruiting_bodies = animal_model_instance.populate_fungal_fruiting_bodies()
+
+        for cell_id, pool in fungal_fruiting_bodies.items():
+            assert np.isclose(pool.mass_current, expected_carbon[cell_id])
+            assert np.isclose(pool.mass_cnp.nitrogen, expected_nitrogen[cell_id])
+            assert np.isclose(pool.mass_cnp.phosphorus, expected_phosphorus[cell_id])
+
     def test_populate_soil_pools_negative(self, animal_model_instance):
         """Test that trying to populate a negative soil pool causes an error."""
         from xarray import DataArray
@@ -749,6 +767,10 @@ class TestAnimalModel:
         )
         mocker.patch(
             "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_soil_pools",
+            return_value={},
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_fungal_fruiting_bodies",
             return_value={},
         )
 

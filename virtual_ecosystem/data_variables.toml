@@ -1029,6 +1029,13 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Density of fungal fruiting bodies growing from the litter and soil"
+name = "fungal_fruiting_bodies"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Amount of dead wood produced since last update"
 name = "deadwood_production"
 unit = "kg C m^-2"

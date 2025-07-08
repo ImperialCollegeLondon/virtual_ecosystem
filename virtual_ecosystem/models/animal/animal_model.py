@@ -43,6 +43,7 @@ from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
+    FungalFruitPool,
     HerbivoryWaste,
     LitterPool,
     SoilPool,
@@ -66,7 +67,7 @@ class AnimalModel(
     BaseModel,
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=(),
+    vars_required_for_init=("fungal_fruiting_bodies",),
     vars_populated_by_init=("total_animal_respiration", "population_densities"),
     vars_required_for_update=(
         "litter_pool_above_metabolic",
@@ -191,6 +192,8 @@ class AnimalModel(
         """The litter pools with associated grid cell ids."""
         self.soil_pools: dict[int, dict[str, SoilPool]]
         """The animal consumable soil pools with associated grid cell ids."""
+        self.fungal_fruiting_bodies: dict[int, FungalFruitPool]
+        """The pools of fungal fruiting bodies with associated grid cell ids."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -347,6 +350,7 @@ class AnimalModel(
         self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
         self.litter_pools = self.populate_litter_pools()
         self.soil_pools = self.populate_soil_pools()
+        self.fungal_fruiting_bodies = self.populate_fungal_fruiting_bodies()
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
@@ -537,6 +541,24 @@ class AnimalModel(
                 )
                 for som_type in soil_organic_matter_types
             }
+            for cell_id in self.data.grid.cell_id
+        }
+
+    def populate_fungal_fruiting_bodies(self) -> dict[int, FungalFruitPool]:
+        """Populate the fungal fruiting body pools for animal consumption.
+
+        Returns:
+            A dictionary with a fungal fruiting body pool for each cell ID.
+        """
+
+        return {
+            cell_id: FungalFruitPool(
+                cell_id=cell_id,
+                data=self.data,
+                cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                c_n_ratio=self.core_constants.fungal_fruiting_bodies_c_n_ratio,
+                c_p_ratio=self.core_constants.fungal_fruiting_bodies_c_p_ratio,
+            )
             for cell_id in self.data.grid.cell_id
         }
 

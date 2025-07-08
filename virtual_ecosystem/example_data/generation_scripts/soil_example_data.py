@@ -96,6 +96,10 @@ secondary_p_values = 0.005 + 0.045 * gradient / 64.0
 # pool [kg P m^-3].
 labile_p_values = 2.5e-5 + 2.5e-5 * gradient / 64.0
 
+# Generate a range of plausible values (0.1-0.4) for the fungal fruiting bodies
+# pool [kg m^-2].
+fungal_fruiting_bodies_values = 0.1 + 0.3 * gradient / 64.0
+
 # Make example soil dataset
 example_soil_data = Dataset(
     data_vars=dict(
@@ -127,6 +131,7 @@ example_soil_data = Dataset(
         soil_p_pool_primary=(["x", "y"], primary_p_values),
         soil_p_pool_secondary=(["x", "y"], secondary_p_values),
         soil_p_pool_labile=(["x", "y"], labile_p_values),
+        fungal_fruiting_bodies=(["x", "y"], fungal_fruiting_bodies_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),
