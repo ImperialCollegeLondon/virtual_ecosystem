@@ -199,7 +199,7 @@ def run_microclimate(
     hourly_time_interval = int(time_interval / core_constants.seconds_to_hour)
 
     # TODO enable daily input in data object and select time index
-    if time_interval <= 86400:
+    if time_interval <= core_constants.seconds_to_day:
         iteration = hourly_time_interval
 
     else:
