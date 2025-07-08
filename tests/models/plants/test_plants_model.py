@@ -309,6 +309,14 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     )
     assert np.allclose(fxt_plants_model.data["root_lignin"], consts.root_lignin)
     assert np.allclose(fxt_plants_model.data["leaf_lignin"], consts.leaf_lignin)
+
+
+def test_PlantsModel_update_cn_ratios(fxt_plants_model, fixture_config):
+    """Test the update_cn_ratios method of the plants model."""
+
+    fxt_plants_model.update_cn_ratios()
+    consts = fxt_plants_model.model_constants
+
     assert np.allclose(
         fxt_plants_model.data["deadwood_c_n_ratio"], consts.deadwood_c_n_ratio
     )
@@ -356,6 +364,10 @@ def test_PlantsModel_calculate_turnover_constant_override(
 def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     """Test the calculate_nutrient_uptake method of the plants model."""
 
+    # Provide transpiration values
+    fxt_plants_model.per_stem_transpiration = {
+        cell_id: np.array([10]) for cell_id in fxt_plants_model.communities.keys()
+    }
     # Check reset
     fxt_plants_model.calculate_nutrient_uptake()
 
@@ -363,6 +375,8 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["plant_ammonium_uptake"], 5.0e-4)
     assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], 7.5e-3)
     assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-5)
+
+    # TODO: add test for element uptake
 
 
 def test_PlantsModel_calculate_mycorrhizal_uptakes(fxt_plants_model):
