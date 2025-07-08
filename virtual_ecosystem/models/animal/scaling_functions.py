@@ -58,9 +58,11 @@ def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
     """
     exponent, scalar = terms
 
-    biomass_density = scalar * (adult_mass * 1000) ** exponent
+    mass_g = adult_mass * 1000
 
-    individual_density_km2 = biomass_density / (adult_mass * 1000)
+    biomass_density_g_km2 = scalar * mass_g**exponent
+
+    individual_density_km2 = biomass_density_g_km2 / mass_g
 
     individual_density_m2 = individual_density_km2 / 1e6
 

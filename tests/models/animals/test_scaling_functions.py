@@ -23,15 +23,18 @@ from virtual_ecosystem.models.animal.scaling_functions import DietType
     ],
 )
 def test_damuths_law_computes_expected_value(mass, terms):
-    """Test damuth's law returns the expected continuous value."""
-
+    """Test damuth's law returns the expected value with correct unit conversion."""
     from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
-    expected = terms[1] * mass ** terms[0]
+    # Convert mass to g for Damuth scaling
+    mass_g = mass * 1000
+    expected_km2 = terms[1] * mass_g ** terms[0]
+    expected_m2 = expected_km2 / 1e6
+
     actual = damuths_law(mass, terms)
 
-    assert actual == pytest.approx(expected), (
-        f"Expected {expected} for mass {mass} and terms {terms}, got {actual}"
+    assert actual == pytest.approx(expected_m2), (
+        f"Expected {expected_m2} for mass {mass} and terms {terms}, got {actual}"
     )
 
 
