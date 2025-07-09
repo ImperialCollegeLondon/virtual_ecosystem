@@ -196,7 +196,7 @@ def run_microclimate(
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     # If hourly input data is provided, iterate over day, else equilibrium assumption
-    hourly_time_interval = int(time_interval / core_constants.seconds_to_hour)
+    hourly_time_interval = max(int(time_interval / core_constants.seconds_to_hour), 1)
 
     # TODO enable daily input in data object and select time index
     if time_interval <= core_constants.seconds_to_day:
