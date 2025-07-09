@@ -262,7 +262,7 @@ class TestFungalFruitPool:
 
         assert result == 12.34
 
-    def test_get_eaten(self, mocker, dummy_animal_data, microbial_c_n_p_ratios):
+    def test_get_eaten(self, mocker, dummy_animal_data):
         """Test FungalFruitPool.get_eaten for correct nutrient consumption."""
         import numpy as np
 
@@ -272,7 +272,7 @@ class TestFungalFruitPool:
         cell_area = 1.0
         cell_id = 1
 
-        soil_pool = FungalFruitPool(
+        fungal_fruit = FungalFruitPool(
             cell_id=cell_id,
             data=dummy_animal_data,
             cell_area=cell_area,
@@ -284,15 +284,15 @@ class TestFungalFruitPool:
         detritivore.functional_group.mechanical_efficiency = 0.8
 
         consumed_mass = 0.2
-        cell_cnp = soil_pool.mass_cnp
+        cell_cnp = fungal_fruit.mass_cnp
 
         total_mass_available = cell_cnp.total
         actual_consumed_mass = min(total_mass_available, consumed_mass) * 0.8
 
-        nutrients, _ = soil_pool.get_eaten(consumed_mass, detritivore=detritivore)
+        nutrients, _ = fungal_fruit.get_eaten(consumed_mass, detritivore=detritivore)
 
         assert np.isclose(
-            soil_pool.mass_cnp.total, total_mass_available - actual_consumed_mass
+            fungal_fruit.mass_cnp.total, total_mass_available - actual_consumed_mass
         )
 
         nutrient_proportions = cell_cnp.get_proportions()
@@ -307,6 +307,33 @@ class TestFungalFruitPool:
                 f"{key} nutrient mismatch. Expected {expected_nutrients[key]},"
                 f" got {nutrients[key]}"
             )
+
+    def test_apply_decay(self, dummy_animal_data):
+        """Test FungalFruitPool.get_eaten for correct nutrient consumption."""
+        import numpy as np
+
+        from virtual_ecosystem.core.constants import CoreConsts
+        from virtual_ecosystem.models.animal.decay import FungalFruitPool
+
+        cell_area = 100.0
+        cell_id = 1
+
+        fungal_fruit = FungalFruitPool(
+            cell_id=cell_id,
+            data=dummy_animal_data,
+            cell_area=cell_area,
+            c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
+            c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+        )
+
+        total_decay = fungal_fruit.apply_decay(
+            decay_constant=CoreConsts.fungal_fruiting_bodies_decay_rate,
+            time_period=30.0,
+        )
+        assert np.isclose(total_decay, 51.036906692032936)
+        assert np.isclose(fungal_fruit.mass_cnp["carbon"], 98.96309330796706)
+        assert np.isclose(fungal_fruit.mass_cnp["nitrogen"], 9.896309330796706)
+        assert np.isclose(fungal_fruit.mass_cnp["phosphorus"], 1.3195079107728942)
 
 
 class TestLitterPool:

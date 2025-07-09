@@ -6,6 +6,7 @@ in the animal module. This also includes plant litter which is mainly tracked in
 """  # noqa: D205
 
 from dataclasses import dataclass, field
+from math import exp
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
@@ -340,6 +341,30 @@ class FungalFruitPool:
             phosphorus=-taken["phosphorus"],
         )
         return taken, {}
+
+    def apply_decay(self, decay_constant: float, time_period: float) -> float:
+        """Apply exponential decay to the fungal fruiting bodies pool.
+
+        Args:
+            decay_constant: The rate constant for fungal fruiting body decay [day^-1].
+            time_period: The time period over which decay occurs [day].
+
+        Returns:
+            The total amount of fungal fruiting bodies that decayed in this specific
+            grid cell (in carbon terms) [kg]
+        """
+
+        # Calculate total decay in carbon terms
+        total_decay = (1 - exp(-decay_constant * time_period)) * self.mass_cnp.carbon
+        print(self.mass_cnp.carbon)
+        # And then update the pool masses based on this and the fixed stoichiometry
+        self.mass_cnp.update(
+            carbon=-total_decay,
+            nitrogen=-total_decay / self.c_n_ratio,
+            phosphorus=-total_decay / self.c_p_ratio,
+        )
+
+        return total_decay
 
 
 class LitterPool:
