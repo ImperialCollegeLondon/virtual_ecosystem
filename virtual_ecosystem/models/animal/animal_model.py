@@ -445,6 +445,10 @@ class AnimalModel(
         soil_consumption = self.calculate_total_soil_consumption(self.soil_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
 
+        # Now that animal consumption has finished, the data object can be updated to
+        # reflect the new size of the fungal fruiting body pools
+        self.update_fungal_fruiting_bodies_in_data()
+
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(
             fruiting_bodies_decay
@@ -901,6 +905,20 @@ class AnimalModel(
                 array(decomposed_carcasses["phosphorus"])
             ),
         }
+
+    def update_fungal_fruiting_bodies_in_data(self) -> None:
+        """Method to update the fungal fruiting bodies in the data object.
+
+        This update is based on the current state of the animal model FungalFruitPools.
+        This method is run after the additions due to new fungal fruiting body
+        production and removals due to decay and animal consumption have been made.
+        """
+
+        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
+            self.data["fungal_fruiting_bodies"].loc[{"cell_id": cell_id}] = (
+                fungal_fruiting_bodies_pool.mass_cnp["carbon"]
+                / self.data.grid.cell_area
+            )
 
     def to_per_day(self, change: NDArray[float32]) -> DataArray:
         """Method to convert a change caused by the animal model into a per day rate.

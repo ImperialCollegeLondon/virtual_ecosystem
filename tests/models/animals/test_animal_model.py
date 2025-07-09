@@ -736,6 +736,11 @@ class TestAnimalModel:
 
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
+        expected_decay = [0.01008051, 0.00957649, 0.00819042, 0.00724537]
+        expected_new_carbon_mass = [5336.86979, 5070.02630, 4336.20671, 3835.87516]
+        expected_new_nitrogen_mass = [533.686979, 507.002630, 433.620671, 383.587516]
+        expected_new_phosphorus_mass = [71.1582639, 67.6003507, 57.8160895, 51.1450021]
+
         # Create AnimalModel instance with test data
         model = AnimalModel(
             data=litter_soil_data_instance,
@@ -744,10 +749,6 @@ class TestAnimalModel:
             model_constants=constants_instance,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
-        expected_decay = [0.01008051, 0.00957649, 0.00819042, 0.00724537]
-        expected_new_carbon_mass = [5336.86979, 5070.02630, 4336.20671, 3835.87516]
-        expected_new_nitrogen_mass = [533.686979, 507.002630, 433.620671, 383.587516]
-        expected_new_phosphorus_mass = [71.1582639, 67.6003507, 57.8160895, 51.1450021]
         actual_decay = model.update_fungal_fruiting_bodies()
 
         actual_new_carbon_mass = [
@@ -794,6 +795,35 @@ class TestAnimalModel:
             f"Calculated density ({calculated_density}) "
             f"did not match expected density ({expected_density})."
         )
+
+    def test_update_fungal_fruiting_bodies_in_data(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+    ):
+        """Test that updating the data object based on FungalFruitPool changes works."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        expected_pool = [0.65887281, 0.62592917, 0.53533416, 0.47356483]
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+        _ = model.update_fungal_fruiting_bodies()
+        # Update the data object based on the changes caused by previous method
+        model.update_fungal_fruiting_bodies_in_data()
+
+        assert np.allclose(model.data["fungal_fruiting_bodies"], expected_pool)
 
     def test_initialize_communities(
         self,
