@@ -52,6 +52,7 @@ POST_SETUP_LOG = (
     (INFO, "Adding data array for 'ecto_supply_limit_p'"),
     (INFO, "Adding data array for 'arbuscular_supply_limit_n'"),
     (INFO, "Adding data array for 'arbuscular_supply_limit_p'"),
+    (INFO, "Adding data array for 'production_of_fungal_fruiting_bodies'"),
 )
 
 

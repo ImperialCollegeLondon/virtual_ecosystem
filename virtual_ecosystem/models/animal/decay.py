@@ -356,7 +356,6 @@ class FungalFruitPool:
 
         # Calculate total decay in carbon terms
         total_decay = (1 - exp(-decay_constant * time_period)) * self.mass_cnp.carbon
-        print(self.mass_cnp.carbon)
         # And then update the pool masses based on this and the fixed stoichiometry
         self.mass_cnp.update(
             carbon=-total_decay,

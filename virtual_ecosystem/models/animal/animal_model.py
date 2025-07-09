@@ -85,6 +85,7 @@ class AnimalModel(
         "c_p_ratio_woody",
         "c_p_ratio_below_metabolic",
         "c_p_ratio_below_structural",
+        "production_of_fungal_fruiting_bodies",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_carbon",
@@ -109,6 +110,7 @@ class AnimalModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -134,6 +136,7 @@ class AnimalModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ),
 ):
     """A class describing the animal model.
@@ -421,6 +424,10 @@ class AnimalModel(
         self.litter_pools = self.populate_litter_pools()
         self.soil_pools = self.populate_soil_pools()
 
+        # The fungal fruiting bodies need to be updated based on input from soil fungi
+        # and the rate of decay
+        fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
+
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -440,7 +447,11 @@ class AnimalModel(
 
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(
-            additions_to_soil | soil_consumption | litter_consumption | litter_additions
+            fruiting_bodies_decay
+            | additions_to_soil
+            | soil_consumption
+            | litter_consumption
+            | litter_additions
         )
 
         # Update population densities
@@ -786,6 +797,50 @@ class AnimalModel(
             "herbivory_waste_leaf_lignin": DataArray(
                 array(leaf_lignin), dims="cell_id"
             ),
+        }
+
+    def update_fungal_fruiting_bodies(self) -> dict[str, DataArray]:
+        """Update fungal fruiting bodies pools due to fungal production and decay.
+
+        This method first updates the fungal fruiting body pools with the new biomass
+        supplied from the soil model. The total decay of the fungal fruiting bodies is
+        then calculated and subtracted from the pools. This ordering means that we are
+        prioritising decay over before animal consumption, which is consistent with the
+        assumptions we made for excrement and carcass decay.
+
+        Returns:
+            The rate at which fungal fruiting bodies decay back into the soil [kg m^-2
+            day^-1].
+        """
+
+        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
+            production = (
+                self.data["production_of_fungal_fruiting_bodies"]
+                .isel(cell_id=cell_id)
+                .item()
+                * self.grid.cell_area
+                * self.update_interval_in_days
+            )
+            fungal_fruiting_bodies_pool.mass_cnp.update(
+                carbon=+production,
+                nitrogen=+production / fungal_fruiting_bodies_pool.c_n_ratio,
+                phosphorus=+production / fungal_fruiting_bodies_pool.c_p_ratio,
+            )
+
+        total_decay = [
+            fungal_fruiting_bodies_pool.apply_decay(
+                decay_constant=self.core_constants.fungal_fruiting_bodies_decay_rate,
+                time_period=self.update_interval_in_days,
+            )
+            for fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.values()
+        ]
+
+        return {
+            "decay_of_fungal_fruiting_bodies": DataArray(
+                array(total_decay)
+                / (self.grid.cell_area * self.update_interval_in_days),
+                dims="cell_id",
+            )
         }
 
     def calculate_soil_additions(self) -> dict[str, DataArray]:

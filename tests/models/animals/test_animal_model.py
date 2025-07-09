@@ -80,6 +80,7 @@ class TestAnimalModel:
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Updating animal model"),
+                    (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
                     (INFO, "Adding data array for 'decomposed_excrement_carbon'"),
                     (INFO, "Adding data array for 'decomposed_excrement_nitrogen'"),
                     (INFO, "Adding data array for 'decomposed_excrement_phosphorus'"),
@@ -721,6 +722,53 @@ class TestAnimalModel:
             assert np.allclose(actual, expected_consumption), (
                 f"Mismatch for {consumption_type}."
             )
+
+    def test_update_fungal_fruiting_bodies(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+    ):
+        """Test that the function to update fungal fruiting bodies works as expected."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+        expected_decay = [0.01008051, 0.00957649, 0.00819042, 0.00724537]
+        expected_new_carbon_mass = [5336.86979, 5070.02630, 4336.20671, 3835.87516]
+        expected_new_nitrogen_mass = [533.686979, 507.002630, 433.620671, 383.587516]
+        expected_new_phosphorus_mass = [71.1582639, 67.6003507, 57.8160895, 51.1450021]
+        actual_decay = model.update_fungal_fruiting_bodies()
+
+        actual_new_carbon_mass = [
+            model.fungal_fruiting_bodies[cell_id].mass_current
+            for cell_id in model.fungal_fruiting_bodies
+        ]
+        actual_new_nitrogen_mass = [
+            model.fungal_fruiting_bodies[cell_id].mass_cnp["nitrogen"]
+            for cell_id in model.fungal_fruiting_bodies
+        ]
+        actual_new_phosphorus_mass = [
+            model.fungal_fruiting_bodies[cell_id].mass_cnp["phosphorus"]
+            for cell_id in model.fungal_fruiting_bodies
+        ]
+
+        assert np.allclose(actual_new_carbon_mass, expected_new_carbon_mass)
+        assert np.allclose(actual_new_nitrogen_mass, expected_new_nitrogen_mass)
+        assert np.allclose(actual_new_phosphorus_mass, expected_new_phosphorus_mass)
+        assert np.allclose(
+            actual_decay["decay_of_fungal_fruiting_bodies"], expected_decay
+        )
 
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""

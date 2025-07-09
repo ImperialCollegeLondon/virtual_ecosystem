@@ -99,6 +99,7 @@ class SoilModel(
         "ecto_supply_limit_p",
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
+        "production_of_fungal_fruiting_bodies",
     ),
     vars_required_for_update=(
         "soil_c_pool_maom",
@@ -149,6 +150,7 @@ class SoilModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -287,6 +289,15 @@ class SoilModel(
         symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=True)
         # Add these limits to the data object
         self.data.add_from_dict(symbiotic_supply_limits)
+
+        # The initial production of fungal fruiting bodies is set to zero, because the
+        # initial density estimate implicitly contains the initial production
+        fungal_fruiting_body_production = {
+            "production_of_fungal_fruiting_bodies": DataArray(
+                np.zeros(self.data.grid.n_cells), dims="cell_id"
+            )
+        }
+        self.data.add_from_dict(fungal_fruiting_body_production)
 
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
