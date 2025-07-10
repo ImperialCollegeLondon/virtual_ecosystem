@@ -40,14 +40,14 @@ def test_calculate_all_pool_updates(
     soil_pools = SoilPools(
         data=dummy_carbon_data,
         pools=pools,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+        core_constants=CoreConsts,
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.123334821, 0.176185829, 0.247644774, 3.42642831e-2],
+        "soil_c_pool_lmwc": [0.124234781, 0.178512549, 0.248932174, 0.0446126831],
         "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.67937268e-2, 7.27579158e-2],
         "soil_c_pool_bacteria": [
             -0.048350513,
@@ -89,7 +89,7 @@ def test_calculate_all_pool_updates(
             -4.37963990e-5,
             -3.29296041e-5,
         ],
-        "soil_n_pool_don": [1.56848141e-3, 7.28019864e-3, 5.18532940e-3, 2.42006926e-3],
+        "soil_n_pool_don": [0.0016584774, 0.00751287064, 0.0053140694, 0.00345490926],
         "soil_n_pool_particulate": [-8.93527e-5, 5.102785e-5, 9.028158e-5, 5.163279e-6],
         "soil_n_pool_necromass": [7.37406e-3, -1.87488e-3, 4.96976e-3, -1.53633e-7],
         "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
@@ -105,7 +105,7 @@ def test_calculate_all_pool_updates(
             -1.0843233e-3,
             -1.4534738e-3,
         ],
-        "soil_p_pool_dop": [2.08332995e-4, 1.02602825e-4, 1.44074015e-4, 8.15796967e-5],
+        "soil_p_pool_dop": [0.00022033246, 0.00013362576, 0.00016123935, 0.00021955836],
         "soil_p_pool_particulate": [6.804384e-6, -6.47598e-6, -9.0058e-7, 1.583258e-7],
         "soil_p_pool_necromass": [0.00225261, 0.00282114, 0.00596048, 0.0014114],
         "soil_p_pool_maom": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
@@ -168,10 +168,10 @@ def test_to_per_volume(dummy_carbon_data, functional_groups, enzyme_classes):
     soil_pools = SoilPools(
         data=dummy_carbon_data,
         pools=pools,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
+        core_constants=CoreConsts,
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
     )
 
     # Test that it works for both floats and numpy arrays
@@ -992,3 +992,27 @@ def test_calculate_net_formation_of_secondary_P(dummy_carbon_data):
     )
 
     assert np.allclose(actual_formation, expected_formation)
+
+
+def test_calculate_fungal_fruiting_body_decay(dummy_carbon_data):
+    """Test that calculation of inputs due to fungal fruiting body decay is correct."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.pools import calculate_fungal_fruiting_body_decay
+
+    expected_decay = {
+        "carbon": [0.00089996, 0.00232672, 0.0012874, 0.0103484],
+        "nitrogen": [8.9996e-5, 0.000232672, 0.00012874, 0.00103484],
+        "phosphorus": [1.1999467e-5, 3.1022933e-5, 1.7165333e-5, 0.0001379787],
+    }
+
+    actual_decay = calculate_fungal_fruiting_body_decay(
+        decay_rate=dummy_carbon_data["decay_of_fungal_fruiting_bodies"]
+        / CoreConsts.max_depth_of_microbial_activity,
+        fungal_fruiting_body_c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
+        fungal_fruiting_body_c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+    )
+
+    assert expected_decay.keys() == actual_decay.keys()
+
+    for element in expected_decay.keys():
+        assert np.allclose(expected_decay[element], actual_decay[element])

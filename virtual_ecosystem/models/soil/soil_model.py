@@ -26,6 +26,7 @@ from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -234,6 +235,7 @@ class SoilModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
         static = config["soil"]["static"]
 
         LOGGER.info(
@@ -253,6 +255,7 @@ class SoilModel(
             core_components=core_components,
             static=static,
             model_constants=model_constants,
+            core_constants=core_constants,
             microbial_groups=microbial_groups,
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=hydro_constants.soil_moisture_saturation,
@@ -262,6 +265,7 @@ class SoilModel(
     def _setup(
         self,
         model_constants: SoilConsts,
+        core_constants: CoreConsts,
         microbial_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
         soil_moisture_saturation: float,
@@ -271,6 +275,7 @@ class SoilModel(
         """Function to setup up the soil model."""
 
         self.model_constants = model_constants
+        self.core_constants = core_constants
 
         # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups
@@ -410,7 +415,7 @@ class SoilModel(
                 self.model_constants,
                 self.microbial_groups,
                 self.enzyme_classes,
-                self.core_constants.max_depth_of_microbial_activity,
+                self.core_constants,
                 self.soil_moisture_saturation,
                 self.soil_moisture_residual,
                 self.layer_structure.soil_layer_thickness[0],
@@ -694,7 +699,7 @@ def construct_full_soil_model(
     model_constants: SoilConsts,
     functional_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
-    max_depth_of_microbial_activity: float,
+    core_constants: CoreConsts,
     soil_moisture_saturation: float,
     soil_moisture_residual: float,
     top_soil_layer_thickness: float,
@@ -715,8 +720,7 @@ def construct_full_soil_model(
         model_constants: Set of constants for the soil model.
         functional_groups: Set of microbial functional groups used by the soil model.
         enzyme_classes: Set of enzyme classes used by the soil model.
-        max_depth_of_microbial_activity: Maximum depth of the soil profile where
-            microbial activity occurs [m].
+        core_constants: Set of constants shared across all models.
         soil_moisture_saturation: :term:`soil moisture saturation`, i.e. the maximum
             (volumetric) moisture the soil can hold [unitless].
         soil_moisture_residual: :term:`soil moisture residual`, i.e. the minimum
@@ -738,10 +742,10 @@ def construct_full_soil_model(
     soil_pools = SoilPools(
         data,
         pools=all_pools,
-        constants=model_constants,
+        model_constants=model_constants,
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        max_depth_of_microbial_activity=max_depth_of_microbial_activity,
+        core_constants=core_constants,
     )
 
     return soil_pools.calculate_all_pool_updates(

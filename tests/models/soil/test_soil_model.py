@@ -65,6 +65,7 @@ def test_soil_model_initialization(
 ):
     """Test `SoilModel` initialization with good data."""
     from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
@@ -77,6 +78,7 @@ def test_soil_model_initialization(
         enzyme_classes=enzyme_classes,
         soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
         soil_moisture_residual=HydroConsts.soil_moisture_residual,
+        core_constants=CoreConsts,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -144,6 +146,7 @@ def test_soil_model_initialization_bounds_error(
     enzyme_classes,
 ):
     """Test `SoilModel` initialization."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
@@ -163,6 +166,7 @@ def test_soil_model_initialization_bounds_error(
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
             soil_moisture_residual=HydroConsts.soil_moisture_residual,
+            core_constants=CoreConsts,
         )
 
     # Final check that expected logging entries are produced
@@ -180,6 +184,7 @@ def test_soil_model_all_pools_positive(
     dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
 ):
     """Test `SoilModel` initialization."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
@@ -193,6 +198,7 @@ def test_soil_model_all_pools_positive(
         enzyme_classes=enzyme_classes,
         soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
         soil_moisture_residual=HydroConsts.soil_moisture_residual,
+        core_constants=CoreConsts,
     )
 
     assert soil_model._all_pools_positive()
@@ -214,6 +220,7 @@ def test_soil_model_all_pools_positive(
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -230,6 +237,7 @@ def test_soil_model_all_pools_positive(
             does_not_raise(),
             (
                 (INFO, "Initialised soil.SoilConsts from config"),
+                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
@@ -537,6 +545,7 @@ def test_order_independance(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ]
     for not_pool in not_pools:
         new_data[not_pool] = dummy_carbon_data[not_pool]
@@ -657,10 +666,10 @@ def test_construct_full_soil_model(
     )
 
     delta_pools = [
-        0.123334821,
-        0.176185829,
-        0.247644774,
-        3.42642831e-2,
+        0.124234781,
+        0.178512549,
+        0.248932174,
+        0.0446126831,
         3.7894322e-2,
         4.8705495e-3,
         5.67937268e-2,
@@ -705,10 +714,10 @@ def test_construct_full_soil_model(
         -1.50127545e-4,
         -4.37963990e-5,
         -3.29296041e-5,
-        1.56848141e-3,
-        7.28019864e-3,
-        5.18532940e-3,
-        2.42006926e-3,
+        0.0016584774,
+        0.00751287064,
+        0.0053140694,
+        0.00345490926,
         -8.93527e-5,
         5.102785e-5,
         9.028158e-5,
@@ -729,10 +738,10 @@ def test_construct_full_soil_model(
         -3.9332566e-3,
         -1.0843233e-3,
         -1.4534738e-3,
-        2.08332995e-4,
-        1.02602825e-4,
-        1.44074015e-4,
-        8.15796967e-5,
+        0.00022033246,
+        0.00013362576,
+        0.00016123935,
+        0.00021955836,
         6.804384e-6,
         -6.47598e-6,
         -9.0058e-7,
@@ -785,7 +794,7 @@ def test_construct_full_soil_model(
         model_constants=SoilConsts,
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+        core_constants=CoreConsts,
         soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
         soil_moisture_residual=HydroConsts.soil_moisture_residual,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
