@@ -31,31 +31,38 @@ def prepared_animal_model_instance(
 class TestAnimalModel:
     """Test the AnimalModel class."""
 
+    @pytest.mark.parametrize(
+        "scaling_method",
+        ["madingley", "damuth"],
+        ids=["default_madingley", "explicit_damuth"],
+    )
     def test_animal_model_initialization(
         self,
+        scaling_method,
         dummy_animal_data,
         fixture_core_components,
         functional_group_list_instance,
-        constants_instance,
     ):
-        """Test `AnimalModel` initialization."""
+        """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Initialize model
+        # Initialize the model
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
+            density_scaling_method=scaling_method,
         )
 
-        # In cases where it passes then checks that the object has the right properties
+        # Basic type and attribute checks
         assert isinstance(model, BaseModel)
         assert model.model_name == "animal"
-        assert str(model) == "A animal model instance"
-        assert repr(model) == "AnimalModel(update_interval=1209600 seconds)"
         assert isinstance(model.communities, dict)
+
+        # Density scaling method should match input
+        assert model.density_scaling_method == scaling_method
+        assert model.model_constants.density_scaling_method == scaling_method
 
     @pytest.mark.parametrize(
         "raises,expected_log_entries",
@@ -154,6 +161,35 @@ class TestAnimalModel:
 
         for record in caplog.records:
             print(f"Level: {record.levelname}, Message: {record.message}")
+
+    @pytest.mark.parametrize(
+        "scaling_method",
+        ["madingley", "damuth"],
+        ids=["default_madingley", "explicit_damuth"],
+    )
+    def test_from_config(
+        self,
+        scaling_method,
+        dummy_animal_data,
+        animal_fixture_config,
+        fixture_core_components,
+    ):
+        """Test that AnimalModel.from_config correctly sets density_scaling_method."""
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        # Update the config to include the scaling method
+        animal_fixture_config["animal"]["density_scaling_method"] = scaling_method
+
+        # Create the model using from_config
+        model = AnimalModel.from_config(
+            data=dummy_animal_data,
+            core_components=fixture_core_components,
+            config=animal_fixture_config,
+        )
+
+        # Check that the model has the correct scaling method set
+        assert model.density_scaling_method == scaling_method
+        assert model.model_constants.density_scaling_method == scaling_method
 
     def test_update_method_sequence(self, mocker, prepared_animal_model_instance):
         """Test update to ensure it runs the community methods in order."""

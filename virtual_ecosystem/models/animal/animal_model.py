@@ -196,7 +196,7 @@ class AnimalModel(
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
-        """Revised initialization process.
+        """Initializes the animal communities.
 
         Args:
             functional_groups: The list of functional groups that will populate the
