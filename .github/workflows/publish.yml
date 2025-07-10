@@ -74,6 +74,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          verbose: true
           # skip-existing: true
 
   # The final job in the workflow is to publish to the real PyPI as long as the release
