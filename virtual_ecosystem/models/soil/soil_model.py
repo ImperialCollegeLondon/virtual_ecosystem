@@ -244,7 +244,7 @@ class SoilModel(
 
         enzyme_classes = make_full_set_of_enzymes(config)
         microbial_groups = make_full_set_of_microbial_groups(
-            config, enzyme_classes=enzyme_classes
+            config, enzyme_classes=enzyme_classes, core_constants=core_constants
         )
 
         # Load hydrology constants

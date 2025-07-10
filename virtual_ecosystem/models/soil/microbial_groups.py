@@ -9,6 +9,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.logger import LOGGER
 
 
@@ -138,13 +140,17 @@ class MicrobialGroupConstants:
 
     @classmethod
     def build_microbial_group(
-        cls, group_config: dict[str, Any], enzyme_classes: dict[str, EnzymeConstants]
+        cls,
+        group_config: dict[str, Any],
+        enzyme_classes: dict[str, EnzymeConstants],
+        core_constants: CoreConsts,
     ):
         """Class method to build the microbial group including enzyme information.
 
         Args:
             group_config: The config details for microbial group in question.
             enzyme_classes: Details of the enzyme classes used by the soil model.
+            core_constants: Set of constants shared across the Virtual Ecosystem models.
 
         Raises:
             ValueError: If the taxonomic grouping provided isn't accepted.
@@ -178,6 +184,9 @@ class MicrobialGroupConstants:
                 c_n_ratio=group_config["c_n_ratio"],
                 c_p_ratio=group_config["c_p_ratio"],
                 enzyme_production=group_config["enzyme_production"],
+                reproductive_allocation=group_config["reproductive_allocation"],
+                c_n_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_n_ratio,
+                c_p_ratio_fruiting_bodies=core_constants.fungal_fruiting_bodies_c_p_ratio,
                 enzyme_classes=enzyme_classes,
             ),
         )
@@ -197,14 +206,18 @@ def calculate_new_biomass_average_nutrient_ratios(
     c_n_ratio: float,
     c_p_ratio: float,
     enzyme_production: dict[str, float],
+    reproductive_allocation: float,
+    c_n_ratio_fruiting_bodies: float,
+    c_p_ratio_fruiting_bodies: float,
     enzyme_classes: dict[str, EnzymeConstants],
 ) -> dict[str, float]:
     """Calculate average carbon nutrient ratios of the newly synthesised biomass.
 
-    Microbes have to synthesise cellular biomass as well as extracellular enzymes. This
-    method calculates average nutrient ratio of this total biomass synthesis by
-    calculating the average weighted by the relative production allocation to each
-    enzyme class and cellular growth.
+    Microbes have to synthesise cellular biomass as well as extracellular enzymes, and
+    fungi also allocate to reproductive fruiting bodies. This method calculates average
+    nutrient ratios of this total biomass synthesis using the relative production
+    allocation to each enzyme class, cellular growth and (for fungi) reproductive
+    allocation. Carbon nutrients ratios have to be inversed before averaging as they are
 
     Args:
         taxonomic_group: Taxonomic group that the microbe belongs to.
@@ -215,36 +228,52 @@ def calculate_new_biomass_average_nutrient_ratios(
         enzyme_production: Details of the enzymes produced by the microbial group, i.e.
             which substrates are enzymes produced for, and how much (relative to
             cellular synthesis)
+        reproductive_allocation: Allocation of new biomass synthesis to reproductive
+            structures (relative to cellular synthesis).
+        c_n_ratio_fruiting_bodies: Carbon to nitrogen ratio of fungal fruiting bodies.
+        c_p_ratio_fruiting_bodies: Carbon to phosphorus ratio of fungal fruiting bodies.
         enzyme_classes: Details of the enzyme classes used by the soil model.
     """
 
-    enzyme_c_n_weighted = sum(
-        enzyme_classes[f"{taxonomic_group}_{substrate}"].c_n_ratio * allocation
+    enzyme_c_n_inverse = sum(
+        allocation / enzyme_classes[f"{taxonomic_group}_{substrate}"].c_n_ratio
         for substrate, allocation in enzyme_production.items()
     )
 
-    enzyme_c_p_weighted = sum(
-        enzyme_classes[f"{taxonomic_group}_{substrate}"].c_p_ratio * allocation
+    enzyme_c_p_inverse = sum(
+        allocation / enzyme_classes[f"{taxonomic_group}_{substrate}"].c_p_ratio
         for substrate, allocation in enzyme_production.items()
     )
 
-    total_enzyme_allocation = sum(enzyme_production.values())
+    total_carbon_gain = 1 + sum(enzyme_production.values()) + reproductive_allocation
 
     return {
-        "nitrogen": (c_n_ratio + enzyme_c_n_weighted) / (1.0 + total_enzyme_allocation),
-        "phosphorus": (c_p_ratio + enzyme_c_p_weighted)
-        / (1.0 + total_enzyme_allocation),
+        "nitrogen": total_carbon_gain
+        / (
+            (1 / c_n_ratio)
+            + enzyme_c_n_inverse
+            + (reproductive_allocation / c_n_ratio_fruiting_bodies)
+        ),
+        "phosphorus": total_carbon_gain
+        / (
+            (1 / c_p_ratio)
+            + enzyme_c_p_inverse
+            + (reproductive_allocation / c_p_ratio_fruiting_bodies)
+        ),
     }
 
 
 def make_full_set_of_microbial_groups(
-    config: Config, enzyme_classes: dict[str, EnzymeConstants]
+    config: Config,
+    enzyme_classes: dict[str, EnzymeConstants],
+    core_constants: CoreConsts,
 ) -> dict[str, MicrobialGroupConstants]:
     """Make the full set of functional groups used in the soil model.
 
     Args:
         config: The complete virtual ecosystem config.
         enzyme_classes: Details of the enzyme classes used by the soil model.
+        core_constants: Set of constants shared across the Virtual Ecosystem models.
 
     Raises:
         ConfigurationError: If the soil model configuration is missing, if expected
@@ -298,6 +327,7 @@ def make_full_set_of_microbial_groups(
                 for functional_group in config["soil"]["microbial_group_definition"]
                 if functional_group["name"] == group_name
             ),
+            core_constants=core_constants,
             enzyme_classes=enzyme_classes,
         )
         for group_name in expected_groups
@@ -381,10 +411,10 @@ def find_microbial_stoichiometries(config: Config) -> dict[str, dict[str, float]
         A dictionary containing the carbon to nutrient ratios of each microbial
         functional group, for both nitrogen and phosphorus [unitless]
     """
-
+    core_constants = load_constants(config, "core", "CoreConsts")
     enzyme_classes = make_full_set_of_enzymes(config=config)
     microbial_groups = make_full_set_of_microbial_groups(
-        config=config, enzyme_classes=enzyme_classes
+        config=config, enzyme_classes=enzyme_classes, core_constants=core_constants
     )
 
     return {

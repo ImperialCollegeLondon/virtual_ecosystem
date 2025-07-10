@@ -14,6 +14,7 @@ from virtual_ecosystem.core.config import Config, ConfigurationError
 
 def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
     """Test that the function to make all the microbial group works."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.microbial_groups import (
         MicrobialGroupConstants,
         make_full_set_of_microbial_groups,
@@ -27,7 +28,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
     ]
 
     functional_groups = make_full_set_of_microbial_groups(
-        fixture_config, enzyme_classes=enzyme_classes
+        fixture_config, enzyme_classes=enzyme_classes, core_constants=CoreConsts
     )
 
     assert set(expected_groups) == set(functional_groups.keys())
@@ -266,6 +267,7 @@ def test_make_full_set_of_microbial_groups_errors(
     caplog, enzyme_classes, cfg_strings, exp_log
 ):
     """Check that bad configs generate errors during microbial group generation."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.microbial_groups import (
         make_full_set_of_microbial_groups,
     )
@@ -274,7 +276,9 @@ def test_make_full_set_of_microbial_groups_errors(
     caplog.clear()
 
     with pytest.raises(ConfigurationError):
-        _ = make_full_set_of_microbial_groups(config, enzyme_classes=enzyme_classes)
+        _ = make_full_set_of_microbial_groups(
+            config, enzyme_classes=enzyme_classes, core_constants=CoreConsts
+        )
 
     log_check(caplog, exp_log)
 
@@ -485,6 +489,7 @@ def test_make_full_set_of_enzymes_errors(caplog, cfg_strings, exp_log):
 
 def test_find_enzyme_substrates(fixture_config, enzyme_classes):
     """Check method to find the full set of substrates a microbe can use works."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
 
     bacteria = MicrobialGroupConstants.build_microbial_group(
@@ -494,6 +499,7 @@ def test_find_enzyme_substrates(fixture_config, enzyme_classes):
             if functional_group["name"] == "bacteria"
         ),
         enzyme_classes=enzyme_classes,
+        core_constants=CoreConsts,
     )
 
     assert set(bacteria.find_enzyme_substrates()) == set(["maom", "pom"])
@@ -556,6 +562,7 @@ def test_find_enzyme_substrates(fixture_config, enzyme_classes):
 )
 def test_build_microbial_group_errors(caplog, enzyme_classes, group_config, exp_log):
     """Check that build_microbial_group factory method raises errors correctly."""
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
 
     caplog.clear()
@@ -564,6 +571,7 @@ def test_build_microbial_group_errors(caplog, enzyme_classes, group_config, exp_
         _ = MicrobialGroupConstants.build_microbial_group(
             group_config=group_config,
             enzyme_classes=enzyme_classes,
+            core_constants=CoreConsts,
         )
 
     log_check(caplog, exp_log)
@@ -587,10 +595,28 @@ def test_find_microbial_stoichiometries(fixture_config):
     assert expected_ratios == actual_ratios
 
 
-def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_classes):
+@pytest.mark.parametrize(
+    argnames=["group", "expected_ratio"],
+    argvalues=[
+        pytest.param(
+            "bacteria",
+            {"nitrogen": 5.69458, "phosphorus": 15.5048},
+            id="bacteria",
+        ),
+        pytest.param(
+            "saprotrophic_fungi",
+            {"nitrogen": 5.936557, "phosphorus": 16.79287},
+            id="fungi",
+        ),
+    ],
+)
+def test_calculate_new_biomass_average_nutrient_ratios(
+    fixture_config, enzyme_classes, group, expected_ratio
+):
     """Check method to calculate average new biomass nutrient ratios works."""
     import numpy as np
 
+    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.microbial_groups import (
         calculate_new_biomass_average_nutrient_ratios,
     )
@@ -598,7 +624,7 @@ def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_cl
     group_config = next(
         functional_group
         for functional_group in fixture_config["soil"]["microbial_group_definition"]
-        if functional_group["taxonomic_group"] == "bacteria"
+        if functional_group["name"] == group
     )
 
     averaged_nutrient_ratios = calculate_new_biomass_average_nutrient_ratios(
@@ -606,11 +632,16 @@ def test_calculate_new_biomass_average_nutrient_ratios(fixture_config, enzyme_cl
         c_n_ratio=5.7,
         c_p_ratio=15.5,
         enzyme_production=group_config["enzyme_production"],
+        reproductive_allocation=group_config["reproductive_allocation"],
+        c_n_ratio_fruiting_bodies=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
+        c_p_ratio_fruiting_bodies=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
         enzyme_classes=enzyme_classes,
     )
 
-    assert np.isclose(averaged_nutrient_ratios["nitrogen"], 5.695)
-    assert np.isclose(averaged_nutrient_ratios["phosphorus"], 15.505)
+    assert np.isclose(averaged_nutrient_ratios["nitrogen"], expected_ratio["nitrogen"])
+    assert np.isclose(
+        averaged_nutrient_ratios["phosphorus"], expected_ratio["phosphorus"]
+    )
 
 
 def test_calculate_symbiotic_carbon_supply(dummy_carbon_data):
