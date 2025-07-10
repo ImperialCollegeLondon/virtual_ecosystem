@@ -120,6 +120,14 @@ class MicrobialGroupConstants:
     (gross) cellular biomass growth.
     """
 
+    reproductive_allocation: float
+    """Reproductive allocation as fraction of (gross) cellular biomass growth [unitless]
+    
+    Only fungi generate separate reproductive bodies, so this value **must** be set to
+    zero for bacterial functional groups. Providing a non-zero value for a bacterial
+    functional group will prevent the soil model from configuring.
+    """
+
     synthesis_nutrient_ratios: dict[str, float]
     """Average carbon to nutrient ratios for the total synthesised biomass.
     
@@ -148,6 +156,17 @@ class MicrobialGroupConstants:
             msg = (
                 f"Taxonomic group {group_config['taxonomic_group']} not allowed. Must "
                 f"be one of {valid_taxonomic_groups}."
+            )
+            LOGGER.critical(msg)
+            raise ValueError(msg)
+
+        if (
+            group_config["taxonomic_group"] != "fungi"
+            and group_config["reproductive_allocation"] != 0.0
+        ):
+            msg = (
+                f"Only fungi allocate to fruiting bodies, "
+                f"{group_config['taxonomic_group']} cannot."
             )
             LOGGER.critical(msg)
             raise ValueError(msg)

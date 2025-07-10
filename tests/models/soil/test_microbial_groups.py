@@ -72,6 +72,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.0
             """,
             [
                 (
@@ -103,6 +104,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.1
 
             [[soil.microbial_group_definition]]
             name = "saprotrophic_fungi"
@@ -124,6 +126,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.1
 
             [[soil.microbial_group_definition]]
             name = "arbuscular_mycorrhiza"
@@ -145,6 +148,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 120.0
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.1
 
             [[soil.microbial_group_definition]]
             name = "ectomycorrhiza"
@@ -166,6 +170,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 120.0
             enzyme_production.pom = 0.02
             enzyme_production.maom = 0.02
+            reproductive_allocation = 0.1
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -187,6 +192,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.0
             """,
             [
                 (
@@ -218,6 +224,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.0
 
             [[soil.microbial_group_definition]]
             name = "archaea"
@@ -239,6 +246,7 @@ def test_make_full_set_of_microbial_groups(fixture_config, enzyme_classes):
             c_p_ratio = 16
             enzyme_production.pom = 0.005
             enzyme_production.maom = 0.005
+            reproductive_allocation = 0.0
             """,
             [
                 (
@@ -491,34 +499,66 @@ def test_find_enzyme_substrates(fixture_config, enzyme_classes):
     assert set(bacteria.find_enzyme_substrates()) == set(["maom", "pom"])
 
 
-def test_build_microbial_group_errors(caplog, enzyme_classes):
+@pytest.mark.parametrize(
+    argnames=["group_config", "exp_log"],
+    argvalues=[
+        pytest.param(
+            {
+                "name": "archaea",
+                "taxonomic_group": "archaea",
+                "max_uptake_rate_labile_C": 0.04,
+                "activation_energy_uptake_rate": 47000,
+                "half_sat_labile_C_uptake": 0.364,
+                "activation_energy_uptake_saturation": 30000,
+                "max_uptake_rate_ammonium": 5e-3,
+                "half_sat_ammonium_uptake": 0.02275,
+                "max_uptake_rate_nitrate": 5e-4,
+                "half_sat_nitrate_uptake": 0.02275,
+                "max_uptake_rate_labile_p": 0.0025,
+                "half_sat_labile_p_uptake": 0.02275,
+                "turnover_rate": 0.005,
+                "activation_energy_turnover": 20000,
+                "reference_temperature": 12.0,
+                "c_n_ratio": 5.2,
+                "c_p_ratio": 16,
+                "enzyme_production": {"pom": 0.005, "maom": 0.005},
+                "reproductive_allocation": 0.0,
+            },
+            ((CRITICAL, "Taxonomic group archaea not allowed. Must be one of "),),
+            id="archaea_not_possible",
+        ),
+        pytest.param(
+            {
+                "name": "bacteria",
+                "taxonomic_group": "bacteria",
+                "max_uptake_rate_labile_C": 0.04,
+                "activation_energy_uptake_rate": 47000,
+                "half_sat_labile_C_uptake": 0.364,
+                "activation_energy_uptake_saturation": 30000,
+                "max_uptake_rate_ammonium": 5e-3,
+                "half_sat_ammonium_uptake": 0.02275,
+                "max_uptake_rate_nitrate": 5e-4,
+                "half_sat_nitrate_uptake": 0.02275,
+                "max_uptake_rate_labile_p": 0.0025,
+                "half_sat_labile_p_uptake": 0.02275,
+                "turnover_rate": 0.005,
+                "activation_energy_turnover": 20000,
+                "reference_temperature": 12.0,
+                "c_n_ratio": 5.2,
+                "c_p_ratio": 16,
+                "enzyme_production": {"pom": 0.005, "maom": 0.005},
+                "reproductive_allocation": 0.1,
+            },
+            ((CRITICAL, "Only fungi allocate to fruiting bodies, bacteria cannot."),),
+            id="bacteria_don't_fruit",
+        ),
+    ],
+)
+def test_build_microbial_group_errors(caplog, enzyme_classes, group_config, exp_log):
     """Check that build_microbial_group factory method raises errors correctly."""
     from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
 
-    group_config = {
-        "name": "archaea",
-        "taxonomic_group": "archaea",
-        "max_uptake_rate_labile_C": 0.04,
-        "activation_energy_uptake_rate": 47000,
-        "half_sat_labile_C_uptake": 0.364,
-        "activation_energy_uptake_saturation": 30000,
-        "max_uptake_rate_ammonium": 5e-3,
-        "half_sat_ammonium_uptake": 0.02275,
-        "max_uptake_rate_nitrate": 5e-4,
-        "half_sat_nitrate_uptake": 0.02275,
-        "max_uptake_rate_labile_p": 0.0025,
-        "half_sat_labile_p_uptake": 0.02275,
-        "turnover_rate": 0.005,
-        "activation_energy_turnover": 20000,
-        "reference_temperature": 12.0,
-        "c_n_ratio": 5.2,
-        "c_p_ratio": 16,
-        "enzyme_production": {"pom": 0.005, "maom": 0.005},
-    }
-
     caplog.clear()
-
-    exp_log = ((CRITICAL, "Taxonomic group archaea not allowed. Must be one of "),)
 
     with pytest.raises(ValueError):
         _ = MicrobialGroupConstants.build_microbial_group(
