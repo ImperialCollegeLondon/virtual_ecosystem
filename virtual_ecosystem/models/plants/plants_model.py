@@ -277,7 +277,7 @@ class PlantsModel(
         static = config["plants"]["static"]
 
         # Generate the flora
-        flora = get_flora_from_config(config=config)
+        flora, extra_traits = get_flora_from_config(config=config)
 
         # Create a CommunityDataExporter instance from config
         exporter = CommunityDataExporter.from_config(config=config)

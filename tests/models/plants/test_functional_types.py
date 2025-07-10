@@ -5,6 +5,8 @@ This module tests the functionality of the plant functional types submodule.
 
 import pytest
 
+from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
+
 
 def test_get_flora_from_config(shared_datadir, fixture_config):
     """Testing the pyrealm flora loading mechanism.
@@ -19,7 +21,7 @@ def test_get_flora_from_config(shared_datadir, fixture_config):
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
     # Initial fixture_config uses PFT definitions in the file
-    flora = get_flora_from_config(fixture_config)
+    flora, extra_traits = get_flora_from_config(fixture_config)
 
     assert isinstance(flora, Flora)
     assert flora.n_pfts == 2
@@ -28,7 +30,7 @@ def test_get_flora_from_config(shared_datadir, fixture_config):
     fixture_config["plants"]["pft_definitions_path"] = shared_datadir / "pfts.csv"
 
     with pytest.raises(ConfigurationError) as err:
-        flora = get_flora_from_config(fixture_config)
+        flora, extra_traits = get_flora_from_config(fixture_config)
 
     assert (
         str(err.value)
@@ -38,7 +40,9 @@ def test_get_flora_from_config(shared_datadir, fixture_config):
     # Remove original local definitions
     fixture_config["plants"].pop("pft_definition")
 
-    flora = get_flora_from_config(fixture_config)
+    flora, extra_traits = get_flora_from_config(fixture_config)
 
     assert isinstance(flora, Flora)
     assert flora.n_pfts == 2
+
+    assert isinstance(extra_traits, ExtraTraitsPFT)

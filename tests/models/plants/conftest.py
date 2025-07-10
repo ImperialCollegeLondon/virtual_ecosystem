@@ -13,7 +13,7 @@ def flora(fixture_config):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    flora = get_flora_from_config(fixture_config)
+    flora, _ = get_flora_from_config(fixture_config)
 
     return flora
 

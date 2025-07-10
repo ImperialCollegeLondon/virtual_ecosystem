@@ -271,6 +271,16 @@ def fixture_config(microbial_groups_cfg):
         zeta = 0.17
         gpp_topslice = 0.1
         p_foliage_for_reproductive_tissue = 0.05
+        deadwood_c_n_ratio = 60.7
+        deadwood_c_p_ratio = 856.5
+        leaf_turnover_c_n_ratio = 25.5
+        leaf_turnover_c_p_ratio = 415.0
+        plant_reproductive_tissue_turnover_c_n_ratio = 12.5
+        plant_reproductive_tissue_turnover_c_p_ratio = 125.5
+        root_turnover_c_p_ratio = 656.7
+        root_turnover_c_n_ratio = 45.6
+        foliage_c_n_ratio = 15
+        foliage_c_p_ratio = 300
 
         [[plants.pft_definition]]
         a_hd = 116.0
@@ -295,6 +305,16 @@ def fixture_config(microbial_groups_cfg):
         zeta = 0.17
         gpp_topslice = 0.1
         p_foliage_for_reproductive_tissue = 0.05
+        deadwood_c_n_ratio = 60.7
+        deadwood_c_p_ratio = 856.5
+        leaf_turnover_c_n_ratio = 25.5
+        leaf_turnover_c_p_ratio = 415.0
+        plant_reproductive_tissue_turnover_c_n_ratio = 12.5
+        plant_reproductive_tissue_turnover_c_p_ratio = 125.5
+        root_turnover_c_p_ratio = 656.7
+        root_turnover_c_n_ratio = 45.6
+        foliage_c_n_ratio = 15
+        foliage_c_p_ratio = 300
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"
