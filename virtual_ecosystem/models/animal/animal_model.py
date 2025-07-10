@@ -136,6 +136,7 @@ class AnimalModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "fungal_fruiting_bodies",
         "decay_of_fungal_fruiting_bodies",
     ),
 ):
