@@ -97,9 +97,11 @@ sub-surface flow out of the grid cell, and changes in groundwater storage.
 :width: 600px
 
 The 4-bucket model represented within grid cell hydrology processes in Virtual Ecosystem
-. Red arrows indicate vertical flow and blue lines indicate horizontal flow out of the
-grid cell; horizontal inflow in the grid cell is not shown but happens in the same
-layers in all non-edge grid cells.
+. Red solid arrows indicate downward vertical flow, red dashed lines show vertical
+upward flow. The blue arrows indicate horizontal flow out of the
+grid cell with solid lines representing water that flows out of each layer in the
+current time step and dashed lines representing water that originates from upstream
+grid cells (previous time step) and flows through the grid cell directly to the stream.
 :::
 
 ### Canopy interception
