@@ -1,18 +1,22 @@
 """The :mod:`~virtual_ecosystem.models.animal.animal_model` module creates a
 :class:`~virtual_ecosystem.models.animal.animal_model.AnimalModel` class as a
 child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the
-Virtual Ecosystem model develops. The factory method
+
+At present a lot of the abstract methods of the parent class
+(e.g. :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are
+overwritten using placeholder functions that don't do anything. This will
+change as the Virtual Ecosystem model develops.
+
+The factory method
 :func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters
-from our currently pretty minimal configuration dictionary. These parameters are
-then used to generate a class instance. If errors crop up here when converting the
-information from the config dictionary to the required types
-(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
-of the unpacking an error is thrown. This error should be caught and handled
-by downstream functions so that all model configuration failures can be reported as one.
+from our currently pretty minimal configuration dictionary. These parameters
+are then used to generate a class instance. If errors emerge when converting
+the information from the config dictionary to the required types
+(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the
+end of the unpacking an error is thrown. This error should be caught and
+handled by downstream functions so that all model configuration failures can
+be reported as one.
 """  # noqa: D205
 
 from __future__ import annotations
@@ -146,10 +150,6 @@ class AnimalModel(
         core_components: The core components used across models.
         static: If True, runs in static mode.
         density_scaling_method: Which density scaling equation to use in initialization.
-            Options:
-                - "damuth": Classic Damuth's Law (individual density scaling).
-                - "madingley": Biomass-density scaling converted to individuals.
-            Default is "madingley".
         **kwargs: Additional arguments for the base model.
     """
 
