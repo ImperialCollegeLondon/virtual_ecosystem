@@ -127,6 +127,9 @@ class MicrobialChanges:
     necromass_p_flow: NDArray[np.floating]
     """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
 
+    fruiting_body_production: NDArray[np.floating]
+    """Rate a which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+
 
 @dataclass
 class EnzymeMediatedRates:
@@ -354,6 +357,9 @@ class PoolData:
 
     soil_p_pool_labile: NDArray[np.floating]
     """Inorganic labile phosphorus pool [kg P m^-3]."""
+
+    new_fungal_fruiting_body_production: NDArray[np.floating]
+    """Fungal fruiting biomass produced during simulation time step [kg C m^-3]."""
 
 
 class SoilPools:
@@ -702,6 +708,9 @@ class SoilPools:
         delta_pools_ordered["soil_enzyme_maom_fungi"] = (
             microbial_changes.maom_enzyme_fungi_change
         )
+        delta_pools_ordered["new_fungal_fruiting_body_production"] = (
+            microbial_changes.fruiting_body_production
+        )
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation
@@ -927,19 +936,21 @@ def calculate_microbial_changes(
         pools=pools, microbial_groups=microbial_groups, soil_temp=soil_temp
     )
 
+    # Collect growth rates into a single dictionary
+    growth_rates = {
+        "bacteria": bacterial_growth,
+        "saprotrophic_fungi": saprotrophic_fungal_growth,
+        "arbuscular_mycorrhiza": np.where(
+            arbuscular_mycorrhizal_growth > 0, arbuscular_mycorrhizal_growth, 0
+        ),
+        "ectomycorrhiza": np.where(
+            ectomycorrhizal_growth > 0, ectomycorrhizal_growth, 0
+        ),
+    }
+
     # Calculate the total production of each enzyme class
     enzyme_production = calculate_enzyme_production(
-        microbial_groups=microbial_groups,
-        growth_rates={
-            "bacteria": bacterial_growth,
-            "saprotrophic_fungi": saprotrophic_fungal_growth,
-            "arbuscular_mycorrhiza": np.where(
-                arbuscular_mycorrhizal_growth > 0, arbuscular_mycorrhizal_growth, 0
-            ),
-            "ectomycorrhiza": np.where(
-                ectomycorrhizal_growth > 0, ectomycorrhizal_growth, 0
-            ),
-        },
+        microbial_groups=microbial_groups, growth_rates=growth_rates
     )
 
     # Find changes in each enzyme pool
@@ -955,6 +966,10 @@ def calculate_microbial_changes(
         enzyme_changes=enzyme_changes,
         microbial_groups=microbial_groups,
         enzyme_classes=enzyme_classes,
+    )
+
+    fungal_fruiting_body_production = calculate_fruiting_body_production(
+        microbial_groups=microbial_groups, growth_rates=growth_rates
     )
 
     return MicrobialChanges(
@@ -1008,6 +1023,7 @@ def calculate_microbial_changes(
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
+        fruiting_body_production=fungal_fruiting_body_production,
     )
 
 
@@ -1285,6 +1301,36 @@ def calculate_enzyme_production(
                 )
 
     return production_rates
+
+
+def calculate_fruiting_body_production(
+    microbial_groups: dict[str, MicrobialGroupConstants],
+    growth_rates: dict[str, NDArray[np.floating]],
+) -> NDArray[np.floating]:
+    """Calculate the total production of fungal fruiting bodies by all microbial groups.
+
+    Args:
+        microbial_groups: Set of microbial functional groups defined in the soil model
+        growth_rates: The (gross) growth rates of each microbial group [kg C m^-3
+            day^-1]
+
+    Returns:
+        The total production rate of fungal fruiting bodies by the soil microbes [kg C
+        m^-3 day^-1]
+    """
+
+    fruiting_body_production = np.zeros_like(growth_rates["bacteria"])
+
+    for group in microbial_groups.values():
+        # Only fungi produce fruiting bodies so only add contributions from them
+        if group.taxonomic_group == "fungi":
+            # This step catches negative growth rates (which can occur for mycorrhizal
+            # fungi, but shouldn't produce a negative amount of fruiting bodies)
+            growth = np.where(growth_rates[group.name] > 0, growth_rates[group.name], 0)
+
+            fruiting_body_production += growth * group.reproductive_allocation
+
+    return fruiting_body_production
 
 
 def calculate_maintenance_biomass_synthesis(

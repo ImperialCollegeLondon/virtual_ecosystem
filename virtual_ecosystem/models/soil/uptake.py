@@ -151,9 +151,9 @@ def calculate_nutrient_uptake_rates(
             functional group
 
     Returns:
-        A tuple containing the rate at which microbial (cellular) biomass increases due
-        to nutrient uptake, as well as a dataclass containing the rate at which carbon,
-        nitrogen and phosphorus get taken up.
+        A tuple containing the rate at which microbial (cellular) biomass is generated
+        due to nutrient uptake, as well as a dataclass containing the rate at which
+        carbon, nitrogen and phosphorus get taken up.
 
     Raises:
         ValueError: If an external carbon supply is provided without a corresponding
@@ -232,7 +232,12 @@ def calculate_nutrient_uptake_rates(
     # production as it represents biomass gain and enzyme production.
     return np.where(
         actual_carbon_gain >= 0,
-        actual_carbon_gain / (1 + sum(functional_group.enzyme_production.values())),
+        actual_carbon_gain
+        / (
+            1
+            + sum(functional_group.enzyme_production.values())
+            + functional_group.reproductive_allocation
+        ),
         actual_carbon_gain,
     ), consumption_rates
 

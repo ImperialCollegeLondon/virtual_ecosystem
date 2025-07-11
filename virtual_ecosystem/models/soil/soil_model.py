@@ -186,6 +186,7 @@ class SoilModel(
         "ecto_supply_limit_p",
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
+        "production_of_fungal_fruiting_bodies",
     ),
     # TODO - If anything gets added to this section the implementation docs will need to
     # be updated
@@ -216,6 +217,13 @@ class SoilModel(
 
         self.model_constants: SoilConsts
         """Set of constants for the soil model."""
+
+        self.refreshed_variables = ["new_fungal_fruiting_body_production"]
+        """List of variables that the model resets for each new integration step.
+        
+        These variables are intermediate values that it does not make sense to store in
+        the data object.
+        """
 
     @classmethod
     def from_config(
@@ -324,11 +332,22 @@ class SoilModel(
         """
 
         # Find carbon pool updates by integration
-        updated_carbon_pools = self.integrate()
+        updated_soil_pools = self.integrate()
 
-        # Update carbon pools (attributes and data object)
-        # n.b. this also updates the data object automatically
-        self.data.add_from_dict(updated_carbon_pools)
+        # Update carbon pools (attributes and data object) n.b. this also updates the
+        # data object automatically. Refreshed variables have to be excluded from this
+        self.data.add_from_dict(
+            {
+                variable: value
+                for variable, value in updated_soil_pools.items()
+                if variable not in self.refreshed_variables
+            }
+        )
+
+        fruiting_body_production_rate = self.convert_fruiting_body_production_to_rate(
+            total_production=updated_soil_pools["new_fungal_fruiting_body_production"]
+        )
+        self.data.add_from_dict(fruiting_body_production_rate)
 
         # Calculate dissolved amounts of each inorganic nutrients
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -386,20 +405,30 @@ class SoilModel(
         update_time = self.model_timing.update_interval_quantity.to("days").magnitude
         t_span = (0.0, update_time)
 
-        # Construct vector of initial values y0
+        # Construct vector of initial values y0. Zeros are added to the end for all the
+        # non-data object variables
         y0 = np.concatenate(
-            [
-                self.data[name].to_numpy()
-                for name in map(str, self.data.data.keys())
-                if name in self.vars_updated and name not in self.vars_populated_by_init
-            ]
+            (
+                np.concatenate(
+                    [
+                        self.data[name].to_numpy()
+                        for name in map(str, self.data.data.keys())
+                        if name in self.vars_updated
+                        and name not in self.vars_populated_by_init
+                    ]
+                ),
+                np.zeros(len(self.refreshed_variables) * self.data.grid.n_cells),
+            )
         )
 
-        # Find and store order of pools
+        # Find and store order of pools (refreshed variables go at the end)
         delta_pools_ordered = {
-            name: np.array([])
-            for name in map(str, self.data.data.keys())
-            if name in self.vars_updated and name not in self.vars_populated_by_init
+            **{
+                name: np.array([])
+                for name in map(str, self.data.data.keys())
+                if name in self.vars_updated and name not in self.vars_populated_by_init
+            },
+            **{name: np.array([]) for name in self.refreshed_variables},
         }
 
         # Carry out simulation
@@ -441,6 +470,32 @@ class SoilModel(
         }
 
         return new_c_pools
+
+    def convert_fruiting_body_production_to_rate(
+        self, total_production: DataArray
+    ) -> dict[str, DataArray]:
+        """Convert total fungal fruiting body production into a rate are being produced.
+
+        The soil model integration provides a total mass produced (per soil volume) over
+        the integration time period. This method converts this into a rate, and into per
+        area rather than soil volume terms.
+
+        Args:
+            total_production: The total production of fungal fruiting bodies over the
+            integration time period, per volume of soil [kg C m^-3]
+
+        Returns:
+            A data array containing the rate at which fungal fruiting bodies are
+            produced per unit area [kg C m^-2 day^-1].
+        """
+
+        return {
+            "production_of_fungal_fruiting_bodies": total_production
+            / (
+                self.core_constants.max_depth_of_microbial_activity
+                * self.model_timing.update_interval_quantity.to("days").magnitude
+            )
+        }
 
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
         """Calculate the amount of each inorganic nutrient that is in dissolved form.
