@@ -715,6 +715,7 @@ def animal_model_instance(
         core_components=fixture_core_components,
         density_scaling_method="madingley",
         functional_groups=functional_group_list_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
 
 
@@ -723,6 +724,7 @@ def animal_model_damuth_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
+    microbial_c_n_p_ratios,
 ):
     """Fixture for an animal model object used in tests."""
     from copy import deepcopy
