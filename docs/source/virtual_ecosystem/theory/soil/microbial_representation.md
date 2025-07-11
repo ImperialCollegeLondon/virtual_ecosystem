@@ -145,8 +145,14 @@ microbial functional groups are given below.
 
 ### Fungal fruiting
 
-TODO - EXPLAIN HOW FUNGAL FRUITING WORKS (THIS NEEDS TO WAIT UNTIL IT'S ACTUALLY
-IMPLEMENTED)
+Fungal groups allocate a (configurable) fixed proportion of their synthesis of new
+biomass to the production of fungal fruiting bodies. The stoichiometric ratios of these
+bodies are lower than for soil fungal biomass, so producing them takes a proportionally
+greater uptake of nutrients.
+
+These fruiting bodies are made available for animal consumption (this process is tracked
+with the animal model). Fungal fruiting bodies that aren't consumed decay back into the
+soil in a labile organic form, i.e. as {term}`LMWC`, {term}`DON` and {term}`DOP`.
 
 ### Mycorrhiza
 
