@@ -24,22 +24,22 @@ class NetNutrientConsumption:
     mineralise inorganic nutrients from nutrients in organic form.
     """
 
-    carbon: NDArray[np.float32]
+    carbon: NDArray[np.floating]
     """Uptake of low molecular weight carbon [kg C m^-3 day^-1]."""
 
-    organic_nitrogen: NDArray[np.float32]
+    organic_nitrogen: NDArray[np.floating]
     """Uptake of dissolved organic nitrogen [kg N m^-3 day^-1]."""
 
-    ammonium: NDArray[np.float32]
+    ammonium: NDArray[np.floating]
     """Uptake of ammonium [kg N m^-3 day^-1]."""
 
-    nitrate: NDArray[np.float32]
+    nitrate: NDArray[np.floating]
     """Uptake of nitrate [kg N m^-3 day^-1]."""
 
-    organic_phosphorus: NDArray[np.float32]
+    organic_phosphorus: NDArray[np.floating]
     """Uptake of dissolved organic phosphorus [kg P m^-3 day^-1]."""
 
-    inorganic_phosphorus: NDArray[np.float32]
+    inorganic_phosphorus: NDArray[np.floating]
     """Uptake of labile inorganic phosphorus [kg P m^-3 day^-1]."""
 
 
@@ -47,48 +47,48 @@ class NetNutrientConsumption:
 class MaxUptakeRates:
     """Maximum rate at which each nutrient can be taken up by the microbial group."""
 
-    carbon: NDArray[np.float32]
+    carbon: NDArray[np.floating]
     """Maximum uptake of low molecular weight carbon [kg C m^-3 day^-1]."""
 
-    organic_nitrogen: NDArray[np.float32]
+    organic_nitrogen: NDArray[np.floating]
     """Maximum uptake rate of organic nitrogen [kg N m^-3 day^-1].
     
     This nitrogen is taken up along with the :term:`LMWC` uptake.
     """
 
-    organic_phosphorus: NDArray[np.float32]
+    organic_phosphorus: NDArray[np.floating]
     """Maximum uptake rate of organic phosphorus [kg P m^-3 day^-1].
     
     This phosphorus is taken up along with the :term:`LMWC` uptake.
     """
 
-    ammonium: NDArray[np.float32]
+    ammonium: NDArray[np.floating]
     """Maximum uptake rate of ammonium [kg N m^-3 day^-1]."""
 
-    nitrate: NDArray[np.float32]
+    nitrate: NDArray[np.floating]
     """Maximum uptake rate of nitrate [kg N m^-3 day^-1]."""
 
-    inorganic_phosphorus: NDArray[np.float32]
+    inorganic_phosphorus: NDArray[np.floating]
     """Maximum uptake rate of labile inorganic phosphorus [kg P m^-3 day^-1]."""
 
 
 def calculate_nutrient_uptake_rates(
-    soil_c_pool_lmwc: NDArray[np.float32],
-    soil_n_pool_don: NDArray[np.float32],
-    soil_n_pool_ammonium: NDArray[np.float32],
-    soil_n_pool_nitrate: NDArray[np.float32],
-    soil_p_pool_dop: NDArray[np.float32],
-    soil_p_pool_labile: NDArray[np.float32],
-    microbial_pool_size: NDArray[np.float32],
-    external_carbon_supply: NDArray[np.float32] | None,
-    nitrogen_exchange: NDArray[np.float32] | None,
-    phosphorus_exchange: NDArray[np.float32] | None,
-    water_factor: NDArray[np.float32],
-    pH_factor: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    soil_c_pool_lmwc: NDArray[np.floating],
+    soil_n_pool_don: NDArray[np.floating],
+    soil_n_pool_ammonium: NDArray[np.floating],
+    soil_n_pool_nitrate: NDArray[np.floating],
+    soil_p_pool_dop: NDArray[np.floating],
+    soil_p_pool_labile: NDArray[np.floating],
+    microbial_pool_size: NDArray[np.floating],
+    external_carbon_supply: NDArray[np.floating] | None,
+    nitrogen_exchange: NDArray[np.floating] | None,
+    phosphorus_exchange: NDArray[np.floating] | None,
+    water_factor: NDArray[np.floating],
+    pH_factor: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     constants: SoilConsts,
     functional_group: MicrobialGroupConstants,
-) -> tuple[NDArray[np.float32], NetNutrientConsumption]:
+) -> tuple[NDArray[np.floating], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.
 
     These rates are found based on the assumption that microbial stoichiometry is
@@ -239,8 +239,8 @@ def calculate_nutrient_uptake_rates(
 
 def find_net_nutrient_consumptions_free_living(
     max_uptake_rates: MaxUptakeRates,
-    actual_carbon_gain: NDArray[np.float32],
-    carbon_use_efficiency: NDArray[np.float32],
+    actual_carbon_gain: NDArray[np.floating],
+    carbon_use_efficiency: NDArray[np.floating],
     functional_group: MicrobialGroupConstants,
     ammonium_mineralisation_proportion: float,
 ) -> NetNutrientConsumption:
@@ -354,10 +354,10 @@ def find_net_nutrient_consumptions_free_living(
 
 def find_net_nutrient_consumptions_symbiotic(
     max_uptake_rates: MaxUptakeRates,
-    actual_carbon_gain: NDArray[np.float32],
-    nitrogen_exchange: NDArray[np.float32],
-    phosphorus_exchange: NDArray[np.float32],
-    carbon_use_efficiency: NDArray[np.float32],
+    actual_carbon_gain: NDArray[np.floating],
+    nitrogen_exchange: NDArray[np.floating],
+    phosphorus_exchange: NDArray[np.floating],
+    carbon_use_efficiency: NDArray[np.floating],
     functional_group: MicrobialGroupConstants,
 ) -> NetNutrientConsumption:
     """Find net consumption of each nutrient class for a symbiotic microbial group.
@@ -479,9 +479,9 @@ def find_net_nutrient_consumptions_symbiotic(
 
 def calculate_actual_carbon_gain_free_living(
     max_uptake_rates: MaxUptakeRates,
-    carbon_use_efficiency: NDArray[np.float32],
+    carbon_use_efficiency: NDArray[np.floating],
     functional_group: MicrobialGroupConstants,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the rate at which carbon is assimilated by free-living microbes.
 
     The limitation that each nutrient places on carbon assimilation is determined. For
@@ -527,12 +527,12 @@ def calculate_actual_carbon_gain_free_living(
 
 def calculate_actual_carbon_gain_symbiotic(
     max_uptake_rates: MaxUptakeRates,
-    external_carbon_supply: NDArray[np.float32],
-    nitrogen_exchange: NDArray[np.float32],
-    phosphorus_exchange: NDArray[np.float32],
-    carbon_use_efficiency: NDArray[np.float32],
+    external_carbon_supply: NDArray[np.floating],
+    nitrogen_exchange: NDArray[np.floating],
+    phosphorus_exchange: NDArray[np.floating],
+    carbon_use_efficiency: NDArray[np.floating],
     functional_group: MicrobialGroupConstants,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the rate at which carbon is assimilated by symbiotic microbes.
 
     The limitation that each nutrient places on carbon assimilation is determined. For
@@ -613,16 +613,16 @@ def calculate_actual_carbon_gain_symbiotic(
 
 
 def calculate_maximum_uptake_rates(
-    soil_c_pool_lmwc: NDArray[np.float32],
-    soil_n_pool_don: NDArray[np.float32],
-    soil_n_pool_ammonium: NDArray[np.float32],
-    soil_n_pool_nitrate: NDArray[np.float32],
-    soil_p_pool_dop: NDArray[np.float32],
-    soil_p_pool_labile: NDArray[np.float32],
-    microbial_pool_size: NDArray[np.float32],
-    water_factor: NDArray[np.float32],
-    pH_factor: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    soil_c_pool_lmwc: NDArray[np.floating],
+    soil_n_pool_don: NDArray[np.floating],
+    soil_n_pool_ammonium: NDArray[np.floating],
+    soil_n_pool_nitrate: NDArray[np.floating],
+    soil_p_pool_dop: NDArray[np.floating],
+    soil_p_pool_labile: NDArray[np.floating],
+    microbial_pool_size: NDArray[np.floating],
+    water_factor: NDArray[np.floating],
+    pH_factor: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     functional_group: MicrobialGroupConstants,
 ) -> MaxUptakeRates:
     """Calculate the maximum uptake rate for each category of nutrient.
@@ -725,17 +725,17 @@ def calculate_maximum_uptake_rates(
 
 
 def calculate_highest_achievable_nutrient_uptake(
-    labile_nutrient_pool: NDArray[np.float32],
-    microbial_pool_size: NDArray[np.float32],
-    water_factor: NDArray[np.float32],
-    pH_factor: NDArray[np.float32],
-    soil_temp: NDArray[np.float32],
+    labile_nutrient_pool: NDArray[np.floating],
+    microbial_pool_size: NDArray[np.floating],
+    water_factor: NDArray[np.floating],
+    pH_factor: NDArray[np.floating],
+    soil_temp: NDArray[np.floating],
     max_uptake_rate: float,
     activation_energy_uptake: float,
     half_saturation_constant: float,
     activation_energy_uptake_saturation: float,
     reference_temperature: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate highest achievable uptake rate for a specific nutrient.
 
     This function starts by calculating the impact that environmental factors have on

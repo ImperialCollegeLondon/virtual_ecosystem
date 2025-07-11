@@ -125,16 +125,16 @@ bibtex_reference_style = "author_year_round"
 # links are resolvable. Then ignore a whole bunch of annoying broken links.
 nitpicky = True
 nitpick_ignore = [
+    # Numpy references aren't always found
+    ("py:class", "NDArray"),
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
     ("py:class", "numpy.float64"),
-    # HACK - core_components docstrings are being odd.
-    ("py:class", "NDArray"),
+    ("py:class", "numpy.bool_"),
     ("py:class", "np.int_"),
     ("py:class", "np.str_"),
     ("py:class", "np.bool_"),
-    ("py:class", "numpy.bool_"),
-    ("py:class", "np.float32"),
+    ("py:class", "np.floating"),
     ("py:class", "np.float64"),
     ("py:class", "np.datetime64"),
     ("py:class", "np.ndarray"),
@@ -163,6 +163,8 @@ nitpick_ignore = [
     ("py:class", "Flora"),
     ("py:class", "PModelConst"),
     ("py:class", "CoreConst"),
+    ("py:class", "StemAllocation"),
+    ("py:class", "StemStochiometry"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
