@@ -26,11 +26,12 @@ language_info:
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)
-model which is part of the default Virtual Ecosystem configuration. The key processes
-are illustrated in {numref}`hydrology`.
+model which is part of the default Virtual Ecosystem configuration. The flow of key
+inputs, state variables, and processes are illustrated in {numref}`hydrology`.
 
 The processes [within a grid cell](#within-grid-cell-hydrology) are loosely based
-on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. The processes
+on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. These structure and flows of
+this '4-Bucket Model' are summarised in {numref}`bucket_model`. The processes
 [across the model grid](#across-grid-hydrology) are loosely based on
 the [pysheds](https://github.com/mdbartos/pysheds) package.
 
@@ -40,9 +41,9 @@ the [pysheds](https://github.com/mdbartos/pysheds) package.
 :class: bg-primary
 :width: 600px
 
-Hydrology processes in Virtual Ecosystem (click to zoom). Yellow boxes
-represent atmospheric input variables, green box and arrows indicate where water
-enters and leaves the plant model.
+Hydrology inputs, state variables, and processes in Virtual Ecosystem (click to zoom).
+Yellow boxes represent atmospheric input variables, green box and arrows indicate where
+water enters and leaves the plant model.
 :::
 
 ```{note}
@@ -88,6 +89,20 @@ The [below ground](../../api/models/hydrology/below_ground.md) component conside
 infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
 {term}`soil matric potential`, horizontal
 sub-surface flow out of the grid cell, and changes in groundwater storage.
+
+:::{figure} ../../_static/images/4bucketmodel.svg
+:name: bucket_model
+:alt: 4-Bucket Model
+:class: bg-primary
+:width: 600px
+
+The 4-Bucket Model represented within grid cell hydrology processes in the Virtual
+Ecosystem. Red solid arrows indicate downward vertical flow, red dashed arrows show
+vertical upward flow. The blue arrows indicate horizontal flow out of the
+grid cell with solid lines representing water that flows out of each layer in the
+current time step and dashed lines representing water that originates from upstream
+grid cells (previous time step) and flows through the grid cell directly to the stream.
+:::
 
 ### Canopy interception
 
