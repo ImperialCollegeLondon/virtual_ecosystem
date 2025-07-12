@@ -17,7 +17,10 @@ class ExtraTraitsPFT:
 
     This class is used to store traits that are not part of the standard PFT definition
     in Pyrealm, but are used in the Virtual Ecosystem. Each instance of this class maps
-    to one PFT, keyed by the PFT name.
+    to one PFT, keyed by the PFT name. The structure is:
+
+    {'pft_name': {'trait_name': trait_value, ...},
+     'pft_name_2': {'trait_name': trait_value, ...}, ...}
     """
 
     traits: dict[str, dict[str, float]]
@@ -27,7 +30,7 @@ class ExtraTraitsPFT:
         self.traits = traits
 
     @classmethod
-    def from_list(cls, input_traits: list) -> ExtraTraitsPFT:
+    def _from_file_data(cls, input_traits: list) -> ExtraTraitsPFT:
         """Initialise the ExtraTraitsPFT instance.
 
         Args:
@@ -52,7 +55,8 @@ class ExtraTraitsPFT:
         """
 
         traits = df.to_dict(orient="records")
-        return cls(traits)
+
+        return cls._from_file_data(traits)
 
 
 def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
@@ -108,7 +112,7 @@ def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
             for d in config["plants"]["pft_definition"]
         ]
 
-        extra_traits_model = ExtraTraitsPFT.from_list(extra_traits_data)
+        extra_traits_model = ExtraTraitsPFT._from_file_data(extra_traits_data)
 
         pft_data = {"pft": pft_traits}
         return Flora._from_file_data(pft_data), extra_traits_model
@@ -118,7 +122,8 @@ def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
     except (FileNotFoundError, pd.errors.ParserError) as excep:
         raise excep
 
-    extra_traits_data = df[extra_traits]
+    extra_traits_columns = [*extra_traits, "name"]
+    extra_traits_data = df[extra_traits_columns]
     extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
     pft_traits = df.drop(columns=extra_traits)
     pft_data = {"pft": pft_traits.to_dict(orient="records")}
