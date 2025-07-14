@@ -482,7 +482,7 @@ class SoilModel(
 
         Args:
             total_production: The total production of fungal fruiting bodies over the
-            integration time period, per volume of soil [kg C m^-3]
+                integration time period, per volume of soil [kg C m^-3]
 
         Returns:
             A data array containing the rate at which fungal fruiting bodies are
