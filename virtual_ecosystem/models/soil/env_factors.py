@@ -382,32 +382,37 @@ def calculate_symbiotic_nitrogen_fixation_carbon_cost(
     )
 
 
-def calculate_leaching_rate(
+def calculate_solute_removal_by_soil_water(
     solute_density: NDArray[np.floating],
-    vertical_flow_rate: NDArray[np.floating],
+    exit_rate: NDArray[np.floating],
     soil_moisture: NDArray[np.floating],
     solubility_coefficient: float,
 ) -> NDArray[np.floating]:
-    """Calculate leaching rate for a given solute based on flow rate.
+    """Calculate rate at which water removes a given solute based on flow rate.
 
     This functional form is adapted from :cite:t:`porporato_hydrologic_2003`. The amount
     of solute that is expected to be found in dissolved form is calculated by
     multiplying the solute density by its solubility coefficient. This is then
-    multiplied by the frequency with which the water column is completely replaced, i.e.
-    the ratio of vertical flow rate to soil moisture in mm.
+    multiplied by the frequency with which the water column in the microbially active
+    depth is completely replaced. This replacement can happen through downwards flow
+    (leaching) or through horizontal flow. The replacement frequency can be found as the
+    ratio the total rate at which water exits the microbially active portion of the soil
+    to soil moisture in mm.
 
     Args:
         solute_density: The density of the solute in the soil [kg solute m^-3]
-        vertical_flow_rate: Rate of flow downwards through the soil [mm day^-1]
+        exit_rate: Rate at which water exits the microbially active portion of the soil
+            [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
         solubility_coefficient: The solubility coefficient of the solute in question
             [unitless]
 
     Returns:
-        The rate at which the solute in question is leached [kg solute m^-3 day^-1]
+        The rate at which the solute in question is removed from the soil by the flow of
+        water [kg solute m^-3 day^-1]
     """
 
-    return solubility_coefficient * solute_density * vertical_flow_rate / soil_moisture
+    return solubility_coefficient * solute_density * exit_rate / soil_moisture
 
 
 def calculate_carbon_use_efficiency(

@@ -327,11 +327,13 @@ def test_calculate_enzyme_mediated_rates(
             assert np.allclose(getattr(actual_rates, attr), expected_rates[attr])
 
 
-def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components):
-    """Check that the calculation of dissolved nutrient leaching rates is correct."""
-    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+def test_ccalculate_nutrient_removal_by_water(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check that the calculation of dissolved nutrient removal rates is correct."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_removal_by_water
 
-    expected_leaching = {
+    expected_removal = {
         "lmwc": [1.0747349e-6, 2.5395235e-6, 9.9154571e-5, 5.2557152e-6],
         "don": [1.22826724e-8, 1.81394352e-7, 1.41642304e-7, 3.00326494e-6],
         "dop": [1.2282071e-10, 2.90230964e-9, 5.66596981e-8, 1.20130598e-7],
@@ -340,7 +342,7 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         "labile_P": [2.274653e-11, 4.130485e-10, 6.749199e-9, 2.045141e-8],
     }
 
-    actual_leaching = calculate_nutrient_leaching(
+    actual_removal = calculate_nutrient_removal_by_water(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
@@ -356,15 +358,15 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         constants=SoilConsts,
     )
 
-    for attr in dir(actual_leaching):
+    for attr in dir(actual_removal):
         if not attr.startswith("_"):
-            assert attr in expected_leaching.keys(), f"Attribute {attr} not tested"
-            assert np.allclose(getattr(actual_leaching, attr), expected_leaching[attr])
+            assert attr in expected_removal.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_removal, attr), expected_removal[attr])
 
 
-def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
-    """Test that negative leaching rates cannot occur."""
-    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+def test_negative_nutrient_removal_by_water(dummy_carbon_data, fixture_core_components):
+    """Test that negative rates of nutrient removal by water cannot occur."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_removal_by_water
 
     # Add negative values to the inorganic nutrient pools
     ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
@@ -378,7 +380,7 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
     expected_nitrate = [0.0, 1.128640314e-5, 6.798727493e-6, 0.00027625126]
     expected_labile_P = [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0]
 
-    actual_leaching = calculate_nutrient_leaching(
+    actual_removal = calculate_nutrient_removal_by_water(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
@@ -394,9 +396,9 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
         constants=SoilConsts,
     )
 
-    assert np.allclose(actual_leaching.ammonium, expected_ammonium)
-    assert np.allclose(actual_leaching.nitrate, expected_nitrate)
-    assert np.allclose(actual_leaching.labile_P, expected_labile_P)
+    assert np.allclose(actual_removal.ammonium, expected_ammonium)
+    assert np.allclose(actual_removal.nitrate, expected_nitrate)
+    assert np.allclose(actual_removal.labile_P, expected_labile_P)
 
 
 def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):

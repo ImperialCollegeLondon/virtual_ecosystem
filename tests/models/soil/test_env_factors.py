@@ -393,17 +393,21 @@ def test_calculate_carbon_use_efficiency(averaged_soil_temp):
     assert np.allclose(actual_cues, expected_cues)
 
 
-def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
-    """Test calculation of solute leaching rates."""
+def test_calculate_solute_removal_by_soil_water(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of solute removal rates."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.env_factors import calculate_leaching_rate
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_solute_removal_by_soil_water,
+    )
 
     expected_rate = [1.07473723e-6, 2.53952130e-6, 9.91551977e-5, 5.25567712e-5]
-    vertical_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
+    exit_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
 
-    actual_rate = calculate_leaching_rate(
+    actual_rate = calculate_solute_removal_by_soil_water(
         solute_density=dummy_carbon_data["soil_c_pool_lmwc"],
-        vertical_flow_rate=vertical_flow_per_day,
+        exit_rate=exit_flow_per_day,
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
