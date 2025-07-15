@@ -51,6 +51,7 @@ def wipe_canopy_layers(model):
 def test_PlantsModel__init__(
     plants_data,
     flora,
+    extra_pft_traits,
     fixture_core_components,
     fixture_canopy_layer_data,
     fixture_exporter,
@@ -63,6 +64,7 @@ def test_PlantsModel__init__(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
     )
 

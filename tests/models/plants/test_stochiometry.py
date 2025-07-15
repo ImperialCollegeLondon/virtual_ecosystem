@@ -23,6 +23,38 @@ def test_FoliageTissue__init__(fxt_plants_model):
         assert isinstance(tissue_model, FoliageTissue)
 
 
+def test_from_pft_default_ratios(fxt_plants_model):
+    """Test the default ratios in FoliageTissue from PFT."""
+    from virtual_ecosystem.models.plants.stochiometry import FoliageTissue, Tissue
+
+    for cell_id in fxt_plants_model.communities.keys():
+        community = fxt_plants_model.communities[cell_id]
+
+        tissue_model = Tissue.from_pft_default_ratios(
+            FoliageTissue,
+            community=community,
+            extra_pft_traits=fxt_plants_model.extra_pft_traits,
+            ratio_name="foliage_c_n_ratio",
+        )
+
+        assert isinstance(tissue_model, FoliageTissue)
+
+
+def test_stochiometry_from_defaults(fxt_plants_model):
+    """Test the stochiometry from defaults."""
+    from virtual_ecosystem.models.plants.stochiometry import StemStochiometry
+
+    for cell_id in fxt_plants_model.communities.keys():
+        community = fxt_plants_model.communities[cell_id]
+
+        stochiometry = StemStochiometry.default_init(
+            community,
+            extra_pft_traits=fxt_plants_model.extra_pft_traits,
+            element="N",
+        )
+        assert isinstance(stochiometry, StemStochiometry)
+
+
 @pytest.mark.parametrize(
     argnames=(
         "classname, carbon_mass, deficit, element_needed_for_growth, "
@@ -217,8 +249,6 @@ def test_Stochiometry_account_for_growth(fxt_plants_model, fxt_stochiometry_mode
 
     # Account for growth
     fxt_stochiometry_model.account_for_growth(stem_allocation)
-
-    print("new mass")
 
     assert np.all(
         fxt_stochiometry_model.total_element_mass
