@@ -1006,32 +1006,32 @@ class PlantsModel(
         """
 
         # C:N and C:P ratios
-        self.data["deadwood_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.deadwood_c_n_ratio
-        )
+        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
         self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_turnover_c_n_ratio
+            self.data["elevation"], 25.5
         )
         self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+            self.data["elevation"], 12.5
         )
         self.data["root_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.root_turnover_c_n_ratio
+            self.data["elevation"], 45.6
         )
-        self.data["deadwood_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.deadwood_c_p_ratio
-        )
+        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 856.5)
         self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_turnover_c_p_ratio
+            self.data["elevation"], 415.0
         )
         self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
+            self.data["elevation"], 125.5
         )
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
+            self.data["elevation"], 656.7
         )
+
+        for cell_id in self.communities.keys():
+            pass
+            # TODO: ask Jacob what he wants from these values
+            # self.data["deadwood_c_n_ratio"][cell_id] = (
+            # self.stochiometries[cell_id]["N"]...
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.

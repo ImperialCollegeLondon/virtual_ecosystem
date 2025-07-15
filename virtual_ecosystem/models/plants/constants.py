@@ -37,36 +37,6 @@ class PlantsConsts(ConstantsDataclass):
     root_lignin: float = 0.20
     """Fraction of root biomass that is lignin."""
 
-    deadwood_c_n_ratio: float = 56.5
-    """Carbon to Nitrogen ratio of deadwood."""
-
-    deadwood_c_p_ratio: float = 856.5
-    """Carbon to Phosphorous ratio of deadwood."""
-
-    leaf_turnover_c_n_ratio: float = 25.5
-    """Carbon to Nitrogen ratio of leaf turnover (senesced leaves)."""
-
-    leaf_turnover_c_p_ratio: float = 415.0
-    """Carbon to Phosphorous ratio of leaf turnover (senesced leaves)."""
-
-    plant_reproductive_tissue_turnover_c_n_ratio: float = 12.5
-    """Carbon to Nitrogen ratio of plant reproductive tissue turnover."""
-
-    plant_reproductive_tissue_turnover_c_p_ratio: float = 125.5
-    """Carbon to Phosphorous ratio of plant reproductive tissue turnover."""
-
-    root_turnover_c_p_ratio: float = 656.7
-    """Carbon to Phosphorous ratio of root turnover."""
-
-    root_turnover_c_n_ratio: float = 45.6
-    """Carbon to Nitrogen ratio of root turnover."""
-
-    foliage_c_n_ratio: float = 15
-    """Carbon to Nitrogen ratio of foliage on trees."""
-
-    foliage_c_p_ratio: float = 300
-    """Carbon to Phosphorous ratio of foliage on trees."""
-
     subcanopy_extinction_coef: float = 0.5
     """The extinction coefficient of subcanopy vegetation (unitless)."""
 

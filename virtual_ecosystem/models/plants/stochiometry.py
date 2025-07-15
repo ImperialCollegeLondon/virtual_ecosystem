@@ -168,9 +168,6 @@ class FoliageTissue(Tissue):
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
-        print("Testing")
-        print(self.reclaim_ratio)
-        print(self.Cx_ratio)
         return (
             allocation.foliage_turnover
             * ((1 / self.reclaim_ratio) - (1 / self.Cx_ratio))

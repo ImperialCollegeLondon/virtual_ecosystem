@@ -4,20 +4,28 @@ import numpy as np
 import pytest
 
 
-def test_FoliageTissue__init__(fxt_plants_model):
+def test_FoliageTissue__init__(fxt_plants_model, extra_pft_traits):
     """Test the foliage stochiometry."""
     from virtual_ecosystem.models.plants.stochiometry import FoliageTissue
 
-    plant_consts = fxt_plants_model.model_constants
     for cell_id in fxt_plants_model.communities.keys():
         community = fxt_plants_model.communities[cell_id]
-
+        ideal_ratio = np.array(
+            [
+                extra_pft_traits.traits[name]["foliage_c_n_ratio"]
+                for name in community.cohorts.pft_names
+            ]
+        )
         tissue_model = FoliageTissue(
             community=community,
-            ideal_ratio=np.full(community.n_cohorts, plant_consts.foliage_c_n_ratio),
-            actual_element_mass=community.stem_allometry.foliage_mass
-            * plant_consts.foliage_c_n_ratio,
-            reclaim_ratio=plant_consts.leaf_turnover_c_n_ratio,
+            ideal_ratio=ideal_ratio,
+            actual_element_mass=community.stem_allometry.foliage_mass * ideal_ratio,
+            reclaim_ratio=np.array(
+                [
+                    extra_pft_traits.traits[name]["leaf_turnover_c_n_ratio"]
+                    for name in community.cohorts.pft_names
+                ]
+            ),
         )
 
         assert isinstance(tissue_model, FoliageTissue)
@@ -79,24 +87,34 @@ def test_Tissue_class_functions(
     element_needed_for_growth,
     element_turnover,
     Cx_ratio,
+    extra_pft_traits,
 ):
     """Test the carbon mass calculation in FoliageTissue."""
     from pyrealm.demography.tmodel import StemAllocation
 
     from virtual_ecosystem.models.plants.stochiometry import FoliageTissue
 
-    plant_consts = fxt_plants_model.model_constants
     fxt_plants_model.per_stem_gpp = {
         cell_id: np.array([55]) for cell_id in fxt_plants_model.communities.keys()
     }
     cell_id = 0
     community = fxt_plants_model.communities[cell_id]
+    ideal_ratio = np.array(
+        [
+            extra_pft_traits.traits[name]["foliage_c_n_ratio"]
+            for name in community.cohorts.pft_names
+        ]
+    )
     tissue_model = FoliageTissue(
         community=community,
-        ideal_ratio=np.full(community.n_cohorts, plant_consts.foliage_c_n_ratio),
-        actual_element_mass=community.stem_allometry.foliage_mass
-        * plant_consts.foliage_c_n_ratio,
-        reclaim_ratio=plant_consts.leaf_turnover_c_n_ratio,
+        ideal_ratio=ideal_ratio,
+        actual_element_mass=community.stem_allometry.foliage_mass * ideal_ratio,
+        reclaim_ratio=np.array(
+            [
+                extra_pft_traits.traits[name]["leaf_turnover_c_n_ratio"]
+                for name in community.cohorts.pft_names
+            ]
+        ),
     )
 
     stem_allocation = StemAllocation(
@@ -136,61 +154,17 @@ def test_Tissue_class_functions(
 def fxt_stochiometry_model(fxt_plants_model):
     """Fixture for the Stochiometry class."""
 
-    from virtual_ecosystem.models.plants.stochiometry import (
-        FoliageTissue,
-        ReproductiveTissue,
-        RootTissue,
-        StemStochiometry,
-        WoodTissue,
-    )
+    from virtual_ecosystem.models.plants.stochiometry import StemStochiometry
 
-    plant_consts = fxt_plants_model.model_constants
     cell_id = 0  # Assuming we are testing for the first cell
     community = fxt_plants_model.communities[cell_id]
 
-    n_stochiometry = StemStochiometry(
+    community = fxt_plants_model.communities[cell_id]
+
+    n_stochiometry = StemStochiometry.default_init(
+        community,
+        extra_pft_traits=fxt_plants_model.extra_pft_traits,
         element="N",
-        tissues=[
-            FoliageTissue(
-                community=community,
-                ideal_ratio=np.full(
-                    community.n_cohorts,
-                    plant_consts.foliage_c_n_ratio,
-                ),
-                actual_element_mass=community.stem_allometry.foliage_mass
-                * plant_consts.foliage_c_n_ratio,
-                reclaim_ratio=plant_consts.leaf_turnover_c_n_ratio,
-            ),
-            RootTissue(
-                community=community,
-                ideal_ratio=np.full(
-                    community.n_cohorts,
-                    plant_consts.root_turnover_c_n_ratio,
-                ),
-                actual_element_mass=plant_consts.root_turnover_c_n_ratio
-                * community.stem_traits.zeta
-                * community.stem_allometry.foliage_mass,
-            ),
-            WoodTissue(
-                community=community,
-                ideal_ratio=np.full(
-                    community.n_cohorts,
-                    plant_consts.deadwood_c_n_ratio,
-                ),
-                actual_element_mass=plant_consts.deadwood_c_n_ratio
-                * community.stem_allometry.stem_mass,
-            ),
-            ReproductiveTissue(
-                community=community,
-                ideal_ratio=np.full(
-                    community.n_cohorts,
-                    plant_consts.plant_reproductive_tissue_turnover_c_n_ratio,
-                ),
-                actual_element_mass=community.stem_allometry.reproductive_tissue_mass
-                * plant_consts.plant_reproductive_tissue_turnover_c_n_ratio,
-            ),
-        ],
-        community=community,
     )
     return n_stochiometry
 
@@ -209,7 +183,7 @@ def test_Stochiometry_total_element_mass(fxt_stochiometry_model):
     # Calculate the total element mass
     total_mass = fxt_stochiometry_model.total_element_mass
 
-    assert np.allclose(total_mass, [1.31887368e05, 4.35408760e02, 5.93227761e-01])
+    assert np.allclose(total_mass, [1.42690028e05, 5.00222397e02, 1.01898381e00])
 
 
 def test_Stochiometry_tissue_deficit(fxt_stochiometry_model):
@@ -218,7 +192,7 @@ def test_Stochiometry_tissue_deficit(fxt_stochiometry_model):
     # Calculate the tissue deficit
     tissue_deficit = fxt_stochiometry_model.tissue_deficit
 
-    expected_deficit = np.array([1.01616593e03, 3.30162938e01, 3.88354401e-01])
+    expected_deficit = np.array([0, 0, 0])
     assert np.allclose(tissue_deficit, expected_deficit)
 
 
