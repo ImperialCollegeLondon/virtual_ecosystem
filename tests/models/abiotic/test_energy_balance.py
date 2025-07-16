@@ -332,6 +332,27 @@ def test_update_air_temperature():
     )
 
 
+def test_calculate_mixing_coefficients():
+    """Test mixing coefficients."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_mixing_coefficients_canopy,
+    )
+
+    layer_midpoints = np.array([[0.1, 0.5, 0.9], [0.2, 0.6, 0.8]])
+    canopy_height = np.repeat(1.0, 3)
+    friction_velocity = np.repeat(0.3, 3)
+    k = 0.4
+
+    expected = np.array([[0.00972, 0.015, 0.00108], [0.01536, 0.01152, 0.00384]])
+    result = calculate_mixing_coefficients_canopy(
+        layer_midpoints, canopy_height, friction_velocity, k
+    )
+
+    assert result.shape == layer_midpoints.shape
+    assert np.all(result >= 0)
+    np.testing.assert_allclose(result, expected, rtol=1e-6)
+
+
 def test_update_humidity_vpd():
     """Test update atmospheric humidity."""
 

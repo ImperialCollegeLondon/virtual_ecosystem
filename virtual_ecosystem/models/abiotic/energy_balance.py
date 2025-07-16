@@ -607,6 +607,55 @@ def update_air_temperature(
     return new_air_temperature
 
 
+def calculate_mixing_coefficients_canopy(
+    layer_midpoints: NDArray[np.floating],
+    canopy_height: NDArray[np.floating],
+    friction_velocity: NDArray[np.floating],
+    von_karman_constant: float,
+) -> NDArray[np.floating]:
+    r"""Calculate turbulent mixing coefficients within canopy.
+
+    This function calculates turbulent mixing coefficients for heat (:math:`k_H`) and
+    momentum (:math:`k_M`) that are used to mix water and energy in the canopy. Inside
+    the canopy, turbulence is strongly damped by vegetation drag, and a simple linear
+    profile like used for the top of the canopy like
+    :math:`k_{H,M} = \kappa u^{*}(z-d)` :cite:p:`raupach_coherent_1996`
+    does not match observed eddy diffusivity well. Instead, empirical profiles based on
+    measurements are used, and these often take parabolic or other non-linear forms like
+    :
+
+    .. math::
+
+        k_{H,M}(z)=\kappa u^{*}z(1-zh)^{2}
+
+    where :math:`kappa` is the von Karman constant (dimensionless), :math:`u^{*}` is the
+    friction velocity (m s-1), :math:`z` is the height (m) for which coefficients are
+    calculated, and :math:`h` is the canopy height (m).
+
+    This particular form goes to zero at both z=0 and z=h and peaks somewhere within the
+    canopy.
+
+    Args:
+        layer_midpoints: The midpoints of all air layers, [m]
+        canopy_height: Canopy height, [m]
+        friction_velocity: Friction velocity, [m s-1]
+        von_karman_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        turbulent mixing coefficients, [m2 s-1]
+    """
+    heights = np.clip(layer_midpoints, 1e-3, canopy_height - 1e-3)  # avoid zero/edge
+    mixing_coefficients = (
+        von_karman_constant
+        * friction_velocity
+        * heights
+        * (1 - heights / canopy_height) ** 2
+    )
+    return mixing_coefficients
+
+
 def update_humidity_vpd(
     evapotranspiration: NDArray[np.floating],
     soil_evaporation: NDArray[np.floating],
