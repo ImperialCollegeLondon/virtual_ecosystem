@@ -607,6 +607,27 @@ def update_air_temperature(
     return new_air_temperature
 
 
+def calculate_ventilation_rate(
+    aerodynamic_resistance: float | NDArray[np.floating],
+    characteristic_height: float | NDArray[np.floating],
+) -> float | NDArray[np.floating]:
+    """Calculate ventilation rate from the top of the canopy to atmosphere above.
+
+    This function calculates the rate of water and heat exchange between the top of the
+    canopy and the atmosphere above.
+
+    Args:
+        aerodynamic_resistance: Aerodynamic resistance, [s m-1]
+        characteristic_height: Vertical scale of exchange,(e.g. canopy height or 1 m
+            default), [m]
+
+    Returns:
+        Ventilation rate [s-1]
+    """
+    denominator = np.clip(aerodynamic_resistance * characteristic_height, 1e-6, None)
+    return 1.0 / denominator
+
+
 def calculate_mixing_coefficients_canopy(
     layer_midpoints: NDArray[np.floating],
     canopy_height: NDArray[np.floating],

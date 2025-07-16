@@ -332,6 +332,48 @@ def test_update_air_temperature():
     )
 
 
+def test_calculate_ventilation_rate_scalar():
+    """Test calculate ventilation rate scalar."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_ventilation_rate,
+    )
+
+    ra = 50.0  # s/m
+    h = 20.0  # m
+    expected = 1.0 / 1000.0
+    result = calculate_ventilation_rate(ra, h)
+    assert np.isclose(result, expected)
+
+
+def test_calculate_ventilation_rate_array():
+    """Test calculate ventilation rate array."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_ventilation_rate,
+    )
+
+    ra = np.array([10.0, 50.0, 0.0])  # s/m, includes a zero
+    h = np.array([2.0, 20.0, 1.0])  # m
+    expected = np.array([5.0e-02, 1.0e-03, 1.0e06])
+    result = calculate_ventilation_rate(ra, h)
+    np.testing.assert_allclose(result, expected)
+
+
+def test_calculate_ventilation_rate_zero_denominator():
+    """Test calculate ventilation rate scalar."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_ventilation_rate,
+    )
+
+    ra = 0.0
+    h = 0.0
+    result = calculate_ventilation_rate(ra, h)
+    expected = 1.0 / 1e-6
+    assert np.isclose(result, expected)
+
+
 def test_calculate_mixing_coefficients():
     """Test mixing coefficients."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
