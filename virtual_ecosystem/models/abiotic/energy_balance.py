@@ -684,55 +684,85 @@ def update_humidity_vpd(
     specific_humidity: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],
     atmospheric_pressure: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    mixing_coefficient: NDArray[np.floating],
+    ventilation_rate: float | NDArray[np.floating],
+    specific_humidity_above_canopy: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
+    time_interval: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
-
-    TODO at the moment we get 100% relative humididty and VPD=0, likely because the
-    timestep is not taken into account and there is no mixing and removal of water.
-    This should be added in a separate function in a following step.
 
     Args:
         evapotranspiration: Evapotranspiration, [mm]
         soil_evaporation: Soil evaporation to surface layer, [mm]
         saturated_vapour_pressure: Saturated vapour pressure, [kPa]
-        specific_humidity: specific humidity, [kg kg-1]
+        specific_humidity: Specific humidity, [kg kg-1]
         layer_thickness: Layer thickness, [m]
         atmospheric_pressure: Atmospheric pressure, [kPa]
+        density_air: Density of air, [kg m-3]
+        mixing_coefficient: Turbulent mixing coefficient, [m2 s-1]
+        ventilation_rate: Ventilation rate, [s-1]
+        specific_humidity_above_canopy: Specific humidity above the canopy, [kg kg-1]
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         cell_area: Grid cell area, [m2]
+        time_interval: Time interval, [s]
 
     Returns:
-      A dictionary containing arrays of updated ``specific_humidity``,
-      ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
+      A dictionary containing arrays of updated ``relative_humidoty``,
+      ``specific_humidity``, ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
     """
 
-    # Convert evapotranspiration and soil evaporation from [mm] to [kg/m^3]
-    cell_area_in_ha = cell_area / 10000  # convert m2 to hectares
-    additional_water = np.zeros_like(layer_thickness)
-    additional_water[1 : len(evapotranspiration) + 1] = (
-        evapotranspiration * 1000 / cell_area_in_ha
-    )  # [kg m^-3]
-    additional_water[-1] = soil_evaporation * 1000 / cell_area_in_ha  # [kg m^-3]
+    # Convert evapotranspiration [mm] to [kg m2 s-1] over time interval
+    evap_kg_m2 = evapotranspiration * 1e-3 / time_interval
+    soil_evap_kg_m2 = soil_evaporation * 1e-3 / time_interval
 
-    # Volume of air for each layer [m^3]
+    # Layer volume [m3]
     layer_volumes = layer_thickness * cell_area
+    air_mass_per_layer = layer_volumes * density_air
 
-    # Water mass in air before update [kg m^-3]
-    water_mass_in_air = specific_humidity * layer_volumes
+    # Add ET and soil evaporation as mass flux [kg]
+    added_mass = np.zeros_like(layer_thickness)
+    added_mass[1 : len(evap_kg_m2) + 1] += evap_kg_m2 * cell_area * time_interval
+    added_mass[-1] += soil_evap_kg_m2 * cell_area * time_interval
 
-    # Update water mass in air by adding evapotranspiration and soil evaporation
-    new_water_mass_in_air = water_mass_in_air + additional_water * layer_volumes
+    # Update water mass in air
+    water_mass_in_air = specific_humidity * air_mass_per_layer
+    water_mass_in_air += added_mass
 
-    # Update specific humidity [kg/kg]
-    specific_humidity_updated = new_water_mass_in_air / layer_volumes
+    # Vertical mixing TODO separate function to be used for temeprature, too
+    specific_humidity = water_mass_in_air / air_mass_per_layer
+    specific_humidity_mixed = specific_humidity.copy()
+    for i in range(1, len(specific_humidity) - 1):
+        flux_up = (
+            mixing_coefficient[i - 1]
+            * (specific_humidity[i - 1] - specific_humidity[i])
+            / layer_thickness[i]
+        )
+        flux_down = (
+            mixing_coefficient[i + 1]
+            * (specific_humidity[i + 1] - specific_humidity[i])
+            / layer_thickness[i]
+        )
+        change_specific_humidity = (
+            (flux_up + flux_down) * time_interval / layer_thickness[i]
+        )
+        specific_humidity_mixed[i] += change_specific_humidity
 
-    # Compute new vapor pressure [kPa]
-    # Vapor pressure is limited by the saturated vapor pressure
+    # Ventilation at top
+    specific_humidity_mixed[0] += (
+        ventilation_rate
+        * (specific_humidity_above_canopy - specific_humidity[0])
+        * time_interval
+    )
+
+    specific_humidity_updated = specific_humidity_mixed
+
+    # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
         molecular_weight_ratio_water_to_dry_air * dry_air_factor
         + specific_humidity_updated
@@ -757,4 +787,5 @@ def update_humidity_vpd(
         "relative_humidity": relative_humidity_updated,
         "vapour_pressure": vapour_pressure_updated,
         "vapour_pressure_deficit": vpd_updated,
+        "specific_humidity": specific_humidity_updated,
     }

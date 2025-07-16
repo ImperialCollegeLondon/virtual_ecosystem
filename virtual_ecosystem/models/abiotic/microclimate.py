@@ -68,10 +68,18 @@ def run_microclimate(
         layer_structure.index_filled_atmosphere
     ].to_numpy()
 
-    # Calculate thickness of above ground layers
+    # Calculate thickness of above ground layers and midpoints
     # Add a row of zeros at the bottom to represent ground level (height = 0)
     heights_with_base = np.vstack([wind_heights, np.zeros(wind_heights.shape[1])])
     above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+
+    # Compute cumulative thickness excluding the current layer (layer tops)
+    layer_top = (
+        np.cumsum(above_ground_layer_thickness, axis=1) - above_ground_layer_thickness
+    )
+
+    # Compute midpoints
+    layer_midpoints = layer_top + above_ground_layer_thickness / 2
 
     # -------------------------------------------------------------------------
     # Wind profiles and resistances
@@ -355,6 +363,18 @@ def run_microclimate(
             * actual_vapour_pressure_air
         ) / (atmospheric_pressure - actual_vapour_pressure_air)
 
+        mixing_coefficient = energy_balance.calculate_mixing_coefficients_canopy(
+            layer_midpoints=layer_midpoints,
+            canopy_height=canopy_height,
+            friction_velocity=data["friction_velocity"].to_numpy(),
+            von_karman_constant=core_constants.von_karmans_constant,
+        )
+
+        ventilation_rate = energy_balance.calculate_ventilation_rate(
+            aerodynamic_resistance=aerodynamic_resistance_canopy[0],
+            characteristic_height=canopy_height,
+        )
+
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
             evapotranspiration=evapotranspiration[
                 layer_structure.index_filled_canopy
@@ -364,12 +384,18 @@ def run_microclimate(
             specific_humidity=specific_humidity_air.to_numpy(),
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,
+            density_air=density_air,
+            mixing_coefficient=mixing_coefficient,
+            ventilation_rate=ventilation_rate,
+            specific_humidity_above_canopy=specific_humidity_air[0].to_numpy(),
             molecular_weight_ratio_water_to_dry_air=(
                 core_constants.molecular_weight_ratio_water_to_dry_air
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
+            time_interval=time_interval,
         )
+
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
 
     # End of loop, write out fluxes and variables
