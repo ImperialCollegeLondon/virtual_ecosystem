@@ -327,7 +327,7 @@ def test_calculate_enzyme_mediated_rates(
             assert np.allclose(getattr(actual_rates, attr), expected_rates[attr])
 
 
-def test_ccalculate_nutrient_removal_by_water(
+def test_calculate_nutrient_removal_by_water(
     dummy_carbon_data, fixture_core_components
 ):
     """Check that the calculation of dissolved nutrient removal rates is correct."""
@@ -349,12 +349,11 @@ def test_ccalculate_nutrient_removal_by_water(
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
+        vertical_flow_rates=dummy_carbon_data["vertical_flow"].to_numpy(),
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
         constants=SoilConsts,
     )
 
@@ -387,12 +386,11 @@ def test_negative_nutrient_removal_by_water(dummy_carbon_data, fixture_core_comp
         soil_n_pool_ammonium=ammonium_data,
         soil_n_pool_nitrate=nitrate_data,
         soil_p_pool_labile=labile_p_data,
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
+        vertical_flow_rates=dummy_carbon_data["vertical_flow"],
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
         constants=SoilConsts,
     )
 

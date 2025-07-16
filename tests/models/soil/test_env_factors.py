@@ -452,3 +452,38 @@ def test_find_total_soil_moisture_for_microbially_active_depth(
     )
 
     assert np.allclose(actual_soil_moisture, expected_soil_moisture)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_vertical_flow",
+    [
+        pytest.param(
+            True,
+            [0.12, 0.6, 2.6, 1.486],
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            [0.1, 0.5, 2.5, 1.59],
+            id="normal depth",
+        ),
+    ],
+)
+def test_find_water_outflow_rates(
+    dummy_carbon_data, fixture_core_components, increased_depth, expected_vertical_flow
+):
+    """Test function that finds the rates of water flow out of the soil column."""
+    from virtual_ecosystem.models.soil.env_factors import find_water_outflow_rates
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.20]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.70
+
+    actual_vertical_flow = find_water_outflow_rates(
+        vertical_flow=dummy_carbon_data["vertical_flow"].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
+    )
+
+    assert np.allclose(expected_vertical_flow, actual_vertical_flow)

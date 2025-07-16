@@ -32,6 +32,7 @@ from virtual_ecosystem.models.soil.env_factors import (
     calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
     find_total_soil_moisture_for_microbially_active_depth,
+    find_water_outflow_rates,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     CarbonSupply,
@@ -508,10 +509,9 @@ class SoilPools:
             soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
-            vertical_flow_rate=self.data["vertical_flow"][
-                layer_structure.index_topsoil_scalar
-            ].to_numpy(),
+            vertical_flow_rates=self.data["vertical_flow"].to_numpy(),
             soil_moisture=soil_moisture,
+            layer_structure=layer_structure,
             constants=self.constants,
         )
 
@@ -1075,8 +1075,9 @@ def calculate_nutrient_removal_by_water(
     soil_n_pool_ammonium: NDArray[np.floating],
     soil_n_pool_nitrate: NDArray[np.floating],
     soil_p_pool_labile: NDArray[np.floating],
-    vertical_flow_rate: NDArray[np.floating],
+    vertical_flow_rates: NDArray[np.floating],
     soil_moisture: NDArray[np.floating],
+    layer_structure: LayerStructure,
     constants: SoilConsts,
 ) -> WaterRemovalRates:
     """Calculate the rate a which each soluble nutrient pool is removed by water.
@@ -1094,8 +1095,11 @@ def calculate_nutrient_removal_by_water(
         soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
         soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        vertical_flow_rate: Rate of flow downwards through the soil [mm day^-1]
+        vertical_flow_rates: Rates of flow downwards between the different soil layers
+            [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
+        layer_structure: The details of the layer structure used across the Virtual
+                Ecosystem.
         constants: Set of constants for the soil model.
 
     Returns:
@@ -1103,30 +1107,32 @@ def calculate_nutrient_removal_by_water(
         flows of water through the soil.
     """
 
-    # TODO - THE CALCULATION OF TOTAL WATER LOSS SHOULD (PROBABLY) HAPPEN HERE
+    total_exit_rate = find_water_outflow_rates(
+        vertical_flow=vertical_flow_rates, layer_structure=layer_structure
+    )
 
     # Find rates at which water removes soluble nutrients
     labile_carbon_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_c_pool_lmwc,
-        exit_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_lmwc,
     )
     ammonium_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_n_pool_ammonium,
-        exit_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_ammonium,
     )
     nitrate_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_n_pool_nitrate,
-        exit_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_nitrate,
     )
     labile_phosphorus_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_p_pool_labile,
-        exit_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_labile_p,
     )

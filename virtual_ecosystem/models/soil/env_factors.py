@@ -472,3 +472,73 @@ def find_total_soil_moisture_for_microbially_active_depth(
     )
 
     return np.dot(layer_weights, soil_moistures[layer_structure.index_all_soil])
+
+
+def find_water_outflow_rates(
+    vertical_flow: NDArray[np.floating], layer_structure: LayerStructure
+) -> NDArray[np.floating]:
+    """Find the rate at which water leaves the microbially active soil region.
+
+    This functions calculates the rate at which soil water in the microbially active
+    region is refreshed with "new" water from rainfall. The reason to specifically care
+    about "new" water is that it does not carry any significant amount of nutrients with
+    it (in contrast to water moving from a different part of the soil), meaning that the
+    soil nutrients will dissolve from the soil without impediment (which is the
+    assumption underlying the
+    :func:`~virtual_ecosystem.models.soil.env_factors.calculate_solute_removal_by_soil_water`
+    function). The rate of "new" water refreshing the microbially active column will be
+    equivalent to the rate at which water escapes from this region. For the upper soil
+    layers, all water flows are vertical rather than horizontal, so this function only
+    considers vertical flows. If the implementation of the hydrology model changes so
+    that the upper layers also have horizontal water movements this function will need
+    to change to ensure that nutrient flows properly track the water flows.
+
+    For the vertical movement, water only leaves this region if it passes into a soil
+    layer that is either only partially microbially active or completely inactive.
+    Therefore, we only need to consider the bottom two microbially active layers as
+    these are the layers only which can have flows into partially active or inactive
+    layers. How much of a given flow is considered to have exited the microbially active
+    region depends on how much of each layer is assumed to be microbially active. If
+    water is flowing from a layer that is only partially active, the exit rate will be
+    proportional to the fraction of this layer that is considered to be microbially
+    active. Conversely, if water is flowing to a layer that is partially microbially
+    active the exit rate will be proportional to the inverse of the fraction of the
+    layer that is considered to be microbially active.
+
+    Args:
+        vertical_flow: The flow rate between each soil layer [mm day^-1]
+        layer_structure: The LayerStructure instance for the simulation. From this we
+           use the thickness of each layer, as well as `soil_layer_active_thickness`
+           which is how much of each layer lies within the microbially active zone
+
+    Returns:
+        The rate at which water leaves the microbially active region of the soil [mm
+        day^-1]
+    """
+
+    # Find the fraction of each layer that lies within the microbially active zone
+    layer_weights = (
+        layer_structure.soil_layer_active_thickness
+        / layer_structure.soil_layer_thickness
+    )
+
+    # Water only leaves the microbial zone from the bottom two microbially active
+    # layers. (If only the top layer is active use it and the layer beneath)
+    non_zero_indices = np.flatnonzero(layer_weights)
+    if len(non_zero_indices) == 1:
+        lowest_active_layers = np.array([non_zero_indices[0], non_zero_indices[0] + 1])
+    else:
+        lowest_active_layers = np.array([non_zero_indices[-2], non_zero_indices[-1]])
+
+    lowest_layer_weight = layer_weights[lowest_active_layers[1]]
+
+    # Need to switch from soil layers (which the weights are counted in) to the total
+    # layers in the layer structure (which vertical flow is measured in)
+    lowest_active_layers += layer_structure.index_topsoil_scalar
+
+    vertical_exit_flow = (
+        lowest_layer_weight * vertical_flow[lowest_active_layers[1]]
+        + (1 - lowest_layer_weight) * vertical_flow[lowest_active_layers[0]]
+    )
+
+    return vertical_exit_flow
