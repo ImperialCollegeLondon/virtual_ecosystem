@@ -217,7 +217,10 @@ def calculate_new_biomass_average_nutrient_ratios(
     fungi also allocate to reproductive fruiting bodies. This method calculates average
     nutrient ratios of this total biomass synthesis using the relative production
     allocation to each enzyme class, cellular growth and (for fungi) reproductive
-    allocation. Carbon nutrients ratios have to be inversed before averaging as they are
+    allocation. Carbon nutrient ratios have units of carbon per nutrient and so cannot
+    be simply averaged across the different biomass allocations, which are all expressed
+    in carbon terms. Instead, they must first be inversed to convert to nutrient per
+    carbon units, and then the average of these inverses can be found.
 
     Args:
         taxonomic_group: Taxonomic group that the microbe belongs to.
