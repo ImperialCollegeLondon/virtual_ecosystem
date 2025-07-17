@@ -1505,7 +1505,6 @@ class AnimalCohort:
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
-        TODO: Review logic of mass_max = adult_mass
         TODO: Review the use of ceil in number_dead, it fails for large animals.
 
         Args:

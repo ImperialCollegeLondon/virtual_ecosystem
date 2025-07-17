@@ -1475,13 +1475,7 @@ class TestAnimalCohort:
         )
 
         if expected_behavior == "formula":
-            delta_t = 30
-            diet_count = predator.diet_category_count
-            tau = predator.constants.tau_f
-            sigma = predator.constants.sigma_f_t
-            effective_time = delta_t * tau * sigma / diet_count
-
-            expected = mass_current * individuals * (1 - exp(-F_value * effective_time))
+            expected = mass_current * individuals * (1 - exp(-F_value * adjusted_dt))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -1670,15 +1664,8 @@ class TestAnimalCohort:
             plant_list, plant, adjusted_dt
         )
 
-        # Expectation logic
         if expected_behavior == "formula":
-            delta_t = 30  # corresponds to unadjusted full timestep
-            tau = herbivore.constants.tau_f
-            sigma = herbivore.constants.sigma_f_t
-            diet_count = herbivore.diet_category_count
-            effective_time = delta_t * tau * sigma / diet_count
-
-            expected = mass_current * (1 - exp(-F_value * effective_time))
+            expected = mass_current * (1 - exp(-F_value * adjusted_dt))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -1892,13 +1879,7 @@ class TestAnimalCohort:
 
         # Determine expected outcome
         if expected_behavior == "formula":
-            delta_t = 30  # total model timestep
-            tau = detritivore.constants.tau_f
-            sigma = detritivore.constants.sigma_f_t
-            diet_count = detritivore.diet_category_count
-            effective_time = delta_t * tau * sigma / diet_count
-
-            expected = mass_current * (1 - exp(-F_value * effective_time))
+            expected = mass_current * (1 - exp(-F_value * adjusted_dt))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -2022,13 +2003,7 @@ class TestAnimalCohort:
         )
 
         if expected_behavior == "formula":
-            delta_t = 30  # full ecosystem timestep
-            tau = predator.constants.tau_f
-            sigma = predator.constants.sigma_f_t
-            diet_count = predator.diet_category_count
-            effective_time = delta_t * tau * sigma / diet_count
-
-            expected = mass_current * (1 - exp(-F_value * effective_time))
+            expected = mass_current * (1 - exp(-F_value * adjusted_dt))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
@@ -2079,13 +2054,7 @@ class TestAnimalCohort:
 
         # Compute expected result
         if expected_behavior == "formula":
-            delta_t = 30
-            tau = consumer.constants.tau_f
-            sigma = consumer.constants.sigma_f_t
-            diet_count = consumer.diet_category_count
-            effective_time = delta_t * tau * sigma / diet_count
-
-            expected = mass_current * (1 - exp(-F_value * effective_time))
+            expected = mass_current * (1 - exp(-F_value * adjusted_dt))
             assert isclose(result, expected, rel_tol=1e-9)
 
         elif expected_behavior == "max":
