@@ -395,6 +395,45 @@ def test_calculate_mixing_coefficients():
     np.testing.assert_allclose(result, expected, rtol=1e-6)
 
 
+def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
+    """Test mixing and ventilation."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        mix_and_ventilate,
+    )
+
+    lystr = fixture_core_components.layer_structure
+    data = dummy_climate_data
+    input_variable = data["air_temperature"][lystr.index_filled_atmosphere].to_numpy()
+
+    layer_thickness = np.array(
+        [
+            [2.0, 2.0, 2.0, 2.0],
+            [10.0, 10.0, 10.0, 10.0],
+            [5.0, 5.0, 5.0, 5.0],
+            [2.0, 2.0, 2.0, 2.0],
+            [0.25, 0.25, 0.25, 0.25],
+        ]
+    )
+    exp_result = np.array(
+        [
+            [35.58018, 41.16036, 46.74054, 52.32072],
+            [29.844995, 29.844995, 29.844995, 29.844995],
+            [28.771675, 28.771675, 28.771675, 28.771675],
+            [23.25028, 23.25028, 23.25028, 23.25028],
+            [21.145945, 21.145945, 21.145945, 21.145945],
+        ]
+    )
+    result = mix_and_ventilate(
+        input_variable=input_variable,
+        layer_thickness=layer_thickness,
+        mixing_coefficient=np.full((5, 4), 0.001),
+        ventilation_rate=np.array([0.01, 0.02, 0.03, 0.04]),
+        time_interval=3600.0,
+    )
+    np.testing.assert_allclose(result, exp_result)
+
+
 def test_update_humidity_vpd():
     """Test update atmospheric humidity."""
 
@@ -403,21 +442,28 @@ def test_update_humidity_vpd():
     )
 
     # Define test inputs
-    evapotranspiration = np.array([[0.1, 0.2, 0.3], [0.1, 0.2, 0.3]])
-    soil_evaporation = np.array([0.05, 0.02, 0.03])
-    saturated_vapour_pressure = np.tile([3.0, 2.5, 2.0], (4, 1))
-    specific_humidity = np.tile([0.010, 0.012, 0.014], (4, 1))
-    layer_thickness = np.tile([2.0, 1.5, 1.0], (4, 1))
-    atmospheric_pressure = np.tile([100.0, 95.0, 90.0], (4, 1))
-    density_air = np.tile([1.2, 1.2, 1.2], (4, 1))
-    mixing_coefficient = np.tile([0.5, 0.5, 0.5], (4, 1))
-    ventilation_rate = np.array([0.01, 0.0, 0.0])
-    specific_humidity_above_canopy = np.array([0.008, 0.0, 0.0])
+    evapotranspiration = np.tile([0.1, 0.2, 0.3, 0.3], (3, 1))
+    soil_evaporation = np.array([0.05, 0.02, 0.03, 0.04])
+    saturated_vapour_pressure = np.tile([3.0, 2.5, 2.0, 2.0], (5, 1))
+    specific_humidity = np.tile([0.010, 0.012, 0.014, 0.015], (5, 1))
+    layer_thickness = np.array(
+        [
+            [2.0, 2.0, 2.0, 2.0],
+            [10.0, 10.0, 10.0, 10.0],
+            [5.0, 5.0, 5.0, 5.0],
+            [2.0, 2.0, 2.0, 2.0],
+            [0.25, 0.25, 0.25, 0.25],
+        ]
+    )
+    atmospheric_pressure = np.tile([100.0, 95.0, 90.0, 90.0], (5, 1))
+    density_air = np.tile([1.2, 1.2, 1.2, 1.2], (5, 1))
+    mixing_coefficient = np.tile([0.001, 0.005, 0.01, 0.001], (5, 1))
+    ventilation_rate = np.array([0.01, 0.0, 0.0, 0.02])
 
     molecular_weight_ratio_water_to_dry_air = 0.622
     dry_air_factor = 1.0 - 0.622
     cell_area = 1.0
-    time_interval = 60.0
+    time_interval = 3600.0
 
     # Run function
     result = update_humidity_vpd(
@@ -430,7 +476,6 @@ def test_update_humidity_vpd():
         density_air=density_air,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        specific_humidity_above_canopy=specific_humidity_above_canopy,
         molecular_weight_ratio_water_to_dry_air=molecular_weight_ratio_water_to_dry_air,
         dry_air_factor=dry_air_factor,
         cell_area=cell_area,
@@ -458,3 +503,4 @@ def test_update_humidity_vpd():
     assert np.all(
         (result["relative_humidity"] >= 0) & (result["relative_humidity"] <= 100)
     )
+    np.testing.assert_allclose(result["relative_humidity"], np.full((5, 4), 100.0))
