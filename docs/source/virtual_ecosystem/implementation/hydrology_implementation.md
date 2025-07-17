@@ -97,11 +97,15 @@ sub-surface flow out of the grid cell, and changes in groundwater storage.
 :width: 600px
 
 The 4-Bucket Model represented within grid cell hydrology processes in the Virtual
-Ecosystem. Red solid arrows indicate downward vertical flow, red dashed arrows show
-vertical upward flow. The blue arrows indicate horizontal flow out of the
+Ecosystem. Red solid arrows indicate upward vertical flow, red dashed arrows show
+vertical downward flow. The blue arrows indicate horizontal flow out of the
 grid cell with solid lines representing water that flows out of each layer in the
 current time step and dashed lines representing water that originates from upstream
 grid cells (previous time step) and flows through the grid cell directly to the stream.
+**NOTE!** Top soil and middle soil are currently treated as one layer in the model.
+Subsurface runoff (Q2) and interflow (Q3) are currently not implemented; the
+river discharge is calculated as the sum of surface runoff (Q1) and the flows out of the
+groundwater buckets (Q4+Q5).
 :::
 
 ### Canopy interception
@@ -291,18 +295,24 @@ of the current layer and adding it to the layer below. The implementation is bas
 on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
 removed from the second soil layer.
 
-### Subsurface flow and groundwater storage
+```{note}
+We do currently NOT include any horizontal flows from the soil layers towards the stream
+(Q2 and Q3 in {numref}`bucket_model`).
+```
 
-Groundwater storage and transport are modelled using two parallel linear reservoirs,
-similar to the approach used in the HBV-96 model
+### Belowground horizontal flow and groundwater storage
+
+Groundwater storage and horizontal transport are modelled using two parallel linear
+reservoirs, similar to the approach used in the HBV-96 model
 {cite}`lindstrom_development_1997` and the LISFLOOD
 {cite}`van_der_knijff_lisflood_2010` (see for full documentation).
 
 The upper zone represents a quick runoff component, which includes fast groundwater
-and subsurface flow through macro-pores in the soil. The lower zone represents the
-slow groundwater component that generates the base flow.
+and (vertical) subsurface flow through macro-pores in the soil. The lower zone
+represents the slow groundwater component that generates the base flow.
 
-The outflow from the upper zone to the channel, $Q_{uz}$, (mm), equals:
+The outflow from the upper zone to the channel, $Q_{uz}$, (mm),
+(Q4 in {numref}`bucket_model`) equals:
 
 $$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
 
@@ -325,8 +335,8 @@ follows:
 $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
 where $GW_{perc}$, [mm day], is the maximum percolation rate from the upper to
-the lower groundwater zone. The outflow from the lower zone to the channel is then
-computed by:
+the lower groundwater zone. The outflow from the lower zone to the channel $Q_{lz}$,
+(mm), (Q5 in {numref}`bucket_model`) is then computed by:
 
 $$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
 
