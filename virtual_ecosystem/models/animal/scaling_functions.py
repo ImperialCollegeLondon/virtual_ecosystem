@@ -8,7 +8,7 @@ To Do:
 """  # noqa: D205, D415
 
 from collections.abc import Sequence
-from math import ceil, exp, log
+from math import exp, log
 
 import numpy as np
 
@@ -17,25 +17,56 @@ from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
-def damuths_law(mass: float, terms: tuple) -> int:
+def damuths_law(mass: float, terms: tuple) -> float:
     """The function set initial population densities .
 
         Currently, this function just employs Damuth's Law (Damuth 1987) for
-        terrestrial herbivorous mammals. Later, it will be expanded to other types. The
-        current form takes the ceiling of the population density to ensure there is a
-        minimum of 1 individual and integer values. This will be corrected once the
-        multi-grid occupation system for large animal is implemented.
+        terrestrial herbivorous mammals. Later, it will be expanded to other types.
+        Damuth assumes body mass in g and final density in indiv/km2.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         terms: The tuple of population density terms used, default to Damuth.
 
     Returns:
-        The population density of that AnimalCohort [individuals/km2].
+        The population density of that AnimalCohort [individuals/m2].
 
     """
 
-    return ceil(terms[1] * mass ** terms[0])
+    individual_density_km2 = terms[1] * (mass * 1000) ** terms[0]
+
+    individual_density_m2 = individual_density_km2 / 1e6
+
+    return individual_density_m2
+
+
+def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
+    """Estimate individual density from adult mass using Madingley biomass scaling.
+
+    This converts biomass density scaling into individual density scaling by dividing
+    biomass density by adult body mass.
+
+        Biomass Density = B * Mass^A
+        Individuals Density = Biomass Density / Mass = B * Mass^(A - 1)
+
+    Args:
+        adult_mass: Adult body mass of the cohort (kg).
+        terms: A tuple (A, B) with exponent and scalar for the biomass scaling law.
+
+    Returns:
+        Estimated individual density (individuals/m²).
+    """
+    exponent, scalar = terms
+
+    mass_g = adult_mass * 1000
+
+    biomass_density_g_km2 = scalar * mass_g**exponent
+
+    individual_density_km2 = biomass_density_g_km2 / mass_g
+
+    individual_density_m2 = individual_density_km2 / 1e6
+
+    return individual_density_m2
 
 
 def metabolic_rate(

@@ -51,11 +51,13 @@ class FunctionalGroup:
         vertical_occupancy: str,
         birth_mass: float,
         adult_mass: float,
+        density_individuals_m2: float | None = None,
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         """The constructor for the FunctionalGroup class.
 
         TODO: Remove unused attributes.
+        TODO: density test
 
         """
 
@@ -90,6 +92,8 @@ class FunctionalGroup:
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
+        self.density_individuals_m2 = density_individuals_m2
+        """Optional empirical density in individuals per m² for initialization."""
         self.constants = constants
         """Animal constants."""
         self.broad_diet: DietType = self.diet.coarse_category()
@@ -101,10 +105,10 @@ class FunctionalGroup:
             self.metabolic_type
         ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][
-            self.broad_diet
-        ]
-        """The coefficient and exponent of damuth's law for population density."""
+        self.population_density_terms = self.constants.get_population_density_terms(
+            self.taxa, self.broad_diet
+        )
+        """The coefficient and exponent terms for the population density scaling."""
         self.conversion_efficiency = self.constants.conversion_efficiency[
             self.broad_diet
         ]
@@ -130,6 +134,7 @@ def import_functional_groups(
     definitions of parameters and scaling relationships based on those traits.
 
     TODO: A structure for user-selection of which traits to employ.
+    TODO: density test
 
     Args:
         fg_csv_file: The location of the csv file holding the functional group
@@ -150,8 +155,10 @@ def import_functional_groups(
             f"Invalid header. Expected at least {expected_header}, but got {fg.columns}"
         )
 
-    functional_group_list = [
-        FunctionalGroup(
+    for row in fg.itertuples():
+        density = getattr(row, "density_individuals_m2", None)
+
+        functional_group = FunctionalGroup(
             row.name,
             row.taxa,
             row.diet,
@@ -166,10 +173,10 @@ def import_functional_groups(
             row.vertical_occupancy,
             row.birth_mass,
             row.adult_mass,
+            density_individuals_m2=density,
             constants=constants,
         )
-        for row in fg.itertuples()
-    ]
+        functional_group_list.append(functional_group)
 
     return functional_group_list
 
