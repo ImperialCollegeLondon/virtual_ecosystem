@@ -496,7 +496,7 @@ def find_water_outflow_rates(
     For the vertical movement, water only leaves this region if it passes into a soil
     layer that is either only partially microbially active or completely inactive.
     Therefore, we only need to consider the bottom two microbially active layers as
-    these are the layers only which can have flows into partially active or inactive
+    these are the only layers which can have flows into partially active or inactive
     layers. How much of a given flow is considered to have exited the microbially active
     region depends on how much of each layer is assumed to be microbially active. If
     water is flowing from a layer that is only partially active, the exit rate will be
