@@ -387,6 +387,7 @@ def run_microclimate(
             density_air=density_air,
             mixing_coefficient=mixing_coefficient,
             ventilation_rate=ventilation_rate,
+            wind_speed=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
             molecular_weight_ratio_water_to_dry_air=(
                 core_constants.molecular_weight_ratio_water_to_dry_air
             ),

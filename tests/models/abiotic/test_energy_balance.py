@@ -434,6 +434,34 @@ def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
     np.testing.assert_allclose(result, exp_result)
 
 
+def test_advect_from_toplayer():
+    """Test advection of moisture from top layer."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        advect_from_toplayer,
+    )
+
+    specific_humidity = np.array([0.010, 0.008, 0.006])
+    layer_thickness = np.array([10.0, 10.0, 10.0])
+    density_air = np.array([1.2, 1.1, 1.0])
+    wind_speed = np.array([1.0, 0.5, 2.0])
+    time_interval = 3600.0
+
+    expected_specific_humidity = np.array([0, 0, 0])
+
+    # Run function
+    result = advect_from_toplayer(
+        specific_humidity=specific_humidity,
+        layer_thickness=layer_thickness,
+        density_air=density_air,
+        wind_speed=wind_speed,
+        characteristic_length=100,
+        time_interval=time_interval,
+    )
+
+    np.testing.assert_allclose(result, expected_specific_humidity)
+
+
 def test_update_humidity_vpd():
     """Test update atmospheric humidity."""
 
@@ -459,10 +487,11 @@ def test_update_humidity_vpd():
     density_air = np.tile([1.2, 1.2, 1.2, 1.2], (5, 1))
     mixing_coefficient = np.tile([0.001, 0.005, 0.01, 0.001], (5, 1))
     ventilation_rate = np.array([0.01, 0.0, 0.0, 0.02])
+    wind_speed = np.array([1, 2, 0.5, 0.1])
 
     molecular_weight_ratio_water_to_dry_air = 0.622
     dry_air_factor = 1.0 - 0.622
-    cell_area = 1.0
+    cell_area = 10000.0
     time_interval = 3600.0
 
     # Run function
@@ -476,6 +505,7 @@ def test_update_humidity_vpd():
         density_air=density_air,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
+        wind_speed=wind_speed,
         molecular_weight_ratio_water_to_dry_air=molecular_weight_ratio_water_to_dry_air,
         dry_air_factor=dry_air_factor,
         cell_area=cell_area,
@@ -493,7 +523,7 @@ def test_update_humidity_vpd():
         assert isinstance(result[key], np.ndarray)
 
     # Expected trends: ET and mixing should raise humidity slightly
-    assert np.all(result["specific_humidity"] > 0.00)
+    assert np.all(result["specific_humidity"] >= 0.00)
 
     # VPD should be reduced where evapotranspiration or mixing adds moisture
     assert np.all(result["vapour_pressure_deficit"] >= 0.0)
@@ -503,4 +533,7 @@ def test_update_humidity_vpd():
     assert np.all(
         (result["relative_humidity"] >= 0) & (result["relative_humidity"] <= 100)
     )
-    np.testing.assert_allclose(result["relative_humidity"], np.full((5, 4), 100.0))
+    np.testing.assert_allclose(result["relative_humidity"][0], np.array([0, 0, 0, 0]))
+    np.testing.assert_allclose(
+        result["relative_humidity"][1], np.array([100.0, 100.0, 100.0, 100.0])
+    )

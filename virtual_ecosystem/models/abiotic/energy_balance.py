@@ -727,6 +727,48 @@ def mix_and_ventilate(
     return input_variable_mixed
 
 
+def advect_from_toplayer(
+    specific_humidity: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    wind_speed: NDArray[np.floating],
+    characteristic_length: float,
+    time_interval: float,
+) -> NDArray[np.floating]:
+    """Remove moisture by advection from above canopy layer.
+
+    Args:
+        specific_humidity: Specific humidity in each layer, [kg kg-1]
+        layer_thickness: Thickness of each layer, [m]
+        density_air: Air density in each layer, [kg m-3]
+        wind_speed: Horizontal wind speed above canopy, [m s-1]
+        characteristic_length: Horizontal length scale of the grid cell, [m]
+        time_interval: Time step, [s]
+
+    Returns:
+        Updated specific humidity array after advection from the top layer.
+    """
+
+    # Copy to avoid in-place mutation
+    specific_humidity_updated = specific_humidity.copy()
+
+    # Air mass in the layer [kg/m²]
+    air_mass = density_air * layer_thickness
+
+    # Water mass in the layer [kg/m²]
+    water_mass = specific_humidity * air_mass
+
+    # Compute loss due to advection
+    advection_rate = wind_speed / characteristic_length
+    advected_fraction = np.clip(advection_rate * time_interval, 0, 1)
+    water_mass -= water_mass * advected_fraction
+
+    # Update specific humidity
+    specific_humidity_updated = water_mass / air_mass
+
+    return specific_humidity_updated
+
+
 def update_humidity_vpd(
     evapotranspiration: NDArray[np.floating],
     soil_evaporation: NDArray[np.floating],
@@ -737,6 +779,7 @@ def update_humidity_vpd(
     density_air: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: float | NDArray[np.floating],
+    wind_speed: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
@@ -757,6 +800,7 @@ def update_humidity_vpd(
         density_air: Density of air, [kg m-3]
         mixing_coefficient: Turbulent mixing coefficient, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
+        wind_speed: Horizontal wind speed above canopy, [m s-1]
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
@@ -785,7 +829,7 @@ def update_humidity_vpd(
     water_mass_in_air = specific_humidity * air_mass_per_layer
     water_mass_in_air += added_mass
 
-    # Vertical mixing TODO separate function to be used for temperature, too
+    # Vertical mixing
     specific_humidity = water_mass_in_air / air_mass_per_layer
     specific_humidity_updated = mix_and_ventilate(
         input_variable=specific_humidity,
@@ -794,6 +838,17 @@ def update_humidity_vpd(
         ventilation_rate=ventilation_rate,
         time_interval=time_interval,
     )
+
+    # Advection
+    specific_humidity_advected = advect_from_toplayer(
+        specific_humidity=specific_humidity_updated[0],
+        layer_thickness=layer_thickness[0],
+        density_air=density_air[0],
+        wind_speed=wind_speed,
+        characteristic_length=np.sqrt(cell_area),
+        time_interval=time_interval,
+    )
+    specific_humidity_updated[0] = specific_humidity_advected
 
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (

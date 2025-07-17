@@ -76,7 +76,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_relhum = lyr_str.from_template()
-    exp_relhum[lyr_str.index_filled_atmosphere] = np.array([100, 100, 100, 100, 100])[
+    exp_relhum[lyr_str.index_filled_atmosphere] = np.array([0, 100, 100, 100, 100])[
         :, None
     ]
     np.testing.assert_allclose(
