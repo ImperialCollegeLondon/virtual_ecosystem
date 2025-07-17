@@ -493,17 +493,19 @@ def find_water_outflow_rates(
     that the upper layers also have horizontal water movements this function will need
     to change to ensure that nutrient flows properly track the water flows.
 
-    For the vertical movement, water only leaves this region if it passes into a soil
-    layer that is either only partially microbially active or completely inactive.
-    Therefore, we only need to consider the bottom two microbially active layers as
-    these are the only layers which can have flows into partially active or inactive
-    layers. How much of a given flow is considered to have exited the microbially active
-    region depends on how much of each layer is assumed to be microbially active. If
-    water is flowing from a layer that is only partially active, the exit rate will be
-    proportional to the fraction of this layer that is considered to be microbially
-    active. Conversely, if water is flowing to a layer that is partially microbially
-    active the exit rate will be proportional to the inverse of the fraction of the
-    layer that is considered to be microbially active.
+    The water column that the soil model is interested in (i.e. the amount of water down
+    to the maximum depth of microbial activity) generally spans a fractional number of
+    soil hydrology layers, meaning that water exits the microbially active region within
+    a specific soil hydrology layer rather than at the boundary of two layers. This
+    complicates things as the vertical flow rates are defined for passing between
+    hydrology layers. We therefore calculate two separate exit rates which we then sum
+    to find the combined rate. Firstly, we calculate the rate at which water flows into
+    the microbially inactive portion of the partially microbially active layer. This is
+    found by multiplying the vertical flow into the layer by the fraction of the layer
+    that is microbially inactive. Secondly, we calculate the rate at which water flows
+    from the microbially active portion of this layer to the microbially inactive layer
+    below. This flow is found by multiplying the vertical flow to the lower layer by the
+    fraction of the upper layer that is microbially active.
 
     Args:
         vertical_flow: The flow rate between each soil layer [mm day^-1]
