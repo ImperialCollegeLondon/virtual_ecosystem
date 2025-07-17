@@ -404,7 +404,7 @@ def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
 
     lystr = fixture_core_components.layer_structure
     data = dummy_climate_data
-    input_variable = data["air_temperature"][lystr.index_filled_atmosphere].to_numpy()
+    input_variable = data["relative_humidity"][lystr.index_filled_atmosphere].to_numpy()
 
     layer_thickness = np.array(
         [
@@ -417,11 +417,11 @@ def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
     )
     exp_result = np.array(
         [
-            [35.58018, 41.16036, 46.74054, 52.32072],
-            [29.844995, 29.844995, 29.844995, 29.844995],
-            [28.771675, 28.771675, 28.771675, 28.771675],
-            [23.25028, 23.25028, 23.25028, 23.25028],
-            [21.145945, 21.145945, 21.145945, 21.145945],
+            [77.700816, 65.401632, 53.102448, 40.803264],
+            [90.341644, 90.341644, 90.341644, 90.341644],
+            [92.70733, 92.70733, 92.70733, 92.70733],
+            [96.313381, 96.313381, 96.313381, 96.313381],
+            [100.0, 100.0, 100.0, 100.0],
         ]
     )
     result = mix_and_ventilate(
@@ -438,7 +438,7 @@ def test_advect_from_toplayer():
     """Test advection of moisture from top layer."""
 
     from virtual_ecosystem.models.abiotic.energy_balance import (
-        advect_from_toplayer,
+        advect_water_from_toplayer,
     )
 
     specific_humidity = np.array([0.010, 0.008, 0.006])
@@ -450,7 +450,7 @@ def test_advect_from_toplayer():
     expected_specific_humidity = np.array([0, 0, 0])
 
     # Run function
-    result = advect_from_toplayer(
+    result = advect_water_from_toplayer(
         specific_humidity=specific_humidity,
         layer_thickness=layer_thickness,
         density_air=density_air,

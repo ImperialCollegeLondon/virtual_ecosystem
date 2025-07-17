@@ -31,9 +31,9 @@ A challenge in solving this equation is the dependency of latent heat and emitte
 radiation on leaf temperature. We use a Newton approximation to update
 leaf temperature and air temperature iteratively.
 
-After updating each layer, temperature and vapor are mixed vertically between layers
-and ventilation is considered at the top of the canopy to remove some of the water and
-heat from the system.
+After updating each layer, temperature and vapor are mixed vertically between layers.
+Ventilation and advection are considered at the top of the canopy to remove some of the
+water and heat from the system.
 
 TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
 subtracted from the energy balance
@@ -619,8 +619,7 @@ def calculate_ventilation_rate(
 
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
-        characteristic_height: Vertical scale of exchange,(e.g. canopy height or 1 m
-            default), [m]
+        characteristic_height: Vertical scale of exchange, [m]
 
     Returns:
         Ventilation rate [s-1]
@@ -699,7 +698,7 @@ def mix_and_ventilate(
         time_interval: Time interval, [s]
 
     Returns:
-        mixed input variable
+        Vertically mixed input variable
     """
 
     input_variable_mixed = input_variable.copy()
@@ -727,7 +726,7 @@ def mix_and_ventilate(
     return input_variable_mixed
 
 
-def advect_from_toplayer(
+def advect_water_from_toplayer(
     specific_humidity: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],
     density_air: NDArray[np.floating],
@@ -735,7 +734,7 @@ def advect_from_toplayer(
     characteristic_length: float,
     time_interval: float,
 ) -> NDArray[np.floating]:
-    """Remove moisture by advection from above canopy layer.
+    """Remove water by advection from above canopy layer.
 
     Args:
         specific_humidity: Specific humidity in each layer, [kg kg-1]
@@ -840,7 +839,7 @@ def update_humidity_vpd(
     )
 
     # Advection
-    specific_humidity_advected = advect_from_toplayer(
+    specific_humidity_advected = advect_water_from_toplayer(
         specific_humidity=specific_humidity_updated[0],
         layer_thickness=layer_thickness[0],
         density_air=density_air[0],
