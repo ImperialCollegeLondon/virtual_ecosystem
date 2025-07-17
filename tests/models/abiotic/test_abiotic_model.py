@@ -379,10 +379,10 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[0] = 30.0
     exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
-        [29.927124, 29.422022, 28.558615]
+        [29.922972, 29.418038, 28.55488]
     )[:, None]
     exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
-        [22.478502, 22.444462, 22.104057, 22.104057]
+        [22.667396, 22.652267, 22.500976, 22.500976]
     )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
