@@ -27,13 +27,13 @@ language_info:
 
 ## Model overview
 
-The soil models stores the size of a large number of soil pools within a [SoilPools
-class](virtual_ecosystem.models.soil.pools.SoilPools). These pools are generally
+The soil model stores the size of a large number of soil pools within a [PoolData
+class](virtual_ecosystem.models.soil.pools.PoolData). These pools are generally
 densities of carbon, nitrogen of phosphorus. The soil model is updated by numerically
 integrating the [calculate_all_pool_updates
 method](virtual_ecosystem.models.soil.pools.SoilPools.calculate_all_pool_updates) of the
-class. This method calculates how much the soil pools should change based on a large
-number of processes:
+[SoilPools](virtual_ecosystem.models.soil.pools.SoilPools) class. This method calculates
+how much the soil pools should change based on a large number of processes:
 
 1. Soil receives inputs from litter decay and the decay of animal necromass (simulated
    within the animal model). These inputs are split into dissolved and particulate forms,
@@ -46,10 +46,10 @@ number of processes:
    handled by the [uptake submodule](virtual_ecosystem.models.soil.uptake). Some of the
    carbon that microbes uptake is respired in order to gain energy, this carbon is then
    lost to the soil.
-1. Mycorrhizal fungi are a special case of this, as they are entirely dependent on their
-   host plant for carbon. They uptake nitrogen and phosphorus (in both organic and
-   inorganic forms), some of which is used for growth and maintenance, with the rest
-   being supplied to their symbiotic plant partners.
+1. Mycorrhizal fungi are a special case of microbial nutrient uptake, as they are
+   entirely dependent on their host plant for carbon. They uptake nitrogen and
+   phosphorus (in both organic and inorganic forms), some of which is used for growth
+   and maintenance, with the rest being supplied to their symbiotic plant partners.
 1. Fungi allocate a certain proportion of their growth to the production of reproductive
    fruiting bodies. These bodies are either consumed by animals or decay back into the
    soil.
