@@ -9,6 +9,7 @@ prevents them being changed by user specified configuration.
 from dataclasses import dataclass
 from typing import ClassVar
 
+import numpy as np
 from scipy import constants
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
@@ -107,3 +108,26 @@ class CoreConsts(ConstantsDataclass):
 
     density_water: float = 1000.0
     """Density of water, [kg m-3]."""
+
+    fungal_fruiting_bodies_c_n_ratio: float = 10.0
+    """Carbon to nitrogen ratio of fungal fruiting bodies, [unitless].
+    
+    This constant is stored in the CoreConsts as it is used by both the animal model
+    (to work out consumption flows) and the soil model (to work out production rates).
+    The current default value is very much a guess.
+    """
+
+    fungal_fruiting_bodies_c_p_ratio: float = 75.0
+    """Carbon to phosphorus ratio of fungal fruiting bodies, [unitless].
+    
+    This constant is stored in the CoreConsts as it is used by both the animal model (to
+    work out consumption flows) and the soil model (to work out production rates). The
+    current default value is very much a guess.
+    """
+
+    fungal_fruiting_bodies_decay_rate: float = np.log(2) / 50.0
+    """Rate constant for the decay of fungal fruiting bodies, [day^-1].
+    
+    This is calculated based on the assumption that fungal fruiting bodies decay with a
+    half-life of 50 days. This estimate should be improved based on empirical data.
+    """
