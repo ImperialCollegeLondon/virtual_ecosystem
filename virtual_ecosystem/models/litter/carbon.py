@@ -28,17 +28,17 @@ from virtual_ecosystem.models.litter.inputs import LitterInputs
 
 
 def calculate_post_consumption_pools(
-    above_metabolic: NDArray[np.float32],
-    above_structural: NDArray[np.float32],
-    woody: NDArray[np.float32],
-    below_metabolic: NDArray[np.float32],
-    below_structural: NDArray[np.float32],
-    consumption_above_metabolic: NDArray[np.float32],
-    consumption_above_structural: NDArray[np.float32],
-    consumption_woody: NDArray[np.float32],
-    consumption_below_metabolic: NDArray[np.float32],
-    consumption_below_structural: NDArray[np.float32],
-) -> dict[str, NDArray[np.float32]]:
+    above_metabolic: NDArray[np.floating],
+    above_structural: NDArray[np.floating],
+    woody: NDArray[np.floating],
+    below_metabolic: NDArray[np.floating],
+    below_structural: NDArray[np.floating],
+    consumption_above_metabolic: NDArray[np.floating],
+    consumption_above_structural: NDArray[np.floating],
+    consumption_woody: NDArray[np.floating],
+    consumption_below_metabolic: NDArray[np.floating],
+    consumption_below_structural: NDArray[np.floating],
+) -> dict[str, NDArray[np.floating]]:
     """Calculates the size of the five litter pools after animal consumption.
 
     At present the Virtual Ecosystem gives animals priority for consumption of litter.
@@ -77,16 +77,16 @@ def calculate_post_consumption_pools(
 
 
 def calculate_decay_rates(
-    post_consumption_pools: dict[str, NDArray[np.float32]],
-    lignin_above_structural: NDArray[np.float32],
-    lignin_woody: NDArray[np.float32],
-    lignin_below_structural: NDArray[np.float32],
+    post_consumption_pools: dict[str, NDArray[np.floating]],
+    lignin_above_structural: NDArray[np.floating],
+    lignin_woody: NDArray[np.floating],
+    lignin_below_structural: NDArray[np.floating],
     air_temperatures: DataArray,
     soil_temperatures: DataArray,
     water_potentials: DataArray,
     layer_structure: LayerStructure,
     constants: LitterConsts,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the decay rate for all five of the litter pools.
 
     Args:
@@ -165,10 +165,10 @@ def calculate_decay_rates(
 
 
 def calculate_total_C_mineralised(
-    decay_rates: dict[str, NDArray[np.float32]],
+    decay_rates: dict[str, NDArray[np.floating]],
     model_constants: LitterConsts,
     core_constants: CoreConsts,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate the total carbon mineralisation rate from all five litter pools.
 
     Args:
@@ -217,11 +217,11 @@ def calculate_total_C_mineralised(
 
 
 def calculate_updated_pools(
-    post_consumption_pools: dict[str, NDArray[np.float32]],
-    decay_rates: dict[str, NDArray[np.float32]],
+    post_consumption_pools: dict[str, NDArray[np.floating]],
+    decay_rates: dict[str, NDArray[np.floating]],
     litter_inputs: LitterInputs,
     update_interval: float,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the updated mass of each litter pool.
 
     This function is not intended to be used continuously, and returns the new value for
@@ -278,10 +278,10 @@ def calculate_updated_pools(
 
 
 def calculate_litter_decay_metabolic_above(
-    temperature_factor: NDArray[np.float32],
-    litter_pool_above_metabolic: NDArray[np.float32],
+    temperature_factor: NDArray[np.floating],
+    litter_pool_above_metabolic: NDArray[np.floating],
     litter_decay_coefficient: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate decay of above ground metabolic litter pool.
 
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -302,12 +302,12 @@ def calculate_litter_decay_metabolic_above(
 
 
 def calculate_litter_decay_structural_above(
-    temperature_factor: NDArray[np.float32],
-    litter_pool_above_structural: NDArray[np.float32],
-    lignin_proportion: NDArray[np.float32],
+    temperature_factor: NDArray[np.floating],
+    litter_pool_above_structural: NDArray[np.floating],
+    lignin_proportion: NDArray[np.floating],
     litter_decay_coefficient: float,
     lignin_inhibition_factor: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate decay of above ground structural litter pool.
 
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -341,12 +341,12 @@ def calculate_litter_decay_structural_above(
 
 
 def calculate_litter_decay_woody(
-    temperature_factor: NDArray[np.float32],
-    litter_pool_woody: NDArray[np.float32],
-    lignin_proportion: NDArray[np.float32],
+    temperature_factor: NDArray[np.floating],
+    litter_pool_woody: NDArray[np.floating],
+    lignin_proportion: NDArray[np.floating],
     litter_decay_coefficient: float,
     lignin_inhibition_factor: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate decay of the woody litter pool.
 
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -379,11 +379,11 @@ def calculate_litter_decay_woody(
 
 
 def calculate_litter_decay_metabolic_below(
-    temperature_factor: NDArray[np.float32],
-    moisture_factor: NDArray[np.float32],
-    litter_pool_below_metabolic: NDArray[np.float32],
+    temperature_factor: NDArray[np.floating],
+    moisture_factor: NDArray[np.floating],
+    litter_pool_below_metabolic: NDArray[np.floating],
     litter_decay_coefficient: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate decay of below ground metabolic litter pool.
 
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -411,13 +411,13 @@ def calculate_litter_decay_metabolic_below(
 
 
 def calculate_litter_decay_structural_below(
-    temperature_factor: NDArray[np.float32],
-    moisture_factor: NDArray[np.float32],
-    litter_pool_below_structural: NDArray[np.float32],
-    lignin_proportion: NDArray[np.float32],
+    temperature_factor: NDArray[np.floating],
+    moisture_factor: NDArray[np.floating],
+    litter_pool_below_structural: NDArray[np.floating],
+    lignin_proportion: NDArray[np.floating],
     litter_decay_coefficient: float,
     lignin_inhibition_factor: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Calculate decay of below ground structural litter pool.
 
     This function is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -454,8 +454,8 @@ def calculate_litter_decay_structural_below(
 
 
 def calculate_carbon_mineralised(
-    litter_decay_rate: NDArray[np.float32], carbon_use_efficiency: float
-) -> NDArray[np.float32]:
+    litter_decay_rate: NDArray[np.floating], carbon_use_efficiency: float
+) -> NDArray[np.floating]:
     """Calculate fraction of litter decay that gets mineralised.
 
     TODO - This function could also be used to track carbon respired, if/when we decide

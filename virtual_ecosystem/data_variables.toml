@@ -1029,6 +1029,27 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Density of fungal fruiting bodies growing from the litter and soil"
+name = "fungal_fruiting_bodies"
+unit = "kg C m^-2"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate of decay of fungal fruiting bodies back into the soil"
+name = "decay_of_fungal_fruiting_bodies"
+unit = "kg C m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Rate at which fungal fruiting bodies are produced by soil fungi"
+name = "production_of_fungal_fruiting_bodies"
+unit = "kg C m^-2 day^-1"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Amount of dead wood produced since last update"
 name = "deadwood_production"
 unit = "kg C m^-2"

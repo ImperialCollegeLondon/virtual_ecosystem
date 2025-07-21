@@ -37,7 +37,7 @@ class LitterChemistry:
 
     def calculate_new_pool_chemistries(
         self,
-        updated_pools: dict[str, NDArray[np.float32]],
+        updated_pools: dict[str, NDArray[np.floating]],
         litter_inputs: LitterInputs,
     ) -> dict[str, DataArray]:
         """Method to calculate the updated chemistry of each litter pool.
@@ -122,9 +122,9 @@ class LitterChemistry:
     def calculate_lignin_updates(
         self,
         litter_inputs: LitterInputs,
-        input_lignin: dict[str, NDArray[np.float32]],
-        updated_pools: dict[str, NDArray[np.float32]],
-    ) -> dict[str, NDArray[np.float32]]:
+        input_lignin: dict[str, NDArray[np.floating]],
+        updated_pools: dict[str, NDArray[np.floating]],
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the changes in lignin proportion for the relevant litter pools.
 
         The relevant pools are the two structural pools, and the dead wood pool. This
@@ -175,9 +175,9 @@ class LitterChemistry:
     def calculate_c_n_ratio_updates(
         self,
         litter_inputs: LitterInputs,
-        input_c_n_ratios: dict[str, NDArray[np.float32]],
-        updated_pools: dict[str, NDArray[np.float32]],
-    ) -> dict[str, NDArray[np.float32]]:
+        input_c_n_ratios: dict[str, NDArray[np.floating]],
+        updated_pools: dict[str, NDArray[np.floating]],
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the changes in carbon nitrogen ratios for all litter pools.
 
         This function calculates the total change over the entire time step, so cannot
@@ -240,9 +240,9 @@ class LitterChemistry:
     def calculate_c_p_ratio_updates(
         self,
         litter_inputs: LitterInputs,
-        input_c_p_ratios: dict[str, NDArray[np.float32]],
-        updated_pools: dict[str, NDArray[np.float32]],
-    ) -> dict[str, NDArray[np.float32]]:
+        input_c_p_ratios: dict[str, NDArray[np.floating]],
+        updated_pools: dict[str, NDArray[np.floating]],
+    ) -> dict[str, NDArray[np.floating]]:
         """Calculate the changes in carbon phosphorus ratios for all litter pools.
 
         This function calculates the total change over the entire time step, so cannot
@@ -304,9 +304,9 @@ class LitterChemistry:
 
     def calculate_N_mineralisation(
         self,
-        decay_rates: dict[str, NDArray[np.float32]],
+        decay_rates: dict[str, NDArray[np.floating]],
         active_microbe_depth: float,
-    ) -> dict[str, NDArray[np.float32]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Method to calculate the amount of nitrogen mineralised by litter decay.
 
         This function finds the nitrogen mineralisation rate of each litter pool, by
@@ -356,9 +356,9 @@ class LitterChemistry:
 
     def calculate_P_mineralisation(
         self,
-        decay_rates: dict[str, NDArray[np.float32]],
+        decay_rates: dict[str, NDArray[np.floating]],
         active_microbe_depth: float,
-    ) -> dict[str, NDArray[np.float32]]:
+    ) -> dict[str, NDArray[np.floating]]:
         """Method to calculate the amount of phosphorus mineralised by litter decay.
 
         This function finds the phosphorus mineralisation rate of each litter pool, by
@@ -409,7 +409,7 @@ class LitterChemistry:
 
 def calculate_litter_input_lignin_concentrations(
     litter_inputs: LitterInputs,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the concentration of lignin for each plant biomass to litter flow.
 
     By definition the metabolic litter pools do not contain lignin, so all input
@@ -461,7 +461,7 @@ def calculate_litter_input_lignin_concentrations(
 def calculate_litter_input_nitrogen_ratios(
     litter_inputs: LitterInputs,
     struct_to_meta_nitrogen_ratio: float,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     """Calculate the carbon to nitrogen ratio for each plant biomass to litter flow.
 
     The ratio for the input to the woody litter pool just matches the ratio of the
@@ -555,7 +555,7 @@ def calculate_litter_input_nitrogen_ratios(
 def calculate_litter_input_phosphorus_ratios(
     litter_inputs: LitterInputs,
     struct_to_meta_phosphorus_ratio: float,
-) -> dict[str, NDArray[np.float32]]:
+) -> dict[str, NDArray[np.floating]]:
     """Calculate carbon to phosphorus ratio for each plant biomass to litter flow.
 
     The ratio for the input to the woody litter pool just matches the ratio of the
@@ -647,8 +647,8 @@ def calculate_litter_input_phosphorus_ratios(
 
 
 def calculate_litter_chemistry_factor(
-    lignin_proportion: NDArray[np.float32], lignin_inhibition_factor: float
-) -> NDArray[np.float32]:
+    lignin_proportion: NDArray[np.floating], lignin_inhibition_factor: float
+) -> NDArray[np.floating]:
     """Calculate the effect that litter chemistry has on litter decomposition rates.
 
     This expression is taken from :cite:t:`kirschbaum_modelling_2002`.
@@ -667,11 +667,11 @@ def calculate_litter_chemistry_factor(
 
 
 def calculate_change_in_chemical_concentration(
-    input_carbon: NDArray[np.float32],
-    updated_pool_carbon: NDArray[np.float32],
-    input_conc: NDArray[np.float32],
-    old_pool_conc: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    input_carbon: NDArray[np.floating],
+    updated_pool_carbon: NDArray[np.floating],
+    input_conc: NDArray[np.floating],
+    old_pool_conc: NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Calculate the change in the chemical concentration of a particular litter pool.
 
     This change is found by calculating the difference between the previous
@@ -701,10 +701,10 @@ def calculate_change_in_chemical_concentration(
 
 
 def calculate_nutrient_split_between_litter_pools(
-    input_c_nut_ratio: NDArray[np.float32],
-    metabolic_split: NDArray[np.float32],
+    input_c_nut_ratio: NDArray[np.floating],
+    metabolic_split: NDArray[np.floating],
     struct_to_meta_nutrient_ratio: float,
-) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
     """Function to calculate the split of input nutrients between litter pools.
 
     Following :cite:t:`kirschbaum_modelling_2002`, we assume that the nutrient content
