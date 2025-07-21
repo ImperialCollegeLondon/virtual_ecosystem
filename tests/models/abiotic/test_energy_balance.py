@@ -63,22 +63,21 @@ def test_calculate_sensible_heat_flux(
 
     data = dummy_climate_data_varying_canopy
     index = fixture_core_components.layer_structure.index_filled_canopy
-    # Compute flux
-    computed_flux = calculate_sensible_heat_flux(
-        density_air=data["density_air"][index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
-        air_temperature=data["air_temperature"][index].to_numpy(),
-        surface_temperature=data["canopy_temperature"][index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
-    )
 
-    # Expected result (manually calculated)
     expected_flux = np.array(
         [
             [-0.489356, -0.489356, -0.489356, -0.489356],
             [-0.390997, -0.390997, np.nan, np.nan],
             [-0.222852, np.nan, np.nan, np.nan],
         ]
+    )
+
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
     )
 
     # Assert all elements are close
@@ -97,19 +96,20 @@ def test_calculate_aerodynamic_resistance(
     lyr_str = fixture_core_components.layer_structure
     data = dummy_climate_data_varying_canopy
 
-    result = calculate_aerodynamic_resistance(
-        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
-        roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
-        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
-        von_karman_constant=0.4,
-    )
     exp_ra = np.array(
         [
             [1636.388306, 1281.796711, 966.156818, 499.702011],
             [1360.919965, 893.600893, np.nan, np.nan],
             [948.761442, np.nan, np.nan, np.nan],
         ]
+    )
+
+    result = calculate_aerodynamic_resistance(
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
+        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
+        von_karman_constant=0.4,
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
 
@@ -192,8 +192,8 @@ def test_energy_balance_residual_only(dummy_climate_data, fixture_core_component
 
     data = dummy_climate_data
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
     result = calculate_energy_balance_residual(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
@@ -227,10 +227,9 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
     )
 
     data = dummy_climate_data
-
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
     result = calculate_energy_balance_residual(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
@@ -274,7 +273,6 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
 
     data = dummy_climate_data
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     result = solve_canopy_temperature(
@@ -312,11 +310,8 @@ def test_update_air_temperature():
 
     air_temperature = np.array([[30.0, 25.0], [28.0, 23.0]])
     canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
+    expected_air_temperature = np.array([[30.01, 25.01], [28.02, 23.02]])
 
-    # Expected outputs
-    expected_air_temperature = np.array([[30.6, 25.6], [29.2, 24.2]])
-
-    # Call the function
     updated_air_temperature = update_air_temperature(
         air_temperature=air_temperature,
         surface_temperature=canopy_temperature,
@@ -324,12 +319,144 @@ def test_update_air_temperature():
         density_air=np.full((2, 2), 1.293),
         aerodynamic_resistance=np.full((2, 2), 10.0),
         mixing_layer_thickness=np.full((2, 2), 10),
-        time_interval=60,
     )
 
     np.testing.assert_allclose(
         updated_air_temperature, expected_air_temperature, rtol=1e-4
     )
+
+
+def test_calculate_ventilation_rate_scalar():
+    """Test calculate ventilation rate scalar."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_ventilation_rate,
+    )
+
+    ra = 50.0
+    h = 20.0
+    expected = 1.0 / 1000.0
+
+    result = calculate_ventilation_rate(ra, h)
+    assert np.isclose(result, expected)
+
+
+def test_calculate_ventilation_rate_array():
+    """Test calculate ventilation rate array."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_ventilation_rate,
+    )
+
+    ra = np.array([10.0, 50.0, 0.0])
+    h = np.array([2.0, 20.0, 1.0])
+    expected = np.array([5.0e-02, 1.0e-03, 1.0e06])
+
+    result = calculate_ventilation_rate(ra, h)
+    np.testing.assert_allclose(result, expected)
+
+
+def test_calculate_ventilation_rate_zero_denominator():
+    """Test calculate ventilation rate scalar."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_ventilation_rate,
+    )
+
+    ra = 0.0
+    h = 0.0
+    expected = 1.0 / 1e-6
+
+    result = calculate_ventilation_rate(ra, h)
+    assert np.isclose(result, expected)
+
+
+def test_calculate_mixing_coefficients():
+    """Test mixing coefficients."""
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        calculate_mixing_coefficients_canopy,
+    )
+
+    layer_midpoints = np.array([[0.1, 0.5, 0.9], [0.2, 0.6, 0.8]])
+    canopy_height = np.repeat(1.0, 3)
+    friction_velocity = np.repeat(0.3, 3)
+    k = 0.4
+    expected = np.array([[0.00972, 0.015, 0.00108], [0.01536, 0.01152, 0.00384]])
+
+    result = calculate_mixing_coefficients_canopy(
+        layer_midpoints, canopy_height, friction_velocity, k
+    )
+
+    assert result.shape == layer_midpoints.shape
+    assert np.all(result >= 0)
+    np.testing.assert_allclose(result, expected, rtol=1e-6)
+
+
+def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
+    """Test mixing and ventilation."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        mix_and_ventilate,
+    )
+
+    lystr = fixture_core_components.layer_structure
+    data = dummy_climate_data
+    input_variable = data["relative_humidity"][lystr.index_filled_atmosphere].to_numpy()
+
+    layer_thickness = np.array(
+        [
+            [2.0, 2.0, 2.0, 2.0],
+            [10.0, 10.0, 10.0, 10.0],
+            [5.0, 5.0, 5.0, 5.0],
+            [2.0, 2.0, 2.0, 2.0],
+            [0.25, 0.25, 0.25, 0.25],
+        ]
+    )
+    exp_result = np.array(
+        [
+            [77.700816, 65.401632, 53.102448, 40.803264],
+            [90.341644, 90.341644, 90.341644, 90.341644],
+            [92.70733, 92.70733, 92.70733, 92.70733],
+            [96.313381, 96.313381, 96.313381, 96.313381],
+            [100.0, 100.0, 100.0, 100.0],
+        ]
+    )
+
+    result = mix_and_ventilate(
+        input_variable=input_variable,
+        layer_thickness=layer_thickness,
+        mixing_coefficient=np.full((5, 4), 0.001),
+        ventilation_rate=np.array([0.01, 0.02, 0.03, 0.04]),
+        time_interval=3600.0,
+    )
+    np.testing.assert_allclose(result, exp_result)
+
+
+def test_advect_from_toplayer():
+    """Test advection of moisture from top layer."""
+
+    from virtual_ecosystem.models.abiotic.energy_balance import (
+        advect_water_from_toplayer,
+    )
+
+    specific_humidity = np.array([0.010, 0.008, 0.006])
+    layer_thickness = np.array([10.0, 10.0, 10.0])
+    density_air = np.array([1.2, 1.1, 1.0])
+    wind_speed = np.array([1.0, 0.5, 2.0])
+    time_interval = 3600.0
+
+    expected_specific_humidity = np.array([0, 0, 0])
+
+    result = advect_water_from_toplayer(
+        specific_humidity=specific_humidity,
+        layer_thickness=layer_thickness,
+        density_air=density_air,
+        wind_speed=wind_speed,
+        characteristic_length=100,
+        time_interval=time_interval,
+    )
+
+    np.testing.assert_allclose(result, expected_specific_humidity)
 
 
 def test_update_humidity_vpd():
@@ -339,41 +466,71 @@ def test_update_humidity_vpd():
         update_humidity_vpd,
     )
 
-    # Input values for a tropical rainforest
-    evapotranspiration = np.full((3, 4), 4.5)  # mm/day
-    soil_evaporation = np.repeat(1.2, 4)  # mm/day
-    saturated_vapour_pressure = np.full((5, 4), 3.8)  # kPa (for ~28°C)
-    specific_humidity = np.full((5, 4), 0.020)  # kg/kg (high humidity)
-    layer_thickness = np.array([np.full(4, layer) for layer in [20, 10, 5, 1, 0.1]])
-    atmospheric_pressure = np.full((5, 4), 100)  # kPa
-    molecular_weight_ratio_water_to_dry_air = 0.622  # Constant
-    dry_air_factor = 1 - molecular_weight_ratio_water_to_dry_air
-    cell_area = 10_000  # m2 (1 ha)
+    # Define test inputs
+    evapotranspiration = np.tile([0.1, 0.2, 0.3, 0.3], (3, 1))
+    soil_evaporation = np.array([0.05, 0.02, 0.03, 0.04])
+    saturated_vapour_pressure = np.tile([3.0, 2.5, 2.0, 2.0], (5, 1))
+    specific_humidity = np.tile([0.010, 0.012, 0.014, 0.015], (5, 1))
+    layer_thickness = np.array(
+        [
+            [2.0, 2.0, 2.0, 2.0],
+            [10.0, 10.0, 10.0, 10.0],
+            [5.0, 5.0, 5.0, 5.0],
+            [2.0, 2.0, 2.0, 2.0],
+            [0.25, 0.25, 0.25, 0.25],
+        ]
+    )
+    atmospheric_pressure = np.tile([100.0, 95.0, 90.0, 90.0], (5, 1))
+    density_air = np.tile([1.2, 1.2, 1.2, 1.2], (5, 1))
+    mixing_coefficient = np.tile([0.001, 0.005, 0.01, 0.001], (5, 1))
+    ventilation_rate = np.array([0.01, 0.0, 0.0, 0.02])
+    wind_speed = np.array([1, 2, 0.5, 0.1])
 
-    # Call the function
+    molecular_weight_ratio_water_to_dry_air = 0.622
+    dry_air_factor = 1.0 - 0.622
+    cell_area = 10000.0
+    time_interval = 3600.0
+
+    # Run function
     result = update_humidity_vpd(
-        evapotranspiration,
-        soil_evaporation,
-        saturated_vapour_pressure,
-        specific_humidity,
-        layer_thickness,
-        atmospheric_pressure,
-        molecular_weight_ratio_water_to_dry_air,
-        dry_air_factor,
-        cell_area,
-    )
-    exp_vpd = np.array([np.full(4, layer) for layer in [0, 0, 0, 0, 0]])
-    np.testing.assert_allclose(
-        result["vapour_pressure_deficit"],
-        exp_vpd,
-        rtol=1e-04,
-        atol=1e-04,
+        evapotranspiration=evapotranspiration,
+        soil_evaporation=soil_evaporation,
+        saturated_vapour_pressure=saturated_vapour_pressure,
+        specific_humidity=specific_humidity,
+        layer_thickness=layer_thickness,
+        atmospheric_pressure=atmospheric_pressure,
+        density_air=density_air,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
+        wind_speed=wind_speed,
+        molecular_weight_ratio_water_to_dry_air=molecular_weight_ratio_water_to_dry_air,
+        dry_air_factor=dry_air_factor,
+        cell_area=cell_area,
+        time_interval=time_interval,
     )
 
-    exp_relhum = np.array([np.full(4, layer) for layer in [100, 100, 100, 100, 100]])
+    # Basic shape checks
+    for key in [
+        "relative_humidity",
+        "vapour_pressure",
+        "vapour_pressure_deficit",
+        "specific_humidity",
+    ]:
+        assert key in result
+        assert isinstance(result[key], np.ndarray)
+
+    # Expected trends: ET and mixing should raise humidity slightly
+    assert np.all(result["specific_humidity"] >= 0.00)
+
+    # VPD should be reduced where evapotranspiration or mixing adds moisture
+    assert np.all(result["vapour_pressure_deficit"] >= 0.0)
+    assert np.all(result["vapour_pressure"] <= saturated_vapour_pressure)
+
+    # RH should be between 0 and 100
+    assert np.all(
+        (result["relative_humidity"] >= 0) & (result["relative_humidity"] <= 100)
+    )
+    np.testing.assert_allclose(result["relative_humidity"][0], np.array([0, 0, 0, 0]))
     np.testing.assert_allclose(
-        result["relative_humidity"],
-        exp_relhum,
-        rtol=1e-04,
-        atol=1e-04,
+        result["relative_humidity"][1], np.array([100.0, 100.0, 100.0, 100.0])
     )

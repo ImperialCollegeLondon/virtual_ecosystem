@@ -25,14 +25,15 @@ pressure of air and :math:`p_{a}` atmospheric pressure. :math:`\rho_a` is the de
 air, :math:`c_{p}` is the specific heat capacity of air
 at constant pressure, :math:`r_a` is the aerodynamic resistance of the surface (leaf or
 soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
-function of the stomatal conductivity, :math:`PP` stantds for primary productivity.
+function of the stomatal conductivity, :math:`PP` stands for primary productivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a Newton approximation to update
 leaf temperature and air temperature iteratively.
 
-TODO the units of fluxes are in W m-2 and we need to make sure that the input energy
-over a time interval is coherent with the calculations of fluxes in that time interval.
+After updating each layer, temperature and vapor are mixed vertically between layers.
+Ventilation and advection are considered at the top of the canopy to remove some of the
+water and heat from the system.
 
 TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
 subtracted from the energy balance
@@ -233,7 +234,7 @@ def update_soil_temperature(
     Top layer update with ground heat flux:
 
     .. math::
-        T_0^{t+\Deltat} = T_0^t + (\Delta t / (\rho c \Delta z)) * G
+        T_0^{t+\Delta t} = T_0^t + (\Delta t / (\rho c \Delta z)) * G
 
     No-heat-flux bottom boundary condition:
 
@@ -560,7 +561,6 @@ def update_air_temperature(
     density_air: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
     mixing_layer_thickness: NDArray[np.float32],
-    time_interval: int,
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
 
@@ -573,7 +573,7 @@ def update_air_temperature(
     and
 
     .. math::
-        T_{A}^{new} = T_{A}^{old} + \frac{H \Delta t}{\rho_a c_p z}
+        T_{A}^{new} = T_{A}^{old} + \frac{H}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
@@ -588,7 +588,6 @@ def update_air_temperature(
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of air or soil, [s m-1]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
-        time_interval: Time interval, [s]
 
     Returns:
         Updated air temperatures, [C]
@@ -600,11 +599,171 @@ def update_air_temperature(
     ) / aerodynamic_resistance
 
     # Update air temperature over a layer of height z (e.g., canopy height)
-    new_air_temperature = air_temperature + (sensible_heat_flux * time_interval) / (
+    new_air_temperature = air_temperature + (sensible_heat_flux) / (
         density_air * specific_heat_air * mixing_layer_thickness
     )
 
     return new_air_temperature
+
+
+def calculate_ventilation_rate(
+    aerodynamic_resistance: float | NDArray[np.floating],
+    characteristic_height: float | NDArray[np.floating],
+) -> float | NDArray[np.floating]:
+    """Calculate ventilation rate from the top of the canopy to atmosphere above.
+
+    This function calculates the rate of water and heat exchange between the top of the
+    canopy and the atmosphere above.
+
+    Args:
+        aerodynamic_resistance: Aerodynamic resistance, [s m-1]
+        characteristic_height: Vertical scale of exchange, [m]
+
+    Returns:
+        Ventilation rate [s-1]
+    """
+
+    denominator = np.clip(aerodynamic_resistance * characteristic_height, 1e-6, None)
+    return 1.0 / denominator
+
+
+def calculate_mixing_coefficients_canopy(
+    layer_midpoints: NDArray[np.floating],
+    canopy_height: NDArray[np.floating],
+    friction_velocity: NDArray[np.floating],
+    von_karman_constant: float,
+) -> NDArray[np.floating]:
+    r"""Calculate turbulent mixing coefficients within canopy.
+
+    This function calculates turbulent mixing coefficients for heat (:math:`k_H`) and
+    momentum (:math:`k_M`) that are used to mix water and energy in the canopy. Inside
+    the canopy, turbulence is strongly damped by vegetation drag, and a simple linear
+    profile like used for the top of the canopy like
+    :math:`k_{H,M} = \kappa u^{*}(z-d)` :cite:p:`raupach_coherent_1996`
+    does not match observed eddy diffusivity well. Instead, empirical profiles based on
+    measurements are used, and these often take parabolic or other non-linear forms like
+    :
+
+    .. math::
+
+        k_{H,M}(z)=\kappa u^{*}z(1-zh)^{2}
+
+    where :math:`\kappa` is the von Karman constant (dimensionless), :math:`u^{*}` is
+    the friction velocity (m s-1), :math:`z` is the height (m) for which coefficients
+    are calculated, and :math:`h` is the canopy height (m).
+
+    This particular form goes to zero at both z=0 and z=h and peaks somewhere within the
+    canopy.
+
+    Args:
+        layer_midpoints: The midpoints of all air layers, [m]
+        canopy_height: Canopy height, [m]
+        friction_velocity: Friction velocity, [m s-1]
+        von_karman_constant: Von Karman's constant, dimensionless constant describing
+            the logarithmic velocity profile of a turbulent fluid near a no-slip
+            boundary.
+
+    Returns:
+        turbulent mixing coefficients, [m2 s-1]
+    """
+    heights = np.clip(layer_midpoints, 1e-3, canopy_height - 1e-3)  # avoid zero/edge
+    mixing_coefficients = (
+        von_karman_constant
+        * friction_velocity
+        * heights
+        * (1 - heights / canopy_height) ** 2
+    )
+    return mixing_coefficients
+
+
+def mix_and_ventilate(
+    input_variable: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    mixing_coefficient: NDArray[np.floating],
+    ventilation_rate: float | NDArray[np.floating],
+    time_interval: float,
+) -> NDArray[np.floating]:
+    """Mix and ventilate vertically.
+
+    This function takes an atmospheric variable such as temperature or specific
+    humidity, mixed vertically between layers and ventilates at the top of the canopy.
+
+    Args:
+        input_variable: Input variable for all true atmospheric layers
+        layer_thickness: Layer thickness, [m]
+        mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
+        ventilation_rate: Ventilation rate, [s-1]
+        time_interval: Time interval, [s]
+
+    Returns:
+        Vertically mixed input variable
+    """
+
+    input_variable_mixed = input_variable.copy()
+    for i in range(2, len(input_variable) - 1):
+        flux_up = (
+            mixing_coefficient[i - 1]
+            * (input_variable[i - 1] - input_variable[i])
+            / layer_thickness[i]
+        )
+        flux_down = (
+            mixing_coefficient[i + 1]
+            * (input_variable[i + 1] - input_variable[i])
+            / layer_thickness[i]
+        )
+        change_input_variable = (
+            (flux_up + flux_down) * time_interval / layer_thickness[i]
+        )
+        input_variable_mixed[i] += change_input_variable
+
+    # Ventilation at top
+    input_variable_mixed[0] += (
+        ventilation_rate * (input_variable[0] - input_variable[1]) * time_interval
+    )
+
+    return input_variable_mixed
+
+
+def advect_water_from_toplayer(
+    specific_humidity: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    wind_speed: NDArray[np.floating],
+    characteristic_length: float,
+    time_interval: float,
+) -> NDArray[np.floating]:
+    """Remove water by advection from above canopy layer.
+
+    Args:
+        specific_humidity: Specific humidity in each layer, [kg kg-1]
+        layer_thickness: Thickness of each layer, [m]
+        density_air: Air density in each layer, [kg m-3]
+        wind_speed: Horizontal wind speed above canopy, [m s-1]
+        characteristic_length: Horizontal length scale of the grid cell, [m]
+        time_interval: Time step, [s]
+
+    Returns:
+        Updated specific humidity array after advection from the top layer.
+    """
+
+    # Copy to avoid in-place mutation
+    specific_humidity_updated = specific_humidity.copy()
+
+    # Air mass in the layer [kg/m²]
+    air_mass = density_air * layer_thickness
+
+    # Water mass in the layer [kg/m²]
+    water_mass = specific_humidity * air_mass
+
+    # Compute loss due to advection
+    advection_rate = wind_speed / characteristic_length
+    advected_fraction = np.clip(advection_rate * time_interval, 0, 1)
+    water_mass -= water_mass * advected_fraction
+
+    # Update specific humidity
+    specific_humidity_updated = water_mass / air_mass
+
+    return specific_humidity_updated
 
 
 def update_humidity_vpd(
@@ -614,55 +773,81 @@ def update_humidity_vpd(
     specific_humidity: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],
     atmospheric_pressure: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    mixing_coefficient: NDArray[np.floating],
+    ventilation_rate: float | NDArray[np.floating],
+    wind_speed: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
+    time_interval: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
 
-    TODO at the moment we get 100% relative humididty and VPD=0, likely because the
-    timestep is not taken into account and there is no mixing and removal of water.
-    This should be added in a separate function in a following step.
+    This function adds the water from soil evaporation and canopy evapotranspiration to
+    each atmospheric layer, mixes between the layers and with the atmosphere above.
 
     Args:
         evapotranspiration: Evapotranspiration, [mm]
         soil_evaporation: Soil evaporation to surface layer, [mm]
         saturated_vapour_pressure: Saturated vapour pressure, [kPa]
-        specific_humidity: specific humidity, [kg kg-1]
+        specific_humidity: Specific humidity, [kg kg-1]
         layer_thickness: Layer thickness, [m]
         atmospheric_pressure: Atmospheric pressure, [kPa]
+        density_air: Density of air, [kg m-3]
+        mixing_coefficient: Turbulent mixing coefficient, [m2 s-1]
+        ventilation_rate: Ventilation rate, [s-1]
+        wind_speed: Horizontal wind speed above canopy, [m s-1]
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         cell_area: Grid cell area, [m2]
+        time_interval: Time interval, [s]
 
     Returns:
-      A dictionary containing arrays of updated ``specific_humidity``,
-      ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
+      A dictionary containing arrays of updated ``relative_humidity``,
+      ``specific_humidity``, ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
     """
 
-    # Convert evapotranspiration and soil evaporation from [mm] to [kg/m^3]
-    cell_area_in_ha = cell_area / 10000  # convert m2 to hectares
-    additional_water = np.zeros_like(layer_thickness)
-    additional_water[1 : len(evapotranspiration) + 1] = (
-        evapotranspiration * 1000 / cell_area_in_ha
-    )  # [kg m^-3]
-    additional_water[-1] = soil_evaporation * 1000 / cell_area_in_ha  # [kg m^-3]
+    # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
+    evap_kg_m2 = evapotranspiration * 1e-3 / time_interval
+    soil_evap_kg_m2 = soil_evaporation * 1e-3 / time_interval
 
-    # Volume of air for each layer [m^3]
+    # Calculate air layer volumes [m3]
     layer_volumes = layer_thickness * cell_area
+    air_mass_per_layer = layer_volumes * density_air
 
-    # Water mass in air before update [kg m^-3]
-    water_mass_in_air = specific_humidity * layer_volumes
+    # Add ET and soil evaporation as mass flux [kg]
+    added_mass = np.zeros_like(layer_thickness)
+    added_mass[1 : len(evap_kg_m2) + 1] += evap_kg_m2 * cell_area * time_interval
+    added_mass[-1] += soil_evap_kg_m2 * cell_area * time_interval
 
-    # Update water mass in air by adding evapotranspiration and soil evaporation
-    new_water_mass_in_air = water_mass_in_air + additional_water * layer_volumes
+    # Update water mass in air
+    water_mass_in_air = specific_humidity * air_mass_per_layer
+    water_mass_in_air += added_mass
 
-    # Update specific humidity [kg/kg]
-    specific_humidity_updated = new_water_mass_in_air / layer_volumes
+    # Vertical mixing
+    specific_humidity = water_mass_in_air / air_mass_per_layer
+    specific_humidity_updated = mix_and_ventilate(
+        input_variable=specific_humidity,
+        layer_thickness=layer_thickness,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
+        time_interval=time_interval,
+    )
 
-    # Compute new vapor pressure [kPa]
-    # Vapor pressure is limited by the saturated vapor pressure
+    # Advection
+    specific_humidity_advected = advect_water_from_toplayer(
+        specific_humidity=specific_humidity_updated[0],
+        layer_thickness=layer_thickness[0],
+        density_air=density_air[0],
+        wind_speed=wind_speed,
+        characteristic_length=np.sqrt(cell_area),
+        time_interval=time_interval,
+    )
+    specific_humidity_updated[0] = specific_humidity_advected
+
+    # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
         molecular_weight_ratio_water_to_dry_air * dry_air_factor
         + specific_humidity_updated
@@ -687,4 +872,5 @@ def update_humidity_vpd(
         "relative_humidity": relative_humidity_updated,
         "vapour_pressure": vapour_pressure_updated,
         "vapour_pressure_deficit": vpd_updated,
+        "specific_humidity": specific_humidity_updated,
     }
