@@ -321,24 +321,25 @@ class PlantsModel(
         self.model_constants = model_constants
 
         # Adjust flora turnover rates to timestep
-        # TODO: Pyrealm provides annual turnover rates. Dividing by the number of
-        #       updates_per_year to get monthly turnover values is naive and will
-        #       overestimate turnover. This should be updated eventually to a more
-        #       sophisticated approach.
-        #
-        #       This is kinda hacky because the Flora instances is a frozen dataclass,
+        # TODO: This is kinda hacky because the Flora instances is a frozen dataclass,
         #       but we only bring the model timing and flora object together at this
         #       point. We would have to pass the model timing in to the flora creation.
         #       Potentially create a Flora.adjust_rate_timing() method, but we'd need to
         #       be sure that the approach is sane first.
+
+        # All of these rates are implemented as the number of years required to
+        # completely turnover foliage/roots etc and are included in equations as the
+        # reciprocal of the values. So rescaling them to shorter timescales requires
+        # that we _increase_ the values proportionally to the reduced time between
+        # updates.
         object.__setattr__(
-            self.flora, "tau_f", self.flora.tau_f / self.model_timing.updates_per_year
+            self.flora, "tau_f", self.flora.tau_f * self.model_timing.updates_per_year
         )
         object.__setattr__(
-            self.flora, "tau_r", self.flora.tau_r / self.model_timing.updates_per_year
+            self.flora, "tau_r", self.flora.tau_r * self.model_timing.updates_per_year
         )
         object.__setattr__(
-            self.flora, "tau_rt", self.flora.tau_rt / self.model_timing.updates_per_year
+            self.flora, "tau_rt", self.flora.tau_rt * self.model_timing.updates_per_year
         )
 
         # Now build the communities with the updated rates
