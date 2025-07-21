@@ -573,7 +573,7 @@ def update_air_temperature(
     and
 
     .. math::
-        T_{A}^{new} = T_{A}^{old} + \frac{H}{\rho_a c_p z * A}
+        T_{A}^{new} = T_{A}^{old} + \frac{H}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
