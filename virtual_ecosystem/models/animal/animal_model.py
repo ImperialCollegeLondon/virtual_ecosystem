@@ -47,6 +47,7 @@ from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
+    FungalFruitPool,
     HerbivoryWaste,
     LitterPool,
     SoilPool,
@@ -71,7 +72,7 @@ class AnimalModel(
     BaseModel,
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=(),
+    vars_required_for_init=("fungal_fruiting_bodies",),
     vars_populated_by_init=("total_animal_respiration", "population_densities"),
     vars_required_for_update=(
         "litter_pool_above_metabolic",
@@ -89,6 +90,7 @@ class AnimalModel(
         "c_p_ratio_woody",
         "c_p_ratio_below_metabolic",
         "c_p_ratio_below_structural",
+        "production_of_fungal_fruiting_bodies",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_carbon",
@@ -113,6 +115,7 @@ class AnimalModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -138,6 +141,8 @@ class AnimalModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "fungal_fruiting_bodies",
+        "decay_of_fungal_fruiting_bodies",
     ),
 ):
     """A class describing the animal model.
@@ -207,6 +212,8 @@ class AnimalModel(
         """The minimum number of individuals to initialize a cohort at init."""
         self.soil_pools: dict[int, dict[str, SoilPool]]
         """The animal consumable soil pools with associated grid cell ids."""
+        self.fungal_fruiting_bodies: dict[int, FungalFruitPool]
+        """The pools of fungal fruiting bodies with associated grid cell ids."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -452,6 +459,7 @@ class AnimalModel(
         self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
         self.litter_pools = self.populate_litter_pools()
         self.soil_pools = self.populate_soil_pools()
+        self.fungal_fruiting_bodies = self.populate_fungal_fruiting_bodies()
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
@@ -522,6 +530,10 @@ class AnimalModel(
         self.litter_pools = self.populate_litter_pools()
         self.soil_pools = self.populate_soil_pools()
 
+        # The fungal fruiting bodies need to be updated based on input from soil fungi
+        # and the rate of decay
+        fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
+
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -539,9 +551,17 @@ class AnimalModel(
         soil_consumption = self.calculate_total_soil_consumption(self.soil_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
 
+        # Now that animal consumption has finished, the data object can be updated to
+        # reflect the new size of the fungal fruiting body pools
+        self.update_fungal_fruiting_bodies_in_data()
+
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(
-            additions_to_soil | soil_consumption | litter_consumption | litter_additions
+            fruiting_bodies_decay
+            | additions_to_soil
+            | soil_consumption
+            | litter_consumption
+            | litter_additions
         )
 
         # Update population densities
@@ -642,6 +662,24 @@ class AnimalModel(
                 )
                 for som_type in soil_organic_matter_types
             }
+            for cell_id in self.data.grid.cell_id
+        }
+
+    def populate_fungal_fruiting_bodies(self) -> dict[int, FungalFruitPool]:
+        """Populate the fungal fruiting body pools for animal consumption.
+
+        Returns:
+            A dictionary with a fungal fruiting body pool for each cell ID.
+        """
+
+        return {
+            cell_id: FungalFruitPool(
+                cell_id=cell_id,
+                data=self.data,
+                cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                c_n_ratio=self.core_constants.fungal_fruiting_bodies_c_n_ratio,
+                c_p_ratio=self.core_constants.fungal_fruiting_bodies_c_p_ratio,
+            )
             for cell_id in self.data.grid.cell_id
         }
 
@@ -871,6 +909,50 @@ class AnimalModel(
             ),
         }
 
+    def update_fungal_fruiting_bodies(self) -> dict[str, DataArray]:
+        """Update fungal fruiting bodies pools due to fungal production and decay.
+
+        This method first updates the fungal fruiting body pools with the new biomass
+        supplied from the soil model. The total decay of the fungal fruiting bodies is
+        then calculated and subtracted from the pools. This ordering means that we are
+        prioritising decay over before animal consumption, which is consistent with the
+        assumptions we made for excrement and carcass decay.
+
+        Returns:
+            The rate at which fungal fruiting bodies decay back into the soil [kg m^-2
+            day^-1].
+        """
+
+        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
+            production = (
+                self.data["production_of_fungal_fruiting_bodies"]
+                .isel(cell_id=cell_id)
+                .item()
+                * self.grid.cell_area
+                * self.update_interval_in_days
+            )
+            fungal_fruiting_bodies_pool.mass_cnp.update(
+                carbon=+production,
+                nitrogen=+production / fungal_fruiting_bodies_pool.c_n_ratio,
+                phosphorus=+production / fungal_fruiting_bodies_pool.c_p_ratio,
+            )
+
+        total_decay = [
+            fungal_fruiting_bodies_pool.apply_decay(
+                decay_constant=self.core_constants.fungal_fruiting_bodies_decay_rate,
+                time_period=self.update_interval_in_days,
+            )
+            for fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.values()
+        ]
+
+        return {
+            "decay_of_fungal_fruiting_bodies": DataArray(
+                array(total_decay)
+                / (self.grid.cell_area * self.update_interval_in_days),
+                dims="cell_id",
+            )
+        }
+
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate how much animal matter should be transferred to the soil."""
 
@@ -929,6 +1011,20 @@ class AnimalModel(
                 array(decomposed_carcasses["phosphorus"])
             ),
         }
+
+    def update_fungal_fruiting_bodies_in_data(self) -> None:
+        """Method to update the fungal fruiting bodies in the data object.
+
+        This update is based on the current state of the animal model FungalFruitPools.
+        This method is run after the additions due to new fungal fruiting body
+        production and removals due to decay and animal consumption have been made.
+        """
+
+        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
+            self.data["fungal_fruiting_bodies"].loc[{"cell_id": cell_id}] = (
+                fungal_fruiting_bodies_pool.mass_cnp["carbon"]
+                / self.data.grid.cell_area
+            )
 
     def to_per_day(self, change: NDArray[float32]) -> DataArray:
         """Method to convert a change caused by the animal model into a per day rate.

@@ -140,6 +140,9 @@
                            "pom",
                            "maom"
                         ]
+                     },
+                     "reproductive_allocation": {
+                        "type": "number"
                      }
                   },
                   "required": [
@@ -159,7 +162,8 @@
                      "reference_temperature",
                      "c_n_ratio",
                      "c_p_ratio",
-                     "enzyme_production"
+                     "enzyme_production",
+                     "reproductive_allocation"
                   ]
                }
             },

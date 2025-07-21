@@ -60,6 +60,11 @@ def animal_data_for_model_instance(fixture_core_components):
         data=leaf_mass, dims=["layers", "cell_id"]
     )
 
+    # Populate the fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = xarray.DataArray(
+        np.full(grid.n_cells, 0.1), dims=["cell_id"]
+    )
+
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
         (1, grid.n_cells), 25.0
@@ -611,6 +616,12 @@ def dummy_animal_data(animal_fixture_core_components):
     data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
     data["soil_c_pool_ectomycorrhiza"] = soil_pools
 
+    # Also need to add a pool to track the amount of fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = litter_pools
+    data["production_of_fungal_fruiting_bodies"] = DataArray(
+        np.zeros(data.grid.n_cells), dims="cell_id"
+    )
+
     return data
 
 
@@ -1012,6 +1023,8 @@ def litter_soil_data_instance(fixture_core_components):
         "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
         "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
         "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
+        "fungal_fruiting_bodies": [0.1, 0.2, 0.3, 0.4],
+        "production_of_fungal_fruiting_bodies": [0.05, 0.04, 0.025, 0.0125],
     }
 
     for var_name, var_values in data_values.items():
