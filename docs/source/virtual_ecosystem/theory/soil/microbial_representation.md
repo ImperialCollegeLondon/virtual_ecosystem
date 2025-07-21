@@ -53,9 +53,10 @@ maximum uptake rate for each resource is found using
 
 $$m_{i,j} = \frac{k_{i,j}*f_{T,r}*f_W*f_{p}*R_j*C_i}{R_j + f_{T,s}*K_{i,j}},$$
 
-where $k_{i,j}$ is the rate constant for uptake of resource $j$ by microbial group $i$
+where $k_{i,j}$ is the rate constant for uptake of resource $j$ by microbial group $i$,
 $C_i$ is the abundance of microbial group $i$, $R_j$ is the availability of resource
-$j$, $f_{T,r}$ is a factor capturing the impact of temperature on the uptake rate,
+$j$, $K_{i,j}$ is the saturation constant for uptake of resource $j$ by microbial group
+$i$, $f_{T,r}$ is a factor capturing the impact of temperature on the uptake rate,
 $f_{T,s}$ is a factor capturing the impact of temperature on the concentration at which
 the uptake saturates, $f_W$ is a factor capturing the impact of soil moisture on the
 uptake rate, and $f_{p}$ is a factor capturing the impact of soil pH on the uptake rate.
@@ -66,14 +67,15 @@ The maximum rate that carbon can be incorporated into biomass is then found by
 multiplying the [carbon use
 efficiency](./environmental_links.md#microbial-growth-efficiency) by the maximum rate of
 {term}`LMWC` uptake. This will only be the growth rate when the microbial group is
-carbon (rather than nitrogen or phosphorus limited). Each microbial group has a
+carbon limited (rather than nitrogen or phosphorus limited). Each microbial group has a
 stoichiometry for new biomass, which is an weighted average of their cellular biomass
 stoichiometric ratios and the stoichiometric ratios of the extracellular enzymes that
 they produce. This is average is weighted by the fraction of new biomass allocation to
 growth vs each type of enzyme production. The limitation that each nutrient places on
 carbon assimilation is then found by multiplying the stoichiometric ratio for each
 nutrient by the sum of the maximum uptake rates for all forms of the nutrient (organic
-and inorganic). The actual growth rate is then found as
+and inorganic). The actual growth rate is then found (following Liebig's law of the
+minimum) as
 
 $$G = min(G_C,G_N,G_P),$$
 
@@ -88,8 +90,8 @@ nutrient demand not met by organic uptake is met by the uptake of inorganic nutr
 In the case of nitrogen, this inorganic uptake is split between ammonium and nitrate
 based on the ratio of their maximum uptake rates. It's important to note that while the
 maximum rate of organic nutrient uptake is determined by the product of maximum rate of
-{term}`LMWC` uptake and the stoichiometry of the LMWC pool the actual uptake rate can be
-higher than the product of the **actual** rate of LMWC uptake and the pool
+{term}`LMWC` uptake and the stoichiometry of the LMWC pool, the actual uptake rate can
+be higher than the product of the **actual** rate of LMWC uptake and the pool
 stoichiometry. This represents LMWC being taken up, nutrients being extracted, and then
 surplus carbon being exuded.
 
