@@ -320,27 +320,28 @@ class PlantsModel(
         self.flora = flora
         self.model_constants = model_constants
 
-        # Adjust flora turnover rates to timestep
+        # Adjust flora rates to timestep
         # TODO: This is kinda hacky because the Flora instances is a frozen dataclass,
         #       but we only bring the model timing and flora object together at this
         #       point. We would have to pass the model timing in to the flora creation.
         #       Potentially create a Flora.adjust_rate_timing() method, but we'd need to
         #       be sure that the approach is sane first.
 
-        # All of these rates are implemented as the number of years required to
-        # completely turnover foliage/roots etc and are included in equations as the
-        # reciprocal of the values. So rescaling them to shorter timescales requires
-        # that we _increase_ the values proportionally to the reduced time between
-        # updates.
-        object.__setattr__(
-            self.flora, "tau_f", self.flora.tau_f * self.model_timing.updates_per_year
-        )
-        object.__setattr__(
-            self.flora, "tau_r", self.flora.tau_r * self.model_timing.updates_per_year
-        )
-        object.__setattr__(
-            self.flora, "tau_rt", self.flora.tau_rt * self.model_timing.updates_per_year
-        )
+        # Respiration rates are expressed as proportions of masses per year so need to
+        # be reduced proportionately to the number of updates per year
+        updates_per_year = self.model_timing.updates_per_year
+        object.__setattr__(self.flora, "resp_f", self.flora.resp_f / updates_per_year)
+        object.__setattr__(self.flora, "resp_r", self.flora.resp_r / updates_per_year)
+        object.__setattr__(self.flora, "resp_s", self.flora.resp_s / updates_per_year)
+        object.__setattr__(self.flora, "resp_rt", self.flora.resp_rt / updates_per_year)
+
+        # Turnover rates are implemented as the number of years required to completely
+        # turnover foliage/roots etc and are included in equations as the reciprocal of
+        # the values. So rescaling them to shorter timescales requires that we
+        # _increase_ the values proportionally to the reduced time between updates.
+        object.__setattr__(self.flora, "tau_f", self.flora.tau_f * updates_per_year)
+        object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
+        object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
