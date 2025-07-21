@@ -122,12 +122,14 @@ def test_run_microclimate_subdaily(dummy_climate_data, fixture_core_components):
     )
 
     exp_airtemp = lyr_str.from_template()
-    exp_airtemp[lyr_str.index_above_scalar] = 30.0
-    exp_airtemp[lyr_str.index_filled_canopy] = np.array(
-        [30.56125, 28.392977, 28.246697]
-    )[:, None]
-    exp_airtemp[lyr_str.index_surface_scalar] = np.array(
-        [21.871, 21.734, 20.367, 20.367]
+    exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
+        [
+            [30.000807, 30.000807, 30.000807, 30.000807],
+            [30.56125, 30.56125, 30.56125, 30.56125],
+            [25.711292, 30.734083, 29.868098, 25.836191],
+            [21.936888, 29.012884, 28.491695, 28.439681],
+            [21.871, 21.734, 20.367, 20.367],
+        ]
     )
     np.testing.assert_allclose(
         result["air_temperature"],
