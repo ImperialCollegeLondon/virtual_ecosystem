@@ -63,22 +63,21 @@ def test_calculate_sensible_heat_flux(
 
     data = dummy_climate_data_varying_canopy
     index = fixture_core_components.layer_structure.index_filled_canopy
-    # Compute flux
-    computed_flux = calculate_sensible_heat_flux(
-        density_air=data["density_air"][index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
-        air_temperature=data["air_temperature"][index].to_numpy(),
-        surface_temperature=data["canopy_temperature"][index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
-    )
 
-    # Expected result (manually calculated)
     expected_flux = np.array(
         [
             [-0.489356, -0.489356, -0.489356, -0.489356],
             [-0.390997, -0.390997, np.nan, np.nan],
             [-0.222852, np.nan, np.nan, np.nan],
         ]
+    )
+
+    computed_flux = calculate_sensible_heat_flux(
+        density_air=data["density_air"][index].to_numpy(),
+        specific_heat_air=data["specific_heat_air"][index].to_numpy(),
+        air_temperature=data["air_temperature"][index].to_numpy(),
+        surface_temperature=data["canopy_temperature"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
     )
 
     # Assert all elements are close
@@ -97,19 +96,20 @@ def test_calculate_aerodynamic_resistance(
     lyr_str = fixture_core_components.layer_structure
     data = dummy_climate_data_varying_canopy
 
-    result = calculate_aerodynamic_resistance(
-        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
-        roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
-        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
-        von_karman_constant=0.4,
-    )
     exp_ra = np.array(
         [
             [1636.388306, 1281.796711, 966.156818, 499.702011],
             [1360.919965, 893.600893, np.nan, np.nan],
             [948.761442, np.nan, np.nan, np.nan],
         ]
+    )
+
+    result = calculate_aerodynamic_resistance(
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
+        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
+        von_karman_constant=0.4,
     )
     np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
 
@@ -192,8 +192,8 @@ def test_energy_balance_residual_only(dummy_climate_data, fixture_core_component
 
     data = dummy_climate_data
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
     result = calculate_energy_balance_residual(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
@@ -227,10 +227,9 @@ def test_energy_balance_return_fluxes(dummy_climate_data, fixture_core_component
     )
 
     data = dummy_climate_data
-
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
+
     result = calculate_energy_balance_residual(
         canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
@@ -274,7 +273,6 @@ def test_solve_canopy_temperature(dummy_climate_data, fixture_core_components):
 
     data = dummy_climate_data
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
-
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     result = solve_canopy_temperature(
@@ -312,11 +310,8 @@ def test_update_air_temperature():
 
     air_temperature = np.array([[30.0, 25.0], [28.0, 23.0]])
     canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
-
-    # Expected outputs
     expected_air_temperature = np.array([[30.01, 25.01], [28.02, 23.02]])
 
-    # Call the function
     updated_air_temperature = update_air_temperature(
         air_temperature=air_temperature,
         surface_temperature=canopy_temperature,
@@ -338,9 +333,10 @@ def test_calculate_ventilation_rate_scalar():
         calculate_ventilation_rate,
     )
 
-    ra = 50.0  # s/m
-    h = 20.0  # m
+    ra = 50.0
+    h = 20.0
     expected = 1.0 / 1000.0
+
     result = calculate_ventilation_rate(ra, h)
     assert np.isclose(result, expected)
 
@@ -352,9 +348,10 @@ def test_calculate_ventilation_rate_array():
         calculate_ventilation_rate,
     )
 
-    ra = np.array([10.0, 50.0, 0.0])  # s/m, includes a zero
-    h = np.array([2.0, 20.0, 1.0])  # m
+    ra = np.array([10.0, 50.0, 0.0])
+    h = np.array([2.0, 20.0, 1.0])
     expected = np.array([5.0e-02, 1.0e-03, 1.0e06])
+
     result = calculate_ventilation_rate(ra, h)
     np.testing.assert_allclose(result, expected)
 
@@ -368,8 +365,9 @@ def test_calculate_ventilation_rate_zero_denominator():
 
     ra = 0.0
     h = 0.0
-    result = calculate_ventilation_rate(ra, h)
     expected = 1.0 / 1e-6
+
+    result = calculate_ventilation_rate(ra, h)
     assert np.isclose(result, expected)
 
 
@@ -383,8 +381,8 @@ def test_calculate_mixing_coefficients():
     canopy_height = np.repeat(1.0, 3)
     friction_velocity = np.repeat(0.3, 3)
     k = 0.4
-
     expected = np.array([[0.00972, 0.015, 0.00108], [0.01536, 0.01152, 0.00384]])
+
     result = calculate_mixing_coefficients_canopy(
         layer_midpoints, canopy_height, friction_velocity, k
     )
@@ -423,6 +421,7 @@ def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
             [100.0, 100.0, 100.0, 100.0],
         ]
     )
+
     result = mix_and_ventilate(
         input_variable=input_variable,
         layer_thickness=layer_thickness,
@@ -448,7 +447,6 @@ def test_advect_from_toplayer():
 
     expected_specific_humidity = np.array([0, 0, 0])
 
-    # Run function
     result = advect_water_from_toplayer(
         specific_humidity=specific_humidity,
         layer_thickness=layer_thickness,
