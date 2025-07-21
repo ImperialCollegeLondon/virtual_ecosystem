@@ -561,7 +561,6 @@ def update_air_temperature(
     density_air: NDArray[np.float32],
     aerodynamic_resistance: float | NDArray[np.float32],
     mixing_layer_thickness: NDArray[np.float32],
-    time_interval: float,
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
 
@@ -574,7 +573,7 @@ def update_air_temperature(
     and
 
     .. math::
-        T_{A}^{new} = T_{A}^{old} + \frac{H \Delta t}{\rho_a c_p z * A}
+        T_{A}^{new} = T_{A}^{old} + \frac{H}{\rho_a c_p z * A}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
@@ -589,7 +588,6 @@ def update_air_temperature(
         density_air: Density of air, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistance of air or soil, [s m-1]
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
-        time_interval: Time interval, [s]
 
     Returns:
         Updated air temperatures, [C]
@@ -601,7 +599,7 @@ def update_air_temperature(
     ) / aerodynamic_resistance
 
     # Update air temperature over a layer of height z (e.g., canopy height)
-    new_air_temperature = air_temperature + (sensible_heat_flux * time_interval) / (
+    new_air_temperature = air_temperature + (sensible_heat_flux) / (
         density_air * specific_heat_air * mixing_layer_thickness
     )
 

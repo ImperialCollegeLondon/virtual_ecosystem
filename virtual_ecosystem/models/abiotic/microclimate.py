@@ -327,7 +327,6 @@ def run_microclimate(
             density_air=density_air[1:-1],
             aerodynamic_resistance=aerodynamic_resistance_canopy,
             mixing_layer_thickness=above_ground_layer_thickness[1:-1],
-            time_interval=1,  # TODO core_constants.seconds_to_hour,
         )
 
         surface_air_temperature = energy_balance.update_air_temperature(
@@ -337,7 +336,6 @@ def run_microclimate(
             density_air=density_air[-1],
             aerodynamic_resistance=aerodynamic_resistance_soil,
             mixing_layer_thickness=above_ground_layer_thickness[-1],
-            time_interval=1,  # TODO core_constants.seconds_to_hour,
         )
 
         all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
@@ -393,7 +391,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            time_interval=1,  # TODO calibrate for core_constants.seconds_to_hour,
+            time_interval=1,  # TODO core_constants.seconds_to_hour,
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]

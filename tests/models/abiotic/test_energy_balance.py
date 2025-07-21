@@ -314,7 +314,7 @@ def test_update_air_temperature():
     canopy_temperature = np.array([[31.0, 26.0], [30.0, 25.0]])
 
     # Expected outputs
-    expected_air_temperature = np.array([[33.6, 28.6], [35.2, 30.2]])
+    expected_air_temperature = np.array([[30.01, 25.01], [28.02, 23.02]])
 
     # Call the function
     updated_air_temperature = update_air_temperature(
@@ -322,9 +322,8 @@ def test_update_air_temperature():
         surface_temperature=canopy_temperature,
         specific_heat_air=np.full((2, 2), 1006),
         density_air=np.full((2, 2), 1.293),
-        aerodynamic_resistance=np.full((2, 2), 100.0),
+        aerodynamic_resistance=np.full((2, 2), 10.0),
         mixing_layer_thickness=np.full((2, 2), 10),
-        time_interval=3600,
     )
 
     np.testing.assert_allclose(
