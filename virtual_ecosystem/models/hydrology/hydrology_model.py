@@ -731,13 +731,13 @@ class HydrologyModel(
             "total_river_discharge",
         ]:
             soil_hydrology[var] = DataArray(
-                np.sum(np.stack(daily_lists[var], axis=1), axis=1),
+                np.nansum(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",
                 coords={"cell_id": self.grid.cell_id},
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][:,] = np.sum(
+        soil_hydrology["canopy_evaporation"][:,] = np.nansum(
             daily_lists["canopy_evaporation"], axis=0
         )
 

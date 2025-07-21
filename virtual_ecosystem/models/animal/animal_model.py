@@ -1,28 +1,32 @@
 """The :mod:`~virtual_ecosystem.models.animal.animal_model` module creates a
 :class:`~virtual_ecosystem.models.animal.animal_model.AnimalModel` class as a
 child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the
-Virtual Ecosystem model develops. The factory method
+
+At present a lot of the abstract methods of the parent class
+(e.g. :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are
+overwritten using placeholder functions that don't do anything. This will
+change as the Virtual Ecosystem model develops.
+
+The factory method
 :func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters
-from our currently pretty minimal configuration dictionary. These parameters are
-then used to generate a class instance. If errors crop up here when converting the
-information from the config dictionary to the required types
-(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
-of the unpacking an error is thrown. This error should be caught and handled
-by downstream functions so that all model configuration failures can be reported as one.
+from our currently pretty minimal configuration dictionary. These parameters
+are then used to generate a class instance. If errors emerge when converting
+the information from the config dictionary to the required types
+(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the
+end of the unpacking an error is thrown. This error should be caught and
+handled by downstream functions so that all model configuration failures can
+be reported as one.
 """  # noqa: D205
 
 from __future__ import annotations
 
 import uuid
 from math import ceil, sqrt
-from random import choice, random
+from random import choice
 from typing import Any, cast
 
-from numpy import array, float32, inf, timedelta64, where, zeros
+from numpy import array, float32, inf, random, timedelta64, where, zeros
 from numpy.typing import NDArray
 from xarray import DataArray
 
@@ -56,6 +60,7 @@ from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
+    madingley_individuals_density,
     prey_group_selection,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
@@ -148,9 +153,9 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        functional_groups: The list of animal functional groups present in the
-            simulation.
-        model_constants: Set of constants for the animal model.
+        static: If True, runs in static mode.
+        density_scaling_method: Which density scaling equation to use in initialization.
+        **kwargs: Additional arguments for the base model.
     """
 
     def __init__(
@@ -158,6 +163,7 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
+        density_scaling_method: str = "madingley",
         **kwargs: Any,
     ):
         """Animal init function.
@@ -166,7 +172,14 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        self.density_scaling_method = density_scaling_method
+        """Which density scaling equations are used, "damuth" or "madingley"."""
+        self.model_constants: AnimalConsts = AnimalConsts(
+            density_scaling_method=self.density_scaling_method
+        )
+        """Animal constants."""
+
+        super().__init__(data, core_components, static, **kwargs)  # runs _setup
 
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
@@ -180,8 +193,6 @@ class AnimalModel(
         """Convert pint update_interval to timedelta64 once during initialization."""
         self.functional_groups: list[FunctionalGroup]
         """List of functional groups in the model."""
-        self.model_constants: AnimalConsts
-        """Animal constants."""
         self.plant_resources: dict[int, list[Resource]]
         """The plant resource pools in the model with associated grid cell ids."""
         self.excrement_pools: dict[int, list[ExcrementPool]]
@@ -194,6 +205,11 @@ class AnimalModel(
         """The CNP ratios of the different microbial functional groups."""
         self.litter_pools: dict[int, dict[str, Resource]]
         """The litter pools with associated grid cell ids."""
+        # TODO: make the following two modifiable
+        self.target_cohorts_per_fg: int
+        """The target number of cohorts per functional group in each grid cell."""
+        self.minimum_cohort_size: int
+        """The minimum number of individuals to initialize a cohort at init."""
         self.soil_pools: dict[int, dict[str, SoilPool]]
         """The animal consumable soil pools with associated grid cell ids."""
         self.fungal_fruiting_bodies: dict[int, FungalFruitPool]
@@ -210,31 +226,112 @@ class AnimalModel(
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
-        """Initialize the animal communities by creating and populating animal cohorts.
+        """Initializes the animal communities.
 
         Args:
             functional_groups: The list of functional groups that will populate the
             model.
+
         """
-        # Initialize communities dictionary with cell IDs as keys and empty lists for
-        # cohorts
-        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
-        # Iterate over each cell and functional group to create and populate cohorts
-        for cell_id in self.data.grid.cell_id:
-            for functional_group in functional_groups:
-                # Calculate the number of individuals using Damuth's Law
-                individuals = damuths_law(
-                    functional_group.adult_mass, functional_group.damuths_law_terms
-                )
+        self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
 
+        for fg in functional_groups:
+            total_individuals = self._estimate_total_individuals(fg)
+            cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
+            cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
+
+            for size, cell_id in zip(cohort_sizes, cohort_locations):
                 self.create_new_cohort(
-                    functional_group=functional_group,
-                    mass=functional_group.adult_mass,
+                    functional_group=fg,
+                    mass=fg.adult_mass,
                     age=0.0,
-                    individuals=individuals,
+                    individuals=size,
                     centroid_key=cell_id,
                 )
+
+    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
+        """Estimates the total number of individuals of a functional group.
+
+        Args:
+            functional_group: The specific functional group having its individuals
+                estimated.
+
+        Returns: The integer number of individuals of the group.
+
+        """
+
+        total_area = self.data.grid.n_cells * self.data.grid.cell_area
+
+        if functional_group.density_individuals_m2 is not None:
+            # User-provided empirical density overrides scaling laws
+            return int(functional_group.density_individuals_m2 * total_area)
+
+        # No empirical density → use selected scaling method
+        if self.density_scaling_method == "damuth":
+            density = damuths_law(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        elif self.density_scaling_method == "madingley":
+            density = madingley_individuals_density(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported density scaling method: {self.density_scaling_method}"
+            )
+
+        return ceil(density * total_area)
+
+    def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
+        """Distribute individuals into cohorts respecting minimum size.
+
+        Args:
+            total_individuals: The number of individuals to distribute.
+
+        Returns:
+            A list of cohort sizes.
+        """
+        n_target = self.target_cohorts_per_fg  # ideal number of cohorts
+        min_size = self.minimum_cohort_size  # minimum size of cohorts
+
+        if total_individuals < n_target * min_size:
+            # if I don't have enough individuals to meet my size and number targets
+            # reduce the number of cohorts
+            n_target = max(1, total_individuals // min_size)
+
+        base_size = total_individuals // n_target  # the number of indiv in each cohorts
+        remainder = total_individuals % n_target  # the leftover number of indiv
+
+        # evenly distribute the remained and return the list of cohort sizes
+        return [base_size + 1 if i < remainder else base_size for i in range(n_target)]
+
+    def _assign_cohort_locations(self, n_cohorts: int) -> list[int]:
+        """Assign each cohort to a grid cell.
+
+        Args:
+            n_cohorts: Number of cohorts to distribute.
+
+        Returns:
+            A list of grid cell IDs for each cohort.
+        """
+        cell_ids = list(self.data.grid.cell_id)  # a list of all the grid cell ids
+        n_cells = len(cell_ids)  # the number of grid cells
+
+        if n_cohorts <= n_cells:  # if more cells than cohorts
+            # assign one random cell per cohort without replacement
+            return random.choice(cell_ids, size=n_cohorts, replace=False).tolist()
+        else:  # if more cohorts than cells
+            # one cohort per cell, to start
+            locations = cell_ids.copy()
+            # randomly select grid cell ids equal to number of remaining cohorts
+            extra = random.choice(
+                cell_ids, size=n_cohorts - n_cells, replace=True
+            ).tolist()
+            locations.extend(extra)  # assign the extras to the location list
+            return locations
 
     @classmethod
     def from_config(
@@ -256,6 +353,10 @@ class AnimalModel(
         model_constants = load_constants(config, "animal", "AnimalConsts")
         static = config["animal"]["static"]
 
+        density_scaling_method = config["animal"].get(
+            "density_scaling_method", "madingley"
+        )
+
         # Load functional groups
         functional_groups = [
             FunctionalGroup(**k, constants=model_constants)
@@ -276,6 +377,7 @@ class AnimalModel(
             static=static,
             functional_groups=functional_groups,
             model_constants=model_constants,
+            density_scaling_method=density_scaling_method,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
@@ -283,7 +385,6 @@ class AnimalModel(
         self,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
-        model_constants: AnimalConsts = AnimalConsts(),
         **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
@@ -297,7 +398,6 @@ class AnimalModel(
                 simulation.
             microbial_c_n_p_ratios: Biomass stochiometry of each microbial functional
                 group.
-            model_constants: Set of constants for the animal model.
             **kwargs: Further arguments to the setup method.
         """
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
@@ -309,7 +409,7 @@ class AnimalModel(
         self._setup_grid_neighbours()
         """Determine grid square adjacency."""
         self.functional_groups = functional_groups
-        self.model_constants = model_constants
+        self.model_constants = self.model_constants
         self.plant_resources = {
             cell_id: [
                 PlantResources(
@@ -348,6 +448,11 @@ class AnimalModel(
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
+
+        self.target_cohorts_per_fg = len(self.data.grid.cell_id)
+        """The target number of cohorts per functional group in each grid cell."""
+        self.minimum_cohort_size = 5
+        """The minimum number of individuals to initialize a cohort at init."""
 
         # Microbial C:N:P ratios are then found, and the size of the initial litter and
         # soil pools are populated
@@ -1052,7 +1157,8 @@ class AnimalModel(
                 self.model_constants.dispersal_mass_threshold
             )
             is_juvenile_and_migrate = (
-                cohort.age == 0.0 and random() <= cohort.migrate_juvenile_probability()
+                cohort.age == 0.0
+                and random.random() <= cohort.migrate_juvenile_probability()
             )
             migrate = is_starving or is_juvenile_and_migrate
 

@@ -98,7 +98,7 @@ def dummy_carbon_data(fixture_core_components):
 
     data["vertical_flow"] = lyr_str.from_template()
     data["vertical_flow"][lyr_str.index_all_soil] = np.array(
-        [[0.1, 0.5, 2.5, 1.59], [0.1, 0.5, 2.5, 1.59]]
+        [[0.1, 0.5, 2.5, 1.59], [0.15, 0.75, 2.75, 1.33]]
     )
 
     data["air_temperature"] = lyr_str.from_template()

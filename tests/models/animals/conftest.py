@@ -680,7 +680,7 @@ def constants_instance():
     """Fixture for an instance of animal constants."""
     from virtual_ecosystem.models.animal.constants import AnimalConsts
 
-    return AnimalConsts()
+    return AnimalConsts(density_scaling_method="madingley")
 
 
 @pytest.fixture
@@ -711,18 +711,45 @@ def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
-    constants_instance,
     microbial_c_n_p_ratios,
 ):
     """Fixture for an animal model object used in tests."""
+    from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
+    # Make sure each call gets a fresh copy
+    clean_data = deepcopy(dummy_animal_data)
+
     return AnimalModel(
-        data=dummy_animal_data,
+        data=clean_data,
         core_components=fixture_core_components,
+        density_scaling_method="madingley",
         functional_groups=functional_group_list_instance,
-        model_constants=constants_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+    )
+
+
+@pytest.fixture
+def animal_model_damuth_instance(
+    dummy_animal_data,
+    fixture_core_components,
+    functional_group_list_instance,
+    microbial_c_n_p_ratios,
+):
+    """Fixture for an animal model object used in tests."""
+    from copy import deepcopy
+
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    # Make sure each call gets a fresh copy
+    clean_data = deepcopy(dummy_animal_data)
+
+    return AnimalModel(
+        data=clean_data,
+        core_components=fixture_core_components,
+        density_scaling_method="damuth",
+        functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
 

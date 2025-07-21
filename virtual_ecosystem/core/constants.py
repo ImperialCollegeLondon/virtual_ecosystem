@@ -83,6 +83,9 @@ class CoreConsts(ConstantsDataclass):
     seconds_to_day: float = 86400.0
     """Factor to convert variable unit from seconds to day."""
 
+    seconds_to_hour: float = 3600.0
+    """Factor to convert variable unit from seconds to hours."""
+
     characteristic_dimension_leaf: float = 0.01
     """Characteristic dimension of leaf, typically around 0.7 * leaf width, [m]."""
 

@@ -127,7 +127,7 @@ class TestFunctionalGroup:
             vertical_occupancy,
             birth_mass,
             adult_mass,
-            constants=AnimalConsts(),
+            constants=AnimalConsts(density_scaling_method="damuth"),
         )
         assert func_group.name == name
         assert func_group.taxa == TaxaType(taxa)
@@ -143,8 +143,8 @@ class TestFunctionalGroup:
         assert func_group.vertical_occupancy == VerticalOccupancy.parse(
             vertical_occupancy
         )
-        assert func_group.damuths_law_terms[0] == dam_law_exp
-        assert func_group.damuths_law_terms[1] == dam_law_coef
+        assert func_group.population_density_terms[0] == dam_law_exp
+        assert func_group.population_density_terms[1] == dam_law_coef
         assert func_group.conversion_efficiency == conv_eff
 
         assert hasattr(func_group, "cnp_proportions"), (

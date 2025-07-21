@@ -164,6 +164,7 @@ nitpick_ignore = [
     ("py:class", "PModelConst"),
     ("py:class", "CoreConst"),
     ("py:class", "StemAllocation"),
+    ("py:class", "StemStochiometry"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
