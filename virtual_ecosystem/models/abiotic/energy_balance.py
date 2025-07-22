@@ -202,14 +202,14 @@ def calculate_aerodynamic_resistance(
 
 
 def update_soil_temperature(
-    ground_heat_flux: NDArray[np.float32],
-    soil_temperature: NDArray[np.float32],
-    soil_layer_thickness: NDArray[np.float32],
-    soil_thermal_conductivity: float | NDArray[np.float32],
-    soil_bulk_density: float | NDArray[np.float32],
-    specific_heat_capacity_soil: float | NDArray[np.float32],
+    ground_heat_flux: NDArray[np.floating],
+    soil_temperature: NDArray[np.floating],
+    soil_layer_thickness: NDArray[np.floating],
+    soil_thermal_conductivity: float | NDArray[np.floating],
+    soil_bulk_density: float | NDArray[np.floating],
+    specific_heat_capacity_soil: float | NDArray[np.floating],
     time_interval: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Update soil temperature using heat diffusion.
 
     The function applies an explicit finite-difference approach to update
@@ -556,12 +556,12 @@ def solve_canopy_temperature(
 
 
 def update_air_temperature(
-    surface_temperature: NDArray[np.float32],
-    air_temperature: NDArray[np.float32],
-    specific_heat_air: NDArray[np.float32],
-    density_air: NDArray[np.float32],
-    aerodynamic_resistance: float | NDArray[np.float32],
-    mixing_layer_thickness: NDArray[np.float32],
+    surface_temperature: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    density_air: NDArray[np.floating],
+    aerodynamic_resistance: float | NDArray[np.floating],
+    mixing_layer_thickness: NDArray[np.floating],
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
 
