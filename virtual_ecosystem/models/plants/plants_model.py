@@ -1293,8 +1293,13 @@ class PlantsModel(
           proportion of the net primary productivity from the subcanopy vegetation.
         """
 
-        # Calculate the gross primary productivity since the last update. Units are
-        # already in m2 so no need for area scaling
+        # Calculate the gross primary productivity since the last update.
+        #    LUE                     1 layer          [gC mol-1]
+        #    * shortwave absorption  1 layer          [µmol m-2 s-1]
+        #    * DST to PPFD           scalar           [-]
+        #    * time elapsed     scalar                [s]
+        # Units:
+        #    gC mol-1 * µmol m-2 s-1  * (-) * s = µg C m-2
         subcanopy_gpp = (
             self.pmodel.lue[self.layer_structure.index_surface_scalar, :]
             * self.data["shortwave_absorption"][
@@ -1304,16 +1309,15 @@ class PlantsModel(
             * self.model_timing.update_interval_seconds
         )
 
-        # Calculate the transpiration associated with that GPP
+        # Calculate the transpiration associated with that GPP in moles
         subcanopy_transpiration = (
-            (subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6))
-            * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
-            * self.model_timing.update_interval_seconds
-        )
+            subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
+        ) * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
 
+        # Calculate NPP, converting µg C m-2 to  kg C m-2
         subcanopy_npp = (
             self.model_constants.subcanopy_yield
-            * subcanopy_gpp
+            * (subcanopy_gpp * 1e-9)
             * (1 - self.model_constants.subcanopy_respiration_fraction)
         )
 
