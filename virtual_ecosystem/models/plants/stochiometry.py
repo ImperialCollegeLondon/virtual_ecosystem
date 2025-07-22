@@ -47,60 +47,14 @@ class Tissue(ABC):
         self.actual_element_mass = self.actual_element_mass.squeeze()
 
     @classmethod
+    @abstractmethod
     def from_pft_default_ratios(
         cls,
-        subclass,
         community: Community,
         extra_pft_traits: ExtraTraitsPFT,
-        ratio_name: str,
-    ) -> "Tissue":
-        """Create a default instance of Tissue based on the PFT traits.
-
-        Args:
-            subclass: The subclass of Tissue to instantiate (e.g., FoliageTissue,
-                WoodTissue).
-            community: The community object that the tissue is associated with.
-            extra_pft_traits: Additional traits specific to the plant functional type.
-            ratio_name: The name of the ratio to retrieve from the PFT traits.
-
-        Returns:
-            An instance of Tissue with default ideal ratios and actual element mass.
-        """
-        pft_names = community.cohorts.pft_names
-        ideal_ratios = np.array(
-            [extra_pft_traits.traits[name][ratio_name] for name in pft_names]
-        )
-        if subclass == FoliageTissue:
-            return subclass(
-                community=community,
-                ideal_ratio=ideal_ratios,
-                actual_element_mass=community.stem_allometry.foliage_mass
-                * ideal_ratios,
-                reclaim_ratio=np.array(
-                    [
-                        extra_pft_traits.traits[name]["leaf_turnover_c_n_ratio"]
-                        for name in pft_names
-                    ]
-                ),
-            )
-        if subclass == ReproductiveTissue:
-            actual_element_mass = (
-                community.stem_allometry.reproductive_tissue_mass * ideal_ratios
-            )
-        elif subclass == WoodTissue:
-            actual_element_mass = community.stem_allometry.stem_mass * ideal_ratios
-        elif subclass == RootTissue:
-            actual_element_mass = (
-                community.stem_allometry.foliage_mass
-                * community.stem_traits.zeta
-                * community.stem_traits.sla
-                * ideal_ratios
-            )
-        return subclass(
-            community=community,
-            ideal_ratio=ideal_ratios,
-            actual_element_mass=actual_element_mass,
-        )
+        element_name: str,
+    ):
+        """Create a default instance of Tissue based on the PFT traits."""
 
     @property
     def deficit(self) -> NDArray[np.float64]:
@@ -143,6 +97,35 @@ class FoliageTissue(Tissue):
     reclaim_ratio: NDArray[np.float64]
     """The ratio of the element that can be reclaimed from the senesced tissue."""
 
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        element_name: str,
+    ):
+        """Create a default instance of FoliageTissue based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+        ideal_ratios = np.array(
+            [
+                extra_pft_traits.traits[name][f"foliage_c_{element_name}_ratio"]
+                for name in pft_names
+            ]
+        )
+        return cls(
+            community=community,
+            ideal_ratio=ideal_ratios,
+            actual_element_mass=community.stem_allometry.foliage_mass * ideal_ratios,
+            reclaim_ratio=np.array(
+                [
+                    extra_pft_traits.traits[name][
+                        f"leaf_turnover_c_{element_name}_ratio"
+                    ]
+                    for name in pft_names
+                ]
+            ),
+        )
+
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
         """Get the carbon mass for foliage tissue.
@@ -177,6 +160,31 @@ class FoliageTissue(Tissue):
 @dataclass
 class ReproductiveTissue(Tissue):
     """Holds reproductive tissue stochiometry data for a set of plant cohorts."""
+
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        element_name: str,
+    ):
+        """Create a default instance of ReproductiveTissue based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+        ideal_ratios = np.array(
+            [
+                extra_pft_traits.traits[name][
+                    f"plant_reproductive_tissue_turnover_c_{element_name}_ratio"
+                ]
+                for name in pft_names
+            ]
+        )
+        return cls(
+            community=community,
+            ideal_ratio=ideal_ratios,
+            actual_element_mass=(
+                community.stem_allometry.reproductive_tissue_mass * ideal_ratios
+            ),
+        )
 
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
@@ -214,6 +222,32 @@ class ReproductiveTissue(Tissue):
 class WoodTissue(Tissue):
     """A class to hold wood stochiometry data for a set of plant cohorts."""
 
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        element_name: str,
+    ):
+        """Create a default instance of WoodTissue based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+        ideal_ratios = np.array(
+            [
+                extra_pft_traits.traits[name][f"root_turnover_c_{element_name}_ratio"]
+                for name in pft_names
+            ]
+        )
+        return cls(
+            community=community,
+            ideal_ratio=ideal_ratios,
+            actual_element_mass=(
+                community.stem_allometry.foliage_mass
+                * community.stem_traits.zeta
+                * community.stem_traits.sla
+                * ideal_ratios
+            ),
+        )
+
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
         """Get the carbon mass for wood tissue.
@@ -245,6 +279,27 @@ class WoodTissue(Tissue):
 @dataclass
 class RootTissue(Tissue):
     """A class to hold root stochiometry data for a set of plant cohorts."""
+
+    @classmethod
+    def from_pft_default_ratios(
+        cls,
+        community: Community,
+        extra_pft_traits: ExtraTraitsPFT,
+        element_name: str,
+    ):
+        """Create a default instance of WoodTissue based on the PFT traits."""
+        pft_names = community.cohorts.pft_names
+        ideal_ratios = np.array(
+            [
+                extra_pft_traits.traits[name][f"deadwood_c_{element_name}_ratio"]
+                for name in pft_names
+            ]
+        )
+        return cls(
+            community=community,
+            ideal_ratio=ideal_ratios,
+            actual_element_mass=(community.stem_allometry.stem_mass * ideal_ratios),
+        )
 
     @property
     def carbon_mass(self) -> NDArray[np.float64]:
@@ -332,29 +387,25 @@ class StemStochiometry(CohortMethods, PandasExporter):
         Returns:
             An instance of StemStochiometry with default tissues.
         """
-        foliage_tissue_model = Tissue.from_pft_default_ratios(
-            FoliageTissue,
+        foliage_tissue_model = FoliageTissue.from_pft_default_ratios(
             community=community,
             extra_pft_traits=extra_pft_traits,
-            ratio_name=f"foliage_c_{element.lower()}_ratio",
+            element_name=element.lower(),
         )
-        reproductive_tissue_model = Tissue.from_pft_default_ratios(
-            ReproductiveTissue,
+        reproductive_tissue_model = ReproductiveTissue.from_pft_default_ratios(
             community=community,
             extra_pft_traits=extra_pft_traits,
-            ratio_name=f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio",
+            element_name=element.lower(),
         )
-        wood_tissue_model = Tissue.from_pft_default_ratios(
-            WoodTissue,
+        wood_tissue_model = WoodTissue.from_pft_default_ratios(
             community=community,
             extra_pft_traits=extra_pft_traits,
-            ratio_name=f"deadwood_c_{element.lower()}_ratio",
+            element_name=element.lower(),
         )
-        root_tissue_model = Tissue.from_pft_default_ratios(
-            RootTissue,
+        root_tissue_model = RootTissue.from_pft_default_ratios(
             community=community,
             extra_pft_traits=extra_pft_traits,
-            ratio_name=f"root_turnover_c_{element.lower()}_ratio",
+            element_name=element.lower(),
         )
         tissues = [
             foliage_tissue_model,

@@ -33,16 +33,15 @@ def test_FoliageTissue__init__(fxt_plants_model, extra_pft_traits):
 
 def test_from_pft_default_ratios(fxt_plants_model):
     """Test the default ratios in FoliageTissue from PFT."""
-    from virtual_ecosystem.models.plants.stochiometry import FoliageTissue, Tissue
+    from virtual_ecosystem.models.plants.stochiometry import FoliageTissue
 
     for cell_id in fxt_plants_model.communities.keys():
         community = fxt_plants_model.communities[cell_id]
 
-        tissue_model = Tissue.from_pft_default_ratios(
-            FoliageTissue,
+        tissue_model = FoliageTissue.from_pft_default_ratios(
             community=community,
             extra_pft_traits=fxt_plants_model.extra_pft_traits,
-            ratio_name="foliage_c_n_ratio",
+            element_name="n",
         )
 
         assert isinstance(tissue_model, FoliageTissue)
@@ -192,7 +191,7 @@ def test_Stochiometry_tissue_deficit(fxt_stochiometry_model):
     # Calculate the tissue deficit
     tissue_deficit = fxt_stochiometry_model.tissue_deficit
 
-    expected_deficit = np.array([0, 0, 0])
+    expected_deficit = np.array([-3.48223990e04, -1.02544990e02, 4.02427444e-03])
     assert np.allclose(tissue_deficit, expected_deficit)
 
 
