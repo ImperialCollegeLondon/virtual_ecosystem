@@ -222,7 +222,7 @@ def calculate_ventilation_rate(
         Ventilation rate [s-1]
     """
 
-    denominator = np.clip(aerodynamic_resistance * characteristic_height, 1e-6, None)
+    denominator = np.clip(aerodynamic_resistance * characteristic_height, 1e-3, None)
     return 1.0 / denominator
 
 
