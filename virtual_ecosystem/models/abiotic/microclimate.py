@@ -428,6 +428,7 @@ def run_microclimate(
         return_fluxes=True,
     )
 
+    print(all_air_temperature)
     # Net radiation canopy, [W m-2]
     if not isinstance(new_energy_balance_canopy, dict):
         to_raise = ValueError("The energy balance has not returned any fluxes!")
