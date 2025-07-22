@@ -358,7 +358,7 @@ def run_microclimate(
             layer_thickness=above_ground_layer_thickness,
             ventilation_rate=ventilation_rate,
             mixing_coefficient=mixing_coefficient,
-            time_interval=1,  # TODO core_constants.seconds_to_hour,
+            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
         )
 
         # Update atmospheric humidity/VPD
@@ -399,7 +399,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            time_interval=1,  # TODO core_constants.seconds_to_hour,
+            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
