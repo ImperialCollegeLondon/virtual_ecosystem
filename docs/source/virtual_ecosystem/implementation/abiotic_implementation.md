@@ -426,10 +426,8 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-```{note}
-There is currently no vertical mixing between layers and no heat is transferred to the
+Finally, we consider vertical mixing between layers and heat is transferred to the
 air above the canopy.
-```
 
 #### Update of atmospheric moisture
 

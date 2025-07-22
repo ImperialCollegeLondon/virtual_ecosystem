@@ -177,6 +177,19 @@ def run_microclimate(
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
+    # Turbulent mixing coefficient, [m2 s-1] and ventilation rate [s-1] above canopy
+    mixing_coefficient = wind.calculate_mixing_coefficients_canopy(
+        layer_midpoints=layer_midpoints,
+        canopy_height=canopy_height,
+        friction_velocity=data["friction_velocity"].to_numpy(),
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
+
+    ventilation_rate = wind.calculate_ventilation_rate(
+        aerodynamic_resistance=aerodynamic_resistance_canopy[0],
+        characteristic_height=canopy_height,
+    )
+
     # -------------------------------------------------------------------------
     # Initialise variables to iterate energy balance to update temperatures
     # -------------------------------------------------------------------------
@@ -319,7 +332,6 @@ def run_microclimate(
         )
 
         # Update air temperature based on new canopy and soil temperatures, [C]
-        # TODO add vertical mixing, not urgent
         air_temperature_canopy = energy_balance.update_air_temperature(
             air_temperature=air_temperature_canopy,
             surface_temperature=canopy_temperature,
@@ -341,6 +353,14 @@ def run_microclimate(
         all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
         all_air_temperature[-1] = surface_air_temperature
 
+        all_air_temperature = wind.mix_and_ventilate(
+            input_variable=all_air_temperature,
+            layer_thickness=above_ground_layer_thickness,
+            ventilation_rate=ventilation_rate,
+            mixing_coefficient=mixing_coefficient,
+            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
+        )
+
         # Update atmospheric humidity/VPD
         # Saturated vapour pressure of air, [kPa]
         saturated_vapour_pressure_air = calc_vp_sat(
@@ -361,18 +381,6 @@ def run_microclimate(
             * actual_vapour_pressure_air
         ) / (atmospheric_pressure - actual_vapour_pressure_air)
 
-        mixing_coefficient = energy_balance.calculate_mixing_coefficients_canopy(
-            layer_midpoints=layer_midpoints,
-            canopy_height=canopy_height,
-            friction_velocity=data["friction_velocity"].to_numpy(),
-            von_karman_constant=core_constants.von_karmans_constant,
-        )
-
-        ventilation_rate = energy_balance.calculate_ventilation_rate(
-            aerodynamic_resistance=aerodynamic_resistance_canopy[0],
-            characteristic_height=canopy_height,
-        )
-
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
             evapotranspiration=evapotranspiration[
                 layer_structure.index_filled_canopy
@@ -391,7 +399,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            time_interval=1,  # TODO core_constants.seconds_to_hour,
+            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
