@@ -178,9 +178,9 @@ def calculate_friction_velocity(
     Earth's surface, representing the velocity scale that relates to turbulent energy
     transfer near the surface.
 
-    The friction velocity (:math:`u^{*}`, [m s-1]) is calculated as
+    The friction velocity (:math:`u_{*}`, [m s-1]) is calculated as
 
-    :math:`u^{*} = \frac{\kappa u}{\ln{(\frac{z - d}{z_0})}}`
+    :math:`u_{*} = \frac{\kappa u}{\ln{(\frac{z - d}{z_0})}}`
 
     Where :math:`\kappa` is the von Kármán constant, :math:`u` is the reference wind
     speed, :math:`z` is the reference height, :math:`d` is the zero plane displacement
@@ -238,18 +238,18 @@ def calculate_mixing_coefficients_canopy(
     momentum (:math:`k_M`) that are used to mix water and energy in the canopy. Inside
     the canopy, turbulence is strongly damped by vegetation drag, and a simple linear
     profile like used for the top of the canopy like
-    :math:`k_{H,M} = \kappa u^{*}(z-d)` :cite:p:`raupach_coherent_1996`
+    :math:`k_{H,M} = \kappa u_{*}(z-d)` :cite:p:`raupach_coherent_1996`
     does not match observed eddy diffusivity well. Instead, empirical profiles based on
     measurements are used, and these often take parabolic or other non-linear forms like
     :
 
     .. math::
 
-        k_{H,M}(z)=\kappa u^{*}z(1-zh)^{2}
+        k_{H,M}(z)=\kappa u_{*}z(1-z h_c)^{2}
 
-    where :math:`\kappa` is the von Karman constant (dimensionless), :math:`u^{*}` is
+    where :math:`\kappa` is the von Karman constant (dimensionless), :math:`u_{*}` is
     the friction velocity (m s-1), :math:`z` is the height (m) for which coefficients
-    are calculated, and :math:`h` is the canopy height (m).
+    are calculated, and :math:`h_c` is the canopy height (m).
 
     This particular form goes to zero at both z=0 and z=h and peaks somewhere within the
     canopy.
