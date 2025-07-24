@@ -65,8 +65,9 @@ def calculate_roughness_length_momentum(
     Args:
         canopy_height: Canopy height, [m]
         leaf_area_index: Total leaf area index, [m m-1]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
+        zero_plane_displacement: Height above the actual ground where the wind speed is
+            theoretically reduced to zero due to the obstruction caused by the roughness
+            elements (like trees or buildings), [m]
         substrate_surface_drag_coefficient: Substrate-surface drag coefficient,
             dimensionless
         roughness_element_drag_coefficient: Roughness-element drag coefficient
@@ -144,8 +145,9 @@ def calculate_wind_profile(
         reference_height: Reference height above the canopy, [m].
         wind_heights: Heights where wind speed is to be calculated, [m].
         roughness_length: Momentum roughness length, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
+        zero_plane_displacement: Height above the actual ground where the wind speed is
+            theoretically reduced to zero due to the obstruction caused by the roughness
+            elements (like trees or buildings), [m]
         min_wind_speed: Minimum wind speed to avoid division by zero, [m s-1]
 
     Returns:
@@ -190,8 +192,9 @@ def calculate_friction_velocity(
         reference_wind_speed: Reference wind speed above the canopy [m s-1].
         reference_height: Reference height above the canopy, [m].
         roughness_length: Momentum roughness length, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
+        zero_plane_displacement: Height above the actual ground where the wind speed is
+            theoretically reduced to zero due to the obstruction caused by the roughness
+            elements (like trees or buildings), [m]
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
             boundary.
@@ -387,8 +390,9 @@ def calculate_aerodynamic_resistance(
     Args:
         wind_heights: Heights where wind speed is to be calculated [m].
         roughness_length: Momentum roughness length, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
+        zero_plane_displacement: Height above the actual ground where the wind speed is
+            theoretically reduced to zero due to the obstruction caused by the roughness
+            elements (like trees or buildings), [m]
         wind_speed: Wind speed, [m s-1]
         von_karman_constant: Von Karman's constant, dimensionless constant describing
             the logarithmic velocity profile of a turbulent fluid near a no-slip
