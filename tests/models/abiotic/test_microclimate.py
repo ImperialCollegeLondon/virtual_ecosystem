@@ -50,7 +50,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_cantemp = lyr_str.from_template()
-    exp_cantemp[lyr_str.index_filled_canopy] = np.array([35.6366, 28.8712, 27.2064])[
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array([27.2234, 28.8712, 27.2064])[
         :, None
     ]
     np.testing.assert_allclose(

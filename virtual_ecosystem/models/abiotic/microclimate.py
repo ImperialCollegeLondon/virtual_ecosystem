@@ -139,13 +139,13 @@ def run_microclimate(
     )
 
     # Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
+    aerodynamic_resistance_canopy = wind.calculate_aerodynamic_resistance(
         wind_heights=data["layer_heights"][
             layer_structure.index_filled_canopy
         ].to_numpy(),
         roughness_length=roughness_length,
         zero_plane_displacement=zero_plane_displacement,
-        friction_velocity=friction_velocity,
+        wind_speed=wind_profile[1:-1],
         von_karman_constant=core_constants.von_karmans_constant,
     )
 
@@ -158,14 +158,15 @@ def run_microclimate(
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
-    # Turbulent mixing coefficient, [m2 s-1] and ventilation rate [s-1] above canopy
+    # Turbulent mixing coefficient above canopy, [m2 s-1]
     mixing_coefficient = wind.calculate_mixing_coefficients_canopy(
         layer_midpoints=layer_midpoints,
         canopy_height=canopy_height,
-        friction_velocity=data["friction_velocity"].to_numpy(),
+        friction_velocity=friction_velocity,
         von_karman_constant=core_constants.von_karmans_constant,
     )
 
+    #  Ventilation rate above canopy, [s-1]
     ventilation_rate = wind.calculate_ventilation_rate(
         aerodynamic_resistance=aerodynamic_resistance_canopy[0],
         characteristic_height=canopy_height,
