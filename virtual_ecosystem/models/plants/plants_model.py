@@ -30,13 +30,12 @@ from virtual_ecosystem.models.plants.canopy import (
 from virtual_ecosystem.models.plants.communities import PlantCommunities
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
-from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
+from virtual_ecosystem.models.plants.functional_types import (
+    ExtraTraitsPFT,
+    get_flora_from_config,
+)
 from virtual_ecosystem.models.plants.stochiometry import (
-    FoliageTissue,
-    ReproductiveTissue,
-    RootTissue,
     StemStochiometry,
-    WoodTissue,
 )
 
 
@@ -208,6 +207,8 @@ class PlantsModel(
 
         self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
+        self.extra_pft_traits: ExtraTraitsPFT
+        """The extra traits for each plant functional type, keyed by PFT name."""
         self.model_constant: PlantsConsts
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
@@ -277,7 +278,7 @@ class PlantsModel(
         static = config["plants"]["static"]
 
         # Generate the flora
-        flora = get_flora_from_config(config=config)
+        flora, extra_traits = get_flora_from_config(config=config)
 
         # Create a CommunityDataExporter instance from config
         exporter = CommunityDataExporter.from_config(config=config)
@@ -289,6 +290,7 @@ class PlantsModel(
                 core_components=core_components,
                 static=static,
                 flora=flora,
+                extra_pft_traits=extra_traits,
                 model_constants=model_constants,
                 exporter=exporter,
             )
@@ -304,6 +306,7 @@ class PlantsModel(
     def _setup(
         self,
         flora: Flora,
+        extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
     ) -> None:
@@ -312,12 +315,15 @@ class PlantsModel(
         Args:
             flora: A flora containing the plant functional types used in the plants
                 model.
+            extra_pft_traits: Additional traits for each plant functional type, keyed by
+                PFT name.
             model_constants: Set of constants for the plants model.
             **kwargs: Further arguments to the setup method.
         """
 
         # Set the instance attributes from the __init__ arguments
         self.flora = flora
+        self.extra_pft_traits = extra_pft_traits
         self.model_constants = model_constants
 
         # Adjust flora rates to timestep
@@ -354,111 +360,18 @@ class PlantsModel(
         # ideal stochiometric ratios defined in the PlantsConsts class.
         # TODO: #697 - these need to be configurable
         self.stochiometries = {}
+
         for cell_id in self.communities.keys():
             self.stochiometries[cell_id] = {}
-            self.stochiometries[cell_id]["N"] = StemStochiometry(
+            self.stochiometries[cell_id]["N"] = StemStochiometry.default_init(
+                self.communities[cell_id],
+                extra_pft_traits=self.extra_pft_traits,
                 element="N",
-                tissues=[
-                    FoliageTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.foliage_c_n_ratio,
-                        ),
-                        actual_element_mass=self.communities[
-                            cell_id
-                        ].stem_allometry.foliage_mass
-                        * model_constants.foliage_c_n_ratio,
-                        reclaim_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.leaf_turnover_c_n_ratio,
-                        ),
-                    ),
-                    RootTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.root_turnover_c_n_ratio,
-                        ),
-                        actual_element_mass=model_constants.root_turnover_c_n_ratio
-                        * self.communities[cell_id].stem_traits.zeta
-                        * self.communities[cell_id].stem_allometry.foliage_mass
-                        * self.communities[cell_id].stem_traits.sla,
-                    ),
-                    WoodTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.deadwood_c_n_ratio,
-                        ),
-                        actual_element_mass=model_constants.deadwood_c_n_ratio
-                        * self.communities[cell_id].stem_allometry.stem_mass,
-                    ),
-                    ReproductiveTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
-                        ),
-                        actual_element_mass=self.communities[
-                            cell_id
-                        ].stem_allometry.reproductive_tissue_mass
-                        * self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,  # noqa: E501
-                    ),
-                ],
-                community=self.communities[cell_id],
             )
-            self.stochiometries[cell_id]["P"] = StemStochiometry(
+            self.stochiometries[cell_id]["P"] = StemStochiometry.default_init(
+                self.communities[cell_id],
+                extra_pft_traits=self.extra_pft_traits,
                 element="P",
-                tissues=[
-                    FoliageTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.foliage_c_p_ratio,
-                        ),
-                        actual_element_mass=self.communities[
-                            cell_id
-                        ].stem_allometry.foliage_mass
-                        * model_constants.foliage_c_p_ratio,
-                        reclaim_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.leaf_turnover_c_p_ratio,
-                        ),
-                    ),
-                    RootTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.root_turnover_c_p_ratio,
-                        ),
-                        actual_element_mass=model_constants.root_turnover_c_p_ratio
-                        * self.communities[cell_id].stem_traits.zeta
-                        * self.communities[cell_id].stem_allometry.foliage_mass
-                        * self.communities[cell_id].stem_traits.sla,
-                    ),
-                    WoodTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.deadwood_c_p_ratio,
-                        ),
-                        actual_element_mass=model_constants.deadwood_c_p_ratio
-                        * self.communities[cell_id].stem_allometry.stem_mass,
-                    ),
-                    ReproductiveTissue(
-                        community=self.communities[cell_id],
-                        ideal_ratio=np.full(
-                            self.communities[cell_id].n_cohorts,
-                            model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
-                        ),
-                        actual_element_mass=self.communities[
-                            cell_id
-                        ].stem_allometry.reproductive_tissue_mass
-                        * self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,  # noqa: E501
-                    ),
-                ],
-                community=self.communities[cell_id],
             )
 
         # This is widely used internally so store it as an attribute.
@@ -1095,32 +1008,32 @@ class PlantsModel(
         """
 
         # C:N and C:P ratios
-        self.data["deadwood_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.deadwood_c_n_ratio
-        )
+        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
         self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_turnover_c_n_ratio
+            self.data["elevation"], 25.5
         )
         self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_turnover_c_n_ratio,
+            self.data["elevation"], 12.5
         )
         self.data["root_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.root_turnover_c_n_ratio
+            self.data["elevation"], 45.6
         )
-        self.data["deadwood_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.deadwood_c_p_ratio
-        )
+        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 856.5)
         self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.leaf_turnover_c_p_ratio
+            self.data["elevation"], 415.0
         )
         self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"],
-            self.model_constants.plant_reproductive_tissue_turnover_c_p_ratio,
+            self.data["elevation"], 125.5
         )
         self.data["root_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], self.model_constants.root_turnover_c_p_ratio
+            self.data["elevation"], 656.7
         )
+
+        for cell_id in self.communities.keys():
+            pass
+            # TODO: ask Jacob what he wants from these values
+            # self.data["deadwood_c_n_ratio"][cell_id] = (
+            # self.stochiometries[cell_id]["N"]...
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
