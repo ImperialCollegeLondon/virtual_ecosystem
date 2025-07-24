@@ -380,6 +380,7 @@ class PlantsModel(
             raise InitialisationError(
                 "The 'pft' coordinates in the plant_pft_propagules data do not match "
                 "the PFT names configured in the PlantsModel flora"
+            )
 
         # Initialize the stochiometries of each cohort. Each StemStochiometry object
         # contains a list of StemTissue objects, which are the tissues that make up the
@@ -1118,7 +1119,6 @@ class PlantsModel(
             # TODO: ask Jacob what he wants from these values
             # self.data["deadwood_c_n_ratio"][cell_id] = (
             # self.stochiometries[cell_id]["N"]...
-
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
