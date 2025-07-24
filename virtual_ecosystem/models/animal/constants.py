@@ -25,19 +25,28 @@ class AnimalConsts(ConstantsDataclass):
 
     """
 
-    metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
-        default_factory=lambda: {
-            # Parameters from Madingley, mass-based metabolic rates
-            MetabolicType.ENDOTHERMIC: {
-                "basal": (4.19e10, 0.69),
-                "field": (9.08e11, 0.7),
-            },
-            MetabolicType.ECTOTHERMIC: {
-                "basal": (4.19e10, 0.69),
-                "field": (1.49e11, 0.88),
-            },
-        }
-    )
+    density_scaling_method: str = "damuth"
+
+    def get_population_density_terms(
+        self, taxa: TaxaType, diet: DietType
+    ) -> tuple[float, float]:
+        """Return scaling terms for the specified density scaling method.
+
+        Args:
+            taxa: The TaxaType of the functional group (used for damuth).
+            diet: The DietType of the functional group (used for damuth).
+
+        Returns:
+            A tuple (exponent, scalar) for the scaling law.
+        """
+        if self.density_scaling_method == "damuth":
+            return self.damuths_law_terms[taxa][diet]
+        elif self.density_scaling_method == "madingley":
+            return self.madingley_biomass_scaling_terms
+        else:
+            raise ValueError(
+                f"Unsupported density scaling method: {self.density_scaling_method}"
+            )
 
     damuths_law_terms: dict[TaxaType, dict[DietType, tuple[float, float]]] = field(
         default_factory=lambda: {
@@ -60,6 +69,22 @@ class AnimalConsts(ConstantsDataclass):
                 DietType.HERBIVORE: (-0.75, 5.00),
                 DietType.CARNIVORE: (-0.75, 2.00),
                 DietType.OMNIVORE: (-0.75, 3.00),
+            },
+        }
+    )
+
+    madingley_biomass_scaling_terms = (0.6, 300000.0)
+
+    metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
+        default_factory=lambda: {
+            # Parameters from Madingley, mass-based metabolic rates
+            MetabolicType.ENDOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (9.08e11, 0.7),
+            },
+            MetabolicType.ECTOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (1.49e11, 0.88),
             },
         }
     )
@@ -123,7 +148,7 @@ class AnimalConsts(ConstantsDataclass):
 
     tau_f = 0.5  # tau_f
     """Proportion of time for which functional group is active."""
-    sigma_f_t = 0.5  # sigma_f(t) - TODO: find real value
+    sigma_f_t = 1.0  # sigma_f(t) - Madingley, in S1 TODO: expand for ectotherms
     """Proportion of the time step in which it's suitable to be active for functional
     group f."""
 

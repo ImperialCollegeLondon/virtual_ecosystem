@@ -26,11 +26,12 @@ language_info:
 
 This section walks through the steps in generating and updating the
 [hydrology](../../../../virtual_ecosystem/models/hydrology/hydrology_model.py)
-model which is part of the default Virtual Ecosystem configuration. The key processes
-are illustrated in {numref}`hydrology`.
+model which is part of the default Virtual Ecosystem configuration. The flow of key
+inputs, state variables, and processes are illustrated in {numref}`hydrology`.
 
 The processes [within a grid cell](#within-grid-cell-hydrology) are loosely based
-on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. The processes
+on the LISFLOOD model {cite}`van_der_knijff_lisflood_2010`. These structure and flows of
+this '4-Bucket Model' are summarised in {numref}`bucket_model`. The processes
 [across the model grid](#across-grid-hydrology) are loosely based on
 the [pysheds](https://github.com/mdbartos/pysheds) package.
 
@@ -40,9 +41,9 @@ the [pysheds](https://github.com/mdbartos/pysheds) package.
 :class: bg-primary
 :width: 600px
 
-Hydrology processes in Virtual Ecosystem (click to zoom). Yellow boxes
-represent atmospheric input variables, green box and arrows indicate where water
-enters and leaves the plant model.
+Hydrology inputs, state variables, and processes in Virtual Ecosystem (click to zoom).
+Yellow boxes represent atmospheric input variables, green box and arrows indicate where
+water enters and leaves the plant model.
 :::
 
 ```{note}
@@ -88,6 +89,24 @@ The [below ground](../../api/models/hydrology/below_ground.md) component conside
 infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
 {term}`soil matric potential`, horizontal
 sub-surface flow out of the grid cell, and changes in groundwater storage.
+
+:::{figure} ../../_static/images/4bucketmodel.svg
+:name: bucket_model
+:alt: 4-Bucket Model
+:class: bg-primary
+:width: 600px
+
+The 4-Bucket Model represented within grid cell hydrology processes in the Virtual
+Ecosystem. Red solid arrows indicate upward vertical flow, red dashed arrows show
+vertical downward flow. The blue arrows indicate horizontal flow out of the
+grid cell with solid lines representing water that flows out of each layer in the
+current time step and dashed lines representing water that originates from upstream
+grid cells (previous time step) and flows through the grid cell directly to the stream.
+**NOTE!** Top soil and middle soil are currently treated as one layer in the model.
+Subsurface runoff (Q2) and interflow (Q3) are currently not implemented; the
+river discharge is calculated as the sum of surface runoff (Q1) and the flows out of the
+groundwater buckets (Q4+Q5).
+:::
 
 ### Canopy interception
 
@@ -276,18 +295,24 @@ of the current layer and adding it to the layer below. The implementation is bas
 on {cite:t}`van_der_knijff_lisflood_2010`. Additionally, the canopy transpiration is
 removed from the second soil layer.
 
-### Subsurface flow and groundwater storage
+```{note}
+We do currently NOT include any horizontal flows from the soil layers towards the stream
+(Q2 and Q3 in {numref}`bucket_model`).
+```
 
-Groundwater storage and transport are modelled using two parallel linear reservoirs,
-similar to the approach used in the HBV-96 model
+### Belowground horizontal flow and groundwater storage
+
+Groundwater storage and horizontal transport are modelled using two parallel linear
+reservoirs, similar to the approach used in the HBV-96 model
 {cite}`lindstrom_development_1997` and the LISFLOOD
 {cite}`van_der_knijff_lisflood_2010` (see for full documentation).
 
 The upper zone represents a quick runoff component, which includes fast groundwater
-and subsurface flow through macro-pores in the soil. The lower zone represents the
-slow groundwater component that generates the base flow.
+and (vertical) subsurface flow through macro-pores in the soil. The lower zone
+represents the slow groundwater component that generates the base flow.
 
-The outflow from the upper zone to the channel, $Q_{uz}$, (mm), equals:
+The outflow from the upper zone to the channel, $Q_{uz}$, (mm),
+(Q4 in {numref}`bucket_model`) equals:
 
 $$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
 
@@ -310,8 +335,8 @@ follows:
 $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
 where $GW_{perc}$, [mm day], is the maximum percolation rate from the upper to
-the lower groundwater zone. The outflow from the lower zone to the channel is then
-computed by:
+the lower groundwater zone. The outflow from the lower zone to the channel $Q_{lz}$,
+(mm), (Q5 in {numref}`bucket_model`) is then computed by:
 
 $$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
 

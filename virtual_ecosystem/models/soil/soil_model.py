@@ -26,6 +26,7 @@ from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -99,6 +100,7 @@ class SoilModel(
         "ecto_supply_limit_p",
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
+        "production_of_fungal_fruiting_bodies",
     ),
     vars_required_for_update=(
         "soil_c_pool_maom",
@@ -149,6 +151,7 @@ class SoilModel(
         "animal_saprotrophic_fungi_consumption",
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
         "soil_c_pool_maom",
@@ -183,6 +186,7 @@ class SoilModel(
         "ecto_supply_limit_p",
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
+        "production_of_fungal_fruiting_bodies",
     ),
     # TODO - If anything gets added to this section the implementation docs will need to
     # be updated
@@ -214,6 +218,13 @@ class SoilModel(
         self.model_constants: SoilConsts
         """Set of constants for the soil model."""
 
+        self.refreshed_variables = ["new_fungal_fruiting_body_production"]
+        """List of variables that the model resets for each new integration step.
+        
+        These variables are intermediate values that it does not make sense to store in
+        the data object.
+        """
+
     @classmethod
     def from_config(
         cls, data: Data, core_components: CoreComponents, config: Config
@@ -232,6 +243,7 @@ class SoilModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
+        core_constants = load_constants(config, "core", "CoreConsts")
         static = config["soil"]["static"]
 
         LOGGER.info(
@@ -240,7 +252,7 @@ class SoilModel(
 
         enzyme_classes = make_full_set_of_enzymes(config)
         microbial_groups = make_full_set_of_microbial_groups(
-            config, enzyme_classes=enzyme_classes
+            config, enzyme_classes=enzyme_classes, core_constants=core_constants
         )
 
         # Load hydrology constants
@@ -251,6 +263,7 @@ class SoilModel(
             core_components=core_components,
             static=static,
             model_constants=model_constants,
+            core_constants=core_constants,
             microbial_groups=microbial_groups,
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=hydro_constants.soil_moisture_saturation,
@@ -260,6 +273,7 @@ class SoilModel(
     def _setup(
         self,
         model_constants: SoilConsts,
+        core_constants: CoreConsts,
         microbial_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
         soil_moisture_saturation: float,
@@ -269,6 +283,7 @@ class SoilModel(
         """Function to setup up the soil model."""
 
         self.model_constants = model_constants
+        self.core_constants = core_constants
 
         # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups
@@ -287,6 +302,15 @@ class SoilModel(
         symbiotic_supply_limits = self.calculate_symbiotic_supply_limits(init=True)
         # Add these limits to the data object
         self.data.add_from_dict(symbiotic_supply_limits)
+
+        # The initial production of fungal fruiting bodies is set to zero, because the
+        # initial density estimate implicitly contains the initial production
+        fungal_fruiting_body_production = {
+            "production_of_fungal_fruiting_bodies": DataArray(
+                np.zeros(self.data.grid.n_cells), dims="cell_id"
+            )
+        }
+        self.data.add_from_dict(fungal_fruiting_body_production)
 
         # Check that soil pool data is appropriately bounded
         if not self._all_pools_positive():
@@ -308,11 +332,22 @@ class SoilModel(
         """
 
         # Find carbon pool updates by integration
-        updated_carbon_pools = self.integrate()
+        updated_soil_pools = self.integrate()
 
-        # Update carbon pools (attributes and data object)
-        # n.b. this also updates the data object automatically
-        self.data.add_from_dict(updated_carbon_pools)
+        # Update carbon pools (attributes and data object) n.b. this also updates the
+        # data object automatically. Refreshed variables have to be excluded from this
+        self.data.add_from_dict(
+            {
+                variable: value
+                for variable, value in updated_soil_pools.items()
+                if variable not in self.refreshed_variables
+            }
+        )
+
+        fruiting_body_production_rate = self.convert_fruiting_body_production_to_rate(
+            total_production=updated_soil_pools["new_fungal_fruiting_body_production"]
+        )
+        self.data.add_from_dict(fruiting_body_production_rate)
 
         # Calculate dissolved amounts of each inorganic nutrients
         dissolved_nutrient_pools = self.calculate_dissolved_nutrient_concentrations()
@@ -370,20 +405,30 @@ class SoilModel(
         update_time = self.model_timing.update_interval_quantity.to("days").magnitude
         t_span = (0.0, update_time)
 
-        # Construct vector of initial values y0
+        # Construct vector of initial values y0. Zeros are added to the end for all the
+        # non-data object variables
         y0 = np.concatenate(
-            [
-                self.data[name].to_numpy()
-                for name in map(str, self.data.data.keys())
-                if name in self.vars_updated and name not in self.vars_populated_by_init
-            ]
+            (
+                np.concatenate(
+                    [
+                        self.data[name].to_numpy()
+                        for name in map(str, self.data.data.keys())
+                        if name in self.vars_updated
+                        and name not in self.vars_populated_by_init
+                    ]
+                ),
+                np.zeros(len(self.refreshed_variables) * self.data.grid.n_cells),
+            )
         )
 
-        # Find and store order of pools
+        # Find and store order of pools (refreshed variables go at the end)
         delta_pools_ordered = {
-            name: np.array([])
-            for name in map(str, self.data.data.keys())
-            if name in self.vars_updated and name not in self.vars_populated_by_init
+            **{
+                name: np.array([])
+                for name in map(str, self.data.data.keys())
+                if name in self.vars_updated and name not in self.vars_populated_by_init
+            },
+            **{name: np.array([]) for name in self.refreshed_variables},
         }
 
         # Carry out simulation
@@ -399,7 +444,7 @@ class SoilModel(
                 self.model_constants,
                 self.microbial_groups,
                 self.enzyme_classes,
-                self.core_constants.max_depth_of_microbial_activity,
+                self.core_constants,
                 self.soil_moisture_saturation,
                 self.soil_moisture_residual,
                 self.layer_structure.soil_layer_thickness[0],
@@ -425,6 +470,32 @@ class SoilModel(
         }
 
         return new_c_pools
+
+    def convert_fruiting_body_production_to_rate(
+        self, total_production: DataArray
+    ) -> dict[str, DataArray]:
+        """Convert total fungal fruiting body production into a rate are being produced.
+
+        The soil model integration provides a total mass produced (per soil volume) over
+        the integration time period. This method converts this into a rate, and into per
+        area rather than soil volume terms.
+
+        Args:
+            total_production: The total production of fungal fruiting bodies over the
+                integration time period, per volume of soil [kg C m^-3]
+
+        Returns:
+            A data array containing the rate at which fungal fruiting bodies are
+            produced per unit area [kg C m^-2 day^-1].
+        """
+
+        return {
+            "production_of_fungal_fruiting_bodies": total_production
+            / (
+                self.core_constants.max_depth_of_microbial_activity
+                * self.model_timing.update_interval_quantity.to("days").magnitude
+            )
+        }
 
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
         """Calculate the amount of each inorganic nutrient that is in dissolved form.
@@ -683,7 +754,7 @@ def construct_full_soil_model(
     model_constants: SoilConsts,
     functional_groups: dict[str, MicrobialGroupConstants],
     enzyme_classes: dict[str, EnzymeConstants],
-    max_depth_of_microbial_activity: float,
+    core_constants: CoreConsts,
     soil_moisture_saturation: float,
     soil_moisture_residual: float,
     top_soil_layer_thickness: float,
@@ -704,8 +775,7 @@ def construct_full_soil_model(
         model_constants: Set of constants for the soil model.
         functional_groups: Set of microbial functional groups used by the soil model.
         enzyme_classes: Set of enzyme classes used by the soil model.
-        max_depth_of_microbial_activity: Maximum depth of the soil profile where
-            microbial activity occurs [m].
+        core_constants: Set of constants shared across all models.
         soil_moisture_saturation: :term:`soil moisture saturation`, i.e. the maximum
             (volumetric) moisture the soil can hold [unitless].
         soil_moisture_residual: :term:`soil moisture residual`, i.e. the minimum
@@ -727,10 +797,10 @@ def construct_full_soil_model(
     soil_pools = SoilPools(
         data,
         pools=all_pools,
-        constants=model_constants,
+        model_constants=model_constants,
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        max_depth_of_microbial_activity=max_depth_of_microbial_activity,
+        core_constants=core_constants,
     )
 
     return soil_pools.calculate_all_pool_updates(

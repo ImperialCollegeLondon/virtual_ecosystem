@@ -60,18 +60,18 @@ from tests.conftest import log_check
         ),
         pytest.param(
             True,
-            [-0.00018997, -0.00548659, 0.00224645, 0.00125277],
+            [-0.00018997, -0.00548659, 0.0020494, 0.00104466],
             {
                 "carbon": [-0.00040488, -0.01200351, 0.0, 0.0],
-                "organic_nitrogen": [9.48666511e-6, -2.62810472e-4, 1.11462920e-5, 0.0],
+                "organic_nitrogen": [9.48666511e-6, -2.62810472e-4, 2.50424214e-5, 0.0],
                 "organic_phosphorus": [
                     7.70669365e-9,
                     4.33396110e-6,
-                    4.71220460e-6,
+                    6.59081814e-6,
                     4.47962952e-6,
                 ],
-                "ammonium": [2.48601084e-6, 0.0, 1.09579690e-4, 8.60057544e-5],
-                "nitrate": [8.17347789e-6, 0.0, 1.63588918e-5, 1.79999208e-5],
+                "ammonium": [2.48601084e-6, 0.0, 1.09579690e-4, 8.65898810e-5],
+                "nitrate": [8.17347789e-6, 0.0, 1.63588918e-5, 1.81221712e-5],
                 "inorganic_phosphorus": [
                     1.89216383e-7,
                     6.34446807e-6,
@@ -291,9 +291,9 @@ def test_find_net_nutrient_consumptions_symbiotic(
         "carbon": [0.0, -0.009922161, 0.0, 0.0],
         "organic_nitrogen": [0.0, -0.000209957778, 0.0, 0.0],
         "organic_phosphorus": [1.170653794e-6, 7.5515783e-6, 0.0, 1.18821599e-6],
-        "ammonium": [9.83999773e-6, 0.0, 0.00011927802, 3.6913541e-5],
-        "nitrate": [3.23518314e-5, 0.0, 1.7806732569e-5, 7.72553903e-6],
-        "inorganic_phosphorus": [2.3350107e-6, 1.1054755e-5, 2.1051599e-5, 2.030087e-6],
+        "ammonium": [9.86548476e-6, 0.0, 1.31369206e-4, 3.70304315e-5],
+        "nitrate": [3.24356275e-5, 0.0, 1.96117969e-5, 7.75000277e-6],
+        "inorganic_phosphorus": [2.3350107e-6, 1.1054755e-5, 2.293023e-5, 2.0300866e-6],
     }
 
     actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
@@ -353,7 +353,7 @@ def test_calculate_actual_carbon_gain_symbiotic(
         calculate_actual_carbon_gain_symbiotic,
     )
 
-    expected_carbon_gain = [0.00020176809, -0.0045352375, 0.002336312107, 0.00026054171]
+    expected_carbon_gain = [0.00018443, -0.00453524, 0.00233631, 0.00023815]
 
     actual_carbon_gain = calculate_actual_carbon_gain_symbiotic(
         max_uptake_rates=max_uptake_rates,

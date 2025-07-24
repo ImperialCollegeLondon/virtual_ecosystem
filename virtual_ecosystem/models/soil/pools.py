@@ -12,6 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.constants import convert_temperature
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.hydrology.hydrology_tools import (
@@ -26,12 +27,13 @@ from virtual_ecosystem.models.soil.env_factors import (
     EnvironmentalEffectFactors,
     calculate_denitrification_temperature_factor,
     calculate_environmental_effect_factors,
-    calculate_leaching_rate,
     calculate_nitrification_moisture_factor,
     calculate_nitrification_temperature_factor,
+    calculate_solute_removal_by_soil_water,
     calculate_symbiotic_nitrogen_fixation_carbon_cost,
     calculate_temperature_effect_on_microbes,
     find_total_soil_moisture_for_microbially_active_depth,
+    find_water_outflow_rates,
 )
 from virtual_ecosystem.models.soil.microbial_groups import (
     CarbonSupply,
@@ -126,6 +128,9 @@ class MicrobialChanges:
     necromass_p_flow: NDArray[np.floating]
     """Phosphorus flow associated with necromass generation [kg P m^-3 day^-1]."""
 
+    fruiting_body_production: NDArray[np.floating]
+    """Rate a which fungal fruiting bodies are being produced [kg C m^-3 day^-1]."""
+
 
 @dataclass
 class EnzymeMediatedRates:
@@ -215,26 +220,26 @@ class BiomassLosses:
 
 
 @dataclass
-class LeachingRates:
-    """Leaching rate for each soluble nutrient pool."""
+class WaterRemovalRates:
+    """Rate at which each soluble nutrient pool is removed due to soil water flows."""
 
     lmwc: NDArray[np.floating]
-    """Leaching rate for the low molecular weight carbon pool [kg C m^-3 day^-1]."""
+    """Removal rate for the low molecular weight carbon pool [kg C m^-3 day^-1]."""
 
     don: NDArray[np.floating]
-    """Loss of dissolved organic nitrogen due to LMWC leaching [kg N m^-3 day^-1]."""
+    """Loss of dissolved organic nitrogen due to LMWC removal [kg N m^-3 day^-1]."""
 
     dop: NDArray[np.floating]
-    """Loss of dissolved organic phosphorus due to LMWC leaching [kg P m^-3 day^-1]."""
+    """Loss of dissolved organic phosphorus due to LMWC removal [kg P m^-3 day^-1]."""
 
     ammonium: NDArray[np.floating]
-    """Leaching rate for the soil ammonium pool [kg N m^-3 day^-1]."""
+    """Removal rate for the soil ammonium pool [kg N m^-3 day^-1]."""
 
     nitrate: NDArray[np.floating]
-    """Leaching rate for the soil nitrate pool [kg N m^-3 day^-1]."""
+    """Removal rate for the soil nitrate pool [kg N m^-3 day^-1]."""
 
     labile_P: NDArray[np.floating]
-    """Leaching rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
+    """Removal rate for the labile inorganic phosphorus pool [kg P m^-3 day^-1]."""
 
 
 @dataclass
@@ -354,6 +359,9 @@ class PoolData:
     soil_p_pool_labile: NDArray[np.floating]
     """Inorganic labile phosphorus pool [kg P m^-3]."""
 
+    new_fungal_fruiting_body_production: NDArray[np.floating]
+    """Fungal fruiting biomass produced during simulation time step [kg C m^-3]."""
+
 
 class SoilPools:
     """This class collects all the various soil pools so that they can be updated.
@@ -368,10 +376,10 @@ class SoilPools:
         self,
         data: Data,
         pools: dict[str, NDArray[np.floating]],
-        constants: SoilConsts,
+        model_constants: SoilConsts,
         functional_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
-        max_depth_of_microbial_activity: float,
+        core_constants: CoreConsts,
     ):
         self.data = data
         """The data object for the Virtual Ecosystem simulation."""
@@ -382,17 +390,17 @@ class SoilPools:
         These pools need to be added outside the data object otherwise the integrator
         cannot update them and the integration will fail.
         """
-        self.constants = constants
+        self.model_constants = model_constants
         """Set of constants for the soil model."""
+
+        self.core_constants = core_constants
+        """Set of constants shared across all models in the Virtual Ecosystem."""
 
         self.functional_groups = functional_groups
         """Set of microbial functional groups used by the soil model."""
 
         self.enzyme_classes = enzyme_classes
         """Details of the enzyme classes used by the soil model."""
-
-        self.max_depth_of_microbial_activity = max_depth_of_microbial_activity
-        """Maximum depth of the soil profile where microbial activity occurs [m]."""
 
     def calculate_all_pool_updates(
         self,
@@ -459,8 +467,8 @@ class SoilPools:
             total_plant_supply=self.to_per_volume(
                 self.data["plant_symbiote_carbon_supply"].to_numpy()
             ),
-            nitrogen_fixer_fraction=self.constants.nitrogen_fixer_supply_fraction,
-            ectomycorrhiza_fraction=self.constants.ectomycorrhiza_supply_fraction,
+            nitrogen_fixer_fraction=self.model_constants.nitrogen_fixer_supply_fraction,
+            ectomycorrhiza_fraction=self.model_constants.ectomycorrhiza_supply_fraction,
         )
 
         # Find environmental factors which impact biogeochemical soil processes
@@ -468,14 +476,14 @@ class SoilPools:
             soil_water_potential=soil_water_potential,
             pH=self.data["pH"].to_numpy(),
             clay_fraction=self.data["clay_fraction"].to_numpy(),
-            constants=self.constants,
+            constants=self.model_constants,
         )
         # find changes related to microbial uptake, growth and decay
         microbial_changes = calculate_microbial_changes(
             pools=self.pools,
             soil_temp=soil_temperature,
             env_factors=env_factors,
-            constants=self.constants,
+            constants=self.model_constants,
             microbial_groups=self.functional_groups,
             enzyme_classes=self.enzyme_classes,
             carbon_supply=carbon_supply,
@@ -500,39 +508,38 @@ class SoilPools:
             enzyme_classes=self.enzyme_classes,
         )
 
-        # Calculate leaching rates
-        nutrient_leaching = calculate_nutrient_leaching(
+        # Calculate nutrient removal due to water flows
+        nutrient_removal_by_water = calculate_nutrient_removal_by_water(
             soil_c_pool_lmwc=self.pools.soil_c_pool_lmwc,
             soil_n_pool_don=self.pools.soil_n_pool_don,
             soil_p_pool_dop=self.pools.soil_p_pool_dop,
             soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
-            vertical_flow_rate=self.data["vertical_flow"][
-                layer_structure.index_topsoil_scalar
-            ].to_numpy(),
+            vertical_flow_rates=self.data["vertical_flow"].to_numpy(),
             soil_moisture=soil_moisture,
-            constants=self.constants,
+            layer_structure=layer_structure,
+            constants=self.model_constants,
         )
 
         # Calculate transfers between the lmwc, necromass and maom pools
         maom_desorption_to_lmwc = calculate_maom_desorption(
             soil_c_pool_maom=self.pools.soil_c_pool_maom,
-            desorption_rate_constant=self.constants.maom_desorption_rate,
+            desorption_rate_constant=self.model_constants.maom_desorption_rate,
         )
 
         necromass_decay_to_lmwc = calculate_necromass_breakdown(
             soil_c_pool_necromass=self.pools.soil_c_pool_necromass,
-            necromass_decay_rate=self.constants.necromass_decay_rate,
+            necromass_decay_rate=self.model_constants.necromass_decay_rate,
         )
 
         necromass_sorption_to_maom = calculate_sorption_to_maom(
             soil_c_pool=self.pools.soil_c_pool_necromass,
-            sorption_rate_constant=self.constants.necromass_sorption_rate,
+            sorption_rate_constant=self.model_constants.necromass_sorption_rate,
         )
         lmwc_sorption_to_maom = calculate_sorption_to_maom(
             soil_c_pool=self.pools.soil_c_pool_lmwc,
-            sorption_rate_constant=self.constants.lmwc_sorption_rate,
+            sorption_rate_constant=self.model_constants.lmwc_sorption_rate,
         )
 
         # Calculate the flux to each pool from litter mineralisation
@@ -546,7 +553,7 @@ class SoilPools:
             litter_P_mineralisation_rate=self.data[
                 "litter_P_mineralisation_rate"
             ].to_numpy(),
-            constants=self.constants,
+            constants=self.model_constants,
         )
 
         # Find mineralisation rates from POM
@@ -593,19 +600,19 @@ class SoilPools:
             soil_temp=soil_temperature,
             effective_saturation=effective_saturation,
             soil_n_pool_ammonium=self.pools.soil_n_pool_ammonium,
-            constants=self.constants,
+            constants=self.model_constants,
         )
         denitrification_rate = calculate_rate_of_denitrification(
             soil_temp=soil_temperature,
             effective_saturation=effective_saturation,
             soil_n_pool_nitrate=self.pools.soil_n_pool_nitrate,
-            constants=self.constants,
+            constants=self.model_constants,
         )
 
         # Calculate rate at which ammonium volatilises as ammonia
         ammonia_volatilisation_rate = np.where(
             self.pools.soil_n_pool_ammonium >= 0.0,
-            self.constants.ammonia_volatilisation_rate_constant
+            self.model_constants.ammonia_volatilisation_rate_constant
             * self.pools.soil_n_pool_ammonium,
             0.0,
         )
@@ -614,25 +621,33 @@ class SoilPools:
         symbiotic_nitrogen_fixation = calculate_symbiotic_nitrogen_fixation(
             carbon_supply=carbon_supply.nitrogen_fixers,
             soil_temp=soil_temperature,
-            constants=self.constants,
+            constants=self.model_constants,
         )
         free_living_nitrogen_fixation = calculate_free_living_nitrogen_fixation(
             soil_temp=soil_temperature,
-            fixation_at_reference=self.constants.free_living_N_fixation_reference_rate,
-            reference_temperature=self.constants.free_living_N_fixation_reference_temp,
-            q10_nitrogen_fixation=self.constants.free_living_N_fixation_q10_coefficent,
-            active_depth=self.max_depth_of_microbial_activity,
+            fixation_at_reference=self.model_constants.free_living_N_fixation_reference_rate,
+            reference_temperature=self.model_constants.free_living_N_fixation_reference_temp,
+            q10_nitrogen_fixation=self.model_constants.free_living_N_fixation_q10_coefficent,
+            active_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
         primary_phosphorus_breakdown = (
-            self.constants.primary_phosphorus_breakdown_rate
+            self.model_constants.primary_phosphorus_breakdown_rate
             * self.pools.soil_p_pool_primary
         )
         net_formation_secondary_P = calculate_net_formation_of_secondary_P(
             soil_p_pool_labile=self.pools.soil_p_pool_labile,
             soil_p_pool_secondary=self.pools.soil_p_pool_secondary,
-            secondary_p_breakdown_rate=self.constants.secondary_phosphorus_breakdown_rate,
-            labile_p_sorption_rate=self.constants.labile_phosphorus_sorption_rate,
+            secondary_p_breakdown_rate=self.model_constants.secondary_phosphorus_breakdown_rate,
+            labile_p_sorption_rate=self.model_constants.labile_phosphorus_sorption_rate,
+        )
+
+        fungal_fruiting_body_decay = calculate_fungal_fruiting_body_decay(
+            decay_rate=self.to_per_volume(
+                self.data["decay_of_fungal_fruiting_bodies"].to_numpy()
+            ),
+            fungal_fruiting_body_c_n_ratio=self.core_constants.fungal_fruiting_bodies_c_n_ratio,
+            fungal_fruiting_body_c_p_ratio=self.core_constants.fungal_fruiting_bodies_c_p_ratio,
         )
 
         # Determine net changes to the pools
@@ -643,9 +658,10 @@ class SoilPools:
             + enzyme_mediated.maom_to_lmwc
             + maom_desorption_to_lmwc
             + necromass_decay_to_lmwc
+            + fungal_fruiting_body_decay["carbon"]
             - microbial_changes.lmwc_uptake
             - lmwc_sorption_to_maom
-            - nutrient_leaching.lmwc
+            - nutrient_removal_by_water.lmwc
         )
 
         delta_pools_ordered["soil_c_pool_maom"] = (
@@ -692,13 +708,17 @@ class SoilPools:
         delta_pools_ordered["soil_enzyme_maom_fungi"] = (
             microbial_changes.maom_enzyme_fungi_change
         )
+        delta_pools_ordered["new_fungal_fruiting_body_production"] = (
+            microbial_changes.fruiting_body_production
+        )
         delta_pools_ordered["soil_n_pool_don"] = (
             litter_mineralisation_flux.don
             + pom_n_mineralisation
             + necromass_outflows["decay_nitrogen"]
             + nutrient_transfers_maom_to_lmwc["nitrogen"]
+            + fungal_fruiting_body_decay["nitrogen"]
             - microbial_changes.don_uptake
-            - nutrient_leaching.don
+            - nutrient_removal_by_water.don
         )
         delta_pools_ordered["soil_n_pool_particulate"] = (
             litter_mineralisation_flux.particulate_n
@@ -715,13 +735,13 @@ class SoilPools:
             - nutrient_transfers_maom_to_lmwc["nitrogen"]
         )
         delta_pools_ordered["soil_n_pool_ammonium"] = (
-            self.to_per_volume(self.constants.ammonium_deposition_rate)
+            self.to_per_volume(self.model_constants.ammonium_deposition_rate)
             + litter_mineralisation_flux.ammonium
             + symbiotic_nitrogen_fixation
             + free_living_nitrogen_fixation
             - microbial_changes.ammonium_change
             - self.to_per_volume(self.data["plant_ammonium_uptake"].to_numpy())
-            - nutrient_leaching.ammonium
+            - nutrient_removal_by_water.ammonium
             - ammonia_volatilisation_rate
             - nitrification_rate
         )
@@ -730,15 +750,16 @@ class SoilPools:
             - denitrification_rate
             - microbial_changes.nitrate_change
             - self.to_per_volume(self.data["plant_nitrate_uptake"].to_numpy())
-            - nutrient_leaching.nitrate
+            - nutrient_removal_by_water.nitrate
         )
         delta_pools_ordered["soil_p_pool_dop"] = (
             litter_mineralisation_flux.dop
             + pom_p_mineralisation
             + necromass_outflows["decay_phosphorus"]
             + nutrient_transfers_maom_to_lmwc["phosphorus"]
+            + fungal_fruiting_body_decay["phosphorus"]
             - microbial_changes.dop_uptake
-            - nutrient_leaching.dop
+            - nutrient_removal_by_water.dop
         )
         delta_pools_ordered["soil_p_pool_particulate"] = (
             litter_mineralisation_flux.particulate_p
@@ -755,18 +776,18 @@ class SoilPools:
             - nutrient_transfers_maom_to_lmwc["phosphorus"]
         )
         delta_pools_ordered["soil_p_pool_primary"] = (
-            self.constants.tectonic_uplift_rate_phosphorus
+            self.model_constants.tectonic_uplift_rate_phosphorus
             - primary_phosphorus_breakdown
         )
         delta_pools_ordered["soil_p_pool_secondary"] = net_formation_secondary_P
         delta_pools_ordered["soil_p_pool_labile"] = (
             litter_mineralisation_flux.labile_p
-            + self.to_per_volume(self.constants.phosphorus_deposition_rate)
+            + self.to_per_volume(self.model_constants.phosphorus_deposition_rate)
             + primary_phosphorus_breakdown
             - microbial_changes.labile_p_change
             - self.to_per_volume(self.data["plant_phosphorus_uptake"].to_numpy())
             - net_formation_secondary_P
-            - nutrient_leaching.labile_P
+            - nutrient_removal_by_water.labile_P
         )
 
         # Create output array of pools in desired order
@@ -786,9 +807,11 @@ class SoilPools:
         """
 
         if isinstance(input_rate, float):
-            return np.array(input_rate / self.max_depth_of_microbial_activity)
+            return np.array(
+                input_rate / self.core_constants.max_depth_of_microbial_activity
+            )
         else:
-            return input_rate / self.max_depth_of_microbial_activity
+            return input_rate / self.core_constants.max_depth_of_microbial_activity
 
 
 def calculate_microbial_changes(
@@ -913,19 +936,21 @@ def calculate_microbial_changes(
         pools=pools, microbial_groups=microbial_groups, soil_temp=soil_temp
     )
 
+    # Collect growth rates into a single dictionary
+    growth_rates = {
+        "bacteria": bacterial_growth,
+        "saprotrophic_fungi": saprotrophic_fungal_growth,
+        "arbuscular_mycorrhiza": np.where(
+            arbuscular_mycorrhizal_growth > 0, arbuscular_mycorrhizal_growth, 0
+        ),
+        "ectomycorrhiza": np.where(
+            ectomycorrhizal_growth > 0, ectomycorrhizal_growth, 0
+        ),
+    }
+
     # Calculate the total production of each enzyme class
     enzyme_production = calculate_enzyme_production(
-        microbial_groups=microbial_groups,
-        growth_rates={
-            "bacteria": bacterial_growth,
-            "saprotrophic_fungi": saprotrophic_fungal_growth,
-            "arbuscular_mycorrhiza": np.where(
-                arbuscular_mycorrhizal_growth > 0, arbuscular_mycorrhizal_growth, 0
-            ),
-            "ectomycorrhiza": np.where(
-                ectomycorrhizal_growth > 0, ectomycorrhizal_growth, 0
-            ),
-        },
+        microbial_groups=microbial_groups, growth_rates=growth_rates
     )
 
     # Find changes in each enzyme pool
@@ -941,6 +966,10 @@ def calculate_microbial_changes(
         enzyme_changes=enzyme_changes,
         microbial_groups=microbial_groups,
         enzyme_classes=enzyme_classes,
+    )
+
+    fungal_fruiting_body_production = calculate_fruiting_body_production(
+        microbial_groups=microbial_groups, growth_rates=growth_rates
     )
 
     return MicrobialChanges(
@@ -994,6 +1023,7 @@ def calculate_microbial_changes(
         ),
         necromass_n_flow=necromass_n_flow,
         necromass_p_flow=necromass_p_flow,
+        fruiting_body_production=fungal_fruiting_body_production,
     )
 
 
@@ -1068,24 +1098,25 @@ def calculate_enzyme_mediated_rates(
     return EnzymeMediatedRates(**decomposition_rates)
 
 
-def calculate_nutrient_leaching(
+def calculate_nutrient_removal_by_water(
     soil_c_pool_lmwc: NDArray[np.floating],
     soil_n_pool_don: NDArray[np.floating],
     soil_p_pool_dop: NDArray[np.floating],
     soil_n_pool_ammonium: NDArray[np.floating],
     soil_n_pool_nitrate: NDArray[np.floating],
     soil_p_pool_labile: NDArray[np.floating],
-    vertical_flow_rate: NDArray[np.floating],
+    vertical_flow_rates: NDArray[np.floating],
     soil_moisture: NDArray[np.floating],
+    layer_structure: LayerStructure,
     constants: SoilConsts,
-) -> LeachingRates:
-    """Calculate the rate a which each soluble nutrient pool is leached.
+) -> WaterRemovalRates:
+    """Calculate the rate a which each soluble nutrient pool is removed by water.
 
-    Leaching rates are calculated for the low molecular weight carbon pool and the
+    Removal rates are calculated for the low molecular weight carbon pool and the
     inorganic nitrogen and phosphorus pools based on their solubility and the rate at
-    which water flows through the soil. The loss of organic nitrogen and phosphorus due
-    to leaching is then calculated based on the stoichiometry and leaching rate of the
-    LMWC pool.
+    which water exits the microbially active part of the soil. The removal rates for
+    organic nitrogen and phosphorus are then calculated based on the stoichiometry and
+    removal rate of the LMWC pool.
 
     Args:
         soil_c_pool_lmwc: Low molecular weight carbon pool [kg C m^-3]
@@ -1094,54 +1125,62 @@ def calculate_nutrient_leaching(
         soil_n_pool_ammonium: Soil ammonium pool [kg N m^-3]
         soil_n_pool_nitrate: Soil nitrate pool [kg N m^-3]
         soil_p_pool_labile: Labile inorganic phosphorus pool [kg P m^-3]
-        vertical_flow_rate: Rate of flow downwards through the soil [mm day^-1]
+        vertical_flow_rates: Rates of flow downwards between the different soil layers
+            [mm day^-1]
         soil_moisture: Volume of water contained in topsoil layer [mm]
+        layer_structure: The details of the layer structure used across the Virtual
+                Ecosystem.
         constants: Set of constants for the soil model.
 
     Returns:
-        A dataclass containing the rate a which each soluble nutrient pool leaches.
+        A dataclass containing the rate a which each soluble nutrient pool is removed by
+        flows of water through the soil.
     """
 
-    # Find leaching rates
-    labile_carbon_leaching = calculate_leaching_rate(
+    total_exit_rate = find_water_outflow_rates(
+        vertical_flow=vertical_flow_rates, layer_structure=layer_structure
+    )
+
+    # Find rates at which water removes soluble nutrients
+    labile_carbon_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_c_pool_lmwc,
-        vertical_flow_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_lmwc,
     )
-    ammonium_leaching = calculate_leaching_rate(
+    ammonium_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_n_pool_ammonium,
-        vertical_flow_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_ammonium,
     )
-    nitrate_leaching = calculate_leaching_rate(
+    nitrate_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_n_pool_nitrate,
-        vertical_flow_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_nitrate,
     )
-    labile_phosphorus_leaching = calculate_leaching_rate(
+    labile_phosphorus_removal = calculate_solute_removal_by_soil_water(
         solute_density=soil_p_pool_labile,
-        vertical_flow_rate=vertical_flow_rate,
+        exit_rate=total_exit_rate,
         soil_moisture=soil_moisture,
         solubility_coefficient=constants.solubility_coefficient_labile_p,
     )
 
-    # Find rate at which don and dop are lost due to lmwc leaching
+    # Find rate at which don and dop are lost due to lmwc removal
     c_n_ratio_lmwc = soil_c_pool_lmwc / soil_n_pool_don
     c_p_ratio_lmwc = soil_c_pool_lmwc / soil_p_pool_dop
-    don_leaching = labile_carbon_leaching / c_n_ratio_lmwc
-    dop_leaching = labile_carbon_leaching / c_p_ratio_lmwc
+    don_removal = labile_carbon_removal / c_n_ratio_lmwc
+    dop_removal = labile_carbon_removal / c_p_ratio_lmwc
 
-    return LeachingRates(
-        lmwc=labile_carbon_leaching,
-        don=don_leaching,
-        dop=dop_leaching,
-        ammonium=np.where(ammonium_leaching >= 0.0, ammonium_leaching, 0.0),
-        nitrate=np.where(nitrate_leaching >= 0.0, nitrate_leaching, 0.0),
+    return WaterRemovalRates(
+        lmwc=labile_carbon_removal,
+        don=don_removal,
+        dop=dop_removal,
+        ammonium=np.where(ammonium_removal >= 0.0, ammonium_removal, 0.0),
+        nitrate=np.where(nitrate_removal >= 0.0, nitrate_removal, 0.0),
         labile_P=np.where(
-            labile_phosphorus_leaching >= 0.0, labile_phosphorus_leaching, 0.0
+            labile_phosphorus_removal >= 0.0, labile_phosphorus_removal, 0.0
         ),
     )
 
@@ -1271,6 +1310,36 @@ def calculate_enzyme_production(
                 )
 
     return production_rates
+
+
+def calculate_fruiting_body_production(
+    microbial_groups: dict[str, MicrobialGroupConstants],
+    growth_rates: dict[str, NDArray[np.floating]],
+) -> NDArray[np.floating]:
+    """Calculate the total production of fungal fruiting bodies by all microbial groups.
+
+    Args:
+        microbial_groups: Set of microbial functional groups defined in the soil model
+        growth_rates: The (gross) growth rates of each microbial group [kg C m^-3
+            day^-1]
+
+    Returns:
+        The total production rate of fungal fruiting bodies by the soil microbes [kg C
+        m^-3 day^-1]
+    """
+
+    fruiting_body_production = np.zeros_like(growth_rates["bacteria"])
+
+    for group in microbial_groups.values():
+        # Only fungi produce fruiting bodies so only add contributions from them
+        if group.taxonomic_group == "fungi":
+            # This step catches negative growth rates (which can occur for mycorrhizal
+            # fungi, but shouldn't produce a negative amount of fruiting bodies)
+            growth = np.where(growth_rates[group.name] > 0, growth_rates[group.name], 0)
+
+            fruiting_body_production += growth * group.reproductive_allocation
+
+    return fruiting_body_production
 
 
 def calculate_maintenance_biomass_synthesis(
@@ -1907,3 +1976,35 @@ def calculate_net_formation_of_secondary_P(
     breakdown_rate = secondary_p_breakdown_rate * soil_p_pool_secondary
 
     return association_rate - breakdown_rate
+
+
+def calculate_fungal_fruiting_body_decay(
+    decay_rate: NDArray[np.floating],
+    fungal_fruiting_body_c_n_ratio: float,
+    fungal_fruiting_body_c_p_ratio: float,
+) -> dict[str, NDArray[np.floating]]:
+    """Calculate contribution to different soil pools from fungal fruiting body decay.
+
+    Fungal fruiting bodies are organic matter so they decay into three soil pools:
+    :term:`LMWC`, :term:`DON` and :term:`DOP`. The decay rate is already known in carbon
+    terms and the decay into the organic nitrogen and phosphorus pools is found based on
+    this and the fixed stoichiometric ratios of the fungal fruiting bodies pool.
+
+    Args:
+        decay_rate: The rate at which fungal fruiting bodies decay in carbon terms [kg C
+            m^-3 day^-1]
+        fungal_fruiting_body_c_n_ratio: The carbon to nitrogen ratio of fungal fruiting
+            bodies pool [unitless]
+        fungal_fruiting_body_c_p_ratio: The carbon to phosphorus ratio of fungal
+            fruiting bodies pool [unitless]
+
+    Returns:
+        The input rate to each soil organic matter pool (carbon, nitrogen, phosphorus)
+        due to the decay of fungal fruiting bodies [kg m^-3 day^-1].
+    """
+
+    return {
+        "carbon": decay_rate,
+        "nitrogen": decay_rate / fungal_fruiting_body_c_n_ratio,
+        "phosphorus": decay_rate / fungal_fruiting_body_c_p_ratio,
+    }

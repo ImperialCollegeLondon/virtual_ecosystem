@@ -106,6 +106,7 @@ def microbial_groups_cfg():
         c_p_ratio = 16
         enzyme_production.pom = 0.005
         enzyme_production.maom = 0.005
+        reproductive_allocation = 0.0
 
         [[soil.microbial_group_definition]]
         name = "saprotrophic_fungi"
@@ -127,6 +128,7 @@ def microbial_groups_cfg():
         c_p_ratio = 40.0
         enzyme_production.pom = 0.005
         enzyme_production.maom = 0.005
+        reproductive_allocation = 0.1
 
         [[soil.microbial_group_definition]]
         name = "arbuscular_mycorrhiza"
@@ -148,6 +150,7 @@ def microbial_groups_cfg():
         c_p_ratio = 120.0
         enzyme_production.pom = 0.0
         enzyme_production.maom = 0.0
+        reproductive_allocation = 0.1
 
         [[soil.microbial_group_definition]]
         name = "ectomycorrhiza"
@@ -169,6 +172,7 @@ def microbial_groups_cfg():
         c_p_ratio = 120.0
         enzyme_production.pom = 0.02
         enzyme_production.maom = 0.02
+        reproductive_allocation = 0.1
 
         [[soil.enzyme_class_definition]]
         source = "bacteria"

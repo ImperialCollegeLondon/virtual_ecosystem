@@ -426,10 +426,8 @@ Air temperature, (°C)
 $z$:
 Thickness of the air layer we are updating, (m)
 
-```{note}
-There is currently no vertical mixing between layers and no heat is transferred to the
+Finally, we consider vertical mixing between layers and heat is transferred to the
 air above the canopy.
-```
 
 #### Update of atmospheric moisture
 
@@ -441,11 +439,14 @@ across the grid.
 Evapotranspiration and soil evaporation are initially provided in millimetres of water
 depth. These values are converted to a mass of water per unit volume of air (kg m⁻³)
 using the grid cell area. The evaporated water is then added to the relevant atmospheric
-layers: canopy evapotranspiration is distributed across the layers directly above the
+layers: canopy evapotranspiration is distributed across the layers surrounding the
 vegetation, while soil evaporation is added to the lowest layer near the surface.
 
 Using the updated water mass, specific humidity is recalculated for each layer by
-dividing the total water mass by the volume of air in that layer. This change in
+dividing the total water mass by the volume of air in that layer. Then, the new specific
+humidity is vertically mixed between layers and ventilated at the top of the canopy to
+make sure that water does not accumulate unrealistcaly in the canopy but stays connected
+to the atmosphere above. The resulting change in
 specific humidity is then used to compute the new vapour pressure, taking into account
 the atmospheric pressure and the molecular weight difference between water vapour and
 dry air. To maintain physical realism, the vapour pressure is capped at the saturated
@@ -461,8 +462,8 @@ reflected in the atmospheric humidity profile, which in turn affects subsequent 
 and water balance calculations.
 
 ```{note}
-At the moment we get 100% relative humididty and VPD=0, likely because there is no
-vertical mixing and removal of water at the top of the canopy (advection).
+At the moment we get 100% relative humidity in the canopy,and 0% relative humidity above
+the canopy. This will be addressed during the model calibration.
 ```
 
 ### Wind
