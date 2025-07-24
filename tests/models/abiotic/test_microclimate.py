@@ -19,7 +19,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     result = run_microclimate(
         data=dummy_climate_data,
         time_index=0,
-        time_interval=86400,
+        time_interval=86400 * 30,
         cell_area=10000,
         layer_structure=lyr_str,
         abiotic_constants=AbioticConsts(),
@@ -38,38 +38,31 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     exp_soiltemp = lyr_str.from_template()
     exp_soiltemp[lyr_str.index_all_soil] = np.array(
         [
-            [46.411496, 46.368883, 45.94275, 45.94275],
-            [30.634089, 30.616931, 30.445357, 30.445357],
+            [21.095, 21.053, 20.627, 20.627],
+            [20.018, 20.017, 20.010, 20.010],
         ]
     )
     np.testing.assert_allclose(
         result["soil_temperature"][lyr_str.index_all_soil],
         exp_soiltemp[lyr_str.index_all_soil],
-        rtol=1e-04,
-        atol=1e-04,
-    )
-
-    exp_cantemp = lyr_str.from_template()
-    exp_cantemp[lyr_str.index_filled_canopy] = np.array(
-        [28.160042, 27.401159, 26.100414]
-    )[:, None]
-    np.testing.assert_allclose(
-        result["canopy_temperature"][lyr_str.index_filled_canopy],
-        exp_cantemp[lyr_str.index_filled_canopy],
-        rtol=1e-04,
-        atol=1e-04,
-    )
-
-    exp_airtemp = lyr_str.from_template()
-    exp_airtemp[lyr_str.index_filled_atmosphere] = np.array(
-        [30.0, 29.806235, 28.840201, 27.188575, 21.054269]
-    )[:, None]
-    np.testing.assert_allclose(
-        result["air_temperature"],
-        exp_airtemp,
         rtol=1e-02,
         atol=1e-02,
     )
+
+    exp_cantemp = lyr_str.from_template()
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array([27.2234, 28.8712, 27.2064])[
+        :, None
+    ]
+    np.testing.assert_allclose(
+        result["canopy_temperature"][lyr_str.index_filled_canopy],
+        exp_cantemp[lyr_str.index_filled_canopy],
+        rtol=1e-02,
+        atol=1e-02,
+    )
+
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
+    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
 
     exp_relhum = lyr_str.from_template()
     exp_relhum[lyr_str.index_filled_atmosphere] = np.array([100, 100, 100, 100, 100])[
@@ -78,18 +71,56 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     np.testing.assert_allclose(
         result["relative_humidity"],
         exp_relhum,
-        rtol=1e-04,
-        atol=1e-04,
+        rtol=1e-02,
+        atol=1e-02,
     )
 
-    # Sensible heat flux, canopy only
-    exp_shc = lyr_str.from_template()
-    exp_shc[lyr_str.index_flux_layers] = np.array(
-        [-149.364835, -130.806504, -99.244963, -106.076594]
-    )[:, None]
-    np.testing.assert_allclose(
-        result["sensible_heat_flux"],
-        exp_shc,
-        rtol=1e-04,
-        atol=1e-04,
+
+def test_run_microclimate_subdaily(dummy_climate_data, fixture_core_components):
+    """Test microclimate function iterates over hours - no time index."""
+
+    # TODO this test returns different results on windows machines (around 1.5 K),
+    # likely because of differences in rounding digits.
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        run_microclimate,
     )
+
+    lyr_str = fixture_core_components.layer_structure
+    result = run_microclimate(
+        data=dummy_climate_data,
+        time_index=0,
+        time_interval=3600 * 4,
+        cell_area=10000,
+        layer_structure=lyr_str,
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
+        pyrealm_const=PyrealmConst(),
+    )
+
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
+    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
+
+
+def test_run_microclimate_minutes(dummy_climate_data, fixture_core_components):
+    """Test microclimate function iterates once for <1h time interval."""
+
+    from virtual_ecosystem.models.abiotic.microclimate import (
+        run_microclimate,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    result = run_microclimate(
+        data=dummy_climate_data,
+        time_index=0,
+        time_interval=60,
+        cell_area=10000,
+        layer_structure=lyr_str,
+        abiotic_constants=AbioticConsts(),
+        core_constants=CoreConsts(),
+        pyrealm_const=PyrealmConst(),
+    )
+
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
+    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))

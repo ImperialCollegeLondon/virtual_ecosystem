@@ -557,6 +557,7 @@ class TestExporterDump:
         tmp_path,
         plants_data,
         flora,
+        extra_pft_traits,
         fixture_core_components,
         fixture_canopy_layer_data,
         required,
@@ -582,6 +583,7 @@ class TestExporterDump:
             data=plants_data,
             core_components=fixture_core_components,
             flora=flora,
+            extra_pft_traits=extra_pft_traits,
             exporter=exporter,
         )
 

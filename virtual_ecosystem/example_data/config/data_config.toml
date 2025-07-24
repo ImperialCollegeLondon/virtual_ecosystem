@@ -119,6 +119,9 @@ var_name = "soil_p_pool_secondary"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_labile"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "fungal_fruiting_bodies"
 
 # Litter 
 [[core.data.variable]]

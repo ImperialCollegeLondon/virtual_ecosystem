@@ -578,7 +578,7 @@ class HydrologyModel(
             )
 
             # Calculate top soil moisture after evap and combine with lower layers, [mm]
-            soil_moisture_evap_mm: NDArray[np.float32] = np.concatenate(
+            soil_moisture_evap_mm: NDArray[np.floating] = np.concatenate(
                 (
                     np.expand_dims(
                         np.clip(
@@ -731,20 +731,14 @@ class HydrologyModel(
             "total_river_discharge",
         ]:
             soil_hydrology[var] = DataArray(
-                np.sum(np.stack(daily_lists[var], axis=1), axis=1),
+                np.nansum(np.stack(daily_lists[var], axis=1), axis=1),
                 dims="cell_id",
                 coords={"cell_id": self.grid.cell_id},
             )
 
         soil_hydrology["canopy_evaporation"] = self.layer_structure.from_template()
-        soil_hydrology["canopy_evaporation"][:,] = np.sum(
+        soil_hydrology["canopy_evaporation"][:,] = np.nansum(
             daily_lists["canopy_evaporation"], axis=0
-        )
-
-        soil_hydrology["vertical_flow"] = DataArray(  # vertical flow through top soil
-            np.mean(np.stack(daily_lists["vertical_flow"][0], axis=1), axis=1),
-            dims="cell_id",
-            coords={"cell_id": self.grid.cell_id},
         )
 
         for var in ["river_discharge_rate", "aerodynamic_resistance_surface"]:
@@ -756,7 +750,7 @@ class HydrologyModel(
 
         # Return mean soil moisture, [mm], and soil matric potential, [kPa], and add
         # atmospheric layers (nan)
-        for var in ["soil_moisture", "matric_potential"]:
+        for var in ["soil_moisture", "matric_potential", "vertical_flow"]:
             soil_hydrology[var] = self.layer_structure.from_template()
             soil_hydrology[var][self.layer_structure.index_all_soil] = np.mean(
                 np.stack(daily_lists[var], axis=0), axis=0

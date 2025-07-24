@@ -88,6 +88,36 @@
                      },
                      "p_foliage_for_reproductive_tissue": {
                         "type": "number"
+                     },
+                     "deadwood_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "deadwood_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "leaf_turnover_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "leaf_turnover_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "plant_reproductive_tissue_turnover_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "plant_reproductive_tissue_turnover_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "root_turnover_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "root_turnover_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "foliage_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "foliage_c_p_ratio": {
+                        "type": "number"
                      }
                   },
                   "required": [

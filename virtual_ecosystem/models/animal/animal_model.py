@@ -1,28 +1,33 @@
 """The :mod:`~virtual_ecosystem.models.animal.animal_model` module creates a
 :class:`~virtual_ecosystem.models.animal.animal_model.AnimalModel` class as a
 child of the :class:`~virtual_ecosystem.core.base_model.BaseModel` class.
-At present a lot of the abstract methods of the parent class (e.g.
-:func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are overwritten using
-placeholder functions that don't do anything. This will change as the
-Virtual Ecosystem model develops. The factory method
+
+At present a lot of the abstract methods of the parent class
+(e.g. :func:`~virtual_ecosystem.core.base_model.BaseModel.spinup`) are
+overwritten using placeholder functions that don't do anything. This will
+change as the Virtual Ecosystem model develops.
+
+The factory method
 :func:`~virtual_ecosystem.models.animal.animal_model.AnimalModel.from_config`
 exists in a more complete state, and unpacks a small number of parameters
-from our currently pretty minimal configuration dictionary. These parameters are
-then used to generate a class instance. If errors crop up here when converting the
-information from the config dictionary to the required types
-(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the end
-of the unpacking an error is thrown. This error should be caught and handled
-by downstream functions so that all model configuration failures can be reported as one.
+from our currently pretty minimal configuration dictionary. These parameters
+are then used to generate a class instance. If errors emerge when converting
+the information from the config dictionary to the required types
+(e.g. :class:`~numpy.timedelta64`) they are caught and then logged, and at the
+end of the unpacking an error is thrown. This error should be caught and
+handled by downstream functions so that all model configuration failures can
+be reported as one.
 """  # noqa: D205
 
 from __future__ import annotations
 
 import uuid
 from math import ceil, sqrt
-from random import choice, random
+from random import choice
 from typing import Any, cast
 
-from numpy import array, inf, timedelta64, zeros
+from numpy import array, float32, inf, random, timedelta64, where, zeros
+from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -42,8 +47,10 @@ from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
+    FungalFruitPool,
     HerbivoryWaste,
     LitterPool,
+    SoilPool,
 )
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
@@ -53,7 +60,11 @@ from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
+    madingley_individuals_density,
     prey_group_selection,
+)
+from virtual_ecosystem.models.soil.microbial_groups import (
+    find_microbial_stoichiometries,
 )
 
 
@@ -61,7 +72,7 @@ class AnimalModel(
     BaseModel,
     model_name="animal",
     model_update_bounds=("1 day", "1 month"),
-    vars_required_for_init=(),
+    vars_required_for_init=("fungal_fruiting_bodies",),
     vars_populated_by_init=("total_animal_respiration", "population_densities"),
     vars_required_for_update=(
         "litter_pool_above_metabolic",
@@ -79,6 +90,7 @@ class AnimalModel(
         "c_p_ratio_woody",
         "c_p_ratio_below_metabolic",
         "c_p_ratio_below_structural",
+        "production_of_fungal_fruiting_bodies",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_carbon",
@@ -96,6 +108,14 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
+        "decay_of_fungal_fruiting_bodies",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -114,6 +134,15 @@ class AnimalModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
+        "animal_pom_consumption_carbon",
+        "animal_pom_consumption_nitrogen",
+        "animal_pom_consumption_phosphorus",
+        "animal_bacteria_consumption",
+        "animal_saprotrophic_fungi_consumption",
+        "animal_ectomycorrhiza_consumption",
+        "animal_arbuscular_mycorrhiza_consumption",
+        "fungal_fruiting_bodies",
+        "decay_of_fungal_fruiting_bodies",
     ),
 ):
     """A class describing the animal model.
@@ -124,9 +153,9 @@ class AnimalModel(
     Args:
         data: The data object to be used in the model.
         core_components: The core components used across models.
-        functional_groups: The list of animal functional groups present in the
-            simulation.
-        model_constants: Set of constants for the animal model.
+        static: If True, runs in static mode.
+        density_scaling_method: Which density scaling equation to use in initialization.
+        **kwargs: Additional arguments for the base model.
     """
 
     def __init__(
@@ -134,6 +163,7 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
+        density_scaling_method: str = "madingley",
         **kwargs: Any,
     ):
         """Animal init function.
@@ -142,7 +172,14 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        self.density_scaling_method = density_scaling_method
+        """Which density scaling equations are used, "damuth" or "madingley"."""
+        self.model_constants: AnimalConsts = AnimalConsts(
+            density_scaling_method=self.density_scaling_method
+        )
+        """Animal constants."""
+
+        super().__init__(data, core_components, static, **kwargs)  # runs _setup
 
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
@@ -156,8 +193,6 @@ class AnimalModel(
         """Convert pint update_interval to timedelta64 once during initialization."""
         self.functional_groups: list[FunctionalGroup]
         """List of functional groups in the model."""
-        self.model_constants: AnimalConsts
-        """Animal constants."""
         self.plant_resources: dict[int, list[Resource]]
         """The plant resource pools in the model with associated grid cell ids."""
         self.excrement_pools: dict[int, list[ExcrementPool]]
@@ -166,8 +201,19 @@ class AnimalModel(
         """The carcass pools in the model with associated grid cell ids."""
         self.leaf_waste_pools: dict[int, HerbivoryWaste]
         """A pool for leaves removed by herbivory but not actually consumed."""
-        self.litter_pools: dict[int, dict[str, Resource]] = self.populate_litter_pools()
+        self.microbial_c_n_p_ratios: dict[str, dict[str, float]]
+        """The CNP ratios of the different microbial functional groups."""
+        self.litter_pools: dict[int, dict[str, Resource]]
         """The litter pools with associated grid cell ids."""
+        # TODO: make the following two modifiable
+        self.target_cohorts_per_fg: int
+        """The target number of cohorts per functional group in each grid cell."""
+        self.minimum_cohort_size: int
+        """The minimum number of individuals to initialize a cohort at init."""
+        self.soil_pools: dict[int, dict[str, SoilPool]]
+        """The animal consumable soil pools with associated grid cell ids."""
+        self.fungal_fruiting_bodies: dict[int, FungalFruitPool]
+        """The pools of fungal fruiting bodies with associated grid cell ids."""
 
     def _setup_grid_neighbours(self) -> None:
         """Set up grid neighbours for the model.
@@ -180,31 +226,112 @@ class AnimalModel(
         self.data.grid.set_neighbours(distance=sqrt(self.data.grid.cell_area))
 
     def _initialize_communities(self, functional_groups: list[FunctionalGroup]) -> None:
-        """Initialize the animal communities by creating and populating animal cohorts.
+        """Initializes the animal communities.
 
         Args:
             functional_groups: The list of functional groups that will populate the
             model.
+
         """
-        # Initialize communities dictionary with cell IDs as keys and empty lists for
-        # cohorts
-        self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
 
-        # Iterate over each cell and functional group to create and populate cohorts
-        for cell_id in self.data.grid.cell_id:
-            for functional_group in functional_groups:
-                # Calculate the number of individuals using Damuth's Law
-                individuals = damuths_law(
-                    functional_group.adult_mass, functional_group.damuths_law_terms
-                )
+        self.communities = {cell_id: [] for cell_id in self.data.grid.cell_id}
 
+        for fg in functional_groups:
+            total_individuals = self._estimate_total_individuals(fg)
+            cohort_sizes = self._distribute_individuals_to_cohorts(total_individuals)
+            cohort_locations = self._assign_cohort_locations(len(cohort_sizes))
+
+            for size, cell_id in zip(cohort_sizes, cohort_locations):
                 self.create_new_cohort(
-                    functional_group=functional_group,
-                    mass=functional_group.adult_mass,
+                    functional_group=fg,
+                    mass=fg.adult_mass,
                     age=0.0,
-                    individuals=individuals,
+                    individuals=size,
                     centroid_key=cell_id,
                 )
+
+    def _estimate_total_individuals(self, functional_group: FunctionalGroup) -> int:
+        """Estimates the total number of individuals of a functional group.
+
+        Args:
+            functional_group: The specific functional group having its individuals
+                estimated.
+
+        Returns: The integer number of individuals of the group.
+
+        """
+
+        total_area = self.data.grid.n_cells * self.data.grid.cell_area
+
+        if functional_group.density_individuals_m2 is not None:
+            # User-provided empirical density overrides scaling laws
+            return int(functional_group.density_individuals_m2 * total_area)
+
+        # No empirical density → use selected scaling method
+        if self.density_scaling_method == "damuth":
+            density = damuths_law(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        elif self.density_scaling_method == "madingley":
+            density = madingley_individuals_density(
+                functional_group.adult_mass,
+                functional_group.population_density_terms,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported density scaling method: {self.density_scaling_method}"
+            )
+
+        return ceil(density * total_area)
+
+    def _distribute_individuals_to_cohorts(self, total_individuals: int) -> list[int]:
+        """Distribute individuals into cohorts respecting minimum size.
+
+        Args:
+            total_individuals: The number of individuals to distribute.
+
+        Returns:
+            A list of cohort sizes.
+        """
+        n_target = self.target_cohorts_per_fg  # ideal number of cohorts
+        min_size = self.minimum_cohort_size  # minimum size of cohorts
+
+        if total_individuals < n_target * min_size:
+            # if I don't have enough individuals to meet my size and number targets
+            # reduce the number of cohorts
+            n_target = max(1, total_individuals // min_size)
+
+        base_size = total_individuals // n_target  # the number of indiv in each cohorts
+        remainder = total_individuals % n_target  # the leftover number of indiv
+
+        # evenly distribute the remained and return the list of cohort sizes
+        return [base_size + 1 if i < remainder else base_size for i in range(n_target)]
+
+    def _assign_cohort_locations(self, n_cohorts: int) -> list[int]:
+        """Assign each cohort to a grid cell.
+
+        Args:
+            n_cohorts: Number of cohorts to distribute.
+
+        Returns:
+            A list of grid cell IDs for each cohort.
+        """
+        cell_ids = list(self.data.grid.cell_id)  # a list of all the grid cell ids
+        n_cells = len(cell_ids)  # the number of grid cells
+
+        if n_cohorts <= n_cells:  # if more cells than cohorts
+            # assign one random cell per cohort without replacement
+            return random.choice(cell_ids, size=n_cohorts, replace=False).tolist()
+        else:  # if more cohorts than cells
+            # one cohort per cell, to start
+            locations = cell_ids.copy()
+            # randomly select grid cell ids equal to number of remaining cohorts
+            extra = random.choice(
+                cell_ids, size=n_cohorts - n_cells, replace=True
+            ).tolist()
+            locations.extend(extra)  # assign the extras to the location list
+            return locations
 
     @classmethod
     def from_config(
@@ -226,11 +353,18 @@ class AnimalModel(
         model_constants = load_constants(config, "animal", "AnimalConsts")
         static = config["animal"]["static"]
 
+        density_scaling_method = config["animal"].get(
+            "density_scaling_method", "madingley"
+        )
+
         # Load functional groups
         functional_groups = [
             FunctionalGroup(**k, constants=model_constants)
             for k in config["animal"]["functional_groups"]
         ]
+
+        # Find microbial stoichiometries based on the config
+        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=config)
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
@@ -243,32 +377,39 @@ class AnimalModel(
             static=static,
             functional_groups=functional_groups,
             model_constants=model_constants,
+            density_scaling_method=density_scaling_method,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
     def _setup(
         self,
         functional_groups: list[FunctionalGroup],
-        model_constants: AnimalConsts = AnimalConsts(),
+        microbial_c_n_p_ratios: dict[str, dict[str, float]],
         **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
 
         This method initializes the data variables required by the animal model.
+        Microbial stoichiometries have to be supplied so that the availability of
+        nutrients to soil consuming taxa can be found.
 
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.
-            model_constants: Set of constants for the animal model.
+            microbial_c_n_p_ratios: Biomass stochiometry of each microbial functional
+                group.
             **kwargs: Further arguments to the setup method.
         """
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
+        self.update_interval_in_days = days_as_float
+        """Store update interval as a number of days."""
         self.update_interval_timedelta = timedelta64(int(days_as_float), "D")
         """Convert pint update_interval to timedelta64 once during initialization."""
 
         self._setup_grid_neighbours()
         """Determine grid square adjacency."""
         self.functional_groups = functional_groups
-        self.model_constants = model_constants
+        self.model_constants = self.model_constants
         self.plant_resources = {
             cell_id: [
                 PlantResources(
@@ -307,6 +448,18 @@ class AnimalModel(
 
         self.active_cohorts = {}
         self.communities = {cell_id: list() for cell_id in self.data.grid.cell_id}
+
+        self.target_cohorts_per_fg = len(self.data.grid.cell_id)
+        """The target number of cohorts per functional group in each grid cell."""
+        self.minimum_cohort_size = 5
+        """The minimum number of individuals to initialize a cohort at init."""
+
+        # Microbial C:N:P ratios are then found, and the size of the initial litter and
+        # soil pools are populated
+        self.microbial_c_n_p_ratios = microbial_c_n_p_ratios
+        self.litter_pools = self.populate_litter_pools()
+        self.soil_pools = self.populate_soil_pools()
+        self.fungal_fruiting_bodies = self.populate_fungal_fruiting_bodies()
 
         self._initialize_communities(functional_groups)
         """Create the dictionary of animal communities and populate each community with
@@ -372,6 +525,15 @@ class AnimalModel(
         # TODO: These pools are populated but nothing actually gets done with them at
         # the moment, this will have to change when scavenging gets introduced
 
+        # The litter and soil pools have to be populated again to reflect the changes
+        # that will have happened in the last time step for those models
+        self.litter_pools = self.populate_litter_pools()
+        self.soil_pools = self.populate_soil_pools()
+
+        # The fungal fruiting bodies need to be updated based on input from soil fungi
+        # and the rate of decay
+        fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
+
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -386,12 +548,21 @@ class AnimalModel(
         # soil and litter models can be extracted
         additions_to_soil = self.calculate_soil_additions()
         litter_consumption = self.calculate_total_litter_consumption(self.litter_pools)
+        soil_consumption = self.calculate_total_soil_consumption(self.soil_pools)
         litter_additions = self.calculate_litter_additions_from_herbivory()
+
+        # Now that animal consumption has finished, the data object can be updated to
+        # reflect the new size of the fungal fruiting body pools
+        self.update_fungal_fruiting_bodies_in_data()
 
         # Update the data object with the changes to soil and litter pools
         self.data.add_from_dict(
-            additions_to_soil | litter_consumption | litter_additions
-        )  # TODO - TEST THIS!
+            fruiting_bodies_decay
+            | additions_to_soil
+            | soil_consumption
+            | litter_consumption
+            | litter_additions
+        )
 
         # Update population densities
         self.update_population_densities()
@@ -465,6 +636,53 @@ class AnimalModel(
             for cell_id in self.data.grid.cell_id
         }
 
+    def populate_soil_pools(self) -> dict[int, dict[str, SoilPool]]:
+        """Populate the soil pools that animals can consume from.
+
+        Returns:
+            A dictionary where keys represent the pool types and values are the
+            corresponding SoilPool objects. The following pools are included:
+
+            - "pom": Particulate organic matter
+            - "bacteria": Bacteria
+            - "fungi": Fungi (i.e. all fungal functional groups)
+        """
+
+        soil_organic_matter_types = ("pom", "bacteria", "fungi")
+
+        return {
+            cell_id: {
+                som_type: SoilPool(
+                    pool_name=som_type,
+                    cell_id=cell_id,
+                    data=self.data,
+                    cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                    max_depth_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
+                    c_n_p_ratios=self.microbial_c_n_p_ratios,
+                )
+                for som_type in soil_organic_matter_types
+            }
+            for cell_id in self.data.grid.cell_id
+        }
+
+    def populate_fungal_fruiting_bodies(self) -> dict[int, FungalFruitPool]:
+        """Populate the fungal fruiting body pools for animal consumption.
+
+        Returns:
+            A dictionary with a fungal fruiting body pool for each cell ID.
+        """
+
+        return {
+            cell_id: FungalFruitPool(
+                cell_id=cell_id,
+                data=self.data,
+                cell_area=self.data.grid.cell_area,  # OK while area is uniform
+                c_n_ratio=self.core_constants.fungal_fruiting_bodies_c_n_ratio,
+                c_p_ratio=self.core_constants.fungal_fruiting_bodies_c_p_ratio,
+            )
+            for cell_id in self.data.grid.cell_id
+        }
+
     def calculate_total_litter_consumption(
         self, litter_pools: dict[int, dict[str, Resource]]
     ) -> dict[str, DataArray]:
@@ -512,6 +730,124 @@ class AnimalModel(
             )
 
         return results
+
+    def calculate_total_soil_consumption(
+        self, soil_pools: dict[int, dict[str, SoilPool]]
+    ) -> dict[str, DataArray]:
+        """Compute carbon and nutrients removed from every soil pool, by cell.
+
+        The soil model treats microbial stoichiometry as fixed so only removal of
+        particulate organic nitrogen and phosphorus is calculated explicitly. The soil
+        model also subdivides fungi, so this function also calculates how much of the
+        fungal removal should come from each group.
+
+        Args:
+            soil_pools: Set of soil pools available for animal consumption [kg]
+
+        Returns:
+            The rate at which biomass is removed from the relevant soil model pools [kg
+            m^-3 day^-1]
+        """
+
+        cell_ids = self.data.grid.cell_id
+        area = self.data.grid.cell_area  # Cell area is uniform at present
+
+        pom_initial_stock = self.data["soil_c_pool_pom"].to_numpy()
+
+        pom_final_stock = array(
+            [
+                soil_pools[cid]["pom"].mass_current
+                / (area * self.core_constants.max_depth_of_microbial_activity)
+                for cid in cell_ids
+            ]
+        )
+
+        pom_consumption_carbon = pom_initial_stock - pom_final_stock
+        # Calculate nutrient consumptions based on carbon consumption and pool
+        # stoichiometric ratios
+        pom_c_n_ratios = array(
+            [soil_pools[cid]["pom"].mass_cnp.get_ratios()["C:N"] for cid in cell_ids]
+        )
+        pom_c_p_ratios = array(
+            [soil_pools[cid]["pom"].mass_cnp.get_ratios()["C:P"] for cid in cell_ids]
+        )
+        pom_consumption_nitrogen = pom_consumption_carbon / pom_c_n_ratios
+        pom_consumption_phosphorus = pom_consumption_carbon / pom_c_p_ratios
+
+        bacteria_initial_stock = self.data["soil_c_pool_bacteria"].to_numpy()
+
+        bacteria_final_stock = array(
+            [
+                soil_pools[cid]["bacteria"].mass_current
+                / (area * self.core_constants.max_depth_of_microbial_activity)
+                for cid in cell_ids
+            ]
+        )
+
+        bacteria_consumption = bacteria_initial_stock - bacteria_final_stock
+
+        # Have to account for the fact that the values in data object for mycorrhizal
+        # fungi can be negative, which is treated as zero for animal consumption
+        # purposes
+        saprotrophic_fungi_initial_stock = self.data[
+            "soil_c_pool_saprotrophic_fungi"
+        ].to_numpy()
+        arbuscular_mycorrhiza_initial_stock = where(
+            self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy() > 0,
+            self.data["soil_c_pool_arbuscular_mycorrhiza"].to_numpy(),
+            0,
+        )
+        ectomycorrhiza_initial_stock = where(
+            self.data["soil_c_pool_ectomycorrhiza"].to_numpy() > 0,
+            self.data["soil_c_pool_ectomycorrhiza"].to_numpy(),
+            0,
+        )
+        fungi_initial_stock = (
+            saprotrophic_fungi_initial_stock
+            + arbuscular_mycorrhiza_initial_stock
+            + ectomycorrhiza_initial_stock
+        )
+
+        fungi_final_stock = array(
+            [
+                soil_pools[cid]["fungi"].mass_current
+                / (area * self.core_constants.max_depth_of_microbial_activity)
+                for cid in cell_ids
+            ]
+        )
+        fungi_consumption = fungi_initial_stock - fungi_final_stock
+
+        # Calculate how much of the fungal consumption is applied to each fungal group
+        # based on initial pool sizes
+        saprotrophic_fungi_consumption = fungi_consumption * (
+            saprotrophic_fungi_initial_stock / fungi_initial_stock
+        )
+        ectomycorrhiza_consumption = fungi_consumption * (
+            ectomycorrhiza_initial_stock / fungi_initial_stock
+        )
+        arbuscular_mycorrhiza_consumption = fungi_consumption * (
+            arbuscular_mycorrhiza_initial_stock / fungi_initial_stock
+        )
+
+        return {
+            "animal_pom_consumption_carbon": self.to_per_day(pom_consumption_carbon),
+            "animal_pom_consumption_nitrogen": self.to_per_day(
+                pom_consumption_nitrogen
+            ),
+            "animal_pom_consumption_phosphorus": self.to_per_day(
+                pom_consumption_phosphorus
+            ),
+            "animal_bacteria_consumption": self.to_per_day(bacteria_consumption),
+            "animal_saprotrophic_fungi_consumption": self.to_per_day(
+                saprotrophic_fungi_consumption
+            ),
+            "animal_ectomycorrhiza_consumption": self.to_per_day(
+                ectomycorrhiza_consumption
+            ),
+            "animal_arbuscular_mycorrhiza_consumption": self.to_per_day(
+                arbuscular_mycorrhiza_consumption
+            ),
+        }
 
     def calculate_litter_additions_from_herbivory(self) -> dict[str, DataArray]:
         """Calculate additions to litter due to herbivory mechanical inefficiencies.
@@ -573,6 +909,50 @@ class AnimalModel(
             ),
         }
 
+    def update_fungal_fruiting_bodies(self) -> dict[str, DataArray]:
+        """Update fungal fruiting bodies pools due to fungal production and decay.
+
+        This method first updates the fungal fruiting body pools with the new biomass
+        supplied from the soil model. The total decay of the fungal fruiting bodies is
+        then calculated and subtracted from the pools. This ordering means that we are
+        prioritising decay over before animal consumption, which is consistent with the
+        assumptions we made for excrement and carcass decay.
+
+        Returns:
+            The rate at which fungal fruiting bodies decay back into the soil [kg m^-2
+            day^-1].
+        """
+
+        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
+            production = (
+                self.data["production_of_fungal_fruiting_bodies"]
+                .isel(cell_id=cell_id)
+                .item()
+                * self.grid.cell_area
+                * self.update_interval_in_days
+            )
+            fungal_fruiting_bodies_pool.mass_cnp.update(
+                carbon=+production,
+                nitrogen=+production / fungal_fruiting_bodies_pool.c_n_ratio,
+                phosphorus=+production / fungal_fruiting_bodies_pool.c_p_ratio,
+            )
+
+        total_decay = [
+            fungal_fruiting_bodies_pool.apply_decay(
+                decay_constant=self.core_constants.fungal_fruiting_bodies_decay_rate,
+                time_period=self.update_interval_in_days,
+            )
+            for fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.values()
+        ]
+
+        return {
+            "decay_of_fungal_fruiting_bodies": DataArray(
+                array(total_decay)
+                / (self.grid.cell_area * self.update_interval_in_days),
+                dims="cell_id",
+            )
+        }
+
     def calculate_soil_additions(self) -> dict[str, DataArray]:
         """Calculate how much animal matter should be transferred to the soil."""
 
@@ -612,37 +992,52 @@ class AnimalModel(
 
         # Create the output DataArray for each nutrient
         return {
-            "decomposed_excrement_carbon": DataArray(
+            "decomposed_excrement_carbon": self.to_per_day(
                 array(decomposed_excrement["carbon"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_excrement_nitrogen": DataArray(
+            "decomposed_excrement_nitrogen": self.to_per_day(
                 array(decomposed_excrement["nitrogen"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_excrement_phosphorus": DataArray(
+            "decomposed_excrement_phosphorus": self.to_per_day(
                 array(decomposed_excrement["phosphorus"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_carcasses_carbon": DataArray(
+            "decomposed_carcasses_carbon": self.to_per_day(
                 array(decomposed_carcasses["carbon"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_carcasses_nitrogen": DataArray(
+            "decomposed_carcasses_nitrogen": self.to_per_day(
                 array(decomposed_carcasses["nitrogen"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
-            "decomposed_carcasses_phosphorus": DataArray(
+            "decomposed_carcasses_phosphorus": self.to_per_day(
                 array(decomposed_carcasses["phosphorus"])
-                / self.model_timing.update_interval_quantity.to("days").magnitude,
-                dims="cell_id",
             ),
         }
+
+    def update_fungal_fruiting_bodies_in_data(self) -> None:
+        """Method to update the fungal fruiting bodies in the data object.
+
+        This update is based on the current state of the animal model FungalFruitPools.
+        This method is run after the additions due to new fungal fruiting body
+        production and removals due to decay and animal consumption have been made.
+        """
+
+        for cell_id, fungal_fruiting_bodies_pool in self.fungal_fruiting_bodies.items():
+            self.data["fungal_fruiting_bodies"].loc[{"cell_id": cell_id}] = (
+                fungal_fruiting_bodies_pool.mass_cnp["carbon"]
+                / self.data.grid.cell_area
+            )
+
+    def to_per_day(self, change: NDArray[float32]) -> DataArray:
+        """Method to convert a change caused by the animal model into a per day rate.
+
+        Args:
+            change: Change in pool caused by the animal model [kg m^-3].
+
+        Returns:
+            Change converted to a per day rate (which are the units the soil model needs
+            it in) units [kg m^-3 day^-1].
+        """
+
+        return DataArray(change / self.update_interval_in_days, dims="cell_id")
 
     def update_population_densities(self) -> None:
         """Updates the densities for each functional group in each community."""
@@ -762,7 +1157,8 @@ class AnimalModel(
                 self.model_constants.dispersal_mass_threshold
             )
             is_juvenile_and_migrate = (
-                cohort.age == 0.0 and random() <= cohort.migrate_juvenile_probability()
+                cohort.age == 0.0
+                and random.random() <= cohort.migrate_juvenile_probability()
             )
             migrate = is_starving or is_juvenile_and_migrate
 

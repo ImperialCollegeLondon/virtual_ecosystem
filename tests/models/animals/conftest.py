@@ -60,6 +60,11 @@ def animal_data_for_model_instance(fixture_core_components):
         data=leaf_mass, dims=["layers", "cell_id"]
     )
 
+    # Populate the fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = xarray.DataArray(
+        np.full(grid.n_cells, 0.1), dims=["cell_id"]
+    )
+
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
         (1, grid.n_cells), 25.0
@@ -81,7 +86,7 @@ def animal_data_for_model_instance(fixture_core_components):
 
 
 @pytest.fixture
-def animal_fixture_config():
+def animal_fixture_config(microbial_groups_cfg):
     """Simple configuration fixture for use in tests."""
 
     from virtual_ecosystem.core.config import Config
@@ -372,7 +377,7 @@ def animal_fixture_config():
         [hydrology]
     """
 
-    return Config(cfg_strings=cfg_string)
+    return Config(cfg_strings=[cfg_string, microbial_groups_cfg])
 
 
 @pytest.fixture
@@ -601,6 +606,22 @@ def dummy_animal_data(animal_fixture_core_components):
     data["c_p_ratio_below_metabolic"] = litter_ratios
     data["c_p_ratio_below_structural"] = litter_ratios
 
+    # Also need to add soil pools that animals consume from
+    soil_pools = DataArray(np.full(data.grid.n_cells, fill_value=0.15), dims="cell_id")
+    data["soil_c_pool_pom"] = soil_pools
+    data["soil_n_pool_particulate"] = soil_pools
+    data["soil_p_pool_particulate"] = soil_pools
+    data["soil_c_pool_bacteria"] = soil_pools
+    data["soil_c_pool_saprotrophic_fungi"] = soil_pools
+    data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
+    data["soil_c_pool_ectomycorrhiza"] = soil_pools
+
+    # Also need to add a pool to track the amount of fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = litter_pools
+    data["production_of_fungal_fruiting_bodies"] = DataArray(
+        np.zeros(data.grid.n_cells), dims="cell_id"
+    )
+
     return data
 
 
@@ -659,7 +680,7 @@ def constants_instance():
     """Fixture for an instance of animal constants."""
     from virtual_ecosystem.models.animal.constants import AnimalConsts
 
-    return AnimalConsts()
+    return AnimalConsts(density_scaling_method="madingley")
 
 
 @pytest.fixture
@@ -676,21 +697,60 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
+def microbial_c_n_p_ratios(fixture_config):
+    """Fixture containing the microbial C:N:P ratios for use in animal model testing."""
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        find_microbial_stoichiometries,
+    )
+
+    return find_microbial_stoichiometries(config=fixture_config)
+
+
+@pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
-    constants_instance,
+    microbial_c_n_p_ratios,
 ):
     """Fixture for an animal model object used in tests."""
+    from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
+    # Make sure each call gets a fresh copy
+    clean_data = deepcopy(dummy_animal_data)
+
     return AnimalModel(
-        data=dummy_animal_data,
+        data=clean_data,
         core_components=fixture_core_components,
+        density_scaling_method="madingley",
         functional_groups=functional_group_list_instance,
-        model_constants=constants_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+    )
+
+
+@pytest.fixture
+def animal_model_damuth_instance(
+    dummy_animal_data,
+    fixture_core_components,
+    functional_group_list_instance,
+    microbial_c_n_p_ratios,
+):
+    """Fixture for an animal model object used in tests."""
+    from copy import deepcopy
+
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    # Make sure each call gets a fresh copy
+    clean_data = deepcopy(dummy_animal_data)
+
+    return AnimalModel(
+        data=clean_data,
+        core_components=fixture_core_components,
+        density_scaling_method="damuth",
+        functional_groups=functional_group_list_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
 
 
@@ -930,8 +990,8 @@ def carcass_pools_by_cell_instance():
 
 
 @pytest.fixture
-def litter_data_instance(fixture_core_components):
-    """Creates a dummy litter data for use in tests."""
+def litter_soil_data_instance(fixture_core_components):
+    """Creates a dummy litter + soil data for use in tests."""
 
     from virtual_ecosystem.core.data import Data
 
@@ -956,6 +1016,15 @@ def litter_data_instance(fixture_core_components):
         "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
         "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
+        "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
+        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
+        "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
+        "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
+        "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
+        "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
+        "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
+        "fungal_fruiting_bodies": [0.1, 0.2, 0.3, 0.4],
+        "production_of_fungal_fruiting_bodies": [0.05, 0.04, 0.025, 0.0125],
     }
 
     for var_name, var_values in data_values.items():
@@ -965,20 +1034,20 @@ def litter_data_instance(fixture_core_components):
 
 
 @pytest.fixture
-def litter_pool_instance(litter_data_instance):
+def litter_pool_instance(litter_soil_data_instance):
     """Fixture for a single LitterPool instance in cell 0."""
     from virtual_ecosystem.models.animal.decay import LitterPool
 
     return LitterPool(
         pool_name="above_metabolic",
         cell_id=0,
-        data=litter_data_instance,
+        data=litter_soil_data_instance,
         cell_area=10000,
     )
 
 
 @pytest.fixture
-def litter_pools_by_cell_instance(litter_data_instance):
+def litter_pools_by_cell_instance(litter_soil_data_instance):
     """Fixture for litter pools used in tests."""
     from virtual_ecosystem.models.animal.decay import LitterPool
 
@@ -987,7 +1056,7 @@ def litter_pools_by_cell_instance(litter_data_instance):
             LitterPool(
                 pool_name="above_metabolic",
                 cell_id=cell_id,
-                data=litter_data_instance,
+                data=litter_soil_data_instance,
                 cell_area=10000,
             )
         ]
@@ -996,7 +1065,7 @@ def litter_pools_by_cell_instance(litter_data_instance):
 
 
 @pytest.fixture
-def litter_pools_dict_by_cell_instance(litter_data_instance):
+def litter_pools_dict_by_cell_instance(litter_soil_data_instance):
     """Fixture for litter pools with correct dict[str, Resource] structure."""
     from virtual_ecosystem.models.animal.decay import LitterPool
 
@@ -1013,7 +1082,7 @@ def litter_pools_dict_by_cell_instance(litter_data_instance):
             name: LitterPool(
                 pool_name=name,
                 cell_id=cell_id,
-                data=litter_data_instance,
+                data=litter_soil_data_instance,
                 cell_area=10000,
             )
             for name in pool_names

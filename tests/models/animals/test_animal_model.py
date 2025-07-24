@@ -1,7 +1,7 @@
 """Test module for animal_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import INFO
+from logging import DEBUG, INFO
 
 import numpy as np
 import pytest
@@ -15,6 +15,7 @@ def prepared_animal_model_instance(
     fixture_core_components,
     functional_group_list_instance,
     constants_instance,
+    microbial_c_n_p_ratios,
 ):
     """Animal model instance in which setup has already been run."""
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -24,6 +25,7 @@ def prepared_animal_model_instance(
         core_components=fixture_core_components,
         functional_groups=functional_group_list_instance,
         model_constants=constants_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
     return model
 
@@ -31,31 +33,40 @@ def prepared_animal_model_instance(
 class TestAnimalModel:
     """Test the AnimalModel class."""
 
+    @pytest.mark.parametrize(
+        "scaling_method",
+        ["madingley", "damuth"],
+        ids=["default_madingley", "explicit_damuth"],
+    )
     def test_animal_model_initialization(
         self,
+        scaling_method,
         dummy_animal_data,
         fixture_core_components,
         functional_group_list_instance,
-        constants_instance,
+        microbial_c_n_p_ratios,
     ):
-        """Test `AnimalModel` initialization."""
+        """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Initialize model
+        # Initialize the model
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
-            model_constants=constants_instance,
+            density_scaling_method=scaling_method,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
-        # In cases where it passes then checks that the object has the right properties
+        # Basic type and attribute checks
         assert isinstance(model, BaseModel)
         assert model.model_name == "animal"
-        assert str(model) == "A animal model instance"
-        assert repr(model) == "AnimalModel(update_interval=1209600 seconds)"
         assert isinstance(model.communities, dict)
+
+        # Density scaling method should match input
+        assert model.density_scaling_method == scaling_method
+        assert model.model_constants.density_scaling_method == scaling_method
 
     @pytest.mark.parametrize(
         "raises,expected_log_entries",
@@ -64,20 +75,52 @@ class TestAnimalModel:
                 does_not_raise(),
                 (
                     (INFO, "Initialised animal.AnimalConsts from config"),
+                    (INFO, "Initialised core.CoreConsts from config"),
                     (
                         INFO,
                         "Information required to initialise the animal model"
                         " successfully extracted.",
                     ),
+                    (
+                        DEBUG,
+                        "animal model: required var 'fungal_fruiting_bodies' checked",
+                    ),
                     (INFO, "Adding data array for 'total_animal_respiration'"),
                     (INFO, "Adding data array for 'population_densities'"),
                     (INFO, "Updating animal model"),
+                    (INFO, "Adding data array for 'decay_of_fungal_fruiting_bodies'"),
                     (INFO, "Adding data array for 'decomposed_excrement_carbon'"),
                     (INFO, "Adding data array for 'decomposed_excrement_nitrogen'"),
                     (INFO, "Adding data array for 'decomposed_excrement_phosphorus'"),
                     (INFO, "Adding data array for 'decomposed_carcasses_carbon'"),
                     (INFO, "Adding data array for 'decomposed_carcasses_nitrogen'"),
                     (INFO, "Adding data array for 'decomposed_carcasses_phosphorus'"),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_pom_consumption_carbon'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_pom_consumption_nitrogen'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_pom_consumption_phosphorus'",
+                    ),
+                    (INFO, "Adding data array for 'animal_bacteria_consumption'"),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_saprotrophic_fungi_consumption'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_ectomycorrhiza_consumption'",
+                    ),
+                    (
+                        INFO,
+                        "Adding data array for 'animal_arbuscular_mycorrhiza_"
+                        "consumption'",
+                    ),
                     (
                         INFO,
                         "Adding data array for 'litter_consumption_above_metabolic'",
@@ -154,6 +197,35 @@ class TestAnimalModel:
 
         for record in caplog.records:
             print(f"Level: {record.levelname}, Message: {record.message}")
+
+    @pytest.mark.parametrize(
+        "scaling_method",
+        ["madingley", "damuth"],
+        ids=["default_madingley", "explicit_damuth"],
+    )
+    def test_from_config(
+        self,
+        scaling_method,
+        dummy_animal_data,
+        animal_fixture_config,
+        fixture_core_components,
+    ):
+        """Test that AnimalModel.from_config correctly sets density_scaling_method."""
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        # Update the config to include the scaling method
+        animal_fixture_config["animal"]["density_scaling_method"] = scaling_method
+
+        # Create the model using from_config
+        model = AnimalModel.from_config(
+            data=dummy_animal_data,
+            core_components=fixture_core_components,
+            config=animal_fixture_config,
+        )
+
+        # Check that the model has the correct scaling method set
+        assert model.density_scaling_method == scaling_method
+        assert model.model_constants.density_scaling_method == scaling_method
 
     def test_update_method_sequence(self, mocker, prepared_animal_model_instance):
         """Test update to ensure it runs the community methods in order."""
@@ -407,12 +479,76 @@ class TestAnimalModel:
                     assert np.isclose(pool.mass_cnp.nitrogen, expected_n)
                     assert np.isclose(pool.mass_cnp.phosphorus, expected_p)
 
+    def test_populate_soil_pools(self, animal_model_instance):
+        """Test that populating of the soil resource pools works as expected."""
+
+        expected_pool_set = {"pom", "bacteria", "fungi"}
+        expected_carbon = {
+            "pom": np.full(9, 303.75),
+            "bacteria": np.full(9, 303.75),
+            "fungi": np.full(9, 911.25),
+        }
+        expected_nitrogen = {
+            "pom": np.full(9, 303.75),
+            "bacteria": np.full(9, 58.413461),
+            "fungi": np.full(9, 80.480769),
+        }
+        expected_phosphorus = {
+            "pom": np.full(9, 303.75),
+            "bacteria": np.full(9, 18.984375),
+            "fungi": np.full(9, 12.65625),
+        }
+
+        soil_pools = animal_model_instance.populate_soil_pools()
+
+        for cell_id, pool_dict in soil_pools.items():
+            assert set(pool_dict.keys()) == expected_pool_set
+            for pool_name, pool in pool_dict.items():
+                assert np.isclose(
+                    pool.mass_current, expected_carbon[pool_name][cell_id]
+                )
+                assert np.isclose(
+                    pool.mass_cnp.nitrogen, expected_nitrogen[pool_name][cell_id]
+                )
+                assert np.isclose(
+                    pool.mass_cnp.phosphorus,
+                    expected_phosphorus[pool_name][cell_id],
+                )
+
+    def test_populate_fungal_fruiting_bodies(self, animal_model_instance):
+        """Test that populating of fungal fruiting bodies pools works as expected."""
+
+        expected_carbon = np.full(9, 12150.0)
+        expected_nitrogen = np.full(9, 1215.0)
+        expected_phosphorus = np.full(9, 162.0)
+
+        fungal_fruiting_bodies = animal_model_instance.populate_fungal_fruiting_bodies()
+
+        for cell_id, pool in fungal_fruiting_bodies.items():
+            assert np.isclose(pool.mass_current, expected_carbon[cell_id])
+            assert np.isclose(pool.mass_cnp.nitrogen, expected_nitrogen[cell_id])
+            assert np.isclose(pool.mass_cnp.phosphorus, expected_phosphorus[cell_id])
+
+    def test_populate_soil_pools_negative(self, animal_model_instance):
+        """Test that trying to populate a negative soil pool causes an error."""
+        from xarray import DataArray
+
+        animal_model_instance.data["soil_c_pool_pom"] = DataArray(
+            np.full(9, -3.75), dims=["cell_id"]
+        )
+
+        with pytest.raises(ValueError) as err:
+            _ = animal_model_instance.populate_soil_pools()
+
+        assert "pom: negative mass detected in cell 0" in str(err.value)
+
     def test_calculate_total_litter_consumption(
         self,
-        litter_data_instance,
+        litter_soil_data_instance,
         fixture_core_components,
         functional_group_list_instance,
         constants_instance,
+        microbial_c_n_p_ratios,
     ):
         """Test calculation of total consumption of litter by animals is correct."""
         from copy import deepcopy
@@ -424,26 +560,29 @@ class TestAnimalModel:
 
         # Create AnimalModel instance with test data
         model = AnimalModel(
-            data=litter_data_instance,
+            data=litter_soil_data_instance,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
         # Copy data and simulate biomass loss from each litter pool
-        new_data = deepcopy(litter_data_instance)
+        new_data = deepcopy(litter_soil_data_instance)
         new_data["litter_pool_above_metabolic"] = (
-            litter_data_instance["litter_pool_above_metabolic"] - 0.03
+            litter_soil_data_instance["litter_pool_above_metabolic"] - 0.03
         )
         new_data["litter_pool_above_structural"] = (
-            litter_data_instance["litter_pool_above_structural"] - 0.04
+            litter_soil_data_instance["litter_pool_above_structural"] - 0.04
         )
-        new_data["litter_pool_woody"] = litter_data_instance["litter_pool_woody"] - 1.2
+        new_data["litter_pool_woody"] = (
+            litter_soil_data_instance["litter_pool_woody"] - 1.2
+        )
         new_data["litter_pool_below_metabolic"] = (
-            litter_data_instance["litter_pool_below_metabolic"] - 0.06
+            litter_soil_data_instance["litter_pool_below_metabolic"] - 0.06
         )
         new_data["litter_pool_below_structural"] = (
-            litter_data_instance["litter_pool_below_structural"] - 0.01
+            litter_soil_data_instance["litter_pool_below_structural"] - 0.01
         )
 
         pool_names = [
@@ -490,6 +629,185 @@ class TestAnimalModel:
                 f"Mismatch in {pool_name} consumption."
             )
 
+    def test_calculate_total_soil_consumption(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+    ):
+        """Test calculation of total consumption of soil by animals is correct."""
+        from copy import deepcopy
+
+        import numpy as np
+
+        from virtual_ecosystem.core.constants import CoreConsts
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.decay import SoilPool
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+
+        # Copy data and simulate biomass loss from each soil pool
+        new_data = deepcopy(litter_soil_data_instance)
+        pom_change = 0.03
+        pom_c_n_ratio = (
+            litter_soil_data_instance["soil_c_pool_pom"]
+            / litter_soil_data_instance["soil_n_pool_particulate"]
+        )
+        pom_c_p_ratio = (
+            litter_soil_data_instance["soil_c_pool_pom"]
+            / litter_soil_data_instance["soil_p_pool_particulate"]
+        )
+        new_data["soil_c_pool_pom"] = (
+            litter_soil_data_instance["soil_c_pool_pom"] - pom_change
+        )
+        new_data["soil_n_pool_particulate"] = litter_soil_data_instance[
+            "soil_n_pool_particulate"
+        ] - (pom_change / pom_c_n_ratio)
+        new_data["soil_p_pool_particulate"] = litter_soil_data_instance[
+            "soil_p_pool_particulate"
+        ] - (pom_change / pom_c_p_ratio)
+        new_data["soil_c_pool_bacteria"] = (
+            litter_soil_data_instance["soil_c_pool_bacteria"] - 0.55
+        )
+        fungal_loss = 0.33
+        total_fungi = (
+            litter_soil_data_instance["soil_c_pool_saprotrophic_fungi"]
+            + litter_soil_data_instance["soil_c_pool_arbuscular_mycorrhiza"]
+            + litter_soil_data_instance["soil_c_pool_ectomycorrhiza"]
+        )
+        new_data["soil_c_pool_saprotrophic_fungi"] = litter_soil_data_instance[
+            "soil_c_pool_saprotrophic_fungi"
+        ] - (
+            fungal_loss
+            * litter_soil_data_instance["soil_c_pool_saprotrophic_fungi"]
+            / total_fungi
+        )
+        new_data["soil_c_pool_ectomycorrhiza"] = litter_soil_data_instance[
+            "soil_c_pool_ectomycorrhiza"
+        ] - (
+            fungal_loss
+            * litter_soil_data_instance["soil_c_pool_ectomycorrhiza"]
+            / total_fungi
+        )
+        new_data["soil_c_pool_arbuscular_mycorrhiza"] = litter_soil_data_instance[
+            "soil_c_pool_arbuscular_mycorrhiza"
+        ] - (
+            fungal_loss
+            * litter_soil_data_instance["soil_c_pool_arbuscular_mycorrhiza"]
+            / total_fungi
+        )
+
+        pool_names = ["pom", "fungi", "bacteria"]
+
+        cell_ids = fixture_core_components.grid.cell_id
+        cell_area = fixture_core_components.grid.cell_area
+
+        # Construct the nested dict: cell_id → pool_name → LitterPool
+        new_soil_pools = {
+            cid: {
+                pool_name: SoilPool(
+                    pool_name=pool_name,
+                    cell_id=cid,
+                    data=new_data,
+                    cell_area=cell_area,
+                    max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+                    c_n_p_ratios=microbial_c_n_p_ratios,
+                )
+                for pool_name in pool_names
+            }
+            for cid in cell_ids
+        }
+
+        # Run consumption calculation
+        consumption = model.calculate_total_soil_consumption(soil_pools=new_soil_pools)
+
+        # Validate consumption matches expected loss per cell
+        for consumption_type, expected_consumption in [
+            ("animal_pom_consumption_carbon", np.full(4, 0.002142857)),
+            (
+                "animal_pom_consumption_nitrogen",
+                np.array([0.000153061, 1.530536e-6, 8.746347e-6, 8.746353e-5]),
+            ),
+            (
+                "animal_pom_consumption_phosphorus",
+                np.array([6.122143e-7, 6.122443e-7, 3.498539e-7, 3.498541e-6]),
+            ),
+            ("animal_bacteria_consumption", np.full(4, 0.03928571)),
+            (
+                "animal_saprotrophic_fungi_consumption",
+                np.array([0.0104371, 0.0177721, 0.0050429, 0.0061680]),
+            ),
+            (
+                "animal_ectomycorrhiza_consumption",
+                np.array([0.0055117, 0.0027438, 0.0095837, 0.0051219]),
+            ),
+            (
+                "animal_arbuscular_mycorrhiza_consumption",
+                np.array([0.0076226, 0.00305556, 0.00894482, 0.0122816]),
+            ),
+        ]:
+            actual = consumption[consumption_type].values
+            assert np.allclose(actual, expected_consumption), (
+                f"Mismatch for {consumption_type}."
+            )
+
+    def test_update_fungal_fruiting_bodies(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+    ):
+        """Test that the function to update fungal fruiting bodies works as expected."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        expected_decay = [0.01008051, 0.00957649, 0.00819042, 0.00724537]
+        expected_new_carbon_mass = [5336.86979, 5070.02630, 4336.20671, 3835.87516]
+        expected_new_nitrogen_mass = [533.686979, 507.002630, 433.620671, 383.587516]
+        expected_new_phosphorus_mass = [71.1582639, 67.6003507, 57.8160895, 51.1450021]
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+        actual_decay = model.update_fungal_fruiting_bodies()
+
+        actual_new_carbon_mass = [
+            model.fungal_fruiting_bodies[cell_id].mass_current
+            for cell_id in model.fungal_fruiting_bodies
+        ]
+        actual_new_nitrogen_mass = [
+            model.fungal_fruiting_bodies[cell_id].mass_cnp["nitrogen"]
+            for cell_id in model.fungal_fruiting_bodies
+        ]
+        actual_new_phosphorus_mass = [
+            model.fungal_fruiting_bodies[cell_id].mass_cnp["phosphorus"]
+            for cell_id in model.fungal_fruiting_bodies
+        ]
+
+        assert np.allclose(actual_new_carbon_mass, expected_new_carbon_mass)
+        assert np.allclose(actual_new_nitrogen_mass, expected_new_nitrogen_mass)
+        assert np.allclose(actual_new_phosphorus_mass, expected_new_phosphorus_mass)
+        assert np.allclose(
+            actual_decay["decay_of_fungal_fruiting_bodies"], expected_decay
+        )
+
     def test_calculate_density_for_cohort(self, prepared_animal_model_instance, mocker):
         """Test the calculate_density_for_cohort method."""
 
@@ -515,6 +833,35 @@ class TestAnimalModel:
             f"did not match expected density ({expected_density})."
         )
 
+    def test_update_fungal_fruiting_bodies_in_data(
+        self,
+        litter_soil_data_instance,
+        fixture_core_components,
+        functional_group_list_instance,
+        constants_instance,
+        microbial_c_n_p_ratios,
+    ):
+        """Test that updating the data object based on FungalFruitPool changes works."""
+        import numpy as np
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        expected_pool = [0.65887281, 0.62592917, 0.53533416, 0.47356483]
+
+        # Create AnimalModel instance with test data
+        model = AnimalModel(
+            data=litter_soil_data_instance,
+            core_components=fixture_core_components,
+            functional_groups=functional_group_list_instance,
+            model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+        )
+        _ = model.update_fungal_fruiting_bodies()
+        # Update the data object based on the changes caused by previous method
+        model.update_fungal_fruiting_bodies_in_data()
+
+        assert np.allclose(model.data["fungal_fruiting_bodies"], expected_pool)
+
     def test_initialize_communities(
         self,
         mocker,
@@ -522,8 +869,9 @@ class TestAnimalModel:
         fixture_core_components,
         functional_group_list_instance,
         constants_instance,
+        microbial_c_n_p_ratios,
     ):
-        """Test that `_initialize_communities` generates cohorts."""
+        """Test the new _initialize_communities logic more rigorously."""
 
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
@@ -532,26 +880,260 @@ class TestAnimalModel:
             "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_litter_pools",
             return_value={},
         )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_soil_pools",
+            return_value={},
+        )
+        mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.AnimalModel.populate_fungal_fruiting_bodies",
+            return_value={},
+        )
 
-        # Initialize the model
         model = AnimalModel(
             data=animal_data_for_model_instance,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
             model_constants=constants_instance,
+            microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
-        # Call the method to initialize communities
+        # Call the new initialization method
         model._initialize_communities(functional_group_list_instance)
 
-        # Assert that cohorts have been generated in each community
+        # Check all communities have lists
         for cell_id in animal_data_for_model_instance.grid.cell_id:
-            assert len(model.communities[cell_id]) > 0
-            for cohort in model.communities[cell_id]:
-                assert isinstance(cohort, AnimalCohort)
+            assert isinstance(model.communities[cell_id], list)
 
-        # Assert that cohorts are stored in the model's cohort dictionary
+        # Check there are active cohorts
         assert len(model.active_cohorts) > 0
+
+        # Check types
+        for cohort in model.active_cohorts.values():
+            assert isinstance(cohort, AnimalCohort)
+            assert cohort.centroid_key in model.data.grid.cell_id
+            assert cohort.individuals >= model.minimum_cohort_size
+
+        # Check conservation of total individuals
+        for fg in functional_group_list_instance:
+            estimated_total = model._estimate_total_individuals(fg)
+            actual_total = sum(
+                c.individuals
+                for c in model.active_cohorts.values()
+                if c.functional_group.name == fg.name
+            )
+            assert abs(estimated_total - actual_total) <= len(model.data.grid.cell_id)
+
+        # Check cohort count is reasonable
+        total_expected = model.target_cohorts_per_fg * len(
+            functional_group_list_instance
+        )
+        assert len(model.active_cohorts) <= total_expected
+
+    @pytest.mark.parametrize(
+        "density,expect_damuth_call,scaling_method",
+        [
+            (0.05, False, "damuth"),
+            (None, True, "damuth"),
+            (0.00001, False, "damuth"),
+            (0.0, False, "damuth"),
+            (1000.0, False, "damuth"),
+            (0.333, False, "damuth"),
+            (-0.1, False, "damuth"),
+            (0.05, False, "madingley"),
+            (None, True, "madingley"),
+            (0.00001, False, "madingley"),
+            (0.0, False, "madingley"),
+            (1000.0, False, "madingley"),
+            (0.333, False, "madingley"),
+            (-0.1, False, "madingley"),
+        ],
+        ids=[
+            "standard_empirical_damuth",
+            "damuth_fallback_damuth",
+            "very_low_density_damuth",
+            "zero_density_damuth",
+            "very_high_density_damuth",
+            "fractional_density_damuth",
+            "negative_density_damuth",
+            "standard_empirical_madingley",
+            "madingley_fallback_madingley",
+            "very_low_density_madingley",
+            "zero_density_madingley",
+            "very_high_density_madingley",
+            "fractional_density_madingley",
+            "negative_density_madingley",
+        ],
+    )
+    def test_estimate_total_individuals(
+        self,
+        mocker,
+        animal_model_instance,
+        animal_model_damuth_instance,
+        density,
+        expect_damuth_call,
+        scaling_method,
+    ):
+        """Parametrized test for _estimate_total_individuals."""
+
+        from math import ceil
+
+        from virtual_ecosystem.models.animal.constants import AnimalConsts
+        from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+
+        # Always patch damuths_law to return predictable 42.0
+        mock_damuth = mocker.patch(
+            "virtual_ecosystem.models.animal.animal_model.damuths_law",
+            return_value=42.0,
+        )
+
+        # Choose correct model instance
+        if scaling_method == "damuth":
+            model = animal_model_damuth_instance
+        elif scaling_method == "madingley":
+            model = animal_model_instance
+
+        n_cells = model.data.grid.n_cells
+        cell_area = model.data.grid.cell_area
+
+        # Create functional group with scaling method consistency
+        fg = FunctionalGroup(
+            name="test_fg",
+            taxa="mammal",
+            diet="herbivore",
+            metabolic_type="endothermic",
+            reproductive_environment="terrestrial",
+            reproductive_type="iteroparous",
+            development_type="direct",
+            development_status="adult",
+            offspring_functional_group="test_fg",
+            excretion_type="uricotelic",
+            migration_type="none",
+            vertical_occupancy="ground",
+            birth_mass=0.1,
+            adult_mass=10.0,
+            constants=AnimalConsts(density_scaling_method=scaling_method),
+            density_individuals_m2=density,
+        )
+
+        result = model._estimate_total_individuals(fg)
+
+        if density is not None:
+            # Empirical density path
+            expected_total = int(density * n_cells * cell_area)
+            assert result == expected_total
+            mock_damuth.assert_not_called()
+
+        else:
+            # Fallback scaling path
+            if scaling_method == "damuth":
+                expected_total = ceil(42.0 * n_cells * cell_area)
+                assert result == expected_total
+                mock_damuth.assert_called_once_with(10.0, fg.population_density_terms)
+            else:
+                # madingley fallback: real calculation, can't match 42.0
+                assert isinstance(result, int)
+                assert result >= 0
+                mock_damuth.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "total_individuals,target_cohorts,min_cohort_size,expected_n_cohorts",
+        [
+            (100, 10, 5, 10),  # even split
+            (103, 10, 5, 10),  # split with remainder
+            (25, 10, 5, 5),  # not enough for 10 * 5, reduces to 5
+            (0, 10, 5, 1),  # zero total
+            (3, 10, 5, 1),  # too small, forced single cohort
+        ],
+        ids=[
+            "even_split",
+            "split_with_remainder",
+            "reduce_for_min_size",
+            "zero_total",
+            "below_min_size",
+        ],
+    )
+    def test_distribute_individuals_to_cohorts(
+        self,
+        animal_model_instance,
+        total_individuals,
+        target_cohorts,
+        min_cohort_size,
+        expected_n_cohorts,
+    ):
+        """Test _distribute_individuals_to_cohorts produces correct cohort sizes."""
+        model = animal_model_instance
+
+        # Override these attributes for test
+        model.target_cohorts_per_fg = target_cohorts
+        model.minimum_cohort_size = min_cohort_size
+
+        cohort_sizes = model._distribute_individuals_to_cohorts(total_individuals)
+
+        # All cohort sizes >= minimum (unless total < min_size)
+        for size in cohort_sizes:
+            if total_individuals >= min_cohort_size:
+                assert size >= min_cohort_size
+            else:
+                assert size <= total_individuals
+
+        # Sum matches total_individuals exactly
+        assert sum(cohort_sizes) == total_individuals
+
+        # Number of cohorts matches expected (given reductions)
+        assert len(cohort_sizes) == expected_n_cohorts
+
+    @pytest.mark.parametrize(
+        "n_cohorts",
+        [
+            2,  # fewer than cells
+            4,  # exactly equal to cells
+            6,  # more than cells
+            0,  # zero cohorts
+        ],
+        ids=[
+            "fewer_than_cells",
+            "equal_to_cells",
+            "more_than_cells",
+            "zero_cohorts",
+        ],
+    )
+    def test_assign_cohort_locations(self, mocker, animal_model_instance, n_cohorts):
+        """Test _assign_cohort_locations for various cohort counts."""
+        import numpy as np
+
+        # Patch random.choice in the model to use numpy's choice
+        mocker.patch("virtual_ecosystem.models.animal.animal_model.random", np.random)
+
+        model = animal_model_instance
+        cell_ids = list(model.data.grid.cell_id)
+        n_cells = len(cell_ids)
+
+        # Safety check for test assumptions
+        assert n_cells >= 4, "Test grid should have at least 4 cells."
+
+        # Call the method under test
+        locations = model._assign_cohort_locations(n_cohorts)
+
+        # Always returns exactly n_cohorts entries
+        assert len(locations) == n_cohorts
+
+        # All locations must be valid cell IDs
+        for loc in locations:
+            assert loc in cell_ids
+
+        unique_cells = set(locations)
+
+        if n_cohorts <= n_cells:
+            # When cohorts ≤ cells, all must be unique
+            assert len(unique_cells) == n_cohorts
+        else:
+            # When more cohorts than cells, ensure full coverage
+            for cid in cell_ids:
+                assert cid in unique_cells
+
+        # Edge case: zero cohorts should yield empty list
+        if n_cohorts == 0:
+            assert locations == []
 
     def test_abandon_communities(
         self,
@@ -1545,7 +2127,8 @@ class TestAnimalModel:
     ):
         """Test metabolize_community using real data from fixture."""
 
-        from numpy import timedelta64
+        import numpy as np
+        import xarray as xr
 
         # Assign the data from the fixture to the animal model
         animal_model_instance.data = dummy_animal_data
@@ -1577,8 +2160,18 @@ class TestAnimalModel:
             2: "excrement_pool_2",
         }
 
+        # Ensure total_animal_respiration exists in data
+        if "total_animal_respiration" not in animal_model_instance.data:
+            n_cells = len(animal_model_instance.data.grid.cell_id)
+            animal_model_instance.data["total_animal_respiration"] = xr.DataArray(
+                np.zeros(n_cells),
+                dims=["cell_id"],
+                coords={"cell_id": animal_model_instance.data.grid.cell_id},
+                name="total_animal_respiration",
+            )
+
         # Run the metabolize_community method
-        dt = timedelta64(1, "D")  # 1 day as the time delta
+        dt = np.timedelta64(1, "D")  # 1 day as the time delta
         animal_model_instance.metabolize_community(dt)
 
         # Assertions for the first cohort in cell 1
@@ -2229,3 +2822,13 @@ class TestAnimalModel:
         # Assert that only the immature cohort's update_largest_mass was called
         mock_immature.update_largest_mass.assert_called_once()
         mock_mature.update_largest_mass.assert_not_called()
+
+
+def test_to_per_day(prepared_animal_model_instance):
+    """Test that helper function to convert to per day rates works."""
+
+    rates = prepared_animal_model_instance.to_per_day(
+        change=np.array([10.0, 25.0, 99.0, 34.7])
+    )
+
+    assert np.allclose(rates, [0.714285714, 1.7857143, 7.0714286, 2.4785714])
