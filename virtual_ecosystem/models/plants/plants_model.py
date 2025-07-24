@@ -326,26 +326,28 @@ class PlantsModel(
         self.extra_pft_traits = extra_pft_traits
         self.model_constants = model_constants
 
-        # Adjust flora turnover rates to timestep
-        # TODO: Pyrealm provides annual turnover rates. Dividing by the number of
-        #       updates_per_year to get monthly turnover values is naive and will
-        #       overestimate turnover. This should be updated eventually to a more
-        #       sophisticated approach.
-        #
-        #       This is kinda hacky because the Flora instances is a frozen dataclass,
+        # Adjust flora rates to timestep
+        # TODO: This is kinda hacky because the Flora instances is a frozen dataclass,
         #       but we only bring the model timing and flora object together at this
         #       point. We would have to pass the model timing in to the flora creation.
         #       Potentially create a Flora.adjust_rate_timing() method, but we'd need to
         #       be sure that the approach is sane first.
-        object.__setattr__(
-            self.flora, "tau_f", self.flora.tau_f / self.model_timing.updates_per_year
-        )
-        object.__setattr__(
-            self.flora, "tau_r", self.flora.tau_r / self.model_timing.updates_per_year
-        )
-        object.__setattr__(
-            self.flora, "tau_rt", self.flora.tau_rt / self.model_timing.updates_per_year
-        )
+
+        # Respiration rates are expressed as proportions of masses per year so need to
+        # be reduced proportionately to the number of updates per year
+        updates_per_year = self.model_timing.updates_per_year
+        object.__setattr__(self.flora, "resp_f", self.flora.resp_f / updates_per_year)
+        object.__setattr__(self.flora, "resp_r", self.flora.resp_r / updates_per_year)
+        object.__setattr__(self.flora, "resp_s", self.flora.resp_s / updates_per_year)
+        object.__setattr__(self.flora, "resp_rt", self.flora.resp_rt / updates_per_year)
+
+        # Turnover rates are implemented as the number of years required to completely
+        # turnover foliage/roots etc and are included in equations as the reciprocal of
+        # the values. So rescaling them to shorter timescales requires that we
+        # _increase_ the values proportionally to the reduced time between updates.
+        object.__setattr__(self.flora, "tau_f", self.flora.tau_f * updates_per_year)
+        object.__setattr__(self.flora, "tau_r", self.flora.tau_r * updates_per_year)
+        object.__setattr__(self.flora, "tau_rt", self.flora.tau_rt * updates_per_year)
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
@@ -1204,8 +1206,13 @@ class PlantsModel(
           proportion of the net primary productivity from the subcanopy vegetation.
         """
 
-        # Calculate the gross primary productivity since the last update. Units are
-        # already in m2 so no need for area scaling
+        # Calculate the gross primary productivity since the last update.
+        #    LUE                     1 layer          [gC mol-1]
+        #    * shortwave absorption  1 layer          [µmol m-2 s-1]
+        #    * DST to PPFD           scalar           [-]
+        #    * time elapsed     scalar                [s]
+        # Units:
+        #    gC mol-1 * µmol m-2 s-1  * (-) * s = µg C m-2
         subcanopy_gpp = (
             self.pmodel.lue[self.layer_structure.index_surface_scalar, :]
             * self.data["shortwave_absorption"][
@@ -1215,16 +1222,15 @@ class PlantsModel(
             * self.model_timing.update_interval_seconds
         )
 
-        # Calculate the transpiration associated with that GPP
+        # Calculate the transpiration associated with that GPP in moles
         subcanopy_transpiration = (
-            (subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6))
-            * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
-            * self.model_timing.update_interval_seconds
-        )
+            subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
+        ) * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
 
+        # Calculate NPP, converting µg C m-2 to  kg C m-2
         subcanopy_npp = (
             self.model_constants.subcanopy_yield
-            * subcanopy_gpp
+            * (subcanopy_gpp * 1e-9)
             * (1 - self.model_constants.subcanopy_respiration_fraction)
         )
 
