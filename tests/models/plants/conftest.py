@@ -13,9 +13,19 @@ def flora(fixture_config):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    flora = get_flora_from_config(fixture_config)
+    flora, _ = get_flora_from_config(fixture_config)
 
     return flora
+
+
+@pytest.fixture
+def extra_pft_traits(fixture_config):
+    """Construct a minimal Flora object."""
+    from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
+
+    _, extra_pft_traits = get_flora_from_config(fixture_config)
+
+    return extra_pft_traits
 
 
 @pytest.fixture
@@ -291,6 +301,7 @@ def fixture_canopy_layer_data(
 def fxt_plants_model(
     plants_data,
     flora,
+    extra_pft_traits,
     fixture_core_components,
     fixture_plants_constants,
     fixture_exporter,
@@ -299,10 +310,13 @@ def fxt_plants_model(
 
     from virtual_ecosystem.models.plants.plants_model import PlantsModel
 
+    print("Creating PlantsModel fixture")
+
     return PlantsModel(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
         model_constants=fixture_plants_constants,
     )
