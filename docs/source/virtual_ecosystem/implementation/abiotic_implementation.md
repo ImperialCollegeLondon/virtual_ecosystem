@@ -470,30 +470,108 @@ the canopy. This will be addressed during the model calibration.
 
 The wind profile determines the exchange of heat, water, and $\ce{CO_{2}}$ between soil
 and atmosphere below the canopy as well as the exchange with the atmosphere above the
+canopy. The wind speed above the canopy is provided as an input to the model at each
+time step.
+This section describes the implementation of wind profiles within the canopy, friction
+velocity, aerodynamic resistance, vertical mixing rates, and ventilation rate used to
+model turbulent mixing with air above the canopy.
+
+The **zero-plane displacement height** $d$ (m) is a concept used in micrometeorology to
+describe the flow of air near the ground or over surfaces like a forest canopy or crops.
+It represents the height above the actual ground where the wind speed is theoretically
+reduced to zero due to the obstruction caused by the roughness elements (like trees
+or buildings).
+
+$d$ is estimated as a function of canopy height $h_{c}$ (m), leaf area index $LAI$
+ $\mathrm{m\,m^{-1}}$, and a scaling parameter $\beta_{d}$ after
+ {cite:t}`maclean_microclimc_2021`:
+
+```{math}
+d = h_c \left( 1 - \frac{1 - \exp\left(-\sqrt{\beta_d \cdot \text{LAI}}\,\right)}
+{\sqrt{\beta_d \cdot \text{LAI}}} \right)
+```
+
+This ensures $d \to 0$ in the absence of vegetation and approaches a fraction of
+canopy height in dense vegetation.
+
+The **roughness length** $z_0$ (m) determines the height above the ground where the wind
+speed theoretically becomes zero under neutral atmospheric conditions. It is influenced
+by the drag imposed by both the substrate and the vegetation canopy. The roughness
+length is computed as (after {cite:t}`maclean_microclimc_2021`):
+
+$$z_{0} = (h_c − d) exp⁡(−\kappa \frac{1}{R} − C_d)$$
+
+with
+
+$$R = \sqrt{C_s + \frac{C_r LAI}{2}}$$
+
+where $C_{s}$ is the substrate surface drag coefficient, $C_{r}$ is the roughness
+element (vegetation) drag coefficient, $C_d$ is the roughness sublayer depth parameter,
+$\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
+($\mathrm{m\,m^{-1}}$).
+
+The **wind speed** ($\mathrm{m\,s^{-1}}$) at any height $z$ (m) is computed using the
+logarithmic wind profile under neutral conditions:
+
+```{math}
+u(z) = u_{\text{ref}} \cdot \frac{\ln\left( \frac{z - d}{z_0} \right)}
+{\ln\left( \frac{z_{\text{ref}} - d}{z_0} \right)}
+```
+
+where $u(z)$ is wind speed at height $z$, $u_{\text{ref}}$ is reference wind speed at
+height $z_{\text{ref}}$, $d$ is the zero-plane displacement height, $z_{0}$ is the
+roughness length.
+
+Minimum wind speed is enforced below the canopy to avoid unrealistically low turbulent
+transport.
+
+**Friction velocity** $u_{*}$ ($\mathrm{m\,s^{-1}}$) quantifies the shear stress
+imposed by wind near the surface and is calculated from the wind speed profile:
+
+$$u_* = \frac{\kappa \cdot u(z)}{\ln\left( \frac{z - d}{z_0} \right)}$$
+
+Friction velocity is used to estimate turbulence strength and mixing coefficients.
+
+The **aerodynamic resistance** $r_a$ ($\mathrm{s\,m^{-1}}$) quantifies the resistance to
+vertical transfer of scalars (heat, water vapour) between surface and air:
+
+```{math}
+r_a = \frac{1}{g_a} = \frac{\left[ \ln\left( \frac{z - d}{z_0} \right) \right]^2}
+{\kappa^2 \cdot u(z)}
+```
+
+Separate values are computed for:
+
+- Canopy resistance, using wind speeds within the canopy layer.
+- Soil resistance, passed as an external input from the hydrology model.
+
+The **eddy diffusivity** or **turbulent mixing coefficients** for heat ($k_H$) and
+momentum ($k_M$) ($\mathrm{m^{2}\,s^{-1}}$) are used to mix water and energy in the
+canopy. Inside the canopy, turbulence is strongly damped by vegetation drag, and a
+simple linear profile like used for the top of the canopy like
+$k_{H,M} = \kappa u^{*}(z-d)$ {cite:p}`raupach_coherent_1996`
+does not match observed eddy diffusivity well. Instead, empirical profiles based on
+measurements are used, and these often take parabolic or other non-linear forms like:
+
+$$k_{H,M}(z)=\kappa u^{*}z(1-zh)^{2}$$
+
+where $\kappa$ is the von Karman constant (dimensionless), $u_{*}$ is
+the friction velocity ($\mathrm{m\,s^{-1}}$), $z$ is the height (m) for which
+coefficients are calculated, and $h_c$ is the canopy height (m).
+
+This particular form goes to zero at both z=0 and z=h and peaks somewhere within the
 canopy.
 
-The wind profile above the canopy is described as follows (based on
-{cite:t}`campbell_introduction_1998` as implemented in {cite:t}`maclean_microclimc_2021`):
+The **ventilation rate** $v$ represents the rate of air exchange above the
+canopy and is defined as:
 
-$$u_z = \frac{u^{*}}{0.4} ln \frac{z-d}{z_M} + \Psi_M$$
+$$v = \frac{1}{r_a \cdot h}$$
 
-where $u_z$ is wind speed at height $z$ above the canopy, $d$ is
-the height above ground within the canopy where the wind profile extrapolates to
-zero, $z_m$ the roughness length for momentum, $\Psi_M$ is a diabatic
-correction for momentum and $u^{*}$ is the friction velocity, which gives the
-wind speed at height $d + z_m$.
+Where $r_a$ is the aerodynamic resistance from the top canopy layer and $h$ is the
+vertical scale of exchange, or characteristic height, here canopy height (m).
 
-The wind profile below canopy is derived as follows:
-
-$$u_z = u_h \exp(a(\frac{z}{h} - 1))$$
-
-where $u_z$ is wind speed at height $z$ within the canopy, $u_h$
-is wind speed at the top of the canopy at height $h$, and $a$ is a wind
-attenuation coefficient given by $a = 2 l_m i_w$, where $c_d$ is a drag
-coefficient that varies with leaf inclination and shape, $i_w$ is a
-coefficient describing relative turbulence intensity and $l_m$ is the mean
-mixing length, equivalent to the free space between the leaves and stems. For
-details, see {cite:t}`maclean_microclimc_2021`.
+This rate is used to estimate convective removal of heat and water vapour from the
+canopy.
 
 ## Updated variables
 

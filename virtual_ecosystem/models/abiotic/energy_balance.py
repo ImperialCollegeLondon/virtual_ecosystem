@@ -154,53 +154,6 @@ def calculate_sensible_heat_flux(
     )
 
 
-def calculate_aerodynamic_resistance(
-    wind_heights: NDArray[np.floating],
-    roughness_length: NDArray[np.floating],
-    zero_plane_displacement: NDArray[np.floating],
-    friction_velocity: NDArray[np.floating],
-    von_karman_constant: float,
-) -> NDArray[np.floating]:
-    r"""Calculate aerodynamic resistance in canopy, [s m-1].
-
-    The aerodynamic resistance :math:`r_{a}` is calculated as:
-
-    .. math::
-        r_{a} = \frac{ln(\frac{z-d}{z_{m}})^{2}}{\kappa ^{2} u^{*}}
-
-    where :math:`z` is the height where the wind speed needs to be calculated,
-    :math:`d` is the zero plane displacement
-    height, :math:`z_{m}` is the roughness length of momentum, :math:`\kappa` is the
-    von Karman constant, and :math:`u^{*}` is the friction velocity.
-
-    Args:
-        wind_heights: Heights where wind speed is to be calculated [m].
-        roughness_length: Momentum roughness length, [m]
-        zero_plane_displacement: Height above ground within the canopy where the wind
-            profile extrapolates to zero, [m]
-        friction_velocity: Friction velocity, [m s-1]
-        von_karman_constant: Von Karman's constant, dimensionless constant describing
-            the logarithmic velocity profile of a turbulent fluid near a no-slip
-            boundary.
-
-    Returns:
-        aerodynamic resistance in canopy, [s m-1]
-    """
-
-    # Compute only where valid
-    valid_condition = wind_heights > zero_plane_displacement
-    aero_resistance = np.where(
-        valid_condition,
-        (np.log((wind_heights - zero_plane_displacement) / roughness_length)) ** 2
-        / (von_karman_constant**2 * friction_velocity),
-        np.nan,
-    )
-
-    # Replace invalid values with a small fallback resistance
-    aero_resistance_out = np.where(np.isnan(aero_resistance), 0.001, aero_resistance)
-    return np.where(np.isnan(wind_heights), np.nan, aero_resistance_out)
-
-
 def update_soil_temperature(
     ground_heat_flux: NDArray[np.floating],
     soil_temperature: NDArray[np.floating],

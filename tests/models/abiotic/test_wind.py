@@ -227,3 +227,33 @@ def test_advect_from_toplayer():
     )
 
     np.testing.assert_allclose(result, expected_specific_humidity)
+
+
+def test_calculate_aerodynamic_resistance(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test calculate aerodynamic resistance."""
+
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_aerodynamic_resistance,
+    )
+
+    lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+
+    exp_ra = np.array(
+        [
+            [132.547453, 55.117259, 191.29905, 4947.049913],
+            [110.234517, 38.424838, np.nan, np.nan],
+            [76.849677, np.nan, np.nan, np.nan],
+        ]
+    )
+
+    result = calculate_aerodynamic_resistance(
+        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
+        roughness_length=np.repeat(0.3, 4),
+        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
+        wind_speed=np.array([1.0, 2.0, 0.5, 0.01]),
+        von_karman_constant=0.4,
+    )
+    np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)

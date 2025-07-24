@@ -84,36 +84,6 @@ def test_calculate_sensible_heat_flux(
     np.testing.assert_allclose(computed_flux, expected_flux, rtol=1e-5)
 
 
-def test_calculate_aerodynamic_resistance(
-    dummy_climate_data_varying_canopy, fixture_core_components
-):
-    """Test calculate aerodynamic resistance."""
-
-    from virtual_ecosystem.models.abiotic.energy_balance import (
-        calculate_aerodynamic_resistance,
-    )
-
-    lyr_str = fixture_core_components.layer_structure
-    data = dummy_climate_data_varying_canopy
-
-    exp_ra = np.array(
-        [
-            [1636.388306, 1281.796711, 966.156818, 499.702011],
-            [1360.919965, 893.600893, np.nan, np.nan],
-            [948.761442, np.nan, np.nan, np.nan],
-        ]
-    )
-
-    result = calculate_aerodynamic_resistance(
-        wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
-        roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
-        friction_velocity=np.array([0.081, 0.086, 0.099, 0.099]),
-        von_karman_constant=0.4,
-    )
-    np.testing.assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
-
-
 @pytest.mark.parametrize(
     "g, soil_temp, dz, k, rho, cp, dt, exp_n, exp_temp",
     [

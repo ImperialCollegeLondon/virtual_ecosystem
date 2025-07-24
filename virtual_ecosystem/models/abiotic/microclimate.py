@@ -125,49 +125,30 @@ def run_microclimate(
     )
 
     #   Friction velocity, [m s-1]
-    # friction_velocity = wind.calculate_friction_velocity(
-    #     reference_wind_speed=data["wind_speed_ref"]
-    #     .isel(time_index=time_index)
-    #     .to_numpy(),
-    #     reference_height=(
-    #         data["layer_heights"][0].to_numpy()
-    #         + abiotic_constants.wind_reference_height
-    #     ),
-    #     roughness_length=roughness_length,
-    #     zero_plane_displacement=zero_plane_displacement,
-    #     von_karman_constant=core_constants.von_karmans_constant,
-    # )
-
-    #   Friction velocity, [m s-1]
-    # friction_velocity = wind.calculate_friction_velocity(
-    #     reference_wind_speed=data["wind_speed_ref"]
-    #     .isel(time_index=time_index)
-    #     .to_numpy(),
-    #     reference_height=(
-    #         data["layer_heights"][0].to_numpy()
-    #         + abiotic_constants.wind_reference_height
-    #     ),
-    #     roughness_length=roughness_length,
-    #     zero_plane_displacement=zero_plane_displacement,
-    #     von_karman_constant=core_constants.von_karmans_constant,
-    # )
+    friction_velocity = wind.calculate_friction_velocity(
+        reference_wind_speed=data["wind_speed_ref"]
+        .isel(time_index=time_index)
+        .to_numpy(),
+        reference_height=(
+            data["layer_heights"][0].to_numpy()
+            + abiotic_constants.wind_reference_height
+        ),
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+        von_karman_constant=core_constants.von_karmans_constant,
+    )
 
     # Aerodynamic resistance canopy, [s m-1]
-    #  TODO The current implementation returns quite high values at the top canopy
-    # There seems to be an issue with fluxes as, needs to be checked when fixing
-    # temperature update function. Could have to do with low wind speeds.
-    # aerodynamic_resistance_canopy = energy_balance.calculate_aerodynamic_resistance(
-    #     wind_heights=data["layer_heights"][
-    #         layer_structure.index_filled_canopy
-    #     ].to_numpy(),
-    #     roughness_length=roughness_length,
-    #     zero_plane_displacement=zero_plane_displacement,
-    #     friction_velocity=friction_velocity,
-    #     von_karman_constant=core_constants.von_karmans_constant,
-    # )
-    aerodynamic_resistance_canopy = np.full_like(
-        data["leaf_area_index"][layer_structure.index_filled_canopy], 12.5
+    aerodynamic_resistance_canopy = wind.calculate_aerodynamic_resistance(
+        wind_heights=data["layer_heights"][
+            layer_structure.index_filled_canopy
+        ].to_numpy(),
+        roughness_length=roughness_length,
+        zero_plane_displacement=zero_plane_displacement,
+        wind_speed=wind_profile[1:-1],
+        von_karman_constant=core_constants.von_karmans_constant,
     )
+
     aerodynamic_resistance_canopy_out = layer_structure.from_template()
     aerodynamic_resistance_canopy_out[layer_structure.index_filled_canopy] = (
         aerodynamic_resistance_canopy
@@ -177,14 +158,15 @@ def run_microclimate(
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 
-    # Turbulent mixing coefficient, [m2 s-1] and ventilation rate [s-1] above canopy
+    # Turbulent mixing coefficient above canopy, [m2 s-1]
     mixing_coefficient = wind.calculate_mixing_coefficients_canopy(
         layer_midpoints=layer_midpoints,
         canopy_height=canopy_height,
-        friction_velocity=data["friction_velocity"].to_numpy(),
+        friction_velocity=friction_velocity,
         von_karman_constant=core_constants.von_karmans_constant,
     )
 
+    #  Ventilation rate above canopy, [s-1]
     ventilation_rate = wind.calculate_ventilation_rate(
         aerodynamic_resistance=aerodynamic_resistance_canopy[0],
         characteristic_height=canopy_height,
