@@ -16,9 +16,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.demography.community import Community
+from pyrealm.demography.community import Cohorts, Community, Flora
 from pyrealm.demography.core import CohortMethods, PandasExporter
-from pyrealm.demography.tmodel import StemAllocation
+from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 
@@ -365,6 +365,8 @@ class StemStochiometry(CohortMethods, PandasExporter):
     """The community object that the stochiometry is associated with."""
     element_surplus: NDArray[np.float64] = field(init=False)
     """The surplus of the element per cohort."""
+    extra_pft_traits: ExtraTraitsPFT
+    """Additional traits specific to the plant functional types."""
 
     def __post_init__(self) -> None:
         """Initialize the element surplus for each cohort."""
@@ -413,7 +415,68 @@ class StemStochiometry(CohortMethods, PandasExporter):
             wood_tissue_model,
             root_tissue_model,
         ]
-        return cls(element=element, tissues=tissues, community=community)
+        return cls(
+            element=element,
+            tissues=tissues,
+            community=community,
+            extra_pft_traits=extra_pft_traits,
+        )
+
+    def add_cohorts(
+        self,
+        new_cohort_data: Cohorts,
+        flora: Flora,
+        element: str,
+    ) -> None:
+        """Add a set of new cohorts to the stochiometry model.
+
+        Args:
+            new_cohort_data: Cohort object containing information about the new cohort.
+            flora: The flora object providing stem traits for the new cohort.
+            element: The name of the element (e.g., "N" for nitrogen).
+        """
+
+        new_stem_traits = flora.get_stem_traits(pft_names=new_cohort_data.pft_names)
+        new_stem_allometry = StemAllometry(
+            stem_traits=new_stem_traits, at_dbh=new_cohort_data._dbh_values
+        )
+
+        for i in range(new_cohort_data.n_cohorts):
+            for tissue in self.tissues:
+                if isinstance(tissue, WoodTissue):
+                    mass = new_stem_allometry.stem_mass[0][i]
+                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
+                        f"deadwood_c_{element.lower()}_ratio"
+                    ]
+                elif isinstance(tissue, FoliageTissue):
+                    mass = new_stem_allometry.foliage_mass[0][i]
+                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
+                        f"foliage_c_{element.lower()}_ratio"
+                    ]
+                    reclaim_ratio = self.extra_pft_traits.traits[
+                        new_cohort_data.pft_names[i]
+                    ][f"leaf_turnover_c_{element.lower()}_ratio"]
+                    tissue.reclaim_ratio = np.append(
+                        tissue.reclaim_ratio, reclaim_ratio
+                    )
+                elif isinstance(tissue, ReproductiveTissue):
+                    mass = new_stem_allometry.reproductive_tissue_mass[0][i]
+                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
+                        f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
+                    ]
+                elif isinstance(tissue, RootTissue):
+                    mass = (
+                        new_stem_allometry.foliage_mass[0][i]
+                        * new_stem_traits.zeta[i]
+                        * new_stem_traits.sla[i]
+                    )
+                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
+                        f"root_turnover_c_{element.lower()}_ratio"
+                    ]
+                tissue.actual_element_mass = np.append(tissue.actual_element_mass, mass)
+                tissue.ideal_ratio = np.append(tissue.ideal_ratio, ratio)
+
+            self.element_surplus = np.append(self.element_surplus, 0.0)
 
     @property
     def total_element_mass(self) -> NDArray[np.float64]:
