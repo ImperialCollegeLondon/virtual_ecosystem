@@ -159,25 +159,33 @@ def test_calculate_slope_of_saturated_pressure_curve(
     np.testing.assert_allclose(result, exp_result, rtol=1e-04, atol=1e-04)
 
 
-def test_calculate_actual_vapour_pressure(dummy_climate_data, fixture_core_components):
+def test_calculate_actual_vapour_pressure(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test calculate effective vapour pressure."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
         calculate_actual_vapour_pressure,
     )
 
-    lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
+    atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
 
     result = calculate_actual_vapour_pressure(
-        air_temperature=dummy_climate_data["air_temperature"],
-        relative_humidity=dummy_climate_data["relative_humidity"],
+        air_temperature=data["air_temperature"][atm_index],
+        relative_humidity=data["relative_humidity"][atm_index],
         pyrealm_const=PyrealmConst,
     )
 
-    exp_result = lyr_str.from_template()
-    exp_result[lyr_str.index_filled_atmosphere] = np.array(
-        [3.810352, 3.790901, 3.668916, 3.461875, 2.503226]
-    )[:, None]
+    exp_result = np.array(
+        [
+            [3.810352, 3.810352, 3.810352, 3.810352],
+            [3.790901, 3.790901, 3.790901, 3.790901],
+            [3.668916, 3.668916, np.nan, np.nan],
+            [3.461875, np.nan, np.nan, np.nan],
+            [2.503226, 2.503226, 2.503226, 2.503226],
+        ]
+    )
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
 
 
