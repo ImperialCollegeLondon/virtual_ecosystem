@@ -162,7 +162,7 @@ def test_calculate_mixing_coefficients():
     np.testing.assert_allclose(result, expected, rtol=1e-6)
 
 
-def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
+def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test mixing and ventilation."""
 
     from virtual_ecosystem.models.abiotic.wind import (
@@ -170,36 +170,42 @@ def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
     )
 
     lystr = fixture_core_components.layer_structure
-    data = dummy_climate_data
-    input_variable = data["relative_humidity"][lystr.index_filled_atmosphere].to_numpy()
+    data = dummy_climate_data_varying_canopy
+    atm_index = lystr.index_filled_atmosphere
 
-    layer_thickness = np.array(
+    heights = data["layer_heights"][atm_index].to_numpy()
+    heights_with_base = np.vstack([heights, np.zeros(heights.shape[1])])
+    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+
+    mixing_coefficient = np.array(
         [
-            [2.0, 2.0, 2.0, 2.0],
-            [10.0, 10.0, 10.0, 10.0],
-            [5.0, 5.0, 5.0, 5.0],
-            [2.0, 2.0, 2.0, 2.0],
-            [0.25, 0.25, 0.25, 0.25],
+            [0.001, 0.001, 0.001, 0.001],
+            [0.005, 0.005, np.nan, np.nan],
+            [0.01, 0.01, np.nan, np.nan],
+            [0.001, np.nan, np.nan, np.nan],
+            [0.012, 0.012, 0.012, 0.012],
         ]
     )
+    ventilation_rate = np.array([0.01, 0.01, 0.01, 0.01])
+
     exp_result = np.array(
         [
-            [77.700816, 65.401632, 53.102448, 40.803264],
+            [77.700816, 77.700816, 77.700816, 77.700816],
             [90.341644, 90.341644, 90.341644, 90.341644],
-            [92.70733, 92.70733, 92.70733, 92.70733],
-            [96.313381, 96.313381, 96.313381, 96.313381],
+            [92.233778, np.nan, np.nan, np.nan],
+            [96.503298, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ]
     )
 
     result = mix_and_ventilate(
-        input_variable=input_variable,
-        layer_thickness=layer_thickness,
-        mixing_coefficient=np.full((5, 4), 0.001),
-        ventilation_rate=np.array([0.01, 0.02, 0.03, 0.04]),
+        input_variable=data["relative_humidity"][atm_index].to_numpy(),
+        layer_thickness=above_ground_layer_thickness,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
         time_interval=3600.0,
     )
-    np.testing.assert_allclose(result, exp_result)
+    np.testing.assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
 
 
 def test_advect_from_toplayer():

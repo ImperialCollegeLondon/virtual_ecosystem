@@ -47,6 +47,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.models.abiotic import wind
+from virtual_ecosystem.models.abiotic.abiotic_tools import set_unintended_nan_to_zero
 
 
 def initialise_canopy_and_soil_fluxes(
@@ -603,6 +604,9 @@ def update_humidity_vpd(
       ``specific_humidity``, ``vapour_pressure`` and ``vapour_pressure_deficit`` values.
     """
 
+    # Create a mask of where the input was NaN (no true canopy)
+    input_nan_mask = np.isnan(specific_humidity)
+
     # Convert evapotranspiration and soil evaporation [mm] to [kg m2 s-1] time interval
     evap_kg_m2 = evapotranspiration * 1e-3 / time_interval
     soil_evap_kg_m2 = soil_evaporation * 1e-3 / time_interval
@@ -661,10 +665,18 @@ def update_humidity_vpd(
     # Compute new VPD (Vapor Pressure Deficit) [kPa]
     vpd_updated = saturated_vapour_pressure - vapour_pressure_updated
 
-    # Return results
-    return {
+    # Map variable names to arrays
+    raw_outputs = {
         "relative_humidity": relative_humidity_updated,
         "vapour_pressure": vapour_pressure_updated,
         "vapour_pressure_deficit": vpd_updated,
         "specific_humidity": specific_humidity_updated,
     }
+
+    # Clean outputs while preserving intended NaNs
+    cleaned_outputs = {
+        key: set_unintended_nan_to_zero(arr, input_nan_mask)
+        for key, arr in raw_outputs.items()
+    }
+
+    return cleaned_outputs

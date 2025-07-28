@@ -179,3 +179,43 @@ def test_calculate_actual_vapour_pressure(dummy_climate_data, fixture_core_compo
         [3.810352, 3.790901, 3.668916, 3.461875, 2.503226]
     )[:, None]
     np.testing.assert_allclose(result, exp_result, rtol=1e-3, atol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "input_array, input_nan_mask, expected",
+    [
+        # Test case 1: Some NaNs, one intended
+        (
+            np.array([[1.0, np.nan], [3.0, np.nan]]),
+            np.array([[False, True], [False, False]]),
+            np.array([[1.0, np.nan], [3.0, 0.0]]),
+        ),
+        # Test case 2: All valid
+        (
+            np.array([[1.0, 2.0], [3.0, 4.0]]),
+            np.array([[False, False], [False, False]]),
+            np.array([[1.0, 2.0], [3.0, 4.0]]),
+        ),
+        # Test case 3: All intended NaNs
+        (
+            np.array([[np.nan, np.nan], [np.nan, np.nan]]),
+            np.array([[True, True], [True, True]]),
+            np.array([[np.nan, np.nan], [np.nan, np.nan]]),
+        ),
+        # Test case 4: One unintended NaN
+        (
+            np.array([[np.nan, 5.0], [6.0, 7.0]]),
+            np.array([[False, False], [False, False]]),
+            np.array([[0.0, 5.0], [6.0, 7.0]]),
+        ),
+    ],
+)
+def test_set_unintended_nan_to_zero(input_array, input_nan_mask, expected):
+    """Test 2D arrays: unintended NaNs are zeroed, intended preserved."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        set_unintended_nan_to_zero,
+    )
+
+    result = set_unintended_nan_to_zero(input_array, input_nan_mask)
+    np.testing.assert_allclose(result, expected, equal_nan=True)

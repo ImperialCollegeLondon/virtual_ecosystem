@@ -168,3 +168,21 @@ def calculate_actual_vapour_pressure(
         core_const=pyrealm_const(),
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
+
+
+def set_unintended_nan_to_zero(
+    input_array: NDArray[np.floating],
+    input_nan_mask: NDArray[np.bool],
+) -> NDArray[np.floating]:
+    """Clean up outputs: set unintended NaNs to 0, preserve intended NaNs.
+
+    Args:
+        input_array: Input array that may contain NaN
+        input_nan_mask: A mask of intended NaN
+
+    Returns:
+        Array with unintended NaN set to zero
+    """
+    arr_clean = np.where(np.isnan(input_array), 0.0, input_array)
+    arr_clean[input_nan_mask] = np.nan
+    return arr_clean
