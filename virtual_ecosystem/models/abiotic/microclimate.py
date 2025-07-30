@@ -69,9 +69,9 @@ def run_microclimate(
     ].to_numpy()
 
     # Calculate thickness of above ground layers and midpoints
-    # Add a row of zeros at the bottom to represent ground level (height = 0)
-    heights_with_base = np.vstack([wind_heights, np.zeros(wind_heights.shape[1])])
-    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+    above_ground_layer_thickness = (
+        abiotic_tools.compute_layer_thickness_for_varying_canopy(heights=wind_heights)
+    )
 
     # Compute cumulative thickness excluding the current layer (layer tops)
     layer_top = (

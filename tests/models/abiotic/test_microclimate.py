@@ -8,7 +8,7 @@ from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
 # Test integration (TODO add structural and value range check)
-def test_run_microclimate(dummy_climate_data, fixture_core_components):
+def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test microclimate function."""
 
     from virtual_ecosystem.models.abiotic.microclimate import (
@@ -17,7 +17,7 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
 
     lyr_str = fixture_core_components.layer_structure
     result = run_microclimate(
-        data=dummy_climate_data,
+        data=dummy_climate_data_varying_canopy,
         time_index=0,
         time_interval=86400 * 30,
         cell_area=10000,
@@ -50,9 +50,13 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     exp_cantemp = lyr_str.from_template()
-    exp_cantemp[lyr_str.index_filled_canopy] = np.array([27.2234, 28.8712, 27.2064])[
-        :, None
-    ]
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array(
+        [
+            [27.223404, 27.296955, 27.407225, 27.407225],
+            [28.871276, 28.871276, np.nan, np.nan],
+            [27.206485, np.nan, np.nan, np.nan],
+        ]
+    )
     np.testing.assert_allclose(
         result["canopy_temperature"][lyr_str.index_filled_canopy],
         exp_cantemp[lyr_str.index_filled_canopy],
@@ -61,13 +65,37 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
     # Check that all air temperature values fall within a reasonable expected range
-    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
-    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
+    air_temp_result = result["air_temperature"].isel(
+        layers=lyr_str.index_filled_atmosphere
+    )
+
+    mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_str.index_filled_atmosphere
+        )
+    )
+
+    # Use the mask as a DataArray for .where()
+    valid_values = air_temp_result.where(mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_clean = valid_values.dropna(
+        dim="layers", how="any"
+    )  # or "all" if you're doing 2D
+
+    # Now do the test
+    assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()
 
     exp_relhum = lyr_str.from_template()
-    exp_relhum[lyr_str.index_filled_atmosphere] = np.array([100, 100, 100, 100, 100])[
-        :, None
-    ]
+    exp_relhum[lyr_str.index_filled_atmosphere] = np.array(
+        [
+            [100, 100, 100, 100],
+            [100, 100, 100, 100],
+            [100, np.nan, np.nan, np.nan],
+            [100, np.nan, np.nan, np.nan],
+            [100, 100, 100, 100],
+        ]
+    )
     np.testing.assert_allclose(
         result["relative_humidity"],
         exp_relhum,
@@ -76,7 +104,9 @@ def test_run_microclimate(dummy_climate_data, fixture_core_components):
     )
 
 
-def test_run_microclimate_subdaily(dummy_climate_data, fixture_core_components):
+def test_run_microclimate_subdaily(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test microclimate function iterates over hours - no time index."""
 
     # TODO this test returns different results on windows machines (around 1.5 K),
@@ -87,7 +117,7 @@ def test_run_microclimate_subdaily(dummy_climate_data, fixture_core_components):
 
     lyr_str = fixture_core_components.layer_structure
     result = run_microclimate(
-        data=dummy_climate_data,
+        data=dummy_climate_data_varying_canopy,
         time_index=0,
         time_interval=3600 * 4,
         cell_area=10000,
@@ -98,11 +128,32 @@ def test_run_microclimate_subdaily(dummy_climate_data, fixture_core_components):
     )
 
     # Check that all air temperature values fall within a reasonable expected range
-    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
-    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"].isel(
+        layers=lyr_str.index_filled_atmosphere
+    )
+
+    mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_str.index_filled_atmosphere
+        )
+    )
+
+    # Use the mask as a DataArray for .where()
+    valid_values = air_temp_result.where(mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_clean = valid_values.dropna(
+        dim="layers", how="any"
+    )  # or "all" if you're doing 2D
+
+    # Now do the test
+    assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()
 
 
-def test_run_microclimate_minutes(dummy_climate_data, fixture_core_components):
+def test_run_microclimate_minutes(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test microclimate function iterates once for <1h time interval."""
 
     from virtual_ecosystem.models.abiotic.microclimate import (
@@ -111,7 +162,7 @@ def test_run_microclimate_minutes(dummy_climate_data, fixture_core_components):
 
     lyr_str = fixture_core_components.layer_structure
     result = run_microclimate(
-        data=dummy_climate_data,
+        data=dummy_climate_data_varying_canopy,
         time_index=0,
         time_interval=60,
         cell_area=10000,
@@ -122,5 +173,24 @@ def test_run_microclimate_minutes(dummy_climate_data, fixture_core_components):
     )
 
     # Check that all air temperature values fall within a reasonable expected range
-    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
-    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"].isel(
+        layers=lyr_str.index_filled_atmosphere
+    )
+
+    mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_str.index_filled_atmosphere
+        )
+    )
+
+    # Use the mask as a DataArray for .where()
+    valid_values = air_temp_result.where(mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_clean = valid_values.dropna(
+        dim="layers", how="any"
+    )  # or "all" if you're doing 2D
+
+    # Now do the test
+    assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()
