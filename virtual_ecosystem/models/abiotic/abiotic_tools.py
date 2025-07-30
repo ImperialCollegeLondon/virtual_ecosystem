@@ -198,10 +198,10 @@ def compute_layer_thickness_for_varying_canopy(
     .
 
     Args:
-        heights: 2D array (n_layers, n_columns) of layer heights [m]
+        heights: 2D array (n_layers, n_columns) of layer heights, [m]
 
     Returns:
-        thickness: 2D array of thickness [m], same shape as input
+        2D array of layer thickness, [m], same shape as input
     """
     n_layers, n_cols = heights.shape
     thickness = np.full_like(heights, np.nan)
