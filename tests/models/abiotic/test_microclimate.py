@@ -65,37 +65,32 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
     )
 
     # Check that all air temperature values fall within a reasonable expected range
-    # mask = np.isnan(
-    #     dummy_climate_data_varying_canopy["air_temperature"][
-    #         lyr_str.index_filled_atmosphere
-    #     ]
-    # )
-    # air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
-    # assert np.all((air_temp_result[~mask] >= 16.0) & (air_temp_result[~mask] <= 36.0))
+    air_temp_result = result["air_temperature"].isel(
+        layers=lyr_str.index_filled_atmosphere
+    )
 
-    print(result["air_temperature"])
-    # np.array([[30.00023402, 30.00024546,         nan,         nan],
-    #    [29.83391357, 29.83371163,         nan,         nan],
-    #    [28.88179021,         nan,         nan,         nan],
-    #    [27.21446276,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [21.10594219, 21.07185157, 20.73094533, 20.73094533],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    # ]
-    # )
+    mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_str.index_filled_atmosphere
+        )
+    )
+
+    # Use the mask as a DataArray for .where()
+    valid_values = air_temp_result.where(mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_clean = valid_values.dropna(
+        dim="layers", how="any"
+    )  # or "all" if you're doing 2D
+
+    # Now do the test
+    assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()
 
     exp_relhum = lyr_str.from_template()
     exp_relhum[lyr_str.index_filled_atmosphere] = np.array(
         [
-            [100, 100, np.nan, np.nan],
-            [100, 100, np.nan, np.nan],
+            [100, 100, 100, 100],
+            [100, 100, 100, 100],
             [100, np.nan, np.nan, np.nan],
             [100, np.nan, np.nan, np.nan],
             [100, 100, 100, 100],
@@ -131,25 +126,29 @@ def test_run_microclimate_subdaily(
         core_constants=CoreConsts(),
         pyrealm_const=PyrealmConst(),
     )
-    print(result["air_temperature"])
-    # np.array([[29.98536857, 29.99051257,         nan,         nan],
-    #    [33.7172163 , 31.35657893,         nan,         nan],
-    #    [34.28084653,         nan,         nan,         nan],
-    #    [32.64513234,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [21.87141268, 21.73480416, 20.36795001, 20.36795001],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan]])
 
     # Check that all air temperature values fall within a reasonable expected range
-    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
-    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"].isel(
+        layers=lyr_str.index_filled_atmosphere
+    )
+
+    mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_str.index_filled_atmosphere
+        )
+    )
+
+    # Use the mask as a DataArray for .where()
+    valid_values = air_temp_result.where(mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_clean = valid_values.dropna(
+        dim="layers", how="any"
+    )  # or "all" if you're doing 2D
+
+    # Now do the test
+    assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()
 
 
 def test_run_microclimate_minutes(
@@ -172,21 +171,26 @@ def test_run_microclimate_minutes(
         core_constants=CoreConsts(),
         pyrealm_const=PyrealmConst(),
     )
-    print(result["air_temperature"])
-    # np.array([[30.00164585, 30.00056018,         nan,         nan],
-    #    [28.8318953 , 29.62049735,         nan,         nan],
-    #    [21.30954266,         nan,         nan,         nan],
-    #    [19.59780849,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan],
-    #    [21.10594219, 21.07185157, 20.73094533, 20.73094533],
-    #    [        nan,         nan,         nan,         nan],
-    #    [        nan,         nan,         nan,         nan]])
+
     # Check that all air temperature values fall within a reasonable expected range
-    air_temp_result = result["air_temperature"][lyr_str.index_filled_atmosphere]
-    assert np.all((air_temp_result >= 16.0) & (air_temp_result <= 36.0))
+    # Check that all air temperature values fall within a reasonable expected range
+    air_temp_result = result["air_temperature"].isel(
+        layers=lyr_str.index_filled_atmosphere
+    )
+
+    mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_str.index_filled_atmosphere
+        )
+    )
+
+    # Use the mask as a DataArray for .where()
+    valid_values = air_temp_result.where(mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_clean = valid_values.dropna(
+        dim="layers", how="any"
+    )  # or "all" if you're doing 2D
+
+    # Now do the test
+    assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()

@@ -227,3 +227,31 @@ def test_set_unintended_nan_to_zero(input_array, input_nan_mask, expected):
 
     result = set_unintended_nan_to_zero(input_array, input_nan_mask)
     np.testing.assert_allclose(result, expected, equal_nan=True)
+
+
+def test_compute_layer_thickness_for_varying_canopy(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test layer thickness for varying canopy."""
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_layer_thickness_for_varying_canopy,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
+
+    exp_result = np.array(
+        [
+            [2.0, 2.0, 2.0, 2.0],
+            [10.0, 10.0, 29.9, 29.9],
+            [10.0, 19.9, np.nan, np.nan],
+            [9.9, np.nan, np.nan, np.nan],
+            [0.1, 0.1, 0.1, 0.1],
+        ]
+    )
+
+    result = compute_layer_thickness_for_varying_canopy(
+        heights=data["layer_heights"][atm_index].to_numpy()
+    )
+
+    np.testing.assert_allclose(result, exp_result)

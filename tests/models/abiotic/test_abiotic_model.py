@@ -387,11 +387,11 @@ def test_setup_abiotic_model(
 
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
         [
-            [30.000122, 30.000067, np.nan, np.nan],
-            [29.913604, 29.954362, np.nan, np.nan],
-            [29.408153, np.nan, np.nan, np.nan],
-            [28.545607, np.nan, np.nan, np.nan],
-            [22.478502, 24.294355, 25.796236, 25.796236],
+            [30.000105, 30.000091, 30.000047, 30.000047],
+            [29.925696, 29.938505, 29.970583, 29.970583],
+            [29.42155, 29.613321, np.nan, np.nan],
+            [28.558176, np.nan, np.nan, np.nan],
+            [23.158518, 26.130326, 29.416104, 29.416104],
         ]
     )
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)

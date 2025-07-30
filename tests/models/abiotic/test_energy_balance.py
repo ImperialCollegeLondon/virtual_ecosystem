@@ -4,6 +4,9 @@ import numpy as np
 import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    compute_layer_thickness_for_varying_canopy,
+)
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
 
@@ -316,7 +319,7 @@ def test_solve_canopy_temperature(
 def test_update_air_temperature(
     dummy_climate_data_varying_canopy, fixture_core_components
 ):
-    """Test update air and canopy temperatures."""
+    """Test update air temperature in canopy."""
     from virtual_ecosystem.models.abiotic.energy_balance import (
         update_air_temperature,
     )
@@ -325,9 +328,9 @@ def test_update_air_temperature(
     lystr = fixture_core_components.layer_structure
     canopy_index = lystr.index_filled_canopy
 
-    heights = data["layer_heights"][lystr.index_filled_atmosphere].to_numpy()
-    heights_with_base = np.vstack([heights, np.zeros(heights.shape[1])])
-    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+    above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
+        heights=data["layer_heights"][lystr.index_filled_atmosphere].to_numpy()
+    )
 
     updated_air_temperature = update_air_temperature(
         air_temperature=data["air_temperature"][canopy_index].to_numpy(),
@@ -342,9 +345,9 @@ def test_update_air_temperature(
 
     exp_result = np.array(
         [
-            [29.806235, 29.806235, np.nan, np.nan],
-            [28.840201, np.nan, np.nan, np.nan],
-            [27.188754, np.nan, np.nan, np.nan],
+            [29.883755, 29.883755, 29.857958, 29.857958],
+            [28.902139, 28.886732, np.nan, np.nan],
+            [27.224235, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(updated_air_temperature, exp_result, rtol=1e-4)
@@ -361,12 +364,12 @@ def test_update_humidity_vpd(
 
     data = dummy_climate_data_varying_canopy
     lystr = fixture_core_components.layer_structure
-    atm_index = lystr.index_filled_atmosphere
     canopy_index = lystr.index_filled_canopy
+    atm_index = lystr.index_filled_atmosphere
 
-    heights = data["layer_heights"][atm_index].to_numpy()
-    heights_with_base = np.vstack([heights, np.zeros(heights.shape[1])])
-    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+    above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
+        heights=data["layer_heights"][atm_index].to_numpy()
+    )
 
     evapotranspiration = data["transpiration"] + data["canopy_evaporation"]
     saturated_vapour_pressure = np.array(
