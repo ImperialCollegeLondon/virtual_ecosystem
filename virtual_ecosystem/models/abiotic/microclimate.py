@@ -381,7 +381,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
+            time_interval=core_constants.seconds_to_hour,
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
@@ -472,18 +472,18 @@ def run_microclimate(
         latent_heat_vapourisation
     )
     output["latent_heat_vapourisation"] = latent_heat_vapourisation_out
-    # Combine sensible heat flux in one variable, TODO consider time interval
+
+    # Combine sensible heat flux in one variable
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
-    output["sensible_heat_flux"] = sensible_heat_flux  # * time_interval
+    output["sensible_heat_flux"] = sensible_heat_flux
 
-    # Combine latent heat flux in one variable, TODO consider time interval
-    # TODO adjust to model timestep, currently per second
+    # Combine latent heat flux in one variable
     latent_heat_flux = layer_structure.from_template()
     latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
     latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
-    output["latent_heat_flux"] = latent_heat_flux  # * time_interval
+    output["latent_heat_flux"] = latent_heat_flux
 
     soil_temperature_out = layer_structure.from_template()
     soil_temperature_out[layer_structure.index_all_soil] = soil_temperature
@@ -499,7 +499,7 @@ def run_microclimate(
     canopy_temperature_out[layer_structure.index_filled_canopy] = canopy_temperature
     output["canopy_temperature"] = canopy_temperature_out
 
-    # TODO check dimensions write humidity/VPD
+    # Write humidity/VPD
     for var in ["relative_humidity", "vapour_pressure", "vapour_pressure_deficit"]:
         var_out = layer_structure.from_template()
         var_out[layer_structure.index_filled_atmosphere] = (

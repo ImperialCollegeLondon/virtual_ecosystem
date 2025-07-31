@@ -89,7 +89,7 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
     exp_relhum = lyr_str.from_template()
     exp_relhum[lyr_str.index_filled_atmosphere] = np.array(
         [
-            [100, 100, 100, 100],
+            [0, 0, 0, 0],
             [100, 100, 100, 100],
             [100, np.nan, np.nan, np.nan],
             [100, np.nan, np.nan, np.nan],
