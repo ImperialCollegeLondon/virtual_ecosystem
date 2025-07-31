@@ -115,8 +115,7 @@ class HydroConsts(ConstantsDataclass):
     """Extinction coefficient for global radiation, [unitless].
 
     This constant is used to reduce potential evaporation for bare soil to maximum
-    shaded evaporation in
-    :func:~virtual_ecosystem.models.hydrology.above_ground.calculate_soil_evaporation`.
+    shaded evaporation.
     Typical values are 0.4 to 0.7 for monocotyledons and 0.65 to 1.1 for broad leaved
     dicotyledons :cite:t:`monteith_light_1969`. The value for tropical forest is taken
     from :cite:t:`saldarriaga_solar_1991`. The extinction coefficient can be
