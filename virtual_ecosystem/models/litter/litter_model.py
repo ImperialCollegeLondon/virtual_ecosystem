@@ -117,6 +117,9 @@ class LitterModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
+        "air_temperature",
+        "soil_temperature",
+        "matric_potential",
     ),
     vars_updated=(
         "litter_pool_above_metabolic",
