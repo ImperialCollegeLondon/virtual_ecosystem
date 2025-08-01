@@ -15,7 +15,6 @@ There are still a number of open TODOs related to process implementation and imp
 .. TODO:: time step and model structure
 
     * find a way to load daily (precipitation) data and loop over daily time_index
-    * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
     * add abiotic constants from config
 
@@ -425,7 +424,8 @@ class HydrologyModel(
         # Check if the number of days is exact and warn if not
         if not np.allclose(days_float % 1, 0):
             LOGGER.warning(
-                "Update interval is not a whole number of days ({n_days}) using floor."
+                f"Update interval is not a whole number of days ({days_float}),"
+                f" partitioning inputs among {days} days."
             )
 
         # Set seed for random rainfall generator
