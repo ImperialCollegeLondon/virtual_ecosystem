@@ -433,14 +433,14 @@ class Grid:
         """
 
         if cell_from is None:
-            _cell_from = np.arange(self.n_cells)
+            _cell_from: NDArray[np.int_] = np.arange(self.n_cells)
         else:
             _cell_from = np.array(
                 [cell_from] if isinstance(cell_from, int) else cell_from
             )
 
         if cell_to is None:
-            _cell_to = np.arange(self.n_cells)
+            _cell_to: NDArray[np.int_] = np.arange(self.n_cells)
         else:
             _cell_to = np.array([cell_to] if isinstance(cell_to, int) else cell_to)
 
