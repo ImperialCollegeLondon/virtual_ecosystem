@@ -30,13 +30,12 @@ def fixture_litter_model(dummy_litter_data):
 
 
 @pytest.fixture
-def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_pools):
+def decay_rates(dummy_litter_data, fixture_core_components):
     """Decay rates for the various litter pools."""
 
     from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
 
     decay_rates = calculate_decay_rates(
-        post_consumption_pools=post_consumption_pools,
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
@@ -159,9 +158,7 @@ def total_litter_input(dummy_litter_data):
 
 
 @pytest.fixture
-def updated_pools(
-    dummy_litter_data, decay_rates, post_consumption_pools, litter_inputs
-):
+def updated_pools(decay_rates, post_consumption_pools, litter_inputs):
     """Updated carbon mass of each pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 

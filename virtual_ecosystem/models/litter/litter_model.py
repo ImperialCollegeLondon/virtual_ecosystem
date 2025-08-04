@@ -333,7 +333,6 @@ class LitterModel(
 
         # Calculate the litter pool decay rates
         decay_rates = calculate_decay_rates(
-            post_consumption_pools=consumed_pools,
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
