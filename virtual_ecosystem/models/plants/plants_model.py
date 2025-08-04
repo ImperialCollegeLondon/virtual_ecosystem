@@ -1194,7 +1194,7 @@ class PlantsModel(
         layer.
 
         The GPP allocation then follows the parameterisation of the T Model but where
-        the subcanopy vegetation biomass is represented purely as leaf tissue.
+        the subcanopy vegetation biomass is represented purely as a single tissue.
 
         At each update:
 
@@ -1204,6 +1204,8 @@ class PlantsModel(
 
         * The ``subcanopy_seedbank_biomass`` loses mass due to resprouting but gains a
           proportion of the net primary productivity from the subcanopy vegetation.
+
+        * Biomass from both pools moves into litter pools due to turnover
         """
 
         # Calculate the gross primary productivity since the last update.

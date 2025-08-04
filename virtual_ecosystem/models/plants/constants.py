@@ -62,6 +62,12 @@ class PlantsConsts(ConstantsDataclass):
     """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
     mass (kg kg-1)."""
 
+    subcanopy_biomass_turnover: float = 1.0
+    """The annual rate of subcanopy vegetative biomass turnover (units?, y-1)."""
+
+    subcanopy_seedbank_turnover: float = 1.0
+    """The annual rate of subcanopy seedbank biomass turnover (units?, y-1)."""
+
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
 
