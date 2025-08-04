@@ -47,10 +47,15 @@ water enters and leaves the plant model.
 :::
 
 ```{note}
-Many of the underlying processes are problematic at a monthly timestep, which is
-currently the only supported update interval. As a short-term work around, the input
-precipitation is randomly distributed over 30 days and input canopy transpiration is
-divided by 30, and the return variables are monthly means or monthly accumulated values.
+Calculating hydrological processes at coarse time scales is problematic and so the
+hydrology model uses an internal daily time step to model hydrology. When the model is
+run with a coarser update interval - and hence the precipitation and transpiration
+inputs are totals over more than one day - the hydrology model partitions the input data
+ into daily values. Precipitation is randomly partitioned between days and the total
+ transpiration is evenly divided across days.
+
+The values returned by the hydrology model are then monthly means or monthly accumulated
+values.
 ```
 
 ## Required variables

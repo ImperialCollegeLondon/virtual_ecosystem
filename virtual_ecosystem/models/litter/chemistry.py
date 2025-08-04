@@ -306,7 +306,7 @@ class LitterChemistry:
         self,
         decay_rates: dict[str, NDArray[np.floating]],
         active_microbe_depth: float,
-    ) -> dict[str, NDArray[np.floating]]:
+    ) -> NDArray[np.floating]:
         """Method to calculate the amount of nitrogen mineralised by litter decay.
 
         This function finds the nitrogen mineralisation rate of each litter pool, by
@@ -358,7 +358,7 @@ class LitterChemistry:
         self,
         decay_rates: dict[str, NDArray[np.floating]],
         active_microbe_depth: float,
-    ) -> dict[str, NDArray[np.floating]]:
+    ) -> NDArray[np.floating]:
         """Method to calculate the amount of phosphorus mineralised by litter decay.
 
         This function finds the phosphorus mineralisation rate of each litter pool, by

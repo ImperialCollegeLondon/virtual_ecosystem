@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def test_calculate_zero_plane_displacement(dummy_climate_data):
+def test_calculate_zero_plane_displacement(dummy_climate_data_varying_canopy):
     """Test if calculated correctly and set to zero without vegetation."""
 
     from virtual_ecosystem.models.abiotic.wind import (
@@ -11,7 +11,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
     )
 
     result = calculate_zero_plane_displacement(
-        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
         leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
         zero_plane_scaling_parameter=7.5,
     )
@@ -19,7 +19,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data):
     np.testing.assert_allclose(result, np.array([0.0, 0.0, 25.86256, 25.86256]))
 
 
-def test_calculate_roughness_length_momentum(dummy_climate_data):
+def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
     """Test roughness length governing momentum transfer."""
 
     from virtual_ecosystem.models.abiotic.wind import (
@@ -27,7 +27,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
     )
 
     result = calculate_roughness_length_momentum(
-        canopy_height=dummy_climate_data["layer_heights"][1].to_numpy(),
+        canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
         leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
         zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
         substrate_surface_drag_coefficient=0.003,
@@ -43,21 +43,20 @@ def test_calculate_roughness_length_momentum(dummy_climate_data):
     )
 
 
-def test_calculate_wind_profile(dummy_climate_data, fixture_core_components):
+def test_calculate_wind_profile(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test calculate wind profile."""
 
     from virtual_ecosystem.models.abiotic.wind import calculate_wind_profile
 
     lyr_str = fixture_core_components.layer_structure
+    data = dummy_climate_data_varying_canopy
 
     result = calculate_wind_profile(
-        reference_wind_speed=dummy_climate_data["wind_speed_ref"]
-        .isel(time_index=0)
-        .to_numpy(),
-        reference_height=dummy_climate_data["layer_heights"][0].to_numpy() + 10.0,
-        wind_heights=dummy_climate_data["layer_heights"][
-            lyr_str.index_filled_atmosphere
-        ].to_numpy(),
+        reference_wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
+        reference_height=data["layer_heights"][0].to_numpy() + 10.0,
+        wind_heights=data["layer_heights"][lyr_str.index_filled_atmosphere].to_numpy(),
         roughness_length=np.repeat(0.3, 4),
         zero_plane_displacement=np.array([0, 10, 25, 25]),
         min_wind_speed=0.001,
@@ -76,18 +75,18 @@ def test_calculate_wind_profile(dummy_climate_data, fixture_core_components):
     np.testing.assert_allclose(result, exp_wind, rtol=1e-3, atol=1e-3)
 
 
-def test_calculate_friction_velocity(dummy_climate_data):
+def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
     """Test calculating friction velocity."""
 
     from virtual_ecosystem.models.abiotic.wind import (
         calculate_friction_velocity,
     )
 
+    data = dummy_climate_data_varying_canopy
+
     result = calculate_friction_velocity(
-        reference_wind_speed=dummy_climate_data["wind_speed_ref"]
-        .isel(time_index=0)
-        .to_numpy(),
-        reference_height=dummy_climate_data["layer_heights"][0].to_numpy() + 10.0,
+        reference_wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
+        reference_height=data["layer_heights"][0].to_numpy() + 10.0,
         roughness_length=np.repeat(0.3, 4),
         zero_plane_displacement=np.array([0, 10, 25, 25]),
         von_karman_constant=0.4,
@@ -162,7 +161,7 @@ def test_calculate_mixing_coefficients():
     np.testing.assert_allclose(result, expected, rtol=1e-6)
 
 
-def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
+def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test mixing and ventilation."""
 
     from virtual_ecosystem.models.abiotic.wind import (
@@ -170,36 +169,42 @@ def test_mix_and_ventilate(dummy_climate_data, fixture_core_components):
     )
 
     lystr = fixture_core_components.layer_structure
-    data = dummy_climate_data
-    input_variable = data["relative_humidity"][lystr.index_filled_atmosphere].to_numpy()
+    data = dummy_climate_data_varying_canopy
+    atm_index = lystr.index_filled_atmosphere
 
-    layer_thickness = np.array(
+    heights = data["layer_heights"][atm_index].to_numpy()
+    heights_with_base = np.vstack([heights, np.zeros(heights.shape[1])])
+    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+
+    mixing_coefficient = np.array(
         [
-            [2.0, 2.0, 2.0, 2.0],
-            [10.0, 10.0, 10.0, 10.0],
-            [5.0, 5.0, 5.0, 5.0],
-            [2.0, 2.0, 2.0, 2.0],
-            [0.25, 0.25, 0.25, 0.25],
+            [0.001, 0.001, 0.001, 0.001],
+            [0.005, 0.005, np.nan, np.nan],
+            [0.01, 0.01, np.nan, np.nan],
+            [0.001, np.nan, np.nan, np.nan],
+            [0.012, 0.012, 0.012, 0.012],
         ]
     )
+    ventilation_rate = np.array([0.01, 0.01, 0.01, 0.01])
+
     exp_result = np.array(
         [
-            [77.700816, 65.401632, 53.102448, 40.803264],
+            [77.700816, 77.700816, 77.700816, 77.700816],
             [90.341644, 90.341644, 90.341644, 90.341644],
-            [92.70733, 92.70733, 92.70733, 92.70733],
-            [96.313381, 96.313381, 96.313381, 96.313381],
+            [92.233778, np.nan, np.nan, np.nan],
+            [96.503298, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ]
     )
 
     result = mix_and_ventilate(
-        input_variable=input_variable,
-        layer_thickness=layer_thickness,
-        mixing_coefficient=np.full((5, 4), 0.001),
-        ventilation_rate=np.array([0.01, 0.02, 0.03, 0.04]),
+        input_variable=data["relative_humidity"][atm_index].to_numpy(),
+        layer_thickness=above_ground_layer_thickness,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
         time_interval=3600.0,
     )
-    np.testing.assert_allclose(result, exp_result)
+    np.testing.assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
 
 
 def test_advect_from_toplayer():

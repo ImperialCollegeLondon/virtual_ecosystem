@@ -168,3 +168,61 @@ def calculate_actual_vapour_pressure(
         core_const=pyrealm_const(),
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
+
+
+def set_unintended_nan_to_zero(
+    input_array: NDArray[np.floating],
+    input_nan_mask: NDArray[np.bool],
+) -> NDArray[np.floating]:
+    """Clean up outputs: set unintended NaNs to 0, preserve intended NaNs.
+
+    Args:
+        input_array: Input array that may contain NaN
+        input_nan_mask: A mask of intended NaN
+
+    Returns:
+        Array with unintended NaN set to zero
+    """
+    arr_clean = np.where(np.isnan(input_array), 0.0, input_array)
+    arr_clean[input_nan_mask] = np.nan
+    return arr_clean
+
+
+def compute_layer_thickness_for_varying_canopy(
+    heights: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Calculate layer thickness for varying canopy layers.
+
+    Calculate layer thickness by subtracting from the next valid layer below (skipping
+    NaNs), and for the last valid layer in each column subtract from zero (ground level)
+    .
+
+    Args:
+        heights: 2D array (n_layers, n_columns) of layer heights, [m]
+
+    Returns:
+        2D array of layer thickness, [m], same shape as input
+    """
+    n_layers, n_cols = heights.shape
+    thickness = np.full_like(heights, np.nan)
+
+    for col in range(n_cols):
+        for row in range(n_layers):
+            current = heights[row, col]
+            if np.isnan(current):
+                continue
+
+            # Find next valid (non-NaN) layer below
+            next_valid_found = False
+            for lower_row in range(row + 1, n_layers):
+                below = heights[lower_row, col]
+                if not np.isnan(below):
+                    thickness[row, col] = current - below
+                    next_valid_found = True
+                    break
+
+            # If no valid lower layer found, thickness = current - 0 (ground)
+            if not next_valid_found:
+                thickness[row, col] = current - 0.0
+
+    return thickness
