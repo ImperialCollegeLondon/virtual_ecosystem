@@ -8,7 +8,7 @@ from virtual_ecosystem.models.animal.protocols import Consumer
 
 
 class PlantResourcePool:
-    """Tracks plant resources for a specific functional group in one grid cell."""
+    """Resource pool aggregating plant mass by functional type."""
 
     def __init__(
         self,
