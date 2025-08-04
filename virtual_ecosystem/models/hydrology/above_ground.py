@@ -307,7 +307,7 @@ def calculate_soil_evaporation(
     saturation_vapour_pressure = calc_vp_sat(
         ta=temperature,
         core_const=pyrealm_const(),
-    ).astype(np.floating)  # pyrealm returning np.float64
+    )
 
     saturated_specific_humidity = (
         gas_constant_water_vapour * saturation_vapour_pressure
