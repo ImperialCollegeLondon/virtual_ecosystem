@@ -1,13 +1,6 @@
 """Tests for the virtual_ecosystem.core.variables module."""
 
-import sys
-
 import pytest
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # noqa: F401
 
 
 @pytest.fixture(autouse=True)
