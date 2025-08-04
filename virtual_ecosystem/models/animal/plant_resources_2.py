@@ -19,15 +19,15 @@ class PlantResourcePool:
     ) -> None:
         self.cell_id = cell_id
         self.functional_group_name = functional_group_name
-        self.vertical_occupancy = VerticalOccupancy.CANOPY  # or GROUND, etc.
+        self.vertical_occupancy = VerticalOccupancy.CANOPY
 
         # Optional fields, default to zero if missing
         self.leaf_mass = (
-            data["llayer_leaf_mass"]
+            data["layer_leaf_mass"]
             .sel(cell_id=cell_id, plant_functional_type=functional_group_name)
             .item()
             * cell_area
-            if "llayer_leaf_mass" in data
+            if "layer_leaf_mass" in data
             else 0.0
         )
 
