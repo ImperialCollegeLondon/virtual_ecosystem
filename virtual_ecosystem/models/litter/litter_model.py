@@ -345,7 +345,11 @@ class LitterModel(
         )
 
         litter_inputs = LitterInputs.create_from_data(
-            self.data, constants=self.model_constants
+            self.data,
+            constants=self.model_constants,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "days"
+            ).magnitude,
         )
 
         # Calculate the updated pool masses

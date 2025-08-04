@@ -181,7 +181,9 @@ def litter_inputs(dummy_litter_data):
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     litter_inputs = LitterInputs.create_from_data(
-        data=dummy_litter_data, constants=LitterConsts
+        data=dummy_litter_data,
+        constants=LitterConsts,
+        update_interval=2.0,
     )
 
     return litter_inputs

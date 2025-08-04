@@ -62,30 +62,34 @@ class LitterInputs:
     roots_meta_split: NDArray[np.floating]
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
 
-    input_woody: NDArray[np.floating]
-    """Total input to the woody litter pool [kg C m^-2]"""
-    input_above_metabolic: NDArray[np.floating]
-    """Total input to the above ground metabolic litter pool [kg C m^-2]"""
-    input_above_structural: NDArray[np.floating]
-    """Total input to the above ground structural litter pool [kg C m^-2]"""
-    input_below_metabolic: NDArray[np.floating]
-    """Total input to the below ground metabolic litter pool [kg C m^-2]"""
-    input_below_structural: NDArray[np.floating]
-    """Total input to the below ground structural litter pool [kg C m^-2]"""
+    input_rate_woody: NDArray[np.floating]
+    """Total input rate to the woody litter pool [kg C m^-2 day^-1]"""
+    input_rate_above_metabolic: NDArray[np.floating]
+    """Total input rate to the above ground metabolic litter pool [kg C m^-2 day^-1]"""
+    input_rate_above_structural: NDArray[np.floating]
+    """Total input rate to the above ground structural litter pool [kg C m^-2 day^-1]"""
+    input_rate_below_metabolic: NDArray[np.floating]
+    """Total input rate to the below ground metabolic litter pool [kg C m^-2 day^-1]"""
+    input_rate_below_structural: NDArray[np.floating]
+    """Total input rate to the below ground structural litter pool [kg C m^-2 day^-1]"""
 
     @classmethod
-    def create_from_data(cls, data: Data, constants: LitterConsts) -> LitterInputs:
+    def create_from_data(
+        cls, data: Data, constants: LitterConsts, update_interval: float
+    ) -> LitterInputs:
         """Factory method to populate the various litter input flows.
 
         This method first combines the two different input streams for dead plant matter
         (plant tissue death and herbivory waste) to find the total input of each plant
         biomass type. This is then used to find the split between metabolic and
         structural litter pools for each plant matter class (expect deadwood). Finally,
-        the total flow to each litter pool is calculated.
+        the total rate of flow to each litter pool is calculated.
 
         Args:
             data: The `Data` object to be used to populate the litter input details.
             constants: Set of constants for the litter model.
+            update_interval: The length of time over which the input is being added over
+                [days]
 
         Returns:
             An LitterInputs instance containing the total input of each plant biomass
@@ -103,7 +107,9 @@ class LitterInputs:
         )
 
         plant_inputs = partion_plant_inputs_between_pools(
-            total_input=total_input, metabolic_splits=metabolic_splits
+            total_input=total_input,
+            metabolic_splits=metabolic_splits,
+            update_interval=update_interval,
         )
 
         return LitterInputs(**metabolic_splits, **plant_inputs, **total_input)
@@ -258,6 +264,7 @@ def calculate_metabolic_proportions_of_input(
 def partion_plant_inputs_between_pools(
     total_input: dict[str, NDArray[np.floating]],
     metabolic_splits: dict[str, NDArray[np.floating]],
+    update_interval: float,
 ):
     """Function to partition input biomass between the various litter pools.
 
@@ -267,6 +274,9 @@ def partion_plant_inputs_between_pools(
     split between the below ground metabolic and structural pools based on lignin
     concentration and carbon nitrogen ratios.
 
+    This function also converts the plant inputs from total inputs (over the model time
+    step), to the input rates needed by the litter model.
+
     Args:
         total_input: The total pool size for each input pool [kg C m^-2], as well as
             the chemical proportions (lignin, nitrogen and phosphorus) of each of
@@ -274,11 +284,13 @@ def partion_plant_inputs_between_pools(
         metabolic_splits: Dictionary containing the proportion of each input that
             goes to the relevant metabolic pool. This is for three input types:
             leaves, reproductive tissues and roots [unitless]
+        update_interval: The length of time over which the input is being added over
+            [days]
 
     Returns:
-        A dictionary containing the biomass flow into each of the five litter pools
-        (woody, above ground metabolic, above ground structural, below ground
-        metabolic and below ground structural)
+        A dictionary containing the rate of biomass flow into each of the five litter
+        pools (woody, above ground metabolic, above ground structural, below ground
+        metabolic and below ground structural) [kg C m^-2 day^-1]
     """
 
     # Calculate input to each of the five litter pools
@@ -300,11 +312,11 @@ def partion_plant_inputs_between_pools(
     ) * total_input["root_mass"]
 
     return {
-        "input_woody": woody_input,
-        "input_above_metabolic": above_ground_metabolic_input,
-        "input_above_structural": above_ground_strutural_input,
-        "input_below_metabolic": below_ground_metabolic_input,
-        "input_below_structural": below_ground_structural_input,
+        "input_rate_woody": woody_input / update_interval,
+        "input_rate_above_metabolic": above_ground_metabolic_input / update_interval,
+        "input_rate_above_structural": above_ground_strutural_input / update_interval,
+        "input_rate_below_metabolic": below_ground_metabolic_input / update_interval,
+        "input_rate_below_structural": below_ground_structural_input / update_interval,
     }
 
 

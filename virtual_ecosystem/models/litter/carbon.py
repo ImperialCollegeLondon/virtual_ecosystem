@@ -247,19 +247,19 @@ def calculate_updated_pools(
 
     # Net pool changes are found by combining input and decay rates, and then
     # multiplying by the update time step.
-    change_in_metabolic_above = litter_inputs.input_above_metabolic - (
+    change_in_metabolic_above = litter_inputs.input_rate_above_metabolic - (
         decay_rates["metabolic_above"] * update_interval
     )
-    change_in_structural_above = litter_inputs.input_above_structural - (
+    change_in_structural_above = litter_inputs.input_rate_above_structural - (
         decay_rates["structural_above"] * update_interval
     )
-    change_in_woody = litter_inputs.input_woody - (
+    change_in_woody = litter_inputs.input_rate_woody - (
         decay_rates["woody"] * update_interval
     )
-    change_in_metabolic_below = litter_inputs.input_below_metabolic - (
+    change_in_metabolic_below = litter_inputs.input_rate_below_metabolic - (
         decay_rates["metabolic_below"] * update_interval
     )
-    change_in_structural_below = litter_inputs.input_below_structural - (
+    change_in_structural_below = litter_inputs.input_rate_below_structural - (
         decay_rates["structural_below"] * update_interval
     )
 
