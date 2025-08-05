@@ -326,10 +326,10 @@ def calculate_energy_balance_residual(
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
         absorbed_radiation_canopy
-        - np.abs(longwave_emission_canopy)
-        - np.abs(sensible_heat_flux_canopy)
-        - np.abs(latent_heat_flux_canopy)
-        # - np.abs(absorption_par)
+        - longwave_emission_canopy
+        + sensible_heat_flux_canopy
+        + latent_heat_flux_canopy
+        # + absorption_par
     )
 
     if return_fluxes:
