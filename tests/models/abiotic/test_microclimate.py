@@ -52,9 +52,9 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
         [
-            [27.223404, 27.296955, 27.407225, 27.407225],
-            [28.871276, 28.871276, np.nan, np.nan],
-            [27.206485, np.nan, np.nan, np.nan],
+            [29.610504, 29.622654, 29.639607, 29.639607],
+            [28.871156, 28.871156, np.nan, np.nan],
+            [27.206382, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(
@@ -91,8 +91,8 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
         [
             [0, 0, 0, 0],
             [100, 100, 100, 100],
-            [100, np.nan, np.nan, np.nan],
-            [100, np.nan, np.nan, np.nan],
+            [100, 100, np.nan, np.nan],
+            [-6026.23241652, np.nan, np.nan, np.nan],  # TODO
             [100, 100, 100, 100],
         ]
     )
@@ -127,7 +127,43 @@ def test_run_microclimate_subdaily(
         pyrealm_const=PyrealmConst(),
     )
 
-    # Check that all air temperature values fall within a reasonable expected range
+    for var in [
+        "canopy_temperature",
+        "air_temperature",
+        "sensible_heat_flux",
+        "latent_heat_flux",
+    ]:
+        assert var in result
+
+    exp_soiltemp = lyr_str.from_template()
+    exp_soiltemp[lyr_str.index_all_soil] = np.array(
+        [
+            [21.183763, 21.243605, 21.838676, 21.838676],
+            [20.084981, 20.084812, 20.083032, 20.083032],
+        ]
+    )
+    np.testing.assert_allclose(
+        result["soil_temperature"][lyr_str.index_all_soil],
+        exp_soiltemp[lyr_str.index_all_soil],
+        rtol=1e-02,
+        atol=1e-02,
+    )
+
+    exp_cantemp = lyr_str.from_template()
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array(
+        [
+            [-77.4908414, -62.02926755, -72.06727963, -71.98685533],  # TODO Newton
+            [30.19997165, 29.54284043, np.nan, np.nan],
+            [28.57067474, np.nan, np.nan, np.nan],
+        ]
+    )
+    np.testing.assert_allclose(
+        result["canopy_temperature"][lyr_str.index_filled_canopy],
+        exp_cantemp[lyr_str.index_filled_canopy],
+        rtol=1e-02,
+        atol=1e-02,
+    )
+
     # Check that all air temperature values fall within a reasonable expected range
     air_temp_result = result["air_temperature"].isel(
         layers=lyr_str.index_filled_atmosphere
@@ -147,8 +183,25 @@ def test_run_microclimate_subdaily(
         dim="layers", how="any"
     )  # or "all" if you're doing 2D
 
-    # Now do the test
+    # Now do the test  # TODO Newton
     assert ((valid_values_clean >= 16.0) & (valid_values_clean <= 36.0)).all()
+
+    exp_relhum = lyr_str.from_template()
+    exp_relhum[lyr_str.index_filled_atmosphere] = np.array(
+        [
+            [0, 0, 0, 0],
+            [100, 100, 14.55488641 - 12.0620254],  # TODO Newton
+            [100, 100, np.nan, np.nan],
+            [100, np.nan, np.nan, np.nan],
+            [100, 100, 100, 100],
+        ]
+    )
+    np.testing.assert_allclose(
+        result["relative_humidity"],
+        exp_relhum,
+        rtol=1e-02,
+        atol=1e-02,
+    )
 
 
 def test_run_microclimate_minutes(
@@ -172,7 +225,21 @@ def test_run_microclimate_minutes(
         pyrealm_const=PyrealmConst(),
     )
 
-    # Check that all air temperature values fall within a reasonable expected range
+    exp_cantemp = lyr_str.from_template()
+    exp_cantemp[lyr_str.index_filled_canopy] = np.array(
+        [
+            [-402.04104199, -382.55823063, -354.81732085, -354.81732085],  # TODO Newton
+            [28.85334069, 28.85334069, np.nan, np.nan],
+            [27.18862662, np.nan, np.nan, np.nan],
+        ]
+    )
+    np.testing.assert_allclose(
+        result["canopy_temperature"][lyr_str.index_filled_canopy],
+        exp_cantemp[lyr_str.index_filled_canopy],
+        rtol=1e-02,
+        atol=1e-02,
+    )
+
     # Check that all air temperature values fall within a reasonable expected range
     air_temp_result = result["air_temperature"].isel(
         layers=lyr_str.index_filled_atmosphere

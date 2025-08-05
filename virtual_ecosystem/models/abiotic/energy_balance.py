@@ -569,7 +569,7 @@ def update_humidity_vpd(
     atmospheric_pressure: NDArray[np.floating],
     density_air: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
-    ventilation_rate: float | NDArray[np.floating],
+    ventilation_rate: NDArray[np.floating],
     wind_speed: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,

@@ -211,7 +211,7 @@ def calculate_friction_velocity(
 def calculate_ventilation_rate(
     aerodynamic_resistance: float | NDArray[np.floating],
     characteristic_height: float | NDArray[np.floating],
-) -> float | NDArray[np.floating]:
+) -> NDArray[np.floating]:
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
     This function calculates the rate of water and heat exchange between the top of the
@@ -219,7 +219,8 @@ def calculate_ventilation_rate(
 
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
-        characteristic_height: Vertical scale of exchange, [m]
+        characteristic_height: Vertical scale of exchange, typically canopy height +
+        zero plane displacement height [m]
 
     Returns:
         Ventilation rate [s-1]
@@ -282,7 +283,7 @@ def mix_and_ventilate(
     input_variable: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
-    ventilation_rate: float | NDArray[np.floating],
+    ventilation_rate: NDArray[np.floating],
     time_interval: float,
 ) -> NDArray[np.floating]:
     """Mix and ventilate vertically.
@@ -302,27 +303,62 @@ def mix_and_ventilate(
     """
 
     input_variable_mixed = input_variable.copy()
-    for i in range(2, len(input_variable) - 1):
-        flux_up = (
-            mixing_coefficient[i - 1]
-            * (input_variable[i - 1] - input_variable[i])
-            / layer_thickness[i]
-        )
-        flux_down = (
-            mixing_coefficient[i + 1]
-            * (input_variable[i + 1] - input_variable[i])
-            / layer_thickness[i]
-        )
-        change_input_variable = (
-            (flux_up + flux_down) * time_interval / layer_thickness[i]
-        )
-        input_variable_mixed[i] += change_input_variable
+    n_layers, n_columns = input_variable.shape
 
-    # Ventilation at top
-    input_variable_mixed[0] += (
-        ventilation_rate * (input_variable[0] - input_variable[1]) * time_interval
-    )
+    for j in range(n_columns):
+        for i in range(1, n_layers - 1):  # skip top and bottom
+            center_val = input_variable[i, j]
 
+            if not np.isfinite(center_val):
+                continue
+
+            # ---- Upward flux ----
+            upper_i = i - 1
+            while upper_i >= 0 and not np.isfinite(input_variable[upper_i, j]):
+                upper_i -= 1
+
+            if upper_i >= 0 and np.isfinite(mixing_coefficient[upper_i, j]):
+                delta_up = input_variable[upper_i, j] - center_val
+                flux_up = (
+                    mixing_coefficient[upper_i, j] * delta_up / layer_thickness[i, j]
+                )
+            else:
+                flux_up = 0.0
+
+            # ---- Downward flux ----
+            lower_i = i + 1
+            while lower_i < n_layers and not np.isfinite(input_variable[lower_i, j]):
+                lower_i += 1
+
+            if lower_i < n_layers and np.isfinite(mixing_coefficient[lower_i, j]):
+                delta_down = input_variable[lower_i, j] - center_val
+                flux_down = (
+                    mixing_coefficient[lower_i, j] * delta_down / layer_thickness[i, j]
+                )
+            else:
+                flux_down = 0.0
+
+            # ---- Update value ----
+            change = (flux_up + flux_down) * time_interval / layer_thickness[i, j]
+            input_variable_mixed[i, j] += change
+
+        # ---- Ventilation for top layer ----
+        if not np.isfinite(input_variable[0, j]):
+            continue
+
+        lower_i = 1
+        while lower_i < n_layers and not np.isfinite(input_variable[lower_i, j]):
+            lower_i += 1
+
+        if (
+            lower_i < n_layers
+            and np.isfinite(input_variable[lower_i, j])
+            and np.isfinite(ventilation_rate[j])
+        ):
+            delta_vent = input_variable[0, j] - input_variable[lower_i, j]
+            input_variable_mixed[0, j] += (
+                ventilation_rate[j] * delta_vent * time_interval
+            )
     return input_variable_mixed
 
 

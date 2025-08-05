@@ -164,6 +164,9 @@ def test_calculate_mixing_coefficients():
 def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test mixing and ventilation."""
 
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        compute_layer_thickness_for_varying_canopy,
+    )
     from virtual_ecosystem.models.abiotic.wind import (
         mix_and_ventilate,
     )
@@ -173,13 +176,14 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     atm_index = lystr.index_filled_atmosphere
 
     heights = data["layer_heights"][atm_index].to_numpy()
-    heights_with_base = np.vstack([heights, np.zeros(heights.shape[1])])
-    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+    above_ground_layer_thickness = compute_layer_thickness_for_varying_canopy(
+        heights=heights
+    )
 
     mixing_coefficient = np.array(
         [
             [0.001, 0.001, 0.001, 0.001],
-            [0.005, 0.005, np.nan, np.nan],
+            [0.005, 0.005, 0.005, np.nan],
             [0.01, 0.01, np.nan, np.nan],
             [0.001, np.nan, np.nan, np.nan],
             [0.012, 0.012, 0.012, 0.012],
@@ -190,8 +194,8 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     exp_result = np.array(
         [
             [77.700816, 77.700816, 77.700816, 77.700816],
-            [90.341644, 90.341644, 90.341644, 90.341644],
-            [92.233778, np.nan, np.nan, np.nan],
+            [91.102045, 91.102045, 90.806976, 90.806976],
+            [92.233778, 93.20994, np.nan, np.nan],
             [96.503298, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ]

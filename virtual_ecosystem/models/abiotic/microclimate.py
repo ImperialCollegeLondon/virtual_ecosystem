@@ -169,7 +169,7 @@ def run_microclimate(
     #  Ventilation rate above canopy, [s-1]
     ventilation_rate = wind.calculate_ventilation_rate(
         aerodynamic_resistance=aerodynamic_resistance_canopy[0],
-        characteristic_height=canopy_height,
+        characteristic_height=canopy_height + zero_plane_displacement,
     )
 
     # -------------------------------------------------------------------------
@@ -340,7 +340,7 @@ def run_microclimate(
             layer_thickness=above_ground_layer_thickness,
             ventilation_rate=ventilation_rate,
             mixing_coefficient=mixing_coefficient,
-            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
+            time_interval=core_constants.seconds_to_hour,
         )
 
         # Update atmospheric humidity/VPD
@@ -385,7 +385,6 @@ def run_microclimate(
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
-
     # End of loop, write out fluxes and variables
 
     # Calculate new energy balance and return all fluxes, [W m-2]
