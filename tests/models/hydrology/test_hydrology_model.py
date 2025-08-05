@@ -223,26 +223,68 @@ def test_generate_hydrology_model(
 
 
 @pytest.mark.parametrize(
-    "update_interval, raises",
+    "update_interval, raises, expected_2d, expected_1d",
     [
         pytest.param(
             pint.Quantity(1, "month"),
             does_not_raise(),
-            id="updates correctly",
+            {
+                "soil_moisture": [
+                    [248.938056, 248.937037, 248.935933, 248.936385],
+                    [218.994795, 218.994795, 218.994795, 218.994795],
+                ],
+                "matric_potential": [
+                    [-56.432398, -56.438614, -56.44538, -56.442609],
+                    [-217.596626, -217.596626, -217.596626, -217.596626],
+                ],
+                "vertical_flow": [
+                    [0.00017, 0.00017, 0.00017, 0.00017],
+                    [0.000526, 0.000526, 0.000526, 0.000526],
+                ],
+            },
+            {
+                "total_river_discharge": [0, 0, 67002, 22095],
+                "surface_runoff": [20.343781, 20.66599, 20.896484, 20.443394],
+                "surface_runoff_accumulated": [0, 0, 1470, 330],
+                "soil_evaporation": [5.870856, 5.870856, 5.870856, 5.870856],
+            },
+            id="1 month",
         ),
         pytest.param(
             pint.Quantity(1, "week"),
-            pytest.raises(NotImplementedError),
-            id="incorrect update frequency",
+            does_not_raise(),
+            {
+                "soil_moisture": [
+                    [249.628102, 249.628102, 249.628102, 249.628102],
+                    [215.713193, 215.713193, 215.713193, 215.713193],
+                ],
+                "matric_potential": [
+                    [-52.085807, -52.085807, -52.085807, -52.085807],
+                    [-196.720556, -196.720556, -196.720556, -196.720556],
+                ],
+                "vertical_flow": [
+                    [0.000295, 0.000295, 0.000295, 0.000295],
+                    [0.000611, 0.000611, 0.000611, 0.000611],
+                ],
+            },
+            {
+                "total_river_discharge": [0, 0, 5767, 1910],
+                "surface_runoff": [163.019971, 163.019971, 163.019971, 163.019971],
+                "surface_runoff_accumulated": [0, 0, 3395, 1127],
+                "soil_evaporation": [1.388223, 1.388223, 1.388223, 1.388223],
+            },
+            id="1 week",
         ),
     ],
 )
 def test_setup(
+    fixture_core_components,
     dummy_climate_data,
     fixture_config,
     update_interval,
     raises,
-    fixture_core_components,
+    expected_2d,
+    expected_1d,
 ):
     """Test set up and update."""
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -302,21 +344,6 @@ def test_setup(
             model.update(time_index=1, seed=42)
 
             # Test 2d variables
-            expected_2d = {
-                "soil_moisture": [
-                    [248.938056, 248.937037, 248.935933, 248.936385],
-                    [218.994795, 218.994795, 218.994795, 218.994795],
-                ],
-                "matric_potential": [
-                    [-56.432398, -56.438614, -56.44538, -56.442609],
-                    [-217.596626, -217.596626, -217.596626, -217.596626],
-                ],
-                "vertical_flow": [
-                    [0.00017, 0.00017, 0.00017, 0.00017],
-                    [0.000526, 0.000526, 0.000526, 0.000526],
-                ],
-            }
-
             for var_name, expected_vals in expected_2d.items():
                 exp_var = lyr_strct.from_template()
                 exp_var[soil_indices] = expected_vals
@@ -329,12 +356,6 @@ def test_setup(
                 )
 
             # Test one dimensional variables
-            expected_1d = {
-                "total_river_discharge": [0, 0, 67002, 22095],
-                "surface_runoff": [20.343781, 20.66599, 20.896484, 20.443394],
-                "surface_runoff_accumulated": [0, 0, 1470, 330],
-                "soil_evaporation": [5.870856, 5.870856, 5.870856, 5.870856],
-            }
 
             for var_name, expected_vals in expected_1d.items():
                 np.testing.assert_allclose(
