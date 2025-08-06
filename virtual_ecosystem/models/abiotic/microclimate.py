@@ -202,7 +202,7 @@ def run_microclimate(
     hourly_time_interval = max(int(time_interval / core_constants.seconds_to_hour), 1)
 
     # TODO enable daily input in data object and select time index
-    if time_interval <= core_constants.seconds_to_day:
+    if core_constants.seconds_to_hour <= time_interval <= core_constants.seconds_to_day:
         iteration = hourly_time_interval
 
     else:
@@ -386,6 +386,7 @@ def run_microclimate(
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
+
     # End of loop, write out fluxes and variables
 
     # Calculate new energy balance and return all fluxes, [W m-2]

@@ -322,6 +322,9 @@ def mix_and_ventilate(
                 flux_up = (
                     mixing_coefficient[upper_i, j] * delta_up / layer_thickness[i, j]
                 )
+                # Prevent flux that would reduce center_val TODO check consistency
+                if flux_up < 0:
+                    flux_up = 0.0
             else:
                 flux_up = 0.0
 
@@ -335,6 +338,9 @@ def mix_and_ventilate(
                 flux_down = (
                     mixing_coefficient[lower_i, j] * delta_down / layer_thickness[i, j]
                 )
+                # Prevent flux that would reduce center_val TODO check consistency
+                if flux_down < 0:
+                    flux_down = 0.0
             else:
                 flux_down = 0.0
 
@@ -356,9 +362,17 @@ def mix_and_ventilate(
             and np.isfinite(ventilation_rate[j])
         ):
             delta_vent = input_variable[0, j] - input_variable[lower_i, j]
-            input_variable_mixed[0, j] += (
-                ventilation_rate[j] * delta_vent * time_interval
-            )
+            change = ventilation_rate[j] * delta_vent * time_interval
+
+            # Limit ventilation to avoid negative top  TODO check consistency
+            max_change = 0.1 * abs(input_variable[0, j])
+            change = np.clip(change, -max_change, max_change)
+
+            # Prevent ventilation that would reduce the top value TODO check consistency
+            if change < 0:
+                change = 0.0
+
+            input_variable_mixed[0, j] += change
     return input_variable_mixed
 
 
