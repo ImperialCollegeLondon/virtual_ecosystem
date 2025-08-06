@@ -12,6 +12,8 @@ Each of the soil sub-modules has its own API reference page:
   the impact of environmental factors on microbial rates.
 * The :mod:`~virtual_ecosystem.models.soil.microbial_groups` provides the microbial
   functional groups used in the soil model.
+* The :mod:`~virtual_ecosystem.models.soil.uptake` provides the functionality related to
+  microbial carbon/nutrient uptake.
 * The :mod:`~virtual_ecosystem.models.soil.constants` provides a set of dataclasses
   containing the constants required by the broader soil model.
 """  # noqa: D205
