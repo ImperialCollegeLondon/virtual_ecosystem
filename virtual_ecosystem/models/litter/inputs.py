@@ -20,13 +20,13 @@ class LitterInputs:
     """The full set input flows to the litter model."""
 
     leaf_mass: NDArray[np.floating]
-    """Total leaf input mass to litter [kg C m^-2]"""
+    """Total leaf input mass to litter [kg C m^-2 day^-1]"""
     root_mass: NDArray[np.floating]
-    """Total root input mass to litter [kg C m^-2]"""
+    """Total root input mass to litter [kg C m^-2 day^-1]"""
     deadwood_mass: NDArray[np.floating]
-    """Total deadwood input mass to litter [kg C m^-2]"""
+    """Total deadwood input mass to litter [kg C m^-2 day^-1]"""
     reprod_mass: NDArray[np.floating]
-    """Total plant reproductive tissue input mass to litter [kg C m^-2]"""
+    """Total plant reproductive tissue input mass to litter [kg C m^-2 day^-1]"""
 
     leaf_lignin: NDArray[np.floating]
     """Lignin proportion of leaf input [unitless]"""
@@ -99,7 +99,7 @@ class LitterInputs:
         """
 
         # Find the total input for each plant matter type
-        total_input = combine_input_sources(data)
+        total_input = combine_input_sources(data, update_interval=update_interval)
 
         # Find the plant inputs to each of the litter pools
         metabolic_splits = calculate_metabolic_proportions_of_input(
@@ -109,18 +109,22 @@ class LitterInputs:
         plant_inputs = partion_plant_inputs_between_pools(
             total_input=total_input,
             metabolic_splits=metabolic_splits,
-            update_interval=update_interval,
         )
 
         return LitterInputs(**metabolic_splits, **plant_inputs, **total_input)
 
 
-def combine_input_sources(data: Data) -> dict[str, NDArray[np.floating]]:
+def combine_input_sources(
+    data: Data, update_interval: float
+) -> dict[str, NDArray[np.floating]]:
     """Combine the plant death and herbivory inputs into a single total input.
 
     The total input for each plant matter type (leaves, roots, deadwood,
     reproductive tissue) is returned, the chemical concentration of each of these
     new pools is also calculated.
+
+    This function also converts the plant inputs from total inputs (over the model time
+    step), to the input rates needed by the litter model.
 
     TODO - At the moment there is only leaf input defined so this function doesn't
     really do anything for the other types of plant matter. Once input is defined
@@ -128,6 +132,8 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.floating]]:
 
     Args:
         data: The `Data` object to be used to populate the litter input streams.
+        update_interval: The length of time over which the input is being added over
+            [days]
 
     Returns:
         A dictionary containing the total pool size for each input pools [kg C
@@ -144,12 +150,12 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.floating]]:
     reprod_total = data["fallen_non_propagule_c_mass"]
 
     # Calculate lignin concentrations for each combined pool
-    leaf_lignin = merge_input_chemical_proportions(
+    leaf_lignin = merge_input_lignin_proportions(
         turnover_mass=data["leaf_turnover"].to_numpy(),
         herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
         total_mass=leaf_total,
-        turnover_chemical_proportion=data["senesced_leaf_lignin"].to_numpy(),
-        herbivory_waste_chemical_proportion=data[
+        turnover_lignin_proportion=data["senesced_leaf_lignin"].to_numpy(),
+        herbivory_waste_lignin_proportion=data[
             "herbivory_waste_leaf_lignin"
         ].to_numpy(),
     )
@@ -158,26 +164,24 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.floating]]:
     reprod_lignin = data["plant_reproductive_tissue_lignin"]
 
     # Calculate leaf nitrogen concentrations for each combined pool
-    leaf_nitrogen = merge_input_chemical_proportions(
+    leaf_nitrogen = merge_input_nutrient_ratios(
         turnover_mass=data["leaf_turnover"].to_numpy(),
         herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
         total_mass=leaf_total,
-        turnover_chemical_proportion=data["leaf_turnover_c_n_ratio"].to_numpy(),
-        herbivory_waste_chemical_proportion=data[
-            "herbivory_waste_leaf_nitrogen"
-        ].to_numpy(),
+        turnover_nutrient_ratio=data["leaf_turnover_c_n_ratio"].to_numpy(),
+        herbivory_waste_nutrient_ratio=data["herbivory_waste_leaf_nitrogen"].to_numpy(),
     )
     root_nitrogen = data["root_turnover_c_n_ratio"]
     deadwood_nitrogen = data["deadwood_c_n_ratio"]
     reprod_nitrogen = data["plant_reproductive_tissue_turnover_c_n_ratio"]
 
     # Calculate leaf phosphorus concentrations for each combined pool
-    leaf_phosphorus = merge_input_chemical_proportions(
+    leaf_phosphorus = merge_input_nutrient_ratios(
         turnover_mass=data["leaf_turnover"].to_numpy(),
         herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
         total_mass=leaf_total,
-        turnover_chemical_proportion=data["leaf_turnover_c_p_ratio"].to_numpy(),
-        herbivory_waste_chemical_proportion=data[
+        turnover_nutrient_ratio=data["leaf_turnover_c_p_ratio"].to_numpy(),
+        herbivory_waste_nutrient_ratio=data[
             "herbivory_waste_leaf_phosphorus"
         ].to_numpy(),
     )
@@ -186,10 +190,10 @@ def combine_input_sources(data: Data) -> dict[str, NDArray[np.floating]]:
     reprod_phosphorus = data["plant_reproductive_tissue_turnover_c_p_ratio"]
 
     return {
-        "leaf_mass": leaf_total,
-        "root_mass": root_total.to_numpy(),
-        "deadwood_mass": deadwood_total.to_numpy(),
-        "reprod_mass": reprod_total.to_numpy(),
+        "leaf_mass": leaf_total / update_interval,
+        "root_mass": root_total.to_numpy() / update_interval,
+        "deadwood_mass": deadwood_total.to_numpy() / update_interval,
+        "reprod_mass": reprod_total.to_numpy() / update_interval,
         "leaf_lignin": leaf_lignin,
         "root_lignin": root_lignin.to_numpy(),
         "stem_lignin": stem_lignin.to_numpy(),
@@ -264,7 +268,6 @@ def calculate_metabolic_proportions_of_input(
 def partion_plant_inputs_between_pools(
     total_input: dict[str, NDArray[np.floating]],
     metabolic_splits: dict[str, NDArray[np.floating]],
-    update_interval: float,
 ):
     """Function to partition input biomass between the various litter pools.
 
@@ -274,9 +277,6 @@ def partion_plant_inputs_between_pools(
     split between the below ground metabolic and structural pools based on lignin
     concentration and carbon nitrogen ratios.
 
-    This function also converts the plant inputs from total inputs (over the model time
-    step), to the input rates needed by the litter model.
-
     Args:
         total_input: The total pool size for each input pool [kg C m^-2], as well as
             the chemical proportions (lignin, nitrogen and phosphorus) of each of
@@ -284,8 +284,6 @@ def partion_plant_inputs_between_pools(
         metabolic_splits: Dictionary containing the proportion of each input that
             goes to the relevant metabolic pool. This is for three input types:
             leaves, reproductive tissues and roots [unitless]
-        update_interval: The length of time over which the input is being added over
-            [days]
 
     Returns:
         A dictionary containing the rate of biomass flow into each of the five litter
@@ -312,11 +310,11 @@ def partion_plant_inputs_between_pools(
     ) * total_input["root_mass"]
 
     return {
-        "input_rate_woody": woody_input / update_interval,
-        "input_rate_above_metabolic": above_ground_metabolic_input / update_interval,
-        "input_rate_above_structural": above_ground_strutural_input / update_interval,
-        "input_rate_below_metabolic": below_ground_metabolic_input / update_interval,
-        "input_rate_below_structural": below_ground_structural_input / update_interval,
+        "input_rate_woody": woody_input,
+        "input_rate_above_metabolic": above_ground_metabolic_input,
+        "input_rate_above_structural": above_ground_strutural_input,
+        "input_rate_below_metabolic": below_ground_metabolic_input,
+        "input_rate_below_structural": below_ground_structural_input,
     }
 
 
@@ -378,14 +376,14 @@ def split_pool_into_metabolic_and_structural_litter(
         return metabolic_fraction
 
 
-def merge_input_chemical_proportions(
+def merge_input_lignin_proportions(
     turnover_mass: NDArray[np.floating],
     herbivory_waste_mass: NDArray[np.floating],
     total_mass: NDArray[np.floating],
-    turnover_chemical_proportion: NDArray[np.floating],
-    herbivory_waste_chemical_proportion: NDArray[np.floating],
+    turnover_lignin_proportion: NDArray[np.floating],
+    herbivory_waste_lignin_proportion: NDArray[np.floating],
 ):
-    """Merge the chemical proportions of two input sources to the same litter pool.
+    """Merge the lignin proportions of two input sources to the same litter pool.
 
     Args:
         turnover_mass: Input mass coming from the natural turnover of plant tissue [kg C
@@ -393,34 +391,48 @@ def merge_input_chemical_proportions(
         herbivory_waste_mass: Input mass coming from the mechanical inefficiencies of
             herbivory [kg C m^-2]
         total_mass: The combined mass of the two input sources [kg C m^-2]
-        turnover_chemical_proportion: Proportion of the chemical of interest in the
-            input mass from natural plant turnover [unitless]
-        herbivory_waste_chemical_proportion: Proportion of the chemical of interest in
-            the input mass from mechanical inefficiencies of herbivory [unitless]
-
-    Raises:
-        ValueError: If any of the chemical proportions are infinite.
+        turnover_lignin_proportion: Proportion of lignin in the input mass from
+            natural plant turnover [unitless]
+        herbivory_waste_lignin_proportion: Proportion of lignin in the input mass from
+            mechanical inefficiencies of herbivory [unitless]
 
     Returns:
-        The ratio of the chemical in question to this total mass for the new combined
+        The proportion of carbon that is lignin in the total mass of the new combined
         input stream [unitless]
     """
 
-    if any(np.isinf(turnover_chemical_proportion)):
-        to_raise = ValueError(
-            "Litter input from plant turnover contains an infinite chemical proportion!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-    elif any(np.isinf(herbivory_waste_chemical_proportion)):
-        to_raise = ValueError(
-            "Litter input from animal herbivory waste contains an infinite chemical "
-            "proportion!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
     return (
-        turnover_chemical_proportion * turnover_mass
-        + herbivory_waste_chemical_proportion * herbivory_waste_mass
+        turnover_lignin_proportion * turnover_mass
+        + herbivory_waste_lignin_proportion * herbivory_waste_mass
     ) / (total_mass)
+
+
+def merge_input_nutrient_ratios(
+    turnover_mass: NDArray[np.floating],
+    herbivory_waste_mass: NDArray[np.floating],
+    total_mass: NDArray[np.floating],
+    turnover_nutrient_ratio: NDArray[np.floating],
+    herbivory_waste_nutrient_ratio: NDArray[np.floating],
+):
+    """Merge the nutrient ratios of two input sources to the same litter pool.
+
+    Args:
+        turnover_mass: Input mass coming from the natural turnover of plant tissue [kg C
+            m^-2]
+        herbivory_waste_mass: Input mass coming from the mechanical inefficiencies of
+            herbivory [kg C m^-2]
+        total_mass: The combined mass of the two input sources [kg C m^-2]
+        turnover_nutrient_ratio: Ratio of carbon to nutrient in the input mass from
+            natural plant turnover [unitless]
+        herbivory_waste_nutrient_ratio: Ratio of carbon to nutrient in the input mass
+            from mechanical inefficiencies of herbivory [unitless]
+
+    Returns:
+        The ratio of the nutrient in question to this total carbon mass of the new
+        combined input stream [unitless]
+    """
+
+    return total_mass / (
+        (turnover_mass / turnover_nutrient_ratio)
+        + (herbivory_waste_mass / herbivory_waste_nutrient_ratio)
+    )

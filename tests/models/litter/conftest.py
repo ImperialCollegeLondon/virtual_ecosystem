@@ -152,7 +152,7 @@ def total_litter_input(dummy_litter_data):
     """Total input mass a chemistry for each plant biomass type."""
     from virtual_ecosystem.models.litter.inputs import combine_input_sources
 
-    total_litter_input = combine_input_sources(dummy_litter_data)
+    total_litter_input = combine_input_sources(dummy_litter_data, update_interval=2.0)
 
     return total_litter_input
 
