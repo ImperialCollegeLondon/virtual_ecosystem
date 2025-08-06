@@ -220,7 +220,7 @@ def calculate_ventilation_rate(
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
         characteristic_height: Vertical scale of exchange, typically canopy height +
-        zero plane displacement height [m]
+            zero plane displacement height [m]
 
     Returns:
         Ventilation rate [s-1]
