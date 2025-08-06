@@ -342,6 +342,7 @@ def run_microclimate(
             mixing_coefficient=mixing_coefficient,
             time_interval=core_constants.seconds_to_hour,
         )
+        # TODO advect heat?
 
         # Update atmospheric humidity/VPD
         # Saturated vapour pressure of air, [kPa]
@@ -449,7 +450,6 @@ def run_microclimate(
     output["density_air"] = density_air_out
 
     # Combine longwave emission in one variable
-    # Assumption: accumulated emission in time interval based on accumulated input
     longwave_emission = layer_structure.from_template()
     longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil

@@ -329,7 +329,7 @@ def calculate_energy_balance_residual(
         - longwave_emission_canopy
         + sensible_heat_flux_canopy
         + latent_heat_flux_canopy
-        # + absorption_par
+        # - absorption_par
     )
 
     if return_fluxes:
@@ -469,7 +469,9 @@ def solve_canopy_temperature(
                     aerodynamic_resistance=np.array(
                         [[aerodynamic_resistance[i, j]]], dtype=np.float64
                     ),
-                    latent_heat_vapourisation=latent_heat_vapourisation,
+                    latent_heat_vapourisation=np.array(
+                        [[latent_heat_vapourisation[i, j]]], dtype=np.float64
+                    ),
                     leaf_emissivity=emissivity_leaf,
                     stefan_boltzmann_constant=stefan_boltzmann_constant,
                     zero_Celsius=zero_Celsius,

@@ -303,9 +303,9 @@ def mix_and_ventilate(
     """
 
     input_variable_mixed = input_variable.copy()
-    n_layers, n_columns = input_variable.shape
+    n_layers, n_cells = input_variable.shape
 
-    for j in range(n_columns):
+    for j in range(n_cells):
         for i in range(1, n_layers - 1):  # skip top and bottom
             center_val = input_variable[i, j]
 
@@ -373,9 +373,9 @@ def advect_water_from_toplayer(
     """Remove water by advection from above canopy layer.
 
     Args:
-        specific_humidity: Specific humidity in each layer, [kg kg-1]
-        layer_thickness: Thickness of each layer, [m]
-        density_air: Air density in each layer, [kg m-3]
+        specific_humidity: Specific humidity in top layer, [kg kg-1]
+        layer_thickness: Thickness of top layer, [m]
+        density_air: Air density in top layer, [kg m-3]
         wind_speed: Horizontal wind speed above canopy, [m s-1]
         characteristic_length: Horizontal length scale of the grid cell, [m]
         time_interval: Time step, [s]

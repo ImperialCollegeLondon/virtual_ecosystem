@@ -152,9 +152,9 @@ def test_run_microclimate_subdaily(
     exp_cantemp = lyr_str.from_template()
     exp_cantemp[lyr_str.index_filled_canopy] = np.array(
         [
-            [-77.4908414, -62.02926755, -72.06727963, -71.98685533],  # TODO Newton
-            [30.19997165, 29.54284043, np.nan, np.nan],
-            [28.57067474, np.nan, np.nan, np.nan],
+            [-77.485154, -64.989835, -70.259562, -70.212418],  # TODO Newton
+            [30.197086, 29.538892, np.nan, np.nan],
+            [28.556955, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(
@@ -190,7 +190,7 @@ def test_run_microclimate_subdaily(
     exp_relhum[lyr_str.index_filled_atmosphere] = np.array(
         [
             [0, 0, 0, 0],
-            [100, 100, 14.55488641 - 12.0620254],  # TODO Newton
+            [100, 100, 14.183972, -12.672991],  # TODO Newton
             [100, 100, np.nan, np.nan],
             [100, np.nan, np.nan, np.nan],
             [100, 100, 100, 100],
