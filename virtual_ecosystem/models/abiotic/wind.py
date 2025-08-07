@@ -391,6 +391,91 @@ def mix_and_ventilate(
     return input_variable_mixed
 
 
+def mix_and_ventilate_array(
+    input_variable: NDArray[np.floating],
+    layer_thickness: NDArray[np.floating],
+    mixing_coefficient: NDArray[np.floating],
+    ventilation_rate: NDArray[np.floating],
+    time_interval: float,
+) -> NDArray[np.floating]:
+    """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
+
+    This function simulates diffusion-like mixing between vertical layers based on local
+    gradients of atmospheric variables (e.g. temperature, relative humidity) and
+    layer-specific mixing coefficients. For each internal layer (excluding the top and
+    bottom), it computes upward and downward fluxes using the nearest valid
+    (finite) values above and below, respectively. The fluxes are scaled by the layer
+    thickness and applied to update the variable.
+
+    Additionally, the function applies a ventilation adjustment to the top layer of each
+    column, representing heat or water exchange with the  above the canopy. This is
+    based on the difference between the top and next valid layer, scaled by a
+    user-provided ventilation rate, with optional limits to prevent overcorrection or
+    negative concentrations.
+
+    Args:
+        input_variable: Input variable for all true atmospheric layers
+        layer_thickness: Layer thickness, [m]
+        mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
+        ventilation_rate: Ventilation rate, [s-1]
+        time_interval: Time interval, [s]
+
+    Returns:
+        Vertically mixed input variable
+    """
+
+    # Copy the input to update with mixing
+    input_variable_mixed = input_variable.copy()
+
+    # Extract the layer thickness and current value for the canopy layers, excluding the
+    # surface layer and above canopy values
+    value_centre = input_variable[1:-1]
+    canopy_layer_thickness = layer_thickness[1:-1]
+
+    # Get the value and mixing coefficients from the layer above.
+    value_above = input_variable[0:-2]
+    mix_above = mixing_coefficient[0:-2]
+
+    # Get the value and mixing coefficients from the layer above.
+    value_below = input_variable[2:]
+    mix_below = mixing_coefficient[2:]
+
+    # In-fill missing below values from the surface layer
+    value_below = np.where(np.isnan(value_below), input_variable[-1], value_below)
+    mix_below = np.where(np.isnan(mix_below), mix_below[-1], mix_below)
+
+    # Calculate fluxes
+    delta_up = value_above - value_centre
+    flux_up = mix_above * delta_up / canopy_layer_thickness
+    flux_up = np.clip(flux_up, 0, np.inf)
+
+    delta_down = value_below - value_centre
+    flux_down = mix_below * delta_down / canopy_layer_thickness
+    flux_down = np.clip(flux_down, 0, np.inf)
+
+    flux_change = (flux_up + flux_down) * time_interval / canopy_layer_thickness
+
+    # Calculate ventilation using the value from the layer below, which is either the
+    # top canopy layer or the surface layer if no canopy is present,
+    vent_below = np.where(
+        np.isnan(input_variable[1]), input_variable[-1], input_variable[1]
+    )
+
+    # Get the ventilation delta and change over time
+    delta_vent = input_variable[0] - vent_below
+    vent_change = ventilation_rate * delta_vent * time_interval
+
+    # Clip the maximum ventilation rate
+    vent_max_change = 0.1 * abs(input_variable[0])
+    vent_change = np.clip(vent_change, 0, vent_max_change)
+
+    # Update the current values and return
+    input_variable_mixed[0] += vent_change
+    input_variable_mixed[1:-1] += flux_change
+
+    return input_variable_mixed
+
+
 def advect_water_from_toplayer(
     specific_humidity: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],

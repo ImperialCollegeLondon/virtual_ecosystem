@@ -169,6 +169,7 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     )
     from virtual_ecosystem.models.abiotic.wind import (
         mix_and_ventilate,
+        mix_and_ventilate_array,
     )
 
     lystr = fixture_core_components.layer_structure
@@ -202,6 +203,15 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     )
 
     result = mix_and_ventilate(
+        input_variable=data["relative_humidity"][atm_index].to_numpy(),
+        layer_thickness=above_ground_layer_thickness,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
+        time_interval=3600.0,
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)
+
+    result = mix_and_ventilate_array(
         input_variable=data["relative_humidity"][atm_index].to_numpy(),
         layer_thickness=above_ground_layer_thickness,
         mixing_coefficient=mixing_coefficient,
