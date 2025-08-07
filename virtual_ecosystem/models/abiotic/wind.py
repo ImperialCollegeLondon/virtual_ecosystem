@@ -286,10 +286,20 @@ def mix_and_ventilate(
     ventilation_rate: NDArray[np.floating],
     time_interval: float,
 ) -> NDArray[np.floating]:
-    """Mix and ventilate vertically.
+    """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
 
-    This function takes an atmospheric variable such as temperature or specific
-    humidity, mixed vertically between layers and ventilates at the top of the canopy.
+    This function simulates diffusion-like mixing between vertical layers based on local
+    gradients of atmospheric variables (e.g. temperature, relative humidity) and
+    layer-specific mixing coefficients. For each internal layer (excluding the top and
+    bottom), it computes upward and downward fluxes using the nearest valid
+    (finite) values above and below, respectively. The fluxes are scaled by the layer
+    thickness and applied to update the variable.
+
+    Additionally, the function applies a ventilation adjustment to the top layer of each
+    column, representing heat or water exchange with the  above the canopy. This is
+    based on the difference between the top and next valid layer, scaled by a
+    user-provided ventilation rate, with optional limits to prevent overcorrection or
+    negative concentrations.
 
     Args:
         input_variable: Input variable for all true atmospheric layers
@@ -313,10 +323,12 @@ def mix_and_ventilate(
                 continue
 
             # ---- Upward flux ----
+            # Look for nearest valid input value above the current layer
             upper_i = i - 1
             while upper_i >= 0 and not np.isfinite(input_variable[upper_i, j]):
                 upper_i -= 1
 
+            # If a valid upper value and a mixing coefficient are found, compute flux
             if upper_i >= 0 and np.isfinite(mixing_coefficient[upper_i, j]):
                 delta_up = input_variable[upper_i, j] - center_val
                 flux_up = (
@@ -329,10 +341,12 @@ def mix_and_ventilate(
                 flux_up = 0.0
 
             # ---- Downward flux ----
+            # Look for nearest valid input value below the current layer
             lower_i = i + 1
             while lower_i < n_layers and not np.isfinite(input_variable[lower_i, j]):
                 lower_i += 1
 
+            # If a valid lower value and a mixing coefficient are found, compute flux
             if lower_i < n_layers and np.isfinite(mixing_coefficient[lower_i, j]):
                 delta_down = input_variable[lower_i, j] - center_val
                 flux_down = (
@@ -352,6 +366,7 @@ def mix_and_ventilate(
         if not np.isfinite(input_variable[0, j]):
             continue
 
+        # Look for nearest valid input value from below, then calculate ventilation
         lower_i = 1
         while lower_i < n_layers and not np.isfinite(input_variable[lower_i, j]):
             lower_i += 1
