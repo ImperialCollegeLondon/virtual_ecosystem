@@ -512,35 +512,22 @@ def calculate_litter_input_nitrogen_ratios(
     c_n_ratio_below_metabolic = root_c_n_ratio_meta
     c_n_ratio_below_structural = root_c_n_ratio_struct
     c_n_ratio_woody = litter_inputs.deadwood_nitrogen
+
     # Inputs with multiple sources have to be weighted
-    c_n_ratio_above_metabolic = np.divide(
-        (
-            leaf_c_n_ratio_meta
-            * litter_inputs.leaf_mass
-            * litter_inputs.leaves_meta_split
-        )
-        + (
-            reprod_c_n_ratio_meta
-            * litter_inputs.reprod_mass
-            * litter_inputs.reproduct_meta_split
-        ),
-        (litter_inputs.leaf_mass * litter_inputs.leaves_meta_split)
-        + (litter_inputs.reprod_mass * litter_inputs.reproduct_meta_split),
+    leaf_meta_input = litter_inputs.leaf_mass * litter_inputs.leaves_meta_split
+    reprod_meta_input = litter_inputs.reprod_mass * litter_inputs.reproduct_meta_split
+    leaf_struct_input = litter_inputs.leaf_mass * (1 - litter_inputs.leaves_meta_split)
+    reprod_struct_input = litter_inputs.reprod_mass * (
+        1 - litter_inputs.reproduct_meta_split
     )
 
-    c_n_ratio_above_structural = np.divide(
-        (
-            leaf_c_n_ratio_struct
-            * litter_inputs.leaf_mass
-            * (1 - litter_inputs.leaves_meta_split)
-        )
-        + (
-            reprod_c_n_ratio_struct
-            * litter_inputs.reprod_mass
-            * (1 - litter_inputs.reproduct_meta_split)
-        ),
-        (litter_inputs.leaf_mass * (1 - litter_inputs.leaves_meta_split))
-        + (litter_inputs.reprod_mass * (1 - litter_inputs.reproduct_meta_split)),
+    c_n_ratio_above_metabolic = (leaf_meta_input + reprod_meta_input) / (
+        (leaf_meta_input / leaf_c_n_ratio_meta)
+        + (reprod_meta_input / reprod_c_n_ratio_meta)
+    )
+    c_n_ratio_above_structural = (leaf_struct_input + reprod_struct_input) / (
+        (leaf_struct_input / leaf_c_n_ratio_struct)
+        + (reprod_struct_input / reprod_c_n_ratio_struct)
     )
 
     return {
@@ -606,35 +593,22 @@ def calculate_litter_input_phosphorus_ratios(
     c_p_ratio_below_metabolic = root_c_p_ratio_meta
     c_p_ratio_below_structural = root_c_p_ratio_struct
     c_p_ratio_woody = litter_inputs.deadwood_phosphorus
+
     # Inputs with multiple sources have to be weighted
-    c_p_ratio_above_metabolic = np.divide(
-        (
-            leaf_c_p_ratio_meta
-            * litter_inputs.leaf_mass
-            * litter_inputs.leaves_meta_split
-        )
-        + (
-            reprod_c_p_ratio_meta
-            * litter_inputs.reprod_mass
-            * litter_inputs.reproduct_meta_split
-        ),
-        (litter_inputs.leaf_mass * litter_inputs.leaves_meta_split)
-        + (litter_inputs.reprod_mass * litter_inputs.reproduct_meta_split),
+    leaf_meta_input = litter_inputs.leaf_mass * litter_inputs.leaves_meta_split
+    reprod_meta_input = litter_inputs.reprod_mass * litter_inputs.reproduct_meta_split
+    leaf_struct_input = litter_inputs.leaf_mass * (1 - litter_inputs.leaves_meta_split)
+    reprod_struct_input = litter_inputs.reprod_mass * (
+        1 - litter_inputs.reproduct_meta_split
     )
 
-    c_p_ratio_above_structural = np.divide(
-        (
-            leaf_c_p_ratio_struct
-            * litter_inputs.leaf_mass
-            * (1 - litter_inputs.leaves_meta_split)
-        )
-        + (
-            reprod_c_p_ratio_struct
-            * litter_inputs.reprod_mass
-            * (1 - litter_inputs.reproduct_meta_split)
-        ),
-        (litter_inputs.leaf_mass * (1 - litter_inputs.leaves_meta_split))
-        + (litter_inputs.reprod_mass * (1 - litter_inputs.reproduct_meta_split)),
+    c_p_ratio_above_metabolic = (leaf_meta_input + reprod_meta_input) / (
+        (leaf_meta_input / leaf_c_p_ratio_meta)
+        + (reprod_meta_input / reprod_c_p_ratio_meta)
+    )
+    c_p_ratio_above_structural = (leaf_struct_input + reprod_struct_input) / (
+        (leaf_struct_input / leaf_c_p_ratio_struct)
+        + (reprod_struct_input / reprod_c_p_ratio_struct)
     )
 
     return {
@@ -726,9 +700,8 @@ def calculate_nutrient_split_between_litter_pools(
         the metabolic and structural litter pools, in that order.
     """
 
-    c_n_ratio_meta_input = np.divide(
-        input_c_nut_ratio,
-        metabolic_split + struct_to_meta_nutrient_ratio * (1 - metabolic_split),
+    c_n_ratio_meta_input = input_c_nut_ratio * (
+        metabolic_split + (1 - metabolic_split) / struct_to_meta_nutrient_ratio
     )
 
     c_n_ratio_struct_input = struct_to_meta_nutrient_ratio * c_n_ratio_meta_input

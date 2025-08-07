@@ -187,7 +187,7 @@ def test_calculate_litter_input_lignin_concentrations(litter_inputs):
     )
 
     expected_woody = [0.233, 0.545, 0.612, 0.378]
-    expected_concs_above_struct = [0.2500931, 0.2532920, 0.5303109, 0.5803457]
+    expected_concs_above_struct = [0.25011178, 0.25345463, 0.54339369, 0.61992378]
     expected_concs_below_struct = [0.48590258, 0.56412613, 0.54265483, 0.67810978]
 
     actual_concs = calculate_litter_input_lignin_concentrations(
@@ -199,7 +199,7 @@ def test_calculate_litter_input_lignin_concentrations(litter_inputs):
     assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)
 
 
-def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, litter_inputs):
+def test_calculate_litter_input_nitrogen_ratios(litter_inputs):
     """Check function to calculate the C:N ratios of input to each litter pool works."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_nitrogen_ratios,
@@ -207,10 +207,10 @@ def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, litter_inputs
 
     expected_c_n_ratios = {
         "woody": [60.7, 57.9, 73.1, 55.1],
-        "below_metabolic": [11.449427, 13.09700, 14.48056, 11.04331],
-        "below_structural": [57.24714, 65.48498, 72.40281, 55.21655],
-        "above_metabolic": [8.4871511, 14.7283297, 12.1855116, 11.3024309],
-        "above_structural": [42.52031784, 74.63602461, 63.15513757, 57.82346359],
+        "below_metabolic": [20.32269136, 22.96676383, 26.06473456, 19.59251036],
+        "below_structural": [101.61345679, 114.83381916, 130.32367278, 97.96255178],
+        "above_metabolic": [12.540983, 21.600478, 20.237902, 15.403147],
+        "above_structural": [62.91002, 110.3194, 109.3635, 75.59183],
     }
 
     actual_c_n_ratios = calculate_litter_input_nitrogen_ratios(
@@ -224,7 +224,7 @@ def test_calculate_litter_input_nitrogen_ratios(dummy_litter_data, litter_inputs
         assert np.allclose(actual_c_n_ratios[key], expected_c_n_ratios[key])
 
 
-def test_calculate_litter_input_phosphorus_ratios(dummy_litter_data, litter_inputs):
+def test_calculate_litter_input_phosphorus_ratios(litter_inputs):
     """Check function to calculate the C:P ratios of input to each litter pool works."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_input_phosphorus_ratios,
@@ -232,10 +232,10 @@ def test_calculate_litter_input_phosphorus_ratios(dummy_litter_data, litter_inpu
 
     expected_c_p_ratios = {
         "woody": [856.5, 675.4, 933.2, 888.8],
-        "below_metabolic": [248.1465, 129.418998, 146.243645, 110.700999],
-        "below_structural": [1240.73249721, 647.09498874, 731.2182237, 553.50499377],
-        "above_metabolic": [220.42737, 87.282889, 152.331456, 100.160733],
-        "above_structural": [1118.30505, 490.872368, 813.926271, 415.786304],
+        "below_metabolic": [440.4591226, 226.94788998, 263.23576031, 196.40039357],
+        "below_structural": [2202.29561299, 1134.7394499, 1316.17880156, 982.00196785],
+        "above_metabolic": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_structural": [1488.595406, 580.6433876, 1408.378272, 610.0666667],
     }
 
     actual_c_p_ratios = calculate_litter_input_phosphorus_ratios(
@@ -257,8 +257,8 @@ def test_calculate_nutrient_split_between_litter_pools(
         calculate_nutrient_split_between_litter_pools,
     )
 
-    expected_meta_c_n = np.array([11.449427, 13.09700, 14.48056, 11.04331])
-    expected_struct_c_n = np.array([57.24714, 65.48498, 72.40281, 55.21655])
+    expected_meta_c_n = np.array([20.32269136, 22.96676383, 26.06473456, 19.59251036])
+    expected_struct_c_n = np.array([101.6134568, 114.83381915, 130.3236728, 97.9625518])
 
     actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
         input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
@@ -278,8 +278,9 @@ def test_calculate_nutrient_split_between_litter_pools(
     # C:N ratio
     assert np.allclose(
         dummy_litter_data["root_turnover_c_n_ratio"],
-        (
-            actual_meta_c_n * litter_inputs.roots_meta_split
-            + actual_struct_c_n * (1 - litter_inputs.roots_meta_split)
+        1
+        / (
+            (litter_inputs.roots_meta_split / actual_meta_c_n)
+            + ((1 - litter_inputs.roots_meta_split) / actual_struct_c_n)
         ),
     )
