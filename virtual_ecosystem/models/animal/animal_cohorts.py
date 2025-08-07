@@ -993,14 +993,14 @@ class AnimalCohort:
     def delta_mass_herbivory(
         self,
         plant_list: list[Resource],
-        dt: timedelta64,
+        adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> dict[str, float]:
         """Handle mass assimilation from live plant herbivory.
 
         Args:
             plant_list: List of live plant resources.
-            dt: Time available for foraging.
+            adjusted_dt: Time available for foraging.
             herbivory_waste_pools: Waste pools for unassimilated plant matter.
 
         Returns:
@@ -1008,7 +1008,7 @@ class AnimalCohort:
         """
         return self.forage_resource_list(
             resources=plant_list,
-            adjusted_dt=dt,
+            adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self.default_consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
         )
@@ -1016,60 +1016,60 @@ class AnimalCohort:
     def delta_mass_detritivory(
         self,
         litter_pools: list[Resource],
-        dt: timedelta64,
+        adjusted_dt: timedelta64,
     ) -> dict[str, float]:
         """Handle mass assimilation from litter (detritivory).
 
         Args:
             litter_pools: List of litter pools available to the cohort.
-            dt: Time available for foraging.
+            adjusted_dt: Time available for foraging.
 
         Returns:
             Stoichiometric mass gained by the cohort.
         """
         return self.forage_resource_list(
             resources=litter_pools,
-            adjusted_dt=dt,
+            adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self.default_consumed_resource_mass,
         )
 
     def delta_mass_carcass_scavenging(
         self,
         carcass_pools: list[Resource],
-        dt: timedelta64,
+        adjusted_dt: timedelta64,
     ) -> dict[str, float]:
         """Handle mass assimilation from carcass scavenging.
 
         Args:
             carcass_pools: List of carcass pools available to the cohort.
-            dt: Time available for foraging.
+            adjusted_dt: Time available for foraging.
 
         Returns:
             Stoichiometric mass gained by the cohort.
         """
         return self.forage_resource_list(
             resources=carcass_pools,
-            adjusted_dt=dt,
+            adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self.default_consumed_resource_mass,
         )
 
     def delta_mass_excrement_scavenging(
         self,
         excrement_pools: list[Resource],
-        dt: timedelta64,
+        adjusted_dt: timedelta64,
     ) -> dict[str, float]:
         """Handle mass assimilation from excrement (coprophagy).
 
         Args:
             excrement_pools: List of excrement pools available to the cohort.
-            dt: Time available for foraging.
+            adjusted_dt: Time available for foraging.
 
         Returns:
             Stoichiometric mass gained by the cohort.
         """
         return self.forage_resource_list(
             resources=excrement_pools,
-            adjusted_dt=dt,
+            adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self.default_consumed_resource_mass,
         )
 
@@ -1134,7 +1134,7 @@ class AnimalCohort:
         if plant_list:
             gain = self.delta_mass_herbivory(
                 plant_list=plant_list,
-                dt=time_available_per_diet,
+                adjusted_dt=time_available_per_diet,
                 herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
@@ -1143,29 +1143,37 @@ class AnimalCohort:
         # live prey predation (adds carcasses to map)
         if animal_list:
             gain = self.delta_mass_predation(
-                animal_list, carcass_pool_map, time_available_per_diet
+                animal_list=animal_list,
+                carcass_pools=carcass_pool_map,
+                adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
 
         # litter detritivory
         if litter_pools:
-            gain = self.delta_mass_detritivory(litter_pools, time_available_per_diet)
+            gain = self.delta_mass_detritivory(
+                litter_pools=litter_pools,
+                adjusted_dt=time_available_per_diet,
+            )
             for k in total_gain:
                 total_gain[k] += gain[k]
 
         # carcass scavenging
         if scavenge_carcass_pools or scavenge_excrement_pools:
             gain = self.delta_mass_carcass_scavenging(
-                scavenge_carcass_pools, time_available_per_diet
+                carcass_pools=scavenge_carcass_pools,
+                adjusted_dt=time_available_per_diet,
             )
+
             for k in total_gain:
                 total_gain[k] += gain[k]
 
         # waste scavenging
         if scavenge_carcass_pools or scavenge_excrement_pools:
             gain = self.delta_mass_excrement_scavenging(
-                scavenge_excrement_pools, time_available_per_diet
+                excrement_pools=scavenge_excrement_pools,
+                adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
