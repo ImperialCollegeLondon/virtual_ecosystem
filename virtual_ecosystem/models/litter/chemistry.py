@@ -19,7 +19,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.inputs import LitterInputs
+from virtual_ecosystem.models.litter.inputs import LitterInputs, average_nutrient_ratios
 
 
 class LitterChemistry:
@@ -521,13 +521,17 @@ def calculate_litter_input_nitrogen_ratios(
         1 - litter_inputs.reproduct_meta_split
     )
 
-    c_n_ratio_above_metabolic = (leaf_meta_input + reprod_meta_input) / (
-        (leaf_meta_input / leaf_c_n_ratio_meta)
-        + (reprod_meta_input / reprod_c_n_ratio_meta)
+    c_n_ratio_above_metabolic = average_nutrient_ratios(
+        mass_1=leaf_meta_input,
+        mass_2=reprod_meta_input,
+        nutrient_ratio_1=leaf_c_n_ratio_meta,
+        nutrient_ratio_2=reprod_c_n_ratio_meta,
     )
-    c_n_ratio_above_structural = (leaf_struct_input + reprod_struct_input) / (
-        (leaf_struct_input / leaf_c_n_ratio_struct)
-        + (reprod_struct_input / reprod_c_n_ratio_struct)
+    c_n_ratio_above_structural = average_nutrient_ratios(
+        mass_1=leaf_struct_input,
+        mass_2=reprod_struct_input,
+        nutrient_ratio_1=leaf_c_n_ratio_struct,
+        nutrient_ratio_2=reprod_c_n_ratio_struct,
     )
 
     return {
@@ -602,13 +606,17 @@ def calculate_litter_input_phosphorus_ratios(
         1 - litter_inputs.reproduct_meta_split
     )
 
-    c_p_ratio_above_metabolic = (leaf_meta_input + reprod_meta_input) / (
-        (leaf_meta_input / leaf_c_p_ratio_meta)
-        + (reprod_meta_input / reprod_c_p_ratio_meta)
+    c_p_ratio_above_metabolic = average_nutrient_ratios(
+        mass_1=leaf_meta_input,
+        mass_2=reprod_meta_input,
+        nutrient_ratio_1=leaf_c_p_ratio_meta,
+        nutrient_ratio_2=reprod_c_p_ratio_meta,
     )
-    c_p_ratio_above_structural = (leaf_struct_input + reprod_struct_input) / (
-        (leaf_struct_input / leaf_c_p_ratio_struct)
-        + (reprod_struct_input / reprod_c_p_ratio_struct)
+    c_p_ratio_above_structural = average_nutrient_ratios(
+        mass_1=leaf_struct_input,
+        mass_2=reprod_struct_input,
+        nutrient_ratio_1=leaf_c_p_ratio_struct,
+        nutrient_ratio_2=reprod_c_p_ratio_struct,
     )
 
     return {

@@ -164,26 +164,22 @@ def combine_input_sources(
     reprod_lignin = data["plant_reproductive_tissue_lignin"]
 
     # Calculate leaf nitrogen concentrations for each combined pool
-    leaf_nitrogen = merge_input_nutrient_ratios(
-        turnover_mass=data["leaf_turnover"].to_numpy(),
-        herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
-        total_mass=leaf_total,
-        turnover_nutrient_ratio=data["leaf_turnover_c_n_ratio"].to_numpy(),
-        herbivory_waste_nutrient_ratio=data["herbivory_waste_leaf_nitrogen"].to_numpy(),
+    leaf_nitrogen = average_nutrient_ratios(
+        mass_1=data["leaf_turnover"].to_numpy(),
+        mass_2=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        nutrient_ratio_1=data["leaf_turnover_c_n_ratio"].to_numpy(),
+        nutrient_ratio_2=data["herbivory_waste_leaf_nitrogen"].to_numpy(),
     )
     root_nitrogen = data["root_turnover_c_n_ratio"]
     deadwood_nitrogen = data["deadwood_c_n_ratio"]
     reprod_nitrogen = data["plant_reproductive_tissue_turnover_c_n_ratio"]
 
     # Calculate leaf phosphorus concentrations for each combined pool
-    leaf_phosphorus = merge_input_nutrient_ratios(
-        turnover_mass=data["leaf_turnover"].to_numpy(),
-        herbivory_waste_mass=data["herbivory_waste_leaf_carbon"].to_numpy(),
-        total_mass=leaf_total,
-        turnover_nutrient_ratio=data["leaf_turnover_c_p_ratio"].to_numpy(),
-        herbivory_waste_nutrient_ratio=data[
-            "herbivory_waste_leaf_phosphorus"
-        ].to_numpy(),
+    leaf_phosphorus = average_nutrient_ratios(
+        mass_1=data["leaf_turnover"].to_numpy(),
+        mass_2=data["herbivory_waste_leaf_carbon"].to_numpy(),
+        nutrient_ratio_1=data["leaf_turnover_c_p_ratio"].to_numpy(),
+        nutrient_ratio_2=data["herbivory_waste_leaf_phosphorus"].to_numpy(),
     )
     root_phosphorus = data["root_turnover_c_p_ratio"]
     deadwood_phosphorus = data["deadwood_c_p_ratio"]
@@ -407,32 +403,28 @@ def merge_input_lignin_proportions(
     ) / (total_mass)
 
 
-def merge_input_nutrient_ratios(
-    turnover_mass: NDArray[np.floating],
-    herbivory_waste_mass: NDArray[np.floating],
-    total_mass: NDArray[np.floating],
-    turnover_nutrient_ratio: NDArray[np.floating],
-    herbivory_waste_nutrient_ratio: NDArray[np.floating],
+def average_nutrient_ratios(
+    mass_1: NDArray[np.floating],
+    mass_2: NDArray[np.floating],
+    nutrient_ratio_1: NDArray[np.floating],
+    nutrient_ratio_2: NDArray[np.floating],
 ):
-    """Merge the nutrient ratios of two input sources to the same litter pool.
+    """Average carbon to nutrient ratios weighted by their carbon content.
 
     Args:
-        turnover_mass: Input mass coming from the natural turnover of plant tissue [kg C
-            m^-2]
-        herbivory_waste_mass: Input mass coming from the mechanical inefficiencies of
-            herbivory [kg C m^-2]
-        total_mass: The combined mass of the two input sources [kg C m^-2]
-        turnover_nutrient_ratio: Ratio of carbon to nutrient in the input mass from
-            natural plant turnover [unitless]
-        herbivory_waste_nutrient_ratio: Ratio of carbon to nutrient in the input mass
-            from mechanical inefficiencies of herbivory [unitless]
+        mass_1: Total carbon mass of the first pool/input stream
+            [kg C m^-2 or kg C m^-2]
+        mass_2: Total carbon mass of the second pool/input stream
+            [kg C m^-2 or kg C m^-2]
+        nutrient_ratio_1: Carbon to nutrient ratio of the first pool/input stream
+            [unitless]
+        nutrient_ratio_2: Carbon to nutrient ratio of the second pool/input stream
+            [unitless]
 
     Returns:
-        The ratio of the nutrient in question to this total carbon mass of the new
-        combined input stream [unitless]
+        The nutrient ratio of the new combined pool/input stream [unitless]
     """
 
-    return total_mass / (
-        (turnover_mass / turnover_nutrient_ratio)
-        + (herbivory_waste_mass / herbivory_waste_nutrient_ratio)
+    return (mass_1 + mass_2) / (
+        (mass_1 / nutrient_ratio_1) + (mass_2 / nutrient_ratio_2)
     )

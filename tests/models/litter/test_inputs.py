@@ -230,20 +230,16 @@ def test_merge_input_lignin_proportions(dummy_litter_data):
     assert np.allclose(actual_proportions, expected_proportions)
 
 
-def test_merge_input_nutrient_ratios(dummy_litter_data):
-    """Test that function to merge nutrient ratios works as expected."""
-    from virtual_ecosystem.models.litter.inputs import merge_input_nutrient_ratios
+def test_average_nutrient_ratios(dummy_litter_data):
+    """Test that function to average nutrient ratios works as expected."""
+    from virtual_ecosystem.models.litter.inputs import average_nutrient_ratios
 
     expected_proportions = [15.00583994, 32.23584906, 39.05894298, 47.80986065]
 
-    actual_proportions = merge_input_nutrient_ratios(
-        turnover_mass=dummy_litter_data["leaf_turnover"],
-        herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_carbon"],
-        total_mass=dummy_litter_data["leaf_turnover"]
-        + dummy_litter_data["herbivory_waste_leaf_carbon"],
-        turnover_nutrient_ratio=dummy_litter_data["leaf_turnover_c_n_ratio"],
-        herbivory_waste_nutrient_ratio=dummy_litter_data[
-            "herbivory_waste_leaf_nitrogen"
-        ],
+    actual_proportions = average_nutrient_ratios(
+        mass_1=dummy_litter_data["leaf_turnover"],
+        mass_2=dummy_litter_data["herbivory_waste_leaf_carbon"],
+        nutrient_ratio_1=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        nutrient_ratio_2=dummy_litter_data["herbivory_waste_leaf_nitrogen"],
     )
     assert np.allclose(actual_proportions, expected_proportions)
