@@ -25,6 +25,7 @@ from virtual_ecosystem.models.litter.env_factors import (
     calculate_environmental_factors,
 )
 from virtual_ecosystem.models.litter.inputs import LitterInputs
+from virtual_ecosystem.models.litter.losses import LitterLosses
 
 
 def calculate_post_consumption_pools(
@@ -157,15 +158,15 @@ def calculate_decay_rates(
 
 
 def calculate_total_C_mineralised(
-    decay_rates: dict[str, NDArray[np.floating]],
+    litter_losses: LitterLosses,
     model_constants: LitterConsts,
     core_constants: CoreConsts,
 ) -> NDArray[np.floating]:
     """Calculate the total carbon mineralisation rate from all five litter pools.
 
     Args:
-        decay_rates: Dictionary containing the rates of decay for all 5 litter pools
-            [kg C m^-2 day^-1]
+        litter_losses: Dataclass containing the rates of nutrient loss from each litter
+            pool
         model_constants: Set of constants for the litter model
         core_constants: Set of core constants shared between all models
 
@@ -175,23 +176,23 @@ def calculate_total_C_mineralised(
 
     # Calculate mineralisation from each pool
     metabolic_above_mineral = calculate_carbon_mineralised(
-        decay_rates["metabolic_above"],
+        litter_decay_rate=litter_losses.above_metabolic_carbon,
         carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_above_mineral = calculate_carbon_mineralised(
-        decay_rates["structural_above"],
+        litter_decay_rate=litter_losses.above_structural_carbon,
         carbon_use_efficiency=model_constants.cue_structural_above_ground,
     )
     woody_mineral = calculate_carbon_mineralised(
-        decay_rates["woody"],
+        litter_decay_rate=litter_losses.woody_carbon,
         carbon_use_efficiency=model_constants.cue_woody,
     )
     metabolic_below_mineral = calculate_carbon_mineralised(
-        decay_rates["metabolic_below"],
+        litter_decay_rate=litter_losses.below_metabolic_carbon,
         carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_below_mineral = calculate_carbon_mineralised(
-        decay_rates["structural_below"],
+        litter_decay_rate=litter_losses.below_structural_carbon,
         carbon_use_efficiency=model_constants.cue_structural_below_ground,
     )
 
@@ -239,31 +240,31 @@ def calculate_updated_pools(
 
     return {
         "above_metabolic": calculate_final_pool_size(
-            input_rate=litter_inputs.input_rate_above_metabolic,
+            input_rate=litter_inputs.above_metabolic,
             decay_rate=decay_rates["metabolic_above"],
             initial_pool=post_consumption_pools["above_metabolic"],
             update_interval=update_interval,
         ),
         "above_structural": calculate_final_pool_size(
-            input_rate=litter_inputs.input_rate_above_structural,
+            input_rate=litter_inputs.above_structural,
             decay_rate=decay_rates["structural_above"],
             initial_pool=post_consumption_pools["above_structural"],
             update_interval=update_interval,
         ),
         "woody": calculate_final_pool_size(
-            input_rate=litter_inputs.input_rate_woody,
+            input_rate=litter_inputs.woody,
             decay_rate=decay_rates["woody"],
             initial_pool=post_consumption_pools["woody"],
             update_interval=update_interval,
         ),
         "below_metabolic": calculate_final_pool_size(
-            input_rate=litter_inputs.input_rate_below_metabolic,
+            input_rate=litter_inputs.below_metabolic,
             decay_rate=decay_rates["metabolic_below"],
             initial_pool=post_consumption_pools["below_metabolic"],
             update_interval=update_interval,
         ),
         "below_structural": calculate_final_pool_size(
-            input_rate=litter_inputs.input_rate_below_structural,
+            input_rate=litter_inputs.below_structural,
             decay_rate=decay_rates["structural_below"],
             initial_pool=post_consumption_pools["below_structural"],
             update_interval=update_interval,
@@ -271,7 +272,6 @@ def calculate_updated_pools(
     }
 
 
-# TODO - Test this
 def calculate_final_pool_size(
     input_rate: NDArray[np.floating],
     decay_rate: NDArray[np.floating],

@@ -98,17 +98,19 @@ def test_calculate_decay_rates(dummy_litter_data, fixture_core_components):
         assert np.allclose(actual_decay[name], expected_decay[name])
 
 
-def test_calculate_total_C_mineralised(decay_rates):
+def test_calculate_total_C_mineralised(litter_losses):
     """Test that calculation of total C mineralised is as expected."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.litter.carbon import (
         calculate_total_C_mineralised,
     )
 
-    expected_mineralisation = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
+    expected_mineralisation = [0.053397346, 0.040560178, 0.01519084, 0.01532536]
 
     actual_mineralisation = calculate_total_C_mineralised(
-        decay_rates=decay_rates, model_constants=LitterConsts, core_constants=CoreConsts
+        litter_losses=litter_losses,
+        model_constants=LitterConsts,
+        core_constants=CoreConsts,
     )
 
     assert np.allclose(actual_mineralisation, expected_mineralisation)
@@ -146,7 +148,7 @@ def test_calculate_final_pool_size(post_consumption_pools, litter_inputs, decay_
     expected_pool_size = [0.315248467, 0.153490768, 0.080612380, 0.073646133]
 
     actual_pool_size = calculate_final_pool_size(
-        input_rate=litter_inputs.input_rate_above_metabolic,
+        input_rate=litter_inputs.above_metabolic,
         decay_rate=decay_rates["metabolic_above"],
         initial_pool=post_consumption_pools["above_metabolic"],
         update_interval=2.0,

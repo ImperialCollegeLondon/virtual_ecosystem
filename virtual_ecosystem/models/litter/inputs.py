@@ -20,13 +20,13 @@ class LitterInputs:
     """The full set input flows to the litter model."""
 
     leaf_mass: NDArray[np.floating]
-    """Total leaf input mass to litter [kg C m^-2 day^-1]"""
+    """Total leaf input rate to litter [kg C m^-2 day^-1]"""
     root_mass: NDArray[np.floating]
-    """Total root input mass to litter [kg C m^-2 day^-1]"""
+    """Total root input rate to litter [kg C m^-2 day^-1]"""
     deadwood_mass: NDArray[np.floating]
-    """Total deadwood input mass to litter [kg C m^-2 day^-1]"""
+    """Total deadwood input rate to litter [kg C m^-2 day^-1]"""
     reprod_mass: NDArray[np.floating]
-    """Total plant reproductive tissue input mass to litter [kg C m^-2 day^-1]"""
+    """Total plant reproductive tissue input rate to litter [kg C m^-2 day^-1]"""
 
     leaf_lignin: NDArray[np.floating]
     """Lignin proportion of leaf input [unitless]"""
@@ -62,15 +62,15 @@ class LitterInputs:
     roots_meta_split: NDArray[np.floating]
     """Fraction of leaf input that goes to metabolic litter [unitless]"""
 
-    input_rate_woody: NDArray[np.floating]
+    woody: NDArray[np.floating]
     """Total input rate to the woody litter pool [kg C m^-2 day^-1]"""
-    input_rate_above_metabolic: NDArray[np.floating]
+    above_metabolic: NDArray[np.floating]
     """Total input rate to the above ground metabolic litter pool [kg C m^-2 day^-1]"""
-    input_rate_above_structural: NDArray[np.floating]
+    above_structural: NDArray[np.floating]
     """Total input rate to the above ground structural litter pool [kg C m^-2 day^-1]"""
-    input_rate_below_metabolic: NDArray[np.floating]
+    below_metabolic: NDArray[np.floating]
     """Total input rate to the below ground metabolic litter pool [kg C m^-2 day^-1]"""
-    input_rate_below_structural: NDArray[np.floating]
+    below_structural: NDArray[np.floating]
     """Total input rate to the below ground structural litter pool [kg C m^-2 day^-1]"""
 
     @classmethod
@@ -310,11 +310,11 @@ def partion_plant_inputs_between_pools(
     ) * total_input["root_mass"]
 
     return {
-        "input_rate_woody": woody_input,
-        "input_rate_above_metabolic": above_ground_metabolic_input,
-        "input_rate_above_structural": above_ground_strutural_input,
-        "input_rate_below_metabolic": below_ground_metabolic_input,
-        "input_rate_below_structural": below_ground_structural_input,
+        "woody": woody_input,
+        "above_metabolic": above_ground_metabolic_input,
+        "above_structural": above_ground_strutural_input,
+        "below_metabolic": below_ground_metabolic_input,
+        "below_structural": below_ground_structural_input,
     }
 
 

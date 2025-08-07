@@ -46,6 +46,7 @@ from virtual_ecosystem.models.litter.carbon import (
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.inputs import LitterInputs
+from virtual_ecosystem.models.litter.losses import calculate_litter_losses
 
 
 class LitterModel(
@@ -361,6 +362,16 @@ class LitterModel(
             ).magnitude,
         )
 
+        litter_losses = calculate_litter_losses(
+            original_pools=consumed_pools,
+            final_pools=updated_pools,
+            litter_inputs=litter_inputs,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "day"
+            ).magnitude,
+        )
+
+        # TODO - THIS NEEDS TO TAKE MINERALISATION RATES AS AN INPUT
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             updated_pools=updated_pools, litter_inputs=litter_inputs
@@ -368,10 +379,11 @@ class LitterModel(
 
         # Calculate the total mineralisation rates from the litter
         total_C_mineralisation_rate = calculate_total_C_mineralised(
-            decay_rates,
+            litter_losses=litter_losses,
             model_constants=self.model_constants,
             core_constants=self.core_constants,
         )
+        # TODO - NEED TO CHECK IF THESE FUNCTIONS STILL WORK
         total_N_mineralisation_rate = self.litter_chemistry.calculate_N_mineralisation(
             decay_rates=decay_rates,
             active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,

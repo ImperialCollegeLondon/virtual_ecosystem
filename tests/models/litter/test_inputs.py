@@ -19,11 +19,11 @@ def test_determine_all_plant_to_litter_flows(dummy_litter_data):
         "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
         "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
         "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
-        "input_rate_woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "input_rate_above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
-        "input_rate_above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
-        "input_rate_below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
-        "input_rate_below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
+        "woody": [0.0375, 0.0495, 0.0315, 0.0165],
+        "above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
+        "above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
+        "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
+        "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
         "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
         "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
         "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
@@ -118,11 +118,11 @@ def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input
     )
 
     expected_inputs = {
-        "input_rate_woody": [0.0375, 0.0495, 0.0315, 0.0165],
-        "input_rate_above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
-        "input_rate_above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
-        "input_rate_below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
-        "input_rate_below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
+        "woody": [0.0375, 0.0495, 0.0315, 0.0165],
+        "above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
+        "above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
+        "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
+        "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
     }
 
     actual_inputs = partion_plant_inputs_between_pools(

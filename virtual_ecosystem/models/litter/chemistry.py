@@ -148,19 +148,19 @@ class LitterChemistry:
         """
 
         change_in_lignin_above_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_above_structural,
+            input_carbon=litter_inputs.above_structural,
             updated_pool_carbon=updated_pools["above_structural"],
             input_conc=input_lignin["above_structural"],
             old_pool_conc=self.data["lignin_above_structural"].to_numpy(),
         )
         change_in_lignin_woody = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_woody,
+            input_carbon=litter_inputs.woody,
             updated_pool_carbon=updated_pools["woody"],
             input_conc=input_lignin["woody"],
             old_pool_conc=self.data["lignin_woody"].to_numpy(),
         )
         change_in_lignin_below_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_below_structural,
+            input_carbon=litter_inputs.below_structural,
             updated_pool_carbon=updated_pools["below_structural"],
             input_conc=input_lignin["below_structural"],
             old_pool_conc=self.data["lignin_below_structural"].to_numpy(),
@@ -199,31 +199,31 @@ class LitterChemistry:
         """
 
         change_in_n_above_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_above_metabolic,
+            input_carbon=litter_inputs.above_metabolic,
             updated_pool_carbon=updated_pools["above_metabolic"],
             input_conc=input_c_n_ratios["above_metabolic"],
             old_pool_conc=self.data["c_n_ratio_above_metabolic"].to_numpy(),
         )
         change_in_n_above_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_above_structural,
+            input_carbon=litter_inputs.above_structural,
             updated_pool_carbon=updated_pools["above_structural"],
             input_conc=input_c_n_ratios["above_structural"],
             old_pool_conc=self.data["c_n_ratio_above_structural"].to_numpy(),
         )
         change_in_n_woody = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_woody,
+            input_carbon=litter_inputs.woody,
             updated_pool_carbon=updated_pools["woody"],
             input_conc=input_c_n_ratios["woody"],
             old_pool_conc=self.data["c_n_ratio_woody"].to_numpy(),
         )
         change_in_n_below_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_below_metabolic,
+            input_carbon=litter_inputs.below_metabolic,
             updated_pool_carbon=updated_pools["below_metabolic"],
             input_conc=input_c_n_ratios["below_metabolic"],
             old_pool_conc=self.data["c_n_ratio_below_metabolic"].to_numpy(),
         )
         change_in_n_below_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_below_structural,
+            input_carbon=litter_inputs.below_structural,
             updated_pool_carbon=updated_pools["below_structural"],
             input_conc=input_c_n_ratios["below_structural"],
             old_pool_conc=self.data["c_n_ratio_below_structural"].to_numpy(),
@@ -264,31 +264,31 @@ class LitterChemistry:
         """
 
         change_in_p_above_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_above_metabolic,
+            input_carbon=litter_inputs.above_metabolic,
             updated_pool_carbon=updated_pools["above_metabolic"],
             input_conc=input_c_p_ratios["above_metabolic"],
             old_pool_conc=self.data["c_p_ratio_above_metabolic"].to_numpy(),
         )
         change_in_p_above_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_above_structural,
+            input_carbon=litter_inputs.above_structural,
             updated_pool_carbon=updated_pools["above_structural"],
             input_conc=input_c_p_ratios["above_structural"],
             old_pool_conc=self.data["c_p_ratio_above_structural"].to_numpy(),
         )
         change_in_p_woody = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_woody,
+            input_carbon=litter_inputs.woody,
             updated_pool_carbon=updated_pools["woody"],
             input_conc=input_c_p_ratios["woody"],
             old_pool_conc=self.data["c_p_ratio_woody"].to_numpy(),
         )
         change_in_p_below_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_below_metabolic,
+            input_carbon=litter_inputs.below_metabolic,
             updated_pool_carbon=updated_pools["below_metabolic"],
             input_conc=input_c_p_ratios["below_metabolic"],
             old_pool_conc=self.data["c_p_ratio_below_metabolic"].to_numpy(),
         )
         change_in_p_below_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.input_rate_below_structural,
+            input_carbon=litter_inputs.below_structural,
             updated_pool_carbon=updated_pools["below_structural"],
             input_conc=input_c_p_ratios["below_structural"],
             old_pool_conc=self.data["c_p_ratio_below_structural"].to_numpy(),
@@ -443,13 +443,13 @@ def calculate_litter_input_lignin_concentrations(
     lignin_proportion_below_structural = (
         litter_inputs.root_lignin
         * litter_inputs.root_mass
-        / litter_inputs.input_rate_below_structural
+        / litter_inputs.below_structural
     )
 
     lignin_proportion_above_structural = (
         (litter_inputs.leaf_lignin * litter_inputs.leaf_mass)
         + (litter_inputs.reprod_lignin * litter_inputs.reprod_mass)
-    ) / litter_inputs.input_rate_above_structural
+    ) / litter_inputs.above_structural
 
     return {
         "woody": lignin_proportion_woody,

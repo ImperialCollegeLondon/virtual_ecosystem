@@ -184,3 +184,16 @@ def litter_inputs(dummy_litter_data):
     )
 
     return litter_inputs
+
+
+@pytest.fixture
+def litter_losses(post_consumption_pools, updated_pools, litter_inputs):
+    """Complete set of losses from the litter pools."""
+    from virtual_ecosystem.models.litter.losses import calculate_litter_losses
+
+    return calculate_litter_losses(
+        original_pools=post_consumption_pools,
+        final_pools=updated_pools,
+        litter_inputs=litter_inputs,
+        update_interval=2.0,
+    )
