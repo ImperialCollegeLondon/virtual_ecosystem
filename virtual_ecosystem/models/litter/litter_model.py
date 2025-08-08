@@ -373,10 +373,15 @@ class LitterModel(
             active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
-        # TODO - THIS NEEDS TO TAKE LOSS RATES AS AN INPUT
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            updated_pools=updated_pools, litter_inputs=litter_inputs
+            updated_pools=updated_pools,
+            litter_inputs=litter_inputs,
+            litter_losses=litter_losses,
+            original_pools=consumed_pools,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "day"
+            ).magnitude,
         )
 
         # Calculate the total mineralisation carbon mineralisation rate from the litter

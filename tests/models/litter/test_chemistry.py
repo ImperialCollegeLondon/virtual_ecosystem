@@ -26,7 +26,11 @@ def test_calculate_litter_chemistry_factor():
 
 
 def test_calculate_new_pool_chemistries(
-    dummy_litter_data, litter_inputs, updated_pools, litter_chemistry
+    litter_inputs,
+    updated_pools,
+    litter_chemistry,
+    litter_losses,
+    post_consumption_pools,
 ):
     """Test that function to calculate updated pool chemistries works correctly."""
 
@@ -34,21 +38,24 @@ def test_calculate_new_pool_chemistries(
         "lignin_above_structural": [0.49726272, 0.10113017, 0.67782882, 0.67072519],
         "lignin_woody": [0.49580543, 0.7978783, 0.35224272, 0.35012606],
         "lignin_below_structural": [0.49974338, 0.26270806, 0.74846367, 0.71955592],
-        "c_n_ratio_above_metabolic": [7.3921805, 9.0161456, 10.4324728, 9.9183441],
-        "c_n_ratio_above_structural": [37.554988, 43.431768, 48.067581, 52.065169],
-        "c_n_ratio_woody": [55.5816919, 63.2550698, 47.5208477, 59.0819914],
-        "c_n_ratio_below_metabolic": [10.7299421, 11.3394567, 15.1984024, 12.2222413],
-        "c_n_ratio_below_structural": [50.6228215, 55.9998994, 73.0948342, 58.6661277],
-        "c_p_ratio_above_metabolic": [69.966598, 69.674548, 108.426751, 96.143488],
-        "c_p_ratio_above_structural": [346.05231, 473.330293, 467.818240, 532.420899],
-        "c_p_ratio_woody": [560.22870571, 762.56863636, 848.03530307, 600.40427444],
-        "c_p_ratio_below_metabolic": [308.200782, 405.110726, 314.824814, 372.870229],
-        "c_p_ratio_below_structural": [563.06464, 597.68324, 772.78968, 609.82810],
+        "c_n_ratio_above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
+        "c_n_ratio_above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
+        "c_n_ratio_woody": [55.57479, 63.250918, 47.44333, 59.08069],
+        "c_n_ratio_below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
+        "c_n_ratio_below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
+        "c_p_ratio_above_metabolic": [61.099543, 70.015298, 110.68070, 98.767703],
+        "c_p_ratio_above_structural": [340.38278, 473.84604, 456.99901, 579.00396],
+        "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
+        "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
+        "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
     }
 
     actual_chemistries = litter_chemistry.calculate_new_pool_chemistries(
         litter_inputs=litter_inputs,
         updated_pools=updated_pools,
+        litter_losses=litter_losses,
+        original_pools=post_consumption_pools,
+        update_interval=2.0,
     )
 
     assert set(actual_chemistries.keys()) == set(expected_chemistries.keys())
@@ -80,6 +87,33 @@ def test_calculate_lignin_updates(
         assert np.allclose(actual_lignin[name], expected_lignin[name])
 
 
+def test_calculate_updated_pool_nutrient_ratio(
+    dummy_litter_data,
+    post_consumption_pools,
+    litter_inputs,
+    litter_losses,
+    input_c_n_ratios,
+):
+    """Test that calculation of updated pool nutrient ratios works as expected."""
+    from virtual_ecosystem.models.litter.chemistry import (
+        calculate_updated_pool_nutrient_ratio,
+    )
+
+    expected_ratio = [7.5450184, 8.9814418, 10.998779, 10.175958]
+
+    actual_ratio = calculate_updated_pool_nutrient_ratio(
+        initial_carbon=post_consumption_pools["above_metabolic"],
+        input_carbon_rate=litter_inputs.above_metabolic,
+        carbon_loss=litter_losses.above_metabolic_carbon,
+        initial_c_nut_ratio=dummy_litter_data["c_n_ratio_above_metabolic"].to_numpy(),
+        input_c_nut_ratio=input_c_n_ratios["above_metabolic"],
+        nutrient_loss=litter_losses.above_metabolic_nitrogen,
+        update_interval=2.0,
+    )
+
+    assert np.allclose(actual_ratio, expected_ratio)
+
+
 def test_calculate_change_in_chemical_concentration(
     dummy_litter_data, post_consumption_pools
 ):
@@ -103,48 +137,60 @@ def test_calculate_change_in_chemical_concentration(
     assert np.allclose(actual_lignin, expected_lignin)
 
 
-def test_calculate_c_n_ratio_updates(
-    dummy_litter_data, litter_inputs, input_c_n_ratios, updated_pools, litter_chemistry
+def test_calculate_new_c_n_ratios(
+    litter_inputs,
+    input_c_n_ratios,
+    litter_chemistry,
+    litter_losses,
+    post_consumption_pools,
 ):
     """Test that calculation of C:N ratio updates works properly."""
 
-    expected_change = {
-        "above_metabolic": [0.0921805, 0.3161456, 0.3324728, 0.1183441],
-        "above_structural": [0.05498852, 0.2317676, 2.2675813, 1.8651688],
-        "woody": [0.0816919, -0.0449302, 0.2208477, -0.0180086],
-        "below_metabolic": [0.02994209, 0.03945672, -0.00159759, -0.17775875],
-        "below_structural": [0.12282146, 0.39989943, -0.00516585, -2.53387232],
+    expected_ratios = {
+        "above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
+        "above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
+        "woody": [55.57479, 63.250918, 47.44333, 59.08069],
+        "below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
+        "below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
     }
 
-    actual_change = litter_chemistry.calculate_c_n_ratio_updates(
+    actual_ratios = litter_chemistry.calculate_new_c_n_ratios(
         litter_inputs=litter_inputs,
         input_c_n_ratios=input_c_n_ratios,
-        updated_pools=updated_pools,
+        litter_losses=litter_losses,
+        original_pools=post_consumption_pools,
+        update_interval=2.0,
     )
 
-    assert set(expected_change.keys()) == set(actual_change.keys())
+    assert set(expected_ratios.keys()) == set(actual_ratios.keys())
 
-    for key in actual_change.keys():
-        assert np.allclose(actual_change[key], expected_change[key])
+    for key in actual_ratios.keys():
+        assert np.allclose(actual_ratios[key], expected_ratios[key])
 
 
-def test_calculate_c_p_ratio_updates(
-    dummy_litter_data, litter_inputs, input_c_p_ratios, updated_pools, litter_chemistry
+def test_calculate_new_c_p_ratios(
+    litter_inputs,
+    input_c_p_ratios,
+    litter_chemistry,
+    litter_losses,
+    post_consumption_pools,
 ):
     """Test that calculation of C:P ratio updates works properly."""
 
     expected_change = {
-        "above_metabolic": [12.666598, 0.9745483, 8.3267513, 0.3434882],
-        "above_structural": [8.5523105, 0.13029263, 52.0182397, -37.7791012],
-        "woody": [4.72870571, -0.73136364, 0.73530307, 1.30427444],
-        "below_metabolic": [-2.49921796, -6.18927446, -0.37518617, -39.52977135],
-        "below_structural": [12.56464272, 2.08324337, -0.31032454, -41.37190224],
+        "above_metabolic": [61.099543, 70.015298, 110.68070, 98.767703],
+        "above_structural": [340.38278, 473.84604, 456.99901, 579.00396],
+        "woody": [558.58393, 762.474347, 847.96815, 599.98045],
+        "below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
+        "below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
     }
 
-    actual_change = litter_chemistry.calculate_c_p_ratio_updates(
+    actual_change = litter_chemistry.calculate_new_c_p_ratios(
         litter_inputs=litter_inputs,
         input_c_p_ratios=input_c_p_ratios,
-        updated_pools=updated_pools,
+        litter_losses=litter_losses,
+        original_pools=post_consumption_pools,
+        update_interval=2.0,
     )
 
     assert set(expected_change.keys()) == set(actual_change.keys())

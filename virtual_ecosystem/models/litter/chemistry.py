@@ -20,6 +20,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.litter.constants import LitterConsts
 from virtual_ecosystem.models.litter.inputs import LitterInputs, average_nutrient_ratios
+from virtual_ecosystem.models.litter.losses import LitterLosses
 
 
 class LitterChemistry:
@@ -39,6 +40,9 @@ class LitterChemistry:
         self,
         updated_pools: dict[str, NDArray[np.floating]],
         litter_inputs: LitterInputs,
+        litter_losses: LitterLosses,
+        original_pools: dict[str, NDArray[np.floating]],
+        update_interval: float,
     ) -> dict[str, DataArray]:
         """Method to calculate the updated chemistry of each litter pool.
 
@@ -53,6 +57,11 @@ class LitterChemistry:
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
                 total input into each litter pool.
+            litter_losses: An LitterLosses instance containing the total loss of carbon,
+                nitrogen and carbon from each litter pool.
+            original_pools: The size of each litter pool after animal consumption, but
+                before litter inputs and decay [kg C m^-2].
+            update_interval: The update interval for the litter model [days]
         """
 
         # Find lignin and nitrogen contents of the litter input flows
@@ -69,21 +78,24 @@ class LitterChemistry:
         )
 
         # Then use to find the changes
-        # TODO - NEW FUNCTIONS ARE NEEDED FOR THESE
         change_in_lignin = self.calculate_lignin_updates(
             litter_inputs=litter_inputs,
             input_lignin=input_lignin,
             updated_pools=updated_pools,
         )
-        change_in_c_n_ratios = self.calculate_c_n_ratio_updates(
+        new_c_n_ratios = self.calculate_new_c_n_ratios(
             litter_inputs=litter_inputs,
             input_c_n_ratios=input_c_n_ratios,
-            updated_pools=updated_pools,
+            litter_losses=litter_losses,
+            original_pools=original_pools,
+            update_interval=update_interval,
         )
-        change_in_c_p_ratios = self.calculate_c_p_ratio_updates(
+        new_c_p_ratios = self.calculate_new_c_p_ratios(
             litter_inputs=litter_inputs,
             input_c_p_ratios=input_c_p_ratios,
-            updated_pools=updated_pools,
+            litter_losses=litter_losses,
+            original_pools=original_pools,
+            update_interval=update_interval,
         )
 
         # List all the variables this function outputs, which are then used to generate
@@ -103,22 +115,16 @@ class LitterChemistry:
             )
             for name in lignin_variable_names
         }
-        nitrogen_changes = {
-            f"c_n_ratio_{name}": DataArray(
-                self.data[f"c_n_ratio_{name}"] + change_in_c_n_ratios[name],
-                dims="cell_id",
-            )
+        nitrogen_new = {
+            f"c_n_ratio_{name}": DataArray(new_c_n_ratios[name], dims="cell_id")
             for name in nutrient_variable_names
         }
-        phosphorus_changes = {
-            f"c_p_ratio_{name}": DataArray(
-                self.data[f"c_p_ratio_{name}"] + change_in_c_p_ratios[name],
-                dims="cell_id",
-            )
+        phosphorus_new = {
+            f"c_p_ratio_{name}": DataArray(new_c_p_ratios[name], dims="cell_id")
             for name in nutrient_variable_names
         }
 
-        return lignin_changes | nitrogen_changes | phosphorus_changes
+        return lignin_changes | nitrogen_new | phosphorus_new
 
     def calculate_lignin_updates(
         self,
@@ -173,13 +179,15 @@ class LitterChemistry:
             "below_structural": change_in_lignin_below_structural,
         }
 
-    def calculate_c_n_ratio_updates(
+    def calculate_new_c_n_ratios(
         self,
         litter_inputs: LitterInputs,
         input_c_n_ratios: dict[str, NDArray[np.floating]],
-        updated_pools: dict[str, NDArray[np.floating]],
+        litter_losses: LitterLosses,
+        original_pools: dict[str, NDArray[np.floating]],
+        update_interval: float,
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the changes in carbon nitrogen ratios for all litter pools.
+        """Calculate the new carbon nitrogen ratios for all litter pools.
 
         This function calculates the total change over the entire time step, so cannot
         be used in an integration process.
@@ -191,60 +199,80 @@ class LitterChemistry:
                 total input into each litter pool.
             input_c_n_ratios: Dictionary containing the carbon to nitrogen ratios of the
                 input to each of the litter pools [unitless]
-            updated_pools: Dictionary containing the updated pool densities for all 5
-                litter pools [kg C m^-2]
+            litter_losses: An LitterInputs instance containing the total loss of carbon,
+                nitrogen and phosphorus from each litter pool.
+            original_pools: The size of each litter pool after animal consumption, but
+                before litter inputs and decay [kg C m^-2].
+            update_interval: The update interval for the litter model [days]
 
         Returns:
             Dictionary containing the updated carbon nitrogen ratios for all of the
             litter pools [unitless]
         """
 
-        change_in_n_above_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.above_metabolic,
-            updated_pool_carbon=updated_pools["above_metabolic"],
-            input_conc=input_c_n_ratios["above_metabolic"],
-            old_pool_conc=self.data["c_n_ratio_above_metabolic"].to_numpy(),
+        new_c_n_ratio_above_metabolic = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["above_metabolic"],
+            input_carbon_rate=litter_inputs.above_metabolic,
+            carbon_loss=litter_losses.above_metabolic_carbon,
+            initial_c_nut_ratio=self.data["c_n_ratio_above_metabolic"].to_numpy(),
+            input_c_nut_ratio=input_c_n_ratios["above_metabolic"],
+            nutrient_loss=litter_losses.above_metabolic_nitrogen,
+            update_interval=update_interval,
         )
-        change_in_n_above_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.above_structural,
-            updated_pool_carbon=updated_pools["above_structural"],
-            input_conc=input_c_n_ratios["above_structural"],
-            old_pool_conc=self.data["c_n_ratio_above_structural"].to_numpy(),
+        new_c_n_ratio_above_structural = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["above_structural"],
+            input_carbon_rate=litter_inputs.above_structural,
+            carbon_loss=litter_losses.above_structural_carbon,
+            initial_c_nut_ratio=self.data["c_n_ratio_above_structural"].to_numpy(),
+            input_c_nut_ratio=input_c_n_ratios["above_structural"],
+            nutrient_loss=litter_losses.above_structural_nitrogen,
+            update_interval=update_interval,
         )
-        change_in_n_woody = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.woody,
-            updated_pool_carbon=updated_pools["woody"],
-            input_conc=input_c_n_ratios["woody"],
-            old_pool_conc=self.data["c_n_ratio_woody"].to_numpy(),
+        new_c_n_ratio_woody = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["woody"],
+            input_carbon_rate=litter_inputs.woody,
+            carbon_loss=litter_losses.woody_carbon,
+            initial_c_nut_ratio=self.data["c_n_ratio_woody"].to_numpy(),
+            input_c_nut_ratio=input_c_n_ratios["woody"],
+            nutrient_loss=litter_losses.woody_nitrogen,
+            update_interval=update_interval,
         )
-        change_in_n_below_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.below_metabolic,
-            updated_pool_carbon=updated_pools["below_metabolic"],
-            input_conc=input_c_n_ratios["below_metabolic"],
-            old_pool_conc=self.data["c_n_ratio_below_metabolic"].to_numpy(),
+        new_c_n_ratio_below_metabolic = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["below_metabolic"],
+            input_carbon_rate=litter_inputs.below_metabolic,
+            carbon_loss=litter_losses.below_metabolic_carbon,
+            initial_c_nut_ratio=self.data["c_n_ratio_below_metabolic"].to_numpy(),
+            input_c_nut_ratio=input_c_n_ratios["below_metabolic"],
+            nutrient_loss=litter_losses.below_metabolic_nitrogen,
+            update_interval=update_interval,
         )
-        change_in_n_below_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.below_structural,
-            updated_pool_carbon=updated_pools["below_structural"],
-            input_conc=input_c_n_ratios["below_structural"],
-            old_pool_conc=self.data["c_n_ratio_below_structural"].to_numpy(),
+        new_c_n_ratio_below_structural = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["below_structural"],
+            input_carbon_rate=litter_inputs.below_structural,
+            carbon_loss=litter_losses.below_structural_carbon,
+            initial_c_nut_ratio=self.data["c_n_ratio_below_structural"].to_numpy(),
+            input_c_nut_ratio=input_c_n_ratios["below_structural"],
+            nutrient_loss=litter_losses.below_structural_nitrogen,
+            update_interval=update_interval,
         )
 
         return {
-            "above_metabolic": change_in_n_above_metabolic,
-            "above_structural": change_in_n_above_structural,
-            "woody": change_in_n_woody,
-            "below_metabolic": change_in_n_below_metabolic,
-            "below_structural": change_in_n_below_structural,
+            "above_metabolic": new_c_n_ratio_above_metabolic,
+            "above_structural": new_c_n_ratio_above_structural,
+            "woody": new_c_n_ratio_woody,
+            "below_metabolic": new_c_n_ratio_below_metabolic,
+            "below_structural": new_c_n_ratio_below_structural,
         }
 
-    def calculate_c_p_ratio_updates(
+    def calculate_new_c_p_ratios(
         self,
         litter_inputs: LitterInputs,
         input_c_p_ratios: dict[str, NDArray[np.floating]],
-        updated_pools: dict[str, NDArray[np.floating]],
+        litter_losses: LitterLosses,
+        original_pools: dict[str, NDArray[np.floating]],
+        update_interval: float,
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the changes in carbon phosphorus ratios for all litter pools.
+        """Calculate the new carbon phosphorus ratios for all litter pools.
 
         This function calculates the total change over the entire time step, so cannot
         be used in an integration process.
@@ -256,51 +284,69 @@ class LitterChemistry:
                 total input into each litter pool.
             input_c_p_ratios: Dictionary containing the carbon to phosphorus ratios of
                 the input to each of the litter pools [unitless]
-            updated_pools: Dictionary containing the updated pool densities for all 5
-                litter pools [kg C m^-2]
+            litter_losses: An LitterInputs instance containing the total loss of carbon,
+                nitrogen and phosphorus from each litter pool.
+            original_pools: The size of each litter pool after animal consumption, but
+                before litter inputs and decay [kg C m^-2].
+            update_interval: The update interval for the litter model [days]
 
         Returns:
             Dictionary containing the updated carbon phosphorus ratios for all of the
             litter pools [unitless]
         """
 
-        change_in_p_above_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.above_metabolic,
-            updated_pool_carbon=updated_pools["above_metabolic"],
-            input_conc=input_c_p_ratios["above_metabolic"],
-            old_pool_conc=self.data["c_p_ratio_above_metabolic"].to_numpy(),
+        new_c_p_ratio_above_metabolic = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["above_metabolic"],
+            input_carbon_rate=litter_inputs.above_metabolic,
+            carbon_loss=litter_losses.above_metabolic_carbon,
+            initial_c_nut_ratio=self.data["c_p_ratio_above_metabolic"].to_numpy(),
+            input_c_nut_ratio=input_c_p_ratios["above_metabolic"],
+            nutrient_loss=litter_losses.above_metabolic_phosphorus,
+            update_interval=update_interval,
         )
-        change_in_p_above_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.above_structural,
-            updated_pool_carbon=updated_pools["above_structural"],
-            input_conc=input_c_p_ratios["above_structural"],
-            old_pool_conc=self.data["c_p_ratio_above_structural"].to_numpy(),
+        new_c_p_ratio_above_structural = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["above_structural"],
+            input_carbon_rate=litter_inputs.above_structural,
+            carbon_loss=litter_losses.above_structural_carbon,
+            initial_c_nut_ratio=self.data["c_p_ratio_above_structural"].to_numpy(),
+            input_c_nut_ratio=input_c_p_ratios["above_structural"],
+            nutrient_loss=litter_losses.above_structural_phosphorus,
+            update_interval=update_interval,
         )
-        change_in_p_woody = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.woody,
-            updated_pool_carbon=updated_pools["woody"],
-            input_conc=input_c_p_ratios["woody"],
-            old_pool_conc=self.data["c_p_ratio_woody"].to_numpy(),
+        new_c_p_ratio_woody = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["woody"],
+            input_carbon_rate=litter_inputs.woody,
+            carbon_loss=litter_losses.woody_carbon,
+            initial_c_nut_ratio=self.data["c_p_ratio_woody"].to_numpy(),
+            input_c_nut_ratio=input_c_p_ratios["woody"],
+            nutrient_loss=litter_losses.woody_phosphorus,
+            update_interval=update_interval,
         )
-        change_in_p_below_metabolic = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.below_metabolic,
-            updated_pool_carbon=updated_pools["below_metabolic"],
-            input_conc=input_c_p_ratios["below_metabolic"],
-            old_pool_conc=self.data["c_p_ratio_below_metabolic"].to_numpy(),
+        new_c_p_ratio_below_metabolic = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["below_metabolic"],
+            input_carbon_rate=litter_inputs.below_metabolic,
+            carbon_loss=litter_losses.below_metabolic_carbon,
+            initial_c_nut_ratio=self.data["c_p_ratio_below_metabolic"].to_numpy(),
+            input_c_nut_ratio=input_c_p_ratios["below_metabolic"],
+            nutrient_loss=litter_losses.below_metabolic_phosphorus,
+            update_interval=update_interval,
         )
-        change_in_p_below_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.below_structural,
-            updated_pool_carbon=updated_pools["below_structural"],
-            input_conc=input_c_p_ratios["below_structural"],
-            old_pool_conc=self.data["c_p_ratio_below_structural"].to_numpy(),
+        new_c_p_ratio_below_structural = calculate_updated_pool_nutrient_ratio(
+            initial_carbon=original_pools["below_structural"],
+            input_carbon_rate=litter_inputs.below_structural,
+            carbon_loss=litter_losses.below_structural_carbon,
+            initial_c_nut_ratio=self.data["c_p_ratio_below_structural"].to_numpy(),
+            input_c_nut_ratio=input_c_p_ratios["below_structural"],
+            nutrient_loss=litter_losses.below_structural_phosphorus,
+            update_interval=update_interval,
         )
 
         return {
-            "above_metabolic": change_in_p_above_metabolic,
-            "above_structural": change_in_p_above_structural,
-            "woody": change_in_p_woody,
-            "below_metabolic": change_in_p_below_metabolic,
-            "below_structural": change_in_p_below_structural,
+            "above_metabolic": new_c_p_ratio_above_metabolic,
+            "above_structural": new_c_p_ratio_above_structural,
+            "woody": new_c_p_ratio_woody,
+            "below_metabolic": new_c_p_ratio_below_metabolic,
+            "below_structural": new_c_p_ratio_below_structural,
         }
 
 
@@ -543,6 +589,47 @@ def calculate_litter_chemistry_factor(
     """
 
     return np.exp(lignin_inhibition_factor * lignin_proportion)
+
+
+def calculate_updated_pool_nutrient_ratio(
+    initial_carbon: NDArray[np.floating],
+    input_carbon_rate: NDArray[np.floating],
+    carbon_loss: NDArray[np.floating],
+    initial_c_nut_ratio: NDArray[np.floating],
+    input_c_nut_ratio: NDArray[np.floating],
+    nutrient_loss: NDArray[np.floating],
+    update_interval: float,
+) -> NDArray[np.floating]:
+    """Calculate the updated carbon to nutrient ratio for a particular litter pool.
+
+    This function finds the final carbon to nutrient ratio of a litter pool by finding
+    the new total amounts of carbon and nutrient in the pool and then taking the ratio.
+
+    Args:
+        initial_carbon: The total carbon mass of the litter pool before inputs and decay
+            [kg C m^-2]
+        input_carbon_rate: The rate of carbon input to the litter pool
+            [kg C m^-2 day^-1]
+        carbon_loss: Total loss of carbon from the litter pool due to decay [kg C m^-2]
+        initial_c_nut_ratio: The carbon to nutrient ratio of the litter pool at the
+            start of the update interval [unitless]
+        input_c_nut_ratio: The carbon nutrient ratio of the input biomass [unitless]
+        nutrient_loss: Total loss of nutrient from the litter pool due to decay
+            [kg nutrient m^-2]
+        update_interval: The update interval for the litter model [days]
+
+    Returns:
+        The new carbon nutrient ratio at the end of the update interval [unitless]
+    """
+
+    input_carbon_total = input_carbon_rate * update_interval
+
+    initial_nitrogen = initial_carbon / initial_c_nut_ratio
+    input_nitrogen = input_carbon_total / input_c_nut_ratio
+
+    return (initial_carbon + input_carbon_total - carbon_loss) / (
+        initial_nitrogen + input_nitrogen - nutrient_loss
+    )
 
 
 def calculate_change_in_chemical_concentration(
