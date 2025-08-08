@@ -2,8 +2,12 @@
 
 import numpy as np
 
+from virtual_ecosystem.core.constants import CoreConsts
 
-def test_calculate_litter_losses(post_consumption_pools, updated_pools, litter_inputs):
+
+def test_calculate_litter_losses(
+    dummy_litter_data, post_consumption_pools, updated_pools, litter_inputs
+):
     """Test that function to calculate all litter pool losses works correctly."""
     from dataclasses import asdict
 
@@ -15,13 +19,27 @@ def test_calculate_litter_losses(post_consumption_pools, updated_pools, litter_i
         "woody_carbon": [0.000974, 0.00054363, 0.00319062, 0.00318409],
         "below_metabolic_carbon": [0.01820252, 0.014805149, 0.002237224, 0.002398703],
         "below_structural_carbon": [0.000612829, 0.000988361, 4.1361556e-6, 5.6372e-6],
+        "above_metabolic_nitrogen": [0.00126685, 0.00052432, 0.00022468, 0.00022315],
+        "above_structural_nitrogen": [8.97573e-6, 2.86724e-5, 5.19651e-7, 5.08566e-7],
+        "woody_nitrogen": [1.75495e-5, 8.58815e-6, 6.74550e-5, 5.38763e-5],
+        "below_metabolic_nitrogen": [0.00170117, 0.00131019, 0.00014719, 0.00019344],
+        "below_structural_nitrogen": [1.21352e-5, 1.77763e-5, 5.65822e-8, 9.21111e-8],
+        "above_metabolic_phosphorus": [0.0001614, 6.6398e-5, 2.2670e-5, 2.2828e-5],
+        "above_structural_phosphorus": [9.97304e-7, 2.61760e-6, 5.72391e-8, 4.47738e-8],
+        "woody_phosphorus": [1.75338e-6, 7.12210e-7, 3.76563e-6, 5.31479e-6],
+        "below_metabolic_phosphorus": [5.85855e-5, 3.59960e-5, 7.09779e-6, 5.81645e-6],
+        "below_structural_phosphorus": [1.11322e-6, 1.65944e-6, 5.35009e-9, 8.65663e-9],
+        "N_mineralisation_rate": [0.0120267, 0.0075582, 0.0017596, 0.0018843],
+        "P_mineralisation_rate": [0.00089538, 0.00042954, 0.00013438, 0.00013605],
     }
 
     actual_losses = calculate_litter_losses(
+        data=dummy_litter_data,
         original_pools=post_consumption_pools,
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
         update_interval=2.0,
+        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
     )
 
     # Convert to a dict to check the values

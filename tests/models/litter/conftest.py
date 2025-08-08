@@ -2,6 +2,7 @@
 
 import pytest
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
@@ -187,13 +188,17 @@ def litter_inputs(dummy_litter_data):
 
 
 @pytest.fixture
-def litter_losses(post_consumption_pools, updated_pools, litter_inputs):
+def litter_losses(
+    dummy_litter_data, post_consumption_pools, updated_pools, litter_inputs
+):
     """Complete set of losses from the litter pools."""
     from virtual_ecosystem.models.litter.losses import calculate_litter_losses
 
     return calculate_litter_losses(
+        data=dummy_litter_data,
         original_pools=post_consumption_pools,
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
         update_interval=2.0,
+        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
     )

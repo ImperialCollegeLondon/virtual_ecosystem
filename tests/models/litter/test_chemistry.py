@@ -5,7 +5,6 @@ This module tests the functionality of the litter chemistry module
 
 import numpy as np
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
@@ -152,32 +151,6 @@ def test_calculate_c_p_ratio_updates(
 
     for key in actual_change.keys():
         assert np.allclose(actual_change[key], expected_change[key])
-
-
-def test_calculate_N_mineralisation(dummy_litter_data, decay_rates, litter_chemistry):
-    """Test that function to calculate nitrogen mineralisation rate works properly."""
-
-    expected_n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
-
-    actual_n_mineral = litter_chemistry.calculate_N_mineralisation(
-        decay_rates=decay_rates,
-        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
-    )
-
-    assert np.allclose(actual_n_mineral, expected_n_mineral)
-
-
-def test_calculate_P_mineralisation(dummy_litter_data, decay_rates, litter_chemistry):
-    """Test that function to calculate phosphorus mineralisation rate works properly."""
-
-    expected_p_mineral = [4.39937479e-4, 2.13832149e-4, 6.40698004e-5, 6.56405873e-5]
-
-    actual_p_mineral = litter_chemistry.calculate_P_mineralisation(
-        decay_rates=decay_rates,
-        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
-    )
-
-    assert np.allclose(actual_p_mineral, expected_p_mineral)
 
 
 def test_calculate_litter_input_lignin_concentrations(litter_inputs):

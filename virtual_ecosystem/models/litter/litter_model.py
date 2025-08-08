@@ -366,31 +366,24 @@ class LitterModel(
             original_pools=consumed_pools,
             final_pools=updated_pools,
             litter_inputs=litter_inputs,
+            data=self.data,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
             ).magnitude,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
-        # TODO - THIS NEEDS TO TAKE MINERALISATION RATES AS AN INPUT
+        # TODO - THIS NEEDS TO TAKE LOSS RATES AS AN INPUT
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             updated_pools=updated_pools, litter_inputs=litter_inputs
         )
 
-        # Calculate the total mineralisation rates from the litter
+        # Calculate the total mineralisation carbon mineralisation rate from the litter
         total_C_mineralisation_rate = calculate_total_C_mineralised(
             litter_losses=litter_losses,
             model_constants=self.model_constants,
             core_constants=self.core_constants,
-        )
-        # TODO - NEED TO CHECK IF THESE FUNCTIONS STILL WORK
-        total_N_mineralisation_rate = self.litter_chemistry.calculate_N_mineralisation(
-            decay_rates=decay_rates,
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
-        )
-        total_P_mineralisation_rate = self.litter_chemistry.calculate_P_mineralisation(
-            decay_rates=decay_rates,
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
         # Construct dictionary of data arrays to return
@@ -443,10 +436,10 @@ class LitterModel(
                 total_C_mineralisation_rate, dims="cell_id"
             ),
             "litter_N_mineralisation_rate": DataArray(
-                total_N_mineralisation_rate, dims="cell_id"
+                litter_losses.N_mineralisation_rate, dims="cell_id"
             ),
             "litter_P_mineralisation_rate": DataArray(
-                total_P_mineralisation_rate, dims="cell_id"
+                litter_losses.P_mineralisation_rate, dims="cell_id"
             ),
         }
 
