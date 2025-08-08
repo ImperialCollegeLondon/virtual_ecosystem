@@ -8,7 +8,7 @@ with the different model components. See the :mod:`~virtual_ecosystem.core.schem
 module for details.
 """  # noqa: D205
 
-import sys
+import tomllib
 from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
@@ -21,11 +21,6 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
 from virtual_ecosystem.core.schema import ValidatorWithDefaults, merge_schemas
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 
 def config_merge(

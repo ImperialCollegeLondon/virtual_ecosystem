@@ -203,10 +203,12 @@ for {term}`LMWC` sorption, $M$ is the size of the {term}`MAOM` pool and $L$ is t
 of the {term}`LMWC` pool. Most {term}`MAOM` formation occurs via necromass sorption,
 therefore the default value for $K_s$ is small relative to $k_s$.
 
-### Leaching of soil carbon
+### Removal of soil carbon by water
 
-[Leaching of nutrients](./environmental_links.md#soil-nutrient-leaching-rate) from the
-soil occurs when water passing downwards through the soil carries dissolved nutrients
-away with it. By definition, any organic matter that is simple enough to solubilise is
-included in the {term}`LMWC` pool, so this is the only soil carbon pool to be affected
-by leaching.
+Removal of nutrients from the soil by water occurs when water moving out of the
+microbially active region of the soil carries dissolved nutrients away with it. By
+definition, any organic matter that is simple enough to solubilise is included in the
+{term}`LMWC` pool, so this is the only soil carbon pool to be affected by water flows.
+The functional form that we assume nutrient removal by water follows is provided in the
+[soil-abiotic environment links
+documentation](./environmental_links.md#soil-nutrient-removal-by-water).

@@ -1,16 +1,16 @@
-[tool.poetry]
+[project]
 authors = [
-  "Rob Ewers <r.ewers@imperial.ac.uk>",
-  "David Orme <d.orme@imperial.ac.uk>",
-  "Jacob Cook <j.cook17@imperial.ac.uk>",
-  "Vivienne Groner <v.groner@imperial.ac.uk>",
-  "Taran Rallings <t.rallings@imperial.ac.uk>",
-  "Olivia Daniel <olivia.daniel08@imperial.ac.uk>",
-  "Jaideep Joshi <joshi@iiasa.ac.at>",
-  "Anna Rallings <a.rallings@imperial.ac.uk>",
-  "Priyanga Amarasekare <pamarasekare@gmail.com>",
-  "Diego Alonso Alvarez <d.alonso-alvarez@imperial.ac.uk>",
-  "Alex Dewar <a.dewar@imperial.ac.uk>",
+  {name = "Rob Ewers", email = "r.ewers@imperial.ac.uk"},
+  {name = "David Orme", email = "d.orme@imperial.ac.uk"},
+  {name = "Jacob Cook", email = "j.cook17@imperial.ac.uk"},
+  {name = "Vivienne Groner", email = "v.groner@imperial.ac.uk"},
+  {name = "Taran Rallings", email = "t.rallings@imperial.ac.uk"},
+  {name = "Olivia Daniel", email = "olivia.daniel08@imperial.ac.uk"},
+  {name = "Jaideep Joshi", email = "joshi@iiasa.ac.at"},
+  {name = "Anna Rallings", email = "a.rallings@imperial.ac.uk"},
+  {name = "Priyanga Amarasekare", email = "pamarasekare@gmail.com"},
+  {name = "Diego Alonso Alvarez", email = "d.alonso-alvarez@imperial.ac.uk"},
+  {name = "Alex Dewar", email = "a.dewar@imperial.ac.uk"},
 ]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
@@ -19,33 +19,40 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 description = """An holistic ecosystem simulation model."""
-homepage = "https://virtual-ecosystem.readthedocs.io/"
 license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 name = "virtual_ecosystem"
 readme = "README.md"
-repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
-version = "0.1.1a11"
+version = "0.1.1a12"
 
-[tool.poetry.scripts]
+requires-python = ">=3.11"
+
+dependencies = [
+  "Shapely (>2.0)",
+  "dask (>2023.6)",
+  "dpath (>2.0)",
+  "jsonschema (>4.14)",
+  "netcdf4 (>1.6)",
+  "numpy  (>2.0)",
+  "openpyxl (>3.1)",
+  "pint (>0.24)",
+  "pyrealm (>=2.0.0rc5)",
+  "scipy (>1.12)",
+  "tomli-w  (>1.0)",
+  "tqdm (>4.66)",
+  "xarray (>2024.6)",
+  "types-tabulate (>0.9)",
+]
+
+[project.scripts]
 ve_run = "virtual_ecosystem.entry_points:ve_run_cli"
 
-[tool.poetry.dependencies]
-Shapely = "^2.0"
-dask = ">=2023.6,<2026.0"
-dpath = "^2.0.6"
-jsonschema = "^4.14.0"
-netcdf4 = "^1.6.5"
-numpy = "^2.0"
-openpyxl = "^3.1.5"
-pint = "^0.24.1"
-pyrealm = {git = "https://github.com/ImperialCollegeLondon/pyrealm.git", branch = "develop"}
-python = ">=3.10,<3.14"
-scipy = "^1.9.0"
-tomli = {version = "^2.0.1", python = "<3.11"}
-tomli-w = "^1.0.0"
-tqdm = "^4.66.2"
-xarray = ">=2024.6,<2026.0"
-types-tabulate = "^0.9.0.20241207"
+[project.urls]
+homepage = "https://virtual-ecosystem.readthedocs.io/"
+repository = "https://github.com/ImperialCollegeLondon/virtual_ecosystem"
+
+[tool.poetry]
+requires-poetry = ">=2.0"
 
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
@@ -104,7 +111,7 @@ python_files = 'test_*.py'
 testpaths = ['tests']
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 # Enable all `pydocstyle` rules, limiting to those that adhere to the
