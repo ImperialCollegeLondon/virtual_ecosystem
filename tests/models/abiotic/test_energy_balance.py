@@ -415,7 +415,6 @@ def test_update_humidity_vpd(
         density_air=data["density_air"][atm_index].to_numpy(),
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
         molecular_weight_ratio_water_to_dry_air=(
             CoreConsts.molecular_weight_ratio_water_to_dry_air
         ),

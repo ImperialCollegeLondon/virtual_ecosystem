@@ -301,117 +301,8 @@ def mix_and_ventilate(
     user-provided ventilation rate, with optional limits to prevent overcorrection or
     negative concentrations.
 
-    Args:
-        input_variable: Input variable for all true atmospheric layers
-        layer_thickness: Layer thickness, [m]
-        mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
-        ventilation_rate: Ventilation rate, [s-1]
-        time_interval: Time interval, [s]
-
-    Returns:
-        Vertically mixed input variable
-    """
-
-    input_variable_mixed = input_variable.copy()
-    n_layers, n_cells = input_variable.shape
-
-    for j in range(n_cells):
-        for i in range(1, n_layers - 1):  # skip top and bottom
-            center_val = input_variable[i, j]
-
-            if not np.isfinite(center_val):
-                continue
-
-            # ---- Upward flux ----
-            # Look for nearest valid input value above the current layer
-            upper_i = i - 1
-            while upper_i >= 0 and not np.isfinite(input_variable[upper_i, j]):
-                upper_i -= 1
-
-            # If a valid upper value and a mixing coefficient are found, compute flux
-            if upper_i >= 0 and np.isfinite(mixing_coefficient[upper_i, j]):
-                delta_up = input_variable[upper_i, j] - center_val
-                flux_up = (
-                    mixing_coefficient[upper_i, j] * delta_up / layer_thickness[i, j]
-                )
-                # Prevent flux that would reduce center_val TODO check consistency
-                if flux_up < 0:
-                    flux_up = 0.0
-            else:
-                flux_up = 0.0
-
-            # ---- Downward flux ----
-            # Look for nearest valid input value below the current layer
-            lower_i = i + 1
-            while lower_i < n_layers and not np.isfinite(input_variable[lower_i, j]):
-                lower_i += 1
-
-            # If a valid lower value and a mixing coefficient are found, compute flux
-            if lower_i < n_layers and np.isfinite(mixing_coefficient[lower_i, j]):
-                delta_down = input_variable[lower_i, j] - center_val
-                flux_down = (
-                    mixing_coefficient[lower_i, j] * delta_down / layer_thickness[i, j]
-                )
-                # Prevent flux that would reduce center_val TODO check consistency
-                if flux_down < 0:
-                    flux_down = 0.0
-            else:
-                flux_down = 0.0
-
-            # ---- Update value ----
-            change = (flux_up + flux_down) * time_interval / layer_thickness[i, j]
-            input_variable_mixed[i, j] += change
-
-        # ---- Ventilation for top layer ----
-        if not np.isfinite(input_variable[0, j]):
-            continue
-
-        # Look for nearest valid input value from below, then calculate ventilation
-        lower_i = 1
-        while lower_i < n_layers and not np.isfinite(input_variable[lower_i, j]):
-            lower_i += 1
-
-        if (
-            lower_i < n_layers
-            and np.isfinite(input_variable[lower_i, j])
-            and np.isfinite(ventilation_rate[j])
-        ):
-            delta_vent = input_variable[0, j] - input_variable[lower_i, j]
-            change = ventilation_rate[j] * delta_vent * time_interval
-
-            # Limit ventilation to avoid negative top  TODO check consistency
-            max_change = 0.1 * abs(input_variable[0, j])
-            change = np.clip(change, -max_change, max_change)
-
-            # Prevent ventilation that would reduce the top value TODO check consistency
-            if change < 0:
-                change = 0.0
-
-            input_variable_mixed[0, j] += change
-    return input_variable_mixed
-
-
-def mix_and_ventilate_array(
-    input_variable: NDArray[np.floating],
-    layer_thickness: NDArray[np.floating],
-    mixing_coefficient: NDArray[np.floating],
-    ventilation_rate: NDArray[np.floating],
-    time_interval: float,
-) -> NDArray[np.floating]:
-    """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
-
-    This function simulates diffusion-like mixing between vertical layers based on local
-    gradients of atmospheric variables (e.g. temperature, relative humidity) and
-    layer-specific mixing coefficients. For each internal layer (excluding the top and
-    bottom), it computes upward and downward fluxes using the nearest valid
-    (finite) values above and below, respectively. The fluxes are scaled by the layer
-    thickness and applied to update the variable.
-
-    Additionally, the function applies a ventilation adjustment to the top layer of each
-    column, representing heat or water exchange with the  above the canopy. This is
-    based on the difference between the top and next valid layer, scaled by a
-    user-provided ventilation rate, with optional limits to prevent overcorrection or
-    negative concentrations.
+    Advection is currently not implemented as everything is removed with time interval
+    > 1h.
 
     Args:
         input_variable: Input variable for all true atmospheric layers
@@ -429,7 +320,7 @@ def mix_and_ventilate_array(
 
     # Extract the layer thickness and current value for the canopy layers, excluding the
     # surface layer and above canopy values
-    value_centre = input_variable[1:-1]
+    value_canopy = input_variable[1:-1]
     canopy_layer_thickness = layer_thickness[1:-1]
 
     # Get the value and mixing coefficients from the layer above.
@@ -444,34 +335,39 @@ def mix_and_ventilate_array(
     value_below = np.where(np.isnan(value_below), input_variable[-1], value_below)
     mix_below = np.where(np.isnan(mix_below), mix_below[-1], mix_below)
 
-    # Calculate fluxes
-    delta_up = value_above - value_centre
+    # Calculate fluxes (positive upward, negative downward) and update variable
+    delta_up = value_above - value_canopy
     flux_up = mix_above * delta_up / canopy_layer_thickness
-    flux_up = np.clip(flux_up, 0, np.inf)
-
-    delta_down = value_below - value_centre
+    delta_down = value_below - value_canopy
     flux_down = mix_below * delta_down / canopy_layer_thickness
-    flux_down = np.clip(flux_down, 0, np.inf)
 
-    flux_change = (flux_up + flux_down) * time_interval / canopy_layer_thickness
+    value_change = (flux_up + flux_down) * time_interval / canopy_layer_thickness
+    input_variable_mixed[1:-1] += value_change
 
-    # Calculate ventilation using the value from the layer below, which is either the
-    # top canopy layer or the surface layer if no canopy is present,
+    # Calculate ventilation using the value from the highest layer, which is either the
+    # top canopy layer or the surface layer if no canopy is present
     vent_below = np.where(
-        np.isnan(input_variable[1]), input_variable[-1], input_variable[1]
+        np.isnan(input_variable_mixed[1]),
+        input_variable_mixed[-1],
+        input_variable_mixed[1],
     )
 
     # Get the ventilation delta and change over time
-    delta_vent = input_variable[0] - vent_below
+    delta_vent = input_variable_mixed[0] - vent_below
     vent_change = ventilation_rate * delta_vent * time_interval
 
     # Clip the maximum ventilation rate
     vent_max_change = 0.1 * abs(input_variable[0])
-    vent_change = np.clip(vent_change, 0, vent_max_change)
+    vent_change = np.clip(vent_change, -vent_max_change, vent_max_change)
 
     # Update the current values and return
     input_variable_mixed[0] += vent_change
-    input_variable_mixed[1:-1] += flux_change
+
+    # TODO add variable specific bounds here
+    overshoot = np.where(
+        input_variable_mixed[0] > 100, input_variable_mixed[0] - 100, 0
+    )
+    input_variable_mixed[1] -= vent_change + overshoot
 
     return input_variable_mixed
 

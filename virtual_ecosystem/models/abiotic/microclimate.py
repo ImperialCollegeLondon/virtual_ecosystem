@@ -342,7 +342,14 @@ def run_microclimate(
             mixing_coefficient=mixing_coefficient,
             time_interval=core_constants.seconds_to_hour,
         )
-        # TODO advect heat?
+
+        # NOTE Advection not implemented as everything is removed with time interval>1h
+        # advection_rate = (
+        #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+        #   / np.sqrt(cell_area)
+        # )
+        # advected_fraction = np.clip(advection_rate * time_interval, 0, 1)
+        # all_air_temperature[0] -=all_air_temperature[0] *advected_fraction
 
         # Update atmospheric humidity/VPD
         # Saturated vapour pressure of air, [kPa]
@@ -376,7 +383,6 @@ def run_microclimate(
             density_air=density_air,
             mixing_coefficient=mixing_coefficient,
             ventilation_rate=ventilation_rate,
-            wind_speed=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
             molecular_weight_ratio_water_to_dry_air=(
                 core_constants.molecular_weight_ratio_water_to_dry_air
             ),

@@ -572,7 +572,6 @@ def update_humidity_vpd(
     density_air: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: NDArray[np.floating],
-    wind_speed: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
@@ -593,7 +592,6 @@ def update_humidity_vpd(
         density_air: Density of air, [kg m-3]
         mixing_coefficient: Turbulent mixing coefficient, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
-        wind_speed: Horizontal wind speed above canopy, [m s-1]
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
@@ -635,16 +633,16 @@ def update_humidity_vpd(
         time_interval=time_interval,
     )
 
-    # Advection
-    specific_humidity_advected = wind.advect_water_from_toplayer(
-        specific_humidity=specific_humidity_updated[0],
-        layer_thickness=layer_thickness[0],
-        density_air=density_air[0],
-        wind_speed=wind_speed,
-        characteristic_length=np.sqrt(cell_area),
-        time_interval=time_interval,
-    )
-    specific_humidity_updated[0] = specific_humidity_advected
+    # NOTE Advection not implemented as everything is removed with time interval > 1h
+    # specific_humidity_advected = wind.advect_water_from_toplayer(
+    #     specific_humidity=specific_humidity_updated[0],
+    #     layer_thickness=layer_thickness[0],
+    #     density_air=density_air[0],
+    #     wind_speed=wind_speed,
+    #     characteristic_length=np.sqrt(cell_area),
+    #     time_interval=time_interval,
+    # )
+    # specific_humidity_updated[0] = specific_humidity_advected
 
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
@@ -653,7 +651,7 @@ def update_humidity_vpd(
     )
 
     # Ensure vapor pressure doesn't exceed the saturated vapor pressure
-    # NOTE we need to make sure that we do not loose water here
+    # TODO we need to make sure that we do not loose water here
     vapour_pressure_updated = np.minimum(
         vapour_pressure_updated, saturated_vapour_pressure
     )
