@@ -27,7 +27,6 @@ def test_calculate_litter_chemistry_factor():
 
 def test_calculate_new_pool_chemistries(
     litter_inputs,
-    updated_pools,
     litter_chemistry,
     litter_losses,
     post_consumption_pools,
@@ -35,9 +34,9 @@ def test_calculate_new_pool_chemistries(
     """Test that function to calculate updated pool chemistries works correctly."""
 
     expected_chemistries = {
-        "lignin_above_structural": [0.49726272, 0.10113017, 0.67782882, 0.67072519],
-        "lignin_woody": [0.49580543, 0.7978783, 0.35224272, 0.35012606],
-        "lignin_below_structural": [0.49974338, 0.26270806, 0.74846367, 0.71955592],
+        "lignin_above_structural": [0.49726312, 0.10113065, 0.67996749, 0.68136766],
+        "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
+        "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
         "c_n_ratio_above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
         "c_n_ratio_above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
         "c_n_ratio_woody": [55.57479, 63.250918, 47.44333, 59.08069],
@@ -52,7 +51,6 @@ def test_calculate_new_pool_chemistries(
 
     actual_chemistries = litter_chemistry.calculate_new_pool_chemistries(
         litter_inputs=litter_inputs,
-        updated_pools=updated_pools,
         litter_losses=litter_losses,
         original_pools=post_consumption_pools,
         update_interval=2.0,
@@ -64,21 +62,23 @@ def test_calculate_new_pool_chemistries(
         assert np.allclose(actual_chemistries[name], expected_chemistries[name])
 
 
-def test_calculate_lignin_updates(
-    input_lignin, updated_pools, litter_chemistry, litter_inputs
+def test_calculate_new_lignin_proportions(
+    input_lignin, post_consumption_pools, litter_chemistry, litter_losses, litter_inputs
 ):
     """Test that the function to calculate the lignin updates works as expected."""
 
     expected_lignin = {
-        "above_structural": [-0.0027373, 0.001130172, -0.022171178, -0.029274812],
-        "woody": [-0.00419457, -0.0021217, 0.00224272, 0.00012606],
-        "below_structural": [-0.00025662, 0.01270806, -0.00153633, -0.03044408],
+        "above_structural": [0.4972631215, 0.1011306546, 0.6799674901, 0.6813676608],
+        "woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
+        "below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
     }
 
-    actual_lignin = litter_chemistry.calculate_lignin_updates(
-        input_lignin=input_lignin,
+    actual_lignin = litter_chemistry.calculate_new_lignin_proportions(
         litter_inputs=litter_inputs,
-        updated_pools=updated_pools,
+        input_lignin_proportions=input_lignin,
+        litter_losses=litter_losses,
+        original_pools=post_consumption_pools,
+        update_interval=2.0,
     )
 
     assert set(actual_lignin.keys()) == set(expected_lignin.keys())
@@ -114,24 +114,30 @@ def test_calculate_updated_pool_nutrient_ratio(
     assert np.allclose(actual_ratio, expected_ratio)
 
 
-def test_calculate_change_in_chemical_concentration(
-    dummy_litter_data, post_consumption_pools
+def test_calculate_updated_pool_lignin_proportion(
+    dummy_litter_data,
+    post_consumption_pools,
+    litter_inputs,
+    litter_losses,
+    input_lignin,
 ):
     """Test that function to calculate chemistry changes works properly."""
     from virtual_ecosystem.models.litter.chemistry import (
-        calculate_change_in_chemical_concentration,
+        calculate_updated_pool_lignin_proportion,
     )
 
-    expected_lignin = [-0.008079787, -0.001949152, 0.0012328767, 0.0012328767]
+    expected_lignin = [0.4972631215, 0.1011306546, 0.6799674901, 0.6813676608]
 
-    input_carbon = np.array([0.0775, 0.05, 0.0225, 0.0225])
-    input_lignin = np.array([0.01, 0.34, 0.75, 0.75])
-
-    actual_lignin = calculate_change_in_chemical_concentration(
-        input_carbon=input_carbon,
-        updated_pool_carbon=post_consumption_pools["woody"],
-        input_conc=input_lignin,
-        old_pool_conc=dummy_litter_data["lignin_woody"].to_numpy(),
+    actual_lignin = calculate_updated_pool_lignin_proportion(
+        initial_carbon=post_consumption_pools["above_structural"],
+        input_carbon_rate=litter_inputs.above_structural,
+        carbon_loss=litter_losses.above_structural_carbon,
+        initial_lignin_proportion=dummy_litter_data[
+            "lignin_above_structural"
+        ].to_numpy(),
+        input_lignin_proportion=input_lignin["above_structural"],
+        lignin_loss=litter_losses.above_structural_lignin,
+        update_interval=2.0,
     )
 
     assert np.allclose(actual_lignin, expected_lignin)

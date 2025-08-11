@@ -38,7 +38,6 @@ class LitterChemistry:
 
     def calculate_new_pool_chemistries(
         self,
-        updated_pools: dict[str, NDArray[np.floating]],
         litter_inputs: LitterInputs,
         litter_losses: LitterLosses,
         original_pools: dict[str, NDArray[np.floating]],
@@ -51,8 +50,6 @@ class LitterChemistry:
         lignin, so it is only updated for those pools.
 
         Args:
-            updated_pools: Dictionary containing the updated pool densities for all 5
-                litter pools [kg C m^-2]
             litter_inputs: An LitterInputs instance containing the total input of each
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
@@ -78,10 +75,12 @@ class LitterChemistry:
         )
 
         # Then use to find the changes
-        change_in_lignin = self.calculate_lignin_updates(
+        new_lignin_proportions = self.calculate_new_lignin_proportions(
             litter_inputs=litter_inputs,
-            input_lignin=input_lignin,
-            updated_pools=updated_pools,
+            input_lignin_proportions=input_lignin,
+            litter_losses=litter_losses,
+            original_pools=original_pools,
+            update_interval=update_interval,
         )
         new_c_n_ratios = self.calculate_new_c_n_ratios(
             litter_inputs=litter_inputs,
@@ -109,10 +108,8 @@ class LitterChemistry:
             "below_structural",
         ]
 
-        lignin_changes = {
-            f"lignin_{name}": DataArray(
-                self.data[f"lignin_{name}"] + change_in_lignin[name], dims="cell_id"
-            )
+        lignin_new = {
+            f"lignin_{name}": DataArray(new_lignin_proportions[name], dims="cell_id")
             for name in lignin_variable_names
         }
         nitrogen_new = {
@@ -124,15 +121,17 @@ class LitterChemistry:
             for name in nutrient_variable_names
         }
 
-        return lignin_changes | nitrogen_new | phosphorus_new
+        return lignin_new | nitrogen_new | phosphorus_new
 
-    def calculate_lignin_updates(
+    def calculate_new_lignin_proportions(
         self,
         litter_inputs: LitterInputs,
-        input_lignin: dict[str, NDArray[np.floating]],
-        updated_pools: dict[str, NDArray[np.floating]],
+        input_lignin_proportions: dict[str, NDArray[np.floating]],
+        litter_losses: LitterLosses,
+        original_pools: dict[str, NDArray[np.floating]],
+        update_interval: float,
     ) -> dict[str, NDArray[np.floating]]:
-        """Calculate the changes in lignin proportion for the relevant litter pools.
+        """Calculate the new lignin proportions for the relevant litter pools.
 
         The relevant pools are the two structural pools, and the dead wood pool. This
         function calculates the total change over the entire time step, so cannot be
@@ -143,10 +142,13 @@ class LitterChemistry:
                 plant biomass type, the proportion of the input that goes to the
                 relevant metabolic pool for each input type (expect deadwood) and the
                 total input into each litter pool.
-            input_lignin: Dictionary containing the lignin concentration of the input to
-                each of the three lignin containing litter pools [kg lignin kg C^-1]
-            updated_pools: Dictionary containing the updated pool densities for all 5
-                litter pools [kg C m^-2]
+            input_lignin_proportions: Dictionary containing the lignin proportions of
+                the input to each relevant litter pools [kg lignin C (kg C)^-1]
+            litter_losses: An LitterInputs instance containing the total loss of carbon,
+                nitrogen, phosphorus and lignin from each litter pool.
+            original_pools: The size of each litter pool after animal consumption, but
+                before litter inputs and decay [kg C m^-2].
+            update_interval: The update interval for the litter model [days]
 
         Returns:
             Dictionary containing the updated lignin proportions for the 3 relevant
@@ -154,29 +156,38 @@ class LitterChemistry:
             structural) [unitless]
         """
 
-        change_in_lignin_above_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.above_structural,
-            updated_pool_carbon=updated_pools["above_structural"],
-            input_conc=input_lignin["above_structural"],
-            old_pool_conc=self.data["lignin_above_structural"].to_numpy(),
+        new_lignin_proportion_above_struct = calculate_updated_pool_lignin_proportion(
+            initial_carbon=original_pools["above_structural"],
+            input_carbon_rate=litter_inputs.above_structural,
+            carbon_loss=litter_losses.above_structural_carbon,
+            initial_lignin_proportion=self.data["lignin_above_structural"].to_numpy(),
+            input_lignin_proportion=input_lignin_proportions["above_structural"],
+            lignin_loss=litter_losses.above_structural_lignin,
+            update_interval=update_interval,
         )
-        change_in_lignin_woody = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.woody,
-            updated_pool_carbon=updated_pools["woody"],
-            input_conc=input_lignin["woody"],
-            old_pool_conc=self.data["lignin_woody"].to_numpy(),
+        new_lignin_proportion_woody = calculate_updated_pool_lignin_proportion(
+            initial_carbon=original_pools["woody"],
+            input_carbon_rate=litter_inputs.woody,
+            carbon_loss=litter_losses.woody_carbon,
+            initial_lignin_proportion=self.data["lignin_woody"].to_numpy(),
+            input_lignin_proportion=input_lignin_proportions["woody"],
+            lignin_loss=litter_losses.woody_lignin,
+            update_interval=update_interval,
         )
-        change_in_lignin_below_structural = calculate_change_in_chemical_concentration(
-            input_carbon=litter_inputs.below_structural,
-            updated_pool_carbon=updated_pools["below_structural"],
-            input_conc=input_lignin["below_structural"],
-            old_pool_conc=self.data["lignin_below_structural"].to_numpy(),
+        new_lignin_proportion_below_struct = calculate_updated_pool_lignin_proportion(
+            initial_carbon=original_pools["below_structural"],
+            input_carbon_rate=litter_inputs.below_structural,
+            carbon_loss=litter_losses.below_structural_carbon,
+            initial_lignin_proportion=self.data["lignin_below_structural"].to_numpy(),
+            input_lignin_proportion=input_lignin_proportions["below_structural"],
+            lignin_loss=litter_losses.below_structural_lignin,
+            update_interval=update_interval,
         )
 
         return {
-            "above_structural": change_in_lignin_above_structural,
-            "woody": change_in_lignin_woody,
-            "below_structural": change_in_lignin_below_structural,
+            "above_structural": new_lignin_proportion_above_struct,
+            "woody": new_lignin_proportion_woody,
+            "below_structural": new_lignin_proportion_below_struct,
         }
 
     def calculate_new_c_n_ratios(
@@ -632,38 +643,47 @@ def calculate_updated_pool_nutrient_ratio(
     )
 
 
-def calculate_change_in_chemical_concentration(
-    input_carbon: NDArray[np.floating],
-    updated_pool_carbon: NDArray[np.floating],
-    input_conc: NDArray[np.floating],
-    old_pool_conc: NDArray[np.floating],
+def calculate_updated_pool_lignin_proportion(
+    initial_carbon: NDArray[np.floating],
+    input_carbon_rate: NDArray[np.floating],
+    carbon_loss: NDArray[np.floating],
+    initial_lignin_proportion: NDArray[np.floating],
+    input_lignin_proportion: NDArray[np.floating],
+    lignin_loss: NDArray[np.floating],
+    update_interval: float,
 ) -> NDArray[np.floating]:
-    """Calculate the change in the chemical concentration of a particular litter pool.
+    """Calculate the change in the lignin proportion of a particular litter pool.
 
-    This change is found by calculating the difference between the previous
-    concentration of the pool and the concentration of the inputs. This difference is
-    then multiplied by the ratio of the mass of carbon added to pool and the final
-    (carbon) mass of the pool. This function can be used for all chemicals of interest,
-    i.e. lignin, nitrogen and phosphorus. This function is agnostic to concentration
-    type, so either proportions of total carbon or carbon:nutrient ratios can be
-    used. However, the concentration type used must be the same for the old pool and the
-    litter input.
+    The lignin proportion of the pool after the update is found by calculating the total
+    amounts of carbon (in any form) and lignin carbon, and then dividing to find the
+    proportion.
 
     Args:
-        input_carbon: The total carbon mass of inputs to the litter pool [kg C m^-2]
-        updated_pool_carbon: The total carbon mass of the litter pool after inputs and
-            decay [kg C m^-2]
-        input_conc: The concentration of the chemical of interest in the (carbon) input
-            [unitless]
-        old_pool_conc: The concentration of the chemical of interest in the original
-            litter pool [unitless]
+        initial_carbon: The total carbon mass of the litter pool before inputs and decay
+            [kg C m^-2]
+        input_carbon_rate: The rate of carbon input to the litter pool
+            [kg C m^-2 day^-1]
+        carbon_loss: Total loss of carbon from the litter pool due to decay [kg C m^-2]
+        initial_lignin_proportion: The lignin proportion of the litter pool at the
+            start of the update interval [kg lignin C (kg C)^-1]
+        input_lignin_proportion: The lignin proportion of the input biomass
+            [kg lignin C (kg C)^-1]
+        lignin_loss: Total loss of lignin from the litter pool due to decay
+            [kg lignin C m^-2]
+        update_interval: The update interval for the litter model [days]
 
     Returns:
-        The total change in the chemical concentration of the pool over the full time
-        step [unitless]
+        The new carbon nutrient ratio at the end of the update interval [unitless]
     """
 
-    return (input_carbon / updated_pool_carbon) * (input_conc - old_pool_conc)
+    input_carbon_total = input_carbon_rate * update_interval
+
+    initial_lignin = initial_carbon * initial_lignin_proportion
+    input_lignin = input_carbon_total * input_lignin_proportion
+
+    return (initial_lignin + input_lignin - lignin_loss) / (
+        initial_carbon + input_carbon_total - carbon_loss
+    )
 
 
 def calculate_nutrient_split_between_litter_pools(

@@ -375,7 +375,6 @@ class LitterModel(
 
         # Calculate all the litter chemistry changes
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            updated_pools=updated_pools,
             litter_inputs=litter_inputs,
             litter_losses=litter_losses,
             original_pools=consumed_pools,
