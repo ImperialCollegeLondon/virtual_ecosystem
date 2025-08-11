@@ -17,37 +17,44 @@ class LitterLosses:
     """The full set losses for the litter pools, as well as the mineralisation rates."""
 
     above_metabolic_carbon: NDArray[np.floating]
-    """Carbon loss rate from the aboveground metabolic pool [kg C m^-2 day^-1]"""
+    """Carbon loss rate from the aboveground metabolic pool [kg C m^-2]"""
     above_structural_carbon: NDArray[np.floating]
-    """Carbon loss rate from the aboveground structural pool [kg C m^-2 day^-1]"""
+    """Carbon loss rate from the aboveground structural pool [kg C m^-2]"""
     woody_carbon: NDArray[np.floating]
-    """Carbon loss rate from the woody pool [kg C m^-2 day^-1]"""
+    """Carbon loss rate from the woody pool [kg C m^-2]"""
     below_metabolic_carbon: NDArray[np.floating]
-    """Carbon loss rate from the belowground metabolic pool [kg C m^-2 day^-1]"""
+    """Carbon loss rate from the belowground metabolic pool [kg C m^-2]"""
     below_structural_carbon: NDArray[np.floating]
-    """Carbon loss rate from the belowground structural pool [kg C m^-2 day^-1]"""
+    """Carbon loss rate from the belowground structural pool [kg C m^-2]"""
 
     above_metabolic_nitrogen: NDArray[np.floating]
-    """Nitrogen loss rate from the aboveground metabolic pool [kg N m^-2 day^-1]"""
+    """Nitrogen loss rate from the aboveground metabolic pool [kg N m^-2]"""
     above_structural_nitrogen: NDArray[np.floating]
-    """Nitrogen loss rate from the aboveground structural pool [kg N m^-2 day^-1]"""
+    """Nitrogen loss rate from the aboveground structural pool [kg N m^-2]"""
     woody_nitrogen: NDArray[np.floating]
-    """Nitrogen loss rate from the woody pool [kg N m^-2 day^-1]"""
+    """Nitrogen loss rate from the woody pool [kg N m^-2]"""
     below_metabolic_nitrogen: NDArray[np.floating]
-    """Nitrogen loss rate from the belowground metabolic pool [kg N m^-2 day^-1]"""
+    """Nitrogen loss rate from the belowground metabolic pool [kg N m^-2]"""
     below_structural_nitrogen: NDArray[np.floating]
-    """Nitrogen loss rate from the belowground structural pool [kg N m^-2 day^-1]"""
+    """Nitrogen loss rate from the belowground structural pool [kg N m^-2]"""
 
     above_metabolic_phosphorus: NDArray[np.floating]
-    """Phosphorus loss rate from the aboveground metabolic pool [kg P m^-2 day^-1]"""
+    """Phosphorus loss rate from the aboveground metabolic pool [kg P m^-2]"""
     above_structural_phosphorus: NDArray[np.floating]
-    """Phosphorus loss rate from the aboveground structural pool [kgP m^-2 day^-1]"""
+    """Phosphorus loss rate from the aboveground structural pool [kg P m^-2]"""
     woody_phosphorus: NDArray[np.floating]
-    """Phosphorus loss rate from the woody pool [kg P m^-2 day^-1]"""
+    """Phosphorus loss rate from the woody pool [kg P m^-2]"""
     below_metabolic_phosphorus: NDArray[np.floating]
-    """Phosphorus loss rate from the belowground metabolic pool [kg P m^-2 day^-1]"""
+    """Phosphorus loss rate from the belowground metabolic pool [kg P m^-2]"""
     below_structural_phosphorus: NDArray[np.floating]
-    """Phosphorus loss rate from the belowground structural pool [kg P m^-2 day^-1]"""
+    """Phosphorus loss rate from the belowground structural pool [kg P m^-2]"""
+
+    above_structural_lignin: NDArray[np.floating]
+    """Lignin loss rate from the aboveground structural pool [kg lignin C m^-2]"""
+    woody_lignin: NDArray[np.floating]
+    """Lignin loss rate from the woody pool [kg lignin C m^-2]"""
+    below_structural_lignin: NDArray[np.floating]
+    """Lignin loss rate from the belowground structural pool [kg lignin C m^-2]"""
 
     N_mineralisation_rate: NDArray[np.floating]
     """Total nitrogen mineralisation rate from all litter pools [kg N m^-3 day^-1]"""
@@ -143,6 +150,11 @@ def calculate_litter_losses(
         below_structural_carbon / data["c_p_ratio_below_structural"]
     )
 
+    # Calculate the loss of lignin from the three relevant litter pools
+    above_structural_lignin = above_structural_carbon * data["lignin_above_structural"]
+    woody_lignin = woody_carbon * data["lignin_woody"]
+    below_structural_lignin = below_structural_carbon * data["lignin_below_structural"]
+
     # Finally, calculate the total mineralisation rates for nitrogen and phosphorus
     N_mineralisation_rate = (
         above_metabolic_nitrogen
@@ -150,14 +162,14 @@ def calculate_litter_losses(
         + woody_nitrogen
         + below_metabolic_nitrogen
         + below_structural_nitrogen
-    ) / active_microbe_depth
+    ) / (update_interval * active_microbe_depth)
     P_mineralisation_rate = (
         above_metabolic_phosphorus
         + above_structural_phosphorus
         + woody_phosphorus
         + below_metabolic_phosphorus
         + below_structural_phosphorus
-    ) / active_microbe_depth
+    ) / (update_interval * active_microbe_depth)
 
     return LitterLosses(
         above_metabolic_carbon=above_metabolic_carbon,
@@ -175,6 +187,9 @@ def calculate_litter_losses(
         woody_phosphorus=woody_phosphorus,
         below_metabolic_phosphorus=below_metabolic_phosphorus,
         below_structural_phosphorus=below_structural_phosphorus,
+        above_structural_lignin=above_structural_lignin,
+        woody_lignin=woody_lignin,
+        below_structural_lignin=below_structural_lignin,
         N_mineralisation_rate=N_mineralisation_rate,
         P_mineralisation_rate=P_mineralisation_rate,
     )
@@ -196,6 +211,9 @@ def calculate_carbon_pool_loss(
         final_pool_size: The size of the litter pool after the update [kg C m^-2].
         input_rate: The rate of carbon input to the litter pool [kg C m^-2 day^-1].
         update_interval: The time period over which the litter pools are updated [days].
+
+    Returns:
+        The total loss of carbon from the pool due to decay [kg C m^-2]
     """
 
     return old_pool_size + (input_rate * update_interval) - final_pool_size

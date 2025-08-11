@@ -29,8 +29,11 @@ def test_calculate_litter_losses(
         "woody_phosphorus": [1.75338e-6, 7.12210e-7, 3.76563e-6, 5.31479e-6],
         "below_metabolic_phosphorus": [5.85855e-5, 3.59960e-5, 7.09779e-6, 5.81645e-6],
         "below_structural_phosphorus": [1.11322e-6, 1.65944e-6, 5.35009e-9, 8.65663e-9],
-        "N_mineralisation_rate": [0.0120267, 0.0075582, 0.0017596, 0.0018843],
-        "P_mineralisation_rate": [0.00089538, 0.00042954, 0.00013438, 0.00013605],
+        "above_structural_lignin": [0.000168295, 0.000123865, 1.666e-5, 1.7871e-5],
+        "woody_lignin": [0.000487, 0.000434904, 0.001116717, 0.0011144315],
+        "below_structural_lignin": [0.0003064145, 0.00024709, 3.1021167e-6, 4.2279e-6],
+        "N_mineralisation_rate": [0.00601335, 0.0037791, 0.0008798, 0.00094215],
+        "P_mineralisation_rate": [0.000447699, 0.000214767, 6.719202e-5, 6.802534e-5],
     }
 
     actual_losses = calculate_litter_losses(
