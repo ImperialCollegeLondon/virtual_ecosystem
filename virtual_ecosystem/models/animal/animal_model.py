@@ -1462,6 +1462,7 @@ class AnimalModel(
             #  Build resource collections based on diet flags
             plant_list: list[Resource] = []
             prey_list: list[AnimalCohort] = []
+            # mushroom_list: list[Resource] = []
             litter_list: list[Resource] = []
             scavenge_carcass_pools: list[Resource] = []
             scavenge_waste_pools: list[Resource] = []
@@ -1476,7 +1477,6 @@ class AnimalModel(
                 | DietType.FLOWERS
                 | DietType.FOLIAGE
                 | DietType.FRUIT
-                | DietType.FUNGUS
                 | DietType.SEEDS
                 | DietType.NECTAR
                 | DietType.WOOD
@@ -1509,6 +1509,7 @@ class AnimalModel(
             cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
+                mushroom_list=[],
                 litter_pools=litter_list,
                 excrement_pools=excrement_pools,  # for defecation
                 carcass_pool_map=carcass_pool_map,  # for prey remains

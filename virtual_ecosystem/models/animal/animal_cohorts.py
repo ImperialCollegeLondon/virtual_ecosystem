@@ -699,32 +699,35 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(self, plant_list: list[Resource], target_plant: Resource) -> float:
-        """Method to determine instantaneous herbivory rate on plant k.
+    def F_i_k(self, resource_list: list[Resource], target_resource: Resource) -> float:
+        """Method to determine instantaneous consumption rate on resource k.
 
         This method integrates the calculated search efficiency, potential consumed
         biomass of the target plant, and the total handling time for all available
-        plant resources to determine the rate at which the target plant is consumed by
+        resources to determine the rate at which the target plant is consumed by
         the cohort.
+
+        This method is originally parameterized for herbivory but is currently used for
+        all non-predation consumer-resource interactions.
 
         TODO: update name
 
         Args:
-            plant_list: A list of plant resources available for consumption by the
+            resource_list: A list of plant resources available for consumption by the
                 cohort.
-            target_plant: The specific plant resource being targeted by the herbivore
+            target_resource: The specific resource being targeted by the herbivore
                 cohort for consumption.
 
         Returns:
-            The instantaneous consumption rate [g/day] of the target plant resource by
-              the herbivore cohort.
+            The instantaneous consumption rate [g/day] of the target resource by
+              the consumer cohort.
         """
         alpha = self.calculate_alpha()
-        k = self.calculate_potential_consumed_biomass(target_plant, alpha)
+        k = self.calculate_potential_consumed_biomass(target_resource, alpha)
         total_handling_t = self.calculate_total_handling_time_for_herbivory(
-            plant_list, alpha
+            resource_list, alpha
         )
-        B_k = target_plant.mass_current  # current plant biomass
+        B_k = target_resource.mass_current  # current plant biomass
         N = self.individuals  # herb cohort size
         return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
@@ -1073,10 +1076,34 @@ class AnimalCohort:
             calculate_consumed_mass=self.default_consumed_resource_mass,
         )
 
+    def delta_mass_fruiting_fungivory(
+        self,
+        mushroom_list: list[Resource],
+        adjusted_dt: timedelta64,
+        herbivory_waste_pools: dict[int, HerbivoryWaste],
+    ) -> dict[str, float]:
+        """Handle mass assimilation from fruiting body (mushroom) fungivory.
+
+        Args:
+            mushroom_list: List of fungal fruiting resources.
+            adjusted_dt: Time available for foraging.
+            herbivory_waste_pools: Waste pools for unassimilated fungal matter.
+
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=mushroom_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self.default_consumed_resource_mass,
+            herbivory_waste_pools=herbivory_waste_pools,
+        )
+
     def forage_cohort(
         self,
         plant_list: list[Resource],
         animal_list: list[AnimalCohort],
+        mushroom_list: list[Resource],
         litter_pools: list[Resource],
         excrement_pools: list[ExcrementPool],
         carcass_pool_map: dict[int, list[CarcassPool]],
@@ -1097,6 +1124,7 @@ class AnimalCohort:
         Args:
             plant_list: Live plant resources available for herbivory.
             animal_list: Live prey cohorts available for predation.
+            mushroom_list: Live fungal fruiting bodies available for consumption.
             litter_pools: LitterPool objects available for detritivory.
             excrement_pools: ExcrementPool objects used for defecation
                 deposition.
@@ -1146,6 +1174,16 @@ class AnimalCohort:
                 animal_list=animal_list,
                 carcass_pools=carcass_pool_map,
                 adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # live mushroom fungivory
+        if mushroom_list:
+            gain = self.delta_mass_fruiting_fungivory(
+                mushroom_list=mushroom_list,
+                adjusted_dt=time_available_per_diet,
+                herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
