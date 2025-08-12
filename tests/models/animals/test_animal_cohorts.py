@@ -1641,7 +1641,7 @@ class TestAnimalCohort:
             "zero_mass_returns_zero",
         ],
     )
-    def test_default_consumed_resource_mass_behavior(
+    def test_consumed_resource_mass_behavior(
         self, herbivore_cohort_instance, mocker, F_value, mass_current, expected
     ):
         """Test mass calculation with different F_i_k and mass_current cases."""
@@ -1654,7 +1654,7 @@ class TestAnimalCohort:
         plant.mass_current = mass_current
         mocker.patch.object(herbivore, "F_i_k", return_value=F_value)
 
-        result = herbivore.default_consumed_resource_mass([plant], plant, adjusted_dt)
+        result = herbivore._consumed_resource_mass([plant], plant, adjusted_dt)
 
         if expected == "formula":
             expected_val = mass_current * (1 - exp(-F_value * adjusted_dt))
@@ -1784,7 +1784,7 @@ class TestAnimalCohort:
         mock_forage.assert_called_once_with(
             resources=plant_list,
             adjusted_dt=7.5,
-            calculate_consumed_mass=cohort.default_consumed_resource_mass,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
             herbivory_waste_pools=waste_pools,
         )
         assert result == {"carbon": 1, "nitrogen": 2, "phosphorus": 3}
@@ -1807,7 +1807,7 @@ class TestAnimalCohort:
         mock_forage.assert_called_once_with(
             resources=pools,
             adjusted_dt=7.5,
-            calculate_consumed_mass=cohort.default_consumed_resource_mass,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
         )
         assert result == {"carbon": 1, "nitrogen": 2, "phosphorus": 3}
 
@@ -1832,7 +1832,7 @@ class TestAnimalCohort:
         mock_forage.assert_called_once_with(
             resources=carcass_pools,
             adjusted_dt=7.5,
-            calculate_consumed_mass=cohort.default_consumed_resource_mass,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
         )
 
         assert result == {"carbon": 1.0, "nitrogen": 2.0, "phosphorus": 3.0}
@@ -1858,7 +1858,7 @@ class TestAnimalCohort:
         mock_forage.assert_called_once_with(
             resources=excrement_pools,
             adjusted_dt=7.5,
-            calculate_consumed_mass=cohort.default_consumed_resource_mass,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
         )
 
         assert result == {"carbon": 4.0, "nitrogen": 1.0, "phosphorus": 0.5}
