@@ -420,6 +420,7 @@ def test_update_humidity_vpd(
         ),
         dry_air_factor=1 - CoreConsts.molecular_weight_ratio_water_to_dry_air,
         cell_area=fixture_core_components.grid.cell_area,
+        limits=(0, 60),
         time_interval=time_interval,
     )
 

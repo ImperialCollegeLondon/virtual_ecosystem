@@ -206,6 +206,7 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
         layer_thickness=above_ground_layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
+        limits=(0, 100),
         time_interval=3600.0,
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-6, atol=1e-6)

@@ -335,11 +335,13 @@ def run_microclimate(
         all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
         all_air_temperature[-1] = surface_air_temperature
 
+        # TODO add limits from AbioticSimpleBounds
         all_air_temperature = wind.mix_and_ventilate(
             input_variable=all_air_temperature,
             layer_thickness=above_ground_layer_thickness,
             ventilation_rate=ventilation_rate,
             mixing_coefficient=mixing_coefficient,
+            limits=(-20, 80),
             time_interval=core_constants.seconds_to_hour,
         )
 
@@ -371,6 +373,10 @@ def run_microclimate(
             * actual_vapour_pressure_air
         ) / (atmospheric_pressure - actual_vapour_pressure_air)
 
+        # TODO Calculate limits for specific humidity
+        # limits_specific_humidity =
+
+        # Update atmospheric humidity variables
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
             evapotranspiration=evapotranspiration[
                 layer_structure.index_filled_canopy
@@ -388,6 +394,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
+            limits=(0, 60),  # limits_specific_humidity,
             time_interval=core_constants.seconds_to_hour,
         )
 

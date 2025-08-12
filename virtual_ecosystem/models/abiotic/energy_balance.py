@@ -575,6 +575,7 @@ def update_humidity_vpd(
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
+    limits: tuple[float, float],
     time_interval: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
@@ -596,6 +597,7 @@ def update_humidity_vpd(
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         cell_area: Grid cell area, [m2]
+        limits: Realistic bounds of specific humidity
         time_interval: Time interval, [s]
 
     Returns:
@@ -630,6 +632,7 @@ def update_humidity_vpd(
         layer_thickness=layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
+        limits=limits,
         time_interval=time_interval,
     )
 

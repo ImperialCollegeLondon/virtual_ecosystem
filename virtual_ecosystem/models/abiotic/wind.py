@@ -284,6 +284,7 @@ def mix_and_ventilate(
     layer_thickness: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
     ventilation_rate: NDArray[np.floating],
+    limits: tuple[float, float],
     time_interval: float,
 ) -> NDArray[np.floating]:
     """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
@@ -309,6 +310,7 @@ def mix_and_ventilate(
         layer_thickness: Layer thickness, [m]
         mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
+        limits: Upper and lower limit for input variable, avoid overshoot when mixing
         time_interval: Time interval, [s]
 
     Returns:
@@ -363,11 +365,14 @@ def mix_and_ventilate(
     # Update the current values and return
     input_variable_mixed[0] += vent_change
 
-    # TODO add variable specific bounds here
+    # Prevent overshoot
     overshoot = np.where(
-        input_variable_mixed[0] > 100, input_variable_mixed[0] - 100, 0
+        input_variable_mixed[0] > limits[1], input_variable_mixed[0] - limits[1], 0
     )
-    input_variable_mixed[1] -= vent_change + overshoot
+    undershoot = np.where(
+        input_variable_mixed[0] < limits[0], input_variable_mixed[0] + abs(limits[0]), 0
+    )
+    input_variable_mixed[1] -= vent_change + overshoot + undershoot
 
     return input_variable_mixed
 
