@@ -935,7 +935,7 @@ class AnimalCohort:
 
         return total_consumed_mass
 
-    def default_consumed_resource_mass(
+    def _consumed_resource_mass(
         self,
         resource_list: list[Resource],
         target: Resource,
@@ -952,8 +952,7 @@ class AnimalCohort:
             Mass (kg) to consume from target.
         """
         F = self.F_i_k(resource_list, target)
-        consumed = target.mass_current * (1.0 - exp(-F * adjusted_dt))
-        return max(consumed, 0.0)
+        return target.mass_current * (1.0 - exp(-F * adjusted_dt))
 
     def forage_resource_list(
         self,
@@ -987,8 +986,6 @@ class AnimalCohort:
                 total_gain[elem] += gain_cnp[elem] * conv_eff
 
             if herbivory_waste_pools and litter_cnp:
-                if resource.cell_id not in herbivory_waste_pools:
-                    raise KeyError(f"Missing waste pool for cell {resource.cell_id}")
                 herbivory_waste_pools[resource.cell_id].add_waste(litter_cnp)
 
         return total_gain
@@ -1012,7 +1009,7 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=plant_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self.default_consumed_resource_mass,
+            calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
         )
 
@@ -1033,7 +1030,7 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=litter_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self.default_consumed_resource_mass,
+            calculate_consumed_mass=self._consumed_resource_mass,
         )
 
     def delta_mass_carcass_scavenging(
@@ -1053,7 +1050,7 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=carcass_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self.default_consumed_resource_mass,
+            calculate_consumed_mass=self._consumed_resource_mass,
         )
 
     def delta_mass_excrement_scavenging(
@@ -1073,7 +1070,7 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=excrement_pools,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self.default_consumed_resource_mass,
+            calculate_consumed_mass=self._consumed_resource_mass,
         )
 
     def delta_mass_fruiting_fungivory(
