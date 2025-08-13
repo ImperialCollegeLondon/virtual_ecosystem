@@ -238,6 +238,7 @@ class AbioticModel(
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,
             pyrealm_const=PyrealmConst,
+            abiotic_bounds=AbioticSimpleBounds(),
         )
 
         self.data.add_from_dict(output_dict=update_dict)

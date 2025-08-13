@@ -255,3 +255,33 @@ def test_compute_layer_thickness_for_varying_canopy(
     )
 
     np.testing.assert_allclose(result, exp_result)
+
+
+def test_calculate_specific_humidity(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test specific humidity."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_specific_humidity,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
+
+    result = calculate_specific_humidity(
+        air_temperature=data["air_temperature"][atm_index].to_numpy(),
+        relative_humidity=data["relative_humidity"][atm_index].to_numpy(),
+        atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
+    )
+
+    exp_result = np.array(
+        [
+            [0.025135, 0.025135, 0.025135, 0.025135],
+            [0.025005, 0.025005, 0.025005, 0.025005],
+            [0.024186, 0.024186, np.nan, np.nan],
+            [0.022799, np.nan, np.nan, np.nan],
+            [0.016413, 0.016413, 0.016413, 0.016413],
+        ]
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

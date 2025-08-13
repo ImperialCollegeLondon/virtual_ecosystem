@@ -13,6 +13,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleBounds
 
 
 def run_microclimate(
@@ -24,6 +25,7 @@ def run_microclimate(
     abiotic_constants: AbioticConsts,
     core_constants: CoreConsts,
     pyrealm_const: PyrealmConst,
+    abiotic_bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     """Run microclimate model.
 
@@ -43,6 +45,7 @@ def run_microclimate(
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
         pyrealm_const: Set of constants from pyrealm
+        abiotic_bounds: Bounds for vertical mixing of atmospheric variables
 
     Returns:
         dictionary with updated microclimate variables
@@ -202,6 +205,7 @@ def run_microclimate(
     hourly_time_interval = max(int(time_interval / core_constants.seconds_to_hour), 1)
 
     # TODO enable daily input in data object and select time index
+    # and return averages over the VE time interval, similar to hydrology
     if core_constants.seconds_to_hour <= time_interval <= core_constants.seconds_to_day:
         iteration = hourly_time_interval
 
@@ -335,13 +339,12 @@ def run_microclimate(
         all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
         all_air_temperature[-1] = surface_air_temperature
 
-        # TODO add limits from AbioticSimpleBounds
         all_air_temperature = wind.mix_and_ventilate(
             input_variable=all_air_temperature,
             layer_thickness=above_ground_layer_thickness,
             ventilation_rate=ventilation_rate,
             mixing_coefficient=mixing_coefficient,
-            limits=(-20, 80),
+            limits=abiotic_bounds.air_temperature[:2],
             time_interval=core_constants.seconds_to_hour,
         )
 
@@ -360,21 +363,20 @@ def run_microclimate(
             core_const=PyrealmConst(),
         )
 
-        #  Actual vapour pressure of air, [kPa]
-        actual_vapour_pressure_air = abiotic_tools.calculate_actual_vapour_pressure(
-            air_temperature=DataArray(all_air_temperature),
-            relative_humidity=DataArray(relative_humidity),
-            pyrealm_const=PyrealmConst,
+        # Specific humidity of air, [kg kg-1]
+        specific_humidity_air = abiotic_tools.calculate_specific_humidity(
+            air_temperature=all_air_temperature,
+            relative_humidity=relative_humidity,
+            atmospheric_pressure=atmospheric_pressure,
         )
 
-        # Specific humidity of air, [kg kg-1] TODO external function
-        specific_humidity_air = (
+        # Calculate specific humidity at saturation
+        mixing_ratio_saturation = (
             core_constants.molecular_weight_ratio_water_to_dry_air
-            * actual_vapour_pressure_air
-        ) / (atmospheric_pressure - actual_vapour_pressure_air)
-
-        # TODO Calculate limits for specific humidity
-        # limits_specific_humidity =
+            * saturated_vapour_pressure_air
+            / (atmospheric_pressure - saturated_vapour_pressure_air)
+        )
+        max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
         # Update atmospheric humidity variables
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
@@ -383,7 +385,7 @@ def run_microclimate(
             ].to_numpy(),
             soil_evaporation=data["soil_evaporation"].to_numpy(),
             saturated_vapour_pressure=saturated_vapour_pressure_air,
-            specific_humidity=specific_humidity_air.to_numpy(),
+            specific_humidity=specific_humidity_air,
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,
             density_air=density_air,
@@ -394,7 +396,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            limits=(0, 60),  # limits_specific_humidity,
+            limits=(0, max_specific_humidity[0]),
             time_interval=core_constants.seconds_to_hour,
         )
 

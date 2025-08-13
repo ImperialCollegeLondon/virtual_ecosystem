@@ -5,6 +5,7 @@ from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleBounds
 
 
 def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_components):
@@ -24,6 +25,7 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
         pyrealm_const=PyrealmConst(),
+        abiotic_bounds=AbioticSimpleBounds(),
     )
 
     for var in [
@@ -111,6 +113,7 @@ def test_run_microclimate_subdaily(
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
         pyrealm_const=PyrealmConst(),
+        abiotic_bounds=AbioticSimpleBounds(),
     )
 
     for var in [
@@ -196,6 +199,7 @@ def test_run_microclimate_minutes(
         abiotic_constants=AbioticConsts(),
         core_constants=CoreConsts(),
         pyrealm_const=PyrealmConst(),
+        abiotic_bounds=AbioticSimpleBounds(),
     )
 
     # Check that values fall within a reasonable expected range

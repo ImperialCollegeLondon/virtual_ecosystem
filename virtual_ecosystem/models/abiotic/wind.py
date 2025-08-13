@@ -305,6 +305,8 @@ def mix_and_ventilate(
     Advection is currently not implemented as everything is removed with time interval
     > 1h.
 
+    TODO prevent overshoot/undershoot in all layers
+
     Args:
         input_variable: Input variable for all true atmospheric layers
         layer_thickness: Layer thickness, [m]
