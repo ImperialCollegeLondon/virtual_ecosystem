@@ -737,7 +737,7 @@ class PlantsModel(
 
             # GPP for each later is estimated as (value, dimensions, units):
             #    LUE                (n_active_layers, 1)          [gC mol-1]
-            #    * cohort fAPAR     (n_active_layers, per_layer_transpiration_mm)  [-]
+            #    * cohort fAPAR     (n_active_layers, n_cohorts)  [-]
             #    * canopy top PPFD  scalar                        [µmol m-2 s-1]
             #    * stem leaf area   (n_active_layers, n_cohorts)  [m2]
             #    * time elapsed     scalar                        [s]
