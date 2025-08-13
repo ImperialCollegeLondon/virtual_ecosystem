@@ -1,0 +1,9 @@
+{
+    "type": "object",
+    "properties": {
+        "disturbance_testing": {}
+    },
+    "required": [
+        "disturbance_testing"
+    ]
+}
