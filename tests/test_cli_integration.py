@@ -108,6 +108,7 @@ save_continuous_data = false
 save_final_state = false
 save_merged_config = false
 [testing]
+[disturbance_testing]
 """
         )
 
