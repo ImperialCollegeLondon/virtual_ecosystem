@@ -368,6 +368,10 @@ def run_microclimate(
             air_temperature=all_air_temperature,
             relative_humidity=relative_humidity,
             atmospheric_pressure=atmospheric_pressure,
+            molecular_weight_ratio_water_to_dry_air=(
+                core_constants.molecular_weight_ratio_water_to_dry_air
+            ),
+            pyrealm_const=PyrealmConst(),
         )
 
         # Calculate specific humidity at saturation

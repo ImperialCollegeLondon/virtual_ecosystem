@@ -232,6 +232,8 @@ def calculate_specific_humidity(
     air_temperature: NDArray[np.floating],
     relative_humidity: NDArray[np.floating],
     atmospheric_pressure: NDArray[np.floating],
+    molecular_weight_ratio_water_to_dry_air: float,
+    pyrealm_const: PyrealmConst,
 ) -> NDArray[np.floating]:
     """Calculate specific humidity.
 
@@ -239,21 +241,28 @@ def calculate_specific_humidity(
         air_temperature: Air temperature, [C]
         relative_humidity: Relative humidity, [%]
         atmospheric_pressure: Atmospheric pressure, [kPa]
+        molecular_weight_ratio_water_to_dry_air: The ratio of the molar mass of water
+            vapour to the molar mass of dry air
+        pyrealm_const: Pyrealm constants
 
     Returns:
         Specific humidity (kg/kg)
     """
-    # Saturation vapor pressure over liquid water (Tetens formula, hPa)
-    saturation_vapour_pressure = 6.112 * np.exp(
-        (17.67 * air_temperature) / (air_temperature + 243.5)
+    # Saturation vapor pressure
+    saturation_vapour_pressure = calc_vp_sat(
+        ta=air_temperature,
+        core_const=pyrealm_const,
     )
 
     # Actual vapor pressure (hPa)
     actual_vapour_pressure = (relative_humidity / 100.0) * saturation_vapour_pressure
 
     # Specific humidity formula
-    specific_humidity = (0.622 * actual_vapour_pressure) / (
-        atmospheric_pressure * 10 - (0.378 * actual_vapour_pressure)
+    specific_humidity = (
+        molecular_weight_ratio_water_to_dry_air * actual_vapour_pressure
+    ) / (
+        atmospheric_pressure
+        - ((1 - molecular_weight_ratio_water_to_dry_air) * actual_vapour_pressure)
     )
 
     return specific_humidity

@@ -273,15 +273,17 @@ def test_calculate_specific_humidity(
         air_temperature=data["air_temperature"][atm_index].to_numpy(),
         relative_humidity=data["relative_humidity"][atm_index].to_numpy(),
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
+        molecular_weight_ratio_water_to_dry_air=0.622,
+        pyrealm_const=PyrealmConst(),
     )
 
     exp_result = np.array(
         [
-            [0.025135, 0.025135, 0.025135, 0.025135],
-            [0.025005, 0.025005, 0.025005, 0.025005],
-            [0.024186, 0.024186, np.nan, np.nan],
-            [0.022799, np.nan, np.nan, np.nan],
-            [0.016413, 0.016413, 0.016413, 0.016413],
+            [0.025064, 0.025064, 0.025064, 0.025064],
+            [0.024934, 0.024934, 0.024934, 0.024934],
+            [0.02412, 0.02412, np.nan, np.nan],
+            [0.02274, np.nan, np.nan, np.nan],
+            [0.01638, 0.01638, 0.01638, 0.01638],
         ]
     )
     np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

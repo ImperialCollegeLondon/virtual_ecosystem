@@ -372,7 +372,7 @@ def mix_and_ventilate(
         input_variable_mixed[0] > limits[1], input_variable_mixed[0] - limits[1], 0
     )
     undershoot = np.where(
-        input_variable_mixed[0] < limits[0], input_variable_mixed[0] + abs(limits[0]), 0
+        input_variable_mixed[0] < limits[0], input_variable_mixed[0] + limits[0], 0
     )
     input_variable_mixed[1] -= vent_change + overshoot + undershoot
 
