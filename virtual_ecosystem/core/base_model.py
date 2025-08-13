@@ -760,3 +760,77 @@ class BaseModel(ABC):
             )
             LOGGER.error(error)
             raise error
+
+
+class BaseDisturbance(
+    BaseModel,
+    ABC,
+    model_name="_base_disturbance",
+    model_update_bounds=("1 day", "1 year"),
+    vars_required_for_init=tuple(),
+    vars_populated_by_init=tuple(),
+    vars_required_for_update=tuple(),
+    vars_updated=tuple(),
+    vars_populated_by_first_update=tuple(),
+):
+    """Base class for disturbances in the virtual ecosystem.
+
+    This class extends BaseModel to include disturbance-specific functionality and
+    configuration.
+    """
+
+    def __init_subclass__(
+        cls,
+        model_name,
+        model_update_bounds,
+        vars_required_for_init,
+        vars_updated,
+        vars_required_for_update,
+        vars_populated_by_init,
+        vars_populated_by_first_update,
+    ):
+        """Initialise subclasses deriving from BaseDisturbance."""
+        if vars_populated_by_first_update or vars_populated_by_init:
+            raise ValueError(
+                "Disturbance models cannot define "
+                "vars_populated_by_first_update or vars_populated_by_init."
+            )
+        super().__init_subclass__(
+            model_name,
+            model_update_bounds,
+            vars_required_for_init,
+            vars_updated,
+            vars_required_for_update,
+            tuple(),
+            tuple(),
+        )
+
+    def __init__(
+        self,
+        data: Data,
+        core_components: CoreComponents,
+        static: bool = False,
+        models: dict[str, BaseModel] | None = None,
+        **kwargs: Any,
+    ):
+        """Initialise the disturbance with shared data and core components.
+
+        Args:
+            data: A :class:`~virtual_ecosystem.core.data.Data` instance containing
+                variables to be used in the disturbance.
+            core_components: A
+                :class:`~virtual_ecosystem.core.core_components.CoreComponents`
+                instance containing shared core elements used throughout models.
+            static: A boolean flag indicating if the disturbance is static.
+            models: A dictionary of model instances that the disturbance will affect
+                directly, if any.
+            **kwargs: Further arguments to the disturbance.
+        """
+        if static:
+            raise ValueError(
+                "Disturbance models cannot be static. Please, use a non-static "
+                "disturbance model."
+            )
+        super().__init__(data, core_components, static, **kwargs)
+        self.models: dict[str, BaseModel] = models or {}
+        """A dictionary of model instances that the disturbance will affect directly."""
