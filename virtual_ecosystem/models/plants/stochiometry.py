@@ -18,6 +18,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pyrealm.demography.community import Cohorts, Community, Flora
 from pyrealm.demography.core import CohortMethods, PandasExporter
+from pyrealm.demography.flora import StemTraits
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
 from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
@@ -89,6 +90,27 @@ class Tissue(ABC):
     def element_turnover(self, allocation: StemAllocation) -> NDArray[np.float64]:
         """Calculate the element lost to turnover for the tissue type."""
 
+    @abstractmethod
+    def add_cohort(
+        self,
+        stem_allometry: StemAllometry,
+        extra_pft_traits: ExtraTraitsPFT,
+        new_pft_name: str,
+        element: str,
+        cohort: int,
+        stem_traits: StemTraits,
+    ) -> None:
+        """Add a cohort to the tissue type.
+
+        Args:
+            stem_allometry: The stem allometry object for the cohort.
+            extra_pft_traits: Additional traits specific to the plant functional type.
+            new_pft_name: The name of the new plant functional type.
+            element: The name of the element (e.g., "N" for nitrogen).
+            cohort: The index of the cohort to add.
+            stem_traits: The stem traits for the cohort.
+        """
+
 
 @dataclass
 class FoliageTissue(Tissue):
@@ -156,6 +178,42 @@ class FoliageTissue(Tissue):
             * ((1 / self.reclaim_ratio) - (1 / self.Cx_ratio))
         ).squeeze()
 
+    def add_cohort(
+        self,
+        stem_allometry: StemAllometry,
+        extra_pft_traits: ExtraTraitsPFT,
+        new_pft_name: str,
+        element: str,
+        cohort: int,
+        stem_traits: StemTraits,
+    ) -> None:
+        """Add a cohort to the foliage tissue type.
+
+        Args:
+            stem_allometry: The stem allometry object for the cohort.
+            extra_pft_traits: Additional traits specific to the plant functional type.
+            new_pft_name: The name of the new plant functional type.
+            element: The name of the element (e.g., "N" for nitrogen).
+            cohort: The index of the cohort to add.
+            stem_traits: The stem traits for the cohort.
+        """
+
+        self.reclaim_ratio = np.append(
+            self.reclaim_ratio,
+            extra_pft_traits.traits[new_pft_name][
+                f"leaf_turnover_c_{element.lower()}_ratio"
+            ],
+        )
+        self.actual_element_mass = np.append(
+            self.actual_element_mass, stem_allometry.foliage_mass[0][cohort]
+        )
+        self.ideal_ratio = np.append(
+            self.ideal_ratio,
+            extra_pft_traits.traits[stem_allometry.pft_names[cohort]][
+                f"foliage_c_{element.lower()}_ratio"
+            ],
+        )
+
 
 @dataclass
 class ReproductiveTissue(Tissue):
@@ -217,6 +275,35 @@ class ReproductiveTissue(Tissue):
         """
         return (allocation.reproductive_tissue_turnover * (1 / self.Cx_ratio)).squeeze()
 
+    def add_cohort(
+        self,
+        stem_allometry: StemAllometry,
+        extra_pft_traits: ExtraTraitsPFT,
+        new_pft_name: str,
+        element: str,
+        cohort: int,
+        stem_traits: StemTraits,
+    ) -> None:
+        """Add a cohort to the reproductive tissue type.
+
+        Args:
+            stem_allometry: The stem allometry object for the cohort.
+            extra_pft_traits: Additional traits specific to the plant functional type.
+            new_pft_name: The name of the new plant functional type.
+            element: The name of the element (e.g., "N" for nitrogen).
+            cohort: The index of the cohort to add.
+            stem_traits: The stem traits for the cohort.
+        """
+        self.actual_element_mass = np.append(
+            self.actual_element_mass, stem_allometry.reproductive_tissue_mass[0][cohort]
+        )
+        self.ideal_ratio = np.append(
+            self.ideal_ratio,
+            extra_pft_traits.traits[new_pft_name][
+                f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
+            ],
+        )
+
 
 @dataclass
 class WoodTissue(Tissue):
@@ -274,6 +361,35 @@ class WoodTissue(Tissue):
             The element lost to turnover for wood tissue.
         """
         return np.zeros(self.community.n_cohorts)
+
+    def add_cohort(
+        self,
+        stem_allometry: StemAllometry,
+        extra_pft_traits: ExtraTraitsPFT,
+        new_pft_name: str,
+        element: str,
+        cohort: int,
+        stem_traits: StemTraits,
+    ) -> None:
+        """Add a cohort to the wood tissue type.
+
+        Args:
+            stem_allometry: The stem allometry object for the cohort.
+            extra_pft_traits: Additional traits specific to the plant functional type.
+            new_pft_name: The name of the new plant functional type.
+            element: The name of the element (e.g., "N" for nitrogen).
+            cohort: The index of the cohort to add.
+            stem_traits: The stem traits for the cohort.
+        """
+        self.actual_element_mass = np.append(
+            self.actual_element_mass, stem_allometry.stem_mass[0][cohort]
+        )
+        self.ideal_ratio = np.append(
+            self.ideal_ratio,
+            extra_pft_traits.traits[new_pft_name][
+                f"deadwood_c_{element.lower()}_ratio"
+            ],
+        )
 
 
 @dataclass
@@ -343,6 +459,38 @@ class RootTissue(Tissue):
             The element lost to turnover for root tissue.
         """
         return (allocation.fine_root_turnover * (1 / self.Cx_ratio)).squeeze()
+
+    def add_cohort(
+        self,
+        stem_allometry: StemAllometry,
+        extra_pft_traits: ExtraTraitsPFT,
+        new_pft_name: str,
+        element: str,
+        cohort: int,
+        stem_traits: StemTraits,
+    ) -> None:
+        """Add a cohort to the root tissue type.
+
+        Args:
+            stem_allometry: The stem allometry object for the cohort.
+            extra_pft_traits: Additional traits specific to the plant functional type.
+            new_pft_name: The name of the new plant functional type.
+            element: The name of the element (e.g., "N" for nitrogen).
+            cohort: The index of the cohort to add.
+            stem_traits: The stem traits for the cohort.
+        """
+        self.actual_element_mass = np.append(
+            self.actual_element_mass,
+            stem_allometry.foliage_mass[0][cohort]
+            * stem_traits.zeta[cohort]
+            * stem_traits.sla[cohort],
+        )
+        self.ideal_ratio = np.append(
+            self.ideal_ratio,
+            extra_pft_traits.traits[new_pft_name][
+                f"root_turnover_c_{element.lower()}_ratio"
+            ],
+        )
 
 
 @dataclass
@@ -443,38 +591,14 @@ class StemStochiometry(CohortMethods, PandasExporter):
 
         for i in range(new_cohort_data.n_cohorts):
             for tissue in self.tissues:
-                if isinstance(tissue, WoodTissue):
-                    mass = new_stem_allometry.stem_mass[0][i]
-                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
-                        f"deadwood_c_{element.lower()}_ratio"
-                    ]
-                elif isinstance(tissue, FoliageTissue):
-                    mass = new_stem_allometry.foliage_mass[0][i]
-                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
-                        f"foliage_c_{element.lower()}_ratio"
-                    ]
-                    reclaim_ratio = self.extra_pft_traits.traits[
-                        new_cohort_data.pft_names[i]
-                    ][f"leaf_turnover_c_{element.lower()}_ratio"]
-                    tissue.reclaim_ratio = np.append(
-                        tissue.reclaim_ratio, reclaim_ratio
-                    )
-                elif isinstance(tissue, ReproductiveTissue):
-                    mass = new_stem_allometry.reproductive_tissue_mass[0][i]
-                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
-                        f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
-                    ]
-                elif isinstance(tissue, RootTissue):
-                    mass = (
-                        new_stem_allometry.foliage_mass[0][i]
-                        * new_stem_traits.zeta[i]
-                        * new_stem_traits.sla[i]
-                    )
-                    ratio = self.extra_pft_traits.traits[new_cohort_data.pft_names[i]][
-                        f"root_turnover_c_{element.lower()}_ratio"
-                    ]
-                tissue.actual_element_mass = np.append(tissue.actual_element_mass, mass)
-                tissue.ideal_ratio = np.append(tissue.ideal_ratio, ratio)
+                tissue.add_cohort(
+                    stem_allometry=new_stem_allometry,
+                    extra_pft_traits=self.extra_pft_traits,
+                    new_pft_name=new_cohort_data.pft_names[i],
+                    element=element,
+                    cohort=i,
+                    stem_traits=new_stem_traits,
+                )
 
             self.element_surplus = np.append(self.element_surplus, 0.0)
 
