@@ -779,6 +779,13 @@ class BaseDisturbance(
     configuration.
     """
 
+    disturbed_models: tuple[str, ...] = tuple()
+    """A tuple of model names that this disturbance will affect directly.
+
+    This is used to ensure that the disturbance is applied to the correct models and
+    to validate the disturbance configuration.
+    """
+
     def __init_subclass__(
         cls,
         model_name,
@@ -788,6 +795,7 @@ class BaseDisturbance(
         vars_required_for_update,
         vars_populated_by_init,
         vars_populated_by_first_update,
+        disturbed_models: tuple[str, ...] = tuple(),
     ):
         """Initialise subclasses deriving from BaseDisturbance."""
         if vars_populated_by_first_update or vars_populated_by_init:
@@ -804,6 +812,7 @@ class BaseDisturbance(
             tuple(),
             tuple(),
         )
+        cls.disturbed_models = disturbed_models
 
     def __init__(
         self,
@@ -814,6 +823,8 @@ class BaseDisturbance(
         **kwargs: Any,
     ):
         """Initialise the disturbance with shared data and core components.
+
+        This method **must** be called in the ``__init__`` method of all subclasses.
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance containing
@@ -828,9 +839,30 @@ class BaseDisturbance(
         """
         if static:
             raise ValueError(
-                "Disturbance models cannot be static. Please, use a non-static "
-                "disturbance model."
+                "Disturbance models cannot be static. Please, set the static flag "
+                "to False."
             )
         super().__init__(data, core_components, static, **kwargs)
-        self.models: dict[str, BaseModel] = models or {}
+
+        models = models or {}
+        if not set(models.keys()).issubset(self.disturbed_models):
+            raise ValueError(
+                f"Disturbance model {self.model_name} is configured to affect "
+                f"{self.disturbed_models}, but the provided models are "
+                f"{list(models.keys())}."
+            )
+        self.models: dict[str, BaseModel] = {
+            name: models[name] for name in self.disturbed_models
+        }
         """A dictionary of model instances that the disturbance will affect directly."""
+
+    @classmethod
+    @abstractmethod
+    def from_config(
+        cls,
+        data: Data,
+        core_components: CoreComponents,
+        config: Config,
+        models: dict[str, BaseModel] | None = None,
+    ) -> BaseModel:
+        """Factory function to unpack config and initialise a model instance."""
