@@ -116,6 +116,7 @@ def ve_run(
         progress: A Progress enum instance setting the level of output to be printed to
             the console when ve_run is running.
     """
+    from .core.base_model import BaseDisturbance
 
     # Mute the progress information when the log is written to stdout.
     if logfile is None:
@@ -225,6 +226,29 @@ def ve_run(
         model_name: models_init[model_name]
         for model_name in variables.get_model_order("update")
     }
+
+    # Add models not handled by the variable system, like those that do not update
+    # variables or require any variables to be updated, eg. disturbance models
+    # that just affect the state of a model
+    models_update.update(
+        {
+            model_name: model_instance
+            for model_name, model_instance in models_init.items()
+            if model_name not in models_update
+        }
+    )
+
+    # Ensure that all disturbance models are at the end of the update sequence
+    models_update = {
+        model_name: model_instance
+        for model_name, model_instance in models_update.items()
+        if not isinstance(model_instance, BaseDisturbance)
+    } | {
+        model_name: model_instance
+        for model_name, model_instance in models_update.items()
+        if isinstance(model_instance, BaseDisturbance)
+    }
+
     if progress > Progress.MINIMAL:
         print("* Starting simulation")
 
