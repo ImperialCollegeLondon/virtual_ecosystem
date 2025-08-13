@@ -209,9 +209,7 @@ class FoliageTissue(Tissue):
         )
         self.ideal_ratio = np.append(
             self.ideal_ratio,
-            extra_pft_traits.traits[stem_allometry.pft_names[cohort]][
-                f"foliage_c_{element.lower()}_ratio"
-            ],
+            extra_pft_traits.traits[new_pft_name][f"foliage_c_{element.lower()}_ratio"],
         )
 
 
