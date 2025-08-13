@@ -47,16 +47,37 @@ def initialise_models(
 
     Raises:
         InitialisationError: If one or more models cannot be properly configured
+
+    Returns:
+        A dictionary of configured models, keyed by model name.
     """
+    from .core.base_model import BaseDisturbance
 
     LOGGER.info("Initialising models: {}".format(",".join(models.keys())))
 
     # Use factory methods to configure the desired models
     failed_models = []
     models_cfd = {}
+    disturbance_models: list[tuple[str, type[BaseDisturbance]]] = []
+
+    # Loop through the models and try to configure them
+    # If a model is a disturbance model, it will be configured later
     for model_name, model_class in models.items():
+        if issubclass(model_class, BaseDisturbance):
+            disturbance_models.append((model_name, model_class))
+            continue
         try:
             this_model = model_class.from_config(data, core_components, config)
+            models_cfd[model_name] = this_model
+        except (InitialisationError, ConfigurationError):
+            failed_models.append(model_name)
+
+    # If there are disturbance models, configure them now
+    for model_name, model_class in disturbance_models:
+        try:
+            this_model = model_class.from_config(
+                data, core_components, config, models_cfd
+            )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
