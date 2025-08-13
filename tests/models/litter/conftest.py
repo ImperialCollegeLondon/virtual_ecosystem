@@ -61,47 +61,17 @@ def litter_chemistry(dummy_litter_data):
 
 
 @pytest.fixture
-def input_lignin(litter_inputs):
-    """Lignin proportion of the relevant input flows."""
-    from virtual_ecosystem.models.litter.chemistry import (
-        calculate_litter_input_lignin_concentrations,
-    )
+def input_chemistries(litter_inputs):
+    """Chemistries of each input flow."""
+    from virtual_ecosystem.models.litter.chemistry import calculate_input_chemistries
 
-    input_lignin = calculate_litter_input_lignin_concentrations(
-        litter_inputs=litter_inputs
-    )
-
-    return input_lignin
-
-
-@pytest.fixture
-def input_c_n_ratios(litter_inputs):
-    """Carbon:nitrogen ratio of each input flow."""
-    from virtual_ecosystem.models.litter.chemistry import (
-        calculate_litter_input_nitrogen_ratios,
-    )
-
-    input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+    input_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,
         struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
-    )
-
-    return input_c_n_ratios
-
-
-@pytest.fixture
-def input_c_p_ratios(litter_inputs):
-    """Carbon:nitrogen ratio of each input flow."""
-    from virtual_ecosystem.models.litter.chemistry import (
-        calculate_litter_input_phosphorus_ratios,
-    )
-
-    input_c_p_ratios = calculate_litter_input_phosphorus_ratios(
-        litter_inputs=litter_inputs,
         struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
     )
 
-    return input_c_p_ratios
+    return input_chemistries
 
 
 @pytest.fixture

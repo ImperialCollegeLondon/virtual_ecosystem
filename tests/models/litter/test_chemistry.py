@@ -63,7 +63,11 @@ def test_calculate_new_pool_chemistries(
 
 
 def test_calculate_new_lignin_proportions(
-    input_lignin, post_consumption_pools, litter_chemistry, litter_losses, litter_inputs
+    input_chemistries,
+    post_consumption_pools,
+    litter_chemistry,
+    litter_losses,
+    litter_inputs,
 ):
     """Test that the function to calculate the lignin updates works as expected."""
 
@@ -75,7 +79,7 @@ def test_calculate_new_lignin_proportions(
 
     actual_lignin = litter_chemistry.calculate_new_lignin_proportions(
         litter_inputs=litter_inputs,
-        input_lignin_proportions=input_lignin,
+        input_chemistries=input_chemistries,
         litter_losses=litter_losses,
         original_pools=post_consumption_pools,
         update_interval=2.0,
@@ -92,7 +96,7 @@ def test_calculate_updated_pool_nutrient_ratio(
     post_consumption_pools,
     litter_inputs,
     litter_losses,
-    input_c_n_ratios,
+    input_chemistries,
 ):
     """Test that calculation of updated pool nutrient ratios works as expected."""
     from virtual_ecosystem.models.litter.chemistry import (
@@ -106,7 +110,7 @@ def test_calculate_updated_pool_nutrient_ratio(
         input_carbon_rate=litter_inputs.above_metabolic,
         carbon_loss=litter_losses.above_metabolic_carbon,
         initial_c_nut_ratio=dummy_litter_data["c_n_ratio_above_metabolic"].to_numpy(),
-        input_c_nut_ratio=input_c_n_ratios["above_metabolic"],
+        input_c_nut_ratio=input_chemistries.above_metabolic_nitrogen,
         nutrient_loss=litter_losses.above_metabolic_nitrogen,
         update_interval=2.0,
     )
@@ -119,7 +123,7 @@ def test_calculate_updated_pool_lignin_proportion(
     post_consumption_pools,
     litter_inputs,
     litter_losses,
-    input_lignin,
+    input_chemistries,
 ):
     """Test that function to calculate chemistry changes works properly."""
     from virtual_ecosystem.models.litter.chemistry import (
@@ -135,7 +139,7 @@ def test_calculate_updated_pool_lignin_proportion(
         initial_lignin_proportion=dummy_litter_data[
             "lignin_above_structural"
         ].to_numpy(),
-        input_lignin_proportion=input_lignin["above_structural"],
+        input_lignin_proportion=input_chemistries.above_structural_lignin,
         lignin_loss=litter_losses.above_structural_lignin,
         update_interval=2.0,
     )
@@ -145,7 +149,7 @@ def test_calculate_updated_pool_lignin_proportion(
 
 def test_calculate_new_c_n_ratios(
     litter_inputs,
-    input_c_n_ratios,
+    input_chemistries,
     litter_chemistry,
     litter_losses,
     post_consumption_pools,
@@ -162,7 +166,7 @@ def test_calculate_new_c_n_ratios(
 
     actual_ratios = litter_chemistry.calculate_new_c_n_ratios(
         litter_inputs=litter_inputs,
-        input_c_n_ratios=input_c_n_ratios,
+        input_chemistries=input_chemistries,
         litter_losses=litter_losses,
         original_pools=post_consumption_pools,
         update_interval=2.0,
@@ -176,7 +180,7 @@ def test_calculate_new_c_n_ratios(
 
 def test_calculate_new_c_p_ratios(
     litter_inputs,
-    input_c_p_ratios,
+    input_chemistries,
     litter_chemistry,
     litter_losses,
     post_consumption_pools,
@@ -193,7 +197,7 @@ def test_calculate_new_c_p_ratios(
 
     actual_change = litter_chemistry.calculate_new_c_p_ratios(
         litter_inputs=litter_inputs,
-        input_c_p_ratios=input_c_p_ratios,
+        input_chemistries=input_chemistries,
         litter_losses=litter_losses,
         original_pools=post_consumption_pools,
         update_interval=2.0,
@@ -203,6 +207,69 @@ def test_calculate_new_c_p_ratios(
 
     for key in actual_change.keys():
         assert np.allclose(actual_change[key], expected_change[key])
+
+
+def test_calculate_input_chemistries(litter_inputs):
+    """Check that calculation of input chemistries is correct."""
+    from dataclasses import asdict
+
+    from virtual_ecosystem.models.litter.chemistry import calculate_input_chemistries
+
+    expected_chemistries = {
+        "woody_lignin": [0.233, 0.545, 0.612, 0.378],
+        "above_structural_lignin": [0.25011178, 0.25345463, 0.54339369, 0.61992378],
+        "below_structural_lignin": [0.48590258, 0.56412613, 0.54265483, 0.67810978],
+        "woody_nitrogen": [60.7, 57.9, 73.1, 55.1],
+        "below_metabolic_nitrogen": [
+            20.32269136,
+            22.96676383,
+            26.06473456,
+            19.59251036,
+        ],
+        "below_structural_nitrogen": [
+            101.61345679,
+            114.83381916,
+            130.32367278,
+            97.96255178,
+        ],
+        "above_metabolic_nitrogen": [12.540983, 21.600478, 20.237902, 15.403147],
+        "above_structural_nitrogen": [62.91002, 110.3194, 109.3635, 75.59183],
+        "woody_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "below_metabolic_phosphorus": [
+            440.4591226,
+            226.94788998,
+            263.23576031,
+            196.40039357,
+        ],
+        "below_structural_phosphorus": [
+            2202.29561299,
+            1134.7394499,
+            1316.17880156,
+            982.00196785,
+        ],
+        "above_metabolic_phosphorus": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_structural_phosphorus": [
+            1488.595406,
+            580.6433876,
+            1408.378272,
+            610.0666667,
+        ],
+    }
+
+    actual_chemistries = calculate_input_chemistries(
+        litter_inputs=litter_inputs,
+        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+    )
+
+    # Convert to a dict to check the values
+    actual_chemistries = asdict(actual_chemistries)
+
+    # Check that all keys match and have correct values for both dictionaries
+    assert set(expected_chemistries.keys()) == set(actual_chemistries.keys())
+
+    for key in actual_chemistries.keys():
+        assert np.allclose(actual_chemistries[key], expected_chemistries[key])
 
 
 def test_calculate_litter_input_lignin_concentrations(litter_inputs):
@@ -219,9 +286,13 @@ def test_calculate_litter_input_lignin_concentrations(litter_inputs):
         litter_inputs=litter_inputs,
     )
 
-    assert np.allclose(actual_concs["woody"], expected_woody)
-    assert np.allclose(actual_concs["above_structural"], expected_concs_above_struct)
-    assert np.allclose(actual_concs["below_structural"], expected_concs_below_struct)
+    assert np.allclose(actual_concs["woody_lignin"], expected_woody)
+    assert np.allclose(
+        actual_concs["above_structural_lignin"], expected_concs_above_struct
+    )
+    assert np.allclose(
+        actual_concs["below_structural_lignin"], expected_concs_below_struct
+    )
 
 
 def test_calculate_litter_input_nitrogen_ratios(litter_inputs):
@@ -231,11 +302,21 @@ def test_calculate_litter_input_nitrogen_ratios(litter_inputs):
     )
 
     expected_c_n_ratios = {
-        "woody": [60.7, 57.9, 73.1, 55.1],
-        "below_metabolic": [20.32269136, 22.96676383, 26.06473456, 19.59251036],
-        "below_structural": [101.61345679, 114.83381916, 130.32367278, 97.96255178],
-        "above_metabolic": [12.540983, 21.600478, 20.237902, 15.403147],
-        "above_structural": [62.91002, 110.3194, 109.3635, 75.59183],
+        "woody_nitrogen": [60.7, 57.9, 73.1, 55.1],
+        "below_metabolic_nitrogen": [
+            20.32269136,
+            22.96676383,
+            26.06473456,
+            19.59251036,
+        ],
+        "below_structural_nitrogen": [
+            101.61345679,
+            114.83381916,
+            130.32367278,
+            97.96255178,
+        ],
+        "above_metabolic_nitrogen": [12.540983, 21.600478, 20.237902, 15.403147],
+        "above_structural_nitrogen": [62.91002, 110.3194, 109.3635, 75.59183],
     }
 
     actual_c_n_ratios = calculate_litter_input_nitrogen_ratios(
@@ -256,11 +337,26 @@ def test_calculate_litter_input_phosphorus_ratios(litter_inputs):
     )
 
     expected_c_p_ratios = {
-        "woody": [856.5, 675.4, 933.2, 888.8],
-        "below_metabolic": [440.4591226, 226.94788998, 263.23576031, 196.40039357],
-        "below_structural": [2202.29561299, 1134.7394499, 1316.17880156, 982.00196785],
-        "above_metabolic": [286.886303, 107.015923, 241.802298, 136.049497],
-        "above_structural": [1488.595406, 580.6433876, 1408.378272, 610.0666667],
+        "woody_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "below_metabolic_phosphorus": [
+            440.4591226,
+            226.94788998,
+            263.23576031,
+            196.40039357,
+        ],
+        "below_structural_phosphorus": [
+            2202.29561299,
+            1134.7394499,
+            1316.17880156,
+            982.00196785,
+        ],
+        "above_metabolic_phosphorus": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_structural_phosphorus": [
+            1488.595406,
+            580.6433876,
+            1408.378272,
+            610.0666667,
+        ],
     }
 
     actual_c_p_ratios = calculate_litter_input_phosphorus_ratios(
