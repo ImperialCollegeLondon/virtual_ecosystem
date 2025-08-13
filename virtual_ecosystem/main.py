@@ -172,6 +172,16 @@ def ve_run(
         for model_name in variables.get_model_order("init")
     }
 
+    # Add models not handled by the variable system, like those that do not init
+    # any variables or require any variables to be set up, eg. the testing model.
+    init_sequence.update(
+        {
+            model_name: model_class
+            for model_name, model_class in config.model_classes.items()
+            if model_name not in init_sequence
+        }
+    )
+
     models_init = initialise_models(
         config=config,
         data=data,

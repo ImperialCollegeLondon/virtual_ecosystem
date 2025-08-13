@@ -58,7 +58,7 @@ class TestingModel(
         """
 
         # Load in the relevant constants
-        static = config["tesing"]["static"]
+        static = config["testing"].get("static", False)
 
         # Create the instance
         inst = cls(
