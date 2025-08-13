@@ -6,7 +6,7 @@ import random
 import uuid
 from _collections_abc import Callable
 from math import ceil, exp, sqrt
-from typing import Literal
+from typing import Literal, TypeVar
 
 from numpy import timedelta64
 
@@ -24,6 +24,8 @@ from virtual_ecosystem.models.animal.decay import (
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.protocols import Resource
+
+_T = TypeVar("_T", covariant=False)
 
 
 class AnimalCohort:
@@ -1092,7 +1094,7 @@ class AnimalCohort:
         return self.forage_resource_list(
             resources=mushroom_list,
             adjusted_dt=adjusted_dt,
-            calculate_consumed_mass=self.default_consumed_resource_mass,
+            calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
         )
 
@@ -1459,53 +1461,102 @@ class AnimalCohort:
         """
         return self.match_vertical(resource.vertical_occupancy)
 
+    def _get_resources_in_territory(
+        self,
+        resource_map: dict[int, list[_T]],
+        filter_fn: Callable[[_T], bool] | None = None,
+    ) -> list[_T]:
+        """Generic method to retrieve resources from territory with optional filtering.
+
+        Args:
+            resource_map: Dictionary keyed by cell_id, values can be individual
+              resources or lists.
+            filter_fn: Optional callable to filter the resources.
+
+        Returns:
+            Flat list of resources in the cohort's territory.
+        """
+        result: list[_T] = []
+
+        for cell_id in self.territory:
+            if cell_id in resource_map:
+                entries = resource_map[cell_id]
+                if filter_fn:
+                    entries = [r for r in entries if filter_fn(r)]
+                result.extend(entries)
+
+        return result
+
     def get_plant_resources(
         self, plant_resources: dict[int, list[Resource]]
     ) -> list[Resource]:
         """Return plant resources accessible within this cohort's territory.
 
+        This method filters the plant resources by territory and the cohort's
+        foraging capability (via `can_forage_on`).
+
         Args:
-            plant_resources: Dictionary of plant resources keyed by grid cell IDs.
+            plant_resources: A dictionary mapping cell IDs to lists of plant
+                resource objects.
 
         Returns:
-            List of accessible Resource objects within the territory.
+            A list of plant Resource objects that the cohort can forage on.
         """
-        plant_resources_in_territory: list[Resource] = []
-
-        # Iterate over all grid cell keys in this territory
-        for cell_id in self.territory:
-            # Check if the cell_id is within the provided plant resources
-            if cell_id in plant_resources:
-                for resource in plant_resources[cell_id]:
-                    if self.can_forage_on(resource):
-                        plant_resources_in_territory.append(resource)
-
-        return plant_resources_in_territory
+        return self._get_resources_in_territory(plant_resources, self.can_forage_on)
 
     def get_excrement_pools(
         self, excrement_pools: dict[int, list[ExcrementPool]]
     ) -> list[ExcrementPool]:
-        """Returns a list of excrement pools in this territory.
+        """Return excrement pools within the cohort's territory.
 
-        This method checks which grid cells are within this territory
-        and returns a list of the excrement pools available in those grid cells.
+        This method returns all ExcrementPool objects that are located in grid
+        cells occupied by the cohort.
 
         Args:
-            excrement_pools: A dictionary of excrement pools where keys are grid
-                cell IDs.
+            excrement_pools: A dictionary mapping cell IDs to lists of ExcrementPool
+                objects.
 
         Returns:
-            A list of ExcrementPool objects in this territory.
+            A list of ExcrementPool objects in the cohort's territory.
         """
-        excrement_pools_in_territory: list[ExcrementPool] = []
+        return self._get_resources_in_territory(excrement_pools)
 
-        # Iterate over all grid cell keys in this territory
-        for cell_id in self.territory:
-            # Check if the cell_id is within the provided excrement pools
-            if cell_id in excrement_pools:
-                excrement_pools_in_territory.extend(excrement_pools[cell_id])
+    def get_carcass_pools(
+        self, carcass_pools: dict[int, list[CarcassPool]]
+    ) -> list[CarcassPool]:
+        """Return carcass pools within the cohort's territory.
 
-        return excrement_pools_in_territory
+        This method returns all CarcassPool objects located in grid cells
+        that the cohort occupies.
+
+        Args:
+            carcass_pools: A dictionary mapping cell IDs to lists of CarcassPool
+                objects.
+
+        Returns:
+            A list of CarcassPool objects in the cohort's territory.
+        """
+        return self._get_resources_in_territory(carcass_pools)
+
+    def find_intersecting_carcass_pools(
+        self,
+        prey_territory: list[int],
+        carcass_pools: dict[int, list[CarcassPool]],
+    ) -> list[CarcassPool]:
+        """Find the carcass pools of the intersection of two territories.
+
+        Args:
+            prey_territory: Another AnimalTerritory to find the intersection with.
+            carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
+
+        Returns:
+            A list of CarcassPools in the intersecting grid cells.
+        """
+        intersecting_keys = set(self.territory) & set(prey_territory)
+        intersecting_carcass_pools: list[CarcassPool] = []
+        for cell_id in intersecting_keys:
+            intersecting_carcass_pools.extend(carcass_pools[cell_id])
+        return intersecting_carcass_pools
 
     def get_herbivory_waste_pools(
         self, plant_waste: dict[int, HerbivoryWaste]
@@ -1531,51 +1582,6 @@ class AnimalCohort:
                 plant_waste_pools_in_territory.append(plant_waste[cell_id])
 
         return plant_waste_pools_in_territory
-
-    def get_carcass_pools(
-        self, carcass_pools: dict[int, list[CarcassPool]]
-    ) -> list[CarcassPool]:
-        """Returns a list of carcass pools in this territory.
-
-        This method checks which grid cells are within this territory
-        and returns a list of the carcass pools available in those grid cells.
-
-        Args:
-            carcass_pools: A dictionary of carcass pools where keys are grid
-                cell IDs.
-
-        Returns:
-            A list of CarcassPool objects in this territory.
-        """
-        carcass_pools_in_territory: list[CarcassPool] = []
-
-        # Iterate over all grid cell keys in this territory
-        for cell_id in self.territory:
-            # Check if the cell_id is within the provided carcass pools
-            if cell_id in carcass_pools:
-                carcass_pools_in_territory.extend(carcass_pools[cell_id])
-
-        return carcass_pools_in_territory
-
-    def find_intersecting_carcass_pools(
-        self,
-        prey_territory: list[int],
-        carcass_pools: dict[int, list[CarcassPool]],
-    ) -> list[CarcassPool]:
-        """Find the carcass pools of the intersection of two territories.
-
-        Args:
-            prey_territory: Another AnimalTerritory to find the intersection with.
-            carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
-
-        Returns:
-            A list of CarcassPools in the intersecting grid cells.
-        """
-        intersecting_keys = set(self.territory) & set(prey_territory)
-        intersecting_carcass_pools: list[CarcassPool] = []
-        for cell_id in intersecting_keys:
-            intersecting_carcass_pools.extend(carcass_pools[cell_id])
-        return intersecting_carcass_pools
 
     def is_migration_season(self) -> bool:
         """Handles determination of whether it is time to migrate.
