@@ -896,8 +896,10 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": str(Path("path/to/config/file.txt").absolute()),
-                "other_path": str(Path("path/to/config/file2.txt").absolute()),
+                "file1_path": str(Path("path/to/config/file.txt").resolve().absolute()),
+                "other_path": str(
+                    Path("path/to/config/file2.txt").resolve().absolute()
+                ),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -913,8 +915,8 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": str(Path("path/to/config/file.txt").absolute()),
-                "other_path": str(Path("path/file2.txt").absolute()),
+                "file1_path": str(Path("path/to/config/file.txt").resolve().absolute()),
+                "other_path": str(Path("path/file2.txt").resolve().absolute()),
                 "foo": "bar",
                 "baz": 6,
             },
@@ -929,9 +931,9 @@ def test__resolve_config_paths_file_locations(
             },
             does_not_raise(),
             {
-                "file1_path": str(Path("path/to/config/file.txt").absolute()),
+                "file1_path": str(Path("path/to/config/file.txt").resolve().absolute()),
                 "nested": {
-                    "other_path": str(Path("path/file2.txt").absolute()),
+                    "other_path": str(Path("path/file2.txt").resolve().absolute()),
                     "foo": "bar",
                 },
                 "baz": 6,
