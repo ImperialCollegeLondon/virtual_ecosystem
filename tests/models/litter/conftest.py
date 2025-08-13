@@ -55,7 +55,7 @@ def litter_chemistry(dummy_litter_data):
     """LitterChemistry object to be use throughout testing."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 
-    litter_chemistry = LitterChemistry(dummy_litter_data, constants=LitterConsts)
+    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     return litter_chemistry
 
@@ -63,7 +63,7 @@ def litter_chemistry(dummy_litter_data):
 @pytest.fixture
 def input_chemistries(litter_inputs):
     """Chemistries of each input flow."""
-    from virtual_ecosystem.models.litter.chemistry import calculate_input_chemistries
+    from virtual_ecosystem.models.litter.inputs import calculate_input_chemistries
 
     input_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,

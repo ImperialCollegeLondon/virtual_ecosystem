@@ -45,7 +45,10 @@ from virtual_ecosystem.models.litter.carbon import (
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.inputs import LitterInputs
+from virtual_ecosystem.models.litter.inputs import (
+    LitterInputs,
+    calculate_input_chemistries,
+)
 from virtual_ecosystem.models.litter.losses import calculate_litter_losses
 
 
@@ -290,7 +293,7 @@ class LitterModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.litter_chemistry = LitterChemistry(self.data, constants=model_constants)
+        self.litter_chemistry = LitterChemistry(self.data)
         self.model_constants = model_constants
 
     def spinup(self) -> None:
@@ -352,6 +355,12 @@ class LitterModel(
             ).magnitude,
         )
 
+        input_chemistries = calculate_input_chemistries(
+            litter_inputs=litter_inputs,
+            struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
+            struct_to_meta_phosphorus_ratio=self.model_constants.structural_to_metabolic_p_ratio,
+        )
+
         # Calculate the updated pool masses
         updated_pools = calculate_updated_pools(
             post_consumption_pools=consumed_pools,
@@ -377,6 +386,7 @@ class LitterModel(
         updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
             litter_inputs=litter_inputs,
             litter_losses=litter_losses,
+            input_chemistries=input_chemistries,
             original_pools=consumed_pools,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
