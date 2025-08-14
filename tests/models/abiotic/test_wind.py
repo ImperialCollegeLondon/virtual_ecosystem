@@ -162,7 +162,7 @@ def test_calculate_mixing_coefficients():
 
 
 def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
-    """Test mixing and ventilation."""
+    """Test mixing and ventilation within bounds."""
 
     from virtual_ecosystem.models.abiotic.abiotic_tools import (
         compute_layer_thickness_for_varying_canopy,
@@ -191,18 +191,28 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     )
     ventilation_rate = np.array([0.001, 0.001, 0.001, 0.001])
 
+    input_humidity = np.array(
+        [
+            [95.0, 95.0, 95.0, 95.0],
+            [100.0, 100.0, 100.0, 100.0],
+            [100.0, 100.0, 100.0, 100.0],
+            [90.0, 90.0, 90.0, 90.0],
+            [100.0, 100.0, 100.0, 100.0],
+        ],
+    )
+
     exp_result = np.array(
         [
-            [86.03263722, 86.03263722, 87.09488801, 87.09488801],
-            [95.06940799, 95.06940799, 93.71208754, 93.71208754],
-            [92.23377781, 93.20993979, np.nan, np.nan],
-            [96.50329826, np.nan, np.nan, np.nan],
+            [94.82, 94.82, 94.979866, 94.979866],
+            [100.0, 100.0, 100.0, 100.0],
+            [99.64, 98.909118, np.nan, np.nan],
+            [98.08080808, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ]
     )
 
     result = mix_and_ventilate(
-        input_variable=data["relative_humidity"][atm_index].to_numpy(),
+        input_variable=input_humidity,
         layer_thickness=above_ground_layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,

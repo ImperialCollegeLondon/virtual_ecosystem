@@ -364,17 +364,36 @@ def mix_and_ventilate(
     vent_max_change = 0.1 * abs(input_variable[0])
     vent_change = np.clip(vent_change, -vent_max_change, vent_max_change)
 
-    # Update the current values and return
+    # Update the current values
     input_variable_mixed[0] += vent_change
+    input_variable_mixed[1] -= vent_change
 
-    # Prevent overshoot
-    overshoot = np.where(
-        input_variable_mixed[0] > limits[1], input_variable_mixed[0] - limits[1], 0
-    )
-    undershoot = np.where(
-        input_variable_mixed[0] < limits[0], input_variable_mixed[0] + limits[0], 0
-    )
-    input_variable_mixed[1] -= vent_change + overshoot + undershoot
+    # Identify overshoot and undershoot amounts
+    n_layers, n_cells = input_variable_mixed.shape
+
+    # Process from bottom to top
+    for layer in range(n_layers - 1, 0, -1):
+        val = input_variable_mixed[layer, :]
+
+        # Skip NaN layers entirely
+        valid_mask = ~np.isnan(val)
+
+        # Calculate overshoot and undershoot for valid layers
+        overshoot = np.where(valid_mask & (val > limits[1]), val - limits[1], 0)
+        undershoot = np.where(valid_mask & (val < limits[0]), val - limits[0], 0)
+        excess = overshoot + undershoot
+
+        # Reduce current layer to limit if not NaN
+        input_variable_mixed[layer, valid_mask] -= excess[valid_mask]
+
+        # Find the next valid layer above for each cell
+        for cell_id in range(n_cells):
+            if excess[cell_id] != 0:
+                j = layer - 1
+                while j >= 0 and np.isnan(input_variable_mixed[j, cell_id]):
+                    j -= 1
+                if j >= 0:  # Found a valid layer above
+                    input_variable_mixed[j, cell_id] += excess[cell_id]
 
     return input_variable_mixed
 

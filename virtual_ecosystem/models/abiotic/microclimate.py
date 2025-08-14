@@ -204,8 +204,9 @@ def run_microclimate(
     # If hourly input data is provided, iterate over day, else equilibrium assumption
     hourly_time_interval = max(int(time_interval / core_constants.seconds_to_hour), 1)
 
-    # TODO enable daily input in data object and select time index
-    # and return averages over the VE time interval, similar to hydrology
+    # TODO Run diurnal cycle
+    # enable hourly input in data object, select by time index, iterate over hours,
+    # and return averages/min/max over the VE time interval, similar to hydrology
     if core_constants.seconds_to_hour <= time_interval <= core_constants.seconds_to_day:
         iteration = hourly_time_interval
 
