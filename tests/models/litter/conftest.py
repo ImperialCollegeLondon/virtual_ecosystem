@@ -159,7 +159,11 @@ def litter_inputs(dummy_litter_data):
 
 @pytest.fixture
 def litter_losses(
-    dummy_litter_data, post_consumption_pools, updated_pools, litter_inputs
+    dummy_litter_data,
+    post_consumption_pools,
+    updated_pools,
+    litter_inputs,
+    input_chemistries,
 ):
     """Complete set of losses from the litter pools."""
     from virtual_ecosystem.models.litter.losses import calculate_litter_losses
@@ -169,6 +173,7 @@ def litter_losses(
         original_pools=post_consumption_pools,
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
+        input_chemistries=input_chemistries,
         update_interval=2.0,
         active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
     )

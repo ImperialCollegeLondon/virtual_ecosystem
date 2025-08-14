@@ -1,12 +1,17 @@
 """Test module for models.litter.losses.py."""
 
 import numpy as np
+import pytest
 
 from virtual_ecosystem.core.constants import CoreConsts
 
 
 def test_calculate_litter_losses(
-    dummy_litter_data, post_consumption_pools, updated_pools, litter_inputs
+    dummy_litter_data,
+    post_consumption_pools,
+    updated_pools,
+    litter_inputs,
+    input_chemistries,
 ):
     """Test that function to calculate all litter pool losses works correctly."""
     from dataclasses import asdict
@@ -41,6 +46,7 @@ def test_calculate_litter_losses(
         original_pools=post_consumption_pools,
         final_pools=updated_pools,
         litter_inputs=litter_inputs,
+        input_chemistries=input_chemistries,
         update_interval=2.0,
         active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
     )
@@ -71,3 +77,79 @@ def test_calculate_carbon_pool_loss(
     )
 
     assert np.allclose(actual_loss, expected_loss)
+
+
+@pytest.mark.parametrize(
+    "carbon_loss,expected_nutrient_loss",
+    [
+        pytest.param(
+            np.array([0.00924801, 0.00456158, 0.00226926, 0.00218688]),
+            [0.00126685, 0.00052432, 0.00022468, 0.00022315],
+            id="standard_loss",
+        ),
+        pytest.param(
+            np.array([0.32449688, 0.15805352, 0.08320238, 0.0776660]),
+            [0.04304924, 0.01761422, 0.00758305, 0.00764055],
+            id="high_loss",
+        ),
+    ],
+)
+def test_calculate_nutrient_pool_loss(
+    dummy_litter_data,
+    post_consumption_pools,
+    litter_inputs,
+    input_chemistries,
+    carbon_loss,
+    expected_nutrient_loss,
+):
+    """Test that function to calculate total carbon loss from a pool works correctly."""
+    from virtual_ecosystem.models.litter.losses import calculate_nutrient_pool_loss
+
+    actual_nutrient_loss = calculate_nutrient_pool_loss(
+        initial_pool_size=post_consumption_pools["above_metabolic"],
+        carbon_loss=carbon_loss,
+        input_rate=litter_inputs.above_metabolic,
+        initial_carbon_nutrient_ratio=dummy_litter_data["c_n_ratio_above_metabolic"],
+        input_carbon_nutrient_ratio=input_chemistries.above_metabolic_nitrogen,
+        update_interval=2.0,
+    )
+
+    assert np.allclose(actual_nutrient_loss, expected_nutrient_loss)
+
+
+@pytest.mark.parametrize(
+    "carbon_loss,expected_lignin_loss",
+    [
+        pytest.param(
+            np.array([0.00033659, 0.00123865, 2.38e-5, 2.553e-5]),
+            [0.000168295, 0.000123865, 1.666e-5, 1.7871e-5],
+            id="standard_loss",
+        ),
+        pytest.param(
+            np.array([0.50553312, 0.25184648, 0.10319762, 0.117284]),
+            [0.251383899, 0.025468, 0.0701715, 0.079914],
+            id="high_loss",
+        ),
+    ],
+)
+def test_calculate_lignin_pool_loss(
+    dummy_litter_data,
+    post_consumption_pools,
+    litter_inputs,
+    input_chemistries,
+    carbon_loss,
+    expected_lignin_loss,
+):
+    """Test that function to calculate total carbon loss from a pool works correctly."""
+    from virtual_ecosystem.models.litter.losses import calculate_lignin_pool_loss
+
+    actual_lignin_loss = calculate_lignin_pool_loss(
+        initial_pool_size=post_consumption_pools["above_structural"],
+        carbon_loss=carbon_loss,
+        input_rate=litter_inputs.above_structural,
+        initial_lignin_proportion=dummy_litter_data["lignin_above_structural"],
+        input_lignin_proportion=input_chemistries.above_structural_lignin,
+        update_interval=2.0,
+    )
+
+    assert np.allclose(actual_lignin_loss, expected_lignin_loss)

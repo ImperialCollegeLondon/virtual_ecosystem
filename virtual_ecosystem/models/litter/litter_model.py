@@ -375,6 +375,7 @@ class LitterModel(
             original_pools=consumed_pools,
             final_pools=updated_pools,
             litter_inputs=litter_inputs,
+            input_chemistries=input_chemistries,
             data=self.data,
             update_interval=self.model_timing.update_interval_quantity.to(
                 "day"
