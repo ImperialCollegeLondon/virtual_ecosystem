@@ -809,8 +809,8 @@ class BaseDisturbance(
             vars_required_for_init,
             vars_updated,
             vars_required_for_update,
-            tuple(),
-            tuple(),
+            vars_populated_by_init=(),
+            vars_populated_by_first_update=(),
         )
         cls.disturbed_models = disturbed_models
 
