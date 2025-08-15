@@ -356,8 +356,8 @@ def calculate_litter_chemistry_factor(
     This expression is taken from :cite:t:`kirschbaum_modelling_2002`.
 
     Args:
-        lignin_proportion: The proportion of the polymers in the litter pool that are
-            lignin (or similar) [unitless]
+        lignin_proportion: The proportion of litter pool carbon that is held in the form
+            of lignin (or similar polymers) [kg lignin C (kg C)^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
             lignin inhibits the breakdown of litter [unitless]
 
@@ -439,7 +439,8 @@ def calculate_updated_pool_lignin_proportion(
         update_interval: The update interval for the litter model [days]
 
     Returns:
-        The new carbon nutrient ratio at the end of the update interval [unitless]
+        The new lignin proportion at the end of the update interval
+        [kg lignin C (kg C)^-1]
     """
 
     input_carbon_total = input_carbon_rate * update_interval

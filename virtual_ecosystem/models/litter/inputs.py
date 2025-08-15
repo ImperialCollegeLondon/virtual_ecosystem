@@ -29,13 +29,13 @@ class LitterInputs:
     """Total plant reproductive tissue input rate to litter [kg C m^-2 day^-1]"""
 
     leaf_lignin: NDArray[np.floating]
-    """Lignin proportion of leaf input [unitless]"""
+    """Lignin proportion of leaf input [kg lignin C (kg C)^-1]"""
     root_lignin: NDArray[np.floating]
-    """Lignin proportion of root input [unitless]"""
+    """Lignin proportion of root input [kg lignin C (kg C)^-1]"""
     stem_lignin: NDArray[np.floating]
-    """Lignin proportion of deadwood input [unitless]"""
+    """Lignin proportion of deadwood input [kg lignin C (kg C)^-1]"""
     reprod_lignin: NDArray[np.floating]
-    """Lignin proportion of reproductive tissue input [unitless]"""
+    """Lignin proportion of reproductive tissue input [kg lignin C (kg C)^-1]"""
 
     leaf_nitrogen: NDArray[np.floating]
     """Carbon nitrogen ratio of leaf input [unitless]"""
@@ -136,9 +136,10 @@ def combine_input_sources(
             [days]
 
     Returns:
-        A dictionary containing the total pool size for each input pools [kg C
-        m^-3], as well as the chemistry proportions (lignin, nitrogen and
-        phosphorus) of each of these pools [unitless].
+        A dictionary containing the total pool size for each input pools [kg C m^-3], as
+        well as the carbon to nitrogen ratios [unitless], carbon to phosphorus ratios
+        [unitless] and lignin proportions [kg lignin C (kg C)^-1] of each of these
+        pools.
     """
 
     # Calculate totals for each plant matter type
@@ -215,9 +216,10 @@ def calculate_metabolic_proportions_of_input(
     inputs either as they all flow into just the metabolic pool.
 
     Args:
-        total_input: The total pool size for each input pool [kg C m^-3], as well as
-            the chemical proportions (lignin, nitrogen and phosphorus) of each of these
-            pools [unitless].
+        total_input: The total pool size for each input pools [kg C m^-3], as
+            well as the carbon to nitrogen ratios [unitless], carbon to phosphorus
+            ratios [unitless] and lignin proportions [kg lignin C (kg C)^-1] of each of
+            these pools.
         constants: Set of constants for the litter model.
 
     Returns:
@@ -274,9 +276,10 @@ def partion_plant_inputs_between_pools(
     concentration and carbon nitrogen ratios.
 
     Args:
-        total_input: The total pool size for each input pool [kg C m^-2], as well as
-            the chemical proportions (lignin, nitrogen and phosphorus) of each of
-            these pools [unitless].
+        total_input: The the total pool size for each input pools [kg C m^-3], as
+            well as the carbon to nitrogen ratios [unitless], carbon to phosphorus
+            ratios [unitless] and lignin proportions [kg lignin C (kg C)^-1] of each of
+            these pools.
         metabolic_splits: Dictionary containing the proportion of each input that
             goes to the relevant metabolic pool. This is for three input types:
             leaves, reproductive tissues and roots [unitless]
@@ -328,8 +331,8 @@ def split_pool_into_metabolic_and_structural_litter(
     functional form is taken from :cite:t:`parton_dynamics_1988`.
 
     Args:
-        lignin_proportion: Proportion of input biomass carbon that is lignin [kg lignin
-            kg C^-1]
+        lignin_proportion: Proportion of input biomass carbon that is lignin
+            [kg lignin C (kg C)^-1]
         carbon_nitrogen_ratio: Ratio of carbon to nitrogen for the input biomass
             [unitless]
         carbon_phosphorus_ratio: Ratio of carbon to phosphorus for the input biomass
@@ -393,8 +396,8 @@ def merge_input_lignin_proportions(
             mechanical inefficiencies of herbivory [unitless]
 
     Returns:
-        The proportion of carbon that is lignin in the total mass of the new combined
-        input stream [unitless]
+        The proportion of carbon that is lignin carbon in the total mass of the new
+        combined input stream [kg lignin C (kg C)^-1]
     """
 
     return (
@@ -541,7 +544,7 @@ def calculate_litter_input_lignin_concentrations(
     Returns:
         Dictionary containing the lignin concentration of the input to each of the
         three lignin containing litter pools (woody, above and below ground
-        structural) [kg lignin kg C^-1]
+        structural) [kg lignin C (kg C)^-1]
     """
 
     lignin_proportion_woody = litter_inputs.stem_lignin

@@ -91,10 +91,11 @@ def calculate_decay_rates(
 
     Args:
         lignin_above_structural: Proportion of above ground structural pool which is
-            lignin [unitless]
-        lignin_woody: Proportion of dead wood pool which is lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
+        lignin_woody: Proportion of dead wood pool which is lignin
+            [kg lignin C (kg C)^-1]
         lignin_below_structural: Proportion of below ground structural pool which is
-            lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
         air_temperatures: Air temperatures, for all above ground layers [C]
         soil_temperatures: Soil temperatures, for all soil layers [C]
         water_potentials: Water potentials, for all soil layers [kPa]
@@ -340,7 +341,7 @@ def calculate_litter_decay_structural_above(
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
         lignin_proportion: The proportion of the above ground structural pool which is
-            lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
         litter_decay_coefficient: The decay coefficient for the above ground structural
             litter pool [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
@@ -371,7 +372,7 @@ def calculate_litter_decay_woody(
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
         lignin_proportion: The proportion of the woody litter pool which is lignin
-            [unitless]
+            [kg lignin C (kg C)^-1]
         litter_decay_coefficient: The decay coefficient for the woody litter pool
             [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
@@ -429,7 +430,7 @@ def calculate_litter_decay_structural_below(
         moisture_factor: A multiplicative factor capturing the impact of soil moisture
             on litter decomposition [unitless]
         lignin_proportion: The proportion of the below ground structural pool which is
-            lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
         litter_decay_coefficient: The decay coefficient for the below ground structural
             litter pool [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
