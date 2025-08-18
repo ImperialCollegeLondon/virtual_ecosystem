@@ -97,7 +97,7 @@ reason, we consider only lignin concentration to have a direct impact on decay r
 order to capture the impact of lignin on decay, decay rates are reduced by multiplying
 them with a factor that takes the following form
 
-$$I_L = \exp{(rL)},$$
+$$f_l(L) = \exp{(rL)},$$
 
 where $L$ is the proportion of the litter pool which is lignin and $r$ is a (negative)
 empirical constant setting the strength of the inhibition. This choice of function form
@@ -119,6 +119,63 @@ stream $i$, $P_i$ is the carbon:phosphorus ratio of input stream $i$, $s_N$ para
 the responsiveness of the split to changes in the product of lignin proportion and
 carbon:nitrogen ratio, and $s_P$ parametrises the responsiveness of the split to changes
 in the product of lignin proportion and carbon:phosphorus ratio.
+
+## Litter decay dynamics
+
+The decay of all litter pools are assumed to follow linear kinetics, with the rate of
+change of litter pool $j$ being given by
+
+$$\frac{dP_j}{dt} = I_j - K_j(T,\psi,L)P_j,$$
+
+where $I_j$ is the rate of input to pool $j$ (in carbon terms), $T$ is the temperature,
+$\psi$ and $K_j(T,\psi,L)$ is the decay rate of the pool. The decay rate of the pool
+will always depend on temperature, but only for the below-ground pools will it be
+affected by soil water potential. Further, lignin content only affects the decay rates
+of pools which contain lignin (i.e. structural and lignin). As an example, the decay
+rate of the below-ground structural litter pool is calculated as
+
+$$K_{bs}(T,\psi,L) = k_{bs} * f_t(T) * A(\psi) * f_l(L),$$
+
+where $k_{bs}$ is the decay rate constant for the below-ground structural litter pool,
+$f_l(L)$ is a factor (defined above) capturing the impact of lignin on decay rate,
+$f_t(T)$ is a [factor capturing the effect of soil temperature on decay
+rates](./environmental_links.md#litter-decay-temperature-response), and $A(\psi)$ is a
+[factor capturing the effect of soil moisture on decay
+rates](./environmental_links.md#litter-decay-moisture-response).
+
+The dynamics defined above are analytically solvable provided that the input does not
+vary over the timescale of interest. Because of this, the litter model does not
+numerically integrate the dynamics and instead just uses the exact solution for the
+litter pool size at the end of the model update interval ($\tau$). This solution can be
+expressed as
+
+$$
+P_j(\tau) = \frac{I_j}{K_j(T,\psi,L)} - \left(\frac{I_j}{K_j(T,\psi,L)} -
+    P_{j,0}\right) e^{-K_j(T,\psi,L)\tau},
+$$
+
+where $P_{j,0}$ is the size of litter pool $j$ at the start of the update interval. We
+don't use comparable exact solutions for the nitrogen, phosphorus and lignin dynamics.
+Instead, we estimate the loss of each chemical based on the loss of carbon. This
+estimation assumes that old litter (i.e. litter that is there at the start of the time
+step) decays first and that litter added during the update only decays if the total
+decay of litter exceeds the initial litter pool size. Total loss of the chemicals is
+then found either using the initial pool chemistry (if total decay is less than the
+initial pool size), or a weighted average of the initial pool chemistry and the
+chemistry of the input biomass.
+
+:::{admonition} Future directions 🔭
+
+Obtaining exact solutions for the nitrogen, phosphorus and lignin dynamics would improve
+the accuracy of the model. For the nitrogen and phosphorus case, this shouldn't be
+particularly difficult, but as nitrogen and phosphorus concentrations don't affect
+litter pool decay rates the improvement in model accuracy would be marginal. Obtaining
+an exact solution for the lignin dynamics would be both trickier to accomplish as
+changes in lignin concentration will change litter pool decay rates. However, this
+feedback makes tracking lignin concentration accurately far more important for overall
+model accuracy.
+
+:::
 
 ## Animal impacts on litter
 
