@@ -12,15 +12,15 @@ follows (after :cite:t:`maclean_microclimc_2021`):
 
 .. math::
     R_{abs} - R_{em} - H - \lambda E - PP
-    = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{a}} - PP = 0
+    = R_{abs} - \epsilon_{s} \sigma T_{l}^{4} - \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
+    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP = 0
 
 where :math:`R_{abs}` is absorbed radiation, :math:`R_{em}` emitted radiation, :math:`H`
 the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{s}` the
-emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{L}` the
-absolute temperature of the leaf, :math:`T_{A}` the absolute temperature of the air
+emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{l}` the
+absolute temperature of the leaf, :math:`T_{a}` the absolute temperature of the air
 surrounding the leaf, :math:`\lambda` the latent heat of vapourisation of water,
-:math:`e_{L}` the effective vapour pressure of the leaf, :math:`e_{A}` the vapour
+:math:`e_{l}` the effective vapour pressure of the leaf, :math:`e_{a}` the vapour
 pressure of air and :math:`p_{a}` atmospheric pressure. :math:`\rho_a` is the density of
 air, :math:`c_{p}` is the specific heat capacity of air
 at constant pressure, :math:`r_a` is the aerodynamic resistance of the surface (leaf or
@@ -133,11 +133,11 @@ def calculate_sensible_heat_flux(
     The sensible heat flux :math:`H` is calculated using the following equation:
 
     .. math::
-        H = \frac{\rho_{a} c_{p}}{r_{a}} (T_{S} - T_{A})
+        H = \frac{\rho_{a} c_{p}}{r_{a}} (T_{s} - T_{a})
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
-    the surface, :math:`T_{S}` is the surface temperature, and :math:`T_{A}` is the air
+    the surface, :math:`T_{s}` is the surface temperature, and :math:`T_{a}` is the air
     temperature.
 
     Args:
@@ -266,11 +266,11 @@ def calculate_energy_balance_residual(
     The energy balance residual (:math:`\frac{dQ}{dt}`) for the canopy is given by:
 
     .. math::
-        \frac{dQ}{dt} = R_{abs} - \epsilon \sigma T_{L}^{4} - H - \lambda E - PP
+        \frac{dQ}{dt} = R_{abs} - \epsilon \sigma T_{l}^{4} - H - \lambda E - PP
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
+    constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
     flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy,
     :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
@@ -371,12 +371,12 @@ def solve_canopy_temperature(
     The energy balance for the canopy is given by:
 
     .. math::
-        R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE} - PP = 0
+        R_{abs} - \epsilon \sigma T_{l}^{4} - H - \lambda E - PP = 0
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
     :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
-    flux from the canopy, :math:`Q_{LE}` is the latent heat flux from the canopy, and
+    constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
+    flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy, and
     :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
     Note that the latent heat flux is currently a constant given by the plant model.
@@ -385,18 +385,18 @@ def solve_canopy_temperature(
     The Newton linearization for canopy temperature update is:
 
     .. math::
-        T_{L}^{new} =
-        T_{L}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{L}^{old}}}
+        T_{l}^{new} =
+        T_{l}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{l}^{old}}}
 
-    where :math:`\frac{\delta EB}{\delta T_{L}^{old}}` is the first derivative of the
+    where :math:`\frac{\delta EB}{\delta T_{l}^{old}}` is the first derivative of the
     energy balance closure error to temperature, and :math:`W` is a weighting for the
     step size to ensure numerical stability. The derivative is estimated analytically:
 
     .. math::
-        \frac{\delta EB}{\delta T_{L}^{old}}
+        \frac{\delta EB}{\delta T_{l}^{old}}
         = \frac{\rho_{a} c_{p}} {r_{a}}
         + \frac{\rho_{a} \Delta_{v}}{(r_{a} + r_{s})} \lambda
-        + 4 \epsilon \sigma (T_{L}^{old} + 273.15)^{3}
+        + 4 \epsilon \sigma (T_{l}^{old} + 273.15)^{3}
 
     Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
     :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
@@ -525,16 +525,16 @@ def update_air_temperature(
     :cite:t:`bonan_climate_2019`:
 
     .. math ::
-        H = \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
+        H = \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
 
     and
 
     .. math::
-        T_{A}^{new} = T_{A}^{old} + \frac{H}{\rho_a c_p z}
+        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
-    the surface, :math:`T_{S}` is the surface temperature, :math:`T_{A}` is the air
+    the surface, :math:`T_{s}` is the surface temperature, :math:`T_{a}` is the air
     temperature, and :math:`z` is the thickness of the air layer we are updating.
 
     Args:
