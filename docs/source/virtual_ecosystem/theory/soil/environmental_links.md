@@ -208,7 +208,7 @@ temperature.
 ### Impact of soil moisture on enzyme saturation
 
 The response of enzymatic rates to changing soil water potential is modelled using the
-same approach as for the [below ground litter pools](#litter-decay-moisture-response).
+same [approach as for the below ground litter pools](#litter-decay-moisture-response).
 
 ## Direct environmental impacts on microbes
 
@@ -222,6 +222,7 @@ degradation.
 
 The uptake of resources by microbes is effected by a wide range of environmental
 factors, affecting both uptake rate and saturation. We use the same approach to
+
 calculate the environmental impacts on uptake rate and saturation as was used for
 [enzymatic rate and saturation](#environmental-effects-on-enzymes).
 
@@ -249,12 +250,12 @@ and 1 as it is a proportion.
 
 ### Biomass loss
 
-The impact of temperature on the rate of biomass loss is assumed to follow the [Arrhenius
-equation](#impact-of-temperature-on-enzyme-rate-and-saturation).
+The impact of temperature on the rate of biomass loss is assumed to follow the
+[Arrhenius equation](#impact-of-temperature-on-enzyme-rate-and-saturation)
 
-## Soil nutrient leaching rate
+## Soil nutrient removal by water
 
-Soil nutrient leaching occurs when the downwards movement of water though the soil
+Soil nutrient removal by water occurs when the movement of water though the soil
 carries away dissolved nutrients with it. As such, this process only applies to the
 soluble forms of nutrients, i.e. the simplest and most readily uptaken forms. To
 calculate the leaching rate for a given solute, we first have to calculate the amount of
@@ -270,8 +271,9 @@ this can be calculated as
 
 $$\mu = J / W,$$
 
-where $J$ is the rate of flow of water through the soil, and $W$ is the amount of water
-contained in the water column. We can then combine the above to calculate the leaching
-rate for substrate $i$ as
+where $J$ is the rate a which water exits the microbially active part of the soil, and
+$W$ is the amount of water contained in the water column (in the microbially active
+region of the soil). We can then combine the above to calculate the leaching rate for
+substrate $i$ as
 
 $$L_i = \mu * D_i.$$

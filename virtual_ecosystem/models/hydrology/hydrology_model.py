@@ -15,7 +15,6 @@ There are still a number of open TODOs related to process implementation and imp
 .. TODO:: time step and model structure
 
     * find a way to load daily (precipitation) data and loop over daily time_index
-    * allow for different time steps (currently only 30 days)
     * potentially move `calculate_drainage_map` to core
     * add abiotic constants from config
 
@@ -32,7 +31,6 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from pint import Quantity
 from pyrealm.constants import CoreConst as PyrealmConst
 from xarray import DataArray
 
@@ -419,13 +417,16 @@ class HydrologyModel(
         and a number of parameters that as described in detail in
         :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
         """
-        # Determine number of days, currently only 30 days (=1 month)
-        if self.model_timing.update_interval_quantity != Quantity("1 month"):
-            to_raise = NotImplementedError("This time step is currently not supported.")
-            LOGGER.error(to_raise)
-            raise to_raise
+        # Determine number of days
+        days_float: float = self.model_timing.update_interval_seconds / 86400
+        days: int = int(days_float // 1)
 
-        days: int = 30
+        # Check if the number of days is exact and warn if not
+        if not np.allclose(days_float % 1, 0):
+            LOGGER.warning(
+                f"Update interval is not a whole number of days ({days_float}),"
+                f" partitioning inputs among {days} days."
+            )
 
         # Set seed for random rainfall generator
         seed: None | int = kwargs.pop("seed", None)

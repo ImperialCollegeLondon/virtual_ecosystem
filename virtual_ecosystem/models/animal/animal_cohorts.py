@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 import uuid
+from _collections_abc import Callable
 from math import ceil, exp, sqrt
 from typing import Literal
 
@@ -931,213 +932,103 @@ class AnimalCohort:
 
         return total_consumed_mass
 
-    def calculate_consumed_mass_herbivory(
+    def _consumed_resource_mass(
         self,
-        plant_list: list[Resource],
-        target_plant: Resource,
+        resource_list: list[Resource],
+        target: Resource,
         adjusted_dt: timedelta64,
     ) -> float:
-        """Calculates the mass to be consumed from a plant resource by the herbivore.
-
-        This method utilizes the F_i_k method to determine the rate at which the target
-        plant is consumed, and then calculates the actual mass to be consumed based on
-        this rate and other model parameters.
+        """Standard search/handling time consumption using F_i_k (non-predation).
 
         Args:
-            plant_list: A list of plant resources that can be consumed by the
-                herbivore.
-            target_plant: The plant resource from which mass will be consumed.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            resource_list: List of resource objects (e.g. litter, plants, etc.).
+            target: A specific resource from which biomass is being consumed.
+            adjusted_dt: Time available for foraging.
 
         Returns:
-            The mass to be consumed from the target plant by the herbivore (in kg).
+            Mass (kg) to consume from target.
         """
-        F = self.F_i_k(plant_list, target_plant)  # Adjusting this call as necessary
+        F = self.F_i_k(resource_list, target)
+        return target.mass_current * (1.0 - exp(-F * adjusted_dt))
 
-        consumed_mass = target_plant.mass_current * (1 - exp(-(F * adjusted_dt)))
-        return consumed_mass
+    def forage_resource_list(
+        self,
+        resources: list[Resource],
+        adjusted_dt: timedelta64,
+        calculate_consumed_mass: Callable[
+            [list[Resource], Resource, timedelta64], float
+        ],
+        herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
+    ) -> dict[str, float]:
+        """Generic foraging function for all non-predation resources.
+
+        Args:
+            resources: List of foragable resources.
+            adjusted_dt: Time available for foraging.
+            calculate_consumed_mass: Function to compute requested biomass.
+            herbivory_waste_pools: Optional pool to deposit unassimilated biomass.
+
+        Returns:
+            Stoichiometric gain from foraging (kg of C, N, P).
+        """
+        total_gain = {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+
+        for resource in resources:
+            requested = calculate_consumed_mass(resources, resource, adjusted_dt)
+
+            gain_cnp, litter_cnp = resource.get_eaten(requested, self)
+
+            conv_eff = self.functional_group.conversion_efficiency
+            for elem in total_gain:
+                total_gain[elem] += gain_cnp[elem] * conv_eff
+
+            if herbivory_waste_pools and litter_cnp:
+                herbivory_waste_pools[resource.cell_id].add_waste(litter_cnp)
+
+        return total_gain
 
     def delta_mass_herbivory(
         self,
         plant_list: list[Resource],
+        adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
-        adjusted_dt: timedelta64,
     ) -> dict[str, float]:
-        """Handles mass assimilation from herbivory.
-
-        TODO: update name.
+        """Handle mass assimilation from live plant herbivory.
 
         Args:
-            plant_list: A list of plant resources available for herbivory.
-            herbivory_waste_pools: Waste pools for plant biomass (at this point just
-                leaves) that gets removed as part of herbivory but not consumed.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            plant_list: List of live plant resources.
+            adjusted_dt: Time available for foraging.
+            herbivory_waste_pools: Waste pools for unassimilated plant matter.
 
         Returns:
-            A dictionary of total plant mass (C, N, P) consumed by the animal cohort.
-
-        Raises:
-            ValueError: If `plant_list` or `herbivory_waste_pools` is None.
-            ValueError: If `calculate_consumed_mass_herbivory` returns None.
-            ValueError: If `get_eaten` returns None.
-            KeyError: If `plant.cell_id` is missing from `herbivory_waste_pools`.
+            Stoichiometric mass gained by the cohort.
         """
-
-        # Validate inputs
-        if plant_list is None:
-            raise ValueError("plant_list cannot be None.")
-        if herbivory_waste_pools is None:
-            raise ValueError("herbivory_waste_pools cannot be None.")
-
-        # If no plants are available, return zero change
-        if not plant_list:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
-
-        # Initialize total consumed stoichiometric masses
-        total_consumed_cnp = {
-            element: 0.0 for element in ["carbon", "nitrogen", "phosphorus"]
-        }
-
-        for plant in plant_list:
-            # Calculate the mass to be consumed from this plant
-            consumed_mass = self.calculate_consumed_mass_herbivory(
-                plant_list, plant, adjusted_dt
-            )
-
-            if consumed_mass is None:
-                raise ValueError(
-                    f"calculate_consumed_mass_herbivory() returned None for {plant}."
-                )
-
-            # Update the plant resource's state based on consumed mass
-            herbivore_gain_cnp, plant_litter_cnp = plant.get_eaten(consumed_mass, self)
-
-            if herbivore_gain_cnp is None or plant_litter_cnp is None:
-                raise ValueError(f"get_eaten() returned None for {plant}.")
-
-            # Update total mass gained by the herbivore
-            for element in total_consumed_cnp:
-                total_consumed_cnp[element] += herbivore_gain_cnp[element]
-
-            # Ensure plant.cell_id exists in waste pools before adding waste
-            if plant.cell_id not in herbivory_waste_pools:
-                raise KeyError(
-                    f"herbivory_waste_pools is missing cell_id {plant.cell_id}."
-                )
-
-            # Add the litter to the appropriate herbivory waste pool
-            herbivory_waste_pools[plant.cell_id].add_waste(plant_litter_cnp)
-
-        return total_consumed_cnp
-
-    def calculate_consumed_mass_detritivory(
-        self,
-        litter_pools: list[Resource],
-        target_pool: Resource,
-        adjusted_dt: timedelta64,
-    ) -> float:
-        """Return the mass a cohort removes from one litter pool.
-
-        The search/handling formulation is identical to herbivory; only the resource
-          list and pool class differ.
-
-        Args:
-            litter_pools: All litter pools available in the territory.  Used
-                to compute the denominator of handling time.
-            target_pool: The specific pool from which biomass is sought.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
-
-        Returns:
-            Mass (kg) of litter requested from target_pool during the
-            current update.  The value is ≥ 0; if the pool is empty the
-            method returns 0.0.
-        """
-        F = self.F_i_k(litter_pools, target_pool)
-
-        consumed = target_pool.mass_current * (1.0 - exp(-(F * adjusted_dt)))
-        return max(consumed, 0.0)
+        return self.forage_resource_list(
+            resources=plant_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+            herbivory_waste_pools=herbivory_waste_pools,
+        )
 
     def delta_mass_detritivory(
         self,
         litter_pools: list[Resource],
         adjusted_dt: timedelta64,
     ) -> dict[str, float]:
-        """Handle mass assimilation from detritus (plant litter).
-
-        TODO: might need mechanical conversion efficiency?
+        """Handle mass assimilation from litter (detritivory).
 
         Args:
-            litter_pools: All LitterPool objects accessible to the cohort.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            litter_pools: List of litter pools available to the cohort.
+            adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass (C, N, P) assimilated by the cohort.
-
-        Raises:
-            ValueError: If `litter_pools` is None.
-            ValueError: If `calculate_consumed_mass_detritivory` returns None.
-            ValueError: If `pool.get_eaten` returns None.
+            Stoichiometric mass gained by the cohort.
         """
-        if litter_pools is None:
-            raise ValueError("litter_pools cannot be None.")
-
-        # Return early if no litter is available
-        if not litter_pools:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
-
-        # Initialise totals
-        total_gain_cnp = {k: 0.0 for k in ("carbon", "nitrogen", "phosphorus")}
-
-        for pool in litter_pools:
-            # Decide how much to try to eat from this pool
-            requested_mass = self.calculate_consumed_mass_detritivory(
-                litter_pools, pool, adjusted_dt
-            )
-            if requested_mass is None:
-                raise ValueError(
-                    "calculate_consumed_mass_detritivory() returned None "
-                    f"for pool {pool.pool_name} in cell {pool.cell_id}."
-                )
-
-            # LitterPool handles mechanical efficiency + pool update
-            consumed_cnp, _unused = pool.get_eaten(requested_mass, self)
-            if consumed_cnp is None:
-                raise ValueError(
-                    f"get_eaten() returned None for pool {pool.pool_name} "
-                    f"in cell {pool.cell_id}."
-                )
-
-            # Apply cohort-specific conversion efficiency
-            conv_eff = self.functional_group.conversion_efficiency
-            for elem in total_gain_cnp:
-                total_gain_cnp[elem] += consumed_cnp[elem] * conv_eff
-
-        return total_gain_cnp
-
-    def calculate_consumed_mass_carcass(
-        self,
-        carcass_pools: list[Resource],
-        target_pool: Resource,
-        adjusted_dt: timedelta64,
-    ) -> float:
-        """Return mass (kg) removed from a carcass pool in one time step.
-
-        The search/handling formulation is identical to herbivory; only the resource
-          list and pool class differ.
-
-        Args:
-            carcass_pools: All carcass pools in the cohort's territory.
-            target_pool: The pool currently being evaluated.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
-
-        Returns:
-            Mass (kg) of carcass material that the cohort would attempt
-            to ingest.
-        """
-        F = self.F_i_k(carcass_pools, target_pool)
-
-        consumed = target_pool.mass_current * (1.0 - exp(-(F * adjusted_dt)))
-        return max(consumed, 0.0)
+        return self.forage_resource_list(
+            resources=litter_pools,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+        )
 
     def delta_mass_carcass_scavenging(
         self,
@@ -1147,74 +1038,17 @@ class AnimalCohort:
         """Handle mass assimilation from carcass scavenging.
 
         Args:
-            carcass_pools: A list of CarcassPool objects available for scavenging.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            carcass_pools: List of carcass pools available to the cohort.
+            adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass (C, N, P) assimilated by the cohort.
-
-        Raises:
-            ValueError: If ``carcass_pools`` is ``None``.
-            ValueError: If ``calculate_consumed_mass_carcass`` returns ``None``.
-            ValueError: If ``pool.get_eaten`` returns ``None``.
+            Stoichiometric mass gained by the cohort.
         """
-        # ---- validation ------------------------------------------------------
-        if carcass_pools is None:
-            raise ValueError("carcass_pools cannot be None.")
-        if not carcass_pools:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
-
-        total_gain = {k: 0.0 for k in ("carbon", "nitrogen", "phosphorus")}
-
-        for pool in carcass_pools:
-            # Mass the cohort *wants* to take
-            requested = self.calculate_consumed_mass_carcass(
-                carcass_pools, pool, adjusted_dt
-            )
-            if requested is None:
-                raise ValueError(
-                    "calculate_consumed_mass_carcass() returned None "
-                    f"for pool in cell {pool}."
-                )
-
-            # Retrieve ingested stoichiometry (mechanical efficiency applied)
-            ingested_cnp, _unused = pool.get_eaten(requested, self)
-            if ingested_cnp is None:
-                raise ValueError(
-                    f"get_eaten() returned None for carcass pool in cell {pool}."
-                )
-
-            # Apply cohort-specific conversion efficiency (digestion)
-            conv_eff = self.functional_group.conversion_efficiency
-            for elem in total_gain:
-                total_gain[elem] += ingested_cnp[elem] * conv_eff
-
-        return total_gain
-
-    def calculate_consumed_mass_excrement(
-        self,
-        excrement_pools: list[Resource],
-        target_pool: Resource,
-        adjusted_dt: timedelta64,
-    ) -> float:
-        """Return Mss (kg) removed from an excrement pool (coprophagy).
-
-        The search/handling formulation is identical to herbivory; only the resource
-          list and pool class differ.
-
-        Args:
-            excrement_pools: All excrement pools in the cohort's territory.
-            target_pool: The pool currently being evaluated.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
-
-        Returns:
-            Mass (kg) of excrement ingested by the cohort over the update period.
-        """
-        F = self.F_i_k(excrement_pools, target_pool)
-
-        consumed = target_pool.mass_current * (1.0 - exp(-(F * adjusted_dt)))
-
-        return max(consumed, 0.0)
+        return self.forage_resource_list(
+            resources=carcass_pools,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+        )
 
     def delta_mass_excrement_scavenging(
         self,
@@ -1224,49 +1058,17 @@ class AnimalCohort:
         """Handle mass assimilation from excrement (coprophagy).
 
         Args:
-            excrement_pools: List of ExcrementPool objects for scavenging.
-            adjusted_dt: The amount of time (D) in the time-step available for foraging.
+            excrement_pools: List of excrement pools available to the cohort.
+            adjusted_dt: Time available for foraging.
 
         Returns:
-            Stoichiometric mass (C, N, P) assimilated by the cohort.
-
-        Raises:
-            ValueError: If ``excrement_pools`` is ``None``.
-            ValueError: If ``calculate_consumed_mass_excrement`` returns ``None``.
-            ValueError: If ``pool.get_eaten`` returns ``None``.
+            Stoichiometric mass gained by the cohort.
         """
-        # ---- validation ------------------------------------------------------
-        if excrement_pools is None:
-            raise ValueError("excrement_pools cannot be None.")
-        if not excrement_pools:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
-
-        total_gain = {k: 0.0 for k in ("carbon", "nitrogen", "phosphorus")}
-
-        for pool in excrement_pools:
-            # Mass requested from this pool
-            requested = self.calculate_consumed_mass_excrement(
-                excrement_pools, pool, adjusted_dt
-            )
-            if requested is None:
-                raise ValueError(
-                    "calculate_consumed_mass_excrement() returned None "
-                    f"for pool in cell {pool}."
-                )
-
-            # Ingested stoichiometry (mechanical efficiency handled inside pool)
-            ingested_cnp, _unused = pool.get_eaten(requested, self)
-            if ingested_cnp is None:
-                raise ValueError(
-                    f"get_eaten() returned None for excrement pool in cell {pool}."
-                )
-
-            # Apply digestive conversion efficiency
-            conv_eff = self.functional_group.conversion_efficiency
-            for elem in total_gain:
-                total_gain[elem] += ingested_cnp[elem] * conv_eff
-
-        return total_gain
+        return self.forage_resource_list(
+            resources=excrement_pools,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+        )
 
     def forage_cohort(
         self,
@@ -1328,7 +1130,9 @@ class AnimalCohort:
         # live plant herbivory
         if plant_list:
             gain = self.delta_mass_herbivory(
-                plant_list, herbivory_waste_pools, time_available_per_diet
+                plant_list=plant_list,
+                adjusted_dt=time_available_per_diet,
+                herbivory_waste_pools=herbivory_waste_pools,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
@@ -1336,29 +1140,37 @@ class AnimalCohort:
         # live prey predation (adds carcasses to map)
         if animal_list:
             gain = self.delta_mass_predation(
-                animal_list, carcass_pool_map, time_available_per_diet
+                animal_list=animal_list,
+                carcass_pools=carcass_pool_map,
+                adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]
 
         # litter detritivory
         if litter_pools:
-            gain = self.delta_mass_detritivory(litter_pools, time_available_per_diet)
+            gain = self.delta_mass_detritivory(
+                litter_pools=litter_pools,
+                adjusted_dt=time_available_per_diet,
+            )
             for k in total_gain:
                 total_gain[k] += gain[k]
 
         # carcass scavenging
         if scavenge_carcass_pools or scavenge_excrement_pools:
             gain = self.delta_mass_carcass_scavenging(
-                scavenge_carcass_pools, time_available_per_diet
+                carcass_pools=scavenge_carcass_pools,
+                adjusted_dt=time_available_per_diet,
             )
+
             for k in total_gain:
                 total_gain[k] += gain[k]
 
         # waste scavenging
         if scavenge_carcass_pools or scavenge_excrement_pools:
             gain = self.delta_mass_excrement_scavenging(
-                scavenge_excrement_pools, time_available_per_diet
+                excrement_pools=scavenge_excrement_pools,
+                adjusted_dt=time_available_per_diet,
             )
             for k in total_gain:
                 total_gain[k] += gain[k]

@@ -54,8 +54,9 @@ Explicitly represented microbes presents major data challenges, as soils are
 generally poorly characterised compared to the other constituent parts of terrestrial
 ecosystems.
 
-Most processes in the soil are additionally affected by both the [environmental
-temperature and the soil moisture](./environmental_links.md).
+Most processes in the soil are affected by both the environmental temperature and the
+soil moisture. Our model includes various response functions that capture these known
+[links between the abiotic environment and soil processes](./environmental_links.md)
 
 :::{admonition} Future directions 🔭
 

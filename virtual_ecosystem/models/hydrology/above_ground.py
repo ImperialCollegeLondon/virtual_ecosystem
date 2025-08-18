@@ -290,7 +290,7 @@ def calculate_soil_evaporation(
         soil evaporation, [mm per time interval], aerodynamic resistance surface [s m-1]
     """
 
-    output = {}
+    output: dict[str, NDArray[np.floating]] = {}
 
     # Available soil moisture
     soil_moisture_free = np.clip(
