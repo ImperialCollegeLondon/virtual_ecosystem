@@ -347,6 +347,7 @@ class LitterChemistry:
             "below_structural": new_c_p_ratio_below_structural,
         }
 
+
 def calculate_litter_chemistry_factor(
     lignin_proportion: NDArray[np.floating], lignin_inhibition_factor: float
 ) -> NDArray[np.floating]:
