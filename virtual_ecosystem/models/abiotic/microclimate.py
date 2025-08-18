@@ -401,7 +401,7 @@ def run_microclimate(
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            limits=(0, max_specific_humidity[0]),
+            limits=(0, max_specific_humidity[0]),  # TODO make layer specific
             time_interval=core_constants.seconds_to_hour,
         )
 

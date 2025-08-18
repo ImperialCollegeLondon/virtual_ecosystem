@@ -249,7 +249,7 @@ def calculate_mixing_coefficients_canopy(
 
     .. math::
 
-        k_{H,M}(z)=\kappa u_{*}z(1-z h_c)^{2}
+        k_{H,M}(z)=\kappa u_{*}z(\frac{1-z}{h_c})^{2}
 
     where :math:`\kappa` is the von Karman constant (dimensionless), :math:`u_{*}` is
     the friction velocity (m s-1), :math:`z` is the height (m) for which coefficients
@@ -279,6 +279,26 @@ def calculate_mixing_coefficients_canopy(
     return mixing_coefficients
 
 
+def calculate_excess(
+    value: NDArray[np.floating], limits: tuple[float, float]
+) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
+    """Calculate excess in layers during mixing in valid layers.
+
+    Args:
+        value: Value of variable that is mixed
+        limits: Upper and lower limit for input variable
+
+    Returns:
+        net excess and valid array
+    """
+    low, high = limits
+    valid = ~np.isnan(value)
+    over = np.where(valid & (value > high), value - high, 0)
+    under = np.where(valid & (value < low), value - low, 0)
+
+    return over + under, valid
+
+
 def mix_and_ventilate(
     input_variable: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],
@@ -305,8 +325,6 @@ def mix_and_ventilate(
     Advection is currently not implemented as everything is removed with time interval
     > 1h.
 
-    TODO prevent overshoot/undershoot in all layers
-
     Args:
         input_variable: Input variable for all true atmospheric layers
         layer_thickness: Layer thickness, [m]
@@ -321,6 +339,7 @@ def mix_and_ventilate(
 
     # Copy the input to update with mixing
     input_variable_mixed = input_variable.copy()
+    n_layers, n_cells = input_variable_mixed.shape
 
     # Extract the layer thickness and current value for the canopy layers, excluding the
     # surface layer and above canopy values
@@ -340,10 +359,8 @@ def mix_and_ventilate(
     mix_below = np.where(np.isnan(mix_below), mix_below[-1], mix_below)
 
     # Calculate fluxes (positive upward, negative downward) and update variable
-    delta_up = value_above - value_canopy
-    flux_up = mix_above * delta_up / canopy_layer_thickness
-    delta_down = value_below - value_canopy
-    flux_down = mix_below * delta_down / canopy_layer_thickness
+    flux_up = mix_above * (value_above - value_canopy) / canopy_layer_thickness
+    flux_down = mix_below * (value_below - value_canopy) / canopy_layer_thickness
 
     value_change = (flux_up + flux_down) * time_interval / canopy_layer_thickness
     input_variable_mixed[1:-1] += value_change
@@ -360,7 +377,7 @@ def mix_and_ventilate(
     delta_vent = input_variable_mixed[0] - vent_below
     vent_change = ventilation_rate * delta_vent * time_interval
 
-    # Clip the maximum ventilation rate
+    # Clip the maximum ventilation rate to 10%
     vent_max_change = 0.1 * abs(input_variable[0])
     vent_change = np.clip(vent_change, -vent_max_change, vent_max_change)
 
@@ -368,32 +385,31 @@ def mix_and_ventilate(
     input_variable_mixed[0] += vent_change
     input_variable_mixed[1] -= vent_change
 
-    # Identify overshoot and undershoot amounts
-    n_layers, n_cells = input_variable_mixed.shape
+    # Redistribute overshoot/undershoot
+    valid = ~np.isnan(input_variable_mixed)
+    layer_indices = np.arange(n_layers)[:, None]
+    layer_indices_valid = np.where(valid, layer_indices, -1)
+    last_layer_above_valid = np.maximum.accumulate(layer_indices_valid, axis=0)
+    nearest_above = np.vstack(
+        [np.full((1, n_cells), -1, dtype=int), last_layer_above_valid[:-1, :]]
+    )
+    cols = np.arange(n_cells)
 
-    # Process from bottom to top
     for layer in range(n_layers - 1, 0, -1):
-        val = input_variable_mixed[layer, :]
+        value = input_variable_mixed[layer, :]
+        excess, valid_mask = calculate_excess(value=value, limits=limits)
 
-        # Skip NaN layers entirely
-        valid_mask = ~np.isnan(val)
-
-        # Calculate overshoot and undershoot for valid layers
-        overshoot = np.where(valid_mask & (val > limits[1]), val - limits[1], 0)
-        undershoot = np.where(valid_mask & (val < limits[0]), val - limits[0], 0)
-        excess = overshoot + undershoot
-
-        # Reduce current layer to limit if not NaN
         input_variable_mixed[layer, valid_mask] -= excess[valid_mask]
 
-        # Find the next valid layer above for each cell
-        for cell_id in range(n_cells):
-            if excess[cell_id] != 0:
-                j = layer - 1
-                while j >= 0 and np.isnan(input_variable_mixed[j, cell_id]):
-                    j -= 1
-                if j >= 0:  # Found a valid layer above
-                    input_variable_mixed[j, cell_id] += excess[cell_id]
+        # Redistribute upward
+        target_layer_index = nearest_above[layer, :]
+        mask = (excess != 0) & (target_layer_index >= 0)
+        if np.any(mask):
+            np.add.at(
+                input_variable_mixed,
+                (target_layer_index[mask], cols[mask]),
+                excess[mask],
+            )
 
     return input_variable_mixed
 

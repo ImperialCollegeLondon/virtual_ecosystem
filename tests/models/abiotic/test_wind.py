@@ -161,6 +161,32 @@ def test_calculate_mixing_coefficients():
     np.testing.assert_allclose(result, expected, rtol=1e-6)
 
 
+def test_compute_excess_all_cases():
+    """Test calculate excess."""
+
+    from virtual_ecosystem.models.abiotic.wind import (
+        calculate_excess,
+    )
+
+    limits = (0.0, 5.0)
+
+    # mixed array: NaN, undershoot, inside, edge, overshoot
+    vals = np.array([np.nan, -2.0, 2.5, 0.0, 5.0, 7.0, 10.0])
+    excess, valid = calculate_excess(vals, limits)
+
+    # expected excess: [0, -2, 0, 0, 0, 2, 5]
+    expected_excess = np.array([0.0, -2.0, 0.0, 0.0, 0.0, 2.0, 5.0])
+    expected_valid = np.array([False, True, True, True, True, True, True])
+
+    assert np.allclose(excess, expected_excess)
+    assert np.array_equal(valid, expected_valid)
+
+    # sanity check: for all valid values, (value - excess) lies within limits
+    corrected = vals.copy()
+    corrected[valid] = corrected[valid] - excess[valid]
+    assert np.all((corrected[valid] >= limits[0]) & (corrected[valid] <= limits[1]))
+
+
 def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test mixing and ventilation within bounds."""
 
