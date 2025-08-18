@@ -89,7 +89,6 @@ class SoilModel(
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
         "pH",
-        "bulk_density",
         "clay_fraction",
     ),
     vars_populated_by_init=(
@@ -128,6 +127,8 @@ class SoilModel(
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
+        "pH",
+        "clay_fraction",
         "matric_potential",
         "vertical_flow",
         "soil_temperature",
@@ -430,6 +431,13 @@ class SoilModel(
             },
             **{name: np.array([]) for name in self.refreshed_variables},
         }
+
+        # TODO - NEED TO CHECK FOR NAN VALUES HERE
+        # FIRST THING I NEED TO WORK OUT IS THE FULL LIST OF VARIABLES TO CHECK SHOULD
+        # BE `vars_required_for_update`
+        # SECOND THING, IS HOW TO SEPARATE OUT THE LAYERED OBJECTS, WHICH CAN HAVE NaNs
+        # FINAL THING, I REALLY WANT TO REPORT ALL ERRORS, SO NEED TO WRITE IT IN SUCH A
+        # WAY
 
         # Carry out simulation
         output = solve_ivp(

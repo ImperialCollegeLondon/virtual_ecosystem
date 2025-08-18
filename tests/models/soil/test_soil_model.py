@@ -40,7 +40,6 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_p_pool_secondary' checked"),
     (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
-    (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
 )
 POST_SETUP_LOG = (
