@@ -476,7 +476,7 @@ def test_update(fixture_litter_model, dummy_litter_data):
         "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
         "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
         "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
-        "litter_C_mineralisation_rate": [0.05339735, 0.04056018, 0.0151908, 0.0153254],
+        "litter_C_mineralisation_rate": [0.02669867, 0.02028009, 0.0075954, 0.0076627],
         "litter_N_mineralisation_rate": [0.00601335, 0.0037791, 0.0008798, 0.00094215],
         "litter_P_mineralisation_rate": [0.0004477, 0.00021477, 6.7192e-5, 6.80253e-5],
     }

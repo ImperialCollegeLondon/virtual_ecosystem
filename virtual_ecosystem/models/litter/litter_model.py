@@ -399,6 +399,9 @@ class LitterModel(
             litter_losses=litter_losses,
             model_constants=self.model_constants,
             core_constants=self.core_constants,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "day"
+            ).magnitude,
         )
 
         # Construct dictionary of data arrays to return

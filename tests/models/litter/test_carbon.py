@@ -105,12 +105,13 @@ def test_calculate_total_C_mineralised(litter_losses):
         calculate_total_C_mineralised,
     )
 
-    expected_mineralisation = [0.053397346, 0.040560178, 0.01519084, 0.01532536]
+    expected_mineralisation = [0.026698673, 0.020280089, 0.00759542, 0.00766268]
 
     actual_mineralisation = calculate_total_C_mineralised(
         litter_losses=litter_losses,
         model_constants=LitterConsts,
         core_constants=CoreConsts,
+        update_interval=2.0,
     )
 
     assert np.allclose(actual_mineralisation, expected_mineralisation)
@@ -255,14 +256,14 @@ def test_calculate_carbon_mineralised():
         calculate_carbon_mineralised,
     )
 
-    litter_decay = np.array(
+    carbon_loss = np.array(
         [0.000167429, 8.371483356e-5, 3.013734008e-5, 3.013734008e-5]
     )
 
     expected_mineral = [7.534305e-5, 3.767167e-5, 1.356180e-5, 1.356180e-5]
 
     actual_mineral = calculate_carbon_mineralised(
-        litter_decay, LitterConsts.cue_metabolic
+        carbon_loss=carbon_loss, carbon_use_efficiency=LitterConsts.cue_metabolic
     )
 
     assert np.allclose(actual_mineral, expected_mineral)

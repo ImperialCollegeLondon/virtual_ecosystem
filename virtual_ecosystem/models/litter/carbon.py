@@ -162,14 +162,16 @@ def calculate_total_C_mineralised(
     litter_losses: LitterLosses,
     model_constants: LitterConsts,
     core_constants: CoreConsts,
+    update_interval: float,
 ) -> NDArray[np.floating]:
     """Calculate the total carbon mineralisation rate from all five litter pools.
 
     Args:
-        litter_losses: Dataclass containing the rates of nutrient loss from each litter
+        litter_losses: Dataclass containing the total nutrient loss from each litter
             pool
         model_constants: Set of constants for the litter model
         core_constants: Set of core constants shared between all models
+        update_interval: Interval that the litter pools are being updated for [days]
 
     Returns:
         Rate of carbon mineralisation from litter into soil [kg C m^-3 day^-1].
@@ -177,28 +179,28 @@ def calculate_total_C_mineralised(
 
     # Calculate mineralisation from each pool
     metabolic_above_mineral = calculate_carbon_mineralised(
-        litter_decay_rate=litter_losses.above_metabolic_carbon,
+        carbon_loss=litter_losses.above_metabolic_carbon,
         carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_above_mineral = calculate_carbon_mineralised(
-        litter_decay_rate=litter_losses.above_structural_carbon,
+        carbon_loss=litter_losses.above_structural_carbon,
         carbon_use_efficiency=model_constants.cue_structural_above_ground,
     )
     woody_mineral = calculate_carbon_mineralised(
-        litter_decay_rate=litter_losses.woody_carbon,
+        carbon_loss=litter_losses.woody_carbon,
         carbon_use_efficiency=model_constants.cue_woody,
     )
     metabolic_below_mineral = calculate_carbon_mineralised(
-        litter_decay_rate=litter_losses.below_metabolic_carbon,
+        carbon_loss=litter_losses.below_metabolic_carbon,
         carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_below_mineral = calculate_carbon_mineralised(
-        litter_decay_rate=litter_losses.below_structural_carbon,
+        carbon_loss=litter_losses.below_structural_carbon,
         carbon_use_efficiency=model_constants.cue_structural_below_ground,
     )
 
     # Calculate mineralisation rate
-    total_C_mineralisation_rate = (
+    total_C_mineralised = (
         metabolic_above_mineral
         + structural_above_mineral
         + woody_mineral
@@ -206,8 +208,10 @@ def calculate_total_C_mineralised(
         + structural_below_mineral
     )
 
-    # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
-    return total_C_mineralisation_rate / core_constants.max_depth_of_microbial_activity
+    # Convert total mineralisation rate into kg m^-3 day^-1 units (from kg m^-2)
+    return total_C_mineralised / (
+        core_constants.max_depth_of_microbial_activity * update_interval
+    )
 
 
 def calculate_updated_pools(
@@ -453,19 +457,19 @@ def calculate_litter_decay_structural_below(
 
 
 def calculate_carbon_mineralised(
-    litter_decay_rate: NDArray[np.floating], carbon_use_efficiency: float
+    carbon_loss: NDArray[np.floating], carbon_use_efficiency: float
 ) -> NDArray[np.floating]:
-    """Calculate fraction of litter decay that gets mineralised.
+    """Calculate fraction of carbon loss that gets mineralised.
 
     TODO - This function could also be used to track carbon respired, if/when we decide
     to track that.
 
     Args:
-        litter_decay_rate: Rate at which litter pool is decaying [kg C m^-2 day^-1]
+        carbon_loss: Total amount of carbon lost from the litter pool [kg C m^-2]
         carbon_use_efficiency: Carbon use efficiency of litter pool [unitless]
 
     Returns:
         Rate at which carbon is mineralised from the litter pool [kg C m^-2 day^-1]
     """
 
-    return carbon_use_efficiency * litter_decay_rate
+    return carbon_use_efficiency * carbon_loss
