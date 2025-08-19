@@ -32,8 +32,9 @@ radiation on leaf temperature. We use a Newton approximation to update
 leaf temperature and air temperature iteratively.
 
 After updating each layer, temperature and vapor are mixed vertically between layers.
-Ventilation and advection are considered at the top of the canopy to remove some of the
-water and heat from the system.
+Advection at the top of the canopy is currently not considered as we don't have
+have horizontal exchange between grid cells and air above canopy values would be
+unrealistic.
 
 TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
 subtracted from the energy balance
@@ -64,7 +65,7 @@ def initialise_canopy_and_soil_fluxes(
     Args:
         air_temperature: Air temperature, [C]
         layer_structure: Instance of LayerStructure
-        light_extinction_coefficient: Light extinction coefficient for canopy
+        light_extinction_coefficient: Light extinction coefficient for canopy, unitless
         initial_flux_value: Initial non-zero flux, [W m-2]
 
     Returns:
@@ -547,7 +548,7 @@ def update_air_temperature(
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
 
     Returns:
-        Updated air temperatures, [C]
+        updated air temperatures, [C]
     """
 
     # Update temperatures
@@ -637,6 +638,7 @@ def update_humidity_vpd(
     )
 
     # NOTE Advection not implemented as everything is removed with time interval > 1h
+    # and horizontal transfer is not implemented
     # specific_humidity_advected = wind.advect_water_from_toplayer(
     #     specific_humidity=specific_humidity_updated[0],
     #     layer_thickness=layer_thickness[0],

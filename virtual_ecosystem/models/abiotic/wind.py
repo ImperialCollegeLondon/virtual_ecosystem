@@ -129,7 +129,8 @@ def calculate_wind_profile(
 ) -> NDArray[np.floating]:
     r"""Calculate wind speed profile, [m s-1].
 
-    The wind speed at different heights is calculated using the following equation:
+    The wind speed at different heights is calculated using the following equation
+    (based on :cite:t:`holmes_wind_2019`):
 
     .. math::
         u(z) = u_{ref} \times \frac{ \ln \left( \frac{z - d}{z_0} \right) }
@@ -180,7 +181,8 @@ def calculate_friction_velocity(
     Earth's surface, representing the velocity scale that relates to turbulent energy
     transfer near the surface.
 
-    The friction velocity (:math:`u_{*}`, [m s-1]) is calculated as
+    The friction velocity (:math:`u_{*}`, [m s-1]) is calculated as (based on
+    :cite:t:`holmes_wind_2019`):
 
     :math:`u_{*} = \frac{\kappa u}{\ln{(\frac{z - d}{z_0})}}`
 
@@ -215,7 +217,7 @@ def calculate_ventilation_rate(
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
     This function calculates the rate of water and heat exchange between the top of the
-    canopy and the atmosphere above.
+    canopy and the atmosphere above after :cite:t:`wolfe_forest_2011`.
 
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
@@ -323,7 +325,7 @@ def mix_and_ventilate(
     negative concentrations.
 
     Advection is currently not implemented as everything is removed with time interval
-    > 1h.
+    > 1h and horizontal transfer is not implemented.
 
     Args:
         input_variable: Input variable for all true atmospheric layers
@@ -465,7 +467,8 @@ def calculate_aerodynamic_resistance(
 ) -> NDArray[np.floating]:
     r"""Calculate aerodynamic resistance in canopy, [s m-1].
 
-    The aerodynamic resistance :math:`r_{a}` is calculated as:
+    The aerodynamic resistance :math:`r_{a}` is calculated as (
+    based on :cite:t:`jansson_coupled_2004:
 
     .. math::
         r_{a} = \frac{ln(\frac{z-d}{z_{m}})^{2}}{\kappa ^{2} u(z)}

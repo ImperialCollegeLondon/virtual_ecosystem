@@ -87,7 +87,7 @@ when it is towards the surface.
 $G$:
 Ground Heat Flux. It is the loss of energy by heat conduction through the
 lower boundary. It is a positive number when it is directed away from the surface into
-ground. The value at the surface is denoted G0.
+ground. The value at the surface is denoted $G_{0}$.
 
 $H$:
 Sensible Heat Flux. It represents the loss of energy by the
@@ -195,7 +195,8 @@ Drag coefficient for evaporation (–)
 The **latent heat flux** is derived by conversion of surface evaporation as
 calculated by the hydrology model.
 
-The **ground heat flux** is calculated as the residual of the energy balance:
+The **ground heat flux** is calculated as the residual of the energy balance at the
+soil surface:
 
 $$G = R_n - H_s - \lambda E_s$$
 
@@ -478,7 +479,7 @@ reflected in the atmospheric humidity profile, which in turn affects subsequent 
 and water balance calculations.
 
 ```{note}
-Advection above the canopy is curretly not implemented as everything is removed with
+Advection above the canopy is currently not implemented as everything is removed with
 time interval >= 1h.
 ```
 
@@ -527,7 +528,8 @@ $\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
 ($\mathrm{m\,m^{-1}}$).
 
 The **wind speed** ($\mathrm{m\,s^{-1}}$) at any height $z$ (m) is computed using the
-logarithmic wind profile under neutral conditions:
+logarithmic wind profile under neutral conditions (based on
+{cite:t}`holmes_wind_2019`):
 
 ```{math}
 u(z) = u_{\text{ref}} \cdot \frac{\ln\left( \frac{z - d}{z_0} \right)}
@@ -542,14 +544,16 @@ Minimum wind speed is enforced below the canopy to avoid unrealistically low tur
 transport.
 
 **Friction velocity** $u_{*}$ ($\mathrm{m\,s^{-1}}$) quantifies the shear stress
-imposed by wind near the surface and is calculated from the wind speed profile:
+imposed by wind near the surface and is calculated from the wind speed profile
+(based on {cite:t}`holmes_wind_2019`):
 
 $$u_* = \frac{\kappa \cdot u(z)}{\ln\left( \frac{z - d}{z_0} \right)}$$
 
 Friction velocity is used to estimate turbulence strength and mixing coefficients.
 
 The **aerodynamic resistance** $r_a$ ($\mathrm{s\,m^{-1}}$) quantifies the resistance to
-vertical transfer of scalars (heat, water vapour) between surface and air:
+vertical transfer of scalars (heat, water vapour) between surface and air
+(based on {cite:t}`jansson_coupled_2004`):
 
 ```{math}
 r_a = \frac{1}{g_a} = \frac{\left[ \ln\left( \frac{z - d}{z_0} \right) \right]^2}
@@ -579,7 +583,7 @@ This particular form goes to zero at both z=0 and z=h and peaks somewhere within
 canopy.
 
 The **ventilation rate** $v$ represents the rate of air exchange above the
-canopy and is defined as:
+canopy and is defined as (after {cite:t}`wolfe_forest_2011`):
 
 $$v = \frac{1}{r_a \cdot h}$$
 

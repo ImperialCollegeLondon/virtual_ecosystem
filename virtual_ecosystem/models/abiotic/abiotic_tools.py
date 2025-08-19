@@ -59,6 +59,7 @@ def calculate_air_density(
         specific_gas_constant_dry_air: Specific gas constant for dry air, [J kg-1 K-1]
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
+
     Returns:
         density of air, [kg m-3].
     """
@@ -198,7 +199,7 @@ def compute_layer_thickness_for_varying_canopy(
     .
 
     Args:
-        heights: 2D array (n_layers, n_columns) of layer heights, [m]
+        heights: 2D array of layer heights, [m]
 
     Returns:
         2D array of layer thickness, [m], same shape as input
@@ -246,7 +247,7 @@ def calculate_specific_humidity(
         pyrealm_const: Pyrealm constants
 
     Returns:
-        Specific humidity (kg/kg)
+        Specific humidity [kg kg-1]
     """
     # Saturation vapor pressure
     saturation_vapour_pressure = calc_vp_sat(
