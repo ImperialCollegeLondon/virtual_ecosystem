@@ -518,3 +518,17 @@ class StemStochiometry(CohortMethods, PandasExporter):
                     / self.tissue_deficit[cohort]
                 )
             self.element_surplus[cohort] = 0.0
+
+    def get_tissue(self, tissue_type: str) -> Tissue:
+        """Get the tissue model for a specific tissue type.
+
+        Args:
+            tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
+
+        Returns:
+            The tissue model corresponding to the specified tissue type.
+        """
+        for tissue in self.tissues:
+            if tissue.__class__.__name__.lower() == tissue_type.lower():
+                return tissue
+        raise ValueError(f"Tissue type '{tissue_type}' not found.")

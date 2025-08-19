@@ -774,6 +774,16 @@ class PlantsModel(
         # Most variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
+        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(self.data["elevation"], 0)
+        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(self.data["elevation"], 0)
+        self.data["root_turnover_c_n_ratio"] = xr.full_like(self.data["elevation"], 0)
+        self.data["root_turnover_c_p_ratio"] = xr.full_like(self.data["elevation"], 0)
+        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
+            self.data["elevation"], 0
+        )
+        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
+            self.data["elevation"], 0
+        )
         self.data["root_carbohydrate_exudation"] = xr.full_like(
             self.data["elevation"], 0
         )
@@ -823,16 +833,56 @@ class PlantsModel(
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
             # Sum of turnover from all cohorts in a grid cell
+            leaf_turnover_c = np.sum(
+                stem_allocation.foliage_turnover * cohorts.n_individuals
+            )
+            root_turnover_c = np.sum(
+                stem_allocation.fine_root_turnover * cohorts.n_individuals
+            )
+
+            # Store turnover values in the data object
             self.data["leaf_turnover"][cell_id] = self.convert_to_litter_units(
-                input_mass=np.sum(
-                    stem_allocation.foliage_turnover * cohorts.n_individuals
-                ),
+                input_mass=leaf_turnover_c,
             )
             self.data["root_turnover"][cell_id] = self.convert_to_litter_units(
-                input_mass=np.sum(
-                    stem_allocation.fine_root_turnover * cohorts.n_individuals
-                ),
+                input_mass=root_turnover_c,
             )
+
+            # Calculate the leaf turnover C:N and C:P ratios and pass to data object
+            for element in ["N", "P"]:
+                print("ARRIVED")
+                self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
+                    leaf_turnover_c
+                    / np.sum(
+                        cohorts.n_individuals
+                        * stochiometries[element]
+                        .get_tissue("FoliageTissue")
+                        .element_turnover(stem_allocation)
+                    )
+                )
+                print("ONE DONE")
+                self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
+                    root_turnover_c
+                    / np.sum(
+                        cohorts.n_individuals
+                        * stochiometries[element]
+                        .get_tissue("RootTissue")
+                        .element_turnover(stem_allocation)
+                    )
+                )
+                print("TWO DONE")
+
+                self.data[
+                    f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
+                ][cell_id] = np.sum(
+                    stem_allocation.reproductive_tissue_turnover
+                ) / np.sum(
+                    stem_allocation.reproductive_tissue_turnover
+                    * stochiometries[element]
+                    .get_tissue("ReproductiveTissue")
+                    .element_turnover(stem_allocation)
+                )
+                print("THREE DONE")
 
             # Partition reproductive tissue into propagule and non-propagule masses and
             # convert the propagule mass to number of propagules
@@ -962,8 +1012,6 @@ class PlantsModel(
                 stem_traits=community.stem_traits, at_dbh=cohorts.dbh_values
             )
 
-            self.update_cn_ratios()
-
     def apply_mortality(self) -> None:
         """Apply mortality to plant cohorts.
 
@@ -975,6 +1023,8 @@ class PlantsModel(
         """
 
         self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0)
+        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 0)
+        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 0)
 
         # Loop over each grid cell
         for cell_id in self.communities.keys():
@@ -994,46 +1044,16 @@ class PlantsModel(
             self.data["deadwood_production"][cell_id] = self.convert_to_litter_units(
                 input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
             )
-
-    def update_cn_ratios(self) -> None:
-        """Update the C:N and C:P ratios of plant tissues.
-
-        This function updates the C:N and C:P ratios of various plant tissues, including
-        deadwood, leaf turnover, plant reproductive tissue turnover, and root turnover.
-
-        # TODO: Update this to use the Stochiometry class values.
-
-        Warning:
-            At present, this function just sets values to original constants.
-        """
-
-        # C:N and C:P ratios
-        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 56.5)
-        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 25.5
-        )
-        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 12.5
-        )
-        self.data["root_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 45.6
-        )
-        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 856.5)
-        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 415.0
-        )
-        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 125.5
-        )
-        self.data["root_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 656.7
-        )
-
-        for cell_id in self.communities.keys():
-            pass
-            # TODO: ask Jacob what he wants from these values
-            # self.data["deadwood_c_n_ratio"][cell_id] = (
-            # self.stochiometries[cell_id]["N"]...
+            for element in ["N", "P"]:
+                self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = self.data[
+                    "deadwood_production"
+                ][cell_id] / np.sum(
+                    mortality
+                    * community.stem_allometry.stem_mass
+                    * self.stochiometries[cell_id][element]
+                    .get_tissue("WoodTissue")
+                    .Cx_ratio
+                )
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.

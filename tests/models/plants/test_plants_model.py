@@ -313,27 +313,6 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     assert np.allclose(fxt_plants_model.data["leaf_lignin"], consts.leaf_lignin)
 
 
-def test_PlantsModel_update_cn_ratios(fxt_plants_model, fixture_config):
-    """Test the update_cn_ratios method of the plants model."""
-
-    fxt_plants_model.update_cn_ratios()
-
-    assert np.allclose(fxt_plants_model.data["deadwood_c_n_ratio"], 56.5)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_n_ratio"], 25.5)
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_n_ratio"],
-        12.5,
-    )
-    assert np.allclose(fxt_plants_model.data["root_turnover_c_n_ratio"], 45.6)
-    assert np.allclose(fxt_plants_model.data["deadwood_c_p_ratio"], 856.5)
-    assert np.allclose(fxt_plants_model.data["leaf_turnover_c_p_ratio"], 415.0)
-    assert np.allclose(
-        fxt_plants_model.data["plant_reproductive_tissue_turnover_c_p_ratio"],
-        125.5,
-    )
-    assert np.allclose(fxt_plants_model.data["root_turnover_c_p_ratio"], 656.7)
-
-
 def test_PlantsModel_calculate_turnover_constant_override(
     plants_data, fixture_config, fixture_core_components
 ):
