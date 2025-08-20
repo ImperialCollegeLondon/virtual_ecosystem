@@ -46,7 +46,6 @@ def dummy_carbon_data(fixture_core_components):
         "soil_p_pool_secondary": [0.00705668, 0.03816896, 0.01152589, 0.00733107],
         "soil_p_pool_labile": [1.0582393e-5, 3.252961e-5, 6.806745e-5, 1.945635e-4],
         "pH": [3.0, 7.5, 9.0, 5.7],
-        "bulk_density": [1350.0, 1800.0, 1000.0, 1500.0],
         "clay_fraction": [0.8, 0.3, 0.1, 0.9],
         "litter_C_mineralisation_rate": [0.00212106, 0.00106053, 0.00049000, 0.0055],
         "litter_N_mineralisation_rate": [3.5351e-5, 7.0702e-5, 0.000183, 1.63333e-5],
