@@ -556,7 +556,6 @@ def test_order_independance(
     # Add all the non-pool data into the new data object
     not_pools = [
         "pH",
-        "bulk_density",
         "soil_moisture",
         "matric_potential",
         "vertical_flow",
