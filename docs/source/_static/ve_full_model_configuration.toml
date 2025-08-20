@@ -51,10 +51,6 @@ var_name = "pH"
 
 [[core.data.variable]]
 file_path = "/private/tmp/ve_example/data/example_soil_data.nc"
-var_name = "bulk_density"
-
-[[core.data.variable]]
-file_path = "/private/tmp/ve_example/data/example_soil_data.nc"
 var_name = "clay_fraction"
 
 [[core.data.variable]]

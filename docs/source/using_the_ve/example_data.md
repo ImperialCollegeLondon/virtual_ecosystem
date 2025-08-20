@@ -241,10 +241,6 @@ The `example_soil_data.nc` file provides:
   - `pH`
   - unitless
   - XY
-* - Bulk soil density
-  - `bulk_density`
-  - kg $\textrm{m}^{-3}$
-  - XY
 * - Soil clay fraction
   - `clay_fraction`
   - unitless
