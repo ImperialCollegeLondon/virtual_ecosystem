@@ -13,7 +13,7 @@ def calculate_zero_plane_displacement(
     leaf_area_index: NDArray[np.floating],
     zero_plane_scaling_parameter: float,
 ) -> NDArray[np.floating]:
-    """Calculate zero plane displacement height, [m].
+    """Calculate zero plane displacement height.
 
     The zero plane displacement height is a concept used in micrometeorology to describe
     the flow of air near the ground or over surfaces like a forest canopy or crops. It
@@ -55,7 +55,7 @@ def calculate_roughness_length_momentum(
     min_roughness_length: float,
     von_karman_constant: float,
 ) -> NDArray[np.floating]:
-    """Calculate roughness length governing momentum transfer, [m].
+    """Calculate roughness length governing momentum transfer.
 
     Roughness length is defined as the height at which the mean velocity is zero due to
     substrate roughness. Real surfaces such as the ground or vegetation are not smooth
@@ -127,7 +127,7 @@ def calculate_wind_profile(
     zero_plane_displacement: NDArray[np.floating],
     min_wind_speed: float,
 ) -> NDArray[np.floating]:
-    r"""Calculate wind speed profile, [m s-1].
+    r"""Calculate wind speed profile.
 
     The wind speed at different heights is calculated using the following equation
     (based on :cite:t:`holmes_wind_2019`):
@@ -175,7 +175,7 @@ def calculate_friction_velocity(
     zero_plane_displacement: NDArray[np.floating],
     von_karman_constant: float,
 ) -> NDArray[np.floating]:
-    r"""Calculate friction velocity, [m s-1].
+    r"""Calculate friction velocity.
 
     Friction velocity is a measure of the shear stress exerted by the wind on the
     Earth's surface, representing the velocity scale that relates to turbulent energy
@@ -465,10 +465,10 @@ def calculate_aerodynamic_resistance(
     wind_speed: NDArray[np.floating],
     von_karman_constant: float,
 ) -> NDArray[np.floating]:
-    r"""Calculate aerodynamic resistance in canopy, [s m-1].
+    r"""Calculate aerodynamic resistance in canopy.
 
-    The aerodynamic resistance :math:`r_{a}` is calculated as (
-    based on :cite:t:`jansson_coupled_2004:
+    The aerodynamic resistance :math:`r_{a}` is calculated as (based on
+    :cite:t:`jansson_coupled_2004`):
 
     .. math::
         r_{a} = \frac{ln(\frac{z-d}{z_{m}})^{2}}{\kappa ^{2} u(z)}
@@ -479,7 +479,7 @@ def calculate_aerodynamic_resistance(
     :math:`u(z)` is the wind speed at height :math:`z`.
 
     Args:
-        wind_heights: Heights where wind speed is to be calculated [m].
+        wind_heights: Heights where wind speed is to be calculated, [m].
         roughness_length: Momentum roughness length, [m]
         zero_plane_displacement: Height above the actual ground where the wind speed is
             theoretically reduced to zero due to the obstruction caused by the roughness

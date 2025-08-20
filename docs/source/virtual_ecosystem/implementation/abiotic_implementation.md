@@ -160,7 +160,7 @@ soil surface by partitioning net radiation $R_N$ into different fluxes.
 
 The **sensible heat flux** from the soil surface is given by:
 
-$$H_{s} = \frac {\rho_{a} C_{a} (T_{s} - T_{a})}{r_{a}}$$
+$$H_{s} = \frac {\rho_{a} c_{p} (T_{s} - T_{a})}{r_{a}}$$
 
 where:
 
@@ -176,8 +176,8 @@ Aerodynamic resistance of the soil surface ($\mathrm{s\,m^{-1}}$)
 $\rho_{a}$:
 Air density ($\mathrm{kg\,m^{-3}}$)
 
-$C_{a}$:
-Specific heat capacity of air ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
+$c_{p}$:
+Specific heat capacity of air at constant pressure ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
 
 The aerodynamic resistance of the soil surface is given by
 {cite:p}`barton_parameterization_1979`:
@@ -212,7 +212,7 @@ each soil depth.
 The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
 at which heat is conducted through the soil. It is defined as:
 
-$$\alpha = \frac{k}{\rho_s c}$$
+$$\alpha = \frac{k}{\rho_s c_s}$$
 
 where:
 
@@ -224,7 +224,7 @@ $\rho_s$:
 Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces, currently
 constant across all grid cells and layers
 
-$c$:
+$c_s$:
 Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
 raise the temperature of 1 kg of soil by 1 K.
 
@@ -284,8 +284,8 @@ layer is as follows:
 
 ```{math}
     & \frac{dQ}{dt} \\
-    & = R_{n} - H - \lambda E (- PP)\\
-    & = R_{\text{abs}} - \epsilon_{s} \sigma T_{l}^{4} -
+    & = R_{n} - H_l - \lambda E_l (- PP)\\
+    & = R_{\text{abs}} - \epsilon_{l} \sigma T_{l}^{4} -
     \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
     - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} (- PP)\\
     & = 0
@@ -300,14 +300,14 @@ Shortwave radiation absorbed by the canopy, equivalent to $S_0 (1-\alpha)$
 $R_{\text{em}}$:
 Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
 
-$H$:
+$H_{l}$:
 Sensible heat flux from the canopy to the air ($\mathrm{W\,m^{-2}}$)
 
-$\lambda E$:
+$\lambda E_{l}$:
 Latent heat flux associated with transpiration from the canopy to the air
 ($\mathrm{W\,m^{-2}}$)
 
-$\epsilon_{s}$:
+$\epsilon_{l}$:
 Emissivity of the leaf (-), typically close to 1
 
 $\sigma$:
@@ -386,7 +386,7 @@ is calculated analytically as:
 \frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}} =
 \frac{\rho_a c_p}{r_a} +
 \frac{\rho_a \Delta_v}{r_a + r_s} \lambda +
-4 \epsilon \sigma (T_l^{\text{old}} + 273.15)^3
+4 \epsilon_l \sigma (T_l^{\text{old}} + 273.15)^3
 ```
 
 where:
@@ -409,7 +409,7 @@ Slope of the saturation vapour pressure curve ($\mathrm{kPa\, K^{-1}}$)
 $\lambda$:
 Latent heat of vapourisation of water ($\mathrm{kJ\, kg^{-1}}$)
 
-$\epsilon$:
+$\epsilon_l$:
 Leaf emissivity (-)
 
 $\sigma$:
@@ -445,42 +445,31 @@ Thickness of the air layer we are updating, (m)
 Finally, we consider vertical mixing between layers and heat is transferred to the
 air above the canopy.
 
-#### Update of atmospheric moisture
+```{note}
+Advection of heat above the canopy is currently not implemented as everything is
+removed with time interval >= 1h and horizontal transfer is not considered.
+```
 
-To account for moisture added to the atmosphere from canopy transpiration and soil
-evaporation, the model updates key atmospheric humidity variables in each vertical
-layer. This ensures consistency in the representation of atmospheric water content
-across the grid.
+#### Update of atmospheric moisture
 
 Evapotranspiration and soil evaporation are initially provided in millimetres of water
 depth. These values are converted to a mass of water per unit volume of air
-($\mathrm{kg\, m^{-3}}$)
-using the grid cell area. The evaporated water is then added to the relevant atmospheric
+($\mathrm{kg\, m^{-3}}$) then added to the relevant atmospheric
 layers: canopy evapotranspiration is distributed across the layers surrounding the
 vegetation, while soil evaporation is added to the lowest layer near the surface.
 
 Using the updated water mass, specific humidity is recalculated for each layer by
 dividing the total water mass by the volume of air in that layer. Then, the new specific
 humidity is vertically mixed between layers and ventilated at the top of the canopy to
-make sure that water does not accumulate unrealistcaly in the canopy but stays connected
-to the atmosphere above. The resulting change in
-specific humidity is then used to compute the new vapour pressure, taking into account
-the atmospheric pressure and the molecular weight difference between water vapour and
-dry air. To maintain physical realism, the vapour pressure is capped at the saturated
-vapour pressure, avoiding supersaturation.
-
-Finally, the model derives relative humidity as the ratio of vapour pressure to
-saturated vapour pressure, expressed as a percentage. The vapour pressure deficit (VPD)
-is then calculated as the difference between saturated and actual vapour pressure,
-indicating the remaining atmospheric demand for water.
-
-This update step ensures that changes in canopy and soil water fluxes are accurately
-reflected in the atmospheric humidity profile, which in turn affects subsequent energy
-and water balance calculations.
+make sure that water does not accumulate unrealistcally in the canopy but stays connected
+to the atmosphere above. To maintain physical realism, additional redistribution steps
+are taken where necessary until all layers in the canopy are within realistic bounds.
+The resulting change in specific humidity is then used to compute the new vapour pressure
+, relative humidity, and vapour pressure deficit.
 
 ```{note}
-Advection above the canopy is currently not implemented as everything is removed with
-time interval >= 1h.
+Advection of water above the canopy is currently not implemented as everything is
+removed with time interval >= 1h and horizontal transfer is not considered.
 ```
 
 ### Wind

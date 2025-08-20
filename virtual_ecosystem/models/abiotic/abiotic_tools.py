@@ -100,8 +100,8 @@ def find_last_valid_row(array: NDArray[np.floating]) -> NDArray[np.floating]:
     """Find last valid value in array for each column.
 
     This function looks for the last valid value in each column of a 2-dimensional
-    array. If the previous value is nan, it moved up the array. If all values are nan,
-    the value is set to nan, too.
+    array. If the previous value is nan, it moved up the array. If all values are NaN,
+    the value is set to NaN, too.
 
     Args:
         array: Two-dimesional array for which last valid values should be found
@@ -247,7 +247,7 @@ def calculate_specific_humidity(
         pyrealm_const: Pyrealm constants
 
     Returns:
-        Specific humidity [kg kg-1]
+        Specific humidity, [kg kg-1]
     """
     # Saturation vapor pressure
     saturation_vapour_pressure = calc_vp_sat(
