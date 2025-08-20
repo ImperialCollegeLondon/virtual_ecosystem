@@ -67,7 +67,8 @@ The litter model uses the following sequence:
 6. The mineralisation rates at which nutrients enter the soil are then found. We track
    carbon (using the [calculate_total_C_mineralised
    function](virtual_ecosystem.models.litter.carbon.calculate_total_C_mineralised)) and
-   also nitrogen and phosphorus (using `LitterChemistry` class methods).
+   also nitrogen and phosphorus (using the [calculate_litter_losses
+   function](virtual_ecosystem.models.litter.losses.calculate_litter_losses)).
 
 :::{admonition} Future directions 🔭
 
