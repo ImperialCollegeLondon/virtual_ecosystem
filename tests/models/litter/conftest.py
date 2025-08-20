@@ -2,6 +2,7 @@
 
 import pytest
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.models.litter.constants import LitterConsts
 
 
@@ -30,13 +31,12 @@ def fixture_litter_model(dummy_litter_data):
 
 
 @pytest.fixture
-def decay_rates(dummy_litter_data, fixture_core_components, post_consumption_pools):
+def decay_rates(dummy_litter_data, fixture_core_components):
     """Decay rates for the various litter pools."""
 
     from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
 
     decay_rates = calculate_decay_rates(
-        post_consumption_pools=post_consumption_pools,
         lignin_above_structural=dummy_litter_data["lignin_above_structural"].to_numpy(),
         lignin_woody=dummy_litter_data["lignin_woody"].to_numpy(),
         lignin_below_structural=dummy_litter_data["lignin_below_structural"].to_numpy(),
@@ -55,53 +55,23 @@ def litter_chemistry(dummy_litter_data):
     """LitterChemistry object to be use throughout testing."""
     from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 
-    litter_chemistry = LitterChemistry(dummy_litter_data, constants=LitterConsts)
+    litter_chemistry = LitterChemistry(dummy_litter_data)
 
     return litter_chemistry
 
 
 @pytest.fixture
-def input_lignin(litter_inputs):
-    """Lignin proportion of the relevant input flows."""
-    from virtual_ecosystem.models.litter.chemistry import (
-        calculate_litter_input_lignin_concentrations,
-    )
+def input_chemistries(litter_inputs):
+    """Chemistries of each input flow."""
+    from virtual_ecosystem.models.litter.inputs import calculate_input_chemistries
 
-    input_lignin = calculate_litter_input_lignin_concentrations(
-        litter_inputs=litter_inputs
-    )
-
-    return input_lignin
-
-
-@pytest.fixture
-def input_c_n_ratios(litter_inputs):
-    """Carbon:nitrogen ratio of each input flow."""
-    from virtual_ecosystem.models.litter.chemistry import (
-        calculate_litter_input_nitrogen_ratios,
-    )
-
-    input_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+    input_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,
         struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
-    )
-
-    return input_c_n_ratios
-
-
-@pytest.fixture
-def input_c_p_ratios(litter_inputs):
-    """Carbon:nitrogen ratio of each input flow."""
-    from virtual_ecosystem.models.litter.chemistry import (
-        calculate_litter_input_phosphorus_ratios,
-    )
-
-    input_c_p_ratios = calculate_litter_input_phosphorus_ratios(
-        litter_inputs=litter_inputs,
         struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
     )
 
-    return input_c_p_ratios
+    return input_chemistries
 
 
 @pytest.fixture
@@ -153,15 +123,13 @@ def total_litter_input(dummy_litter_data):
     """Total input mass a chemistry for each plant biomass type."""
     from virtual_ecosystem.models.litter.inputs import combine_input_sources
 
-    total_litter_input = combine_input_sources(dummy_litter_data)
+    total_litter_input = combine_input_sources(dummy_litter_data, update_interval=2.0)
 
     return total_litter_input
 
 
 @pytest.fixture
-def updated_pools(
-    dummy_litter_data, decay_rates, post_consumption_pools, litter_inputs
-):
+def updated_pools(decay_rates, post_consumption_pools, litter_inputs):
     """Updated carbon mass of each pool."""
     from virtual_ecosystem.models.litter.carbon import calculate_updated_pools
 
@@ -181,7 +149,31 @@ def litter_inputs(dummy_litter_data):
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     litter_inputs = LitterInputs.create_from_data(
-        data=dummy_litter_data, constants=LitterConsts
+        data=dummy_litter_data,
+        constants=LitterConsts,
+        update_interval=2.0,
     )
 
     return litter_inputs
+
+
+@pytest.fixture
+def litter_losses(
+    dummy_litter_data,
+    post_consumption_pools,
+    updated_pools,
+    litter_inputs,
+    input_chemistries,
+):
+    """Complete set of losses from the litter pools."""
+    from virtual_ecosystem.models.litter.losses import calculate_litter_losses
+
+    return calculate_litter_losses(
+        data=dummy_litter_data,
+        original_pools=post_consumption_pools,
+        final_pools=updated_pools,
+        litter_inputs=litter_inputs,
+        input_chemistries=input_chemistries,
+        update_interval=2.0,
+        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
+    )

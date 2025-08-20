@@ -13,6 +13,8 @@ Each of the litter sub-modules has its own API reference page:
   nitrogen and phosphorus) of the litter pools.
 * :mod:`~virtual_ecosystem.models.litter.inputs` handles the partitioning of biomass
   input between the different litter pools.
+* :mod:`~virtual_ecosystem.models.litter.losses` calculates the total nutrient losses
+  from each litter pool to the soil.
 * :mod:`~virtual_ecosystem.models.litter.env_factors` provides the functions
   capturing the impact of environmental factors on litter decay.
 * :mod:`~virtual_ecosystem.models.litter.constants` provides a set of dataclasses

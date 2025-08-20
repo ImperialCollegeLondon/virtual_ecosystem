@@ -891,7 +891,7 @@ class AnimalModel(
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
             / self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"]
             if self.leaf_waste_pools[cell_id].mass_cnp["nitrogen"] > 0
-            else (inf if self.leaf_waste_pools[cell_id].mass_cnp["carbon"] > 0 else 0.0)
+            else inf
             for cell_id in self.data.grid.cell_id
         ]
 
@@ -899,7 +899,7 @@ class AnimalModel(
             self.leaf_waste_pools[cell_id].mass_cnp["carbon"]
             / self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"]
             if self.leaf_waste_pools[cell_id].mass_cnp["phosphorus"] > 0
-            else (inf if self.leaf_waste_pools[cell_id].mass_cnp["carbon"] > 0 else 0.0)
+            else inf
             for cell_id in self.data.grid.cell_id
         ]
 
