@@ -123,16 +123,17 @@ in the product of lignin proportion and carbon:phosphorus ratio.
 ## Litter decay dynamics
 
 The decay of all litter pools are assumed to follow linear kinetics, with the rate of
-change of litter pool $j$ being given by
+change in the carbon mass, $P$, of litter pool $j$ being given by
 
 $$\frac{dP_j}{dt} = I_j - K_j(T,\psi,L)P_j,$$
 
 where $I_j$ is the rate of input to pool $j$ (in carbon terms), $T$ is the temperature,
-$\psi$ and $K_j(T,\psi,L)$ is the decay rate of the pool. The decay rate of the pool
-will always depend on temperature, but only for the below-ground pools will it be
-affected by soil water potential. Further, lignin content only affects the decay rates
-of pools which contain lignin (i.e. structural and lignin). As an example, the decay
-rate of the below-ground structural litter pool is calculated as
+$\psi$ is the soil water potential and $K_j(T,\psi,L)$ is the decay rate of the pool.
+The decay rate of the pool will always depend on temperature, but only for the
+below-ground pools will it be affected by soil water potential. Further, lignin content
+only affects the decay rates of pools which contain lignin (i.e. structural and woody
+pools). As an example, the decay rate of the below-ground structural litter pool is
+calculated as
 
 $$K_{bs}(T,\psi,L) = k_{bs} * f_t(T) * A(\psi) * f_l(L),$$
 
