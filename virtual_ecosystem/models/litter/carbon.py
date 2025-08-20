@@ -25,6 +25,7 @@ from virtual_ecosystem.models.litter.env_factors import (
     calculate_environmental_factors,
 )
 from virtual_ecosystem.models.litter.inputs import LitterInputs
+from virtual_ecosystem.models.litter.losses import LitterLosses
 
 
 def calculate_post_consumption_pools(
@@ -77,7 +78,6 @@ def calculate_post_consumption_pools(
 
 
 def calculate_decay_rates(
-    post_consumption_pools: dict[str, NDArray[np.floating]],
     lignin_above_structural: NDArray[np.floating],
     lignin_woody: NDArray[np.floating],
     lignin_below_structural: NDArray[np.floating],
@@ -90,13 +90,12 @@ def calculate_decay_rates(
     """Calculate the decay rate for all five of the litter pools.
 
     Args:
-        post_consumption_pools: The five litter pools after animal consumption has been
-            subtracted [kg C m^-2]
         lignin_above_structural: Proportion of above ground structural pool which is
-            lignin [unitless]
-        lignin_woody: Proportion of dead wood pool which is lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
+        lignin_woody: Proportion of dead wood pool which is lignin
+            [kg lignin C (kg C)^-1]
         lignin_below_structural: Proportion of below ground structural pool which is
-            lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
         air_temperatures: Air temperatures, for all above ground layers [C]
         soil_temperatures: Soil temperatures, for all soil layers [C]
         water_potentials: Water potentials, for all soil layers [kPa]
@@ -122,19 +121,16 @@ def calculate_decay_rates(
     # Calculate decay rate for each pool
     metabolic_above_decay = calculate_litter_decay_metabolic_above(
         temperature_factor=env_factors["temp_above"],
-        litter_pool_above_metabolic=post_consumption_pools["above_metabolic"],
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_above,
     )
     structural_above_decay = calculate_litter_decay_structural_above(
         temperature_factor=env_factors["temp_above"],
-        litter_pool_above_structural=post_consumption_pools["above_structural"],
         lignin_proportion=lignin_above_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_above,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
     )
     woody_decay = calculate_litter_decay_woody(
         temperature_factor=env_factors["temp_above"],
-        litter_pool_woody=post_consumption_pools["woody"],
         lignin_proportion=lignin_woody,
         litter_decay_coefficient=constants.litter_decay_constant_woody,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
@@ -142,13 +138,11 @@ def calculate_decay_rates(
     metabolic_below_decay = calculate_litter_decay_metabolic_below(
         temperature_factor=env_factors["temp_below"],
         moisture_factor=env_factors["water"],
-        litter_pool_below_metabolic=post_consumption_pools["below_metabolic"],
         litter_decay_coefficient=constants.litter_decay_constant_metabolic_below,
     )
     structural_below_decay = calculate_litter_decay_structural_below(
         temperature_factor=env_factors["temp_below"],
         moisture_factor=env_factors["water"],
-        litter_pool_below_structural=post_consumption_pools["below_structural"],
         lignin_proportion=lignin_below_structural,
         litter_decay_coefficient=constants.litter_decay_constant_structural_below,
         lignin_inhibition_factor=constants.lignin_inhibition_factor,
@@ -165,17 +159,19 @@ def calculate_decay_rates(
 
 
 def calculate_total_C_mineralised(
-    decay_rates: dict[str, NDArray[np.floating]],
+    litter_losses: LitterLosses,
     model_constants: LitterConsts,
     core_constants: CoreConsts,
+    update_interval: float,
 ) -> NDArray[np.floating]:
     """Calculate the total carbon mineralisation rate from all five litter pools.
 
     Args:
-        decay_rates: Dictionary containing the rates of decay for all 5 litter pools
-            [kg C m^-2 day^-1]
+        litter_losses: Dataclass containing the total nutrient loss from each litter
+            pool
         model_constants: Set of constants for the litter model
         core_constants: Set of core constants shared between all models
+        update_interval: Interval that the litter pools are being updated for [days]
 
     Returns:
         Rate of carbon mineralisation from litter into soil [kg C m^-3 day^-1].
@@ -183,28 +179,28 @@ def calculate_total_C_mineralised(
 
     # Calculate mineralisation from each pool
     metabolic_above_mineral = calculate_carbon_mineralised(
-        decay_rates["metabolic_above"],
+        carbon_loss=litter_losses.above_metabolic_carbon,
         carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_above_mineral = calculate_carbon_mineralised(
-        decay_rates["structural_above"],
+        carbon_loss=litter_losses.above_structural_carbon,
         carbon_use_efficiency=model_constants.cue_structural_above_ground,
     )
     woody_mineral = calculate_carbon_mineralised(
-        decay_rates["woody"],
+        carbon_loss=litter_losses.woody_carbon,
         carbon_use_efficiency=model_constants.cue_woody,
     )
     metabolic_below_mineral = calculate_carbon_mineralised(
-        decay_rates["metabolic_below"],
+        carbon_loss=litter_losses.below_metabolic_carbon,
         carbon_use_efficiency=model_constants.cue_metabolic,
     )
     structural_below_mineral = calculate_carbon_mineralised(
-        decay_rates["structural_below"],
+        carbon_loss=litter_losses.below_structural_carbon,
         carbon_use_efficiency=model_constants.cue_structural_below_ground,
     )
 
     # Calculate mineralisation rate
-    total_C_mineralisation_rate = (
+    total_C_mineralised = (
         metabolic_above_mineral
         + structural_above_mineral
         + woody_mineral
@@ -212,8 +208,10 @@ def calculate_total_C_mineralised(
         + structural_below_mineral
     )
 
-    # Convert mineralisation rate into kg m^-3 units (from kg m^-2)
-    return total_C_mineralisation_rate / core_constants.max_depth_of_microbial_activity
+    # Convert total mineralisation rate into kg m^-3 day^-1 units (from kg m^-2)
+    return total_C_mineralised / (
+        core_constants.max_depth_of_microbial_activity * update_interval
+    )
 
 
 def calculate_updated_pools(
@@ -245,41 +243,75 @@ def calculate_updated_pools(
         and below ground structural) [kg C m^-2]
     """
 
-    # Net pool changes are found by combining input and decay rates, and then
-    # multiplying by the update time step.
-    change_in_metabolic_above = litter_inputs.input_above_metabolic - (
-        decay_rates["metabolic_above"] * update_interval
-    )
-    change_in_structural_above = litter_inputs.input_above_structural - (
-        decay_rates["structural_above"] * update_interval
-    )
-    change_in_woody = litter_inputs.input_woody - (
-        decay_rates["woody"] * update_interval
-    )
-    change_in_metabolic_below = litter_inputs.input_below_metabolic - (
-        decay_rates["metabolic_below"] * update_interval
-    )
-    change_in_structural_below = litter_inputs.input_below_structural - (
-        decay_rates["structural_below"] * update_interval
-    )
-
-    # New value for each pool is found and returned in a dictionary
     return {
-        "above_metabolic": post_consumption_pools["above_metabolic"]
-        + change_in_metabolic_above,
-        "above_structural": post_consumption_pools["above_structural"]
-        + change_in_structural_above,
-        "woody": post_consumption_pools["woody"] + change_in_woody,
-        "below_metabolic": post_consumption_pools["below_metabolic"]
-        + change_in_metabolic_below,
-        "below_structural": post_consumption_pools["below_structural"]
-        + change_in_structural_below,
+        "above_metabolic": calculate_final_pool_size(
+            input_rate=litter_inputs.above_metabolic,
+            decay_rate=decay_rates["metabolic_above"],
+            initial_pool=post_consumption_pools["above_metabolic"],
+            update_interval=update_interval,
+        ),
+        "above_structural": calculate_final_pool_size(
+            input_rate=litter_inputs.above_structural,
+            decay_rate=decay_rates["structural_above"],
+            initial_pool=post_consumption_pools["above_structural"],
+            update_interval=update_interval,
+        ),
+        "woody": calculate_final_pool_size(
+            input_rate=litter_inputs.woody,
+            decay_rate=decay_rates["woody"],
+            initial_pool=post_consumption_pools["woody"],
+            update_interval=update_interval,
+        ),
+        "below_metabolic": calculate_final_pool_size(
+            input_rate=litter_inputs.below_metabolic,
+            decay_rate=decay_rates["metabolic_below"],
+            initial_pool=post_consumption_pools["below_metabolic"],
+            update_interval=update_interval,
+        ),
+        "below_structural": calculate_final_pool_size(
+            input_rate=litter_inputs.below_structural,
+            decay_rate=decay_rates["structural_below"],
+            initial_pool=post_consumption_pools["below_structural"],
+            update_interval=update_interval,
+        ),
     }
+
+
+def calculate_final_pool_size(
+    input_rate: NDArray[np.floating],
+    decay_rate: NDArray[np.floating],
+    initial_pool: NDArray[np.floating],
+    update_interval: float,
+):
+    """Calculate the final size of a litter pool based on input and decay rates.
+
+    This function use an exact solution to the litter input and decay dynamics to find
+    the pool size at the end of the update interval. This involves finding the
+    equilibrium pool size based on the ratio of the input rate to the decay rate. The
+    actual pool size exponentially decays from its initial size towards this equilibrium
+    size with at the litter decay rate.
+
+    Args:
+        input_rate: The rate of input of carbon to the new pool [kg C m^-2 day^-1]
+        decay_rate: The rate at which the pool decays (in carbon terms) [kg C m^-2
+            day^-1]
+        initial_pool: The size of the pool at the start of the update interval [kg C
+            m^-2]
+        update_interval: Interval that the litter pools are being updated for [days]
+
+    Returns:
+        The size of the pool at the end of the time step [kg C m^-2]
+    """
+
+    equilibrium_pool = input_rate / decay_rate
+
+    return equilibrium_pool - (equilibrium_pool - initial_pool) * np.exp(
+        -decay_rate * update_interval
+    )
 
 
 def calculate_litter_decay_metabolic_above(
     temperature_factor: NDArray[np.floating],
-    litter_pool_above_metabolic: NDArray[np.floating],
     litter_decay_coefficient: float,
 ) -> NDArray[np.floating]:
     """Calculate decay of above ground metabolic litter pool.
@@ -289,8 +321,6 @@ def calculate_litter_decay_metabolic_above(
     Args:
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
-        litter_pool_above_metabolic: The size of the above ground metabolic litter pool
-            [kg C m^-2]
         litter_decay_coefficient: The decay coefficient for the above ground metabolic
             litter pool [day^-1]
 
@@ -298,12 +328,11 @@ def calculate_litter_decay_metabolic_above(
         Rate of decay of the above ground metabolic litter pool [kg C m^-2 day^-1]
     """
 
-    return litter_decay_coefficient * temperature_factor * litter_pool_above_metabolic
+    return litter_decay_coefficient * temperature_factor
 
 
 def calculate_litter_decay_structural_above(
     temperature_factor: NDArray[np.floating],
-    litter_pool_above_structural: NDArray[np.floating],
     lignin_proportion: NDArray[np.floating],
     litter_decay_coefficient: float,
     lignin_inhibition_factor: float,
@@ -315,10 +344,8 @@ def calculate_litter_decay_structural_above(
     Args:
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
-        litter_pool_above_structural: The size of the above ground structural litter
-            pool [kg C m^-2]
         lignin_proportion: The proportion of the above ground structural pool which is
-            lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
         litter_decay_coefficient: The decay coefficient for the above ground structural
             litter pool [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
@@ -332,17 +359,11 @@ def calculate_litter_decay_structural_above(
         lignin_proportion, lignin_inhibition_factor=lignin_inhibition_factor
     )
 
-    return (
-        litter_decay_coefficient
-        * temperature_factor
-        * litter_pool_above_structural
-        * litter_chemistry_factor
-    )
+    return litter_decay_coefficient * temperature_factor * litter_chemistry_factor
 
 
 def calculate_litter_decay_woody(
     temperature_factor: NDArray[np.floating],
-    litter_pool_woody: NDArray[np.floating],
     lignin_proportion: NDArray[np.floating],
     litter_decay_coefficient: float,
     lignin_inhibition_factor: float,
@@ -354,9 +375,8 @@ def calculate_litter_decay_woody(
     Args:
         temperature_factor: A multiplicative factor capturing the impact of temperature
             on litter decomposition [unitless]
-        litter_pool_woody: The size of the woody litter pool [kg C m^-2]
         lignin_proportion: The proportion of the woody litter pool which is lignin
-            [unitless]
+            [kg lignin C (kg C)^-1]
         litter_decay_coefficient: The decay coefficient for the woody litter pool
             [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
@@ -370,18 +390,12 @@ def calculate_litter_decay_woody(
         lignin_proportion, lignin_inhibition_factor=lignin_inhibition_factor
     )
 
-    return (
-        litter_decay_coefficient
-        * temperature_factor
-        * litter_pool_woody
-        * litter_chemistry_factor
-    )
+    return litter_decay_coefficient * temperature_factor * litter_chemistry_factor
 
 
 def calculate_litter_decay_metabolic_below(
     temperature_factor: NDArray[np.floating],
     moisture_factor: NDArray[np.floating],
-    litter_pool_below_metabolic: NDArray[np.floating],
     litter_decay_coefficient: float,
 ) -> NDArray[np.floating]:
     """Calculate decay of below ground metabolic litter pool.
@@ -393,8 +407,6 @@ def calculate_litter_decay_metabolic_below(
             on litter decomposition [unitless]
         moisture_factor: A multiplicative factor capturing the impact of soil moisture
             on litter decomposition [unitless]
-        litter_pool_below_metabolic: The size of the below ground metabolic litter pool
-            [kg C m^-2]
         litter_decay_coefficient: The decay coefficient for the below ground metabolic
             litter pool [day^-1]
 
@@ -402,18 +414,12 @@ def calculate_litter_decay_metabolic_below(
         Rate of decay of the below ground metabolic litter pool [kg C m^-2 day^-1]
     """
 
-    return (
-        litter_decay_coefficient
-        * temperature_factor
-        * moisture_factor
-        * litter_pool_below_metabolic
-    )
+    return litter_decay_coefficient * temperature_factor * moisture_factor
 
 
 def calculate_litter_decay_structural_below(
     temperature_factor: NDArray[np.floating],
     moisture_factor: NDArray[np.floating],
-    litter_pool_below_structural: NDArray[np.floating],
     lignin_proportion: NDArray[np.floating],
     litter_decay_coefficient: float,
     lignin_inhibition_factor: float,
@@ -427,10 +433,8 @@ def calculate_litter_decay_structural_below(
             on litter decomposition [unitless]
         moisture_factor: A multiplicative factor capturing the impact of soil moisture
             on litter decomposition [unitless]
-        litter_pool_below_structural: The size of the below ground structural litter
-            pool [kg C m^-2]
         lignin_proportion: The proportion of the below ground structural pool which is
-            lignin [unitless]
+            lignin [kg lignin C (kg C)^-1]
         litter_decay_coefficient: The decay coefficient for the below ground structural
             litter pool [day^-1]
         lignin_inhibition_factor: An exponential factor expressing the extent to which
@@ -449,24 +453,23 @@ def calculate_litter_decay_structural_below(
         * temperature_factor
         * moisture_factor
         * litter_chemistry_factor
-        * litter_pool_below_structural
     )
 
 
 def calculate_carbon_mineralised(
-    litter_decay_rate: NDArray[np.floating], carbon_use_efficiency: float
+    carbon_loss: NDArray[np.floating], carbon_use_efficiency: float
 ) -> NDArray[np.floating]:
-    """Calculate fraction of litter decay that gets mineralised.
+    """Calculate fraction of carbon loss that gets mineralised.
 
     TODO - This function could also be used to track carbon respired, if/when we decide
     to track that.
 
     Args:
-        litter_decay_rate: Rate at which litter pool is decaying [kg C m^-2 day^-1]
+        carbon_loss: Total amount of carbon lost from the litter pool [kg C m^-2]
         carbon_use_efficiency: Carbon use efficiency of litter pool [unitless]
 
     Returns:
         Rate at which carbon is mineralised from the litter pool [kg C m^-2 day^-1]
     """
 
-    return carbon_use_efficiency * litter_decay_rate
+    return carbon_use_efficiency * carbon_loss

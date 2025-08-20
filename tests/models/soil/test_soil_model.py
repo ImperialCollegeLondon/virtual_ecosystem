@@ -40,7 +40,6 @@ REQUIRED_INIT_VAR_LOG = (
     (DEBUG, "soil model: required var 'soil_p_pool_secondary' checked"),
     (DEBUG, "soil model: required var 'soil_p_pool_labile' checked"),
     (DEBUG, "soil model: required var 'pH' checked"),
-    (DEBUG, "soil model: required var 'bulk_density' checked"),
     (DEBUG, "soil model: required var 'clay_fraction' checked"),
 )
 POST_SETUP_LOG = (
@@ -511,6 +510,27 @@ def test_integrate_soil_model(
     log_check(caplog, expected_log)
 
 
+def test_integrate_with_nans(caplog, fixture_soil_model):
+    """Test that integration fails if NaN values are in the input data."""
+
+    # Add Nan value to data and then clean up caplog
+    fixture_soil_model.data["pH"] = DataArray([3.3, np.nan, 5.6, 7.9], dims=["cell_id"])
+    caplog.clear()
+
+    with pytest.raises(ValueError):
+        _ = fixture_soil_model.integrate()
+
+    expected_log = (
+        (
+            ERROR,
+            "Soil model integration cannot proceed because the following variables "
+            "have unexpected NaN values: {'pH'}",
+        ),
+    )
+
+    log_check(caplog, expected_log)
+
+
 def test_order_independance(
     dummy_carbon_data,
     fixture_soil_model,
@@ -593,6 +613,87 @@ def test_order_independance(
     # Compare each final pool
     for pool_name in pool_names:
         assert np.allclose(output[pool_name], output_reversed[pool_name])
+
+
+@pytest.mark.parametrize(
+    argnames=["unexpected_nans", "variable_name", "input_data"],
+    argvalues=[
+        pytest.param(
+            False,
+            "pH",
+            DataArray([3.3, 4.3, 5.6, 7.9], dims=["cell_id"]),
+            id="no NaNs",
+        ),
+        pytest.param(
+            True,
+            "pH",
+            DataArray([3.3, np.nan, 5.6, 7.9], dims=["cell_id"]),
+            id="NaN",
+        ),
+    ],
+)
+def test_check_for_unexpected_nan_value_flat(
+    fixture_soil_model, unexpected_nans, variable_name, input_data
+):
+    """Test unexpected NaN checking values works for variables without layers."""
+
+    fixture_soil_model.data[variable_name] = input_data
+
+    assert unexpected_nans == fixture_soil_model.check_for_unexpected_nan_values(
+        var=variable_name
+    )
+
+
+@pytest.mark.parametrize(
+    argnames=["unexpected_nans", "variable_name", "layer_name", "input_data"],
+    argvalues=[
+        pytest.param(
+            False,
+            "air_temperature",
+            "index_surface",
+            np.array([3.3, 4.3, 5.6, 7.9]),
+            id="surface, good",
+        ),
+        pytest.param(
+            True,
+            "air_temperature",
+            "index_surface",
+            np.array([3.3, np.nan, 5.6, 7.9]),
+            id="surface, bad",
+        ),
+        pytest.param(
+            False,
+            "soil_temperature",
+            "index_all_soil",
+            np.array([[3.3, 4.3, 5.6, 7.9], [23.4, 26.1, 24.4, 29.8]]),
+            id="soil, good",
+        ),
+        pytest.param(
+            True,
+            "soil_temperature",
+            "index_all_soil",
+            np.array([[3.3, 4.3, 5.6, 7.9], [np.nan, 26.1, 24.4, 29.8]]),
+            id="soil, bad",
+        ),
+    ],
+)
+def test_check_for_unexpected_nan_value_layered(
+    fixture_soil_model,
+    fixture_core_components,
+    unexpected_nans,
+    variable_name,
+    layer_name,
+    input_data,
+):
+    """Test unexpected NaN checking values works for variables without layers."""
+
+    lyr_str = fixture_core_components.layer_structure
+    fixture_soil_model.data[variable_name] = lyr_str.from_template()
+    fixture_soil_model.data[variable_name][getattr(lyr_str, layer_name)] = input_data
+
+    assert unexpected_nans == fixture_soil_model.check_for_unexpected_nan_values(
+        var=variable_name
+    )
 
 
 def test_convert_fruiting_body_production_to_rate(fixture_soil_model):

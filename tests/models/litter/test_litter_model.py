@@ -457,73 +457,32 @@ def test_generate_litter_model(
 def test_update(fixture_litter_model, dummy_litter_data):
     """Test to check that the update step works and increments the update step."""
 
-    end_above_meta = [0.3154788, 0.15354349, 0.080772679, 0.073701212]
-    end_above_struct = [0.5051986807, 0.2506105228, 0.1035010262, 0.1191224962]
-    end_woody = [4.77403361, 11.89845863, 7.3598224, 7.3298224]
-    end_below_meta = [0.3976309, 0.3630269, 0.06787947, 0.07794085]
-    end_below_struct = [0.61050583, 0.32205947352, 0.02014514530, 0.03468376530]
-    end_lignin_above_struct = [0.49726272, 0.10113017, 0.67782882, 0.67072519]
-    end_lignin_woody = [0.49580543, 0.7978783, 0.35224272, 0.35012606]
-    end_lignin_below_struct = [0.49974338, 0.26270806, 0.74846367, 0.71955592]
-    end_c_n_above_metabolic = [7.3921805, 9.0161456, 10.4324728, 9.9183441]
-    end_c_n_above_structural = [37.554988, 43.431768, 48.067581, 52.065169]
-    end_c_n_woody = [55.5816919, 63.2550698, 47.5208477, 59.0819914]
-    end_c_n_below_metabolic = [10.7299421, 11.3394567, 15.1984024, 12.2222413]
-    end_c_n_below_structural = [50.6228215, 55.9998994, 73.0948342, 58.6661277]
-    end_c_p_above_metabolic = [69.966598, 69.674548, 108.426751, 96.143488]
-    end_c_p_above_structural = [346.05231, 473.330293, 467.818240, 532.420899]
-    end_c_p_woody = [560.22870571, 762.56863636, 848.03530307, 600.40427444]
-    end_c_p_below_metabolic = [308.200782, 405.110726, 314.824814, 372.870229]
-    end_c_p_below_structural = [563.06464, 597.68324, 772.78968, 609.82810]
-    c_mineral = [0.02652423, 0.02033658, 0.00746131, 0.00746131]
-    n_mineral = [0.00595963, 0.00379074, 0.00085095, 0.0009043]
-    p_mineral = [4.39937479e-4, 2.13832149e-4, 6.40698004e-5, 6.56405873e-5]
+    expected_output = {
+        "litter_pool_above_metabolic": [0.31524887, 0.15349194, 0.08093312, 0.07547912],
+        "litter_pool_above_structural": [0.50519653, 0.25060783, 0.1031738, 0.11725847],
+        "litter_pool_woody": [4.774026, 11.89845637, 7.35980938, 7.32981591],
+        "litter_pool_below_metabolic": [0.39768414, 0.36316585, 0.06791351, 0.07781341],
+        "litter_pool_below_structural": [0.6105005, 0.32204064, 0.02014513, 0.03468225],
+        "lignin_above_structural": [0.49726312, 0.10113065, 0.67996749, 0.68136766],
+        "lignin_woody": [0.4958054, 0.7978783, 0.3522427, 0.350126],
+        "lignin_below_structural": [0.49974337, 0.26270880, 0.74846363, 0.71955458],
+        "c_n_ratio_above_metabolic": [7.5450184, 8.9814418, 10.998779, 10.175958],
+        "c_n_ratio_above_structural": [37.6666294, 43.3945275, 49.4785666, 54.4562879],
+        "c_n_ratio_woody": [55.57479, 63.250918, 47.44333, 59.08069],
+        "c_n_ratio_below_metabolic": [10.90629, 11.42741, 15.21408, 13.02765],
+        "c_n_ratio_below_structural": [50.96669, 56.78504, 73.33861, 72.76419],
+        "c_p_ratio_above_metabolic": [61.099543, 70.015298, 110.68070, 98.767703],
+        "c_p_ratio_above_structural": [340.38278, 473.84604, 456.99901, 579.00396],
+        "c_p_ratio_woody": [558.58393, 762.474347, 847.96815, 599.98045],
+        "c_p_ratio_below_metabolic": [314.40006, 404.09534, 315.06196, 360.38398],
+        "c_p_ratio_below_structural": [558.1202, 607.2732, 775.4709, 759.5603],
+        "litter_C_mineralisation_rate": [0.02669867, 0.02028009, 0.0075954, 0.0076627],
+        "litter_N_mineralisation_rate": [0.00601335, 0.0037791, 0.0008798, 0.00094215],
+        "litter_P_mineralisation_rate": [0.0004477, 0.00021477, 6.7192e-5, 6.80253e-5],
+    }
 
     fixture_litter_model.update(time_index=0)
 
     # Check that data fixture has been updated correctly
-    assert np.allclose(dummy_litter_data["litter_pool_above_metabolic"], end_above_meta)
-    assert np.allclose(
-        dummy_litter_data["litter_pool_above_structural"], end_above_struct
-    )
-    assert np.allclose(dummy_litter_data["litter_pool_woody"], end_woody)
-    assert np.allclose(dummy_litter_data["litter_pool_below_metabolic"], end_below_meta)
-    assert np.allclose(
-        dummy_litter_data["litter_pool_below_structural"], end_below_struct
-    )
-    assert np.allclose(
-        dummy_litter_data["lignin_above_structural"], end_lignin_above_struct
-    )
-    assert np.allclose(dummy_litter_data["lignin_woody"], end_lignin_woody)
-    assert np.allclose(
-        dummy_litter_data["lignin_below_structural"], end_lignin_below_struct
-    )
-    assert np.allclose(
-        dummy_litter_data["c_n_ratio_above_metabolic"], end_c_n_above_metabolic
-    )
-    assert np.allclose(
-        dummy_litter_data["c_n_ratio_above_structural"], end_c_n_above_structural
-    )
-    assert np.allclose(dummy_litter_data["c_n_ratio_woody"], end_c_n_woody)
-    assert np.allclose(
-        dummy_litter_data["c_n_ratio_below_metabolic"], end_c_n_below_metabolic
-    )
-    assert np.allclose(
-        dummy_litter_data["c_n_ratio_below_structural"], end_c_n_below_structural
-    )
-    assert np.allclose(
-        dummy_litter_data["c_p_ratio_above_metabolic"], end_c_p_above_metabolic
-    )
-    assert np.allclose(
-        dummy_litter_data["c_p_ratio_above_structural"], end_c_p_above_structural
-    )
-    assert np.allclose(dummy_litter_data["c_p_ratio_woody"], end_c_p_woody)
-    assert np.allclose(
-        dummy_litter_data["c_p_ratio_below_metabolic"], end_c_p_below_metabolic
-    )
-    assert np.allclose(
-        dummy_litter_data["c_p_ratio_below_structural"], end_c_p_below_structural
-    )
-    assert np.allclose(dummy_litter_data["litter_C_mineralisation_rate"], c_mineral)
-    assert np.allclose(dummy_litter_data["litter_N_mineralisation_rate"], n_mineral)
-    assert np.allclose(dummy_litter_data["litter_P_mineralisation_rate"], p_mineral)
+    for output in expected_output.keys():
+        assert np.allclose(dummy_litter_data[output], expected_output[output])
