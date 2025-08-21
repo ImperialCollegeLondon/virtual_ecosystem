@@ -848,42 +848,6 @@ class PlantsModel(
                 input_mass=root_turnover_c,
             )
 
-            # Calculate the leaf turnover C:N and C:P ratios and pass to data object
-            for element in ["N", "P"]:
-                print("ARRIVED")
-                self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
-                    leaf_turnover_c
-                    / np.sum(
-                        cohorts.n_individuals
-                        * stochiometries[element]
-                        .get_tissue("FoliageTissue")
-                        .element_turnover(stem_allocation)
-                    )
-                )
-                print("ONE DONE")
-                self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
-                    root_turnover_c
-                    / np.sum(
-                        cohorts.n_individuals
-                        * stochiometries[element]
-                        .get_tissue("RootTissue")
-                        .element_turnover(stem_allocation)
-                    )
-                )
-                print("TWO DONE")
-
-                self.data[
-                    f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
-                ][cell_id] = np.sum(
-                    stem_allocation.reproductive_tissue_turnover
-                ) / np.sum(
-                    stem_allocation.reproductive_tissue_turnover
-                    * stochiometries[element]
-                    .get_tissue("ReproductiveTissue")
-                    .element_turnover(stem_allocation)
-                )
-                print("THREE DONE")
-
             # Partition reproductive tissue into propagule and non-propagule masses and
             # convert the propagule mass to number of propagules
             # 1. Turnover reproductive tissue mass leaving the canopy to the ground
@@ -973,8 +937,8 @@ class PlantsModel(
             for stochiometry in stochiometries.values():
                 stochiometry.account_for_growth(stem_allocation)
 
-            # Balance the N & P surplus/deficit with the symbiote carbon supply
             for element in ["N", "P"]:
+                # Balance the N & P surplus/deficit with the symbiote carbon supply
                 element_weighted_avg = np.dot(
                     self.data["ecto_supply_limit_" + element.lower()][cell_id]
                     + self.data["arbuscular_supply_limit_" + element.lower()][cell_id],
@@ -987,6 +951,36 @@ class PlantsModel(
                     element_available_per_cohort, cohorts.n_individuals
                 )
                 stochiometries[element].element_surplus += element_available_per_stem
+
+                # Pass the turnover CN and CP ratios to the data object
+                self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
+                    leaf_turnover_c
+                    / np.sum(
+                        cohorts.n_individuals
+                        * stochiometries[element]
+                        .get_tissue("FoliageTissue")
+                        .element_turnover(stem_allocation)
+                    )
+                )
+                self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
+                    root_turnover_c
+                    / np.sum(
+                        cohorts.n_individuals
+                        * stochiometries[element]
+                        .get_tissue("RootTissue")
+                        .element_turnover(stem_allocation)
+                    )
+                )
+                self.data[
+                    f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
+                ][cell_id] = np.sum(
+                    stem_allocation.reproductive_tissue_turnover
+                ) / np.sum(
+                    stem_allocation.reproductive_tissue_turnover
+                    * stochiometries[element]
+                    .get_tissue("ReproductiveTissue")
+                    .element_turnover(stem_allocation)
+                )
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
@@ -1087,7 +1081,6 @@ class PlantsModel(
         self.data["root_lignin"] = xr.full_like(
             self.data["elevation"], self.model_constants.root_lignin
         )
-
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
         )
