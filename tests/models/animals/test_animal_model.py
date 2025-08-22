@@ -2087,6 +2087,28 @@ class TestAnimalModel:
             "predator": predator_cohort_instance,
         }
 
+        # Show where AnimalModel comes from (guards against stray imports)
+        import inspect
+
+        from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+        # Comment: make failures descriptive and short to read in pytest output.
+        assert hasattr(animal_model_instance, "plant_resources"), (
+            "plant_resources missing. "
+            f"_setup defined at: {inspect.getsourcefile(AnimalModel._setup)}:"
+            f"{inspect.getsourcelines(AnimalModel._setup)[1]} | "
+            f"attrs={sorted(vars(animal_model_instance))}"
+        )
+
+        # Optional: verify other _setup outputs exist; helps pinpoint where it failed.
+        for name in (
+            "excrement_pools",
+            "carcass_pools",
+            "leaf_waste_pools",
+            "litter_pools",
+        ):
+            assert hasattr(animal_model_instance, name), f"Missing {name}"
+
         # Run the forage_community method
         animal_model_instance.forage_community(dt=30)
 

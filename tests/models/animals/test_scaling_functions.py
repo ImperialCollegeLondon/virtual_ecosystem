@@ -160,6 +160,7 @@ def test_herbivore_prey_group_selection(functional_group_list_instance):
     expected = {
         "plants": (0.0, 0.0),
         "litter": (0.0, 0.0),
+        "fungal_fruiting_bodies": (0.0, 0.0),
     }
     assert result == expected
 
@@ -191,10 +192,27 @@ def test_carnivore_prey_group_selection(functional_group_list_instance):
         "detritivorous_insect": (0.0001, 1000.0),
         "dung_beetle": (0.0001, 1000.0),
         "scavenging_mammal": (0.0001, 1000.0),
+        "fungivorous_mammal": (0.0001, 1000.0),
         "carcasses": (0.0, 0.0),
         "excrement": (0.0, 0.0),
     }
     assert result == expected_output
+
+
+def test_fungivore_prey_group_selection(functional_group_list_instance):
+    """Test for fungivore diet type selection."""
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        DietType,
+        prey_group_selection,
+    )
+
+    result = prey_group_selection(
+        DietType.FUNGUS, 10.0, (0.1, 1000.0), functional_group_list_instance
+    )
+    expected = {
+        "fungal_fruiting_bodies": (0.0, 0.0),
+    }
+    assert result == expected
 
 
 @pytest.mark.parametrize(
@@ -211,12 +229,22 @@ def test_carnivore_prey_group_selection(functional_group_list_instance):
         # Herbivory + scavenging
         (
             DietType.HERBIVORE | DietType.CARCASSES,
-            {"plants": (0.0, 0.0), "litter": (0.0, 0.0), "carcasses": (0.0, 0.0)},
+            {
+                "plants": (0.0, 0.0),
+                "litter": (0.0, 0.0),
+                "carcasses": (0.0, 0.0),
+                "fungal_fruiting_bodies": (0.0, 0.0),
+            },
         ),
         # Herbivory + waste
         (
             DietType.HERBIVORE | DietType.WASTE,
-            {"plants": (0.0, 0.0), "litter": (0.0, 0.0), "excrement": (0.0, 0.0)},
+            {
+                "plants": (0.0, 0.0),
+                "litter": (0.0, 0.0),
+                "excrement": (0.0, 0.0),
+                "fungal_fruiting_bodies": (0.0, 0.0),
+            },
         ),
         # Detritivory only
         (
