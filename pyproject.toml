@@ -56,7 +56,7 @@ requires-poetry = ">=2.0"
 
 [tool.poetry.group.types.dependencies]
 types-dataclasses = "^0.6.6"
-types-jsonschema = "^4.25.0"
+types-jsonschema = "^4.25.1"
 types-tqdm = "^4.67.0.20250809"
 
 [tool.poetry.group.test.dependencies]
