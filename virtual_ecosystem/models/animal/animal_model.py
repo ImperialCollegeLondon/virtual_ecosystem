@@ -56,7 +56,7 @@ from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
 )
-from virtual_ecosystem.models.animal.plant_resources_2 import PlantResourcePool
+from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
@@ -410,7 +410,14 @@ class AnimalModel(
         """Determine grid square adjacency."""
         self.functional_groups = functional_groups
         self.model_constants = self.model_constants
-        # self.plant_resources = self.populate_plant_resource_pools()
+        self.plant_resources = {
+            cell_id: [
+                PlantResources(
+                    data=self.data, cell_id=cell_id, constants=self.model_constants
+                )
+            ]
+            for cell_id in self.data.grid.cell_id
+        }
 
         # TODO - In future, need to take in data on average size of excrement and
         # carcasses pools and their stoichiometries for the initial scavengeable pool
@@ -676,30 +683,6 @@ class AnimalModel(
             )
             for cell_id in self.data.grid.cell_id
         }
-
-    def populate_plant_resource_pools(self) -> dict[int, dict[str, PlantResourcePool]]:
-        """Populate plant resources by cell and functional group.
-
-        Each PlantResourcePool tracks all biomass types for one functional group in
-        one grid cell.
-        """
-
-        plant_resources: dict[int, dict[str, PlantResourcePool]] = {}
-
-        for cell_id in self.data.grid.cell_id:
-            plant_resources[cell_id] = {}
-
-            for fg in self.functional_groups:
-                fg_name = fg.name
-                pool = PlantResourcePool(
-                    cell_id=cell_id,
-                    functional_group_name=fg_name,
-                    data=self.data,
-                    cell_area=self.data.grid.cell_area,
-                )
-                plant_resources[cell_id][fg_name] = pool
-
-        return plant_resources
 
     def calculate_total_litter_consumption(
         self, litter_pools: dict[int, dict[str, Resource]]
