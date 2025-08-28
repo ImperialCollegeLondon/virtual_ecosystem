@@ -854,6 +854,39 @@ def predator_cohort_instance(
 
 
 @pytest.fixture
+def earthworm_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[12]
+
+
+@pytest.fixture
+def earthwrom_cohort_instance(
+    earthworm_functional_group_instance,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        earthworm_functional_group_instance,
+        1.0,
+        1,
+        100,
+        1,  # centroid
+        animal_data_for_cohorts_instance.grid,
+        constants_instance,
+    )
+
+
+@pytest.fixture
 def caterpillar_functional_group_instance(shared_datadir, constants_instance):
     """Fixture for an animal functional group used in tests."""
     from virtual_ecosystem.models.animal.functional_group import (

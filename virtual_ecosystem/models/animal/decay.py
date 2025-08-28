@@ -471,7 +471,7 @@ class SoilPool:
     cell***.
     """
 
-    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.SOIL
     """Vertical position of soil pool."""
 
     def __init__(

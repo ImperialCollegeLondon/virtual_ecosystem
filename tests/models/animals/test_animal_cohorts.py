@@ -1894,7 +1894,7 @@ class TestAnimalCohort:
             ),
             (
                 "fungivore_cohort_instance",
-                "FUNGI",
+                "MUSHROOMS",
                 [],
                 [],
                 "fungal_fruit_list_instance",
@@ -1993,7 +1993,7 @@ class TestAnimalCohort:
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        elif diet_type == "FUNGI":
+        elif diet_type == "MUSHROOMS":
             assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 

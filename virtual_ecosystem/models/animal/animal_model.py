@@ -1429,8 +1429,8 @@ class AnimalModel(
         * ``DietType.DETRITUS``       → plant-litter pools (detritivory)
         * ``DietType.CARCASSES``      → carcass pools (scavenging)
         * ``DietType.WASTE``          → excrement pools (coprophagy)
-        * ``DietType.FUNGUS_FRUIT``   → fungal fruiting bodies
-        * ``DietType.FUNGI``         → soil fungi (SoilPool['fungi'])
+        * ``DietType.MUSHROOMS``      → fungal fruiting bodies
+        * ``DietType.FUNGI``          → soil fungi (SoilPool['fungi'])
         * ``DietType.POM``            → soil POM (SoilPool['pom'])
         * ``DietType.BACTERIA``       → soil bacteria (SoilPool['bacteria'])
 
@@ -1487,7 +1487,7 @@ class AnimalModel(
                 prey_list = cohort.get_prey(self.communities)
 
             # Fruiting-body fungivory
-            if diet & DietType.FUNGUS_FRUIT:
+            if diet & DietType.MUSHROOMS:
                 fungal_fruit_list = cohort.get_fungal_fruit_pools(
                     self.fungal_fruiting_bodies
                 )

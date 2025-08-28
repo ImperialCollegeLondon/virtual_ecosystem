@@ -372,7 +372,7 @@ class TestFunctionalGroup:
             12,
             "earthworm",
             "invertebrate",
-            "detritus",
+            "detritus_fungi_pom_bacteria",
             "ectothermic",
             "terrestrial",
             "iteroparous",
