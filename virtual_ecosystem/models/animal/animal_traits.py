@@ -14,7 +14,11 @@ class MetabolicType(Enum):
 
 
 class DietType(Flag):
-    """Enumeration for diet resource types."""
+    """Enumeration for diet resource types.
+
+    TODO: refine categorizations
+
+    """
 
     ALGAE = auto()
     DETRITUS = auto()
@@ -32,6 +36,8 @@ class DietType(Flag):
     WASTE = auto()
     WOOD = auto()
     NONFEEDING = auto()
+    POM = auto()
+    BACTERIA = auto()
 
     HERBIVORE = (
         ALGAE
@@ -40,6 +46,8 @@ class DietType(Flag):
         | FOLIAGE
         | FRUIT
         | FUNGUS
+        | POM  # temp
+        | BACTERIA  # temp
         | SEEDS
         | NECTAR
         | WOOD
