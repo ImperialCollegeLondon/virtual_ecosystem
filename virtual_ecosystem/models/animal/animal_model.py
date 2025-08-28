@@ -1492,7 +1492,7 @@ class AnimalModel(
             cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
-                mushroom_list=[],
+                fungal_fruit_list=[],
                 litter_pools=litter_list,
                 excrement_pools=excrement_pools,  # for defecation
                 carcass_pool_map=carcass_pool_map,  # for prey remains

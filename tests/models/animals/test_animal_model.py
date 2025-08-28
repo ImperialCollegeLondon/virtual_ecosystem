@@ -2120,6 +2120,7 @@ class TestAnimalModel:
         mock_forage_herbivore.assert_called_once_with(
             plant_list=["plant_resources"],
             animal_list=[],
+            fungal_fruit_list=[],
             litter_pools=[],
             excrement_pools=["excrement_pools_herbivore"],
             carcass_pool_map=animal_model_instance.carcass_pools,
@@ -2135,6 +2136,7 @@ class TestAnimalModel:
         mock_forage_predator.assert_called_once_with(
             plant_list=[],
             animal_list=["prey"],
+            fungal_fruit_list=[],
             litter_pools=[],
             excrement_pools=["excrement_pools_predator"],
             carcass_pool_map=animal_model_instance.carcass_pools,

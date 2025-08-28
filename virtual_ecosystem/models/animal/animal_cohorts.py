@@ -1077,14 +1077,14 @@ class AnimalCohort:
 
     def delta_mass_fruiting_fungivory(
         self,
-        mushroom_list: list[Resource],
+        fungal_fruit_list: list[Resource],
         adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> dict[str, float]:
         """Handle mass assimilation from fruiting body (mushroom) fungivory.
 
         Args:
-            mushroom_list: List of fungal fruiting resources.
+            fungal_fruit_list: List of fungal fruiting resources.
             adjusted_dt: Time available for foraging.
             herbivory_waste_pools: Waste pools for unassimilated fungal matter.
 
@@ -1092,7 +1092,7 @@ class AnimalCohort:
             Stoichiometric mass gained by the cohort.
         """
         return self.forage_resource_list(
-            resources=mushroom_list,
+            resources=fungal_fruit_list,
             adjusted_dt=adjusted_dt,
             calculate_consumed_mass=self._consumed_resource_mass,
             herbivory_waste_pools=herbivory_waste_pools,
@@ -1102,7 +1102,7 @@ class AnimalCohort:
         self,
         plant_list: list[Resource],
         animal_list: list[AnimalCohort],
-        mushroom_list: list[Resource],
+        fungal_fruit_list: list[Resource],
         litter_pools: list[Resource],
         excrement_pools: list[ExcrementPool],
         carcass_pool_map: dict[int, list[CarcassPool]],
@@ -1123,7 +1123,7 @@ class AnimalCohort:
         Args:
             plant_list: Live plant resources available for herbivory.
             animal_list: Live prey cohorts available for predation.
-            mushroom_list: Live fungal fruiting bodies available for consumption.
+            fungal_fruit_list: Live fungal fruiting bodies available for consumption.
             litter_pools: LitterPool objects available for detritivory.
             excrement_pools: ExcrementPool objects used for defecation
                 deposition.
@@ -1178,9 +1178,9 @@ class AnimalCohort:
                 total_gain[k] += gain[k]
 
         # live mushroom fungivory
-        if mushroom_list:
+        if fungal_fruit_list:
             gain = self.delta_mass_fruiting_fungivory(
-                mushroom_list=mushroom_list,
+                fungal_fruit_list=fungal_fruit_list,
                 adjusted_dt=time_available_per_diet,
                 herbivory_waste_pools=herbivory_waste_pools,
             )

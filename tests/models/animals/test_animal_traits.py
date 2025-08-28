@@ -92,7 +92,7 @@ class TestDietType:
             ("NONFEEDING", 0),
             (
                 "HERBIVORE | CARCASSES | FOLIAGE",
-                10,
+                12,
             ),  # includes 9 from HERBIVORE + CARCASSES
         ],
     )

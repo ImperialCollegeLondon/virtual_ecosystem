@@ -1864,7 +1864,7 @@ class TestAnimalCohort:
         assert result == {"carbon": 4.0, "nitrogen": 1.0, "phosphorus": 0.5}
 
     @pytest.mark.parametrize(
-        "cohort_instance, diet_type, plant_list, animal_list, mushroom_list,"
+        "cohort_instance, diet_type, plant_list, animal_list, fungal_fruit_list,"
         " expected_nutrient_gain, delta_mass_mock",
         [
             (
@@ -1890,7 +1890,7 @@ class TestAnimalCohort:
                 "FUNGUS",
                 [],
                 [],
-                "mushroom_list_instance",
+                "fungal_fruit_list_instance",
                 {"carbon": 25.0, "nitrogen": 5.0, "phosphorus": 2.5},
                 "delta_mass_fruiting_fungivory",
             ),
@@ -1905,12 +1905,12 @@ class TestAnimalCohort:
         diet_type,
         plant_list,
         animal_list,
-        mushroom_list,
+        fungal_fruit_list,
         expected_nutrient_gain,
         delta_mass_mock,
         plant_list_instance,
         animal_list_instance,
-        mushroom_list_instance,
+        fungal_fruit_list_instance,
         excrement_pool_instance,
         carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
@@ -1927,8 +1927,8 @@ class TestAnimalCohort:
             plant_list = request.getfixturevalue(plant_list)
         if isinstance(animal_list, str):
             animal_list = request.getfixturevalue(animal_list)
-        if isinstance(mushroom_list, str):
-            mushroom_list = request.getfixturevalue(mushroom_list)
+        if isinstance(fungal_fruit_list, str):
+            fungal_fruit_list = request.getfixturevalue(fungal_fruit_list)
 
         # Construct herbivory waste pools if herbivore
         herbivory_waste_pools = {
@@ -1948,7 +1948,7 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             plant_list=plant_list,
             animal_list=animal_list,
-            mushroom_list=mushroom_list,
+            fungal_fruit_list=fungal_fruit_list,
             litter_pools=empty_list,
             excrement_pools=[excrement_pool_instance],
             carcass_pool_map=carcass_pools_by_cell_instance,
@@ -1975,7 +1975,7 @@ class TestAnimalCohort:
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
         elif diet_type == "FUNGUS":
-            assert kwargs["mushroom_list"] == mushroom_list_instance
+            assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
         else:
@@ -1999,7 +1999,7 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             plant_list=[],
             animal_list=[],
-            mushroom_list=[],
+            fungal_fruit_list=[],
             litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
@@ -2030,7 +2030,7 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             plant_list=[],
             animal_list=[],
-            mushroom_list=[],
+            fungal_fruit_list=[],
             litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},

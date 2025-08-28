@@ -1160,7 +1160,7 @@ def mushroom_instance(litter_soil_data_instance):
 
 
 @pytest.fixture
-def mushroom_list_instance(litter_soil_data_instance):
+def fungal_fruit_list_instance(litter_soil_data_instance):
     """Fixture for multiple FungalFruitPool objects across grid cells."""
     from virtual_ecosystem.models.animal.decay import FungalFruitPool
 
