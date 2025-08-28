@@ -25,6 +25,7 @@ class DietType(Flag):
     FLOWERS = auto()
     FOLIAGE = auto()
     FRUIT = auto()
+    FUNGUS_FRUIT = auto()
     FUNGUS = auto()
     SEEDS = auto()
     BLOOD = auto()
@@ -45,6 +46,7 @@ class DietType(Flag):
         | FLOWERS
         | FOLIAGE
         | FRUIT
+        | FUNGUS_FRUIT
         | FUNGUS
         | POM  # temp
         | BACTERIA  # temp
