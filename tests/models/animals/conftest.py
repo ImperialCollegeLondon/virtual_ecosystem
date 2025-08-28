@@ -1174,3 +1174,119 @@ def fungal_fruit_list_instance(litter_soil_data_instance):
         )
         for cell_id in litter_soil_data_instance.grid.cell_id
     ]
+
+
+@pytest.fixture
+def microbial_cnp_ratios() -> dict[str, dict[str, float]]:
+    """Reusable microbial C:N:P ratios for SoilPool construction.
+
+    Returns:
+        Mapping from pool name to C:N and C:P ratios (unitless). Used by
+        SoilPool for bacteria and fungi stoichiometry.
+    """
+
+    return {
+        "bacteria": {"nitrogen": 5.0, "phosphorus": 30.0},
+        "saprotrophic_fungi": {"nitrogen": 10.0, "phosphorus": 80.0},
+        "arbuscular_mycorrhiza": {"nitrogen": 12.0, "phosphorus": 90.0},
+        "ectomycorrhiza": {"nitrogen": 8.0, "phosphorus": 70.0},
+    }
+
+
+@pytest.fixture
+def soil_fungi_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for a single SoilPool 'fungi' object."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return SoilPool(
+        pool_name="fungi",
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=litter_soil_data_instance.grid.cell_area,
+        max_depth_microbial_activity=0.2,
+        c_n_p_ratios=microbial_cnp_ratios,
+    )
+
+
+@pytest.fixture
+def soil_fungi_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for SoilPool 'fungi' objects across all grid cells."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return [
+        SoilPool(
+            pool_name="fungi",
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=litter_soil_data_instance.grid.cell_area,
+            max_depth_microbial_activity=0.2,
+            c_n_p_ratios=microbial_cnp_ratios,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]
+
+
+@pytest.fixture
+def pom_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for a single SoilPool 'pom' object."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return SoilPool(
+        pool_name="pom",
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=litter_soil_data_instance.grid.cell_area,
+        max_depth_microbial_activity=0.2,
+        c_n_p_ratios=microbial_cnp_ratios,
+    )
+
+
+@pytest.fixture
+def pom_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for SoilPool 'pom' objects across all grid cells."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return [
+        SoilPool(
+            pool_name="pom",
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=litter_soil_data_instance.grid.cell_area,
+            max_depth_microbial_activity=0.2,
+            c_n_p_ratios=microbial_cnp_ratios,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]
+
+
+@pytest.fixture
+def bacteria_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for a single SoilPool 'bacteria' object."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return SoilPool(
+        pool_name="bacteria",
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=litter_soil_data_instance.grid.cell_area,
+        max_depth_microbial_activity=0.2,
+        c_n_p_ratios=microbial_cnp_ratios,
+    )
+
+
+@pytest.fixture
+def bacteria_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for SoilPool 'bacteria' objects across all grid cells."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return [
+        SoilPool(
+            pool_name="bacteria",
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=litter_soil_data_instance.grid.cell_area,
+            max_depth_microbial_activity=0.2,
+            c_n_p_ratios=microbial_cnp_ratios,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]

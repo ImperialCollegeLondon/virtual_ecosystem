@@ -160,7 +160,6 @@ def test_herbivore_prey_group_selection(functional_group_list_instance):
     expected = {
         "plants": (0.0, 0.0),
         "litter": (0.0, 0.0),
-        "fungal_fruiting_bodies": (0.0, 0.0),
     }
     assert result == expected
 
@@ -207,10 +206,10 @@ def test_fungivore_prey_group_selection(functional_group_list_instance):
     )
 
     result = prey_group_selection(
-        DietType.FUNGUS, 10.0, (0.1, 1000.0), functional_group_list_instance
+        DietType.FUNGI, 10.0, (0.1, 1000.0), functional_group_list_instance
     )
     expected = {
-        "fungal_fruiting_bodies": (0.0, 0.0),
+        "fungi": (0.0, 0.0),
     }
     assert result == expected
 
@@ -233,7 +232,6 @@ def test_fungivore_prey_group_selection(functional_group_list_instance):
                 "plants": (0.0, 0.0),
                 "litter": (0.0, 0.0),
                 "carcasses": (0.0, 0.0),
-                "fungal_fruiting_bodies": (0.0, 0.0),
             },
         ),
         # Herbivory + waste
@@ -243,7 +241,6 @@ def test_fungivore_prey_group_selection(functional_group_list_instance):
                 "plants": (0.0, 0.0),
                 "litter": (0.0, 0.0),
                 "excrement": (0.0, 0.0),
-                "fungal_fruiting_bodies": (0.0, 0.0),
             },
         ),
         # Detritivory only

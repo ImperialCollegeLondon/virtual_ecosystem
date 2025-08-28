@@ -180,7 +180,7 @@ def prey_group_selection(
     if diet_type & DietType.FUNGUS_FRUIT:
         # mushroom pool
         result["fungal_fruiting_bodies"] = (0.0, 0.0)
-    if diet_type & DietType.FUNGUS:
+    if diet_type & DietType.FUNGI:
         # Soil fungi pool
         result["fungi"] = (0.0, 0.0)
     if diet_type & DietType.POM:

@@ -37,7 +37,7 @@ class TestDietType:
             ("algae", "ALGAE"),
             ("wood", "WOOD"),
             ("invertebrates", "INVERTEBRATES"),
-            ("fungus", "FUNGUS"),
+            ("fungi", "FUNGI"),
             ("seeds", "SEEDS"),
             ("flowers", "FLOWERS"),
             ("nonfeeding", "NONFEEDING"),
@@ -46,7 +46,7 @@ class TestDietType:
             ("foliage_fruit_blood", "FOLIAGE|FRUIT|BLOOD"),
             ("algae_detritus_wood", "ALGAE|DETRITUS|WOOD"),
             ("carcasses_blood_waste", "CARCASSES|BLOOD|WASTE"),
-            ("nectar_fungus_seeds", "NECTAR|FUNGUS|SEEDS"),
+            ("nectar_fungi_seeds", "NECTAR|FUNGI|SEEDS"),
             ("flowers_fruit_seeds", "FLOWERS|FRUIT|SEEDS"),
         ],
     )
@@ -88,11 +88,11 @@ class TestDietType:
         "flag_str, expected_count",
         [
             ("FOLIAGE", 1),
-            ("FOLIAGE | FRUIT | FUNGUS", 3),
+            ("FOLIAGE | FRUIT | FUNGI", 3),
             ("NONFEEDING", 0),
             (
                 "HERBIVORE | CARCASSES | FOLIAGE",
-                12,
+                9,
             ),  # includes 9 from HERBIVORE + CARCASSES
         ],
     )

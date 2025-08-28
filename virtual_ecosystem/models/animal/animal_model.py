@@ -1430,7 +1430,7 @@ class AnimalModel(
         * ``DietType.CARCASSES``      → carcass pools (scavenging)
         * ``DietType.WASTE``          → excrement pools (coprophagy)
         * ``DietType.FUNGUS_FRUIT``   → fungal fruiting bodies
-        * ``DietType.FUNGUS``         → soil fungi (SoilPool['fungi'])
+        * ``DietType.FUNGI``         → soil fungi (SoilPool['fungi'])
         * ``DietType.POM``            → soil POM (SoilPool['pom'])
         * ``DietType.BACTERIA``       → soil bacteria (SoilPool['bacteria'])
 
@@ -1492,15 +1492,15 @@ class AnimalModel(
                     self.fungal_fruiting_bodies
                 )
 
-            # Soil fungi (SoilPool['fungi'])
-            if diet & DietType.FUNGUS:
+            # Soil fungi
+            if diet & DietType.FUNGI:
                 soil_fungi_list = cohort.get_soil_fungi_pools(self.soil_pools)
 
-            # Soil POM (SoilPool['pom'])
+            # Soil POM
             if diet & DietType.POM:
                 pom_list = cohort.get_pom_pools(self.soil_pools)
 
-            # Soil bacteria (SoilPool['bacteria'])
+            # Soil bacteria
             if diet & DietType.BACTERIA:
                 bacteria_list = cohort.get_bacteria_pools(self.soil_pools)
 

@@ -1865,12 +1865,16 @@ class TestAnimalCohort:
 
     @pytest.mark.parametrize(
         "cohort_instance, diet_type, plant_list, animal_list, fungal_fruit_list,"
-        " expected_nutrient_gain, delta_mass_mock",
+        "soil_fungi_list,pom_list, bacteria_list, expected_nutrient_gain,"
+        "delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
                 "HERBIVORE",
                 "plant_list_instance",
+                [],
+                [],
+                [],
                 [],
                 [],
                 {"carbon": 60.0, "nitrogen": 30.0, "phosphorus": 10.0},
@@ -1882,15 +1886,21 @@ class TestAnimalCohort:
                 [],
                 "animal_list_instance",
                 [],
+                [],
+                [],
+                [],
                 {"carbon": 120.0, "nitrogen": 60.0, "phosphorus": 20.0},
                 "delta_mass_predation",
             ),
             (
                 "fungivore_cohort_instance",
-                "FUNGUS",
+                "FUNGI",
                 [],
                 [],
                 "fungal_fruit_list_instance",
+                [],
+                [],
+                [],
                 {"carbon": 25.0, "nitrogen": 5.0, "phosphorus": 2.5},
                 "delta_mass_fruiting_fungivory",
             ),
@@ -1906,11 +1916,17 @@ class TestAnimalCohort:
         plant_list,
         animal_list,
         fungal_fruit_list,
+        soil_fungi_list,
+        pom_list,
+        bacteria_list,
         expected_nutrient_gain,
         delta_mass_mock,
         plant_list_instance,
         animal_list_instance,
         fungal_fruit_list_instance,
+        soil_fungi_list_instance,
+        pom_list_instance,
+        bacteria_list_instance,
         excrement_pool_instance,
         carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
@@ -1949,6 +1965,9 @@ class TestAnimalCohort:
             plant_list=plant_list,
             animal_list=animal_list,
             fungal_fruit_list=fungal_fruit_list,
+            soil_fungi_list=soil_fungi_list,
+            pom_list=pom_list,
+            bacteria_list=bacteria_list,
             litter_pools=empty_list,
             excrement_pools=[excrement_pool_instance],
             carcass_pool_map=carcass_pools_by_cell_instance,
@@ -1974,7 +1993,7 @@ class TestAnimalCohort:
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        elif diet_type == "FUNGUS":
+        elif diet_type == "FUNGI":
             assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
@@ -2000,6 +2019,9 @@ class TestAnimalCohort:
             plant_list=[],
             animal_list=[],
             fungal_fruit_list=[],
+            soil_fungi_list=[],
+            pom_list=[],
+            bacteria_list=[],
             litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
@@ -2031,6 +2053,9 @@ class TestAnimalCohort:
             plant_list=[],
             animal_list=[],
             fungal_fruit_list=[],
+            soil_fungi_list=[],
+            pom_list=[],
+            bacteria_list=[],
             litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
