@@ -867,7 +867,7 @@ def earthworm_functional_group_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def earthwrom_cohort_instance(
+def earthworm_cohort_instance(
     earthworm_functional_group_instance,
     animal_data_for_cohorts_instance,
     constants_instance,
