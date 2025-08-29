@@ -1863,14 +1863,125 @@ class TestAnimalCohort:
 
         assert result == {"carbon": 4.0, "nitrogen": 1.0, "phosphorus": 0.5}
 
+    def test_delta_mass_fruiting_fungivory_calls_forage_resource_list(
+        self, herbivore_cohort_instance, mocker
+    ):
+        """Test fruiting fungivory wrapper delegates to forage_resource_list."""
+        cohort = herbivore_cohort_instance
+        fruits = [mocker.Mock()]
+        waste_pools = {0: mocker.Mock()}
+
+        mock_forage = mocker.patch.object(
+            cohort,
+            "forage_resource_list",
+            return_value={"carbon": 1, "nitrogen": 2, "phosphorus": 3},
+        )
+
+        result = cohort.delta_mass_fruiting_fungivory(
+            fungal_fruit_list=fruits,
+            adjusted_dt=5.0,
+            herbivory_waste_pools=waste_pools,
+        )
+
+        mock_forage.assert_called_once_with(
+            resources=fruits,
+            adjusted_dt=5.0,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
+            herbivory_waste_pools=waste_pools,
+        )
+        assert result == {"carbon": 1, "nitrogen": 2, "phosphorus": 3}
+
+    def test_delta_mass_soil_fungivory_calls_forage_resource_list(
+        self, herbivore_cohort_instance, mocker
+    ):
+        """Test soil fungivory wrapper delegates to forage_resource_list."""
+        cohort = herbivore_cohort_instance
+        fungi = [mocker.Mock()]
+
+        mock_forage = mocker.patch.object(
+            cohort,
+            "forage_resource_list",
+            return_value={"carbon": 4, "nitrogen": 5, "phosphorus": 6},
+        )
+
+        result = cohort.delta_mass_soil_fungivory(
+            soil_fungi_list=fungi,
+            adjusted_dt=3.25,
+        )
+
+        mock_forage.assert_called_once_with(
+            resources=fungi,
+            adjusted_dt=3.25,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
+            herbivory_waste_pools=None,
+        )
+        assert result == {"carbon": 4, "nitrogen": 5, "phosphorus": 6}
+
+    def test_delta_mass_pomivory_calls_forage_resource_list(
+        self, herbivore_cohort_instance, mocker
+    ):
+        """Test pomivory wrapper delegates to forage_resource_list."""
+        cohort = herbivore_cohort_instance
+        poms = [mocker.Mock()]
+
+        mock_forage = mocker.patch.object(
+            cohort,
+            "forage_resource_list",
+            return_value={"carbon": 7, "nitrogen": 8, "phosphorus": 9},
+        )
+
+        result = cohort.delta_mass_pomivory(
+            pom_list=poms,
+            adjusted_dt=2.0,
+        )
+
+        mock_forage.assert_called_once_with(
+            resources=poms,
+            adjusted_dt=2.0,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
+            herbivory_waste_pools=None,
+        )
+        assert result == {"carbon": 7, "nitrogen": 8, "phosphorus": 9}
+
+    def test_delta_mass_bacteriophagy_calls_forage_resource_list(
+        self, herbivore_cohort_instance, mocker
+    ):
+        """Test bacteriophagy wrapper delegates to forage_resource_list."""
+        cohort = herbivore_cohort_instance
+        bacteria = [mocker.Mock()]
+
+        mock_forage = mocker.patch.object(
+            cohort,
+            "forage_resource_list",
+            return_value={"carbon": 10, "nitrogen": 11, "phosphorus": 12},
+        )
+
+        result = cohort.delta_mass_bacteriophagy(
+            bacteria_list=bacteria,
+            adjusted_dt=1.5,
+        )
+
+        mock_forage.assert_called_once_with(
+            resources=bacteria,
+            adjusted_dt=1.5,
+            calculate_consumed_mass=cohort._consumed_resource_mass,
+            herbivory_waste_pools=None,
+        )
+        assert result == {"carbon": 10, "nitrogen": 11, "phosphorus": 12}
+
     @pytest.mark.parametrize(
-        "cohort_instance, diet_type, plant_list, animal_list, expected_nutrient_gain,"
+        "cohort_instance, diet_type, plant_list, animal_list, fungal_fruit_list,"
+        "soil_fungi_list,pom_list, bacteria_list, expected_nutrient_gain,"
         "delta_mass_mock",
         [
             (
                 "herbivore_cohort_instance",
                 "HERBIVORE",
                 "plant_list_instance",
+                [],
+                [],
+                [],
+                [],
                 [],
                 {"carbon": 60.0, "nitrogen": 30.0, "phosphorus": 10.0},
                 "delta_mass_herbivory",
@@ -1880,10 +1991,27 @@ class TestAnimalCohort:
                 "CARNIVORE",
                 [],
                 "animal_list_instance",
+                [],
+                [],
+                [],
+                [],
                 {"carbon": 120.0, "nitrogen": 60.0, "phosphorus": 20.0},
                 "delta_mass_predation",
             ),
+            (
+                "fungivore_cohort_instance",
+                "MUSHROOMS",
+                [],
+                [],
+                "fungal_fruit_list_instance",
+                [],
+                [],
+                [],
+                {"carbon": 25.0, "nitrogen": 5.0, "phosphorus": 2.5},
+                "delta_mass_fruiting_fungivory",
+            ),
         ],
+        ids=["herbivore", "carnivore", "fungivore"],
     )
     def test_forage_cohort(
         self,
@@ -1893,10 +2021,18 @@ class TestAnimalCohort:
         diet_type,
         plant_list,
         animal_list,
+        fungal_fruit_list,
+        soil_fungi_list,
+        pom_list,
+        bacteria_list,
         expected_nutrient_gain,
         delta_mass_mock,
         plant_list_instance,
         animal_list_instance,
+        fungal_fruit_list_instance,
+        soil_fungi_list_instance,
+        pom_list_instance,
+        bacteria_list_instance,
         excrement_pool_instance,
         carcass_pools_by_cell_instance,
         herbivory_waste_pool_instance,
@@ -1913,6 +2049,8 @@ class TestAnimalCohort:
             plant_list = request.getfixturevalue(plant_list)
         if isinstance(animal_list, str):
             animal_list = request.getfixturevalue(animal_list)
+        if isinstance(fungal_fruit_list, str):
+            fungal_fruit_list = request.getfixturevalue(fungal_fruit_list)
 
         # Construct herbivory waste pools if herbivore
         herbivory_waste_pools = {
@@ -1924,7 +2062,6 @@ class TestAnimalCohort:
         mock_delta_mass = mocker.patch.object(
             cohort, delta_mass_mock, return_value=expected_nutrient_gain
         )
-        mock_eat = mocker.patch.object(cohort, "eat")
 
         # Dummy values for untested inputs
         empty_list = []
@@ -1933,8 +2070,12 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             plant_list=plant_list,
             animal_list=animal_list,
+            fungal_fruit_list=fungal_fruit_list,
+            soil_fungi_list=soil_fungi_list,
+            pom_list=pom_list,
+            bacteria_list=bacteria_list,
             litter_pools=empty_list,
-            excrement_pools=excrement_pool_instance,
+            excrement_pools=[excrement_pool_instance],
             carcass_pool_map=carcass_pools_by_cell_instance,
             scavenge_carcass_pools=empty_list,
             scavenge_excrement_pools=empty_list,
@@ -1953,15 +2094,83 @@ class TestAnimalCohort:
             assert kwargs["herbivory_waste_pools"] == herbivory_waste_pools
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        else:
+        elif diet_type == "CARNIVORE":
             assert kwargs["animal_list"] == animal_list_instance
             assert kwargs["carcass_pools"] == carcass_pools_by_cell_instance
             assert isinstance(kwargs["adjusted_dt"], int | float)
 
-        # Validate assimilation call
-        mock_eat.assert_called_once_with(
-            expected_nutrient_gain, excrement_pool_instance
+        elif diet_type == "MUSHROOMS":
+            assert kwargs["fungal_fruit_list"] == fungal_fruit_list_instance
+            assert isinstance(kwargs["adjusted_dt"], int | float)
+
+        else:
+            assert False, f"Unhandled diet_type: {diet_type}"
+
+    def test_forage_cohort_earthworm_multisoil(
+        self,
+        mocker,
+        earthworm_cohort_instance,
+        soil_fungi_list_instance,
+        pom_list_instance,
+        bacteria_list_instance,
+        excrement_pool_instance,
+        carcass_pools_by_cell_instance,
+    ):
+        """Ensure composite diet routes to all four paths."""
+        # Imports inside test per project rules.
+        from virtual_ecosystem.models.animal.animal_traits import DietType
+
+        cohort = earthworm_cohort_instance
+        cohort.functional_group.diet = DietType.parse("detritus_fungi_pom_bacteria")
+
+        # Patch delta-mass methods to observe calls and avoid side effects.
+        expected = {"carbon": 1.0, "nitrogen": 0.5, "phosphorus": 0.1}
+        m_det = mocker.patch.object(
+            cohort, "delta_mass_detritivory", return_value=expected
         )
+        m_fungi = mocker.patch.object(
+            cohort, "delta_mass_soil_fungivory", return_value=expected
+        )
+        m_pom = mocker.patch.object(
+            cohort, "delta_mass_pomivory", return_value=expected
+        )
+        m_bact = mocker.patch.object(
+            cohort, "delta_mass_bacteriophagy", return_value=expected
+        )
+
+        # Litter must be non-empty so detritivory path is exercised.
+        litter_pools = ["litter_resources"]
+
+        cohort.forage_cohort(
+            plant_list=[],
+            animal_list=[],
+            fungal_fruit_list=[],
+            soil_fungi_list=soil_fungi_list_instance,
+            pom_list=pom_list_instance,
+            bacteria_list=bacteria_list_instance,
+            litter_pools=litter_pools,
+            excrement_pools=[excrement_pool_instance],
+            carcass_pool_map=carcass_pools_by_cell_instance,
+            scavenge_carcass_pools=[],
+            scavenge_excrement_pools=[],
+            herbivory_waste_pools={},
+            dt=30,
+        )
+
+        # Each relevant path should be called exactly once with correct args.
+        m_det.assert_called_once()
+        m_fungi.assert_called_once()
+        m_pom.assert_called_once()
+        m_bact.assert_called_once()
+
+        assert m_det.call_args.kwargs["litter_pools"] == litter_pools
+        assert m_fungi.call_args.kwargs["soil_fungi_list"] == soil_fungi_list_instance
+        assert m_pom.call_args.kwargs["pom_list"] == pom_list_instance
+        assert m_bact.call_args.kwargs["bacteria_list"] == bacteria_list_instance
+
+        # Basic sanity: adjusted_dt is numeric for each call.
+        for m in (m_det, m_fungi, m_pom, m_bact):
+            assert isinstance(m.call_args.kwargs["adjusted_dt"], int | float)
 
     def test_forage_cohort_skips_when_no_individuals(
         self, mocker, herbivore_cohort_instance
@@ -1981,6 +2190,10 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             plant_list=[],
             animal_list=[],
+            fungal_fruit_list=[],
+            soil_fungi_list=[],
+            pom_list=[],
+            bacteria_list=[],
             litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
@@ -2011,6 +2224,10 @@ class TestAnimalCohort:
         cohort.forage_cohort(
             plant_list=[],
             animal_list=[],
+            fungal_fruit_list=[],
+            soil_fungi_list=[],
+            pom_list=[],
+            bacteria_list=[],
             litter_pools=[],
             excrement_pools=[],
             carcass_pool_map={},
@@ -2717,6 +2934,289 @@ class TestAnimalCohort:
 
         result = cohort.get_carcass_pools(carcass_pools)
 
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_fruit_map, expected",
+        [
+            # Single valid fruiting pool
+            ([1], {1: "valid"}, 1),
+            # Valid and invalid in separate cells
+            ([1, 2], {1: "valid", 2: "invalid"}, 1),
+            # All invalid
+            ([1, 2], {1: "invalid", 2: "invalid"}, 0),
+            # Multiple valid across cells
+            ([1, 2], {1: "valid", 2: "valid"}, 2),
+            # Territory includes a cell with no pool
+            ([1, 2], {1: "valid"}, 1),
+        ],
+    )
+    def test_get_fungal_fruit_pools(
+        self,
+        territory,
+        cell_fruit_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_fungal_fruit_pools with singleton-per-cell mapping."""
+
+        from types import SimpleNamespace
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create dummy cohort with defined territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Build singleton-per-cell dict of "fungal fruiting pools".
+        # We use simple objects to avoid needing real Data; only identity matters.
+        fungal_fruiting_bodies: dict[int, object] = {}
+        all_fruits: list[tuple[object, bool]] = []
+
+        for cell_id, label in cell_fruit_map.items():
+            fruit = SimpleNamespace(cell_id=cell_id)
+            fungal_fruiting_bodies[cell_id] = fruit
+            all_fruits.append((fruit, label == "valid"))
+
+        # Filter: keep only objects flagged "valid" above.
+        cohort.can_forage_on = lambda resource: any(
+            resource is res and is_valid for res, is_valid in all_fruits
+        )
+
+        result = cohort.get_fungal_fruit_pools(fungal_fruiting_bodies)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_soil_map, expected",
+        [
+            # Single valid fungi pool
+            ([1], {1: "valid"}, 1),
+            # Valid and invalid in separate cells
+            ([1, 2], {1: "valid", 2: "invalid"}, 1),
+            # All invalid
+            ([1, 2], {1: "invalid", 2: "invalid"}, 0),
+            # Multiple valid across cells
+            ([1, 2], {1: "valid", 2: "valid"}, 2),
+            # Territory includes a cell with no fungi pool entry
+            ([1, 2], {1: "valid"}, 1),
+        ],
+    )
+    def test_get_soil_fungi_pools(
+        self,
+        territory,
+        cell_soil_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_soil_fungi_pools with per-cell dict[str, SoilPool] mapping.
+
+        Builds a singleton 'fungi' entry per cell using simple objects and filters
+        with `can_forage_on` to count only those marked as valid.
+        """
+
+        from types import SimpleNamespace
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create dummy cohort with defined territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Build soil_pools: dict[int, dict[str, SoilPool-like]]
+        soil_pools: dict[int, dict[str, object]] = {}
+        all_fungi: list[tuple[object, bool]] = []
+
+        for cell_id, label in cell_soil_map.items():
+            pool = SimpleNamespace(cell_id=cell_id)
+            soil_pools[cell_id] = {"fungi": pool}
+            all_fungi.append((pool, label == "valid"))
+
+        # Filter: keep only objects flagged "valid" above
+        cohort.can_forage_on = lambda resource: any(
+            resource is res and is_valid for res, is_valid in all_fungi
+        )
+
+        result = cohort.get_soil_fungi_pools(soil_pools)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_soil_map, expected",
+        [
+            # Single valid POM pool
+            ([1], {1: "valid"}, 1),
+            # Valid and invalid in separate cells
+            ([1, 2], {1: "valid", 2: "invalid"}, 1),
+            # All invalid
+            ([1, 2], {1: "invalid", 2: "invalid"}, 0),
+            # Multiple valid across cells
+            ([1, 2], {1: "valid", 2: "valid"}, 2),
+            # Territory includes a cell with no POM entry
+            ([1, 2], {1: "valid"}, 1),
+        ],
+    )
+    def test_get_pom_pools(
+        self,
+        territory,
+        cell_soil_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_pom_pools with per-cell dict[str, SoilPool] mapping.
+
+        Builds a singleton 'pom' entry per cell using simple objects and filters with
+        `can_forage_on` to count only those marked as valid.
+        """
+        from types import SimpleNamespace
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create dummy cohort with defined territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Build soil_pools: dict[int, dict[str, SoilPool-like]]
+        soil_pools: dict[int, dict[str, object]] = {}
+        all_pom: list[tuple[object, bool]] = []
+
+        for cell_id, label in cell_soil_map.items():
+            pool = SimpleNamespace(cell_id=cell_id)
+            soil_pools[cell_id] = {"pom": pool}
+            all_pom.append((pool, label == "valid"))
+
+        # Filter: keep only objects flagged "valid" above
+        cohort.can_forage_on = lambda resource: any(
+            resource is res and is_valid for res, is_valid in all_pom
+        )
+
+        result = cohort.get_pom_pools(soil_pools)
+        assert len(result) == expected
+
+    @pytest.mark.parametrize(
+        "territory, cell_soil_map, expected",
+        [
+            # Single valid bacteria pool
+            ([1], {1: "valid"}, 1),
+            # Valid and invalid in separate cells
+            ([1, 2], {1: "valid", 2: "invalid"}, 1),
+            # All invalid
+            ([1, 2], {1: "invalid", 2: "invalid"}, 0),
+            # Multiple valid across cells
+            ([1, 2], {1: "valid", 2: "valid"}, 2),
+            # Territory includes a cell with no bacteria entry
+            ([1, 2], {1: "valid"}, 1),
+        ],
+    )
+    def test_get_bacteria_pools(
+        self,
+        territory,
+        cell_soil_map,
+        expected,
+        functional_group_list_instance,
+        constants_instance,
+    ):
+        """Test get_bacteria_pools with per-cell dict[str, SoilPool] mapping.
+
+        Builds a singleton 'bacteria' entry per cell using simple objects and filters
+        with `can_forage_on` to count only those marked as valid.
+        """
+        from types import SimpleNamespace
+
+        from virtual_ecosystem.core.grid import Grid
+        from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+        from virtual_ecosystem.models.animal.functional_group import (
+            get_functional_group_by_name,
+        )
+
+        # Setup grid and functional group
+        grid = Grid(grid_type="square", cell_nx=3, cell_ny=3)
+        herbivore_group = get_functional_group_by_name(
+            functional_group_list_instance, "herbivorous_mammal"
+        )
+
+        # Create dummy cohort with defined territory
+        cohort = AnimalCohort(
+            functional_group=herbivore_group,
+            mass=10.0,
+            age=20.0,
+            individuals=10,
+            centroid_key=0,
+            grid=grid,
+            constants=constants_instance,
+        )
+        cohort.territory = territory
+
+        # Build soil_pools: dict[int, dict[str, SoilPool-like]]
+        soil_pools: dict[int, dict[str, object]] = {}
+        all_bacteria: list[tuple[object, bool]] = []
+
+        for cell_id, label in cell_soil_map.items():
+            pool = SimpleNamespace(cell_id=cell_id)
+            soil_pools[cell_id] = {"bacteria": pool}
+            all_bacteria.append((pool, label == "valid"))
+
+        # Filter: keep only objects flagged "valid" above
+        cohort.can_forage_on = lambda resource: any(
+            resource is res and is_valid for res, is_valid in all_bacteria
+        )
+
+        result = cohort.get_bacteria_pools(soil_pools)
         assert len(result) == expected
 
     @pytest.mark.parametrize(
