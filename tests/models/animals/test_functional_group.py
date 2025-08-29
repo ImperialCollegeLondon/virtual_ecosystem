@@ -381,7 +381,7 @@ class TestFunctionalGroup:
             "earthworm",
             "uricotelic",
             "none",
-            "soil",
+            "soil_ground",
             0.0005,
             0.005,
         ),
