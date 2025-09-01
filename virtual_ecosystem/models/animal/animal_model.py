@@ -418,6 +418,7 @@ class AnimalModel(
             ]
             for cell_id in self.data.grid.cell_id
         }
+
         # TODO - In future, need to take in data on average size of excrement and
         # carcasses pools and their stoichiometries for the initial scavengeable pool
         # parameterisations
@@ -1418,22 +1419,30 @@ class AnimalModel(
                 self.birth(cohort)
 
     def forage_community(self, dt: timedelta64) -> None:
-        """Loop through every active cohort and trigger resource consumption.
+        """Loop through each active cohort and trigger resource consumption.
 
-        The diet flags on each cohort determine which resource lists are
-        assembled and forwarded to ``cohort.forage_cohort``:
+        Diet flags on a cohort determine which resource lists are assembled and
+        forwarded to ``cohort.forage_cohort``:
 
-        * ``DietType.HERBIVORE`` → live plant resources
-        * ``DietType.CARNIVORE`` → live prey cohorts
-        * ``DietType.DETRITUS``  → plant-litter pools (detritivory)
-        * ``DietType.CARCASSES``   → carcass pools   (scavenging)
-        * ``DietType.WASTE``     → excrement pools (coprophagy)
+        * ``DietType.HERBIVORE``      → live plant resources
+        * ``DietType.CARNIVORE``      → live prey cohorts
+        * ``DietType.DETRITUS``       → plant-litter pools (detritivory)
+        * ``DietType.CARCASSES``      → carcass pools (scavenging)
+        * ``DietType.WASTE``          → excrement pools (coprophagy)
+        * ``DietType.MUSHROOMS``      → fungal fruiting bodies
+        * ``DietType.FUNGI``          → soil fungi (SoilPool['fungi'])
+        * ``DietType.POM``            → soil POM (SoilPool['pom'])
+        * ``DietType.BACTERIA``       → soil bacteria (SoilPool['bacteria'])
 
-        Deposition targets (``excrement_pools`` for faeces and
-        ``carcass_pool_map`` for uneaten prey remains) are always supplied so
-        trophic functions can update them regardless of whether the cohort
-        actively scavenges in the same step.
+        Deposition targets (``excrement_pools`` for faeces and ``carcass_pool_map``
+        for uneaten prey remains) are always supplied so trophic functions can
+        update them regardless of whether the cohort actively scavenges in the
+        same step.
+
+        Args:
+            dt: Time step duration.
         """
+
         for cohort in list(self.active_cohorts.values()):
             # Safety check territory must be defined
             if cohort.territory is None:
@@ -1441,9 +1450,13 @@ class AnimalModel(
 
             diet: DietType = cohort.functional_group.diet
 
-            #  Build resource collections based on diet flags
+            # Build resource collections based on diet flags
             plant_list: list[Resource] = []
             prey_list: list[AnimalCohort] = []
+            fungal_fruit_list: list[Resource] = []
+            soil_fungi_list: list[Resource] = []
+            pom_list: list[Resource] = []
+            bacteria_list: list[Resource] = []
             litter_list: list[Resource] = []
             scavenge_carcass_pools: list[Resource] = []
             scavenge_waste_pools: list[Resource] = []
@@ -1458,7 +1471,6 @@ class AnimalModel(
                 | DietType.FLOWERS
                 | DietType.FOLIAGE
                 | DietType.FRUIT
-                | DietType.FUNGUS
                 | DietType.SEEDS
                 | DietType.NECTAR
                 | DietType.WOOD
@@ -1474,7 +1486,25 @@ class AnimalModel(
             ):
                 prey_list = cohort.get_prey(self.communities)
 
-            # Detritivory
+            # Fruiting-body fungivory
+            if diet & DietType.MUSHROOMS:
+                fungal_fruit_list = cohort.get_fungal_fruit_pools(
+                    self.fungal_fruiting_bodies
+                )
+
+            # Soil fungi
+            if diet & DietType.FUNGI:
+                soil_fungi_list = cohort.get_soil_fungi_pools(self.soil_pools)
+
+            # Soil POM
+            if diet & DietType.POM:
+                pom_list = cohort.get_pom_pools(self.soil_pools)
+
+            # Soil bacteria
+            if diet & DietType.BACTERIA:
+                bacteria_list = cohort.get_bacteria_pools(self.soil_pools)
+
+            # Plant litter detritivory
             if diet & DietType.DETRITUS:
                 litter_list = cohort.get_litter_pools(self.litter_pools)
 
@@ -1488,9 +1518,14 @@ class AnimalModel(
             if diet & DietType.WASTE:
                 scavenge_waste_pools = cast(list[Resource], excrement_pools)
 
+            # Delegate to cohort-level foraging
             cohort.forage_cohort(
                 plant_list=plant_list,
                 animal_list=prey_list,
+                fungal_fruit_list=fungal_fruit_list,
+                soil_fungi_list=soil_fungi_list,
+                pom_list=pom_list,
+                bacteria_list=bacteria_list,
                 litter_pools=litter_list,
                 excrement_pools=excrement_pools,  # for defecation
                 carcass_pool_map=carcass_pool_map,  # for prey remains
@@ -1500,7 +1535,7 @@ class AnimalModel(
                 dt=dt,
             )
 
-        # Remove any cohorts that died during foraging
+        # Remove cohorts that died during foraging
         self.remove_dead_cohort_community()
 
     def metabolize_community(self, dt: timedelta64) -> None:
