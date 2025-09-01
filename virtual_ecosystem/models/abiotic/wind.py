@@ -281,24 +281,52 @@ def calculate_mixing_coefficients_canopy(
     return mixing_coefficients
 
 
-def calculate_excess(
-    value: NDArray[np.floating], limits: tuple[float, float]
-) -> tuple[NDArray[np.floating], NDArray[np.floating]]:
-    """Calculate excess in layers during mixing in valid layers.
+def clamp_variable_within_limits(
+    variable: NDArray[np.floating], limits: tuple[float, float]
+) -> NDArray[np.floating]:
+    """Clamp an array of canopy data within limits.
+
+    This function iterates from the bottom of the canopy, clamping the values of the
+    input array within the limits. When a value is altered by clamping, the residual is
+    added to the layer above to maintain the variable total within cells. Residual
+    values may be redistributed across multiple layers and empty values (representing
+    unoccupied canopy layers) are skipped.
+
+    Note:
+        If the vertical layers cannot absorb all of the accumulated residuals without
+        themselves being clamped, then the values in the top layer can still fall
+        outside the clamping limits.
 
     Args:
-        value: Value of variable that is mixed
-        limits: Upper and lower limit for input variable
-
-    Returns:
-        net excess and valid array
+        variable: A numpy array containing canopy data.
+        limits: A tuple giving the upper and lower bounds within which to clamp the data
     """
-    low, high = limits
-    valid = ~np.isnan(value)
-    over = np.where(valid & (value > high), value - high, 0)
-    under = np.where(valid & (value < low), value - low, 0)
 
-    return over + under, valid
+    # Get a map of nan values and initialise the out_of_limits array
+    out_of_limits = np.zeros_like(variable[0])
+    nan_map = np.isnan(variable)
+    n_layers = variable.shape[0]
+
+    # Loop up from the row index of lowest layer, stopping before the top layer
+    for layer in np.arange(n_layers - 1, 0, -1):
+        # Calculate the clamped values for the current layer
+        in_limits = np.clip(variable[layer], *limits)
+
+        # Add under and overshoots to the out_of_limits array, trapping cells that
+        # contain no vegetation in the layer (np.nan)
+        out_of_limits += np.where(nan_map[layer], 0, variable[layer] - in_limits)
+
+        # Set the clamped data in the current layer
+        variable[layer] = in_limits
+
+        # Add out of limits to the layer above
+        variable[layer - 1] += out_of_limits
+        # Update out_of_limits
+        # - np.nan cells carry over the current out_of_limits total
+        # - otherwise the out_of_limits has been set into the layer above, so is zeroed
+        out_of_limits = np.where(nan_map[layer - 1], out_of_limits, 0)
+
+    return variable
 
 
 def mix_and_ventilate(
@@ -388,30 +416,9 @@ def mix_and_ventilate(
     input_variable_mixed[1] -= vent_change
 
     # Redistribute overshoot/undershoot
-    valid = ~np.isnan(input_variable_mixed)
-    layer_indices = np.arange(n_layers)[:, None]
-    layer_indices_valid = np.where(valid, layer_indices, -1)
-    last_layer_above_valid = np.maximum.accumulate(layer_indices_valid, axis=0)
-    nearest_above = np.vstack(
-        [np.full((1, n_cells), -1, dtype=int), last_layer_above_valid[:-1, :]]
+    input_variable_mixed = clamp_variable_within_limits(
+        variable=input_variable_mixed, limits=limits
     )
-    cols = np.arange(n_cells)
-
-    for layer in range(n_layers - 1, 0, -1):
-        value = input_variable_mixed[layer, :]
-        excess, valid_mask = calculate_excess(value=value, limits=limits)
-
-        input_variable_mixed[layer, valid_mask] -= excess[valid_mask]
-
-        # Redistribute upward
-        target_layer_index = nearest_above[layer, :]
-        mask = (excess != 0) & (target_layer_index >= 0)
-        if np.any(mask):
-            np.add.at(
-                input_variable_mixed,
-                (target_layer_index[mask], cols[mask]),
-                excess[mask],
-            )
 
     return input_variable_mixed
 
