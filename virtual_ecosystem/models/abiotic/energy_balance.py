@@ -326,10 +326,10 @@ def calculate_energy_balance_residual(
     # Energy balance residual, [W m-2]
     energy_balance_residual = (
         absorbed_radiation_canopy
-        - np.abs(longwave_emission_canopy)
-        - np.abs(sensible_heat_flux_canopy)
-        - np.abs(latent_heat_flux_canopy)
-        # - np.abs(absorption_par)
+        - longwave_emission_canopy
+        + sensible_heat_flux_canopy
+        + latent_heat_flux_canopy
+        # - absorption_par
     )
 
     if return_fluxes:
@@ -469,7 +469,9 @@ def solve_canopy_temperature(
                     aerodynamic_resistance=np.array(
                         [[aerodynamic_resistance[i, j]]], dtype=np.float64
                     ),
-                    latent_heat_vapourisation=latent_heat_vapourisation,
+                    latent_heat_vapourisation=np.array(
+                        [[latent_heat_vapourisation[i, j]]], dtype=np.float64
+                    ),
                     leaf_emissivity=emissivity_leaf,
                     stefan_boltzmann_constant=stefan_boltzmann_constant,
                     zero_Celsius=zero_Celsius,
@@ -569,11 +571,11 @@ def update_humidity_vpd(
     atmospheric_pressure: NDArray[np.floating],
     density_air: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
-    ventilation_rate: float | NDArray[np.floating],
-    wind_speed: NDArray[np.floating],
+    ventilation_rate: NDArray[np.floating],
     molecular_weight_ratio_water_to_dry_air: float,
     dry_air_factor: float,
     cell_area: float,
+    limits: tuple[float, float],
     time_interval: float,
 ) -> dict[str, NDArray[np.floating]]:
     """Update specific humidity and vapour pressure deficit for a multilayer canopy.
@@ -591,11 +593,11 @@ def update_humidity_vpd(
         density_air: Density of air, [kg m-3]
         mixing_coefficient: Turbulent mixing coefficient, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
-        wind_speed: Horizontal wind speed above canopy, [m s-1]
         molecular_weight_ratio_water_to_dry_air: Molecular weight ratio of water to dry
             air, dimensionless
         dry_air_factor: Complement of water_to_air_mass_ratio, accounting for dry air
         cell_area: Grid cell area, [m2]
+        limits: Realistic bounds of specific humidity
         time_interval: Time interval, [s]
 
     Returns:
@@ -630,19 +632,20 @@ def update_humidity_vpd(
         layer_thickness=layer_thickness,
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
+        limits=limits,
         time_interval=time_interval,
     )
 
-    # Advection
-    specific_humidity_advected = wind.advect_water_from_toplayer(
-        specific_humidity=specific_humidity_updated[0],
-        layer_thickness=layer_thickness[0],
-        density_air=density_air[0],
-        wind_speed=wind_speed,
-        characteristic_length=np.sqrt(cell_area),
-        time_interval=time_interval,
-    )
-    specific_humidity_updated[0] = specific_humidity_advected
+    # NOTE Advection not implemented as everything is removed with time interval > 1h
+    # specific_humidity_advected = wind.advect_water_from_toplayer(
+    #     specific_humidity=specific_humidity_updated[0],
+    #     layer_thickness=layer_thickness[0],
+    #     density_air=density_air[0],
+    #     wind_speed=wind_speed,
+    #     characteristic_length=np.sqrt(cell_area),
+    #     time_interval=time_interval,
+    # )
+    # specific_humidity_updated[0] = specific_humidity_advected
 
     # Vapour pressure [kPa]
     vapour_pressure_updated = (specific_humidity_updated * atmospheric_pressure) / (
@@ -651,7 +654,7 @@ def update_humidity_vpd(
     )
 
     # Ensure vapor pressure doesn't exceed the saturated vapor pressure
-    # NOTE we need to make sure that we do not loose water here
+    # TODO we need to make sure that we do not loose water here
     vapour_pressure_updated = np.minimum(
         vapour_pressure_updated, saturated_vapour_pressure
     )
