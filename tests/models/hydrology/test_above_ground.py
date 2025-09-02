@@ -21,22 +21,23 @@ def test_potential_evaporation_leaf():
 
     # Expected shape should match input (2x2)
     result = potential_evaporation_leaf(
-        net_radiation=np.array([[100.0, 120.0], [110.0, 130.0]]),
-        vapour_pressure_deficit=np.array([[0.8, 0.850], [0.82, 0.87]]),
-        air_temperature=np.array([[25.0, 26.0], [24.5, 27.0]]),
-        density_air_kg=np.array([[1.2, 1.2], [1.2, 1.2]]),
-        specific_heat_air=np.array([[1.005, 1.005], [1.005, 1.005]]),
-        aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, 58.0]]),
-        stomatal_resistance=np.array([[200.0, 220.0], [210.0, 230.0]]),
-        latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, 2268.0]]),
-        psychrometric_constant=np.array([[66.0, 66.0], [66.0, 66.0]]),
+        net_radiation=np.array([[100.0, 120.0], [110.0, np.nan]]),
+        vapour_pressure_deficit=np.array([[0.8, 0.850], [0.82, np.nan]]),
+        air_temperature=np.array([[25.0, 26.0], [24.5, np.nan]]),
+        density_air_kg=np.array([[1.2, 1.2], [1.2, np.nan]]),
+        specific_heat_air=np.array([[1.005, 1.005], [1.005, np.nan]]),
+        aerodynamic_resistance=np.array([[50.0, 55.0], [52.0, np.nan]]),
+        stomatal_resistance=np.array([[200.0, 220.0], [210.0, np.nan]]),
+        latent_heat_vapourisation=np.array([[2268.0, 2268.0], [2268.0, np.nan]]),
+        psychrometric_constant=np.array([[66.0, 66.0], [66.0, np.nan]]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
     )
 
     assert result.shape == (2, 2)
-    assert np.all(result >= 0)
-    assert np.all(np.isfinite(result))
-    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.682281e-05, 3.658325e-05]])
+    mask = ~np.isnan(result)
+    assert np.all(result[mask] >= 0)
+    assert np.all(np.isfinite(result[mask]))
+    exp_evap = np.array([[2.522137e-05, 3.186381e-05], [2.682281e-05, np.nan]])
     np.testing.assert_allclose(result, exp_evap, rtol=1e-3)
 
 
@@ -47,20 +48,21 @@ def test_calculate_canopy_evaporation():
         calculate_canopy_evaporation,
     )
 
-    interception = np.array([0.5, 1.0])
-    # Run function
+    interception = np.array([0.5, 1.0, np.nan])
     output = calculate_canopy_evaporation(
-        leaf_area_index=np.array([[1.0, 2.0], [1.0, np.nan]]),
+        leaf_area_index=np.array([[1.0, 2.0, np.nan], [1.0, np.nan, np.nan]]),
         interception=interception,
-        net_radiation=np.array([[100, 200], [80, 60]]),
-        vapour_pressure_deficit=np.array([[1.0, 2.0], [1.0, 2.0]]),
-        air_temperature=np.array([[21.0, 22.0], [18.0, 20.0]]),
-        density_air_kg=np.full((2, 2), 1.2),
-        specific_heat_air=np.full((2, 2), 1.005),
-        aerodynamic_resistance=np.array([[50.0, 60.0], [50.0, 60.0]]),
-        stomatal_resistance=np.array([[150.0, 160.0], [150.0, 160.0]]),
-        latent_heat_vapourisation=np.full((2, 2), 2268.0),
-        psychrometric_constant=np.array([0.066, 0.067]),
+        net_radiation=np.array([[100, 200, np.nan], [80, np.nan, np.nan]]),
+        vapour_pressure_deficit=np.array([[1.0, 2.0, np.nan], [1.0, np.nan, np.nan]]),
+        air_temperature=np.array([[21.0, 22.0, np.nan], [18.0, np.nan, np.nan]]),
+        density_air_kg=np.array([[1.2, 1.2, np.nan], [1.2, np.nan, np.nan]]),
+        specific_heat_air=np.array([[1.005, 1.005, np.nan], [1.005, np.nan, np.nan]]),
+        aerodynamic_resistance=np.array([[50.0, 60.0, np.nan], [50.0, np.nan, np.nan]]),
+        stomatal_resistance=np.array([[150.0, 160.0, np.nan], [150.0, np.nan, np.nan]]),
+        latent_heat_vapourisation=np.array(
+            [[2268.0, 2268.0, np.nan], [2268.0, np.nan, np.nan]]
+        ),
+        psychrometric_constant=np.array([0.066, 0.067, np.nan]),
         saturated_pressure_slope_parameters=[4098.0, 0.6108, 17.27, 237.3],
         time_interval=86400.0,  # 1 day in seconds
         intercept_residence_time=86400.0,  # 1 day in seconds
@@ -68,19 +70,20 @@ def test_calculate_canopy_evaporation():
     )
 
     # Check value constraints
-    assert np.all(output["leaf_drainage"] >= 0)
-    assert np.all(output["leaf_drainage"] <= interception)
-    assert output["canopy_evaporation"].shape == (2, 2)
-    assert output["leaf_drainage"].shape == (2,)
+    mask = ~np.isnan(output["leaf_drainage"])
+    assert np.all(output["leaf_drainage"][mask] >= 0)
+    assert np.all(output["leaf_drainage"][mask] <= interception[mask])
+    assert output["canopy_evaporation"].shape == (2, 3)
+    assert output["leaf_drainage"].shape == (3,)
     np.testing.assert_allclose(
         output["canopy_evaporation"],
-        np.array([[0.290727, 1.0], [0.209273, np.nan]]),
+        np.array([[0.290727, 1.0, np.nan], [0.209273, np.nan, np.nan]]),
         rtol=1e-4,
         atol=1e-4,
     )
     np.testing.assert_allclose(
         output["leaf_drainage"],
-        np.array([0.0, 0.0]),
+        np.array([0.0, 0.0, np.nan]),
         rtol=1e-4,
         atol=1e-4,
     )
@@ -287,8 +290,8 @@ def test_calculate_interception():
     from virtual_ecosystem.models.hydrology.above_ground import calculate_interception
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
-    precip = np.array([0, 20, 100])
-    lai = np.array([0, 2, 10])
+    precip = np.array([0, 20, 100, 100])
+    lai = np.array([0, 2, 10, np.nan])
 
     result = calculate_interception(
         leaf_area_index=lai,
@@ -297,7 +300,7 @@ def test_calculate_interception():
         veg_density_param=HydroConsts.veg_density_param,
     )
 
-    exp_result = np.array([0.0, 1.180619, 5.339031])
+    exp_result = np.array([0.0, 1.180619, 5.339031, 0.0])
 
     np.testing.assert_allclose(result, exp_result)
 
