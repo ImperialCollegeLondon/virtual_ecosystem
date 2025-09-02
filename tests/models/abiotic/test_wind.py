@@ -13,7 +13,7 @@ def test_calculate_zero_plane_displacement(dummy_climate_data_varying_canopy):
 
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
+        leaf_area_index=np.array([0.0, np.nan, 7.0, 0.0]),
         zero_plane_scaling_parameter=7.5,
     )
 
