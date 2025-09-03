@@ -350,6 +350,7 @@ def run_microclimate(
         )
 
         # NOTE Advection not implemented as everything is removed with time interval>1h
+        # and horizontal transfer is not implemented
         # advection_rate = (
         #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
         #   / np.sqrt(cell_area)
