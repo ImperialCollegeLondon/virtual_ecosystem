@@ -220,10 +220,6 @@ class AbioticModel(
     def _update(self, time_index: int, **kwargs: Any) -> None:
         """Function to update the abiotic model.
 
-        TODO the units of fluxes are in W m-2 and we need to make sure that the input
-        energy over a time interval is coherent with the calculations of fluxes in that
-        time interval.
-
         Args:
             time_index: The index of the current time step in the data object.
             **kwargs: Further arguments to the update method.

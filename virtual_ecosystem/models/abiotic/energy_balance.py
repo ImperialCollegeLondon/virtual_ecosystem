@@ -7,33 +7,37 @@ vapour exchange must be modelled as transient processes, and heat storage by the
 and the exchange of heat between different layers of the canopy, must be considered
 explicitly, see :cite:t:`maclean_microclimc_2021`. This is currently not implemented.)
 
-Under steady-state, the balance equation for the leaves in each canopy layer is as
+Under steady-state, the balance equation :math:`\frac{dQ}{dt}` for the leaves in each
+canopy layer is as
 follows (after :cite:t:`maclean_microclimc_2021`):
 
 .. math::
-    R_{abs} - R_{em} - H - \lambda E - PP
-    = R_{abs} - \epsilon_{s} \sigma T_{L}^{4} - \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{a}} - PP = 0
+    \frac{dQ}{dt}
+    = R_{abs} - R_{em} - H - \lambda E - PP
+    = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - \frac{\rho_{a} c_p}{r_a}(T_{l} - T_{a})
+    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} - PP = 0
 
 where :math:`R_{abs}` is absorbed radiation, :math:`R_{em}` emitted radiation, :math:`H`
-the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{s}` the
-emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{L}` the
-absolute temperature of the leaf, :math:`T_{A}` the absolute temperature of the air
+the sensible heat flux, :math:`\lambda E` the latent heat flux, :math:`\epsilon_{l}` the
+emissivity of the leaf, :math:`\sigma` the Stefan-Boltzmann constant, :math:`T_{l}` the
+absolute temperature of the leaf, :math:`T_{a}` the absolute temperature of the air
 surrounding the leaf, :math:`\lambda` the latent heat of vapourisation of water,
-:math:`e_{L}` the effective vapour pressure of the leaf, :math:`e_{A}` the vapour
+:math:`e_{l}` the effective vapour pressure of the leaf, :math:`e_{a}` the vapour
 pressure of air and :math:`p_{a}` atmospheric pressure. :math:`\rho_a` is the density of
 air, :math:`c_{p}` is the specific heat capacity of air
-at constant pressure, :math:`r_a` is the aerodynamic resistance of the surface (leaf or
-soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
+at constant pressure, :math:`r_{a}` is the aerodynamic resistance of the surface (leaf
+or soil), :math:`g_{v}` represents the conductivity for vapour loss from the leaves as a
 function of the stomatal conductivity, :math:`PP` stands for primary productivity.
 
 A challenge in solving this equation is the dependency of latent heat and emitted
 radiation on leaf temperature. We use a Newton approximation to update
 leaf temperature and air temperature iteratively.
 
-After updating each layer, temperature and vapor are mixed vertically between layers.
-Ventilation and advection are considered at the top of the canopy to remove some of the
-water and heat from the system.
+After updating each layer, temperature and vapor are mixed vertically between
+atmospheric layers.
+Advection at the top of the canopy is currently not considered as we don't have
+have horizontal exchange between grid cells and air above canopy values would be
+unrealistic.
 
 TODO plants use a fraction of the absorbed radiation of photosynthesis, this needs to be
 subtracted from the energy balance
@@ -64,12 +68,12 @@ def initialise_canopy_and_soil_fluxes(
     Args:
         air_temperature: Air temperature, [C]
         layer_structure: Instance of LayerStructure
-        light_extinction_coefficient: Light extinction coefficient for canopy
+        light_extinction_coefficient: Light extinction coefficient for canopy, unitless
         initial_flux_value: Initial non-zero flux, [W m-2]
 
     Returns:
         Dictionary with canopy temperature, [C], sensible and latent heat flux (canopy
-        and soil), [W m-2], and ground heat flux [W m-2].
+        and soil), [W m-2], and ground heat flux, [W m-2].
     """
 
     output = {}
@@ -103,7 +107,7 @@ def calculate_longwave_emission(
     emissivity: float | NDArray[np.floating],
     stefan_boltzmann: float,
 ) -> NDArray[np.floating]:
-    """Calculate longwave emission using the Stefan Boltzmann law, [W m-2].
+    """Calculate longwave emission using the Stefan Boltzmann law.
 
     According to the Stefan Boltzmann law, the amount of radiation emitted per unit time
     from the area of a black body at absolute temperature is directly proportional to
@@ -128,16 +132,16 @@ def calculate_sensible_heat_flux(
     surface_temperature: NDArray[np.floating],
     aerodynamic_resistance: float | NDArray[np.floating],
 ) -> NDArray[np.floating]:
-    r"""Calculate sensible heat flux, [W m-2].
+    r"""Calculate sensible heat flux.
 
     The sensible heat flux :math:`H` is calculated using the following equation:
 
     .. math::
-        H = \frac{\rho_{a} c_{p}}{r_{a}} (T_{S} - T_{A})
+        H = \frac{\rho_{a} c_{p}}{r_{a}} (T_{s} - T_{a})
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
-    the surface, :math:`T_{S}` is the surface temperature, and :math:`T_{A}` is the air
+    the surface, :math:`T_{s}` is the surface temperature, and :math:`T_{a}` is the air
     temperature.
 
     Args:
@@ -174,10 +178,10 @@ def update_soil_temperature(
     Soil thermal diffusivity:
 
     .. math::
-        \alpha = \frac{\lambda}{\rho c}
+        \alpha = \frac{\lambda}{\rho_s c_s}
 
     where :math:`\lambda` is the soil thermal conductivity [W m-1 K-1],
-    :math:`\rho` is the soil bulk density [kg m-3], :math:`c` is the specific heat
+    :math:`\rho_s` is the soil bulk density [kg m-3], :math:`c_s` is the specific heat
     capacity of soil [J kg-1 K-1].
 
     Internal layer update:
@@ -189,7 +193,7 @@ def update_soil_temperature(
     Top layer update with ground heat flux:
 
     .. math::
-        T_0^{t+\Delta t} = T_0^t + (\Delta t / (\rho c \Delta z)) * G
+        T_0^{t+\Delta t} = T_0^t + (\Delta t / (\rho_s c_s \Delta z)) * G
 
     No-heat-flux bottom boundary condition:
 
@@ -200,9 +204,9 @@ def update_soil_temperature(
     Args:
         ground_heat_flux: Ground heat flux at top soil, [W m-2]
         soil_temperature: Soil temperature for each soil layer, [C]
-        soil_thermal_conductivity: Thermal conductivity of soil [W m-2 K-1]
+        soil_thermal_conductivity: Thermal conductivity of soil, [W m-2 K-1]
         soil_bulk_density: Soil bulk density, [kg m-3]
-        specific_heat_capacity_soil: Specific heat capacity of soil [J kg-1 K-1]
+        specific_heat_capacity_soil: Specific heat capacity of soil, [J kg-1 K-1]
         soil_layer_thickness: Thickness of each soil layer, [m]
         time_interval: Time interval, [s]
 
@@ -266,11 +270,11 @@ def calculate_energy_balance_residual(
     The energy balance residual (:math:`\frac{dQ}{dt}`) for the canopy is given by:
 
     .. math::
-        \frac{dQ}{dt} = R_{abs} - \epsilon \sigma T_{L}^{4} - H - \lambda E - PP
+        \frac{dQ}{dt} = R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - \lambda E - PP
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
-    :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
+    :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
+    constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
     flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy,
     :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
@@ -371,12 +375,12 @@ def solve_canopy_temperature(
     The energy balance for the canopy is given by:
 
     .. math::
-        R_{abs} - \epsilon \sigma T_{L}^{4} - H - Q_{LE} - PP = 0
+        R_{abs} - \epsilon_{l} \sigma T_{l}^{4} - H - \lambda E - PP = 0
 
     Where :math:`R_abs` is the absorbed shortwave radiation by the canopy,
-    :math:`\epsilon` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
-    constant, :math:`T_{L}` is the leaf temperature, :math:`H` is the sensible heat
-    flux from the canopy, :math:`Q_{LE}` is the latent heat flux from the canopy, and
+    :math:`\epsilon_{l}` is the leaf emissivity, :math:`\sigma` is the Stefan-Boltzmann
+    constant, :math:`T_{l}` is the leaf temperature, :math:`H` is the sensible heat
+    flux from the canopy, :math:`\lambda E` is the latent heat flux from the canopy, and
     :math:`PP` is a fraction of the absorbed light is used in photosynthesis (PAR).
 
     Note that the latent heat flux is currently a constant given by the plant model.
@@ -385,18 +389,18 @@ def solve_canopy_temperature(
     The Newton linearization for canopy temperature update is:
 
     .. math::
-        T_{L}^{new} =
-        T_{L}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{L}^{old}}}
+        T_{l}^{new} =
+        T_{l}^{old} + W \cdot \frac{EB} {\frac{\delta EB}{\delta T_{l}^{old}}}
 
-    where :math:`\frac{\delta EB}{\delta T_{L}^{old}}` is the first derivative of the
+    where :math:`\frac{\delta EB}{\delta T_{l}^{old}}` is the first derivative of the
     energy balance closure error to temperature, and :math:`W` is a weighting for the
     step size to ensure numerical stability. The derivative is estimated analytically:
 
     .. math::
-        \frac{\delta EB}{\delta T_{L}^{old}}
+        \frac{\delta EB}{\delta T_{l}^{old}}
         = \frac{\rho_{a} c_{p}} {r_{a}}
         + \frac{\rho_{a} \Delta_{v}}{(r_{a} + r_{s})} \lambda
-        + 4 \epsilon \sigma (T_{L}^{old} + 273.15)^{3}
+        + 4 \epsilon_{l} \sigma (T_{l}^{old} + 273.15)^{3}
 
     Where :math:`c_{p}` is the specific heat capacity of air, [J kg-1 K-1],
     :math:`\rho_{a}` is the density of air, [kg m-3], :math:`\Delta_{v}` is the slope of
@@ -521,20 +525,20 @@ def update_air_temperature(
 ) -> NDArray[np.floating]:
     r"""Update air temperature in steady state.
 
-    The new air temperature :math:`T_{A}^{new}` is updated following
+    The new air temperature :math:`T_{a}^{new}` is updated following
     :cite:t:`bonan_climate_2019`:
 
     .. math ::
-        H = \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
+        H = \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
 
     and
 
     .. math::
-        T_{A}^{new} = T_{A}^{old} + \frac{H}{\rho_a c_p z}
+        T_{a}^{new} = T_{a}^{old} + \frac{H}{\rho_a c_p z}
 
     where :math:`\rho_{a}` is the density of air, :math:`c_{p}` is the specific heat
     capacity of air at constant pressure, :math:`r_{a}` is the aerodynamic resistance of
-    the surface, :math:`T_{S}` is the surface temperature, :math:`T_{A}` is the air
+    the surface, :math:`T_{s}` is the surface temperature, :math:`T_{a}` is the air
     temperature, and :math:`z` is the thickness of the air layer we are updating.
 
     Args:
@@ -547,7 +551,7 @@ def update_air_temperature(
         mixing_layer_thickness: thickness of the air layer we are updating, [m]
 
     Returns:
-        Updated air temperatures, [C]
+        updated air temperatures, [C]
     """
 
     # Update temperatures
@@ -637,6 +641,7 @@ def update_humidity_vpd(
     )
 
     # NOTE Advection not implemented as everything is removed with time interval > 1h
+    # and horizontal transfer is not implemented
     # specific_humidity_advected = wind.advect_water_from_toplayer(
     #     specific_humidity=specific_humidity_updated[0],
     #     layer_thickness=layer_thickness[0],
