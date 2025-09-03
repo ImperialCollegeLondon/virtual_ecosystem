@@ -953,6 +953,16 @@ class PlantsModel(
                 stochiometries[element].element_surplus += element_available_per_stem
 
                 # Pass the turnover CN and CP ratios to the data object
+                print("C", root_turnover_c)
+                print(
+                    "N",
+                    np.sum(
+                        cohorts.n_individuals
+                        * stochiometries[element]
+                        .get_tissue("RootTissue")
+                        .element_turnover(stem_allocation)
+                    ),
+                )
                 self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
                     leaf_turnover_c
                     / np.sum(
@@ -1039,14 +1049,57 @@ class PlantsModel(
                 input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
             )
             for element in ["N", "P"]:
-                self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = self.data[
-                    "deadwood_production"
-                ][cell_id] / np.sum(
+                # Deadwood CN and CP ratios match the WoodTissue ratios
+                self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = np.sum(
                     mortality
                     * community.stem_allometry.stem_mass
                     * self.stochiometries[cell_id][element]
                     .get_tissue("WoodTissue")
                     .Cx_ratio
+                )
+
+                # Tissue turnover from dead treesmust be added to turnover ratios
+                # (Turnover C + Dead Foliage C) / (Turnover N + Dead Foliage N)
+                # Since the data objects stores CN and CP ratios, this is a bit
+                # complicated.
+                element_foliage_turnover = self.data["leaf_turnover"][cell_id] * (
+                    1 / self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id]
+                )
+                self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
+                    self.data["leaf_turnover"][cell_id]
+                    + np.sum(
+                        self.stochiometries[cell_id][element]
+                        .get_tissue("FoliageTissue")
+                        .carbon_mass
+                    )
+                ) / (
+                    element_foliage_turnover
+                    + np.sum(
+                        self.stochiometries[cell_id][element]
+                        .get_tissue("FoliageTissue")
+                        .actual_element_mass
+                        * mortality
+                    )
+                )
+
+                element_root_turnover = self.data["root_turnover"][cell_id] * (
+                    1 / self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id]
+                )
+                self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
+                    self.data["root_turnover"][cell_id]
+                    + np.sum(
+                        self.stochiometries[cell_id][element]
+                        .get_tissue("RootTissue")
+                        .carbon_mass
+                    )
+                ) / (
+                    element_root_turnover
+                    + np.sum(
+                        self.stochiometries[cell_id][element]
+                        .get_tissue("RootTissue")
+                        .actual_element_mass
+                        * mortality
+                    )
                 )
 
     def calculate_turnover(self) -> None:

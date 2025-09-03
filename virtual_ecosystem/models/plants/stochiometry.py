@@ -95,7 +95,7 @@ class FoliageTissue(Tissue):
     """A class to hold foliage stochiometry data for a set of plant cohorts."""
 
     reclaim_ratio: NDArray[np.float64]
-    """The ratio of the element that can be reclaimed from the senesced tissue."""
+    """The element ratio for senesced leaves."""
 
     @classmethod
     def from_pft_default_ratios(
@@ -151,10 +151,13 @@ class FoliageTissue(Tissue):
         Returns:
             The element quantity lost to turnover for foliage tissue.
         """
-        return (
-            allocation.foliage_turnover
-            * ((1 / self.reclaim_ratio) - (1 / self.Cx_ratio))
+        result = np.where(
+            self.reclaim_ratio <= self.Cx_ratio,
+            allocation.foliage_turnover * (1 / self.Cx_ratio),
+            allocation.foliage_turnover * (1 / self.reclaim_ratio),
         ).squeeze()
+
+        return result
 
 
 @dataclass
