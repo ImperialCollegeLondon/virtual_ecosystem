@@ -953,16 +953,6 @@ class PlantsModel(
                 stochiometries[element].element_surplus += element_available_per_stem
 
                 # Pass the turnover CN and CP ratios to the data object
-                print("C", root_turnover_c)
-                print(
-                    "N",
-                    np.sum(
-                        cohorts.n_individuals
-                        * stochiometries[element]
-                        .get_tissue("RootTissue")
-                        .element_turnover(stem_allocation)
-                    ),
-                )
                 self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
                     leaf_turnover_c
                     / np.sum(
