@@ -42,47 +42,6 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.protocols import Resource
 
-# Data object
-
-data = Data(Grid(cell_nx=3, cell_ny=4))
-pfts = np.array(["pioneer", "canopy", "emergent"])
-vertical_layers = np.arange(6)
-cell_ids = np.arange(data.grid.n_cells)
-
-
-mass = DataArray(
-    np.ones((vertical_layers.size, data.grid.n_cells, pfts.size)),
-    dims=("vertical_layer", "cell_id", "pft"),
-    coords=dict(
-        vertical_layer=vertical_layers,
-        cell_id=cell_ids,
-        pft=pfts,
-    ),
-)
-
-elemental_ratio = DataArray(
-    np.ones((data.grid.n_cells, pfts.size)),
-    dims=("cell_id", "pft"),
-    coords=dict(
-        cell_id=cell_ids,
-        pft=pfts,
-    ),
-)
-
-
-data.add_from_dict(
-    dict(
-        leaf_mass=mass,
-        leaf_n_ratio=elemental_ratio + 0.05,
-        leaf_p_ratio=elemental_ratio + 0.02,
-        leaf_mass_consumed=elemental_ratio,
-        subcanopy_mass=mass[0, :, 0] * 3,
-        subcanopy_n_ratio=elemental_ratio[:, 0] + 0.03,
-        subcanopy_p_ratio=elemental_ratio[:, 0] + 0.01,
-        subcanopy_mass_consumed=elemental_ratio[:, 0],
-    )
-)
-
 
 class ArrayResources:
     """Interface between plants model variables in ``Data`` and the animal module.
@@ -264,6 +223,50 @@ class PlantResource(Resource):
         return herbivore_gain_cnp, plant_waste_cnp
 
 
+# ------------------------------------------------
+# Example workflow
+# ------------------------------------------------
+
+# Create a Data object of masses and ratios for a leaf mass resource with 3 PFTs and
+# vertical structure and a subcanopy vegetation mass with only cell id.
+
+data = Data(Grid(cell_nx=3, cell_ny=4))
+pfts = np.array(["pioneer", "canopy", "emergent"])
+vertical_layers = np.arange(6)
+cell_ids = np.arange(data.grid.n_cells)
+
+mass = DataArray(
+    np.ones((vertical_layers.size, data.grid.n_cells, pfts.size)),
+    dims=("vertical_layer", "cell_id", "pft"),
+    coords=dict(
+        vertical_layer=vertical_layers,
+        cell_id=cell_ids,
+        pft=pfts,
+    ),
+)
+
+elemental_ratio = DataArray(
+    np.ones((data.grid.n_cells, pfts.size)),
+    dims=("cell_id", "pft"),
+    coords=dict(
+        cell_id=cell_ids,
+        pft=pfts,
+    ),
+)
+
+data.add_from_dict(
+    dict(
+        leaf_mass=mass,
+        leaf_n_ratio=elemental_ratio + 0.05,
+        leaf_p_ratio=elemental_ratio + 0.02,
+        leaf_mass_consumed=elemental_ratio,
+        subcanopy_mass=mass[0, :, 0] * 3,
+        subcanopy_n_ratio=elemental_ratio[:, 0] + 0.03,
+        subcanopy_p_ratio=elemental_ratio[:, 0] + 0.01,
+        subcanopy_mass_consumed=elemental_ratio[:, 0],
+    )
+)
+
 # Get a tuple of all herbivory array resources
 
 leaves = [
@@ -289,11 +292,8 @@ subcanopy = ArrayResources(
     vertical_occupancy=VerticalOccupancy.GROUND,
 )
 
-herbivory_resources = (*leaves, subcanopy)
 
-print(herbivory_resources)
-
-# Faked consumer namespace and list of four consumers
+# Faked consumer namespace and hence a list of four consumers
 consumer = SimpleNamespace(
     functional_group=SimpleNamespace(
         mechanical_efficiency=0.9, conversion_efficiency=0.6
@@ -304,29 +304,41 @@ consumers = [consumer] * 4
 
 rng = np.random.default_rng()
 
+# At init, create a list of herbivory resources:
 
-# Within a single time loop
+herbivory_resources = (*leaves, subcanopy)
+print(herbivory_resources)
+
+# Then within a single time loop
 for cell_id in np.arange(12):
+    # Get the cell level resource for this cell from each array resource
     cell_resources = [array_res[cell_id] for array_res in herbivory_resources]
 
+    # All consumers feed on all four resources
     for herbivore in [consumer] * 4:
         for resource in cell_resources:
             resource.get_eaten(consumed_mass=rng.random(), consumer=herbivore)
 
-# Look at the accumulated herbivory in the ArrayResource instances
+# After the loop finishes print out the accumulated herbivory in the ArrayResource
+# instances
 for array_res in herbivory_resources:
     print(array_res)
     print(array_res.consumed_mass)
 
-
+# The data object still doesn't know about herbivory
 data["leaf_mass_consumed"]
 data["subcanopy_mass_consumed"]
 
+# So use the write_herbivory() to push the accumualate value out to the Data object.
+# Note that the PFT specific resources are writing to different parts of the same data
+# array.
 for array_res in herbivory_resources:
     array_res.write_herbivory()
 
 data["leaf_mass_consumed"]
 data["subcanopy_mass_consumed"]
+
+# And then, before starting the next loop:
 
 for array_res in herbivory_resources:
     array_res.set_mass_and_elemental_ratios()
