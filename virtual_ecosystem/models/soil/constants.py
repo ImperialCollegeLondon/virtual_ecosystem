@@ -14,22 +14,24 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 class SoilConsts(ConstantsDataclass):
     """Dataclass to store all constants for the `soil` model."""
 
-    reference_cue: float = 0.6
-    """Carbon use efficiency of community at the reference temperature [no units].
-
-    Default value taken from :cite:t:`abramoff_millennial_2018`.
+    reference_cue_logit: float = 0.094
+    """Logit of carbon use efficiency of microbial community at reference temperature.
+    
+    [unitless]. Parameter estimated from a beta-logit GLMM using the data from
+    :cite:t:`Qiao2019`.
     """
 
-    cue_reference_temp: float = 15.0
+    cue_reference_temp: float = 20.0
     """Reference temperature for carbon use efficiency [degrees C].
 
-    Default value taken from :cite:t:`abramoff_millennial_2018`.
+    Default value taken from :cite:t:`Qiao2019`.
     """
 
-    cue_with_temperature: float = 0.012
-    """Change in carbon use efficiency with increasing temperature [degree C^-1].
-
-    Default value taken from :cite:t:`abramoff_millennial_2018`.
+    logit_cue_with_temperature: float = -0.039
+    """Change in the logit of carbon use efficiency with unit increase in temperature
+    
+    Units of [degree C^-1]. Parameter estimated from a beta-logit GLMM using the data
+    from :cite:t:`Qiao2019`.
     """
 
     soil_microbe_water_potential_optimum: float = -3.0
@@ -48,113 +50,6 @@ class SoilConsts(ConstantsDataclass):
     """Curvature of function for response of soil microbial rates to water potential.
 
     [unitless]. Value is taken from :cite:t:`moyano_responses_2013`.
-    """
-
-    arrhenius_reference_temp: float = 12.0
-    """Reference temperature for the Arrhenius equation [C].
-
-    This is the reference temperature used in :cite:t:`wang_development_2013`, which is
-    the source of the activation energies and corresponding rates.
-    """
-
-    half_sat_pom_decomposition: float = 70.0
-    """Half saturation constant for POM decomposition to LMWC [kg C m^-3].
-
-    This was calculated from the value provided in :cite:t:`wang_development_2013`
-    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
-    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
-    is given by :attr:`activation_energy_pom_decomp_saturation`.
-    """
-
-    activation_energy_pom_decomp_saturation: float = 30000
-    """Activation energy for POM decomposition saturation constant [J K^-1].
-
-    Taken from :cite:t:`wang_development_2013`.
-    """
-
-    max_decomp_rate_pom: float = 60.0
-    """Maximum rate for particulate organic matter break down (at reference temp).
-
-    Units of [day^-1]. The reference temperature is given by
-    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
-    by :attr:`activation_energy_pom_decomp_rate`.
-
-    TODO - Source of this constant is not completely clear, investigate this further
-    once lignin chemistry is added.
-    """
-
-    activation_energy_pom_decomp_rate: float = 37000
-    """Activation energy for decomposition of particulate organic matter [J K^-1].
-
-    Taken from :cite:t:`wang_development_2013`.
-    """
-
-    half_sat_maom_decomposition: float = 350.0
-    """Half saturation constant for MAOM decomposition to LMWC [kg C m^-3].
-
-    This was calculated from the value provided in :cite:t:`wang_development_2013`
-    assuming an average bulk density of 1400 [kg m^-3]. The reference temperature is
-    given by :attr:`arrhenius_reference_temp`, and the corresponding activation energy
-    is given by :attr:`activation_energy_maom_decomp_saturation`.
-    """
-
-    activation_energy_maom_decomp_saturation: float = 30000
-    """Activation energy for MAOM decomposition saturation constant [J K^-1].
-
-    Taken from :cite:t:`wang_development_2013`.
-    """
-
-    max_decomp_rate_maom: float = 24.0
-    """Maximum rate for mineral associated organic matter decomposition enzyme.
-
-    Units of [day^-1]. The rate is for a reference temperature which is given by
-    :attr:`arrhenius_reference_temp`, and the corresponding activation energy is given
-    by :attr:`activation_energy_maom_decomp_rate`. The value is taken from
-    :cite:t:`wang_development_2013`.
-    """
-
-    activation_energy_maom_decomp_rate: float = 47000
-    """Activation energy for decomposition of mineral associated organic matter.
-
-    Units of [J K^-1]. Taken from :cite:t:`wang_development_2013`.
-    """
-
-    # TODO - At some point I need to split these enzyme constants into fungi and
-    # bacteria specific constants
-    pom_enzyme_turnover_rate: float = 2.4e-2
-    """Turnover rate for POM degrading enzymes [day^-1].
-
-    Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    maom_enzyme_turnover_rate: float = 2.4e-2
-    """Turnover rate for MAOM degrading enzymes [day^-1].
-
-    Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    bacterial_maintenance_pom_enzyme: float = 1e-2
-    """Fraction of bacterial maintenance used to produce POM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    fungal_maintenance_pom_enzyme: float = 1e-2
-    """Fraction of fungal maintenance used to produce POM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    bacterial_maintenance_maom_enzyme: float = 1e-2
-    """Fraction of bacterial maintenance used to produce MAOM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
-    """
-
-    fungal_maintenance_maom_enzyme: float = 1e-2
-    """Fraction of bacterial maintenance used to produce MAOM degrading enzymes.
-
-    [unitless]. Value taken from :cite:t:`wang_development_2013`.
     """
 
     # TODO - At some point, need to allow microbial and fungal environmental factors to
@@ -471,4 +366,16 @@ class SoilConsts(ConstantsDataclass):
     
     We are assuming that deposition rates won't vary substantially over the area the
     simulation encompasses. Value taken from :cite:t:`Mahowald2008`.
+    """
+
+    nitrogen_fixer_supply_fraction: float = 0.3
+    """Fraction of carbon supplied by plants to symbiotes that goes to nitrogen fixers.
+    
+    [unitless]. The remainder goes to mycorrhizal fungi.
+    """
+
+    ectomycorrhiza_supply_fraction: float = 0.25
+    """Fraction of plant carbon supply to mycorrhizal fungi that goes to ectomycorrhiza.
+    
+    [unitless]. The remainder goes to arbuscular mycorrhizal fungi.
     """

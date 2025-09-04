@@ -85,10 +85,14 @@ class ModelTiming:
     """The configured run length as a pint Quantity."""
     update_interval: np.timedelta64 = field(init=False)
     """The configured update interval."""
+    update_interval_seconds: float = field(init=False)
+    """The configured update interval in seconds."""
     update_interval_quantity: Quantity = field(init=False)
     """The configured update interval as a pint Quantity."""
     n_updates: int = field(init=False)
     """The total number of model updates in the configured run."""
+    updates_per_year: np.float64 = field(init=False)
+    """The number of updates per year based on update_interval."""
     config: InitVar[Config]
     """A validated model configuration."""
 
@@ -150,6 +154,16 @@ class ModelTiming:
         self.reconciled_run_length = self.end_time - self.start_time
 
         self.n_updates = int((self.end_time - self.start_time) / self.update_interval)
+
+        # Calculate the number of updates in one year
+        # TODO - this is not calendar aware - variable length months and leap years.
+        seconds_per_year = np.timedelta64(31536000, "s")
+        self.updates_per_year = seconds_per_year / self.update_interval
+
+        # Calculate the total number of seconds in the update interval
+        self.update_interval_seconds = float(
+            self.update_interval / np.timedelta64(1, "s")
+        )
 
         # Log the completed timing creation.
         LOGGER.info(
@@ -240,8 +254,8 @@ class LayerStructure:
 
         In addition, the :attr:`.lowest_canopy_filled` attribute provides an array
         giving the vertical index of the lowest filled canopy layer in each grid cell.
-        It contains ``np.nan`` when there is  no canopy in a grid cell and is initalised
-        as an array of ``np.nan`` values.
+        It contains ``np.nan`` when there is  no canopy in a grid cell and is
+        initialised as an array of ``np.nan`` values.
 
     **Getting layer indices**:
 
@@ -288,7 +302,7 @@ class LayerStructure:
     # Attributes populated by __post_init__
     n_canopy_layers: int = field(init=False)
     """The maximum number of canopy layers."""
-    soil_layer_depths: NDArray[np.float32] = field(init=False)
+    soil_layer_depths: NDArray[np.floating] = field(init=False)
     """A list of the depths of soil layer boundaries."""
     n_soil_layers: int = field(init=False)
     """The number of soil layers."""
@@ -319,9 +333,9 @@ class LayerStructure:
     """An integer index showing the lowest filled canopy layer for each grid cell"""
     n_canopy_layers_filled: int = field(init=False)
     """The current number of filled canopy layers across grid cells"""
-    soil_layer_thickness: NDArray[np.float32] = field(init=False)
+    soil_layer_thickness: NDArray[np.floating] = field(init=False)
     """Thickness of each soil layer (m)"""
-    soil_layer_active_thickness: NDArray[np.float32] = field(init=False)
+    soil_layer_active_thickness: NDArray[np.floating] = field(init=False)
     """Thickness of the microbially active soil in each soil layer (m)"""
     _array_template: DataArray = field(init=False)
     """A private data array template. Access copies using get_template."""
@@ -503,7 +517,7 @@ class LayerStructure:
         self._role_indices_bool[name] = bool_values
         self._role_indices_int[name] = np.nonzero(bool_values)[0]
 
-    def set_filled_canopy(self, canopy_heights: NDArray[np.float32]) -> None:
+    def set_filled_canopy(self, canopy_heights: NDArray[np.floating]) -> None:
         """Set the dynamic canopy indices and attributes.
 
         The layer structure includes a fixed number of canopy layers but these layers
@@ -575,73 +589,73 @@ class LayerStructure:
         return template_copy
 
     @property
-    def index_above(self) -> NDArray:
+    def index_above(self) -> NDArray[np.bool_]:
         """Layer indices for the above layer."""
         return self._role_indices_bool["above"]
 
     @property
-    def index_canopy(self) -> NDArray:
+    def index_canopy(self) -> NDArray[np.bool_]:
         """Layer indices for the above canopy layers."""
         return self._role_indices_bool["canopy"]
 
     @property
-    def index_surface(self) -> NDArray:
+    def index_surface(self) -> NDArray[np.bool_]:
         """Layer indices for the surface layer."""
         return self._role_indices_bool["surface"]
 
     @property
-    def index_topsoil(self) -> NDArray:
+    def index_topsoil(self) -> NDArray[np.bool_]:
         """Layer indices for the topsoil layer."""
         return self._role_indices_bool["topsoil"]
 
     @property
-    def index_subsoil(self) -> NDArray:
+    def index_subsoil(self) -> NDArray[np.bool_]:
         """Layer indices for the subsoil layers."""
         return self._role_indices_bool["subsoil"]
 
     @property
-    def index_all_soil(self) -> NDArray:
+    def index_all_soil(self) -> NDArray[np.bool_]:
         """Layer indices for all soil layers."""
         return self._role_indices_bool["all_soil"]
 
     @property
-    def index_atmosphere(self) -> NDArray:
+    def index_atmosphere(self) -> NDArray[np.bool_]:
         """Layer indices for all atmospheric layers."""
         return self._role_indices_bool["atmosphere"]
 
     @property
-    def index_active_soil(self) -> NDArray:
+    def index_active_soil(self) -> NDArray[np.bool_]:
         """Layer indices for microbially active soil layers."""
         return self._role_indices_bool["active_soil"]
 
     @property
-    def index_filled_canopy(self) -> NDArray:
+    def index_filled_canopy(self) -> NDArray[np.bool_]:
         """Layer indices for the filled canopy layers."""
         return self._role_indices_bool["filled_canopy"]
 
     @property
-    def index_filled_atmosphere(self) -> NDArray:
+    def index_filled_atmosphere(self) -> NDArray[np.bool_]:
         """Layer indices for the filled atmospheric layers."""
         return self._role_indices_bool["filled_atmosphere"]
 
     @property
-    def index_flux_layers(self) -> NDArray:
+    def index_flux_layers(self) -> NDArray[np.bool_]:
         """Layer indices for the flux layers."""
         return self._role_indices_bool["flux_layers"]
 
     @property
     def index_above_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indices for the above canopy layer."""
         return self._role_indices_scalar["above"]
 
     @property
     def index_topsoil_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indices for the topsoil layer."""
         return self._role_indices_scalar["topsoil"]
 
     @property
     def index_surface_scalar(self) -> int:
-        """Layer indices for the flux layers."""
+        """Layer indices for the surface layer."""
         return self._role_indices_scalar["surface"]
 
 

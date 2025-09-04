@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -24,10 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-#  API for the {mod}`~virtual_ecosystem.models.abiotic.conductivities` module
+#  API for the {mod}`~virtual_ecosystem.models.abiotic.microclimate` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.abiotic.conductivities
+.. automodule:: virtual_ecosystem.models.abiotic.microclimate
     :autosummary:
     :members:
     :special-members: __init__

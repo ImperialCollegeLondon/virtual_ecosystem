@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -67,7 +67,8 @@ The litter model uses the following sequence:
 6. The mineralisation rates at which nutrients enter the soil are then found. We track
    carbon (using the [calculate_total_C_mineralised
    function](virtual_ecosystem.models.litter.carbon.calculate_total_C_mineralised)) and
-   also nitrogen and phosphorus (using `LitterChemistry` class methods).
+   also nitrogen and phosphorus (using the [calculate_litter_losses
+   function](virtual_ecosystem.models.litter.losses.calculate_litter_losses)).
 
 :::{admonition} Future directions 🔭
 

@@ -40,9 +40,6 @@ file_path = "../data/example_soil_data.nc"
 var_name = "pH"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "bulk_density"
-[[core.data.variable]]
-file_path = "../data/example_soil_data.nc"
 var_name = "clay_fraction"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
@@ -55,7 +52,13 @@ file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_bacteria"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_c_pool_fungi"
+var_name = "soil_c_pool_saprotrophic_fungi"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_arbuscular_mycorrhiza"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_c_pool_ectomycorrhiza"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_pom"
@@ -64,10 +67,16 @@ file_path = "../data/example_soil_data.nc"
 var_name = "soil_c_pool_necromass"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_enzyme_pom"
+var_name = "soil_enzyme_pom_bacteria"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
-var_name = "soil_enzyme_maom"
+var_name = "soil_enzyme_maom_bacteria"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_pom_fungi"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "soil_enzyme_maom_fungi"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_n_pool_don"
@@ -107,6 +116,9 @@ var_name = "soil_p_pool_secondary"
 [[core.data.variable]]
 file_path = "../data/example_soil_data.nc"
 var_name = "soil_p_pool_labile"
+[[core.data.variable]]
+file_path = "../data/example_soil_data.nc"
+var_name = "fungal_fruiting_bodies"
 
 # Litter 
 [[core.data.variable]]

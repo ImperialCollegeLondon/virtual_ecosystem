@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -64,7 +64,7 @@ atmospheric pressure and $\ce{CO_{2}}$ and soil temperatures at different depths
 
 This sections describes the workflow of the `abiotic_simple` model update step.
 At each time step when the model updates, the
-{py:meth}`~virtual_ecosystem.models.abiotic_simple.microclimate.run_microclimate`
+{py:meth}`~virtual_ecosystem.models.abiotic_simple.microclimate_simple.run_simple_microclimate`
 function is called to perform the steps outlined below.
 
 ### Step 1: Linear regression above ground

@@ -13,8 +13,11 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     ExcretionType,
     MetabolicType,
+    MigrationType,
+    ReproductiveEnvironment,
     ReproductiveType,
     TaxaType,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 
@@ -38,18 +41,23 @@ class FunctionalGroup:
         taxa: str,
         diet: str,
         metabolic_type: str,
+        reproductive_environment: str,
         reproductive_type: str,
         development_type: str,
         development_status: str,
         offspring_functional_group: str,
         excretion_type: str,
+        migration_type: str,
+        vertical_occupancy: str,
         birth_mass: float,
         adult_mass: float,
+        density_individuals_m2: float | None = None,
         constants: AnimalConsts = AnimalConsts(),
     ) -> None:
         """The constructor for the FunctionalGroup class.
 
         TODO: Remove unused attributes.
+        TODO: density test
 
         """
 
@@ -57,10 +65,14 @@ class FunctionalGroup:
         """The name of the functional group."""
         self.taxa = TaxaType(taxa)
         """The taxa of the functional group."""
-        self.diet = DietType(diet)
+        self.diet = DietType.parse(diet)
         """The diet of the functional group."""
         self.metabolic_type = MetabolicType(metabolic_type)
         """The metabolic type of the functional group."""
+        self.reproductive_environment = ReproductiveEnvironment(
+            reproductive_environment
+        )
+        """The reproductive environment used by the functional group."""
         self.reproductive_type = ReproductiveType(reproductive_type)
         """The reproductive type of the functional group."""
         self.development_type = DevelopmentType(development_type)
@@ -72,12 +84,20 @@ class FunctionalGroup:
             metamorphosis."""
         self.excretion_type = ExcretionType(excretion_type)
         """The excretion type of the functional group."""
+        self.migration_type = MigrationType(migration_type)
+        """The migration type of the functional group."""
+        self.vertical_occupancy = VerticalOccupancy.parse(vertical_occupancy)
+        """The vertical occupancy type of the functional group."""
         self.birth_mass = birth_mass
         """The mass of the functional group at birth."""
         self.adult_mass = adult_mass
         """The mass of the functional group at adulthood."""
+        self.density_individuals_m2 = density_individuals_m2
+        """Optional empirical density in individuals per m² for initialization."""
         self.constants = constants
         """Animal constants."""
+        self.broad_diet: DietType = self.diet.coarse_category()
+        """The broad trophic category, herbivore, carnivore, omnivore."""
         self.cnp_proportions = self.constants.cnp_proportion_terms[self.taxa]
         """The proportions of carbon/nitrogen/phosphorus in the functional group,
             example {"carbon": 0.8, "nitrogen": 0.15, "phosphorus": 0.05}."""
@@ -85,11 +105,17 @@ class FunctionalGroup:
             self.metabolic_type
         ]
         """The coefficient and exponent of metabolic rate."""
-        self.damuths_law_terms = self.constants.damuths_law_terms[self.taxa][self.diet]
-        """The coefficient and exponent of damuth's law for population density."""
-        self.conversion_efficiency = self.constants.conversion_efficiency[self.diet]
+        self.population_density_terms = self.constants.get_population_density_terms(
+            self.taxa, self.broad_diet
+        )
+        """The coefficient and exponent terms for the population density scaling."""
+        self.conversion_efficiency = self.constants.conversion_efficiency[
+            self.broad_diet
+        ]
         """The conversion efficiency of the functional group based on diet."""
-        self.mechanical_efficiency = self.constants.mechanical_efficiency[self.diet]
+        self.mechanical_efficiency = self.constants.mechanical_efficiency[
+            self.broad_diet
+        ]
         """The mechanical transfer efficiency of a functional group based on diet."""
         self.prey_scaling = self.constants.prey_mass_scaling_terms[self.metabolic_type][
             self.taxa
@@ -108,6 +134,7 @@ def import_functional_groups(
     definitions of parameters and scaling relationships based on those traits.
 
     TODO: A structure for user-selection of which traits to employ.
+    TODO: density test
 
     Args:
         fg_csv_file: The location of the csv file holding the functional group
@@ -128,23 +155,28 @@ def import_functional_groups(
             f"Invalid header. Expected at least {expected_header}, but got {fg.columns}"
         )
 
-    functional_group_list = [
-        FunctionalGroup(
+    for row in fg.itertuples():
+        density = getattr(row, "density_individuals_m2", None)
+
+        functional_group = FunctionalGroup(
             row.name,
             row.taxa,
             row.diet,
             row.metabolic_type,
+            row.reproductive_environment,
             row.reproductive_type,
             row.development_type,
             row.development_status,
             row.offspring_functional_group,
             row.excretion_type,
+            row.migration_type,
+            row.vertical_occupancy,
             row.birth_mass,
             row.adult_mass,
+            density_individuals_m2=density,
             constants=constants,
         )
-        for row in fg.itertuples()
-    ]
+        functional_group_list.append(functional_group)
 
     return functional_group_list
 

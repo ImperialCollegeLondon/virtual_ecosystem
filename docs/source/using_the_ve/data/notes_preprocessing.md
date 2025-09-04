@@ -3,12 +3,12 @@ jupyter:
   jupytext:
     cell_metadata_filter: all,-trusted
     main_language: python
-    notebook_metadata_filter: settings,mystnb,language_info
+    notebook_metadata_filter: settings,mystnb,language_info,execution
     text_representation:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.7
+      jupytext_version: 1.17.3
 ---
 
 # Notes on climate data pre-processing
@@ -44,8 +44,8 @@ Please check the following:
   Check the input data variable names match the Virtual Ecosystem naming convention
   as listed in the table above.
 
-We have used a simple pre-processing script to create the climate data used in
-the [example data](../../using_the_ve/example_data.md) from ERA5-Land monthly averaged
-data, downloaded from the Copernicus Climate Data Store
-[here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview).
-The code is available [here](../../using_the_ve/example_data.md#climate-data).
+We have used a simple [pre-processing
+script](../../using_the_ve/example_data.md#climate-data)  to create the climate data
+used in the [example data](../../using_the_ve/example_data.md) from ERA5-Land monthly
+averaged data, downloaded from the [Copernicus Climate Data Store]
+(<https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview>).

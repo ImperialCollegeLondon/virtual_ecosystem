@@ -60,6 +60,11 @@ def animal_data_for_model_instance(fixture_core_components):
         data=leaf_mass, dims=["layers", "cell_id"]
     )
 
+    # Populate the fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = xarray.DataArray(
+        np.full(grid.n_cells, 0.1), dims=["cell_id"]
+    )
+
     # grid.cell_id gives the spatial dimension, and we want a single "time" or "layer"
     air_temperature_values = np.full(
         (1, grid.n_cells), 25.0
@@ -81,7 +86,7 @@ def animal_data_for_model_instance(fixture_core_components):
 
 
 @pytest.fixture
-def animal_fixture_config():
+def animal_fixture_config(microbial_groups_cfg):
     """Simple configuration fixture for use in tests."""
 
     from virtual_ecosystem.core.config import Config
@@ -125,8 +130,12 @@ def animal_fixture_config():
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        yld = 0.6
         zeta = 0.17
+        resp_rt = 0.05
+        tau_rt = 1
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
 
         [[plants.pft_definition]]
         a_hd = 116.0
@@ -145,19 +154,26 @@ def animal_fixture_config():
         sla = 14.0
         tau_f = 4.0
         tau_r = 1.04
-        yld = 0.17
+        yld = 0.6
         zeta = 0.17
+        resp_rt = 0.05
+        tau_rt = 1
+        gpp_topslice = 0.1
+        p_foliage_for_reproductive_tissue = 0.05
         
         [[animal.functional_groups]]
         name = "carnivorous_bird"
         taxa = "bird"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.1
         adult_mass = 1.0
         [[animal.functional_groups]]
@@ -165,11 +181,14 @@ def animal_fixture_config():
         taxa = "bird"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_bird"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.05
         adult_mass = 0.5
         [[animal.functional_groups]]
@@ -177,11 +196,14 @@ def animal_fixture_config():
         taxa = "mammal"
         diet = "carnivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 4.0
         adult_mass = 40.0
         [[animal.functional_groups]]
@@ -189,66 +211,173 @@ def animal_fixture_config():
         taxa = "mammal"
         diet = "herbivore"
         metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_mammal"
         excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
         birth_mass = 1.0
         adult_mass = 10.0
         [[animal.functional_groups]]
         name = "carnivorous_insect"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "carnivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "iteroparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "carnivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground_canopy"
         birth_mass = 0.001
         adult_mass = 0.01
         [[animal.functional_groups]]
         name = "herbivorous_insect"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "direct"
         development_status = "adult"
         offspring_functional_group = "herbivorous_insect"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground_canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
         [[animal.functional_groups]]
         name = "butterfly"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "semelparous"
         development_type = "indirect"
         development_status = "adult"
         offspring_functional_group = "caterpillar"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground_canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
         [[animal.functional_groups]]
         name = "caterpillar"
-        taxa = "insect"
+        taxa = "invertebrate"
         diet = "herbivore"
         metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
         reproductive_type = "nonreproductive"
         development_type = "indirect"
         development_status = "larval"
         offspring_functional_group = "butterfly"
         excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "canopy"
         birth_mass = 0.0005
         adult_mass = 0.005
+        [[animal.functional_groups]]
+        name = "frog"
+        taxa = "amphibian"
+        diet = "carnivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "aquatic"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "frog"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
+        birth_mass = 0.005
+        adult_mass = 0.5
+        [[animal.functional_groups]]
+        name = "swallow"
+        taxa = "bird"
+        diet = "carnivore"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "swallow"
+        excretion_type = "uricotelic"
+        migration_type = "seasonal"
+        vertical_occupancy = "canopy"
+        birth_mass = 0.005
+        adult_mass = 0.2
+        [[animal.functional_groups]]
+        name = "earthworm"
+        taxa = "invertebrate"
+        diet = "herbivore"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "earthworm"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil"
+        birth_mass = 0.0005
+        adult_mass = 0.005
+        [[animal.functional_groups]]
+        name = "dung_beetle"
+        taxa = "invertebrate"
+        diet = "waste"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "dung_beetle"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground"
+        birth_mass = 0.0003
+        adult_mass = 0.003
+        [[animal.functional_groups]]
+        name = "scavenging_mammal"
+        taxa = "mammal"
+        diet = "carcasses"
+        metabolic_type = "endothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "scavenging_mammal"
+        excretion_type = "ureotelic"
+        migration_type = "none"
+        vertical_occupancy = "ground"
+        birth_mass = 2.0
+        adult_mass = 20.0
+        [[animal.functional_groups]]
+        name = "detritivorous_insect"
+        taxa = "invertebrate"
+        diet = "detritus"
+        metabolic_type = "ectothermic"
+        reproductive_environment = "terrestrial"
+        reproductive_type = "iteroparous"
+        development_type = "direct"
+        development_status = "adult"
+        offspring_functional_group = "detritivorous_insect"
+        excretion_type = "uricotelic"
+        migration_type = "none"
+        vertical_occupancy = "soil_ground"
+        birth_mass = 0.0004
+        adult_mass = 0.004
+
+
 
         [hydrology]
     """
 
-    return Config(cfg_strings=cfg_string)
+    return Config(cfg_strings=[cfg_string, microbial_groups_cfg])
 
 
 @pytest.fixture
@@ -477,6 +606,22 @@ def dummy_animal_data(animal_fixture_core_components):
     data["c_p_ratio_below_metabolic"] = litter_ratios
     data["c_p_ratio_below_structural"] = litter_ratios
 
+    # Also need to add soil pools that animals consume from
+    soil_pools = DataArray(np.full(data.grid.n_cells, fill_value=0.15), dims="cell_id")
+    data["soil_c_pool_pom"] = soil_pools
+    data["soil_n_pool_particulate"] = soil_pools
+    data["soil_p_pool_particulate"] = soil_pools
+    data["soil_c_pool_bacteria"] = soil_pools
+    data["soil_c_pool_saprotrophic_fungi"] = soil_pools
+    data["soil_c_pool_arbuscular_mycorrhiza"] = soil_pools
+    data["soil_c_pool_ectomycorrhiza"] = soil_pools
+
+    # Also need to add a pool to track the amount of fungal fruiting bodies
+    data["fungal_fruiting_bodies"] = litter_pools
+    data["production_of_fungal_fruiting_bodies"] = DataArray(
+        np.zeros(data.grid.n_cells), dims="cell_id"
+    )
+
     return data
 
 
@@ -535,7 +680,7 @@ def constants_instance():
     """Fixture for an instance of animal constants."""
     from virtual_ecosystem.models.animal.constants import AnimalConsts
 
-    return AnimalConsts()
+    return AnimalConsts(density_scaling_method="madingley")
 
 
 @pytest.fixture
@@ -552,21 +697,60 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
+def microbial_c_n_p_ratios(fixture_config):
+    """Fixture containing the microbial C:N:P ratios for use in animal model testing."""
+    from virtual_ecosystem.models.soil.microbial_groups import (
+        find_microbial_stoichiometries,
+    )
+
+    return find_microbial_stoichiometries(config=fixture_config)
+
+
+@pytest.fixture
 def animal_model_instance(
     dummy_animal_data,
     fixture_core_components,
     functional_group_list_instance,
-    constants_instance,
+    microbial_c_n_p_ratios,
 ):
     """Fixture for an animal model object used in tests."""
+    from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
+    # Make sure each call gets a fresh copy
+    clean_data = deepcopy(dummy_animal_data)
+
     return AnimalModel(
-        data=dummy_animal_data,
+        data=clean_data,
         core_components=fixture_core_components,
+        density_scaling_method="madingley",
         functional_groups=functional_group_list_instance,
-        model_constants=constants_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
+    )
+
+
+@pytest.fixture
+def animal_model_damuth_instance(
+    dummy_animal_data,
+    fixture_core_components,
+    functional_group_list_instance,
+    microbial_c_n_p_ratios,
+):
+    """Fixture for an animal model object used in tests."""
+    from copy import deepcopy
+
+    from virtual_ecosystem.models.animal.animal_model import AnimalModel
+
+    # Make sure each call gets a fresh copy
+    clean_data = deepcopy(dummy_animal_data)
+
+    return AnimalModel(
+        data=clean_data,
+        core_components=fixture_core_components,
+        density_scaling_method="damuth",
+        functional_groups=functional_group_list_instance,
+        microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
 
 
@@ -594,6 +778,39 @@ def herbivore_cohort_instance(
 
     return AnimalCohort(
         herbivore_functional_group_instance,
+        10000.0,
+        1,
+        10,
+        1,  # centroid
+        animal_data_for_cohorts_instance.grid,  # grid
+        constants_instance,
+    )
+
+
+@pytest.fixture
+def fungivore_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[16]
+
+
+@pytest.fixture
+def fungivore_cohort_instance(
+    fungivore_functional_group_instance,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        fungivore_functional_group_instance,
         10000.0,
         1,
         10,
@@ -632,6 +849,39 @@ def predator_cohort_instance(
         10,  # individuals
         1,  # centroid
         animal_data_for_cohorts_instance.grid,  # grid
+        constants_instance,
+    )
+
+
+@pytest.fixture
+def earthworm_functional_group_instance(shared_datadir, constants_instance):
+    """Fixture for an animal functional group used in tests."""
+    from virtual_ecosystem.models.animal.functional_group import (
+        import_functional_groups,
+    )
+
+    file = shared_datadir / "example_functional_group_import.csv"
+    fg_list = import_functional_groups(file, constants_instance)
+
+    return fg_list[12]
+
+
+@pytest.fixture
+def earthworm_cohort_instance(
+    earthworm_functional_group_instance,
+    animal_data_for_cohorts_instance,
+    constants_instance,
+):
+    """Fixture for an animal cohort used in tests."""
+    from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
+
+    return AnimalCohort(
+        earthworm_functional_group_instance,
+        1.0,
+        1,
+        100,
+        1,  # centroid
+        animal_data_for_cohorts_instance.grid,
         constants_instance,
     )
 
@@ -715,7 +965,7 @@ def excrement_pool_instance():
 
 
 @pytest.fixture
-def excrement_pools_instance():
+def excrement_pools_by_cell_instance():
     """Fixture for excrement pools used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import ExcrementPool
@@ -789,7 +1039,7 @@ def carcass_pool_instance():
 
 
 @pytest.fixture
-def carcass_pools_instance():
+def carcass_pools_by_cell_instance():
     """Fixture for carcass pools used in tests."""
     from virtual_ecosystem.models.animal.cnp import CNP
     from virtual_ecosystem.models.animal.decay import CarcassPool
@@ -806,8 +1056,8 @@ def carcass_pools_instance():
 
 
 @pytest.fixture
-def litter_data_instance(fixture_core_components):
-    """Creates a dummy litter data for use in tests."""
+def litter_soil_data_instance(fixture_core_components):
+    """Creates a dummy litter + soil data for use in tests."""
 
     from virtual_ecosystem.core.data import Data
 
@@ -832,6 +1082,15 @@ def litter_data_instance(fixture_core_components):
         "c_p_ratio_woody": [555.5, 763.3, 847.3, 599.1],
         "c_p_ratio_below_metabolic": [310.7, 411.3, 315.2, 412.4],
         "c_p_ratio_below_structural": [550.5, 595.6, 773.1, 651.2],
+        "soil_c_pool_pom": [0.1, 1.0, 0.7, 0.35],
+        "soil_n_pool_particulate": [0.00714285, 0.00071425, 0.00285714, 0.01428571],
+        "soil_p_pool_particulate": [2.857e-5, 2.85714e-4, 1.142856e-4, 5.714284e-4],
+        "soil_c_pool_bacteria": [5.8, 2.3, 11.3, 1.0],
+        "soil_c_pool_saprotrophic_fungi": [0.89, 8.55, 2.21, 4.54],
+        "soil_c_pool_arbuscular_mycorrhiza": [0.65, 1.47, 3.92, 9.04],
+        "soil_c_pool_ectomycorrhiza": [0.47, 1.32, 4.2, 3.77],
+        "fungal_fruiting_bodies": [0.1, 0.2, 0.3, 0.4],
+        "production_of_fungal_fruiting_bodies": [0.05, 0.04, 0.025, 0.0125],
     }
 
     for var_name, var_values in data_values.items():
@@ -841,15 +1100,61 @@ def litter_data_instance(fixture_core_components):
 
 
 @pytest.fixture
-def litter_pool_instance(litter_data_instance):
-    """Fixture for a litter pool class to be used in tests."""
+def litter_pool_instance(litter_soil_data_instance):
+    """Fixture for a single LitterPool instance in cell 0."""
     from virtual_ecosystem.models.animal.decay import LitterPool
 
     return LitterPool(
         pool_name="above_metabolic",
-        data=litter_data_instance,
+        cell_id=0,
+        data=litter_soil_data_instance,
         cell_area=10000,
     )
+
+
+@pytest.fixture
+def litter_pools_by_cell_instance(litter_soil_data_instance):
+    """Fixture for litter pools used in tests."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    return {
+        cell_id: [
+            LitterPool(
+                pool_name="above_metabolic",
+                cell_id=cell_id,
+                data=litter_soil_data_instance,
+                cell_area=10000,
+            )
+        ]
+        for cell_id in range(4)  # data has 4 valid cells: 0 to 3
+    }
+
+
+@pytest.fixture
+def litter_pools_dict_by_cell_instance(litter_soil_data_instance):
+    """Fixture for litter pools with correct dict[str, Resource] structure."""
+    from virtual_ecosystem.models.animal.decay import LitterPool
+
+    pool_names = [
+        "above_metabolic",
+        "above_structural",
+        "woody",
+        "below_metabolic",
+        "below_structural",
+    ]
+
+    return {
+        cell_id: {
+            name: LitterPool(
+                pool_name=name,
+                cell_id=cell_id,
+                data=litter_soil_data_instance,
+                cell_area=10000,
+            )
+            for name in pool_names
+        }
+        for cell_id in range(4)
+    }
 
 
 @pytest.fixture
@@ -869,3 +1174,152 @@ def herbivory_waste_pool_instance():
     )
 
     return herbivory_waste
+
+
+@pytest.fixture
+def mushroom_instance(litter_soil_data_instance):
+    """Fixture for a single FungalFruitPool object."""
+    from virtual_ecosystem.models.animal.decay import (
+        FungalFruitPool,
+    )  # Adjust as needed
+
+    return FungalFruitPool(
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=100.0,  # m²
+        c_n_ratio=25.0,
+        c_p_ratio=100.0,
+    )
+
+
+@pytest.fixture
+def fungal_fruit_list_instance(litter_soil_data_instance):
+    """Fixture for multiple FungalFruitPool objects across grid cells."""
+    from virtual_ecosystem.models.animal.decay import FungalFruitPool
+
+    return [
+        FungalFruitPool(
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=100.0,
+            c_n_ratio=25.0,
+            c_p_ratio=100.0,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]
+
+
+@pytest.fixture
+def microbial_cnp_ratios() -> dict[str, dict[str, float]]:
+    """Reusable microbial C:N:P ratios for SoilPool construction.
+
+    Returns:
+        Mapping from pool name to C:N and C:P ratios (unitless). Used by
+        SoilPool for bacteria and fungi stoichiometry.
+    """
+
+    return {
+        "bacteria": {"nitrogen": 5.0, "phosphorus": 30.0},
+        "saprotrophic_fungi": {"nitrogen": 10.0, "phosphorus": 80.0},
+        "arbuscular_mycorrhiza": {"nitrogen": 12.0, "phosphorus": 90.0},
+        "ectomycorrhiza": {"nitrogen": 8.0, "phosphorus": 70.0},
+    }
+
+
+@pytest.fixture
+def soil_fungi_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for a single SoilPool 'fungi' object."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return SoilPool(
+        pool_name="fungi",
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=litter_soil_data_instance.grid.cell_area,
+        max_depth_microbial_activity=0.2,
+        c_n_p_ratios=microbial_cnp_ratios,
+    )
+
+
+@pytest.fixture
+def soil_fungi_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for SoilPool 'fungi' objects across all grid cells."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return [
+        SoilPool(
+            pool_name="fungi",
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=litter_soil_data_instance.grid.cell_area,
+            max_depth_microbial_activity=0.2,
+            c_n_p_ratios=microbial_cnp_ratios,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]
+
+
+@pytest.fixture
+def pom_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for a single SoilPool 'pom' object."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return SoilPool(
+        pool_name="pom",
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=litter_soil_data_instance.grid.cell_area,
+        max_depth_microbial_activity=0.2,
+        c_n_p_ratios=microbial_cnp_ratios,
+    )
+
+
+@pytest.fixture
+def pom_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for SoilPool 'pom' objects across all grid cells."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return [
+        SoilPool(
+            pool_name="pom",
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=litter_soil_data_instance.grid.cell_area,
+            max_depth_microbial_activity=0.2,
+            c_n_p_ratios=microbial_cnp_ratios,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]
+
+
+@pytest.fixture
+def bacteria_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for a single SoilPool 'bacteria' object."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return SoilPool(
+        pool_name="bacteria",
+        cell_id=0,
+        data=litter_soil_data_instance,
+        cell_area=litter_soil_data_instance.grid.cell_area,
+        max_depth_microbial_activity=0.2,
+        c_n_p_ratios=microbial_cnp_ratios,
+    )
+
+
+@pytest.fixture
+def bacteria_list_instance(litter_soil_data_instance, microbial_cnp_ratios):
+    """Fixture for SoilPool 'bacteria' objects across all grid cells."""
+    from virtual_ecosystem.models.animal.decay import SoilPool
+
+    return [
+        SoilPool(
+            pool_name="bacteria",
+            cell_id=cell_id,
+            data=litter_soil_data_instance,
+            cell_area=litter_soil_data_instance.grid.cell_area,
+            max_depth_microbial_activity=0.2,
+            c_n_p_ratios=microbial_cnp_ratios,
+        )
+        for cell_id in litter_soil_data_instance.grid.cell_id
+    ]

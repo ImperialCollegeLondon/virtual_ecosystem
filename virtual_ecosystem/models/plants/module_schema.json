@@ -47,6 +47,9 @@
                      "resp_r": {
                         "type": "number"
                      },
+                     "resp_rt": {
+                        "type": "number"
+                     },
                      "resp_s": {
                         "type": "number"
                      },
@@ -62,6 +65,9 @@
                      "tau_r": {
                         "type": "number"
                      },
+                     "tau_rt": {
+                        "type": "number"
+                     },
                      "yld": {
                         "type": "number"
                      },
@@ -75,6 +81,42 @@
                         "type": "number"
                      },
                      "n": {
+                        "type": "number"
+                     },
+                     "gpp_topslice": {
+                        "type": "number"
+                     },
+                     "p_foliage_for_reproductive_tissue": {
+                        "type": "number"
+                     },
+                     "deadwood_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "deadwood_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "leaf_turnover_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "leaf_turnover_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "plant_reproductive_tissue_turnover_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "plant_reproductive_tissue_turnover_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "root_turnover_c_p_ratio": {
+                        "type": "number"
+                     },
+                     "root_turnover_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "foliage_c_n_ratio": {
+                        "type": "number"
+                     },
+                     "foliage_c_p_ratio": {
                         "type": "number"
                      }
                   },
@@ -96,7 +138,9 @@
                      "zeta",
                      "f_g",
                      "m",
-                     "n"
+                     "n",
+                     "gpp_topslice",
+                     "p_foliage_for_reproductive_tissue"
                   ]
                }
             },
@@ -107,10 +151,63 @@
             "static": {
                "type": "boolean",
                "default": false
+            },
+            "community_data_export": {
+               "description": "Configuration of plant community data export",
+               "type": "object",
+               "properties": {
+                  "required_data": {
+                     "type": "array",
+                     "items": {
+                        "type": "string"
+                     },
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "cohort_attributes": {
+                     "description": "A list of cohort attributes to write to file.",
+                     "type": "array",
+                     "items": {
+                        "type": "string"
+                     },
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "community_canopy_attributes": {
+                     "description": "A list of community canopy attributes to write to file.",
+                     "type": "array",
+                     "items": {
+                        "type": "string"
+                     },
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "stem_canopy_attributes": {
+                     "description": "A list of stem canopy attributes to write to file.",
+                     "type": "array",
+                     "items": {
+                        "type": "string"
+                     },
+                     "uniqueItems": true,
+                     "default": []
+                  },
+                  "float_format": {
+                     "description": "A float format string to control data precision.",
+                     "type": "string",
+                     "default": "%0.5f"
+                  }
+               },
+               "default": {},
+               "required": [
+                  "required_data",
+                  "cohort_attributes",
+                  "community_canopy_attributes",
+                  "stem_canopy_attributes",
+                  "float_format"
+               ]
             }
          },
          "default": {},
-         "required": [],
          "oneOf": [
             {
                "required": [
@@ -122,6 +219,10 @@
                   "pft_definitions_path"
                ]
             }
+         ],
+         "required": [
+            "community_data_export",
+            "static"
          ]
       }
    },

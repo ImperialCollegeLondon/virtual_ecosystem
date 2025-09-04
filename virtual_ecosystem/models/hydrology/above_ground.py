@@ -1,58 +1,269 @@
 """The ``models.hydrology.above_ground`` module simulates the above-ground hydrological
 processes for the Virtual Ecosystem. At the moment, this includes rain water
-interception by the canopy, soil evaporation, and functions related to surface
-runoff, bypass flow, and river discharge.
+interception by the canopy, canopy evaporation and leaf drainage, soil evaporation,
+and functions related to surface runoff, bypass flow, and river discharge.
 
 TODO change temperatures to Kelvin
 
-TODO add canopy evaporation
 """  # noqa: D205
 
 from math import sqrt
 
 import numpy as np
 from numpy.typing import NDArray
+from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.core.hygro import calc_vp_sat
 
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.abiotic.abiotic_tools import (
+    calculate_slope_of_saturated_pressure_curve,
+)
+
+
+def potential_evaporation_leaf(
+    net_radiation: NDArray[np.floating],
+    vapour_pressure_deficit: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    density_air_kg: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    aerodynamic_resistance: NDArray[np.floating],
+    stomatal_resistance: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
+    psychrometric_constant: NDArray[np.floating],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+):
+    r"""Calculate canopy potential evaporation rate using Penman-Monteith equation.
+
+    The potential evaporation rate :math:`EW_{0}` is calculated as follows:
+
+    .. math::
+        EW_{0} =
+        \frac{\Delta R_n + \rho_a c_p \frac{D}{r_a}}
+        {\lambda_v \left(\Delta + \gamma \left(1 + \frac{r_s}{r_a}\right)\right)}
+
+    where :math:`\Delta` is the slope of the saturation vapour pressure curve,
+    :math:`R_n` is the net radiation,
+    :math:`\rho_a` is the density of air,
+    :math:`c_p` is the specific heat of air,
+    :math:`D` is the vapour pressure deficit,
+    :math:`r_a` is the aerodynamic resistance,
+    :math:`\lambda_v` is the latent heat of vapourization,
+    :math:`\gamma` is the psychrometric constant, and
+    :math:`r_s` is the stomatal resistance.
+
+    Note that we do NOT include ground heat flux in the consideration of canopy
+    evaporation; TODO discuss where we use instead the energy flux into NPP
+
+    Args:
+        net_radiation: Net radiation at leaf surface, [W m-2]
+        vapour_pressure_deficit: Vapour pressure deficit, [kPa]
+        air_temperature: Air temperature, [C]
+        density_air_kg: Air density, [kg m-3]
+        specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
+        aerodynamic_resistance: Aerodynamic resistance in canopy, [s m-1]
+        stomatal_resistance: Stomatal resistance, [s m-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
+        psychrometric_constant: Psychrometric constant, [kPa K-1]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+
+    Returns:
+        potential evaporation rate, [kg m-2 s-1]
+    """
+
+    # Slope of saturation vapour pressure curve (kPa/K)
+    delta = calculate_slope_of_saturated_pressure_curve(
+        temperature=air_temperature,
+        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
+    )
+
+    # Penman-Monteith equation
+    potential_evaporation = (
+        delta * net_radiation
+        + density_air_kg
+        * specific_heat_air
+        * (vapour_pressure_deficit / aerodynamic_resistance)
+    ) / (
+        latent_heat_vapourisation
+        * (
+            delta
+            + psychrometric_constant
+            * (1 + stomatal_resistance / aerodynamic_resistance)
+        )
+    )
+
+    return potential_evaporation
+
+
+def calculate_canopy_evaporation(
+    leaf_area_index: NDArray[np.floating],
+    interception: NDArray[np.floating],
+    net_radiation: NDArray[np.floating],
+    vapour_pressure_deficit: NDArray[np.floating],
+    air_temperature: NDArray[np.floating],
+    density_air_kg: NDArray[np.floating],
+    specific_heat_air: NDArray[np.floating],
+    aerodynamic_resistance: NDArray[np.floating],
+    stomatal_resistance: NDArray[np.floating],
+    latent_heat_vapourisation: NDArray[np.floating],
+    psychrometric_constant: NDArray[np.floating],
+    saturated_pressure_slope_parameters: tuple[float, float, float, float],
+    time_interval: float,
+    intercept_residence_time: float,
+    extinction_coefficient_global_radiation: float,
+) -> dict[str, NDArray[np.floating]]:
+    r"""Calculate evaporation of intercepted water from the canopy, [mm].
+
+    This function calculates evaporation of intercepted water from the canopy following
+    the LISFLOOD model :cite:t:`van_der_knijff_lisflood_2010`.
+    The maximum evaporation per time step :math:`EW_{max}` [mm] is proportional to the
+    fraction of vegetated area:
+
+    .. math :: EW_{max} = EW_{0} [1 - e^{(-\kappa_{gb} LAI)}] \Delta t
+
+    where :math:`EW_{0}` is the potential evaporation rate,
+    the dimensionless constant :math:`\kappa_{gb}` is the extinction coefficient
+    for global solar radiation. In LISFLOOD, :math:`\kappa_{gb}` is given by the product
+    :math:`0.75 \cdot \kappa_{df}`, where :math:`\kappa_{df}` is the extinction
+    coefficient for diffuse visible light: its value is provided as input to the model
+    and it varies between 0.4 and 1.1.
+
+    The actual amount of evaporation :math:`EW_{int}` [mm] is limited by the amount of
+    water stored on the leaves :math:`Int_{cum}`:
+
+    .. math :: EW_{int} = min(EW_{max} \Delta t, Int_{cum})
+
+    Another amount of water falls to the soil because of leaf drainage which is modelled
+    as a linear reservoir:
+
+    .. math :: D_{int} = \frac{1}{T_{int}} Int_{cum} \Delta t
+
+    where :math:`D_{int}` is the amount of leaf drainage per time step [mm] and
+    :math:`T_{int}` is a time constant (or residence time) of the interception store
+    [days]. Setting :math:`T_{int} = 1` [day] is strongly recommended and means that all
+    the water in the interception store Intcum evaporates or falls to the soil surface
+    as leaf drainage within one day.
+
+    Args:
+        leaf_area_index: Leaf area index, [m m-1]
+        interception: Interception of water in canopy, [mm]
+        net_radiation: Net radiation in canopy, [W m-2]
+        vapour_pressure_deficit: Vapour pressure deficit, [kPa]
+        air_temperature: Air temperature in canopy, [C]
+        density_air_kg: Density of air, [kg m-3]
+        specific_heat_air: Specific heat of air, [kJ kg-1 K-1]
+        aerodynamic_resistance: Aerodynamic resistance of air in the canopy, [s m-1]
+        stomatal_resistance: Stomatal resistance, [s m-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
+        psychrometric_constant: Psychrometric constant, [kPa K-1]
+        saturated_pressure_slope_parameters: List of parameters to calculate
+            the slope of the saturated vapour pressure curve
+        time_interval: Time interval, [s]
+        intercept_residence_time: Intercept residence time, [s]
+        extinction_coefficient_global_radiation: Extinction coefficient for global
+            radiation
+
+    Returns:
+        canopy evaporation [mm per time interval], leaf drainage [mm per time interval]
+    """
+
+    output = {}
+
+    # Potential evaporation from open surface water, [kg m-2 s-1]
+    potential_evaporation = potential_evaporation_leaf(
+        net_radiation=net_radiation,
+        vapour_pressure_deficit=vapour_pressure_deficit,
+        air_temperature=air_temperature,
+        density_air_kg=density_air_kg,
+        specific_heat_air=specific_heat_air,
+        aerodynamic_resistance=aerodynamic_resistance,
+        stomatal_resistance=stomatal_resistance,
+        latent_heat_vapourisation=latent_heat_vapourisation,
+        psychrometric_constant=psychrometric_constant,
+        saturated_pressure_slope_parameters=saturated_pressure_slope_parameters,
+    )
+
+    # Maximum evaporation from each layer, [mm day-1]
+    maximum_evaporation = (
+        potential_evaporation
+        * (1.0 - np.exp(-extinction_coefficient_global_radiation * leaf_area_index))
+        * time_interval
+    )
+
+    # Total max evaporation across layers for each grid cell
+    total_max_evaporation = np.nansum(maximum_evaporation, axis=0)
+
+    # Avoid division by zero by replacing 0s with np.nan temporarily
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scale_factor = np.where(
+            total_max_evaporation > 0,
+            np.minimum(interception / total_max_evaporation, 1.0),
+            0.0,
+        )
+
+    # Actual evaporation, constrained by energy and water
+    actual_evaporation = maximum_evaporation * scale_factor
+
+    output["canopy_evaporation"] = np.where(
+        np.isnan(leaf_area_index), np.nan, actual_evaporation
+    )
+
+    # Update interception pool after evaporation
+    # Ensure no negative interception
+    remaining_interception = np.maximum(
+        interception - np.nansum(actual_evaporation, axis=0), 0.0
+    )
+
+    # Total drainage per cell
+    leaf_drainage = np.minimum(
+        (1.0 / intercept_residence_time) * remaining_interception * time_interval,
+        remaining_interception,
+    )
+    output["leaf_drainage"] = leaf_drainage
+
+    return output
 
 
 def calculate_soil_evaporation(
-    temperature: NDArray[np.float32],
-    relative_humidity: NDArray[np.float32],
-    atmospheric_pressure: NDArray[np.float32],
-    soil_moisture: NDArray[np.float32],
-    soil_moisture_residual: float | NDArray[np.float32],
-    soil_moisture_capacity: float | NDArray[np.float32],
-    leaf_area_index: NDArray[np.float32],
-    wind_speed_surface: NDArray[np.float32],
-    celsius_to_kelvin: float,
-    density_air: float | NDArray[np.float32],
-    latent_heat_vapourisation: float | NDArray[np.float32],
+    temperature: NDArray[np.floating],
+    relative_humidity: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
+    soil_moisture: NDArray[np.floating],
+    soil_moisture_residual: float | NDArray[np.floating],
+    soil_moisture_saturation: float | NDArray[np.floating],
+    leaf_area_index: NDArray[np.floating],
+    wind_speed_surface: NDArray[np.floating],
+    density_air: float | NDArray[np.floating],
+    latent_heat_vapourisation: float | NDArray[np.floating],
     gas_constant_water_vapour: float,
-    soil_surface_heat_transfer_coefficient: float,
+    drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
-) -> dict[str, NDArray[np.float32]]:
+    time_interval: float,
+    pyrealm_const: PyrealmConst,
+) -> dict[str, NDArray[np.floating]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
     This function uses the so-called 'alpha' method to estimate the evaporative flux
     :cite:p:`mahfouf_comparative_1991`.
     We here use the implementation by :cite:t:`barton_parameterization_1979`:
 
-    :math:`\alpha = \frac{1.8 * \Theta}{\Theta + 0.3}`
+    .. math :: \alpha = \frac{1.8 \Theta}{\Theta + 0.3}
 
-    :math:`E_{g} = \frac{\rho_{air}}{R_{a}} * (\alpha * q_{sat}(T_{s}) - q_{g})`
+    .. math :: E_{g} = \frac{\rho_{air}}{R_{a}} (\alpha q_{sat}(T_{s}) - q_{g})
 
     where :math:`\Theta` is the available top soil moisture (relative volumetric water
     content), :math:`E_{g}` is the evaporation flux (W m-2), :math:`\rho_{air}` is the
-    density of air (kg m-3), :math:`R_{a}` is the aerodynamic resistance (unitless),
+    density of air (kg m-3), :math:`R_{a}=(C_{E} u_{a})^-1` is the aerodynamic
+    resistance, with :math:`C_{E}` the drag coefficient for evaporation and
+    :math:`u_{a}` the wind speed near the surface,
     :math:`q_{sat}(T_{s})` (unitless) is the saturated specific humidity, and
     :math:`q_{g}` is the surface specific humidity (unitless).
 
     In a final step, the bare soil evaporation is adjusted to shaded soil evaporation
     :cite:t:`supit_system_1994`:
 
-    :math:`E_{act} = E_{g} * exp(-\kappa_{gb}*LAI)`
+    .. math :: E_{act} = E_{g} e^{(-\kappa_{gb} LAI)}
 
     where :math:`\kappa_{gb}` is the extinction coefficient for global radiation, and
     :math:`LAI` is the total leaf area index.
@@ -63,60 +274,64 @@ def calculate_soil_evaporation(
         atmospheric_pressure: Atmospheric pressure at reference height, [kPa]
         soil_moisture: Volumetric relative water content, [unitless]
         soil_moisture_residual: Residual soil moisture, [unitless]
-        soil_moisture_capacity: Soil moisture capacity, [unitless]
+        soil_moisture_saturation: Soil moisture saturation, [unitless]
         wind_speed_surface: Wind speed in the bottom air layer, [m s-1]
-        celsius_to_kelvin: Factor to convert temperature from Celsius to Kelvin
         density_air: Density if air, [kg m-3]
-        latent_heat_vapourisation: Latent heat of vapourisation, [MJ kg-1]
+        latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         leaf_area_index: Leaf area index [m m-1]
-        gas_constant_water_vapour: Gas constant for water vapour, [J kg-1 K-1]
-        soil_surface_heat_transfer_coefficient: Heat transfer coefficient between soil
-            and air, [W m-2 K-1]
+        gas_constant_water_vapour: Gas constant for water vapour, [kJ kg-1 K-1]
+        drag_coefficient_evaporation: Drag coefficient for evaporation, dimensionless
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
+        time_interval: Time interval, [s]
+        pyrealm_const: Constants from pyrealm package
 
     Returns:
-        soil evaporation, [mm] and aerodynamic resistance near the surface [kg m-2 s-3]
+        soil evaporation, [mm per time interval], aerodynamic resistance surface [s m-1]
     """
 
-    output = {}
-    # Convert temperature to Kelvin
-    temperature_k = temperature + celsius_to_kelvin
+    output: dict[str, NDArray[np.floating]] = {}
 
     # Available soil moisture
     soil_moisture_free = np.clip(
         (soil_moisture - soil_moisture_residual),
         0.0,
-        (soil_moisture_capacity - soil_moisture_residual),
+        (soil_moisture_saturation - soil_moisture_residual),
     )
 
     # Estimate alpha using the Barton (1979) equation
     barton_ratio = (1.8 * soil_moisture_free) / (soil_moisture_free + 0.3)
     alpha = np.where(barton_ratio > 1, 1, barton_ratio)
 
-    saturation_vapour_pressure = 0.6112 * np.exp(
-        (17.67 * (temperature_k)) / (temperature_k + 243.5)
+    # Calculate saturation vapour pressure, kPa
+    saturation_vapour_pressure = calc_vp_sat(
+        ta=temperature,
+        core_const=pyrealm_const(),
     )
 
-    pressure_deficit = atmospheric_pressure - saturation_vapour_pressure
     saturated_specific_humidity = (
-        gas_constant_water_vapour / latent_heat_vapourisation
-    ) * (saturation_vapour_pressure / pressure_deficit)
+        gas_constant_water_vapour * saturation_vapour_pressure
+    ) / (
+        atmospheric_pressure
+        - (1 - gas_constant_water_vapour) * saturation_vapour_pressure
+    )
 
     specific_humidity_air = (relative_humidity * saturated_specific_humidity) / 100
 
-    aerodynamic_resistance = (
-        1 / wind_speed_surface**2
-    ) * soil_surface_heat_transfer_coefficient
+    aerodynamic_resistance = 1 / (wind_speed_surface * drag_coefficient_evaporation)
     output["aerodynamic_resistance_surface"] = aerodynamic_resistance
 
-    evaporative_flux = (density_air / aerodynamic_resistance) * (  # W/m2
+    evaporative_flux = (density_air / aerodynamic_resistance) * (
         alpha * saturation_vapour_pressure - specific_humidity_air
     )
 
-    output["soil_evaporation"] = (  # Return surface evaporation, [mm]
-        evaporative_flux / latent_heat_vapourisation
-    ).squeeze() * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+    output["soil_evaporation"] = (
+        (  # Return surface evaporation, [mm]
+            evaporative_flux / latent_heat_vapourisation
+        ).squeeze()
+        * np.exp(-extinction_coefficient_global_radiation * leaf_area_index)
+        * time_interval
+    )
 
     return output
 
@@ -243,18 +458,18 @@ def calculate_drainage_map(
 
 
 def calculate_interception(
-    leaf_area_index: NDArray[np.float32],
-    precipitation: NDArray[np.float32],
+    leaf_area_index: NDArray[np.floating],
+    precipitation: NDArray[np.floating],
     intercept_parameters: tuple[float, float, float],
     veg_density_param: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     r"""Estimate canopy interception.
 
     This function estimates canopy interception using the following storage-based
     equation after :cite:t:`aston_rainfall_1979` and :cite:t:`merriam_note_1960` as
     implemented in :cite:t:`van_der_knijff_lisflood_2010` :
 
-    :math:`Int = S_{max} * [1 - e \frac{(-k*R*\delta t}{S_{max}})]`
+    .. math :: Int = S_{max} [1 - e^{\frac{-k R \Delta t}{S_{max}}}]
 
     where :math:`Int` [mm] is the interception per time step, :math:`S_{max}` [mm] is
     the maximum interception, :math:`R` is the rainfall intensity per time step [mm] and
@@ -277,10 +492,10 @@ def calculate_interception(
 
     where LAI is the average Leaf Area Index [m2 m-2]. :math:`k` is estimated as:
 
-    :math:`k=0.046 * LAI`
+    :math:`k=0.046 \cdot LAI`
 
     Args:
-        leaf_area_index: Leaf area index summed over all canopy layers, [m2 m-2]
+        leaf_area_index: Leaf area index summed over all canopy layers, [m m-1]
         precipitation: Precipitation, [mm]
         intercept_parameters: Parameters for equation estimating maximum canopy
             interception capacity.
@@ -296,7 +511,7 @@ def calculate_interception(
         + intercept_parameters[1] * leaf_area_index
         - intercept_parameters[2] * leaf_area_index**2
     )
-    max_capacity = np.where(leaf_area_index > 0.1, capacity, 0)
+    max_capacity = np.where(leaf_area_index > 0.1, capacity, 0.001)
 
     canopy_density_factor = veg_density_param * leaf_area_index
 
@@ -308,10 +523,10 @@ def calculate_interception(
 
 
 def distribute_monthly_rainfall(
-    total_monthly_rainfall: NDArray[np.float32],
+    total_monthly_rainfall: NDArray[np.floating],
     num_days: int,
     seed: int | None = None,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Distributes total monthly rainfall over the specified number of days.
 
     At the moment, this function allocates each millimeter of monthly rainfall to a
@@ -336,18 +551,21 @@ def distribute_monthly_rainfall(
             day = rng.integers(0, num_days, seed)  # Randomly select a day
             daily_rainfall[day] += 1.0  # Add 1.0 mm of rainfall to the selected day
 
-        daily_rainfall *= rainfall / np.sum(daily_rainfall)
+        if np.sum(daily_rainfall > 0):
+            daily_rainfall *= rainfall / np.sum(daily_rainfall)
+        else:
+            daily_rainfall[:] = 0
         daily_rainfall_data.append(daily_rainfall)
 
     return np.nan_to_num(np.array(daily_rainfall_data), nan=0.0)
 
 
 def calculate_bypass_flow(
-    top_soil_moisture: NDArray[np.float32],
-    sat_top_soil_moisture: NDArray[np.float32],
-    available_water: NDArray[np.float32],
-    infiltration_shape_parameter: float,
-) -> NDArray[np.float32]:
+    top_soil_moisture: NDArray[np.floating],
+    sat_top_soil_moisture: NDArray[np.floating],
+    available_water: NDArray[np.floating],
+    bypass_flow_coefficient: float,
+) -> NDArray[np.floating]:
     r"""Calculate preferential bypass flow.
 
     Bypass flow is here defined as the flow that bypasses the soil matrix and drains
@@ -357,7 +575,7 @@ def calculate_bypass_flow(
     the relative saturation of the superficial and upper soil layers. This results in
     the following equation (after :cite:t:`van_der_knijff_lisflood_2010`):
 
-    :math:`D_{pref, gw} = W_{av} * (\frac{w_{1}}{w_{s1}})^{c_{pref}}`
+    .. math :: D_{pref, gw} = W_{av} (\frac{w_{1}}{w_{s1}})^{c_{pref}}
 
     where :math:`D_{pref, gw}` is the amount of preferential flow per time step [mm],
     :math:`W_{av}` is the amount of water that is available for infiltration, and
@@ -372,7 +590,7 @@ def calculate_bypass_flow(
         top_soil_moisture: Soil moisture of top soil layer, [mm]
         sat_top_soil_moisture: Soil moisture of top soil layer at saturation, [mm]
         available_water: Amount of water available for infiltration, [mm]
-        infiltration_shape_parameter: Shape parameter for infiltration
+        bypass_flow_coefficient: Bypass flow coefficient, dimensionless
 
     Returns:
         preferential bypass flow, [mm]
@@ -380,17 +598,17 @@ def calculate_bypass_flow(
 
     return (
         available_water
-        * (top_soil_moisture / sat_top_soil_moisture) ** infiltration_shape_parameter
+        * (top_soil_moisture / sat_top_soil_moisture) ** bypass_flow_coefficient
     )
 
 
 def convert_mm_flow_to_m3_per_second(
-    river_discharge_mm: NDArray[np.float32],
+    river_discharge_mm: NDArray[np.floating],
     area: int | float,
     days: int,
     seconds_to_day: float,
     meters_to_millimeters: float,
-) -> NDArray[np.float32]:
+) -> NDArray[np.floating]:
     """Convert river discharge from millimeters to m3 s-1.
 
     Args:
@@ -408,30 +626,32 @@ def convert_mm_flow_to_m3_per_second(
 
 
 def calculate_surface_runoff(
-    precipitation_surface: NDArray[np.float32],
-    top_soil_moisture: NDArray[np.float32],
-    top_soil_moisture_capacity: NDArray[np.float32],
-) -> NDArray[np.float32]:
+    precipitation_surface: NDArray[np.floating],
+    top_soil_moisture: NDArray[np.floating],
+    top_soil_moisture_saturation: NDArray[np.floating],
+) -> NDArray[np.floating]:
     """Calculate surface runoff, [mm].
 
     Surface runoff is calculated with a simple bucket model based on
-    :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture capacity
+    :cite:t:`davis_simple_2017`: if precipitation exceeds top soil moisture saturation
     , the excess water is added to runoff and top soil moisture is set to soil
-    moisture capacity value; if the top soil is not saturated, precipitation is
+    moisture saturation value; if the top soil is not saturated, precipitation is
     added to the current soil moisture level and runoff is set to zero.
+
+    TODO adjust saturation to account for new set of soil layers #535
 
     Args:
         precipitation_surface: Precipitation that reaches surface, [mm]
         top_soil_moisture: Water content of top soil layer, [mm]
-        top_soil_moisture_capacity: Soil mositure capacity of top soil layer, [mm]
+        top_soil_moisture_saturation: Soil mositure saturation of top soil layer, [mm]
     """
 
-    # Calculate how much water can be added to soil before capacity is reached, [mm]
-    free_capacity_mm = top_soil_moisture_capacity - top_soil_moisture
+    # Calculate how much water can be added to soil before saturation is reached, [mm]
+    free_saturation_mm = top_soil_moisture_saturation - top_soil_moisture
 
     # Calculate daily surface runoff of each grid cell, [mm]; replace by SPLASH
     return np.where(
-        precipitation_surface > free_capacity_mm,
-        precipitation_surface - free_capacity_mm,
+        precipitation_surface > free_saturation_mm,
+        precipitation_surface - free_saturation_mm,
         0,
     )

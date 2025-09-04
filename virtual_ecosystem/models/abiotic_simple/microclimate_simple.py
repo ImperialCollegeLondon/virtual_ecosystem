@@ -1,5 +1,5 @@
-r"""The ``models.abiotic_simple.microclimate`` module uses linear regressions from
-:cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
+r"""The ``models.abiotic_simple.microclimate_simple`` module uses linear regressions
+from :cite:t:`hardwick_relationship_2015` and :cite:t:`jucker_canopy_2018` to predict
 atmospheric temperature, relative humidity, and vapour pressure deficit at ground level
 (1.5 m) given the above canopy conditions and leaf area index of intervening canopy. A
 within canopy profile is then interpolated using a logarithmic curve between the above
@@ -8,27 +8,34 @@ vertical wind profile within the canopy.
 Soil temperature is interpolated between the surface layer and the soil temperature at
 1 m depth which equals the mean annual temperature.
 The module also provides a constant vertical profile of atmospheric pressure and
-:math:`\ce{CO2}`.
+:math:`\ce{CO2}` as well as a profile of net radiation.
 
 TODO change temperatures to Kelvin
 """  # noqa: D205
 
 import numpy as np
+from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
+from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
 )
 
 
-def run_microclimate(
+def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    constants: AbioticSimpleConsts,
+    simple_constants: AbioticSimpleConsts,
+    abiotic_constants: AbioticConsts,
+    core_constants: CoreConsts,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
@@ -56,7 +63,8 @@ def run_microclimate(
 
     The function also broadcasts the reference values for atmospheric pressure and
     :math:`\ce{CO2}` to all atmospheric levels as they are currently assumed to remain
-    constant during one time step.
+    constant during one time step. Net radiation for canopy and topsoil layer is also
+    returned.
 
     The `layer_roles` list is composed of the following layers (index 0 above canopy):
 
@@ -80,7 +88,9 @@ def run_microclimate(
         data: Data object
         layer_structure: The LayerStructure instance for the simulation.
         time_index: Time index, integer
-        constants: Set of constants for the abiotic simple model
+        simple_constants: Set of constants for the abiotic simple model
+        abiotic_constants: Set of constants for the abiotic model
+        core_constants: Set of constants shared across all models
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
 
@@ -92,7 +102,7 @@ def run_microclimate(
 
     output = {}
 
-    # Sum leaf area index over all canopy layers
+    # Sum leaf area index over all canopy layers, [m m-1]
     leaf_area_index_sum = data["leaf_area_index"].sum(dim="layers")
 
     # Interpolate atmospheric profiles
@@ -128,7 +138,7 @@ def run_microclimate(
         "atmospheric_co2_ref"
     ].isel(time_index=time_index)
 
-    # Calculate soil temperatures
+    # Calculate soil temperatures, [C]
     lower, upper = getattr(bounds, "soil_temperature")
     output["soil_temperature"] = interpolate_soil_temperature(
         layer_heights=data["layer_heights"],
@@ -140,6 +150,40 @@ def run_microclimate(
         upper_bound=upper,
         lower_bound=lower,
     )
+
+    # Initialise canopy temperature, [C]
+    canopy_temperature = layer_structure.from_template()
+    canopy_temperature[layer_structure.index_filled_canopy] = output["air_temperature"][
+        layer_structure.index_filled_canopy
+    ]
+
+    # Calculate net radiation, [W m-2].
+    canopy_longwave_emission = energy_balance.calculate_longwave_emission(
+        temperature=canopy_temperature.to_numpy(),
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+    soil_longwave_emission = energy_balance.calculate_longwave_emission(
+        temperature=output["soil_temperature"][
+            layer_structure.index_topsoil_scalar
+        ].to_numpy(),
+        emissivity=abiotic_constants.soil_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+
+    net_radiation_canopy = (
+        data["shortwave_absorption"][layer_structure.index_filled_canopy].to_numpy()
+        - canopy_longwave_emission[layer_structure.index_filled_canopy]
+    )
+    net_radiation_soil = (
+        data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        - soil_longwave_emission
+    )
+
+    net_radiation = layer_structure.from_template()
+    net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
+    net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
+    output["net_radiation"] = net_radiation
 
     return output
 
@@ -193,36 +237,10 @@ def log_interpolation(
     return return_array
 
 
-def calculate_saturation_vapour_pressure(
-    temperature: DataArray,
-    saturation_vapour_pressure_factors: list[float],
-) -> DataArray:
-    r"""Calculate saturation vapour pressure, kPa.
-
-    Saturation vapour pressure :math:`e_{s} (T)` is here calculated as
-
-    :math:`e_{s}(T) = 0.61078 exp(\frac{7.5 T}{T + 237.3})`
-
-    where :math:`T` is temperature in degree C .
-
-    Args:
-        temperature: Air temperature, [C]
-        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
-            calculation
-
-    Returns:
-        saturation vapour pressure, [kPa]
-    """
-    factor1, factor2, factor3 = saturation_vapour_pressure_factors
-    return DataArray(
-        factor1 * np.exp((factor2 * temperature) / (temperature + factor3))
-    ).rename("saturation_vapour_pressure")
-
-
 def calculate_vapour_pressure_deficit(
     temperature: DataArray,
     relative_humidity: DataArray,
-    saturation_vapour_pressure_factors: list[float],
+    pyrealm_const: PyrealmConst,
 ) -> dict[str, DataArray]:
     """Calculate vapour pressure and vapour pressure deficit, kPa.
 
@@ -232,18 +250,19 @@ def calculate_vapour_pressure_deficit(
     Args:
         temperature: temperature, [C]
         relative_humidity: relative humidity, []
-        saturation_vapour_pressure_factors: Factors in saturation vapour pressure
-            calculation
+        pyrealm_const: Set of constants from pyrealm which include factors for
+            saturation vapour pressure calculation
 
     Return:
         vapour pressure, [kPa], vapour pressure deficit, [kPa]
     """
 
     output = {}
-    saturation_vapour_pressure = calculate_saturation_vapour_pressure(
-        temperature,
-        saturation_vapour_pressure_factors=saturation_vapour_pressure_factors,
+    saturation_vapour_pressure_numpy = calc_vp_sat(
+        ta=temperature.to_numpy(),
+        core_const=pyrealm_const,
     )
+    saturation_vapour_pressure = saturation_vapour_pressure_numpy
     actual_vapour_pressure = saturation_vapour_pressure * (relative_humidity / 100)
     output["vapour_pressure"] = actual_vapour_pressure
     output["vapour_pressure_deficit"] = (

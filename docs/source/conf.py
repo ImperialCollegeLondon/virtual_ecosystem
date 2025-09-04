@@ -11,6 +11,7 @@ add these directories to sys.path here. If the directory is relative to the
 documentation root, use os.path.abspath to make it absolute, like shown here.
 """
 
+import datetime
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -48,12 +49,11 @@ variables.output_known_variables(varfile)
 
 
 # -- Project information -----------------------------------------------------
+# Ideally the copyright would have a link to the team page, but neither an RST link, nor
+# an HTML <a> link works - they just get rendered as is.
 
 project = "Virtual Ecosystem"
-copyright = (
-    "2022, Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, "
-    "Jaideep Joshi, Taran Rallings, Vivienne Groner"
-)
+copyright = f"{datetime.date.today().year}, The Virtual Ecosystem project team"
 author = (
     "Rob Ewers, David Orme, Olivia Daniels, Jacob Cook, Jaideep Joshi, "
     "Taran Rallings, Vivienne Groner"
@@ -125,15 +125,17 @@ bibtex_reference_style = "author_year_round"
 # links are resolvable. Then ignore a whole bunch of annoying broken links.
 nitpicky = True
 nitpick_ignore = [
+    # Numpy references aren't always found
+    ("py:class", "NDArray"),
     ("py:class", "numpy.int64"),
     ("py:class", "numpy.float32"),
-    # HACK - core_components docstrings are being odd.
-    ("py:class", "NDArray"),
+    ("py:class", "numpy.float64"),
+    ("py:class", "numpy.bool_"),
     ("py:class", "np.int_"),
     ("py:class", "np.str_"),
     ("py:class", "np.bool_"),
-    ("py:class", "numpy.bool_"),
-    ("py:class", "np.float32"),
+    ("py:class", "np.floating"),
+    ("py:class", "np.float64"),
     ("py:class", "np.datetime64"),
     ("py:class", "np.ndarray"),
     ("py:class", "np.timedelta64"),
@@ -142,6 +144,7 @@ nitpick_ignore = [
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
     ("py:class", "numpy._typing._array_like._ScalarType_co"),
+    ("py:class", "numpy._typing._array_like._ScalarT"),
     # God only knows why this is needed. We don't refer to pint.util.Quantity and it
     # isn't in the pint objects.inv, so why the hell is intersphinx trying to build
     # references to it.
@@ -156,10 +159,13 @@ nitpick_ignore = [
     ("py:exc", "BadZipFile"),
     # Absolutely mystifying sphinx failure to link to pyrealm objects in plants_model.py
     # when it resolves those objects without issue in other plants model modules.
+    ("py:class", "PModel"),
     ("py:class", "Canopy"),
     ("py:class", "Flora"),
     ("py:class", "PModelConst"),
     ("py:class", "CoreConst"),
+    ("py:class", "StemAllocation"),
+    ("py:class", "StemStochiometry"),
 ]
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -236,6 +242,11 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+# These paths are relative to html_static_path
+html_css_files = [
+    "css/custom.css",
+]
+
 html_sidebars = {
     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
 }
@@ -244,3 +255,7 @@ html_sidebars = {
 hoverxref_roles = ["term"]
 
 hoverxref_role_types = {"term": "tooltip"}
+
+# Allow for longer runtime
+nb_execution_mode = "force"
+nb_execution_timeout = 300

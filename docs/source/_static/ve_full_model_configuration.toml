@@ -2,7 +2,7 @@
 out_continuous_file_name = "all_continuous_data.nc"
 out_final_file_name = "final_state.nc"
 out_initial_file_name = "initial_state.nc"
-out_merge_file_name = "vr_full_model_configuration.toml"
+out_merge_file_name = "ve_full_model_configuration.toml"
 out_path = "/tmp/ve_example/out"
 save_continuous_data = true
 save_final_state = true
@@ -48,10 +48,6 @@ var_name = "surface_runoff"
 [[core.data.variable]]
 file_path = "/private/tmp/ve_example/data/example_soil_data.nc"
 var_name = "pH"
-
-[[core.data.variable]]
-file_path = "/private/tmp/ve_example/data/example_soil_data.nc"
-var_name = "bulk_density"
 
 [[core.data.variable]]
 file_path = "/private/tmp/ve_example/data/example_soil_data.nc"

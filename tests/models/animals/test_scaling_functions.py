@@ -2,24 +2,82 @@
 
 import pytest
 
+from virtual_ecosystem.models.animal.scaling_functions import DietType
+
 
 @pytest.mark.parametrize(
-    "mass, population_density, terms, scenario_id",
+    "mass, terms",
     [
-        pytest.param(100000.0, 1.0, (-0.75, 4.23), "large_mass_low_density"),
-        pytest.param(0.07, 32.0, (-0.75, 4.23), "small_mass_high_density"),
-        pytest.param(1.0, 5.0, (-0.75, 4.23), "medium_mass_medium_density"),
+        (100000.0, (-0.75, 4.23)),
+        (0.07, (-0.75, 4.23)),
+        (1.0, (-0.75, 4.23)),
+        (15.5, (-0.75, 4.23)),
+        (0.001, (-0.75, 4.23)),
+    ],
+    ids=[
+        "very_large_mass",
+        "very_small_mass",
+        "unit_mass",
+        "medium_mass",
+        "tiny_mass",
     ],
 )
-def test_damuths_law(mass, population_density, terms, scenario_id):
-    """Testing damuth's law for various body-masses."""
-
+def test_damuths_law_computes_expected_value(mass, terms):
+    """Test damuth's law returns the expected value with correct unit conversion."""
     from virtual_ecosystem.models.animal.scaling_functions import damuths_law
 
-    testing_pop = damuths_law(mass, terms)
-    assert testing_pop == pytest.approx(population_density), (
-        f"Scenario {scenario_id} failed: Expect {population_density}, got {testing_pop}"
+    # Convert mass to g for Damuth scaling
+    mass_g = mass * 1000
+    expected_km2 = terms[1] * mass_g ** terms[0]
+    expected_m2 = expected_km2 / 1e6
+
+    actual = damuths_law(mass, terms)
+
+    assert actual == pytest.approx(expected_m2), (
+        f"Expected {expected_m2} for mass {mass} and terms {terms}, got {actual}"
     )
+
+
+@pytest.mark.parametrize(
+    "mass, terms, expected_behavior",
+    [
+        # Normal test cases
+        (100000.0, (0.6, 300000.0), "compute"),  # very large mass
+        (0.07, (0.6, 300000.0), "compute"),  # very small mass
+        (1.0, (0.6, 300000.0), "compute"),  # unit mass
+        (15.5, (0.6, 300000.0), "compute"),  # medium mass
+        (0.001, (0.6, 300000.0), "compute"),  # tiny mass
+    ],
+    ids=[
+        "very_large_mass",
+        "very_small_mass",
+        "unit_mass",
+        "medium_mass",
+        "tiny_mass",
+    ],
+)
+def test_madingley_individuals_density_value(mass, terms, expected_behavior):
+    """Test madingley_individuals_density with normal and edge case inputs."""
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        madingley_individuals_density,
+    )
+
+    exponent, scalar = terms
+
+    if expected_behavior == "compute":
+        # Expected calculation
+        mass_g = mass * 1000
+        expected_km2 = scalar * mass_g ** (exponent - 1)
+        expected_m2 = expected_km2 / 1e6
+
+        actual = madingley_individuals_density(mass, terms)
+        assert actual == pytest.approx(expected_m2), (
+            f"Expected {expected_m2} for mass {mass} and terms {terms}, got {actual}"
+        )
+
+    elif expected_behavior == "error":
+        with pytest.raises(ValueError):
+            madingley_individuals_density(mass, terms)
 
 
 @pytest.mark.parametrize(
@@ -89,55 +147,148 @@ def test_metabolic_rate(mass, temperature, terms, metabolic_type, met_rate):
     assert testing_rate == pytest.approx(met_rate, rel=1e-6)
 
 
-def test_herbivore_prey_group_selection():
+def test_herbivore_prey_group_selection(functional_group_list_instance):
     """Test for herbivore diet type selection."""
     from virtual_ecosystem.models.animal.scaling_functions import (
         DietType,
         prey_group_selection,
     )
 
-    result = prey_group_selection(DietType.HERBIVORE, 10.0, (0.1, 1000.0))
-    assert result == {"plants": (0.0, 0.0)}
+    result = prey_group_selection(
+        DietType.HERBIVORE, 10.0, (0.1, 1000.0), functional_group_list_instance
+    )
+    expected = {
+        "plants": (0.0, 0.0),
+        "litter": (0.0, 0.0),
+    }
+    assert result == expected
 
 
-def test_carnivore_prey_group_selection():
+def test_carnivore_prey_group_selection(functional_group_list_instance):
     """Test for carnivore diet type selection."""
     from virtual_ecosystem.models.animal.scaling_functions import (
         DietType,
         prey_group_selection,
     )
 
-    result = prey_group_selection(DietType.CARNIVORE, 10.0, (0.1, 1000.0))
+    result = prey_group_selection(
+        DietType.CARNIVORE, 10.0, (0.1, 1000.0), functional_group_list_instance
+    )
     expected_output = {
-        "herbivorous_mammal": (0.1, 1000.0),
-        "carnivorous_mammal": (0.1, 1000.0),
-        "herbivorous_bird": (0.1, 1000.0),
-        "carnivorous_bird": (0.1, 1000.0),
-        "herbivorous_insect": (0.1, 1000.0),
-        "carnivorous_insect": (0.1, 1000.0),
+        "herbivorous_mammal": (0.0001, 1000.0),
+        "carnivorous_mammal": (0.0001, 1000.0),
+        "herbivorous_bird": (0.0001, 1000.0),
+        "carnivorous_bird": (0.0001, 1000.0),
+        "herbivorous_insect_iteroparous": (0.0001, 1000.0),
+        "carnivorous_insect_iteroparous": (0.0001, 1000.0),
+        "herbivorous_insect_semelparous": (0.0001, 1000.0),
+        "carnivorous_insect_semelparous": (0.0001, 1000.0),
+        "caterpillar": (0.0001, 1000.0),
+        "swallow": (0.0001, 1000.0),
+        "frog": (0.0001, 1000.0),
+        "earthworm": (0.0001, 1000.0),
+        "butterfly": (0.0001, 1000.0),
+        "detritivorous_insect": (0.0001, 1000.0),
+        "dung_beetle": (0.0001, 1000.0),
+        "scavenging_mammal": (0.0001, 1000.0),
+        "fungivorous_mammal": (0.0001, 1000.0),
+        "carcasses": (0.0, 0.0),
+        "excrement": (0.0, 0.0),
     }
     assert result == expected_output
 
 
-def test_prey_group_selection_invalid_diet_type():
-    """Test for an invalid diet type."""
+def test_fungivore_prey_group_selection(functional_group_list_instance):
+    """Test for fungivore diet type selection."""
+    from virtual_ecosystem.models.animal.scaling_functions import (
+        DietType,
+        prey_group_selection,
+    )
 
+    result = prey_group_selection(
+        DietType.FUNGI, 10.0, (0.1, 1000.0), functional_group_list_instance
+    )
+    expected = {
+        "fungi": (0.0, 0.0),
+    }
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "diet_flag, expected",
+    [
+        # Pure scavengers
+        (DietType.WASTE, {"excrement": (0.0, 0.0)}),
+        (DietType.CARCASSES, {"carcasses": (0.0, 0.0)}),
+        # Combined decay sources
+        (
+            DietType.WASTE | DietType.CARCASSES,
+            {"excrement": (0.0, 0.0), "carcasses": (0.0, 0.0)},
+        ),
+        # Herbivory + scavenging
+        (
+            DietType.HERBIVORE | DietType.CARCASSES,
+            {
+                "plants": (0.0, 0.0),
+                "litter": (0.0, 0.0),
+                "carcasses": (0.0, 0.0),
+            },
+        ),
+        # Herbivory + waste
+        (
+            DietType.HERBIVORE | DietType.WASTE,
+            {
+                "plants": (0.0, 0.0),
+                "litter": (0.0, 0.0),
+                "excrement": (0.0, 0.0),
+            },
+        ),
+        # Detritivory only
+        (
+            DietType.DETRITUS,
+            {"litter": (0.0, 0.0)},
+        ),
+    ],
+)
+def test_combined_diet_flags(diet_flag, expected, functional_group_list_instance):
+    """Test combinations of dietary flags and expected prey/resource groups."""
     from virtual_ecosystem.models.animal.scaling_functions import prey_group_selection
 
-    with pytest.raises(ValueError, match="Invalid diet type:"):
-        prey_group_selection("omnivore", 10.0, (0.1, 1000.0))
+    result = prey_group_selection(
+        diet_flag,
+        mass=10.0,
+        terms=(0.1, 1000.0),
+        functional_groups=functional_group_list_instance,
+    )
+    assert result == expected
 
 
-def test_prey_group_selection_mass_and_terms_impact():
+def test_prey_group_selection_invalid_diet_type(functional_group_list_instance):
+    """Test for an invalid diet type input (wrong type)."""
+    from virtual_ecosystem.models.animal.scaling_functions import prey_group_selection
+
+    with pytest.raises(TypeError):
+        prey_group_selection(
+            "omnivore", 10.0, (0.1, 1000.0), functional_group_list_instance
+        )
+
+
+def test_prey_group_selection_mass_and_terms_impact(functional_group_list_instance):
     """Test to ensure `mass` and `terms` don't affect output."""
     from virtual_ecosystem.models.animal.scaling_functions import (
         DietType,
         prey_group_selection,
     )
 
-    result_default = prey_group_selection(DietType.CARNIVORE, 10.0, (0.1, 1000.0))
-    result_diff_mass = prey_group_selection(DietType.CARNIVORE, 50.0, (0.1, 1000.0))
-    result_diff_terms = prey_group_selection(DietType.CARNIVORE, 10.0, (0.5, 500.0))
+    result_default = prey_group_selection(
+        DietType.CARNIVORE, 10.0, (0.1, 1000.0), functional_group_list_instance
+    )
+    result_diff_mass = prey_group_selection(
+        DietType.CARNIVORE, 50.0, (0.1, 1000.0), functional_group_list_instance
+    )
+    result_diff_terms = prey_group_selection(
+        DietType.CARNIVORE, 10.0, (0.5, 500.0), functional_group_list_instance
+    )
 
     assert result_default == result_diff_mass == result_diff_terms
 

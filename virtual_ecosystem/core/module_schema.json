@@ -167,7 +167,7 @@
                   "out_merge_file_name": {
                      "description": "Name for TOML file containing merged configs",
                      "type": "string",
-                     "default": "vr_full_model_configuration.toml",
+                     "default": "ve_full_model_configuration.toml",
                      "pattern": "^[^/\\\\]+$"
                   }
                },

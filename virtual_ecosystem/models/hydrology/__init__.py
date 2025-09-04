@@ -11,9 +11,9 @@ Each of the hydrology sub-modules has its own API reference page:
 
 * The :mod:`~virtual_ecosystem.models.hydrology.above_ground` submodule contains
   functions to simulate the above-ground hydrological processes for the Virtual
-  Ecosystem. At the moment, this includes rain water interception by the canopy, soil
-  evaporation, and functions related to surface runoff, bypass flow, and river
-  discharge.
+  Ecosystem. At the moment, this includes rain water interception by the canopy, canopy
+  evaporation and leaf drainage, soil evaporation, and functions related to surface
+  runoff, bypass flow, and river discharge.
 
 * The :mod:`~virtual_ecosystem.models.hydrology.below_ground` submodule contains
   functions to simulate the below-ground hydrological processes for the Virtual

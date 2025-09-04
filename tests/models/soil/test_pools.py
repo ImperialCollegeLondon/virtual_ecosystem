@@ -10,10 +10,11 @@ from virtual_ecosystem.models.soil.constants import SoilConsts
 
 
 def test_calculate_all_pool_updates(
-    dummy_carbon_data, fixture_core_components, functional_groups
+    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
 ):
     """Test that the two pool update functions work correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
     from virtual_ecosystem.models.soil.soil_model import SoilModel, make_slices
 
@@ -31,6 +32,7 @@ def test_calculate_all_pool_updates(
         for name in map(str, dummy_carbon_data.data.keys())
         if name in SoilModel.vars_updated
     }
+    delta_pools_ordered["new_fungal_fruiting_body_production"] = np.array([])
     no_cells = 4
     slices = make_slices(no_cells, len(delta_pools_ordered))
     pools = {
@@ -39,33 +41,79 @@ def test_calculate_all_pool_updates(
     soil_pools = SoilPools(
         data=dummy_carbon_data,
         pools=pools,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
         functional_groups=functional_groups,
-        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+        enzyme_classes=enzyme_classes,
+        core_constants=CoreConsts,
     )
 
     change_in_pools = {
-        "soil_c_pool_lmwc": [0.114909863, 0.0426977357, 0.23275147271, 0.033993336945],
-        "soil_c_pool_maom": [0.038767651, 0.00829848, 0.05982197, 0.07277182],
-        "soil_c_pool_bacteria": [-0.054361097, -0.022606231, -0.118911406, -0.00719517],
-        "soil_c_pool_fungi": [-0.0083255777, -0.0819293436, -0.022969005, -0.032666056],
-        "soil_c_pool_pom": [0.00177803841, -0.007860960795, -0.012016245, 0.00545032],
-        "soil_c_pool_necromass": [0.00932274, 0.09290406, 0.05659641, -0.05764445],
-        "soil_enzyme_pom": [8.3534893e-5, 0.0008544245, 0.0002349318, 0.0003279076],
-        "soil_enzyme_maom": [-0.000226569, 0.0008034485, 0.0008339958, 0.0002907076],
-        "soil_n_pool_don": [0.00120116138, 0.00389444416, 0.00505259291, 0.00239278244],
-        "soil_n_pool_particulate": [1.102338e-5, 6.422491e-5, 0.000131687, 1.461799e-5],
-        "soil_n_pool_necromass": [0.00912041, 0.000782751, 0.007865652, -0.00396817],
-        "soil_n_pool_maom": [0.00148604, 0.01179891, 0.01365197, 0.0077315],
-        "soil_n_pool_ammonium": [0.00075125671, 0.02001151359, 0.00039745, 0.000172988],
-        "soil_n_pool_nitrate": [-0.003295899, -0.003990944, -0.001045921, -0.000642911],
-        "soil_p_pool_dop": [0.0001944445, 5.8853523e-5, 0.0001841704, 9.5709618e-5],
-        "soil_p_pool_particulate": [7.22218e-6, -1.13464e-6, 7.86083e-7, 5.85634364e-7],
-        "soil_p_pool_necromass": [0.002879471, 0.003426353, 0.007384646, 0.000844827],
-        "soil_p_pool_maom": [5.52086672e-4, 3.68566732e-5, 4.7566130e-4, 3.09257058e-4],
+        "soil_c_pool_lmwc": [0.12423277, 0.1782469, 0.24889312, 0.04461268],
+        "soil_c_pool_maom": [3.7894322e-2, 4.8705495e-3, 5.67937268e-2, 7.27579158e-2],
+        "soil_c_pool_bacteria": [
+            -0.048350513,
+            -0.0172513872,
+            -0.088397382,
+            -0.00681822124,
+        ],
+        "soil_c_pool_saprotrophic_fungi": [
+            -0.00705438,
+            -0.06240607,
+            -0.01697042,
+            -0.02978217,
+        ],
+        "soil_c_pool_arbuscular_mycorrhiza": [
+            -0.00609998,
+            -0.03448916,
+            -0.02948279,
+            -0.05578802,
+        ],
+        "soil_c_pool_ectomycorrhiza": [
+            -0.00624747,
+            -0.0361879,
+            -0.03136343,
+            -0.02428924,
+        ],
+        "soil_c_pool_pom": [-0.007886552416, -0.0349077207, -0.02708249, -0.001980103],
+        "soil_c_pool_necromass": [0.0059195, 0.09042042, 0.08573325, 0.02066319],
+        "soil_enzyme_pom_bacteria": [-5.44018e-4, -2.2835e-4, -1.19517e-3, -7.21028e-5],
+        "soil_enzyme_maom_bacteria": [-8.54122e-4, -2.79326e-4, -5.9611e-4, -1.0930e-4],
+        "soil_enzyme_pom_fungi": [
+            -6.25578821e-04,
+            -1.24990514e-04,
+            -1.13514145e-04,
+            -8.99649242e-05,
+        ],
+        "soil_enzyme_maom_fungi": [
+            -2.07954821e-04,
+            -1.50814514e-04,
+            -4.98421451e-05,
+            -3.60369242e-05,
+        ],
+        "soil_n_pool_don": [0.00165842, 0.00749503, 0.00530508, 0.00345491],
+        "soil_n_pool_particulate": [-8.93527e-5, 5.102785e-5, 9.028158e-5, 5.163279e-6],
+        "soil_n_pool_necromass": [7.37406e-3, -1.87488e-3, 4.96976e-3, -1.53633e-7],
+        "soil_n_pool_maom": [1.183733e-3, 1.082948e-2, 1.343197e-2, 7.72882e-3],
+        "soil_n_pool_ammonium": [0.00015832, 0.00845456, -0.00015199, -0.00043167],
+        "soil_n_pool_nitrate": [-0.00303913, -0.00393194, -0.00108432, -0.00145394],
+        "soil_p_pool_dop": [0.00022033, 0.00013363, 0.0001604, 0.00021956],
+        "soil_p_pool_particulate": [6.804384e-6, -6.47598e-6, -9.0058e-7, 1.583258e-7],
+        "soil_p_pool_necromass": [0.00225261, 0.00282114, 0.00596048, 0.0014114],
+        "soil_p_pool_maom": [5.47518e-4, -3.2943e-5, 4.6272e-4, 3.0915e-4],
         "soil_p_pool_primary": [-4.473516e-10, -1.222973e-9, -6.33411e-10, -1.3674e-10],
         "soil_p_pool_secondary": [-5.050797e-7, -2.77311e-6, -7.40324e-7, -2.187697e-7],
-        "soil_p_pool_labile": [-1.643259e-5, -0.000295103, -9.270421e-5, -1.313285e-6],
+        "soil_p_pool_labile": [
+            -1.41330755e-05,
+            -2.62731235e-04,
+            -8.96262048e-05,
+            -2.77998960e-05,
+        ],
+        "new_fungal_fruiting_body_production": [
+            2.02358244e-06,
+            2.60189710e-04,
+            4.30859572e-04,
+            3.13705913e-04,
+        ],
     }
 
     # Make order of pools object
@@ -75,8 +123,9 @@ def test_calculate_all_pool_updates(
 
     delta_pools = soil_pools.calculate_all_pool_updates(
         delta_pools_ordered=pool_order,
-        top_soil_layer_index=fixture_core_components.layer_structure.index_topsoil_scalar,
-        soil_moisture_capacity=CoreConsts.soil_moisture_capacity,
+        layer_structure=fixture_core_components.layer_structure,
+        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
             0
         ],
@@ -88,7 +137,7 @@ def test_calculate_all_pool_updates(
         assert np.allclose(delta_pools[i * 4 : (i + 1) * 4], change_in_pools[pool])
 
 
-def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_groups):
+def test_to_per_volume(dummy_carbon_data, functional_groups, enzyme_classes):
     """Test that the SoilPools.to_per_volume method converts correctly."""
     from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.pools import SoilPools
@@ -108,6 +157,7 @@ def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_gr
         for name in map(str, dummy_carbon_data.data.keys())
         if name in SoilModel.vars_updated
     }
+    delta_pools_ordered["new_fungal_fruiting_body_production"] = np.array([])
     no_cells = 4
     slices = make_slices(no_cells, len(delta_pools_ordered))
     pools = {
@@ -116,9 +166,10 @@ def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_gr
     soil_pools = SoilPools(
         data=dummy_carbon_data,
         pools=pools,
-        constants=SoilConsts,
+        model_constants=SoilConsts,
+        core_constants=CoreConsts,
         functional_groups=functional_groups,
-        max_depth_of_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+        enzyme_classes=enzyme_classes,
     )
 
     # Test that it works for both floats and numpy arrays
@@ -130,45 +181,90 @@ def test_to_per_volume(dummy_carbon_data, fixture_core_components, functional_gr
 
 
 def test_calculate_microbial_changes(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
+    dummy_carbon_data,
+    averaged_soil_temp,
+    soil_pool_data,
+    environmental_factors,
+    functional_groups,
+    enzyme_classes,
+    carbon_supply_from_plants,
 ):
     """Check that calculation of microbe related changes works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_microbial_changes
 
     expected_mic_changes = {
-        "lmwc_uptake": [0.0002678173772, 0.01178568902, 0.00578389729, 0.0003198594108],
-        "don_uptake": [3.060766962e-6, 0.0008418340883, 8.26229727e-6, 0.0001827767514],
-        "ammonium_change": [3.32661813e-6, -0.0002060563, 0.00026558523, -0.0001422814],
-        "nitrate_change": [1.11256765e-5, -2.2895145e-5, 3.96851965e-5, -1.5809046e-5],
-        "dop_uptake": [3.060616979e-8, 1.346934537e-5, 3.30508087e-6, 7.31107003e-6],
-        "labile_p_change": [4.99284714e-6, 9.79315564e-5, 8.54931746e-5, -2.4335027e-6],
-        "bacteria_change": [-0.054361097, -0.022606231, -0.118911406, -0.007195167],
-        "fungi_change": [-0.0083255777, -0.0819293436, -0.022969005, -0.0326660561],
-        "pom_enzyme_change": [8.3534893e-5, 0.0008544245, 0.0002349318, 0.0003279076],
-        "maom_enzyme_change": [-0.000226569, 0.0008034485, 0.0008339958, 0.0002907076],
-        "necromass_generation": [0.062926123, 0.106766979, 0.142546653, 0.03939614],
-        "necromass_n_flow": [0.0117863, 0.0173117, 0.0265273, 0.0063402],
-        "necromass_p_flow": [0.003625935, 0.003532987, 0.008045798, 0.001257157],
+        "lmwc_uptake": [-0.00053851, -0.01522212, 0.00398498, 0.000288],
+        "don_uptake": [2.53054884e-5, 3.78745446e-4, 1.50079153e-4, 1.64569944e-4],
+        "ammonium_change": [3.96650823e-6, -3.4336134e-4, 4.03488641e-4, 1.70252177e-4],
+        "nitrate_change": [1.78599567e-5, -3.81512600e-5, 6.02358611e-5, 4.81061436e-5],
+        "dop_uptake": [1.48916861e-6, 4.47842646e-5, 5.31917620e-5, 2.18040323e-5],
+        "labile_p_change": [3.14421266e-6, 6.55595034e-5, 8.24084207e-5, 2.40326567e-5],
+        "bacteria_change": [-0.04249051, -0.01715269, -0.08741038, -0.00636922],
+        "saprotrophic_fungi_change": [
+            -0.00650838,
+            -0.06225707,
+            -0.01683542,
+            -0.02892717,
+        ],
+        "arbuscular_mycorrhiza_change": [
+            -0.00490935,
+            -0.01580816,
+            -0.02857515,
+            -0.0549963,
+        ],
+        "ectomycorrhiza_change": [-0.00363767, -0.0154999, -0.03088919, -0.0230678],
+        "pom_enzyme_bacteria_change": [
+            -5.44018325e-04,
+            -2.28350229e-04,
+            -1.19517352e-03,
+            -7.21067159e-05,
+        ],
+        "maom_enzyme_bacteria_change": [
+            -0.00085412,
+            -0.00027933,
+            -0.00059611,
+            -0.00010931,
+        ],
+        "pom_enzyme_fungi_change": [
+            -6.25578821e-04,
+            -1.24990514e-04,
+            -1.11569327e-04,
+            -8.43961742e-05,
+        ],
+        "maom_enzyme_fungi_change": [
+            -2.07954821e-04,
+            -1.50814514e-04,
+            -4.78973267e-05,
+            -3.04681742e-05,
+        ],
+        "necromass_generation": [0.05952289, 0.10428336, 0.1716835, 0.11770379],
+        "necromass_n_flow": [0.01004001, 0.01465402, 0.02363142, 0.01030819],
+        "necromass_p_flow": [0.00299907, 0.00292777, 0.00662163, 0.00182373],
+        "fruiting_body_production": [
+            2.02358244e-6,
+            0.00026018971,
+            0.00047134783,
+            0.0003977219095,
+        ],
     }
 
     actual_mic_changes = calculate_microbial_changes(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
-        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        soil_c_pool_bacteria=dummy_carbon_data["soil_c_pool_bacteria"],
-        soil_c_pool_fungi=dummy_carbon_data["soil_c_pool_fungi"],
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        pools=soil_pool_data,
+        soil_temp=averaged_soil_temp,
         env_factors=environmental_factors,
         constants=SoilConsts,
-        functional_groups=functional_groups,
+        microbial_groups=functional_groups,
+        enzyme_classes=enzyme_classes,
+        carbon_supply=carbon_supply_from_plants,
+        plant_n_uptake_arbuscular=dummy_carbon_data[
+            "plant_n_uptake_arbuscular"
+        ].to_numpy(),
+        plant_p_uptake_arbuscular=dummy_carbon_data[
+            "plant_p_uptake_arbuscular"
+        ].to_numpy(),
+        plant_n_uptake_ecto=dummy_carbon_data["plant_n_uptake_ecto"].to_numpy(),
+        plant_p_uptake_ecto=dummy_carbon_data["plant_p_uptake_ecto"].to_numpy(),
     )
 
     for attr in dir(actual_mic_changes):
@@ -179,28 +275,54 @@ def test_calculate_microbial_changes(
             )
 
 
+def test_calculate_biomass_losses(
+    soil_pool_data, functional_groups, averaged_soil_temp
+):
+    """Check that the calculation of biomass losses works as expected."""
+    from virtual_ecosystem.models.soil.pools import calculate_biomass_losses
+
+    expected_losses = {
+        "bacteria": [0.04254605, 0.01744744, 0.08862048, 0.00639588],
+        "saprotrophic_fungi": [0.00652862, 0.06485897, 0.01733197, 0.02903729],
+        "arbuscular_mycorrhiza": [0.00476809, 0.01115119, 0.03074268, 0.05781874],
+        "ectomycorrhiza": [0.0034477, 0.01001331, 0.03293859, 0.02411246],
+    }
+
+    actual_losses = calculate_biomass_losses(
+        pools=soil_pool_data,
+        microbial_groups=functional_groups,
+        soil_temp=averaged_soil_temp,
+    )
+
+    for attr in dir(actual_losses):
+        if not attr.startswith("_"):
+            assert attr in expected_losses.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_losses, attr), expected_losses[attr])
+
+
 def test_calculate_enzyme_mediated_rates(
-    dummy_carbon_data, environmental_factors, fixture_core_components
+    dummy_carbon_data,
+    soil_pool_data,
+    environmental_factors,
+    fixture_core_components,
+    enzyme_classes,
 ):
     """Check that calculation of enzyme mediated rates works as expected."""
 
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_mediated_rates
 
     expected_rates = {
-        "pom_to_lmwc": [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5],
-        "maom_to_lmwc": [1.45988485e-3, 2.10172756e-3, 4.69571604e-3, 8.62951373e-6],
+        "pom_to_lmwc": [0.001901992, 0.030246664, 0.0252492, 0.00028383],
+        "maom_to_lmwc": [0.00287967, 0.00699885, 0.0100421, 2.49959e-5],
     }
 
     actual_rates = calculate_enzyme_mediated_rates(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
-        soil_c_pool_pom=dummy_carbon_data["soil_c_pool_pom"],
-        soil_c_pool_maom=dummy_carbon_data["soil_c_pool_maom"],
+        pools=soil_pool_data,
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         env_factors=environmental_factors,
-        constants=SoilConsts,
+        enzyme_classes=enzyme_classes,
     )
 
     for attr in dir(actual_rates):
@@ -209,11 +331,13 @@ def test_calculate_enzyme_mediated_rates(
             assert np.allclose(getattr(actual_rates, attr), expected_rates[attr])
 
 
-def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components):
-    """Check that the calculation of dissolved nutrient leaching rates is correct."""
-    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+def test_calculate_nutrient_removal_by_water(
+    dummy_carbon_data, fixture_core_components
+):
+    """Check that the calculation of dissolved nutrient removal rates is correct."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_removal_by_water
 
-    expected_leaching = {
+    expected_removal = {
         "lmwc": [1.0747349e-6, 2.5395235e-6, 9.9154571e-5, 5.2557152e-6],
         "don": [1.22826724e-8, 1.81394352e-7, 1.41642304e-7, 3.00326494e-6],
         "dop": [1.2282071e-10, 2.90230964e-9, 5.66596981e-8, 1.20130598e-7],
@@ -222,29 +346,30 @@ def test_calculate_nutrient_leaching(dummy_carbon_data, fixture_core_components)
         "labile_P": [2.274653e-11, 4.130485e-10, 6.749199e-9, 2.045141e-8],
     }
 
-    actual_leaching = calculate_nutrient_leaching(
+    actual_removal = calculate_nutrient_removal_by_water(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
         soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
         soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        vertical_flow_rates=dummy_carbon_data["vertical_flow"].to_numpy(),
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
         constants=SoilConsts,
     )
 
-    for attr in dir(actual_leaching):
+    for attr in dir(actual_removal):
         if not attr.startswith("_"):
-            assert attr in expected_leaching.keys(), f"Attribute {attr} not tested"
-            assert np.allclose(getattr(actual_leaching, attr), expected_leaching[attr])
+            assert attr in expected_removal.keys(), f"Attribute {attr} not tested"
+            assert np.allclose(getattr(actual_removal, attr), expected_removal[attr])
 
 
-def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
-    """Test that negative leaching rates cannot occur."""
-    from virtual_ecosystem.models.soil.pools import calculate_nutrient_leaching
+def test_negative_nutrient_removal_by_water(dummy_carbon_data, fixture_core_components):
+    """Test that negative rates of nutrient removal by water cannot occur."""
+    from virtual_ecosystem.models.soil.pools import calculate_nutrient_removal_by_water
 
     # Add negative values to the inorganic nutrient pools
     ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
@@ -258,90 +383,154 @@ def test_negative_nutrient_leaching(dummy_carbon_data, fixture_core_components):
     expected_nitrate = [0.0, 1.128640314e-5, 6.798727493e-6, 0.00027625126]
     expected_labile_P = [2.274653e-11, 4.130485e-10, 6.749199e-9, 0.0]
 
-    actual_leaching = calculate_nutrient_leaching(
+    actual_removal = calculate_nutrient_removal_by_water(
         soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
         soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
         soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
         soil_n_pool_ammonium=ammonium_data,
         soil_n_pool_nitrate=nitrate_data,
         soil_p_pool_labile=labile_p_data,
-        vertical_flow_rate=dummy_carbon_data["vertical_flow"].to_numpy(),
+        vertical_flow_rates=dummy_carbon_data["vertical_flow"],
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
         constants=SoilConsts,
     )
 
-    assert np.allclose(actual_leaching.ammonium, expected_ammonium)
-    assert np.allclose(actual_leaching.nitrate, expected_nitrate)
-    assert np.allclose(actual_leaching.labile_P, expected_labile_P)
+    assert np.allclose(actual_removal.ammonium, expected_ammonium)
+    assert np.allclose(actual_removal.nitrate, expected_nitrate)
+    assert np.allclose(actual_removal.labile_P, expected_labile_P)
 
 
-def test_calculate_enzyme_changes(dummy_carbon_data):
+def test_calculate_enzyme_changes(soil_pool_data, enzyme_production, enzyme_classes):
     """Check that the determination of enzyme pool changes works correctly."""
 
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_changes
 
-    bacterial_biomass_loss = np.array([0.05443078, 0.02298407, 0.12012258, 0.00722288])
-    fungal_biomass_loss = np.array(
-        [0.00835230934, 0.08544078195, 0.02349300015, 0.0327918752]
+    expected_enzyme_changes = {
+        "net_change_pom_bacteria": [
+            -5.44018325e-4,
+            -2.28350229e-4,
+            -1.19517352e-3,
+            -7.21067159e-5,
+        ],
+        "net_change_maom_bacteria": [
+            -0.00085412,
+            -0.00027933,
+            -0.00059611,
+            -0.00010931,
+        ],
+        "net_change_pom_fungi": [
+            -6.25578821e-4,
+            -1.24990514e-4,
+            -1.11569327e-4,
+            -8.43961742e-5,
+        ],
+        "net_change_maom_fungi": [
+            -2.07954821e-4,
+            -1.50814514e-4,
+            -4.78973267e-5,
+            -3.04681742e-5,
+        ],
+        "denaturation_maom_bacteria": [0.0008544, 0.0002808, 0.00060216, 0.00010944],
+        "denaturation_pom_bacteria": [
+            5.442960e-4,
+            2.298240e-4,
+            1.201224e-3,
+            7.224000e-5,
+        ],
+        "denaturation_maom_fungi": [2.08056e-4, 1.63824e-4, 9.13680e-5, 5.19120e-5],
+        "denaturation_pom_fungi": [0.00062568, 0.000138, 0.00015504, 0.00010584],
+    }
+
+    actual_enzyme_changes = calculate_enzyme_changes(
+        pools=soil_pool_data,
+        enzyme_production=enzyme_production,
+        enzyme_classes=enzyme_classes,
     )
 
-    expected_pom = [8.35348934e-5, 8.54424519e-4, 2.34931801e-4, 3.27907552e-4]
-    expected_maom = [-0.00022656911, 0.000803448520, 0.000833995802, 0.000290707552]
-    expected_denat = [0.0013987, 0.00051062, 0.00180338, 0.00018168]
+    for attr in dir(actual_enzyme_changes):
+        if not attr.startswith("_"):
+            assert attr in expected_enzyme_changes.keys(), (
+                f"Attribute {attr} not tested"
+            )
+            assert np.allclose(
+                getattr(actual_enzyme_changes, attr), expected_enzyme_changes[attr]
+            )
 
-    actual_pom, actual_maom, actual_denat = calculate_enzyme_changes(
-        soil_enzyme_pom=dummy_carbon_data["soil_enzyme_pom"],
-        soil_enzyme_maom=dummy_carbon_data["soil_enzyme_maom"],
-        bacterial_biomass_loss=bacterial_biomass_loss,
-        fungal_biomass_loss=fungal_biomass_loss,
-        constants=SoilConsts,
+
+def test_calculate_net_enzyme_change(
+    dummy_carbon_data, enzyme_production, enzyme_classes
+):
+    """Check that the determination of net enzyme pool change works correctly."""
+
+    from virtual_ecosystem.models.soil.pools import calculate_net_enzyme_change
+
+    expected_net_change = [-0.00054402, -0.00022835, -0.00119517, -7.21028e-5]
+    expected_denat = [0.000544296, 0.000229824, 0.001201224, 7.224e-5]
+
+    actual_net_change, actual_denat = calculate_net_enzyme_change(
+        enzyme_pool_size=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        enzyme_production=enzyme_production["bacteria_pom"],
+        enzyme_turnover_rate=enzyme_classes["bacteria_pom"].turnover_rate,
     )
 
-    assert np.allclose(actual_pom, expected_pom)
-    assert np.allclose(actual_maom, expected_maom)
+    assert np.allclose(actual_net_change, expected_net_change)
     assert np.allclose(actual_denat, expected_denat)
 
 
+def test_calculate_enzyme_production(functional_groups, growth_rates):
+    """Test that the calculation of total enzyme production works as expected."""
+    from virtual_ecosystem.models.soil.pools import calculate_enzyme_production
+
+    expected_production = {
+        "bacteria_pom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
+        "bacteria_maom": [2.77675102e-7, 1.47377060e-6, 6.05047838e-6, 1.33284114e-7],
+        "fungi_pom": [1.01179122e-7, 1.30094855e-5, 4.34706733e-5, 2.14438258e-5],
+        "fungi_maom": [1.01179122e-7, 1.30094855e-5, 4.34706733e-5, 2.14438258e-5],
+    }
+
+    actual_production = calculate_enzyme_production(
+        microbial_groups=functional_groups, growth_rates=growth_rates
+    )
+
+    assert expected_production.keys() == actual_production.keys()
+
+    for enzyme in actual_production.keys():
+        assert np.allclose(actual_production[enzyme], expected_production[enzyme])
+
+
+def test_calculate_fruiting_body_production(functional_groups, growth_rates):
+    """Test that the calculation of total fruiting body production works as expected."""
+    from virtual_ecosystem.models.soil.pools import calculate_fruiting_body_production
+
+    expected_production = [2.02358244e-6, 0.00026018971, 0.00047134783, 0.0003977219095]
+
+    actual_production = calculate_fruiting_body_production(
+        microbial_groups=functional_groups, growth_rates=growth_rates
+    )
+
+    assert np.allclose(expected_production, actual_production)
+
+
 def test_calculate_maintenance_biomass_synthesis(
-    dummy_carbon_data, fixture_core_components, functional_groups
+    dummy_carbon_data, averaged_soil_temp, functional_groups
 ):
     """Check maintenance respiration cost calculates correctly."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_maintenance_biomass_synthesis,
     )
 
-    expected_loss = [0.05443078, 0.02298407, 0.12012258, 0.00722288]
+    expected_loss = [0.04254605, 0.01744744, 0.08862048, 0.00639588]
 
     actual_loss = calculate_maintenance_biomass_synthesis(
         microbe_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
+        soil_temp=averaged_soil_temp,
         microbial_group=functional_groups["bacteria"],
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
     )
 
     assert np.allclose(actual_loss, expected_loss)
-
-
-def test_calculate_carbon_use_efficiency(dummy_carbon_data, fixture_core_components):
-    """Check carbon use efficiency calculates correctly."""
-    from virtual_ecosystem.models.soil.pools import calculate_carbon_use_efficiency
-
-    expected_cues = [0.36, 0.33, 0.3, 0.48]
-
-    actual_cues = calculate_carbon_use_efficiency(
-        dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        SoilConsts.reference_cue,
-        SoilConsts.cue_reference_temp,
-        SoilConsts.cue_with_temperature,
-    )
-
-    assert np.allclose(actual_cues, expected_cues)
 
 
 @pytest.mark.parametrize(
@@ -366,150 +555,31 @@ def test_calculate_enzyme_turnover(dummy_carbon_data, turnover, expected_decay):
     from virtual_ecosystem.models.soil.pools import calculate_enzyme_turnover
 
     actual_decay = calculate_enzyme_turnover(
-        enzyme_pool=dummy_carbon_data["soil_enzyme_pom"], turnover_rate=turnover
+        enzyme_pool=dummy_carbon_data["soil_enzyme_pom_bacteria"],
+        turnover_rate=turnover,
     )
 
     assert np.allclose(actual_decay, expected_decay)
 
 
-def test_calculate_nutrient_uptake_rates(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
-):
-    """Check microbial carbon uptake calculates correctly."""
-    from virtual_ecosystem.models.soil.pools import (
-        calculate_nutrient_uptake_rates,
-    )
-
-    expected_carbon_gain = [6.96825774e-5, 0.000377838985, 0.001211174, 2.77134508e-5]
-    expected_consumption_rates = {
-        "organic_nitrogen": [2.2121431e-6, 8.17832483e-5, 5.76720686e-6, 3.29921934e-5],
-        "organic_phosphorus": [2.2120347e-8, 1.30853197e-6, 2.3069958e-6, 1.3196877e-6],
-        "carbon": [0.000193562715, 0.00114496662, 0.00403724667, 5.77363558e-5],
-        "inorganic_phosphorus": [4.333041e-6, 2.230641e-5, 7.339138e-5, 4.124029e-7],
-        "ammonium": [2.57532644e-6, -8.20971453e-6, 0.000197621226, -2.48964153e-5],
-        "nitrate": [8.6130261079e-6, -9.121905034e-7, 2.952964389e-5, -2.766268367e-6],
-    }
-
-    actual_carbon_gain, actual_consumption_rates = calculate_nutrient_uptake_rates(
-        soil_c_pool_lmwc=dummy_carbon_data["soil_c_pool_lmwc"],
-        soil_n_pool_don=dummy_carbon_data["soil_n_pool_don"],
-        soil_n_pool_ammonium=dummy_carbon_data["soil_n_pool_ammonium"],
-        soil_n_pool_nitrate=dummy_carbon_data["soil_n_pool_nitrate"],
-        soil_p_pool_dop=dummy_carbon_data["soil_p_pool_dop"],
-        soil_p_pool_labile=dummy_carbon_data["soil_p_pool_labile"],
-        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        constants=SoilConsts,
-        functional_group=functional_groups["bacteria"],
-    )
-
-    assert np.allclose(actual_carbon_gain, expected_carbon_gain)
-
-    for attr in dir(actual_consumption_rates):
-        if not attr.startswith("_"):
-            assert attr in expected_consumption_rates.keys(), (
-                f"Attribute {attr} not tested"
-            )
-            assert np.allclose(
-                getattr(actual_consumption_rates, attr),
-                expected_consumption_rates[attr],
-            )
-
-
-def test_calculate_highest_achievable_nutrient_uptake(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
-):
-    """Check function to calculate maximum possible uptake rates works as intended."""
-    from virtual_ecosystem.models.soil.pools import (
-        calculate_highest_achievable_nutrient_uptake,
-    )
-
-    expected_uptake = [1.29159055e-2, 8.43352433e-3, 5.77096991e-2, 5.77363558e-5]
-
-    actual_uptake = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=dummy_carbon_data["soil_c_pool_lmwc"],
-        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        max_uptake_rate=functional_groups["bacteria"].max_uptake_rate_labile_C,
-        activation_energy_uptake=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_rate,
-        half_saturation_constant=functional_groups["bacteria"].half_sat_labile_C_uptake,
-        activation_energy_uptake_saturation=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_saturation,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
-    )
-
-    assert np.allclose(actual_uptake, expected_uptake)
-
-
-def test_negative_highest_achievable_nutrient_uptake_are_impossible(
-    dummy_carbon_data, fixture_core_components, environmental_factors, functional_groups
-):
-    """Test to check that negative maximum uptake rates cannot be returned."""
-    from virtual_ecosystem.models.soil.pools import (
-        calculate_highest_achievable_nutrient_uptake,
-    )
-
-    labile_carbon_data = dummy_carbon_data["soil_c_pool_lmwc"]
-    labile_carbon_data[1] = -0.0001
-    labile_carbon_data[3] = -3.7e-5
-
-    expected_uptake = [1.29159055e-2, 0.0, 5.77096991e-2, 0.0]
-
-    actual_uptake = calculate_highest_achievable_nutrient_uptake(
-        labile_nutrient_pool=labile_carbon_data,
-        microbial_pool_size=dummy_carbon_data["soil_c_pool_bacteria"],
-        water_factor=environmental_factors.water,
-        pH_factor=environmental_factors.pH,
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ].to_numpy(),
-        max_uptake_rate=functional_groups["bacteria"].max_uptake_rate_labile_C,
-        activation_energy_uptake=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_rate,
-        half_saturation_constant=functional_groups["bacteria"].half_sat_labile_C_uptake,
-        activation_energy_uptake_saturation=functional_groups[
-            "bacteria"
-        ].activation_energy_uptake_saturation,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
-    )
-
-    assert np.allclose(actual_uptake, expected_uptake)
-
-
 def test_calculate_enzyme_mediated_decomposition(
-    dummy_carbon_data, fixture_core_components, environmental_factors
+    dummy_carbon_data, fixture_core_components, environmental_factors, enzyme_classes
 ):
     """Check that particulate organic matter decomposition is calculated correctly."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_enzyme_mediated_decomposition,
     )
 
-    expected_decomp = [3.39844565e-4, 8.91990315e-3, 1.25055119e-2, 4.14247999e-5]
+    expected_decomp = [3.39844565e-4, 8.91990315e-3, 1.66740158e-2, 4.14247999e-5]
 
     actual_decomp = calculate_enzyme_mediated_decomposition(
         soil_c_pool=dummy_carbon_data["soil_c_pool_pom"],
-        soil_enzyme=dummy_carbon_data["soil_enzyme_pom"],
+        soil_enzyme=dummy_carbon_data["soil_enzyme_pom_bacteria"],
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         env_factors=environmental_factors,
-        reference_temp=SoilConsts.arrhenius_reference_temp,
-        max_decomp_rate=SoilConsts.max_decomp_rate_pom,
-        activation_energy_rate=SoilConsts.activation_energy_pom_decomp_rate,
-        half_saturation=SoilConsts.half_sat_pom_decomposition,
-        activation_energy_sat=SoilConsts.activation_energy_pom_decomp_saturation,
+        enzyme_class=enzyme_classes["bacteria_pom"],
     )
 
     assert np.allclose(actual_decomp, expected_decomp)
@@ -638,7 +708,7 @@ def test_calculate_soil_nutrient_mineralisation(
         calculate_soil_nutrient_mineralisation,
     )
 
-    expected_rate = [2.42745875e-5, 6.371041e-6, 5.104285e-5, 1.690808e-6]
+    expected_rate = [0.00013585646, 2.16036801e-5, 1.030577177e-4, 1.15848952e-5]
 
     actual_rate = calculate_soil_nutrient_mineralisation(
         pool_carbon=dummy_carbon_data["soil_c_pool_pom"],
@@ -649,29 +719,23 @@ def test_calculate_soil_nutrient_mineralisation(
     assert np.allclose(actual_rate, expected_rate)
 
 
-def test_calculate_nutrient_flows_to_necromass(functional_groups):
+def test_calculate_nutrient_flows_to_necromass(
+    functional_groups, enzyme_changes, enzyme_classes, biomass_losses
+):
     """Test that the function to calculate nutrient flows to necromass works."""
     from virtual_ecosystem.models.soil.pools import (
         calculate_nutrient_flows_to_necromass,
     )
 
-    bacterial_biomass_loss = np.array(
-        [0.0533421644, 0.0225243886, 0.1177201284, 0.0070784224]
-    )
-    fungal_biomass_loss = np.array(
-        [0.008185263158, 0.083731966317, 0.023023140156, 0.032136037696]
-    )
-    enzyme_denaturation = np.array([0.0013987, 0.00051062, 0.00180338, 0.00018168])
-
-    expected_n_flow_to_necromass = [0.0117863, 0.0173117, 0.0265273, 0.0063402]
-    expected_p_flow_to_necromass = [0.003625935, 0.003532987, 0.008045798, 0.001257157]
+    expected_n_flow_to_necromass = [0.0100400, 0.0146540, 0.0236314, 0.0103082]
+    expected_p_flow_to_necromass = [0.00299907, 0.00292777, 0.00662163, 0.00182373]
 
     actual_n_flow_to_necromass, actual_p_flow_to_necromass = (
         calculate_nutrient_flows_to_necromass(
-            bacterial_loss=bacterial_biomass_loss,
-            fungal_loss=fungal_biomass_loss,
-            enzyme_denaturation=enzyme_denaturation,
+            biomass_losses=biomass_losses,
+            enzyme_changes=enzyme_changes,
             microbial_groups=functional_groups,
+            enzyme_classes=enzyme_classes,
         )
     )
 
@@ -715,8 +779,8 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
     )
 
     expected_transfers = {
-        "nitrogen": [5.13427177e-4, 5.97759087e-4, 3.44268148e-4, -2.36081562e-7],
-        "phosphorus": [7.76137416e-6, 4.31186485e-5, 2.02023283e-5, -9.44337153e-9],
+        "nitrogen": [0.00100489, 0.00198269, 0.00073268, 2.91129e-6],
+        "phosphorus": [1.51879334e-5, 0.00014283379, 4.3050325e-5, 1.16451482e-7],
     }
 
     actual_transfers = calculate_net_nutrient_transfers_from_maom_to_lmwc(
@@ -739,7 +803,7 @@ def test_calculate_net_nutrient_transfers_from_maom_to_lmwc(
 
 def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_components):
     """Test that calculation of the rate of nitrification is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
 
@@ -748,10 +812,10 @@ def test_calculate_rate_of_nitrification(dummy_carbon_data, fixture_core_compone
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
 
-    expected_rate = [5.71719748e-6, 0.000423915, 1.557907e-5, 0.000114643]
+    expected_rate = [1.83335539e-06, 3.03095957e-04, 1.93106767e-05, 1.71056181e-04]
 
     actual_rate = calculate_rate_of_nitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -769,7 +833,7 @@ def test_negative_nitrification_rate_impossible(
     dummy_carbon_data, fixture_core_components
 ):
     """Test that negative nitrification rates can't occur."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_nitrification
 
@@ -778,13 +842,13 @@ def test_negative_nitrification_rate_impossible(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
     ammonium_data = dummy_carbon_data["soil_n_pool_ammonium"]
     ammonium_data[0] = -0.0001
     ammonium_data[3] = -3e-4
 
-    expected_rate = [0.0, 0.000423915, 1.557907e-5, 0.0]
+    expected_rate = [0.0, 3.03095957e-04, 1.93106767e-05, 0.0]
 
     actual_rate = calculate_rate_of_nitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -800,7 +864,7 @@ def test_negative_nitrification_rate_impossible(
 
 def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_components):
     """Test that calculation of the rate of denitrification is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_denitrification
 
@@ -809,10 +873,10 @@ def test_calculate_rate_of_denitrification(dummy_carbon_data, fixture_core_compo
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
 
-    expected_rate = [2.89449367e-04, 4.26467934e-04, 1.50161251e-05, 9.71117584e-05]
+    expected_rate = [9.01399413e-04, 1.32810083e-03, 4.67630194e-05, 3.02424161e-04]
 
     actual_rate = calculate_rate_of_denitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -830,7 +894,7 @@ def test_negative_denitrification_rate_impossible(
     dummy_carbon_data, fixture_core_components
 ):
     """Test that negative denitrification rates can't occur."""
-    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import calculate_rate_of_denitrification
 
@@ -839,13 +903,13 @@ def test_negative_denitrification_rate_impossible(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * CoreConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
     nitrate_data = dummy_carbon_data["soil_n_pool_nitrate"]
     nitrate_data[1] = -0.0001
     nitrate_data[2] = -7e-4
 
-    expected_rate = [2.89449367e-4, 0.0, 0.0, 9.71117584e-5]
+    expected_rate = [0.0009014, 0.0, 0.0, 0.00030242]
 
     actual_rate = calculate_rate_of_denitrification(
         soil_temp=dummy_carbon_data["soil_temperature"][
@@ -860,23 +924,19 @@ def test_negative_denitrification_rate_impossible(
 
 
 def test_calculate_symbiotic_nitrogen_fixation(
-    dummy_carbon_data, fixture_core_components
+    carbon_supply_from_plants, averaged_soil_temp
 ):
     """Check calculation of the rate of symbiotic nitrogen fixation is correct."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import (
         calculate_symbiotic_nitrogen_fixation,
     )
 
-    expected_fixation = [0.000873306, 0.02021645, 0.00056937, 0.00052116]
+    expected_fixation = [0.0003324566937, 0.00823450715, 0.00024225401, 0.00014608985]
 
     actual_fixation = calculate_symbiotic_nitrogen_fixation(
-        carbon_supply=dummy_carbon_data["nitrogen_fixation_carbon_supply"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        active_depth=CoreConsts.max_depth_of_microbial_activity,
+        carbon_supply=carbon_supply_from_plants.nitrogen_fixers,
+        soil_temp=averaged_soil_temp,
         constants=SoilConsts,
     )
 
@@ -884,30 +944,24 @@ def test_calculate_symbiotic_nitrogen_fixation(
 
 
 def test_calculate_symbiotic_nitrogen_fixation_negative_temps(
-    dummy_carbon_data, fixture_core_components
+    carbon_supply_from_plants, averaged_soil_temp
 ):
     """Check symbiotic nitrogen fixation functions handles negative temperatures."""
-    from virtual_ecosystem.core.constants import CoreConsts
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.pools import (
         calculate_symbiotic_nitrogen_fixation,
     )
 
     # Modify some of the soil temps to be below the minimum
-    soil_temp = dummy_carbon_data["soil_temperature"][
-        fixture_core_components.layer_structure.index_topsoil_scalar
-    ]
+    soil_temp = averaged_soil_temp
     soil_temp[1] = -23.3
     soil_temp[3] = -200.0
 
-    expected_fixation = [0.000873306, 0.0, 0.00056937, 0.0]
+    expected_fixation = [0.0003324566937, 0.0, 0.00024225401, 0.0]
 
     actual_fixation = calculate_symbiotic_nitrogen_fixation(
-        carbon_supply=dummy_carbon_data["nitrogen_fixation_carbon_supply"],
-        soil_temp=dummy_carbon_data["soil_temperature"][
-            fixture_core_components.layer_structure.index_topsoil_scalar
-        ],
-        active_depth=CoreConsts.max_depth_of_microbial_activity,
+        carbon_supply=carbon_supply_from_plants.nitrogen_fixers,
+        soil_temp=soil_temp,
         constants=SoilConsts,
     )
 
@@ -955,3 +1009,27 @@ def test_calculate_net_formation_of_secondary_P(dummy_carbon_data):
     )
 
     assert np.allclose(actual_formation, expected_formation)
+
+
+def test_calculate_fungal_fruiting_body_decay(dummy_carbon_data):
+    """Test that calculation of inputs due to fungal fruiting body decay is correct."""
+    from virtual_ecosystem.core.constants import CoreConsts
+    from virtual_ecosystem.models.soil.pools import calculate_fungal_fruiting_body_decay
+
+    expected_decay = {
+        "carbon": [0.00089996, 0.00232672, 0.0012874, 0.0103484],
+        "nitrogen": [8.9996e-5, 0.000232672, 0.00012874, 0.00103484],
+        "phosphorus": [1.1999467e-5, 3.1022933e-5, 1.7165333e-5, 0.0001379787],
+    }
+
+    actual_decay = calculate_fungal_fruiting_body_decay(
+        decay_rate=dummy_carbon_data["decay_of_fungal_fruiting_bodies"]
+        / CoreConsts.max_depth_of_microbial_activity,
+        fungal_fruiting_body_c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
+        fungal_fruiting_body_c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+    )
+
+    assert expected_decay.keys() == actual_decay.keys()
+
+    for element in expected_decay.keys():
+        assert np.allclose(expected_decay[element], actual_decay[element])

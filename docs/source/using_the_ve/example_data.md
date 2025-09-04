@@ -3,12 +3,12 @@ jupyter:
   jupytext:
     cell_metadata_filter: all,-trusted
     main_language: python
-    notebook_metadata_filter: settings,mystnb,language_info
+    notebook_metadata_filter: settings,mystnb,language_info,execution
     text_representation:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.7
+      jupytext_version: 1.17.3
 ---
 
 # Virtual Ecosystem example data
@@ -184,9 +184,14 @@ which can be downloaded from the [Copernicus climate data store](https://cds.cli
 
 Metadata:
 
-* Muñoz-Sabater,J. et al: ERA5-Land: A state-of-the-art global reanalysis dataset for
-  land applications, Earth Syst. Sci. Data,13, 4349-4383, 2021.
-  [https://doi.org/10.5194/essd-13-4349-2021](https://doi.org/10.5194/essd-13-4349-2021)
+* Muñoz Sabater, J. (2019): ERA5-Land monthly averaged data from 1950 to present.
+  Copernicus Climate Change Service (C3S) Climate Data Store (CDS).
+  [DOI: 10.24381/cds.68d2bb30](https://doi.org/10.24381/cds.68d2bb30)
+  (Accessed on 16-04-2025)
+* Web catalogue entry: Copernicus Climate Change Service (C3S) (2022): ERA5-Land monthly
+  averaged data from 1950 to present. Copernicus Climate Change Service (C3S) Climate
+  Data Store (CDS). [DOI: 10.24381/cds.68d2bb30](https://doi.org/10.24381/cds.68d2bb30)
+  (Accessed on 16-04-2025)
 * Product type: Monthly averaged reanalysis
 * Variable: 2m dewpoint temperature, 2m temperature, Surface pressure, Total
   precipitation
@@ -236,10 +241,6 @@ The `example_soil_data.nc` file provides:
   - `pH`
   - unitless
   - XY
-* - Bulk soil density
-  - `bulk_density`
-  - kg $\textrm{m}^{-3}$
-  - XY
 * - Soil clay fraction
   - `clay_fraction`
   - unitless
@@ -270,10 +271,9 @@ The `example_soil_data.nc` file provides:
   - XY
 ```
 
-This code creates a set of plausible values for which the
-{mod}`~virtual_ecosystem.models.soil.soil_model` absolutely has to function sensibly
-for. Descriptions of the soil pools can be found
-[here](../virtual_ecosystem/theory/soil/summary.md).
+This code creates a set of plausible values for the [soil
+pools](../virtual_ecosystem/theory/soil/summary.md) that absolutely must be defined for
+the {mod}`~virtual_ecosystem.models.soil.soil_model`  to function sensibly.
 
 ````{admonition} soil_example_data.py
 :class: dropdown
@@ -324,10 +324,10 @@ The `example_litter_data.nc` file provides:
   - XY
 ```
 
-The generation script creates a set of plausible values for which the
-{mod}`~virtual_ecosystem.models.litter.litter_model` absolutely has to function sensibly
-for. Descriptions of the litter pools can be found
-[here](../virtual_ecosystem/theory/soil/litter_theory.md).
+The generation script creates a set of plausible values for the [litter
+pools](../virtual_ecosystem/theory/soil/litter_theory.md) that absolutely have to be
+defined for the {mod}`~virtual_ecosystem.models.litter.litter_model` to function
+sensibly.
 
 ````{admonition} litter_example_data.py
 :class: dropdown

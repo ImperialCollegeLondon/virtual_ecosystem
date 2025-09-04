@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -59,8 +59,8 @@ temporally {cite}`bramer_chapter_2018`.
 
 ## Factors affecting microclimate
 
-Microclimates are mediated by macroclimate, topography, vegetation tye and structure, and
-soil. Many of these factors can be affected by human cativities, for example through
+Microclimates are mediated by macroclimate, topography, vegetation type and structure,
+and soil. Many of these factors can be affected by human cativities, for example through
 deforestation and other land use changes.
 
 ### Macroclimate
@@ -122,16 +122,17 @@ through the exchange of
 energy, water, and carbon and can be described with the general energy balance equation:
 
 $$
-R_N & = (1 - \alpha) S_\downarrow + L_\downarrow - \epsilon \sigma (T_{sfc} + 273.15)^4 \\
-    & = H + L_{v}E + G + NPP
+  &\frac{dQ}{dt}
+  & = (1 - \alpha) S_\downarrow + L_\downarrow - \epsilon \sigma (T_{sfc} + 273.15)^4 \\
+  & = H + L_{v}E + G + PP
 $$
 
-where $R_N$ is the net radiation at the surface, $\alpha$ is the surface albedo,
+where $\frac{dQ}{dt}$ is the change in heat storage, $\alpha$ is the surface albedo,
 $S_\downarrow$ and $L_\downarrow$ are downwelling shortwave and longwave radiation,
 respectively. $\epsilon$ is the emissivity of the surface, $\sigma$ is the
 Stefan-Boltzmann constant, and $T_sfc$ is the surface temperature in Celsius.
-$H$ is the sensible heat flux, $L_v E$ is the latent heat flux, $G$ is the ground heat
-flux, and $NPP$ stands for net primary productivity.
+$H$ is the sensible heat flux, $\lambda E$ is the latent heat flux, $G$ is the ground
+heat flux, and NPP$ stands for primary productivity.
 
 * **Radiation balance**: The radiation balance refers to the equilibrium between incoming
 solar radiation and outgoing terrestrial radiation within an ecosystem. How much
@@ -142,10 +143,11 @@ energy at a surface, for example the soil surface or the canopy. This balance is
 coupled to the radiation balance through net radiation, which is partitioned into
 turbulent fluxes (latent, sensible, and ground heat flux), used for photosynthesis, and
 changes in heat storage.
-* **Water balance**: The water balance refers to the equilibrium of absorbed and released
-water by different (here abiotic) ecosystem components. This balance is linked to the
-energy balance via evapotranspiration and latent heat flux from the soil surface.
-The hydrology on catchment scale is described in more detail [here](./hydrology_theory.md).
+* **Water balance**: The water balance refers to the equilibrium of absorbed and
+released water by different (here abiotic) ecosystem components. This balance is linked
+to the energy balance via evapotranspiration and latent heat flux from the soil surface.
+Beyond the local water balance, we also consider [hydrology at the catchment
+scale](./hydrology_theory.md).
 * **Carbon balance**: The carbon balance is linked to the radiation, energy and water
 balance by net primary productivity: the conversion of light, atmospheric carbon, water,
 (and nutrients) into biomass minus respiration. The carbon cycle continues as plant biomass
@@ -288,7 +290,7 @@ migration, or phenotypic plasticity to cope with microclimatic variability.
 ## Methods for microclimate science
 
 This section gives a broad overview over common methods and models in microclimate
-research. Recent advances in data aquisition for microclimate research and microclimate
+research. Recent advances in data acquisition for microclimate research and microclimate
 modelling are provided in a comprehensive review by {cite:t}`kemppinen_microclimate_2024`.
 
 ### Microclimate data collection
@@ -340,7 +342,7 @@ complex and unpredictable nature. However, these events can have disproportionat
 on ecosystem dynamics and in particular mortality rates.
 * **Integration with other models**: Combining microclimate models with broader
 ecological or hydrological models involves addressing compatibility and consistency issues.
-This includes for example interconnected processes happing at different time scales.
+This includes for example interconnected processes happening at different time scales.
 * **Human impacts**: Incorporating the effects of human activities (e.g. urbanization,
 land use changes, conservation actions) into microclimate models adds another layer of
 complexity.

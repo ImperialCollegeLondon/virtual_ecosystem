@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -36,8 +36,8 @@ hydrological [data collection](#data-collection) and [modelling](#hydrology-mode
 approaches as well as open
 [challenges and limitations](#challenges-and-limitations) in hydrological research.
 
-The implementation of these concepts in the Virtual Ecosystem is described in detail
-[here](../implementation/hydrology_implementation.md).
+See the further documentation for [details of the implementation of hydrological
+concepts](../implementation/hydrology_implementation.md) in the Virtual Ecosystem.
 
 ## Definition
 

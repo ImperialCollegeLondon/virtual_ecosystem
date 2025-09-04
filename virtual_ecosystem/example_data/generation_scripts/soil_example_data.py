@@ -16,9 +16,6 @@ gradient = np.outer(cell_displacements / 90, cell_displacements / 90)
 # Generate a range of plausible values (3.5-4.5) for the soil pH [unitless].
 pH_values = 3.5 + 1.00 * gradient / 64.0
 
-# Generate a range of plausible values (1200-1800) for the bulk density [kg m^-3].
-bulk_density_values = 1200.0 + 600.0 * gradient / 64.0
-
 # Generate a range of plausible values (0.27-0.40) for the clay fraction [fraction].
 clay_fraction_values = 0.27 + 0.13 * gradient / 64.0
 
@@ -96,20 +93,27 @@ secondary_p_values = 0.005 + 0.045 * gradient / 64.0
 # pool [kg P m^-3].
 labile_p_values = 2.5e-5 + 2.5e-5 * gradient / 64.0
 
+# Generate a range of plausible values (0.1-0.4) for the fungal fruiting bodies
+# pool [kg m^-2].
+fungal_fruiting_bodies_values = 0.1 + 0.3 * gradient / 64.0
+
 # Make example soil dataset
 example_soil_data = Dataset(
     data_vars=dict(
         pH=(["x", "y"], pH_values),
-        bulk_density=(["x", "y"], bulk_density_values),
         clay_fraction=(["x", "y"], clay_fraction_values),
         soil_c_pool_lmwc=(["x", "y"], lmwc_values),
         soil_c_pool_maom=(["x", "y"], maom_values),
         soil_c_pool_bacteria=(["x", "y"], bacterial_C_values),
-        soil_c_pool_fungi=(["x", "y"], fungal_C_values),
+        soil_c_pool_saprotrophic_fungi=(["x", "y"], fungal_C_values),
+        soil_c_pool_arbuscular_mycorrhiza=(["x", "y"], fungal_C_values),
+        soil_c_pool_ectomycorrhiza=(["x", "y"], fungal_C_values),
         soil_c_pool_pom=(["x", "y"], pom_values),
         soil_c_pool_necromass=(["x", "y"], necromass_values),
-        soil_enzyme_pom=(["x", "y"], pom_enzyme_values),
-        soil_enzyme_maom=(["x", "y"], maom_enzyme_values),
+        soil_enzyme_pom_bacteria=(["x", "y"], pom_enzyme_values),
+        soil_enzyme_maom_bacteria=(["x", "y"], maom_enzyme_values),
+        soil_enzyme_pom_fungi=(["x", "y"], pom_enzyme_values),
+        soil_enzyme_maom_fungi=(["x", "y"], maom_enzyme_values),
         soil_n_pool_don=(["x", "y"], don_values),
         soil_n_pool_particulate=(["x", "y"], particulate_n_values),
         soil_n_pool_maom=(["x", "y"], maom_n_values),
@@ -123,6 +127,7 @@ example_soil_data = Dataset(
         soil_p_pool_primary=(["x", "y"], primary_p_values),
         soil_p_pool_secondary=(["x", "y"], secondary_p_values),
         soil_p_pool_labile=(["x", "y"], labile_p_values),
+        fungal_fruiting_bodies=(["x", "y"], fungal_fruiting_bodies_values),
     ),
     coords=dict(
         x=(["x"], cell_displacements),

@@ -5,6 +5,40 @@ import pytest
 from xarray import DataArray
 
 from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.hydrology.constants import HydroConsts
+
+
+def test_initialise_atmosphere_for_hydrology(
+    dummy_climate_data, fixture_core_components
+):
+    """Test initialisation of atmospheric variables for hydrology."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        initialise_atmosphere_for_hydrology,
+    )
+
+    data = dummy_climate_data
+    layer_structure = fixture_core_components.layer_structure
+    output = initialise_atmosphere_for_hydrology(
+        data=data,
+        model_constants=HydroConsts,
+        abiotic_constants=AbioticConsts,
+        core_constants=CoreConsts,
+        layer_structure=layer_structure,
+    )
+
+    # Check keys exist
+    expected_keys = [
+        "aerodynamic_resistance_surface",
+        "aerodynamic_resistance_canopy",
+        "stomatal_conductance",
+        "density_air",
+        "specific_heat_air",
+        "latent_heat_vapourisation",
+    ]
+    for key in expected_keys:
+        assert key in output
 
 
 def test_setup_hydrology_input_current_timestep(
@@ -24,24 +58,20 @@ def test_setup_hydrology_input_current_timestep(
         seed=42,
         layer_structure=lyr_strct,
         soil_layer_thickness_mm=lyr_strct.soil_layer_thickness * 1000,
-        soil_moisture_capacity=0.9,
+        soil_moisture_saturation=0.9,
         soil_moisture_residual=0.1,
-        core_constants=CoreConsts(),
-        latent_heat_vap_equ_factors=[1.91846e6, 33.91],
     )
 
     # Check if all variables were created TODO switch back to subcanopy
     var_list = [
-        "latent_heat_vapourisation",
-        "molar_density_air",
         "current_precipitation",
         "surface_temperature",
         "surface_humidity",
         "surface_pressure",
         "surface_wind_speed",
         "leaf_area_index_sum",
-        "current_evapotranspiration",
-        "top_soil_moisture_capacity",
+        "current_transpiration",
+        "top_soil_moisture_saturation",
         "top_soil_moisture_residual",
         "previous_accumulated_runoff",
         "previous_subsurface_flow_accumulated",
@@ -102,3 +132,66 @@ def test_initialise_soil_moisture_mm(fixture_core_components, init_soilm, expect
     # The fixture is configured with soil layers [-0.25, -1.0]
     exp_result = DataArray(np.broadcast_to(expected, (2, 4)))
     np.testing.assert_allclose(result[layer_structure.index_all_soil], exp_result)
+
+
+def test_calculate_psychrometric_constant():
+    """Test psychrometric constant."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_psychrometric_constant,
+    )
+
+    atmospheric_pressure = np.array([101.3], dtype=np.float64)  # in kPa
+    latent_heat_vapourization = np.array([2268.0], dtype=np.float64)  # in kJ/kg
+    specific_heat_air = np.array([1.005], dtype=np.float64)  # in kJ/kg·K
+    molecular_weight_ratio_water_to_dry_air = 0.622  # dimensionless
+
+    # Expected result calculated manually or using a known value
+    expected_output = np.array([0.072168])
+
+    # Call the function
+    output = calculate_psychrometric_constant(
+        atmospheric_pressure,
+        latent_heat_vapourization,
+        specific_heat_air,
+        molecular_weight_ratio_water_to_dry_air,
+    )
+
+    # Assert that the output is as expected within a small tolerance
+    np.testing.assert_allclose(output, expected_output, rtol=1e-5)
+
+
+def test_check_precipitation_surface_raises_error():
+    """Test check surface precipitation is positive."""
+
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_precipitation_surface,
+    )
+
+    test_array = np.array([1.0, 0.5, -0.2, 0.8])
+
+    with pytest.raises(
+        ValueError,
+        match="Surface precipitation should not be negative! Consider checking that the"
+        " canopy water balance is correct.",
+    ):
+        check_precipitation_surface(test_array)
+
+
+def test_calculate_effective_saturation(dummy_climate_data):
+    """Test that the calculation the effective saturation works correctly."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        calculate_effective_saturation,
+    )
+
+    soil_moistures = np.array([0.178, 0.25, 0.333, 0.5])
+
+    expected_sats = [0.00895522, 0.22388060, 0.47164179, 0.97014925]
+
+    actual_sats = calculate_effective_saturation(
+        soil_moisture=soil_moistures,
+        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
+        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+    )
+
+    assert np.allclose(actual_sats, expected_sats)

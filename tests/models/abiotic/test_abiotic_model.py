@@ -20,7 +20,6 @@ from virtual_ecosystem.core.exceptions import ConfigurationError
 REQUIRED_INIT_VAR_CHECKS = (
     (DEBUG, "abiotic model: required var 'air_temperature_ref' checked"),
     (DEBUG, "abiotic model: required var 'relative_humidity_ref' checked"),
-    (DEBUG, "abiotic model: required var 'topofcanopy_radiation' checked"),
     (DEBUG, "abiotic model: required var 'leaf_area_index' checked"),
     (DEBUG, "abiotic model: required var 'layer_heights' checked"),
     (DEBUG, "abiotic model: required var 'wind_speed_ref' checked"),
@@ -32,24 +31,21 @@ SETUP_MANIPULATIONS = (
     (INFO, "Replacing data array for 'vapour_pressure_ref'"),
     (INFO, "Replacing data array for 'air_temperature'"),
     (INFO, "Replacing data array for 'relative_humidity'"),
-    (INFO, "Adding data array for 'vapour_pressure_deficit'"),
+    (INFO, "Replacing data array for 'vapour_pressure_deficit'"),
     (INFO, "Replacing data array for 'wind_speed'"),
     (INFO, "Replacing data array for 'atmospheric_pressure'"),
     (INFO, "Adding data array for 'atmospheric_co2'"),
     (INFO, "Replacing data array for 'soil_temperature'"),
-    (INFO, "Replacing data array for 'shortwave_absorption'"),
+    (INFO, "Replacing data array for 'net_radiation'"),
     (INFO, "Replacing data array for 'canopy_temperature'"),
     (INFO, "Replacing data array for 'sensible_heat_flux'"),
     (INFO, "Replacing data array for 'latent_heat_flux'"),
     (INFO, "Adding data array for 'ground_heat_flux'"),
-    (INFO, "Adding data array for 'air_heat_conductivity'"),
-    (INFO, "Replacing data array for 'leaf_vapour_conductivity'"),
-    (INFO, "Replacing data array for 'leaf_air_heat_conductivity'"),
 )
 
 
 def test_abiotic_model_initialization(
-    caplog, dummy_climate_data, fixture_core_components
+    caplog, dummy_climate_data_varying_canopy, fixture_core_components
 ):
     """Test `AbioticModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -63,7 +59,7 @@ def test_abiotic_model_initialization(
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
-            dummy_climate_data,
+            dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
             model_constants=AbioticConsts(),
         )
@@ -114,10 +110,6 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
             (
                 ERROR,
                 "abiotic model: init data missing required var 'relative_humidity_ref'",
-            ),
-            (
-                ERROR,
-                "abiotic model: init data missing required var 'topofcanopy_radiation'",
             ),
             (
                 ERROR,
@@ -186,7 +178,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
 )
 def test_generate_abiotic_model(
     caplog,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     cfg_string,
     drag_coeff,
     raises,
@@ -216,7 +208,7 @@ def test_generate_abiotic_model(
         # Check whether model is initialised (or not) as expected
         with raises:
             AbioticModel.from_config(
-                data=dummy_climate_data,
+                data=dummy_climate_data_varying_canopy,
                 core_components=core_components,
                 config=config,
             )
@@ -254,7 +246,7 @@ def test_generate_abiotic_model(
 )
 def test_generate_abiotic_model_bounds_error(
     caplog,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     cfg_string,
     raises,
     expected_log_entries,
@@ -278,7 +270,7 @@ def test_generate_abiotic_model_bounds_error(
         mock_bypass_setup.return_value = False
         with raises:
             _ = AbioticModel.from_config(
-                data=dummy_climate_data,
+                data=dummy_climate_data_varying_canopy,
                 core_components=core_components,
                 config=config,
             )
@@ -287,7 +279,9 @@ def test_generate_abiotic_model_bounds_error(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
+def test_setup_abiotic_model(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test that setup() returns expected output in data object."""
 
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
@@ -301,7 +295,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
-            data=dummy_climate_data,
+            data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
         )
 
@@ -313,6 +307,8 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
+        "net_radiation",
     ]:
         assert var in model.data
 
@@ -320,7 +316,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     xr.testing.assert_allclose(
         model.data["vapour_pressure_deficit_ref"],
         DataArray(
-            np.full((4, 3), 0.141727),
+            np.full((4, 3), 0.423372),
             dims=["cell_id", "time_index"],
             coords={
                 "cell_id": [0, 1, 2, 3],
@@ -330,14 +326,23 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     # Test that soil temperature was created correctly
     expected_soil_temp = lyr_strct.from_template()
-    expected_soil_temp[lyr_strct.index_all_soil] = np.array([20.712458, 20.0])[:, None]
+    expected_soil_temp[lyr_strct.index_all_soil] = np.array(
+        [[20.712458, 21.317566, 21.922674, 21.922674], [20.0, 20.0, 20.0, 20.0]]
+    )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
 
     # Test that air temperature was interpolated correctly
     exp_air_temp = lyr_strct.from_template()
     exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
-        [30, 29.91965, 29.414851, 28.551891, 22.81851]
-    )[:, None]
+        [
+            [30, 30, 30, 30],
+            [29.91965, 29.946434, 29.973217, 29.973217],
+            [29.414851, 29.609901, np.nan, np.nan],
+            [28.551891, np.nan, np.nan, np.nan],
+            [22.81851, 25.21234, 27.60617, 27.60617],
+        ]
+    )
+
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     # Test other variables have been inserted and some check values
@@ -346,140 +351,67 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
         "sensible_heat_flux",
         "latent_heat_flux",
         "ground_heat_flux",
-        "shortwave_absorption",
-        "air_heat_conductivity",
-        "leaf_vapour_conductivity",
-        "leaf_air_heat_conductivity",
     ]:
         assert var in model.data
 
-    exp_canopy_abs = lyr_strct.from_template()
-    exp_canopy_abs[lyr_strct.index_filled_canopy] = np.array(
-        [0.09995, 0.09985, 0.09975]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["shortwave_absorption"], exp_canopy_abs)
-
     for var in ["sensible_heat_flux", "latent_heat_flux"]:
         expected_vals = lyr_strct.from_template()
-        expected_vals[lyr_strct.index_flux_layers] = 0.0
+        expected_vals[lyr_strct.index_flux_layers] = 0.001
         xr.testing.assert_allclose(model.data[var], expected_vals)
-
-
-def test_update_abiotic_model(dummy_climate_data, fixture_core_components):
-    """Test that update() returns expected output in data object."""
-
-    from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
-
-    lyr_strct = fixture_core_components.layer_structure
 
     # initialise model
     with patch_static_config(AbioticModel) as mock_static_config:
         mock_static_config.return_value = False, False
         model = AbioticModel(
-            data=dummy_climate_data,
+            data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
         )
 
         model.update(time_index=0)
 
-    # Check that updated vars are in data object
-    for var in [
-        "air_temperature",
-        "canopy_temperature",
-        "soil_temperature",
-        "vapour_pressure",
-        "vapour_pressure_deficit",
-        "air_heat_conductivity",
-        "conductivity_from_ref_height",
-        "leaf_air_heat_conductivity",
-        "leaf_vapour_conductivity",
-        "wind_speed",
-        "friction_velocity",
-        "diabatic_correction_heat_above",
-        "diabatic_correction_momentum_above",
-        "diabatic_correction_heat_canopy",
-        "diabatic_correction_momentum_canopy",
-        "sensible_heat_flux",
-        "latent_heat_flux",
-        "ground_heat_flux",
-        "soil_absorption",
-        "longwave_emission_soil",
-        "molar_density_air",
-        "specific_heat_air",
-    ]:
-        assert var in model.data
+        # Check that values fall within a reasonable expected range
+    soil_temps = model.data["soil_temperature"].isel(layers=lyr_strct.index_all_soil)
 
-    # Test variable values
-    friction_velocity_exp = DataArray(
-        np.repeat(0.161295, fixture_core_components.grid.n_cells),
-        coords={"cell_id": dummy_climate_data["cell_id"]},
+    # To test with varying canopy layers, need to mask
+    canopy_mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["canopy_temperature"].isel(
+            layers=lyr_strct.index_filled_canopy
+        )
     )
-    xr.testing.assert_allclose(model.data["friction_velocity"], friction_velocity_exp)
-
-    # VIVI - all of the commented values below are the original calculated test values
-    # but these have all changed (mostly very little) when the test data and setup was
-    # updated in #441. This could be a change in the inputs or could be problems with
-    # the changes in the implementation with #441. Either way - these tests pass but
-    # this is circular, since these value are for the moment taken straight from the
-    # outputs and not validated.
-
-    # Wind speed
-    exp_wind_speed = lyr_strct.from_template()
-    exp_wind_speed[lyr_strct.index_filled_atmosphere] = np.array(
-        # [0.727122, 0.615474, 0.587838, 0.537028, 0.50198]
-        [0.72712164, 0.61547404, 0.57491436, 0.47258967, 0.41466282]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["wind_speed"], exp_wind_speed)
-
-    # Soil temperature
-    exp_new_soiltemp = lyr_strct.from_template()
-    exp_new_soiltemp[lyr_strct.index_all_soil] = np.array(
-        [  # [20.713167, 20.708367, 20.707833, 20.707833],
-            [20.712458, 20.712457, 20.712456, 20.712456],
-            [20.0, 20.0, 20.0, 20.0],
-        ]
+    atm_mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_strct.index_filled_atmosphere
+        )
     )
-    xr.testing.assert_allclose(model.data["soil_temperature"], exp_new_soiltemp)
 
-    # Leaf vapour conductivity
-    exp_gv = lyr_strct.from_template()
-    exp_gv[lyr_strct.index_filled_canopy] = np.array(
-        # [0.496563, 0.485763, 0.465142]
-        [0.4965627, 0.48056564, 0.43718369]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["leaf_vapour_conductivity"], exp_gv)
+    canopy_temp_result = model.data["canopy_temperature"].isel(
+        layers=lyr_strct.index_filled_canopy
+    )
+    air_temp_result = model.data["air_temperature"].isel(
+        layers=lyr_strct.index_filled_atmosphere
+    )
+    rel_hum_result = model.data["relative_humidity"].isel(
+        layers=lyr_strct.index_filled_atmosphere
+    )
 
-    # Air temperature
-    exp_air_temp = lyr_strct.from_template()
-    exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
-        # [30.0, 29.999943, 29.992298, 29.623399, 20.802228]
-        [30.0, 29.99994326, 29.99237944, 29.6604941, 20.80193877]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
+    # Use the mask as a DataArray for .where()
+    valid_values_can_temp = canopy_temp_result.where(canopy_mask)
+    valid_values_air_temp = air_temp_result.where(atm_mask)
+    valid_values_rel_hum = rel_hum_result.where(atm_mask)
 
-    # Canopy temperature
-    exp_leaf_temp = lyr_strct.from_template()
-    exp_leaf_temp[lyr_strct.index_filled_canopy] = np.array(
-        # [28.787061, 28.290299, 28.15982]
-        [28.78850297, 28.29326228, 28.19789174]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["canopy_temperature"], exp_leaf_temp)
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_can_temp_clean = valid_values_can_temp.dropna(dim="layers", how="any")
+    valid_values_air_temp_clean = valid_values_air_temp.dropna(dim="layers", how="any")
+    valid_values_rel_hum_clean = valid_values_rel_hum.dropna(dim="layers", how="any")
 
-    # TODO fix fluxes from soil
-
-    # Latent heat flux
-    exp_latent_heat = lyr_strct.from_template()
-    exp_latent_heat[lyr_strct.index_filled_canopy] = np.array(
-        # [28.07077, 27.568715, 16.006325]
-        [28.07077012, 27.35735709, 14.97729136]
-    )[:, None]
-    exp_latent_heat[lyr_strct.index_topsoil] = np.array([2.254, 22.54, 225.4, 225.4])
-    xr.testing.assert_allclose(model.data["latent_heat_flux"], exp_latent_heat)
-
-    # Sensible heat flux
-    exp_sens_heat = lyr_strct.from_template()
-    exp_sens_heat[lyr_strct.index_flux_layers] = np.array(
-        # [-16.970825, -16.47644, -5.637233, -192.074608]
-        [-16.9708248, -16.26697999, -4.65665595, -192.07460835]
-    )[:, None]
-    xr.testing.assert_allclose(model.data["sensible_heat_flux"], exp_sens_heat)
+    # Now do the test
+    assert ((soil_temps >= 18.0) & (soil_temps <= 28.0)).all()
+    assert (
+        (valid_values_can_temp_clean >= 15.0) & (valid_values_can_temp_clean <= 40.0)
+    ).all()
+    assert (
+        (valid_values_air_temp_clean >= 15.0) & (valid_values_air_temp_clean <= 40.0)
+    ).all()
+    assert (
+        (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)
+    ).all()

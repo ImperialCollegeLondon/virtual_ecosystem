@@ -18,6 +18,11 @@ class AbioticSimpleConsts(ConstantsDataclass):
     )
     """Factors for saturation vapour pressure calculation."""
 
+    initial_net_radiation: float = 10.0
+    """Initial value for net radiation per layer, W m-2.
+    
+    TODO This is currently set to an arbitrary value."""
+
 
 @dataclass(frozen=True)
 class AbioticSimpleBounds(ConstantsDataclass):

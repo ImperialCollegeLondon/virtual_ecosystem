@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -43,7 +43,7 @@ When a simulation starts, the Virtual Ecosystem:
 * Loads the user-provided configuration files and checks the file formats are valid.
 * Collates the configuration settings into a single unified configuration.
 * Loads the model schemas for the core and requested science models and uses this to
-  validate the congfiguration.
+  validate the configuration.
 * The validation process populates any missing options from the default values.
 * The configuration validation will fail if:
   * Any options are duplicated within the configuration.

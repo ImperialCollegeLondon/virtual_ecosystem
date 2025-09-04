@@ -7,33 +7,66 @@ To Do:
 
 """  # noqa: D205, D415
 
-from math import ceil, exp, log
+from collections.abc import Sequence
+from math import exp, log
 
 import numpy as np
 
 from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
 from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
+from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
-def damuths_law(mass: float, terms: tuple) -> int:
+def damuths_law(mass: float, terms: tuple) -> float:
     """The function set initial population densities .
 
         Currently, this function just employs Damuth's Law (Damuth 1987) for
-        terrestrial herbivorous mammals. Later, it will be expanded to other types. The
-        current form takes the ceiling of the population density to ensure there is a
-        minimum of 1 individual and integer values. This will be corrected once the
-        multi-grid occupation system for large animal is implemented.
+        terrestrial herbivorous mammals. Later, it will be expanded to other types.
+        Damuth assumes body mass in g and final density in indiv/km2.
 
     Args:
         mass: The body-mass [kg] of an AnimalCohort.
         terms: The tuple of population density terms used, default to Damuth.
 
     Returns:
-        The population density of that AnimalCohort [individuals/km2].
+        The population density of that AnimalCohort [individuals/m2].
 
     """
 
-    return ceil(terms[1] * mass ** terms[0])
+    individual_density_km2 = terms[1] * (mass * 1000) ** terms[0]
+
+    individual_density_m2 = individual_density_km2 / 1e6
+
+    return individual_density_m2
+
+
+def madingley_individuals_density(adult_mass: float, terms: tuple) -> float:
+    """Estimate individual density from adult mass using Madingley biomass scaling.
+
+    This converts biomass density scaling into individual density scaling by dividing
+    biomass density by adult body mass.
+
+        Biomass Density = B * Mass^A
+        Individuals Density = Biomass Density / Mass = B * Mass^(A - 1)
+
+    Args:
+        adult_mass: Adult body mass of the cohort (kg).
+        terms: A tuple (A, B) with exponent and scalar for the biomass scaling law.
+
+    Returns:
+        Estimated individual density (individuals/m²).
+    """
+    exponent, scalar = terms
+
+    mass_g = adult_mass * 1000
+
+    biomass_density_g_km2 = scalar * mass_g**exponent
+
+    individual_density_km2 = biomass_density_g_km2 / mass_g
+
+    individual_density_m2 = individual_density_km2 / 1e6
+
+    return individual_density_m2
 
 
 def metabolic_rate(
@@ -47,7 +80,7 @@ def metabolic_rate(
     This follows the Madingley implementation, assuming a power-law relationship with
     mass and an exponential relationship with temperature.
 
-    TODO: Implement activity windows to properly paramterize sigma.
+    TODO: Implement activity windows to properly parameterize sigma.
     TODO: Move constants to constants file.
 
     Args:
@@ -95,42 +128,70 @@ def metabolic_rate(
 
 
 def prey_group_selection(
-    diet_type: DietType, mass: float, terms: tuple
+    diet_type: DietType,
+    mass: float,
+    terms: tuple,
+    functional_groups: Sequence[FunctionalGroup],
 ) -> dict[str, tuple[float, float]]:
-    """The function to set the type selection and mass scaling of predators.
-
-    Currently, this function is in a toy form. It exists so the forage_community
-    structure can be built properly. In the parameterization stage of development this
-    will be expanded into something realistic. I suspect some/much of the content will
-    be shifted into functional_group definitions.
-
-    TODO: Implement real pred-prey mass ratio.
-    TODO: Remove if unused.
+    """Selects prey groups available to a consumer based on diet and available groups.
 
     Args:
-        diet_type: A value from the DietType enumeration.
-        mass: The body-mass [kg] of an AnimalCohort
-        terms: The tuple of predator-prey scaling terms used.
+        diet_type: Consumer's DietType flag(s).
+        mass: Mass of the consumer (currently unused).
+        terms: Placeholder for mass-scaling logic.
+        functional_groups: All functional groups in the model.
 
     Returns:
-        The dictionary of functional group names and mass ranges that the predator
-        can prey upon.
-
+        A dictionary mapping prey/resource group names to mass ranges.
     """
+    from virtual_ecosystem.models.animal.animal_traits import TaxaType
 
-    if diet_type == DietType.HERBIVORE:
-        return {"plants": (0.0, 0.0)}
-    elif diet_type == DietType.CARNIVORE:
-        return {
-            "herbivorous_mammal": (0.1, 1000.0),
-            "carnivorous_mammal": (0.1, 1000.0),
-            "herbivorous_bird": (0.1, 1000.0),
-            "carnivorous_bird": (0.1, 1000.0),
-            "herbivorous_insect": (0.1, 1000.0),
-            "carnivorous_insect": (0.1, 1000.0),
-        }
-    else:
-        raise ValueError("Invalid diet type: {diet_type}")
+    result: dict[str, tuple[float, float]] = {}
+
+    # Living animal prey filtering
+    for fg in functional_groups:
+        # Vertebrate prey (birds, mammals, amphibians)
+        if diet_type & (
+            DietType.VERTEBRATES | DietType.BLOOD | DietType.FISH
+        ) and fg.taxa in {TaxaType.BIRD, TaxaType.MAMMAL, TaxaType.AMPHIBIAN}:
+            result[fg.name] = (0.0001, 1000.0)
+
+        # Invertebrate prey
+        elif diet_type & DietType.INVERTEBRATES and fg.taxa == TaxaType.INVERTEBRATE:
+            result[fg.name] = (0.0001, 1000.0)
+
+    # Plant-based resources
+    if diet_type & (
+        DietType.FOLIAGE
+        | DietType.FLOWERS
+        | DietType.FRUIT
+        | DietType.SEEDS
+        | DietType.NECTAR
+    ):
+        result["plants"] = (0.0, 0.0)
+
+    # Scavenging resources
+    if diet_type & DietType.CARCASSES:
+        result["carcasses"] = (0.0, 0.0)
+    if diet_type & DietType.WASTE:
+        result["excrement"] = (0.0, 0.0)
+    if diet_type & DietType.DETRITUS:
+        result["litter"] = (0.0, 0.0)
+    if diet_type & DietType.MUSHROOMS:
+        # mushroom pool
+        result["fungal_fruiting_bodies"] = (0.0, 0.0)
+    if diet_type & DietType.FUNGI:
+        # Soil fungi pool
+        result["fungi"] = (0.0, 0.0)
+    if diet_type & DietType.POM:
+        result["pom"] = (0.0, 0.0)
+    if diet_type & DietType.BACTERIA:
+        result["bacteria"] = (0.0, 0.0)
+
+    if not result:
+        raise ValueError(f"No prey groups matched for diet type: {diet_type}")
+
+    return result
 
 
 def background_mortality(u_bg: float) -> float:

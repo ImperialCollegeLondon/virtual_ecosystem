@@ -108,7 +108,7 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
     """Simple test of core component generation.
 
     The expected components contain some simple values to check - the component specific
-    tests provide more rigourous testing.
+    tests provide more rigorous testing.
     """
     from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import CoreComponents

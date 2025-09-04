@@ -12,16 +12,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from pyrealm.constants import CoreConst as PyrealmConst
+
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic_simple import microclimate
+from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
+)
+from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
+    calculate_vapour_pressure_deficit,
+    run_simple_microclimate,
 )
 
 
@@ -41,6 +47,7 @@ class AbioticSimpleModel(
         "atmospheric_pressure",
         "atmospheric_co2",
         "wind_speed",
+        "net_radiation",
     ),
     vars_required_for_update=(
         "air_temperature_ref",
@@ -56,6 +63,7 @@ class AbioticSimpleModel(
         "soil_temperature",
         "vapour_pressure_ref",
         "vapour_pressure_deficit_ref",
+        "net_radiation",
     ),
     vars_populated_by_first_update=(
         "air_temperature",
@@ -63,6 +71,7 @@ class AbioticSimpleModel(
         "vapour_pressure_deficit",
         "atmospheric_pressure",
         "atmospheric_co2",
+        "wind_speed",
     ),
 ):
     """A class describing the abiotic simple model.
@@ -83,8 +92,7 @@ class AbioticSimpleModel(
         """Abiotic simple init.
 
         The init function is used only to define class attributes. Any logic should be
-        handeled in
-        :fun:`~virtual_ecosystem.abiotic_simple.abiotic_simple_model._setup`.
+        handled in :fun:`~virtual_ecosystem.abiotic_simple.abiotic_simple_model._setup`.
         """
 
         super().__init__(data, core_components, static, **kwargs)
@@ -144,13 +152,17 @@ class AbioticSimpleModel(
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
 
+        # create net radiation array
+        self.data["net_radiation"] = self.layer_structure.from_template()
+        self.data["net_radiation"][self.layer_structure.index_flux_layers] = (
+            self.model_constants.initial_net_radiation
+        )
+
         # calculate vapour pressure deficit at reference height for all time steps
-        vapour_pressure_and_deficit = microclimate.calculate_vapour_pressure_deficit(
+        vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            saturation_vapour_pressure_factors=(
-                self.model_constants.saturation_vapour_pressure_factors
-            ),
+            pyrealm_const=PyrealmConst(),
         )
         self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
             "vapour_pressure_deficit"
@@ -172,11 +184,13 @@ class AbioticSimpleModel(
 
         # This section performs a series of calculations to update the variables in the
         # abiotic model. The updated variables are then added to the data object.
-        output_variables = microclimate.run_microclimate(
+        output_variables = run_simple_microclimate(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=time_index,
-            constants=self.model_constants,
+            simple_constants=self.model_constants,
+            abiotic_constants=AbioticConsts(),
+            core_constants=self.core_constants,
             bounds=self.bounds,
         )
         self.data.add_from_dict(output_dict=output_variables)

@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -40,7 +40,7 @@ The `poetry` virtual environment for `virtual_ecosystem` is already setup to
 include `jupyter` and `jupyter-lab`, which is a browser-based application for editing
 and running notebooks. As that virtual environment also has the `virtual_ecosystem`
 package installed in development mode, a `jupyter` notebook running using this
-enviroment will be able to import and use `virtual_ecosystem` code from the active
+environment will be able to import and use `virtual_ecosystem` code from the active
 branch.
 
 You can open `jupyter-lab` in a couple of ways. The simplest way is to use `poetry run
@@ -99,14 +99,14 @@ basic problem is that - although JSON files are text-based and are **technically
 human-readable:
 
 - they contain irrelevant metadata - such as the number of times the notebook has been
-  run - that will generate unneccessary commits.
+  run - that will generate unnecessary commits.
 - they can contain output binary data - such as images - that may also have arbitrary
   changes.
 
-There is a really neat summary of the problem
-[here](https://nextjournal.com/schmudde/how-to-version-control-jupyter), along with a
-discussion of tools (e.g. `nbdime` and `nbmerge`) that help manage those changes in a
-more coherent way.
+This [really neat
+summary](https://nextjournal.com/schmudde/how-to-version-control-jupyter) presents the
+problem, along with a discussion of tools (e.g. `nbdime` and `nbmerge`) that help manage
+those changes in a more coherent way.
 
 However, a simpler solution is to use plain text instead of JSON: we  use notebooks
 written in the plain text MyST Markdown format. The `jupytext` extension then allows
@@ -186,9 +186,8 @@ In summary:
 ## Notebook quality checking
 
 All Myst Markdown content in a notebook will be checked using `markdownlint` when the
-file is committed to GitHub (see
-[here](documentation.md#quality-assurance-on-documentation)). In addition, the following
-tools may be useful:
+file is [committed to GitHub](documentation.md#quality-assurance-on-documentation). In
+addition, the following tools may be useful:
 
 ### Using `black` with `jupytext`
 

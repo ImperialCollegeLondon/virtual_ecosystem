@@ -7,9 +7,11 @@ set of configuration files.
 import argparse
 import sys
 import textwrap
+import tomllib
 from collections.abc import Sequence
 from pathlib import Path
 from shutil import copytree, ignore_patterns
+from tomllib import TOMLDecodeError
 from typing import Any
 
 import virtual_ecosystem as ve
@@ -17,14 +19,7 @@ from virtual_ecosystem import example_data_path
 from virtual_ecosystem.core.config import config_merge
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.main import ve_run
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-    from tomllib import TOMLDecodeError
-else:
-    import tomli as tomllib
-    from tomli import TOMLDecodeError
+from virtual_ecosystem.main import Progress, ve_run
 
 
 def _parse_param_str(s: str) -> dict[str, Any]:
@@ -122,14 +117,25 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
 
     The output directory for simulation results is typically set in the configuration
     files, but can be overwritten using the `--outpath` option. A log file path can be
-    provided for logging output - if this is not provided the log will be written to the
-    console. If the log is being redirected to a file, then the `--progress` option can
-    be used to print a simple progress report to the standard output.
+    provided for logging output. If this is not provided then the log will be written to
+    the console, but the logging is typically verbose and it is usually better to
+    redirect the log to a file.
+
+    When logging is redirected to a file, a short progress report is written to stdout.
+    By default, the command reports: the start and end of the simulation and log
+    location; the completion of simulation stages; and a progress bar over the time
+    steps of the model. The `--quiet` command can be used to incrementally mute this
+    output: `-q` will remove the progress bar, `-qq` just prints the start and stop and
+    `-qqq` mutes the report entirely.
 
     The resolved complete configuration will then be written to a single consolidated
     config file in the output path with a default name of
-    `vr_full_model_configuration.toml`. This can be disabled by setting the
-    `core.data_output_options.save_merged_config` option to false.
+    `ve_full_model_configuration.toml`. This can be disabled by setting the
+    `core.data_output_options.save_merged_config` option to false. Note that the merged
+    configuration automatically converts all file paths within the merged configurations
+    to absolute file paths - this ties the merged configuration to the file system where
+    the run is executed.
+
 
     Args:
         args_list: This is a developer and testing facing argument that is used to
@@ -191,9 +197,11 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
     )
 
     parser.add_argument(
-        "--progress",
-        action="store_true",
-        help="A flag to turn on simple progress reporting",
+        "-q",
+        "--quiet",
+        action="count",
+        help="Quieten the default progress reporting",
+        default=0,
     )
 
     args = parser.parse_args(args=args_list)
@@ -220,12 +228,16 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         # Parse any extra parameters passed using the --param flag
         _parse_command_line_params(args.params, override_params)
 
+    # Figure out the progress reporting level - the defaults is FULL (3 - 0) and as
+    # `-q` is repeatedly applied that decrease down to SILENT (3, 3) with `-qqq`
+    progress = Progress(3 - min(3, args.quiet))
+
     # Run the virtual ecosystem run function
     ve_run(
         cfg_paths=args.cfg_paths,
         override_params=override_params,
         logfile=args.logfile,
-        progress=args.progress,
+        progress=progress,
     )
 
     return 0

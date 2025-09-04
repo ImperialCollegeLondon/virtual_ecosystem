@@ -1,11 +1,13 @@
 ---
+execution:
+  timeout: 120
 jupytext:
   formats: md:myst
   text_representation:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.16.7
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -87,15 +89,16 @@ for file in example_files:
 ## Run the Virtual Ecosystem model
 
 Now the example data and configuration have been set up, the `ve_run` command can be
-used to execute a Virtual Ecosystem simulation. The `progress` option shows the progress
-of the simulation through the various modelling stages.
+used to execute a Virtual Ecosystem simulation. When the detailed logging is redirected
+to a file, the command generates a short progress report to show the model running. This
+can be made shorter or completely muted by using the `-q` argument: repeat the argument
+to remove more details (e.g. `-qq` or `-qqq`).
 
 ```{code-cell} ipython3
 %%bash
 ve_run /tmp/ve_example/config \
     --out /tmp/ve_example/out \
-    --logfile /tmp/ve_example/out/logfile.log \
-    --progress \
+    --logfile /tmp/ve_example/out/logfile.log
 ```
 
 The log file is very long and shows the process of running the model. The code below

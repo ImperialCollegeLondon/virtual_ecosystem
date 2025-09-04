@@ -29,7 +29,7 @@ on :mod:`~virtual_ecosystem.core.axes`.
 
 import json
 import pkgutil
-import sys
+import tomllib
 from collections.abc import Hashable
 from dataclasses import asdict, dataclass, field
 from graphlib import CycleError, TopologicalSorter
@@ -45,11 +45,6 @@ import virtual_ecosystem.core.base_model as base_model
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import ValidatorWithDefaults
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 
 def to_camel_case(snake_str: str) -> str:
@@ -216,7 +211,7 @@ def _format_variables_list(vars: dict[str, dict]) -> str:
         vars: The variables to format.
 
     Returns:
-        The flist of variables and atrributes formated as a sequence of tables
+        The flist of variables and attributes formatted as a sequence of tables
         in RST format.
     """
     out = []
@@ -244,7 +239,7 @@ def _collect_vars_populated_by_init(
 
     Args:
         models: The list of models that are initialising the variables.
-        check_unique_initialisation: Fail on duplicate intialisation.
+        check_unique_initialisation: Fail on duplicate initialisation.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables
@@ -281,7 +276,7 @@ def _collect_vars_populated_by_first_update(
 
     Args:
         models: The list of models that are initialising the variables.
-        check_unique_initialisation: Fail on duplicate intialisation.
+        check_unique_initialisation: Fail on duplicate initialisation.
 
     Raises:
         ValueError: If a variable required by a model is not in the known variables

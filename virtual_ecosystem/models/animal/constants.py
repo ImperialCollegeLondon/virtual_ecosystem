@@ -5,6 +5,7 @@ constants" (fitting relationships taken from the literature) required by the bro
 """  # noqa: D205, D415
 
 from dataclasses import dataclass, field
+from typing import TypeVar
 
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -12,6 +13,8 @@ from virtual_ecosystem.models.animal.animal_traits import (
     MetabolicType,
     TaxaType,
 )
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -21,6 +24,56 @@ class AnimalConsts(ConstantsDataclass):
     TODO: Remove unused constants.
 
     """
+
+    density_scaling_method: str = "damuth"
+
+    def get_population_density_terms(
+        self, taxa: TaxaType, diet: DietType
+    ) -> tuple[float, float]:
+        """Return scaling terms for the specified density scaling method.
+
+        Args:
+            taxa: The TaxaType of the functional group (used for damuth).
+            diet: The DietType of the functional group (used for damuth).
+
+        Returns:
+            A tuple (exponent, scalar) for the scaling law.
+        """
+        if self.density_scaling_method == "damuth":
+            return self.damuths_law_terms[taxa][diet]
+        elif self.density_scaling_method == "madingley":
+            return self.madingley_biomass_scaling_terms
+        else:
+            raise ValueError(
+                f"Unsupported density scaling method: {self.density_scaling_method}"
+            )
+
+    damuths_law_terms: dict[TaxaType, dict[DietType, tuple[float, float]]] = field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {
+                DietType.HERBIVORE: (-0.75, 4.23),
+                DietType.CARNIVORE: (-0.75, 1.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
+            },
+            TaxaType.BIRD: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
+            },
+            TaxaType.INVERTEBRATE: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
+            },
+            TaxaType.AMPHIBIAN: {
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
+            },
+        }
+    )
+
+    madingley_biomass_scaling_terms = (0.6, 300000.0)
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = field(
         default_factory=lambda: {
@@ -36,23 +89,6 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
-    damuths_law_terms: dict[TaxaType, dict[DietType, tuple[float, float]]] = field(
-        default_factory=lambda: {
-            TaxaType.MAMMAL: {
-                DietType.HERBIVORE: (-0.75, 4.23),
-                DietType.CARNIVORE: (-0.75, 1.00),
-            },
-            TaxaType.BIRD: {
-                DietType.HERBIVORE: (-0.75, 5.00),
-                DietType.CARNIVORE: (-0.75, 2.00),
-            },
-            TaxaType.INSECT: {
-                DietType.HERBIVORE: (-0.75, 5.00),
-                DietType.CARNIVORE: (-0.75, 2.00),
-            },
-        }
-    )
-
     energy_density: dict[str, float] = field(
         default_factory=lambda: {
             "meat": 7000.0,  # Energy of mammal meat [J/g]
@@ -60,10 +96,12 @@ class AnimalConsts(ConstantsDataclass):
         }
     )
 
+    # TODO: rework these efficiencies to be interaction-specific, not trait based
     conversion_efficiency: dict[DietType, float] = field(
         default_factory=lambda: {
             DietType.HERBIVORE: 0.1,  # Toy value
             DietType.CARNIVORE: 0.25,  # Toy value
+            DietType.OMNIVORE: 0.175,  # Toy value
         }
     )
 
@@ -71,6 +109,7 @@ class AnimalConsts(ConstantsDataclass):
         default_factory=lambda: {
             DietType.HERBIVORE: 0.9,  # Toy value
             DietType.CARNIVORE: 0.8,  # Toy value
+            DietType.OMNIVORE: 0.85,  # Toy value
         }
     )
 
@@ -82,7 +121,10 @@ class AnimalConsts(ConstantsDataclass):
                 TaxaType.MAMMAL: (1.0, 1.0),  # Toy values
                 TaxaType.BIRD: (1.0, 1.0),  # Toy values
             },
-            MetabolicType.ECTOTHERMIC: {TaxaType.INSECT: (1.0, 1.0)},  # Toy values
+            MetabolicType.ECTOTHERMIC: {
+                TaxaType.INVERTEBRATE: (1.0, 1.0),
+                TaxaType.AMPHIBIAN: (1.0, 1.0),
+            },  # Toy values
         }
     )
 
@@ -90,7 +132,8 @@ class AnimalConsts(ConstantsDataclass):
         default_factory=lambda: {
             TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
             TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
-            TaxaType.INSECT: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.INVERTEBRATE: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
 
@@ -105,11 +148,11 @@ class AnimalConsts(ConstantsDataclass):
 
     tau_f = 0.5  # tau_f
     """Proportion of time for which functional group is active."""
-    sigma_f_t = 0.5  # sigma_f(t) - TODO: find real value
+    sigma_f_t = 1.0  # sigma_f(t) - Madingley, in S1 TODO: expand for ectotherms
     """Proportion of the time step in which it's suitable to be active for functional
     group f."""
 
-    # Trophic paramters
+    # Trophic parameters
 
     alpha_0_herb = 1.0e-11  # alpha_herb_0 [Madingley] ha/(day*g)
     """Effective rate per unit mass at which a herbivore searches its environment."""
@@ -255,6 +298,21 @@ class AnimalConsts(ConstantsDataclass):
     biomass between scavengable carcass biomass and flow into the soil. In reality this
     should be a constant, but as a simplifying assumption it is.
     """
+
+    migration_mortality: float = 0.1  # toy
+    """Proportion of mortality that occurs on return from a migration [unitless]."""
+
+    aquatic_mortality: float = 0.1  # toy
+    """Proportion of mortality that occurs on return from aquatic status [unitless]."""
+
+    aquatic_residence_time: float = 60.0  # toy
+    """Amount of time a new cohort spends living in aquatic environment [days]."""
+
+    migration_residence_time: float = 60.0  # toy
+    """Amount of time a migrated cohort spends away [days]."""
+
+    seasonal_migration_probability: float = 0.083  # approx 1 seasonal migration per yr.
+    """The probability a seasonal migration event occurs per time step (month)."""
 
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]

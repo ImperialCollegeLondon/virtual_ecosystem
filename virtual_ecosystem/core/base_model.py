@@ -63,7 +63,7 @@ model specific attributes. The ``__init__`` should not contain any further
 initialization logic, which should happen in the subclass ``_setup`` method instead.
 The ``__init__`` method **must** call the
 :meth:`BaseModel.__init__() <virtual_ecosystem.core.base_model.BaseModel.__init__>`
-method, as this populates core shared model attrributes - see the linked method
+method, as this populates core shared model attributes - see the linked method
 description for details.
 
 .. code-block:: python
@@ -198,7 +198,7 @@ class BaseModel(ABC):
 
     These are the variables that are initialised by the model and stored in the data
     object when running the update method for the first time. They will be available for
-    other models to use in their update methods but not in the setup methos.
+    other models to use in their update methods but not in the setup methods.
     """
 
     def __init__(
@@ -357,7 +357,7 @@ class BaseModel(ABC):
 
         In particular, it checks that the appropriate variables created or updated in
         the update method are present or not in the data object. Based on this, an
-        exception is raised is there is a problem or a decission is made on whether or
+        exception is raised is there is a problem or a decision is made on whether or
         not running the update method once.
 
         Raises:
@@ -417,12 +417,20 @@ class BaseModel(ABC):
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+
+        log_message = f"Updating {self.model_name} model"
+
         if self._static:
             if not self._run_initial_static_update:
+                LOGGER.info(f"Model {self.model_name} in static mode, no update.")
                 return
             else:
                 self._run_initial_static_update = False
+                log_message = (
+                    f"Running initial update for {self.model_name} model in static mode"
+                )
 
+        LOGGER.info(log_message)
         self._update(time_index, **kwargs)
 
     @abstractmethod

@@ -273,7 +273,7 @@ class Grid:
         self._neighbours: list[NDArray[np.int_]] | None = None
 
         # Do not by default store the full distance matrix
-        self._distances: NDArray | None = None
+        self._distances: NDArray[np.floating] | None = None
 
     @property
     def neighbours(self) -> list[NDArray[np.int_]]:
@@ -408,17 +408,17 @@ class Grid:
         # operations (as in Shapely.touches and pysal.weights.Queen/etc) turns out to be
         # unreliable for hexagon grids simply due to floating point differences. For the
         # moment, just implementing distance.
-
-        self._neighbours = [
-            np.where(self.get_distances(idx, self.cell_id) <= distance)[1]
-            for idx in self.cell_id
-        ]
+        if distance is not None:
+            self._neighbours = [
+                np.where(self.get_distances(idx, self.cell_id) <= distance)[1]
+                for idx in self.cell_id
+            ]
 
     def get_distances(
         self,
         cell_from: int | Sequence[int] | None,
         cell_to: int | Sequence[int] | None,
-    ) -> np.ndarray:
+    ) -> NDArray[np.floating]:
         """Calculate euclidean distances between cell centroids.
 
         This method returns a two dimensional np.array containing the Euclidean
@@ -433,14 +433,14 @@ class Grid:
         """
 
         if cell_from is None:
-            _cell_from = np.arange(self.n_cells)
+            _cell_from: NDArray[np.int_] = np.arange(self.n_cells)
         else:
             _cell_from = np.array(
                 [cell_from] if isinstance(cell_from, int) else cell_from
             )
 
         if cell_to is None:
-            _cell_to = np.arange(self.n_cells)
+            _cell_to: NDArray[np.int_] = np.arange(self.n_cells)
         else:
             _cell_to = np.array([cell_to] if isinstance(cell_to, int) else cell_to)
 

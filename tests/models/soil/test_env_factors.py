@@ -37,7 +37,7 @@ def test_calculate_environmental_effect_factors(
     )
 
     expected_water = [1.0, 0.94414168, 0.62176357, 0.07747536]
-    expected_pH = [0.25, 1.0, 0.428571428, 1.0]
+    expected_pH = [0.25, 1.0, 0.57142857, 1.0]
     expected_clay_sat = [1.782, 1.102, 0.83, 1.918]
 
     env_factors = calculate_environmental_effect_factors(
@@ -63,10 +63,13 @@ def test_calculate_environmental_effect_factors(
     ],
 )
 def test_calculate_temperature_effect_on_microbes(
-    dummy_carbon_data, fixture_core_components, activation_energy, expected_factors
+    dummy_carbon_data,
+    fixture_core_components,
+    activation_energy,
+    expected_factors,
+    functional_groups,
 ):
     """Test function to calculate microbial temperature response."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_temperature_effect_on_microbes,
     )
@@ -76,7 +79,7 @@ def test_calculate_temperature_effect_on_microbes(
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
         activation_energy=activation_energy,
-        reference_temperature=SoilConsts.arrhenius_reference_temp,
+        reference_temperature=functional_groups["bacteria"].reference_temperature,
     )
 
     assert np.allclose(expected_factors, actual_factors)
@@ -128,8 +131,8 @@ def test_calculate_pH_suitability():
     from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
 
-    pH_values = np.array([3.0, 7.5, 9.0, 5.7, 2.0, 11.5])
-    expected_inhib = [0.25, 1.0, 0.428571428, 1.0, 0.0, 0.0]
+    pH_values = np.array([3.0, 7.5, 9.0, 10.0, 5.7, 2.0, 11.5])
+    expected_inhib = [0.25, 1.0, 0.57142857, 0.28571428, 1.0, 0.0, 0.0]
 
     actual_inhib = calculate_pH_suitability(
         soil_pH=pH_values,
@@ -239,10 +242,10 @@ def test_calculate_nitrification_moisture_factor(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * HydroConsts.soil_moisture_capacity
+        * HydroConsts.soil_moisture_saturation
     )
 
-    expected_factor = [0.9988544, 0.9843887, 0.8066573, 0.5592926]
+    expected_factor = [0.32030643, 0.70383072, 0.99987347, 0.83450707]
 
     actual_factor = calculate_nitrification_moisture_factor(
         effective_saturation=effective_saturation
@@ -371,17 +374,40 @@ def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
     assert np.allclose(expected_cost, actual_cost)
 
 
-def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
-    """Test calculation of solute leaching rates."""
+def test_calculate_carbon_use_efficiency(averaged_soil_temp):
+    """Check carbon use efficiency calculates correctly."""
     from virtual_ecosystem.models.soil.constants import SoilConsts
-    from virtual_ecosystem.models.soil.env_factors import calculate_leaching_rate
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_carbon_use_efficiency,
+    )
+
+    expected_cues = [0.46920255, 0.45708189, 0.44501183, 0.51790586]
+
+    actual_cues = calculate_carbon_use_efficiency(
+        soil_temp=averaged_soil_temp,
+        reference_cue_logit=SoilConsts.reference_cue_logit,
+        cue_reference_temp=SoilConsts.cue_reference_temp,
+        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
+    )
+
+    assert np.allclose(actual_cues, expected_cues)
+
+
+def test_calculate_solute_removal_by_soil_water(
+    dummy_carbon_data, fixture_core_components
+):
+    """Test calculation of solute removal rates."""
+    from virtual_ecosystem.models.soil.constants import SoilConsts
+    from virtual_ecosystem.models.soil.env_factors import (
+        calculate_solute_removal_by_soil_water,
+    )
 
     expected_rate = [1.07473723e-6, 2.53952130e-6, 9.91551977e-5, 5.25567712e-5]
-    vertical_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
+    exit_flow_per_day = np.array([0.1, 0.5, 2.5, 15.9])
 
-    actual_rate = calculate_leaching_rate(
+    actual_rate = calculate_solute_removal_by_soil_water(
         solute_density=dummy_carbon_data["soil_c_pool_lmwc"],
-        vertical_flow_rate=vertical_flow_per_day,
+        exit_rate=exit_flow_per_day,
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
@@ -389,3 +415,75 @@ def test_calculate_leaching_rate(dummy_carbon_data, fixture_core_components):
     )
 
     assert np.allclose(expected_rate, actual_rate)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_soil_moisture",
+    [
+        pytest.param(
+            True,
+            [265.73973825, 294.34301675, 186.715737, 101.65406175],
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            [116.307750625, 98.443665875, 63.0328985, 37.815975875],
+            id="normal depth",
+        ),
+    ],
+)
+def test_find_total_soil_moisture_for_microbially_active_depth(
+    dummy_carbon_data, fixture_core_components, increased_depth, expected_soil_moisture
+):
+    """Test that finding the total soil moisture works as expected."""
+    from virtual_ecosystem.models.soil.env_factors import (
+        find_total_soil_moisture_for_microbially_active_depth,
+    )
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.25]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.75
+
+    actual_soil_moisture = find_total_soil_moisture_for_microbially_active_depth(
+        soil_moistures=dummy_carbon_data["soil_moisture"],
+        layer_structure=fixture_core_components.layer_structure,
+    )
+
+    assert np.allclose(actual_soil_moisture, expected_soil_moisture)
+
+
+@pytest.mark.parametrize(
+    "increased_depth,expected_vertical_flow",
+    [
+        pytest.param(
+            True,
+            [0.12, 0.6, 2.6, 1.486],
+            id="increased depth",
+        ),
+        pytest.param(
+            False,
+            [0.1, 0.5, 2.5, 1.59],
+            id="normal depth",
+        ),
+    ],
+)
+def test_find_water_outflow_rates(
+    dummy_carbon_data, fixture_core_components, increased_depth, expected_vertical_flow
+):
+    """Test function that finds the rates of water flow out of the soil column."""
+    from virtual_ecosystem.models.soil.env_factors import find_water_outflow_rates
+
+    if increased_depth:
+        fixture_core_components.layer_structure.soil_layer_active_thickness = np.array(
+            [0.5, 0.20]
+        )
+        fixture_core_components.layer_structure.max_depth_of_microbial_activity = 0.70
+
+    actual_vertical_flow = find_water_outflow_rates(
+        vertical_flow=dummy_carbon_data["vertical_flow"].to_numpy(),
+        layer_structure=fixture_core_components.layer_structure,
+    )
+
+    assert np.allclose(expected_vertical_flow, actual_vertical_flow)

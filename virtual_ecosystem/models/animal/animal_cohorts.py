@@ -2,33 +2,36 @@
 
 from __future__ import annotations
 
+import random
 import uuid
+from _collections_abc import Callable, Mapping
 from math import ceil, exp, sqrt
+from typing import Literal, TypeVar, cast
 
 from numpy import timedelta64
 
 import virtual_ecosystem.models.animal.scaling_functions as sf
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.animal.animal_traits import DietType
+from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
+    FungalFruitPool,
     HerbivoryWaste,
+    SoilPool,
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 from virtual_ecosystem.models.animal.protocols import Resource
 
+_T = TypeVar("_T")
+
 
 class AnimalCohort:
-    """This is a class of animal cohorts.
-
-    TODO: Implement stoichiometric reproduction
-
-    """
+    """This is a class of animal cohorts."""
 
     def __init__(
         self,
@@ -60,12 +63,12 @@ class AnimalCohort:
         """The the grid structure of the simulation."""
         self.constants = constants
         """Animal constants."""
+        self.location_status: Literal["active", "migrated", "aquatic"] = "active"
+        """Location status of the cohort, active means present and participating."""
+        self.remaining_time_away: float = 0.0
+        """Remaining time that the cohort is frozen in a migrated or aquatic state."""
         self.id: uuid.UUID = uuid.uuid4()
         """A unique identifier for the cohort."""
-        # self.damuth_density: int = sf.damuths_law(
-        #    self.functional_group.adult_mass, self.functional_group.damuths_law_terms
-        # )
-        """The number of individuals in an average cohort of this type."""
         self.is_alive: bool = True
         """Whether the cohort is alive [True] or dead [False]."""
         self.is_mature: bool = False
@@ -74,12 +77,8 @@ class AnimalCohort:
         """The amount of time [days] between birth and adult body-mass."""
         self.time_since_maturity: float = 0.0
         """The amount of time [days] since reaching adult body-mass."""
-        self.prey_groups: dict[str, tuple[float, float]] = sf.prey_group_selection(
-            self.functional_group.diet,
-            self.functional_group.adult_mass,
-            self.functional_group.prey_scaling,
-        )
-        """The identification of useable food resources."""
+        self.prey_groups: dict[str, tuple[float, float]] = {}
+        """The identification of usable food resources."""
         self.territory_size = sf.territory_size(self.functional_group.adult_mass)
         """The size in hectares of the animal cohorts territory."""
         self.occupancy_proportion: float = 1.0 / self.territory_size
@@ -115,6 +114,12 @@ class AnimalCohort:
         self.reproductive_mass_cnp = CNP(0.0, 0.0, 0.0)
         """The reproductive mass of each stoichiometric element found in the animal
           cohort, {"carbon": value, "nitrogen": value, "phosphorus": value}."""
+        self.largest_mass_achieved: float = mass
+        """The largest body-mass ever achieved by this cohort [kg]."""
+        self.diet_category_count: int = (
+            self.functional_group.diet.count_dietary_categories()
+        )
+        """The number of different diet categories consumed by the cohort."""
 
     @property
     def mass_current(self) -> float:
@@ -125,6 +130,19 @@ class AnimalCohort:
     def reproductive_mass(self) -> float:
         """Dynamically calculate the current reproductive mass from CNP object."""
         return self.reproductive_mass_cnp.total
+
+    def update_largest_mass(self) -> None:
+        """Update the record of the largest body-mass achieved by this cohort.
+
+        This provides a rough approximation of the development process. Once maturity
+        is achieved, adult mass becomes the reference for starvation as normal.
+
+        """
+
+        if self.mass_current > self.largest_mass_achieved:
+            self.largest_mass_achieved = min(
+                self.mass_current, self.functional_group.adult_mass
+            )
 
     def get_territory_cells(self, centroid_key: int) -> list[int]:
         """This calls bfs_territory to determine the scope of the territory.
@@ -505,6 +523,8 @@ class AnimalCohort:
     ) -> dict[str, float]:
         """Handles predation, removing individuals and distributing biomass.
 
+        TODO: does mechanical efficiency need to be moved? not sure
+
         Args:
             potential_consumed_mass: The mass intended to be consumed by the predator.
             predator: The predator consuming the cohort.
@@ -683,32 +703,35 @@ class AnimalCohort:
             for plant in plant_list
         )
 
-    def F_i_k(self, plant_list: list[Resource], target_plant: Resource) -> float:
-        """Method to determine instantaneous herbivory rate on plant k.
+    def F_i_k(self, resource_list: list[Resource], target_resource: Resource) -> float:
+        """Method to determine instantaneous consumption rate on resource k.
 
         This method integrates the calculated search efficiency, potential consumed
         biomass of the target plant, and the total handling time for all available
-        plant resources to determine the rate at which the target plant is consumed by
+        resources to determine the rate at which the target plant is consumed by
         the cohort.
+
+        This method is originally parameterized for herbivory but is currently used for
+        all non-predation consumer-resource interactions.
 
         TODO: update name
 
         Args:
-            plant_list: A list of plant resources available for consumption by the
+            resource_list: A list of plant resources available for consumption by the
                 cohort.
-            target_plant: The specific plant resource being targeted by the herbivore
+            target_resource: The specific resource being targeted by the herbivore
                 cohort for consumption.
 
         Returns:
-            The instantaneous consumption rate [g/day] of the target plant resource by
-              the herbivore cohort.
+            The instantaneous consumption rate [g/day] of the target resource by
+              the consumer cohort.
         """
         alpha = self.calculate_alpha()
-        k = self.calculate_potential_consumed_biomass(target_plant, alpha)
+        k = self.calculate_potential_consumed_biomass(target_resource, alpha)
         total_handling_t = self.calculate_total_handling_time_for_herbivory(
-            plant_list, alpha
+            resource_list, alpha
         )
-        B_k = target_plant.mass_current  # current plant biomass
+        B_k = target_resource.mass_current  # current plant biomass
         N = self.individuals  # herb cohort size
         return N * (k / (1 + total_handling_t)) * (1 / B_k)
 
@@ -819,7 +842,10 @@ class AnimalCohort:
         return N_i * (k_target / (1 + total_handling_t)) * (1 / N_target)
 
     def calculate_consumed_mass_predation(
-        self, animal_list: list[AnimalCohort], target_cohort: AnimalCohort
+        self,
+        animal_list: list[AnimalCohort],
+        target_cohort: AnimalCohort,
+        adjusted_dt: timedelta64,
     ) -> float:
         """Calculates the mass to be consumed from a prey cohort by the predator.
 
@@ -828,27 +854,23 @@ class AnimalCohort:
         consumed based on this rate and other model parameters.
 
         TODO: Replace delta_t with time step reference
-        TODO: Update with stoichiometry
 
         Args:
             animal_list: A list of animal cohorts that can be consumed by the
                 predator.
             target_cohort: The prey cohort from which mass will be consumed.
+            adjusted_dt: The amount of time (D) in the time-step available for foraging.
 
         Returns:
             The mass to be consumed from the target cohort by the predator (in kg).
         """
         F = self.F_i_j_individual(animal_list, target_cohort)
-        delta_t = 30.0  # days
 
         # Calculate the consumed mass based on Mad. formula for delta_mass_predation
         consumed_mass = (
             target_cohort.mass_current
             * target_cohort.individuals
-            * (
-                1
-                - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
-            )
+            * (1 - exp(-(F * adjusted_dt)))
         )
 
         return consumed_mass
@@ -857,6 +879,7 @@ class AnimalCohort:
         self,
         animal_list: list[AnimalCohort],
         carcass_pools: dict[int, list[CarcassPool]],
+        adjusted_dt: timedelta64,
     ) -> dict[str, float]:
         """Handles mass assimilation from predation.
 
@@ -865,6 +888,7 @@ class AnimalCohort:
         Args:
             animal_list: A list of animal cohorts that can be consumed by the predator.
             carcass_pools: The pools to which animal carcasses are delivered.
+            adjusted_dt: The amount of time (D) in the time-step available for foraging.
 
         Returns:
             A dictionary representing the total change in mass (C, N, P) experienced by
@@ -892,7 +916,7 @@ class AnimalCohort:
         for prey_cohort in animal_list:
             # Calculate the mass to be consumed from this cohort
             consumed_mass = self.calculate_consumed_mass_predation(
-                animal_list, prey_cohort
+                animal_list, prey_cohort, adjusted_dt
             )
 
             if consumed_mass is None:
@@ -915,127 +939,278 @@ class AnimalCohort:
 
         return total_consumed_mass
 
-    def calculate_consumed_mass_herbivory(
-        self, plant_list: list[Resource], target_plant: Resource
+    def _consumed_resource_mass(
+        self,
+        resource_list: list[Resource],
+        target: Resource,
+        adjusted_dt: timedelta64,
     ) -> float:
-        """Calculates the mass to be consumed from a plant resource by the herbivore.
-
-        This method utilizes the F_i_k method to determine the rate at which the target
-        plant is consumed, and then calculates the actual mass to be consumed based on
-        this rate and other model parameters.
-
-        TODO: Replace delta_t with actual time step reference
+        """Standard search/handling time consumption using F_i_k (non-predation).
 
         Args:
-            plant_list: A list of plant resources that can be consumed by the
-                herbivore.
-            target_plant: The plant resource from which mass will be consumed.
+            resource_list: List of resource objects (e.g. litter, plants, etc.).
+            target: A specific resource from which biomass is being consumed.
+            adjusted_dt: Time available for foraging.
 
         Returns:
-            The mass to be consumed from the target plant by the herbivore (in kg).
+            Mass (kg) to consume from target.
         """
-        F = self.F_i_k(plant_list, target_plant)  # Adjusting this call as necessary
-        delta_t = 30.0  # days
+        F = self.F_i_k(resource_list, target)
+        return target.mass_current * (1.0 - exp(-F * adjusted_dt))
 
-        consumed_mass = target_plant.mass_current * (
-            1 - exp(-(F * delta_t * self.constants.tau_f * self.constants.sigma_f_t))
-        )
-        return consumed_mass
+    def forage_resource_list(
+        self,
+        resources: list[Resource],
+        adjusted_dt: timedelta64,
+        calculate_consumed_mass: Callable[
+            [list[Resource], Resource, timedelta64], float
+        ],
+        herbivory_waste_pools: dict[int, HerbivoryWaste] | None = None,
+    ) -> dict[str, float]:
+        """Generic foraging function for all non-predation resources.
+
+        Args:
+            resources: List of foragable resources.
+            adjusted_dt: Time available for foraging.
+            calculate_consumed_mass: Function to compute requested biomass.
+            herbivory_waste_pools: Optional pool to deposit unassimilated biomass.
+
+        Returns:
+            Stoichiometric gain from foraging (kg of C, N, P).
+        """
+        total_gain = {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+
+        for resource in resources:
+            requested = calculate_consumed_mass(resources, resource, adjusted_dt)
+
+            gain_cnp, litter_cnp = resource.get_eaten(requested, self)
+
+            conv_eff = self.functional_group.conversion_efficiency
+            for elem in total_gain:
+                total_gain[elem] += gain_cnp[elem] * conv_eff
+
+            if herbivory_waste_pools and litter_cnp:
+                herbivory_waste_pools[resource.cell_id].add_waste(litter_cnp)
+
+        return total_gain
 
     def delta_mass_herbivory(
         self,
         plant_list: list[Resource],
+        adjusted_dt: timedelta64,
         herbivory_waste_pools: dict[int, HerbivoryWaste],
     ) -> dict[str, float]:
-        """Handles mass assimilation from herbivory.
-
-        TODO: At present this just takes a single herbivory waste pool (for leaves),
-        this probably should change to be a list of waste pools once herbivory for other
-        plant tissues is added.
-        TODO: update name.
+        """Handle mass assimilation from live plant herbivory.
 
         Args:
-            plant_list: A list of plant resources available for herbivory.
-            herbivory_waste_pools: Waste pools for plant biomass (at this point just
-                leaves) that gets removed as part of herbivory but not consumed.
+            plant_list: List of live plant resources.
+            adjusted_dt: Time available for foraging.
+            herbivory_waste_pools: Waste pools for unassimilated plant matter.
 
         Returns:
-            A dictionary of total plant mass (C, N, P) consumed by the animal cohort.
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=plant_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+            herbivory_waste_pools=herbivory_waste_pools,
+        )
 
-        Raises:
-            ValueError: If `plant_list` or `herbivory_waste_pools` is None.
-            ValueError: If `calculate_consumed_mass_herbivory` returns None.
-            ValueError: If `get_eaten` returns None.
-            KeyError: If `plant.cell_id` is missing from `herbivory_waste_pools`.
+    def delta_mass_detritivory(
+        self,
+        litter_pools: list[Resource],
+        adjusted_dt: timedelta64,
+    ) -> dict[str, float]:
+        """Handle mass assimilation from litter (detritivory).
+
+        Args:
+            litter_pools: List of litter pools available to the cohort.
+            adjusted_dt: Time available for foraging.
+
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=litter_pools,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+        )
+
+    def delta_mass_carcass_scavenging(
+        self,
+        carcass_pools: list[Resource],
+        adjusted_dt: timedelta64,
+    ) -> dict[str, float]:
+        """Handle mass assimilation from carcass scavenging.
+
+        Args:
+            carcass_pools: List of carcass pools available to the cohort.
+            adjusted_dt: Time available for foraging.
+
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=carcass_pools,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+        )
+
+    def delta_mass_excrement_scavenging(
+        self,
+        excrement_pools: list[Resource],
+        adjusted_dt: timedelta64,
+    ) -> dict[str, float]:
+        """Handle mass assimilation from excrement (coprophagy).
+
+        Args:
+            excrement_pools: List of excrement pools available to the cohort.
+            adjusted_dt: Time available for foraging.
+
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=excrement_pools,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+        )
+
+    def delta_mass_fruiting_fungivory(
+        self,
+        fungal_fruit_list: list[Resource],
+        adjusted_dt: timedelta64,
+        herbivory_waste_pools: dict[int, HerbivoryWaste],
+    ) -> dict[str, float]:
+        """Handle mass assimilation from fruiting body (mushroom) fungivory.
+
+        Args:
+            fungal_fruit_list: List of fungal fruiting resources.
+            adjusted_dt: Time available for foraging.
+            herbivory_waste_pools: Waste pools for unassimilated fungal matter.
+
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=fungal_fruit_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+            herbivory_waste_pools=herbivory_waste_pools,
+        )
+
+    def delta_mass_soil_fungivory(
+        self,
+        soil_fungi_list: list[Resource],
+        adjusted_dt: timedelta64,
+    ) -> dict[str, float]:
+        """Handle mass assimilation from soil fungi foraging.
+
+        Args:
+            soil_fungi_list: List of soil fungi resources (distinct from fruiting
+                bodies).
+            adjusted_dt: Time available for foraging.
+
+        Returns:
+            Stoichiometric mass gained by the cohort.
         """
 
-        # Validate inputs
-        if plant_list is None:
-            raise ValueError("plant_list cannot be None.")
-        if herbivory_waste_pools is None:
-            raise ValueError("herbivory_waste_pools cannot be None.")
+        return self.forage_resource_list(
+            resources=soil_fungi_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+            herbivory_waste_pools=None,
+        )
 
-        # If no plants are available, return zero change
-        if not plant_list:
-            return {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+    def delta_mass_pomivory(
+        self,
+        pom_list: list[Resource],
+        adjusted_dt: timedelta64,
+    ) -> dict[str, float]:
+        """Handle mass assimilation from POM (particulate organic matter) foraging.
 
-        # Initialize total consumed stoichiometric masses
-        total_consumed_cnp = {
-            element: 0.0 for element in ["carbon", "nitrogen", "phosphorus"]
-        }
+        Args:
+            pom_list: List of particulate organic matter soil resources.
+            adjusted_dt: Time available for foraging.
 
-        for plant in plant_list:
-            # Calculate the mass to be consumed from this plant
-            consumed_mass = self.calculate_consumed_mass_herbivory(plant_list, plant)
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=pom_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+            herbivory_waste_pools=None,
+        )
 
-            if consumed_mass is None:
-                raise ValueError(
-                    f"calculate_consumed_mass_herbivory() returned None for {plant}."
-                )
+    def delta_mass_bacteriophagy(
+        self,
+        bacteria_list: list[Resource],
+        adjusted_dt: timedelta64,
+    ) -> dict[str, float]:
+        """Handle mass assimilation from soil bacteria.
 
-            # Update the plant resource's state based on consumed mass
-            herbivore_gain_cnp, plant_litter_cnp = plant.get_eaten(consumed_mass, self)
+        Args:
+            bacteria_list: List of soil bacteria resources.
+            adjusted_dt: Time available for foraging.
 
-            if herbivore_gain_cnp is None or plant_litter_cnp is None:
-                raise ValueError(f"get_eaten() returned None for {plant}.")
-
-            # Update total mass gained by the herbivore
-            for element in total_consumed_cnp:
-                total_consumed_cnp[element] += herbivore_gain_cnp[element]
-
-            # Ensure plant.cell_id exists in waste pools before adding waste
-            if plant.cell_id not in herbivory_waste_pools:
-                raise KeyError(
-                    f"herbivory_waste_pools is missing cell_id {plant.cell_id}."
-                )
-
-            # Add the litter to the appropriate herbivory waste pool
-            herbivory_waste_pools[plant.cell_id].add_waste(plant_litter_cnp)
-
-        return total_consumed_cnp
+        Returns:
+            Stoichiometric mass gained by the cohort.
+        """
+        return self.forage_resource_list(
+            resources=bacteria_list,
+            adjusted_dt=adjusted_dt,
+            calculate_consumed_mass=self._consumed_resource_mass,
+            herbivory_waste_pools=None,
+        )
 
     def forage_cohort(
         self,
         plant_list: list[Resource],
         animal_list: list[AnimalCohort],
+        fungal_fruit_list: list[Resource],
+        soil_fungi_list: list[Resource],
+        pom_list: list[Resource],
+        bacteria_list: list[Resource],
+        litter_pools: list[Resource],
         excrement_pools: list[ExcrementPool],
-        carcass_pools: dict[int, list[CarcassPool]],
+        carcass_pool_map: dict[int, list[CarcassPool]],
+        scavenge_carcass_pools: list[Resource],
+        scavenge_excrement_pools: list[Resource],
         herbivory_waste_pools: dict[int, HerbivoryWaste],
+        dt: timedelta64,
     ) -> None:
-        """This function handles selection of resources from a list for consumption.
+        """Coordinate all resource consumption for a single cohort.
 
-        TODO: Update with stoichiometry
+        This wrapper collects every resource class the cohort can exploit
+        (plants, prey, litter, carcasses, excrement) and calls the
+        specialised *delta_mass_* helpers.  It also passes the full
+        deposition pools (`excrement_pools`, `carcass_pool_map`) so that
+        waste and carcass remains are always routed correctly, even if the
+        cohort is not actively scavenging.
 
         Args:
-            plant_list: A list of plant resources available for herbivory.
-            animal_list: A list of animal cohorts available for predation.
-            excrement_pools: The pools representing the excrement in the grid cell.
-            carcass_pools: The pools to which animal carcasses are delivered.
-            herbivory_waste_pools: A dict of pools representing waste caused by
-                herbivory.
+            plant_list: Live plant resources available for herbivory.
+            animal_list: Live prey cohorts available for predation.
+            fungal_fruit_list: Live fungal fruiting bodies available for consumption.
+            soil_fungi_list: Soil fungi pools (not fruiting bodies).
+            pom_list: Soil particulate organic matter pools (POM).
+            bacteria_list: Soil bacteria pools.
+            litter_pools: LitterPool objects available for detritivory.
+            excrement_pools: ExcrementPool objects used for defecation
+                deposition.
+            carcass_pool_map: Mapping ``cell_id → list[CarcassPool]`` that
+                receives carcass remains created during predation.
+            scavenge_carcass_pools: Subset of `CarcassPool` objects in the
+                territory from which the cohort will attempt to scavenge.
+            scavenge_excrement_pools: Subset of `ExcrementPool` objects in
+                the territory that the cohort will consume via coprophagy.
+            herbivory_waste_pools: Mapping ``cell_id → HerbivoryWaste`` for
+                litter generated by partial plant consumption.
+            dt: Time (D) in the time step.
 
-        Return:
-            A float value of the net change in consumer mass due to foraging.
+
         """
         if self.individuals == 0:
             LOGGER.warning("No individuals in cohort to forage.")
@@ -1045,21 +1220,104 @@ class AnimalCohort:
             LOGGER.warning("No mass left in cohort to forage.")
             return
 
-        # Herbivore diet
-        if self.functional_group.diet == DietType.HERBIVORE and plant_list:
-            consumed_mass = self.delta_mass_herbivory(
-                plant_list, herbivory_waste_pools
-            )  # Directly modifies the plant mass
-            self.eat(
-                consumed_mass, excrement_pools
-            )  # Accumulate net mass gain from each plant
+        # Compute foraging time proportionally across diet types
+        time_available_per_diet = (
+            dt
+            * self.constants.tau_f
+            * self.constants.sigma_f_t
+            / self.diet_category_count
+        )
 
-        # Carnivore diet
-        elif self.functional_group.diet == DietType.CARNIVORE and animal_list:
-            # Calculate the mass gained from predation
-            consumed_mass = self.delta_mass_predation(animal_list, carcass_pools)
-            # Update the predator's mass with the total gained mass
-            self.eat(consumed_mass, excrement_pools)
+        total_gain = {"carbon": 0.0, "nitrogen": 0.0, "phosphorus": 0.0}
+
+        # live plant herbivory
+        if plant_list:
+            gain = self.delta_mass_herbivory(
+                plant_list=plant_list,
+                adjusted_dt=time_available_per_diet,
+                herbivory_waste_pools=herbivory_waste_pools,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # live prey predation (adds carcasses to map)
+        if animal_list:
+            gain = self.delta_mass_predation(
+                animal_list=animal_list,
+                carcass_pools=carcass_pool_map,
+                adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # live mushroom fungivory
+        if fungal_fruit_list:
+            gain = self.delta_mass_fruiting_fungivory(
+                fungal_fruit_list=fungal_fruit_list,
+                adjusted_dt=time_available_per_diet,
+                herbivory_waste_pools=herbivory_waste_pools,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # soil fungi fungivory
+        if soil_fungi_list:
+            gain = self.delta_mass_soil_fungivory(
+                soil_fungi_list=soil_fungi_list,
+                adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # particulate organic matter consumption
+        if pom_list:
+            gain = self.delta_mass_pomivory(
+                pom_list=pom_list,
+                adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # bacteria foraging
+        if bacteria_list:
+            gain = self.delta_mass_bacteriophagy(
+                bacteria_list=bacteria_list,
+                adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # litter detritivory
+        if litter_pools:
+            gain = self.delta_mass_detritivory(
+                litter_pools=litter_pools,
+                adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # carcass scavenging
+        if scavenge_carcass_pools or scavenge_excrement_pools:
+            gain = self.delta_mass_carcass_scavenging(
+                carcass_pools=scavenge_carcass_pools,
+                adjusted_dt=time_available_per_diet,
+            )
+
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # waste scavenging
+        if scavenge_carcass_pools or scavenge_excrement_pools:
+            gain = self.delta_mass_excrement_scavenging(
+                excrement_pools=scavenge_excrement_pools,
+                adjusted_dt=time_available_per_diet,
+            )
+            for k in total_gain:
+                total_gain[k] += gain[k]
+
+        # -- assimilate & deposit wastes
+        if any(v > 0 for v in total_gain.values()):
+            self.eat(total_gain, excrement_pools)
 
     def theta_i_j(self, animal_list: list[AnimalCohort]) -> float:
         """Cumulative density method for delta_mass_predation.
@@ -1160,11 +1418,11 @@ class AnimalCohort:
         equal to the proportion of the cohort individuals that would arrive in the
         neighboring cell after one full timestep's movement.
 
-        Assuming cohort individuals are homogenously distributed within a grid cell and
+        Assuming cohort individuals are homogeneously distributed within a grid cell and
         that the move is non-diagonal, the probability is then equal to the ratio of
         dispersal speed to the side-length of a grid cell.
 
-        A homogenously distributed cohort with a partial presence in a grid cell will
+        A homogeneously distributed cohort with a partial presence in a grid cell will
         have a proportion of its individuals in the new grid cell equal to the
         proportion the new grid cell that it occupies (A_new / A_cell). This proportion
         will be equal to the cohorts velocity (V) multiplied by the elapsed time (t)
@@ -1199,7 +1457,6 @@ class AnimalCohort:
     ) -> None:
         """Inflict combined background, senescence, and starvation mortalities.
 
-        TODO: Review logic of mass_max = adult_mass
         TODO: Review the use of ceil in number_dead, it fails for large animals.
 
         Args:
@@ -1213,7 +1470,7 @@ class AnimalCohort:
 
         t_to_maturity = self.time_to_maturity
         t_since_maturity = self.time_since_maturity
-        mass_max = self.functional_group.adult_mass  # this might not be only solution
+        mass_max = self.largest_mass_achieved  # growth to adult_mass
 
         u_bg = sf.background_mortality(
             self.constants.u_bg
@@ -1243,96 +1500,249 @@ class AnimalCohort:
         # Remove the dead individuals from the cohort
         self.die_individual(number_dead, carcass_pools)
 
+    def can_prey_on(self, prey_cohort: AnimalCohort) -> bool:
+        """Check if the cohort can prey upon another cohort.
+
+        Determines if another animal cohort is suitable prey based on the predator's
+        defined prey groups, prey body mass, and vertical occupancy.
+
+        Args:
+            prey_cohort: An animal cohort potentially being preyed upon.
+
+        Returns:
+            True if the prey cohort meets size, identity, and vertical occupancy
+              criteria, False otherwise.
+        """
+        if prey_cohort.functional_group.name not in self.prey_groups:
+            return False
+
+        min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
+
+        return (
+            min_size <= prey_cohort.mass_current <= max_size
+            and prey_cohort.individuals > 0
+            and prey_cohort is not self
+            and self.match_vertical(prey_cohort.functional_group.vertical_occupancy)
+        )
+
     def get_prey(
         self,
         communities: dict[int, list[AnimalCohort]],
     ) -> list[AnimalCohort]:
-        """Collect suitable prey for a given consumer cohort.
-
-        This method filters suitable prey from the list of animal cohorts across the
-        territory defined by the cohort's grid cells.
+        """Collect suitable prey cohorts within the cohort's territory.
 
         Args:
-            communities: A dictionary mapping cell IDs to sets of Consumers
-                (animal cohorts).
-            consumer_cohort: The Consumer for which a prey list is being collected.
+            communities: Dictionary mapping cell IDs to lists of animal cohorts.
 
         Returns:
-            A sequence of Consumers that can be preyed upon.
+            List of animal cohorts that can be preyed upon.
         """
-        prey_list: list = []
+        prey_list: list[AnimalCohort] = []
 
-        # Iterate over the grid cells in the consumer cohort's territory
         for cell_id in self.territory:
-            potential_prey_cohorts = communities[cell_id]
-
-            # Iterate over each Consumer (potential prey) in the current community
-            for prey_cohort in potential_prey_cohorts:
-                # Skip if this cohort is not a prey of the current predator
-                if prey_cohort.functional_group not in self.prey_groups:
-                    continue
-
-                # Get the size range of the prey this predator eats
-                min_size, max_size = self.prey_groups[prey_cohort.functional_group.name]
-
-                # Filter the potential prey cohorts based on their size
-                if (
-                    min_size <= prey_cohort.mass_current <= max_size
-                    and prey_cohort.individuals != 0
-                    and prey_cohort is not self
-                ):
+            for prey_cohort in communities[cell_id]:
+                if self.can_prey_on(prey_cohort):
                     prey_list.append(prey_cohort)
 
         return prey_list
 
+    def can_forage_on(self, resource: Resource) -> bool:
+        """Check if the cohort can forage on a given non-cohort resource pool.
+
+        This will soon be expanded to include more suitability checks.
+
+        Args:
+            resource: A non-cohort resource pool object implementing the Resource
+              protocol.
+
+        Returns:
+            True if the cohort and resource share overlapping vertical occupancy,
+            False otherwise.
+        """
+        return self.match_vertical(resource.vertical_occupancy)
+
+    def _get_resources_in_territory(
+        self,
+        resource_map: Mapping[int, _T | list[_T]],
+        filter_fn: Callable[[_T], bool] | None = None,
+    ) -> list[_T]:
+        """Return resources from territory; accepts singleton or list per cell.
+
+        This normalizes each per-cell entry to a list, applies an optional filter,
+        and flattens the result.
+
+        Args:
+            resource_map: Mapping from cell_id to a single resource or a list.
+            filter_fn: Optional predicate to retain resources (True keeps item).
+
+        Returns:
+            A flat list of resources located within the cohort's territory.
+        """
+        # Collect results from all territory cells
+        result: list[_T] = []
+
+        for cell_id in self.territory:
+            entry = resource_map.get(cell_id)
+            if entry is None:
+                continue
+
+            # Normalize to a list
+            items = entry if isinstance(entry, list) else [entry]
+
+            # Apply optional filter
+            if filter_fn is not None:
+                items = [r for r in items if filter_fn(r)]
+
+            result.extend(items)
+
+        return result
+
     def get_plant_resources(
         self, plant_resources: dict[int, list[Resource]]
     ) -> list[Resource]:
-        """Returns a list of plant resources in this territory.
+        """Return plant resources accessible within this cohort's territory.
 
-        This method checks which grid cells are within this territory
-        and returns a list of the plant resources available in those grid cells.
+        This method filters the plant resources by territory and the cohort's
+        foraging capability (via `can_forage_on`).
 
         Args:
-            plant_resources: A dictionary of plants where keys are grid cell IDs.
+            plant_resources: A dictionary mapping cell IDs to lists of plant
+                resource objects.
 
         Returns:
-            A list of Resource objects in this territory.
+            A list of plant Resource objects that the cohort can forage on.
         """
-        plant_resources_in_territory: list = []
-
-        # Iterate over all grid cell keys in this territory
-        for cell_id in self.territory:
-            # Check if the cell_id is within the provided plant resources
-            if cell_id in plant_resources:
-                plant_resources_in_territory.extend(plant_resources[cell_id])
-
-        return plant_resources_in_territory
+        return self._get_resources_in_territory(plant_resources, self.can_forage_on)
 
     def get_excrement_pools(
         self, excrement_pools: dict[int, list[ExcrementPool]]
     ) -> list[ExcrementPool]:
-        """Returns a list of excrement pools in this territory.
+        """Return excrement pools within the cohort's territory.
 
-        This method checks which grid cells are within this territory
-        and returns a list of the excrement pools available in those grid cells.
+        This method returns all ExcrementPool objects that are located in grid
+        cells occupied by the cohort.
 
         Args:
-            excrement_pools: A dictionary of excrement pools where keys are grid
-                cell IDs.
+            excrement_pools: A dictionary mapping cell IDs to lists of ExcrementPool
+                objects.
 
         Returns:
-            A list of ExcrementPool objects in this territory.
+            A list of ExcrementPool objects in the cohort's territory.
         """
-        excrement_pools_in_territory: list[ExcrementPool] = []
+        return self._get_resources_in_territory(excrement_pools)
 
-        # Iterate over all grid cell keys in this territory
-        for cell_id in self.territory:
-            # Check if the cell_id is within the provided excrement pools
-            if cell_id in excrement_pools:
-                excrement_pools_in_territory.extend(excrement_pools[cell_id])
+    def get_carcass_pools(
+        self, carcass_pools: dict[int, list[CarcassPool]]
+    ) -> list[CarcassPool]:
+        """Return carcass pools within the cohort's territory.
 
-        return excrement_pools_in_territory
+        This method returns all CarcassPool objects located in grid cells
+        that the cohort occupies.
+
+        Args:
+            carcass_pools: A dictionary mapping cell IDs to lists of CarcassPool
+                objects.
+
+        Returns:
+            A list of CarcassPool objects in the cohort's territory.
+        """
+        return self._get_resources_in_territory(carcass_pools)
+
+    def get_fungal_fruit_pools(
+        self, fungal_fruiting_bodies: dict[int, FungalFruitPool]
+    ) -> list[Resource]:
+        """Return fungal fruiting-body pools within the cohort's territory.
+
+        Args:
+            fungal_fruiting_bodies: The fungal fruiting pools the model.
+
+        Returns:
+            A list of fungal fruiting-body Resource objects available in
+            the cohort's territory.
+        """
+
+        fungal_fruits = self._get_resources_in_territory(
+            fungal_fruiting_bodies, self.can_forage_on
+        )
+        return cast(list[Resource], fungal_fruits)
+
+    def get_soil_fungi_pools(
+        self, soil_pools: dict[int, dict[str, SoilPool]]
+    ) -> list[Resource]:
+        """Return soil fungi pools within the cohort's territory.
+
+        Args:
+            soil_pools: Mapping from cell_id to SoilPool objects keyed by 'fungi',
+                'pom', and 'bacteria'.
+
+        Returns:
+            List of soil-fungi Resource objects within the territory.
+        """
+        fungi_by_cell: dict[int, SoilPool] = {
+            cid: pools["fungi"] for cid, pools in soil_pools.items() if "fungi" in pools
+        }
+        pools_list = self._get_resources_in_territory(fungi_by_cell, self.can_forage_on)
+        return cast(list[Resource], pools_list)
+
+    def get_pom_pools(
+        self, soil_pools: dict[int, dict[str, SoilPool]]
+    ) -> list[Resource]:
+        """Return soil POM pools within the cohort's territory.
+
+        Args:
+            soil_pools: Mapping from cell_id to SoilPool objects keyed by 'fungi',
+                'pom', and 'bacteria'.
+
+        Returns:
+            List of POM Resource objects within the territory.
+        """
+        pom_by_cell: dict[int, SoilPool] = {
+            cid: pools["pom"] for cid, pools in soil_pools.items() if "pom" in pools
+        }
+        pools_list = self._get_resources_in_territory(pom_by_cell, self.can_forage_on)
+        return cast(list[Resource], pools_list)
+
+    def get_bacteria_pools(
+        self, soil_pools: dict[int, dict[str, SoilPool]]
+    ) -> list[Resource]:
+        """Return soil bacteria pools within the cohort's territory.
+
+        Args:
+            soil_pools: Mapping from cell_id to SoilPool objects keyed by 'fungi',
+                'pom', and 'bacteria'.
+
+        Returns:
+            List of bacterial Resource objects within the territory.
+        """
+        bacteria_by_cell: dict[int, SoilPool] = {
+            cid: pools["bacteria"]
+            for cid, pools in soil_pools.items()
+            if "bacteria" in pools
+        }
+        pools_list = self._get_resources_in_territory(
+            bacteria_by_cell, self.can_forage_on
+        )
+        return cast(list[Resource], pools_list)
+
+    def find_intersecting_carcass_pools(
+        self,
+        prey_territory: list[int],
+        carcass_pools: dict[int, list[CarcassPool]],
+    ) -> list[CarcassPool]:
+        """Find the carcass pools of the intersection of two territories.
+
+        Args:
+            prey_territory: Another AnimalTerritory to find the intersection with.
+            carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
+
+        Returns:
+            A list of CarcassPools in the intersecting grid cells.
+        """
+        intersecting_keys = set(self.territory) & set(prey_territory)
+        intersecting_carcass_pools: list[CarcassPool] = []
+        for cell_id in intersecting_keys:
+            intersecting_carcass_pools.extend(carcass_pools[cell_id])
+        return intersecting_carcass_pools
 
     def get_herbivory_waste_pools(
         self, plant_waste: dict[int, HerbivoryWaste]
@@ -1359,47 +1769,55 @@ class AnimalCohort:
 
         return plant_waste_pools_in_territory
 
-    def get_carcass_pools(
-        self, carcass_pools: dict[int, list[CarcassPool]]
-    ) -> list[CarcassPool]:
-        """Returns a list of carcass pools in this territory.
+    def is_migration_season(self) -> bool:
+        """Handles determination of whether it is time to migrate.
 
-        This method checks which grid cells are within this territory
-        and returns a list of the carcass pools available in those grid cells.
+        Temporary probabilistic migration.
+
+        TODO: update when we have seasonality
+
+        Returns: A bool of whether it is time to migrate.
+
+
+        Notes:
+            This method uses Python's built-in :func:`random.random` function.
+
+        """
+
+        return random.random() <= self.constants.seasonal_migration_probability
+
+    def match_vertical(self, resource_occupancy: VerticalOccupancy) -> bool:
+        """Check whether cohort vertical occupancy overlaps with a resource or prey.
+
+        This method determines whether the vertical occupancy of the consumer cohort
+        overlaps with the vertical occupancy of a resource (pool or cohort). Animals
+        can only forage resources that share at least one overlapping vertical space.
 
         Args:
-            carcass_pools: A dictionary of carcass pools where keys are grid
-                cell IDs.
+            resource_occupancy: The vertical occupancy trait of the potential resource
+                or prey.
 
         Returns:
-            A list of CarcassPool objects in this territory.
-        """
-        carcass_pools_in_territory: list[CarcassPool] = []
+            True if the vertical occupancy overlaps; False otherwise.
 
-        # Iterate over all grid cell keys in this territory
+        """
+        return bool(resource_occupancy & self.functional_group.vertical_occupancy)
+
+    def get_litter_pools(
+        self, litter_pools: dict[int, dict[str, Resource]]
+    ) -> list[Resource]:
+        """Return all litter pools that fall inside this cohort's territory.
+
+        Args:
+            litter_pools: The dictionary of litterpools that exist in the simulation.
+
+        Returns:
+            A flat list of litter pools found in the territory of the consumer.
+        """
+        pools_in_territory: list[Resource] = []
+
         for cell_id in self.territory:
-            # Check if the cell_id is within the provided carcass pools
-            if cell_id in carcass_pools:
-                carcass_pools_in_territory.extend(carcass_pools[cell_id])
+            if cell_id in litter_pools:
+                pools_in_territory.extend(litter_pools[cell_id].values())
 
-        return carcass_pools_in_territory
-
-    def find_intersecting_carcass_pools(
-        self,
-        prey_territory: list[int],
-        carcass_pools: dict[int, list[CarcassPool]],
-    ) -> list[CarcassPool]:
-        """Find the carcass pools of the intersection of two territories.
-
-        Args:
-            prey_territory: Another AnimalTerritory to find the intersection with.
-            carcass_pools: A dictionary mapping cell IDs to CarcassPool objects.
-
-        Returns:
-            A list of CarcassPools in the intersecting grid cells.
-        """
-        intersecting_keys = set(self.territory) & set(prey_territory)
-        intersecting_carcass_pools: list[CarcassPool] = []
-        for cell_id in intersecting_keys:
-            intersecting_carcass_pools.extend(carcass_pools[cell_id])
-        return intersecting_carcass_pools
+        return pools_in_territory
