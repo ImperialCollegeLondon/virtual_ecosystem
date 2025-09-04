@@ -99,7 +99,7 @@ def test_PlantsModel__init__(
         pytest.param(
             {
                 "plant_pft_propagules": xarray.DataArray(
-                    data=np.full((4, 2), fill_value=100, dtype=np.integer),
+                    data=np.full((4, 2), fill_value=100, dtype=np.int_),
                     coords={
                         "cell_id": np.arange(4),
                         "plant_functional_type": ["tree1", "tree2"],
@@ -113,7 +113,7 @@ def test_PlantsModel__init__(
         pytest.param(
             {
                 "plant_pft_propagules": xarray.DataArray(
-                    data=np.full((4, 2), fill_value=100, dtype=np.integer),
+                    data=np.full((4, 2), fill_value=100, dtype=np.int_),
                     coords={
                         "cell_id": np.arange(4),
                         "pft": ["tree1", "tree2"],

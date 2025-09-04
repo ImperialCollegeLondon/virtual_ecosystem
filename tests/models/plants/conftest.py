@@ -80,7 +80,7 @@ def plants_data(fixture_core_components, flora):
         data["plant_cohorts_" + var] = cohorts[var]
 
     data["plant_pft_propagules"] = DataArray(
-        data=np.full((n_cells, flora.n_pfts), fill_value=100, dtype=np.integer),
+        data=np.full((n_cells, flora.n_pfts), fill_value=100, dtype=np.int_),
         coords={
             "cell_id": fixture_core_components.grid.cell_id,
             "pft": flora.name,

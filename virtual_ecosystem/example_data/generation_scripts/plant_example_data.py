@@ -40,7 +40,7 @@ data["plant_cohorts_dbh"] = DataArray(
 
 # PFT propagules
 data["plant_pft_propagules"] = DataArray(
-    data=np.full((n_cells, 2), fill_value=100, dtype=np.integer),
+    data=np.full((n_cells, 2), fill_value=100, dtype=np.int_),
     coords={
         "cell_id": cell_id,
         "pft": np.array(["broadleaf", "shrub"]),

@@ -1370,7 +1370,7 @@ class PlantsModel(
             reproductive_tissue_mass
             * self.model_constants.propagule_mass_portion
             / self.model_constants.carbon_mass_per_propagule
-        ).astype(np.integer)
+        ).astype(np.int_)
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule
