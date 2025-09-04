@@ -59,6 +59,7 @@ def calculate_air_density(
         specific_gas_constant_dry_air: Specific gas constant for dry air, [J kg-1 K-1]
         celsius_to_kelvin: Factor to convert temperature in Celsius to absolute
             temperature in Kelvin
+
     Returns:
         density of air, [kg m-3].
     """
@@ -99,8 +100,8 @@ def find_last_valid_row(array: NDArray[np.floating]) -> NDArray[np.floating]:
     """Find last valid value in array for each column.
 
     This function looks for the last valid value in each column of a 2-dimensional
-    array. If the previous value is nan, it moved up the array. If all values are nan,
-    the value is set to nan, too.
+    array. If the previous value is nan, it moved up the array. If all values are NaN,
+    the value is set to NaN, too.
 
     Args:
         array: Two-dimesional array for which last valid values should be found
@@ -168,3 +169,101 @@ def calculate_actual_vapour_pressure(
         core_const=pyrealm_const(),
     )
     return saturation_vapour_pressure_air * relative_humidity / 100.0
+
+
+def set_unintended_nan_to_zero(
+    input_array: NDArray[np.floating],
+    input_nan_mask: NDArray[np.bool],
+) -> NDArray[np.floating]:
+    """Clean up outputs: set unintended NaNs to 0, preserve intended NaNs.
+
+    Args:
+        input_array: Input array that may contain NaN
+        input_nan_mask: A mask of intended NaN
+
+    Returns:
+        Array with unintended NaN set to zero
+    """
+    arr_clean = np.where(np.isnan(input_array), 0.0, input_array)
+    arr_clean[input_nan_mask] = np.nan
+    return arr_clean
+
+
+def compute_layer_thickness_for_varying_canopy(
+    heights: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Calculate layer thickness for varying canopy layers.
+
+    Calculate layer thickness by subtracting from the next valid layer below (skipping
+    NaNs), and for the last valid layer in each column subtract from zero (ground level)
+    .
+
+    Args:
+        heights: 2D array of layer heights, [m]
+
+    Returns:
+        2D array of layer thickness, [m], same shape as input
+    """
+    n_layers, n_cols = heights.shape
+    thickness = np.full_like(heights, np.nan)
+
+    for col in range(n_cols):
+        for row in range(n_layers):
+            current = heights[row, col]
+            if np.isnan(current):
+                continue
+
+            # Find next valid (non-NaN) layer below
+            next_valid_found = False
+            for lower_row in range(row + 1, n_layers):
+                below = heights[lower_row, col]
+                if not np.isnan(below):
+                    thickness[row, col] = current - below
+                    next_valid_found = True
+                    break
+
+            # If no valid lower layer found, thickness = current - 0 (ground)
+            if not next_valid_found:
+                thickness[row, col] = current - 0.0
+
+    return thickness
+
+
+def calculate_specific_humidity(
+    air_temperature: NDArray[np.floating],
+    relative_humidity: NDArray[np.floating],
+    atmospheric_pressure: NDArray[np.floating],
+    molecular_weight_ratio_water_to_dry_air: float,
+    pyrealm_const: PyrealmConst,
+) -> NDArray[np.floating]:
+    """Calculate specific humidity.
+
+    Args:
+        air_temperature: Air temperature, [C]
+        relative_humidity: Relative humidity, [%]
+        atmospheric_pressure: Atmospheric pressure, [kPa]
+        molecular_weight_ratio_water_to_dry_air: The ratio of the molar mass of water
+            vapour to the molar mass of dry air
+        pyrealm_const: Pyrealm constants
+
+    Returns:
+        Specific humidity, [kg kg-1]
+    """
+    # Saturation vapor pressure
+    saturation_vapour_pressure = calc_vp_sat(
+        ta=air_temperature,
+        core_const=pyrealm_const,
+    )
+
+    # Actual vapor pressure (hPa)
+    actual_vapour_pressure = (relative_humidity / 100.0) * saturation_vapour_pressure
+
+    # Specific humidity formula
+    specific_humidity = (
+        molecular_weight_ratio_water_to_dry_air * actual_vapour_pressure
+    ) / (
+        atmospheric_pressure
+        - ((1 - molecular_weight_ratio_water_to_dry_air) * actual_vapour_pressure)
+    )
+
+    return specific_humidity

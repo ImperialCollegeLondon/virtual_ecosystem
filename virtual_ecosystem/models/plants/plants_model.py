@@ -1374,7 +1374,7 @@ class PlantsModel(
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule
-        ).astype(np.float64)
+        )
 
         return n_propagules, non_propagule_mass
 

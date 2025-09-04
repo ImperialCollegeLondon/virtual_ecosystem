@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -158,10 +158,10 @@ moisture. The nitrification rate is calculated at follows
 
 $$r_n = k_n * f_{T,n} * f_{w,n} * \ce{NH_{4}^{+}},$$
 
-where $k_n$ is the rate constant for nitrification, $f_{T,n}$ is a factor capturing the
-impact of [soil temperature on nitrification
-rate](./environmental_links.md#nitrification-temperature-factor), $f_{w,n}$ is a factor
-capturing the impact of [soil moisture on nitrification
+where $k_n$ is the rate constant for nitrification, $f_{T,n}$ is a [factor capturing the
+impact of soil temperature on nitrification
+rate](./environmental_links.md#nitrification-temperature-factor), $f_{w,n}$ is a [factor
+capturing the impact of soil moisture on nitrification
 rate](./environmental_links.md#nitrification-moisture-factor) and $\ce{NH_{4}^{+}}$ is
 the concentration of ammonium in the soil.
 
@@ -177,10 +177,10 @@ follows
 
 $$r_d = k_d * f_{T,d} * f_{w,d} * \ce{NO_{3}^{-}},$$
 
-where $k_d$ is the rate constant for denitrification, $f_{T,d}$ is a factor capturing
-the impact of [soil temperature on denitrification
+where $k_d$ is the rate constant for denitrification, $f_{T,d}$ is a [factor capturing
+the impact of soil temperature on denitrification
 rate](./environmental_links.md#denitrification-temperature-factor), $f_{w,d}$ is a
-factor capturing the impact of [soil moisture on denitrification
+[factor capturing the impact of soil moisture on denitrification
 rate](./environmental_links.md#denitrification-moisture-factor) and $\ce{NO_{3}^{-}}$ is
 the concentration of nitrate in the soil.
 

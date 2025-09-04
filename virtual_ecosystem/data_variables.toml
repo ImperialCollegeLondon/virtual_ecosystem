@@ -714,13 +714,6 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Bulk density of soil"
-name = "bulk_density"
-unit = "kg m^-3"
-variable_type = "float"
-
-[[variable]]
-axis = ["spatial"]
 description = "Soil pH values for each grid cell"
 name = "pH"
 unit = "pH"

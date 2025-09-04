@@ -13,10 +13,10 @@ jobs:
   qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - uses: pre-commit/action@v3.0.1
 
   test:
@@ -26,19 +26,19 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Poetry
-      uses: abatilo/actions-poetry@v4.0.0
-      with:
-        poetry-version: 1.5.1
+      run: |
+        pipx install poetry --python python${{ matrix.python-version }}
+        poetry --version
 
     - name: Install dependencies
       run: poetry install
@@ -53,7 +53,7 @@ jobs:
              github.event.pull_request.user.login == 'pre-commit-ci[bot]'
             ) && (
              matrix.os == 'ubuntu-latest' && 
-             matrix.python-version == '3.10'
+             matrix.python-version == '3.11'
             )
           }}
       uses: codecov/codecov-action@v5
@@ -65,16 +65,16 @@ jobs:
     needs: qa
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install Poetry
-        uses: abatilo/actions-poetry@v4.0.0
-        with:
-          poetry-version: 1.5.1
-
+        run: |
+          pipx install poetry --python python3.11
+          poetry --version
+      
       - name: Install dependencies
         run: poetry install
 

@@ -8,7 +8,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -163,14 +163,11 @@ Once the baseline run is complete, you can set up the experiment with default
 
 # Generate the static config file programmatically
 import sys
+import tomllib
 from pathlib import Path
 
 import tomli_w
 
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 # Create output directory
 output_dir = Path("/tmp/ve_example/HydroDefault_out/")

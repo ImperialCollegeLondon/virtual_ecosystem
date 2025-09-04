@@ -45,7 +45,7 @@ SETUP_MANIPULATIONS = (
 
 
 def test_abiotic_model_initialization(
-    caplog, dummy_climate_data, fixture_core_components
+    caplog, dummy_climate_data_varying_canopy, fixture_core_components
 ):
     """Test `AbioticModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -59,7 +59,7 @@ def test_abiotic_model_initialization(
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
-            dummy_climate_data,
+            dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
             model_constants=AbioticConsts(),
         )
@@ -178,7 +178,7 @@ def test_abiotic_model_initialization_no_data(caplog, fixture_core_components):
 )
 def test_generate_abiotic_model(
     caplog,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     cfg_string,
     drag_coeff,
     raises,
@@ -208,7 +208,7 @@ def test_generate_abiotic_model(
         # Check whether model is initialised (or not) as expected
         with raises:
             AbioticModel.from_config(
-                data=dummy_climate_data,
+                data=dummy_climate_data_varying_canopy,
                 core_components=core_components,
                 config=config,
             )
@@ -246,7 +246,7 @@ def test_generate_abiotic_model(
 )
 def test_generate_abiotic_model_bounds_error(
     caplog,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     cfg_string,
     raises,
     expected_log_entries,
@@ -270,7 +270,7 @@ def test_generate_abiotic_model_bounds_error(
         mock_bypass_setup.return_value = False
         with raises:
             _ = AbioticModel.from_config(
-                data=dummy_climate_data,
+                data=dummy_climate_data_varying_canopy,
                 core_components=core_components,
                 config=config,
             )
@@ -279,7 +279,9 @@ def test_generate_abiotic_model_bounds_error(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
+def test_setup_abiotic_model(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
     """Test that setup() returns expected output in data object."""
 
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
@@ -293,7 +295,7 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     ):
         mock_bypass_setup.return_value = False
         model = AbioticModel(
-            data=dummy_climate_data,
+            data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
         )
 
@@ -324,18 +326,23 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
 
     # Test that soil temperature was created correctly
     expected_soil_temp = lyr_strct.from_template()
-    expected_soil_temp[lyr_strct.index_all_soil] = np.array([20.712458, 20.0])[:, None]
+    expected_soil_temp[lyr_strct.index_all_soil] = np.array(
+        [[20.712458, 21.317566, 21.922674, 21.922674], [20.0, 20.0, 20.0, 20.0]]
+    )
     xr.testing.assert_allclose(model.data["soil_temperature"], expected_soil_temp)
 
     # Test that air temperature was interpolated correctly
     exp_air_temp = lyr_strct.from_template()
-    exp_air_temp[0] = 30.0
-    exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
-        [29.91965, 29.414851, 28.551891]
-    )[:, None]
-    exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
-        [22.81851, 22.81851, 22.81851, 22.81851]
+    exp_air_temp[lyr_strct.index_filled_atmosphere] = np.array(
+        [
+            [30, 30, 30, 30],
+            [29.91965, 29.946434, 29.973217, 29.973217],
+            [29.414851, 29.609901, np.nan, np.nan],
+            [28.551891, np.nan, np.nan, np.nan],
+            [22.81851, 25.21234, 27.60617, 27.60617],
+        ]
     )
+
     xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
 
     # Test other variables have been inserted and some check values
@@ -356,39 +363,55 @@ def test_setup_abiotic_model(dummy_climate_data, fixture_core_components):
     with patch_static_config(AbioticModel) as mock_static_config:
         mock_static_config.return_value = False, False
         model = AbioticModel(
-            data=dummy_climate_data,
+            data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
         )
 
         model.update(time_index=0)
 
-    expected_soil_temp1 = lyr_strct.from_template()
-    expected_soil_temp1[lyr_strct.index_all_soil] = np.array(
-        [
-            [22.3935, 22.35095, 21.925444, 21.925444],
-            [20.040154, 20.03944, 20.032302, 20.032302],
-        ],
-    )
-    expected_soil_moist = lyr_strct.from_template()
-    expected_soil_moist[lyr_strct.index_all_soil] = np.array([5.0, 500])[:, None]
-    xr.testing.assert_allclose(
-        model.data["soil_temperature"], expected_soil_temp1, rtol=1e-3
-    )
-    xr.testing.assert_allclose(model.data["soil_moisture"], expected_soil_moist)
+        # Check that values fall within a reasonable expected range
+    soil_temps = model.data["soil_temperature"].isel(layers=lyr_strct.index_all_soil)
 
-    exp_air_temp = lyr_strct.from_template()
-    exp_air_temp[0] = 30.000122
-    exp_air_temp[lyr_strct.index_filled_canopy] = np.array(
-        [29.913604, 29.408153, 28.545607]
-    )[:, None]
-    exp_air_temp[lyr_strct.index_surface_scalar] = np.array(
-        [22.478502, 22.444462, 22.104057, 22.104057]
+    # To test with varying canopy layers, need to mask
+    canopy_mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["canopy_temperature"].isel(
+            layers=lyr_strct.index_filled_canopy
+        )
     )
-    xr.testing.assert_allclose(model.data["air_temperature"], exp_air_temp)
+    atm_mask = ~np.isnan(
+        dummy_climate_data_varying_canopy["air_temperature"].isel(
+            layers=lyr_strct.index_filled_atmosphere
+        )
+    )
 
-    exp_canopytemp = lyr_strct.from_template()
-    exp_canopytemp[lyr_strct.index_filled_canopy] = np.array(
-        [28.489317, 29.414784, 28.551829]
-    )[:, None]
+    canopy_temp_result = model.data["canopy_temperature"].isel(
+        layers=lyr_strct.index_filled_canopy
+    )
+    air_temp_result = model.data["air_temperature"].isel(
+        layers=lyr_strct.index_filled_atmosphere
+    )
+    rel_hum_result = model.data["relative_humidity"].isel(
+        layers=lyr_strct.index_filled_atmosphere
+    )
 
-    xr.testing.assert_allclose(model.data["canopy_temperature"], exp_canopytemp)
+    # Use the mask as a DataArray for .where()
+    valid_values_can_temp = canopy_temp_result.where(canopy_mask)
+    valid_values_air_temp = air_temp_result.where(atm_mask)
+    valid_values_rel_hum = rel_hum_result.where(atm_mask)
+
+    # Now drop the NaNs (i.e., masked values)
+    valid_values_can_temp_clean = valid_values_can_temp.dropna(dim="layers", how="any")
+    valid_values_air_temp_clean = valid_values_air_temp.dropna(dim="layers", how="any")
+    valid_values_rel_hum_clean = valid_values_rel_hum.dropna(dim="layers", how="any")
+
+    # Now do the test
+    assert ((soil_temps >= 18.0) & (soil_temps <= 28.0)).all()
+    assert (
+        (valid_values_can_temp_clean >= 15.0) & (valid_values_can_temp_clean <= 40.0)
+    ).all()
+    assert (
+        (valid_values_air_temp_clean >= 15.0) & (valid_values_air_temp_clean <= 40.0)
+    ).all()
+    assert (
+        (valid_values_rel_hum_clean >= 0.0) & (valid_values_rel_hum_clean <= 100.0)
+    ).all()

@@ -8,7 +8,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.17.2
+      jupytext_version: 1.17.3
 ---
 
 # Virtual Ecosystem example data
@@ -240,10 +240,6 @@ The `example_soil_data.nc` file provides:
 * - pH
   - `pH`
   - unitless
-  - XY
-* - Bulk soil density
-  - `bulk_density`
-  - kg $\textrm{m}^{-3}$
   - XY
 * - Soil clay fraction
   - `clay_fraction`

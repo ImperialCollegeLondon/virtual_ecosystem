@@ -13,6 +13,7 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
 from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleBounds
 
 
 def run_microclimate(
@@ -24,6 +25,7 @@ def run_microclimate(
     abiotic_constants: AbioticConsts,
     core_constants: CoreConsts,
     pyrealm_const: PyrealmConst,
+    abiotic_bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     """Run microclimate model.
 
@@ -43,6 +45,7 @@ def run_microclimate(
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
         pyrealm_const: Set of constants from pyrealm
+        abiotic_bounds: Bounds for vertical mixing of atmospheric variables
 
     Returns:
         dictionary with updated microclimate variables
@@ -69,9 +72,9 @@ def run_microclimate(
     ].to_numpy()
 
     # Calculate thickness of above ground layers and midpoints
-    # Add a row of zeros at the bottom to represent ground level (height = 0)
-    heights_with_base = np.vstack([wind_heights, np.zeros(wind_heights.shape[1])])
-    above_ground_layer_thickness = -np.diff(heights_with_base, axis=0)
+    above_ground_layer_thickness = (
+        abiotic_tools.compute_layer_thickness_for_varying_canopy(heights=wind_heights)
+    )
 
     # Compute cumulative thickness excluding the current layer (layer tops)
     layer_top = (
@@ -169,7 +172,7 @@ def run_microclimate(
     #  Ventilation rate above canopy, [s-1]
     ventilation_rate = wind.calculate_ventilation_rate(
         aerodynamic_resistance=aerodynamic_resistance_canopy[0],
-        characteristic_height=canopy_height,
+        characteristic_height=canopy_height + zero_plane_displacement,
     )
 
     # -------------------------------------------------------------------------
@@ -201,8 +204,10 @@ def run_microclimate(
     # If hourly input data is provided, iterate over day, else equilibrium assumption
     hourly_time_interval = max(int(time_interval / core_constants.seconds_to_hour), 1)
 
-    # TODO enable daily input in data object and select time index
-    if time_interval <= core_constants.seconds_to_day:
+    # TODO Run diurnal cycle
+    # enable hourly input in data object, select by time index, iterate over hours,
+    # and return averages/min/max over the VE time interval, similar to hydrology
+    if core_constants.seconds_to_hour <= time_interval <= core_constants.seconds_to_day:
         iteration = hourly_time_interval
 
     else:
@@ -340,8 +345,18 @@ def run_microclimate(
             layer_thickness=above_ground_layer_thickness,
             ventilation_rate=ventilation_rate,
             mixing_coefficient=mixing_coefficient,
-            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
+            limits=abiotic_bounds.air_temperature[:2],
+            time_interval=core_constants.seconds_to_hour,
         )
+
+        # NOTE Advection not implemented as everything is removed with time interval>1h
+        # and horizontal transfer is not implemented
+        # advection_rate = (
+        #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+        #   / np.sqrt(cell_area)
+        # )
+        # advected_fraction = np.clip(advection_rate * time_interval, 0, 1)
+        # all_air_temperature[0] -=all_air_temperature[0] *advected_fraction
 
         # Update atmospheric humidity/VPD
         # Saturated vapour pressure of air, [kPa]
@@ -350,38 +365,45 @@ def run_microclimate(
             core_const=PyrealmConst(),
         )
 
-        #  Actual vapour pressure of air, [kPa]
-        actual_vapour_pressure_air = abiotic_tools.calculate_actual_vapour_pressure(
-            air_temperature=DataArray(all_air_temperature),
-            relative_humidity=DataArray(relative_humidity),
-            pyrealm_const=PyrealmConst,
+        # Specific humidity of air, [kg kg-1]
+        specific_humidity_air = abiotic_tools.calculate_specific_humidity(
+            air_temperature=all_air_temperature,
+            relative_humidity=relative_humidity,
+            atmospheric_pressure=atmospheric_pressure,
+            molecular_weight_ratio_water_to_dry_air=(
+                core_constants.molecular_weight_ratio_water_to_dry_air
+            ),
+            pyrealm_const=PyrealmConst(),
         )
 
-        # Specific humidity of air, [kg kg-1] TODO external function
-        specific_humidity_air = (
+        # Calculate specific humidity at saturation
+        mixing_ratio_saturation = (
             core_constants.molecular_weight_ratio_water_to_dry_air
-            * actual_vapour_pressure_air
-        ) / (atmospheric_pressure - actual_vapour_pressure_air)
+            * saturated_vapour_pressure_air
+            / (atmospheric_pressure - saturated_vapour_pressure_air)
+        )
+        max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
+        # Update atmospheric humidity variables
         new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
             evapotranspiration=evapotranspiration[
                 layer_structure.index_filled_canopy
             ].to_numpy(),
             soil_evaporation=data["soil_evaporation"].to_numpy(),
             saturated_vapour_pressure=saturated_vapour_pressure_air,
-            specific_humidity=specific_humidity_air.to_numpy(),
+            specific_humidity=specific_humidity_air,
             layer_thickness=above_ground_layer_thickness,
             atmospheric_pressure=atmospheric_pressure,
             density_air=density_air,
             mixing_coefficient=mixing_coefficient,
             ventilation_rate=ventilation_rate,
-            wind_speed=data["wind_speed_ref"].isel(time_index=time_index).to_numpy(),
             molecular_weight_ratio_water_to_dry_air=(
                 core_constants.molecular_weight_ratio_water_to_dry_air
             ),
             dry_air_factor=abiotic_constants.dry_air_factor,
             cell_area=cell_area,
-            time_interval=1.0,  # TODO core_constants.seconds_to_hour,
+            limits=(0, max_specific_humidity[0]),  # TODO make layer specific
+            time_interval=core_constants.seconds_to_hour,
         )
 
         relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
@@ -450,7 +472,6 @@ def run_microclimate(
     output["density_air"] = density_air_out
 
     # Combine longwave emission in one variable
-    # Assumption: accumulated emission in time interval based on accumulated input
     longwave_emission = layer_structure.from_template()
     longwave_emission[layer_structure.index_filled_canopy] = longwave_emission_canopy
     longwave_emission[layer_structure.index_topsoil_scalar] = longwave_emission_soil
@@ -472,18 +493,18 @@ def run_microclimate(
         latent_heat_vapourisation
     )
     output["latent_heat_vapourisation"] = latent_heat_vapourisation_out
-    # Combine sensible heat flux in one variable, TODO consider time interval
+
+    # Combine sensible heat flux in one variable
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = sensible_heat_flux_canopy
     sensible_heat_flux[layer_structure.index_topsoil_scalar] = sensible_heat_flux_soil
-    output["sensible_heat_flux"] = sensible_heat_flux  # * time_interval
+    output["sensible_heat_flux"] = sensible_heat_flux
 
-    # Combine latent heat flux in one variable, TODO consider time interval
-    # TODO adjust to model timestep, currently per second
+    # Combine latent heat flux in one variable
     latent_heat_flux = layer_structure.from_template()
     latent_heat_flux[layer_structure.index_filled_canopy] = latent_heat_flux_canopy
     latent_heat_flux[layer_structure.index_topsoil_scalar] = latent_heat_flux_soil
-    output["latent_heat_flux"] = latent_heat_flux  # * time_interval
+    output["latent_heat_flux"] = latent_heat_flux
 
     soil_temperature_out = layer_structure.from_template()
     soil_temperature_out[layer_structure.index_all_soil] = soil_temperature
@@ -499,7 +520,7 @@ def run_microclimate(
     canopy_temperature_out[layer_structure.index_filled_canopy] = canopy_temperature
     output["canopy_temperature"] = canopy_temperature_out
 
-    # TODO check dimensions write humidity/VPD
+    # Write humidity/VPD
     for var in ["relative_humidity", "vapour_pressure", "vapour_pressure_deficit"]:
         var_out = layer_structure.from_template()
         var_out[layer_structure.index_filled_atmosphere] = (

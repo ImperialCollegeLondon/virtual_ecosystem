@@ -89,7 +89,6 @@ class SoilModel(
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
         "pH",
-        "bulk_density",
         "clay_fraction",
     ),
     vars_populated_by_init=(
@@ -128,9 +127,12 @@ class SoilModel(
         "soil_p_pool_primary",
         "soil_p_pool_secondary",
         "soil_p_pool_labile",
+        "pH",
+        "clay_fraction",
         "matric_potential",
         "vertical_flow",
         "soil_temperature",
+        "air_temperature",
         "soil_moisture",
         "litter_C_mineralisation_rate",
         "litter_N_mineralisation_rate",
@@ -396,6 +398,7 @@ class SoilModel(
 
         Raises:
             IntegrationError: When the integration cannot be successfully completed.
+            ValueError: If any of the variables used by the soil model have NaN values.
         """
 
         # Find number of grid cells integration is being performed over
@@ -431,6 +434,22 @@ class SoilModel(
             **{name: np.array([]) for name in self.refreshed_variables},
         }
 
+        # Check if any values used by the soil model integration have NaN values (these
+        # can stall the integration)
+        unexpected_nans = set()
+
+        for var in self.vars_required_for_update:
+            if self.check_for_unexpected_nan_values(var=var):
+                unexpected_nans.add(var)
+
+        if unexpected_nans:
+            to_raise_nan = ValueError(
+                "Soil model integration cannot proceed because the following "
+                f"variables have unexpected NaN values: {unexpected_nans}"
+            )
+            LOGGER.error(to_raise_nan)
+            raise to_raise_nan
+
         # Carry out simulation
         output = solve_ivp(
             construct_full_soil_model,
@@ -453,12 +472,12 @@ class SoilModel(
 
         # Check if integration failed
         if not output.success:
-            LOGGER.error(
-                "Integration of soil module failed with following message: {}".format(  # noqa: UP032
-                    str(output.message)
-                )
+            to_raise = IntegrationError(
+                "Integration of soil module failed with following message: "
+                f"{output.message!s}"
             )
-            raise IntegrationError()
+            LOGGER.error(to_raise)
+            raise to_raise
 
         # Construct index slices
         slices = make_slices(no_cells, round(len(y0) / no_cells))
@@ -470,6 +489,29 @@ class SoilModel(
         }
 
         return new_c_pools
+
+    def check_for_unexpected_nan_values(self, var: str) -> bool:
+        """Check if there are unexpected NaN values in the data for a specific variable.
+
+        The soil model needs the air_temperature variable to have non-NaN values at the
+        soil surface, and the other layer structured variables to be defined for every
+        soil layer. For these variables, this function takes the appropriate subset.
+
+        Args:
+            var: The name of the variable being checked
+
+        Returns:
+            Whether the data for the variable has any unexpected NaN values.
+        """
+
+        if var == "air_temperature":
+            subset = self.data[var].isel(layers=self.layer_structure.index_surface)
+        elif "layers" in self.data[var].dims:
+            subset = self.data[var].isel(layers=self.layer_structure.index_all_soil)
+        else:
+            subset = self.data[var]
+
+        return bool(subset.isnull().any())
 
     def convert_fruiting_body_production_to_rate(
         self, total_production: DataArray
