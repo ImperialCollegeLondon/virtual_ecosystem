@@ -1080,6 +1080,17 @@ class PlantsModel(
                 # Add recruited cohorts
                 community.add_cohorts(new_data=cohorts)
 
+                self.stochiometries[cell_id]["N"].add_cohorts(
+                    new_cohort_data=cohorts,
+                    flora=self.flora,
+                    element="N",
+                )
+                self.stochiometries[cell_id]["P"].add_cohorts(
+                    new_cohort_data=cohorts,
+                    flora=self.flora,
+                    element="P",
+                )
+
     def update_cn_ratios(self) -> None:
         """Update the C:N and C:P ratios of plant tissues.
 
