@@ -45,7 +45,11 @@ from virtual_ecosystem.models.litter.carbon import (
 )
 from virtual_ecosystem.models.litter.chemistry import LitterChemistry
 from virtual_ecosystem.models.litter.constants import LitterConsts
-from virtual_ecosystem.models.litter.inputs import LitterInputs
+from virtual_ecosystem.models.litter.inputs import (
+    LitterInputs,
+    calculate_input_chemistries,
+)
+from virtual_ecosystem.models.litter.losses import calculate_litter_losses
 
 
 class LitterModel(
@@ -117,6 +121,9 @@ class LitterModel(
         "litter_consumption_woody",
         "litter_consumption_below_metabolic",
         "litter_consumption_below_structural",
+        "air_temperature",
+        "soil_temperature",
+        "matric_potential",
     ),
     vars_updated=(
         "litter_pool_above_metabolic",
@@ -286,7 +293,7 @@ class LitterModel(
             LOGGER.error(to_raise)
             raise to_raise
 
-        self.litter_chemistry = LitterChemistry(self.data, constants=model_constants)
+        self.litter_chemistry = LitterChemistry(self.data)
         self.model_constants = model_constants
 
     def spinup(self) -> None:
@@ -330,7 +337,6 @@ class LitterModel(
 
         # Calculate the litter pool decay rates
         decay_rates = calculate_decay_rates(
-            post_consumption_pools=consumed_pools,
             lignin_above_structural=self.data["lignin_above_structural"].to_numpy(),
             lignin_woody=self.data["lignin_woody"].to_numpy(),
             lignin_below_structural=self.data["lignin_below_structural"].to_numpy(),
@@ -342,7 +348,17 @@ class LitterModel(
         )
 
         litter_inputs = LitterInputs.create_from_data(
-            self.data, constants=self.model_constants
+            self.data,
+            constants=self.model_constants,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "days"
+            ).magnitude,
+        )
+
+        input_chemistries = calculate_input_chemistries(
+            litter_inputs=litter_inputs,
+            struct_to_meta_nitrogen_ratio=self.model_constants.structural_to_metabolic_n_ratio,
+            struct_to_meta_phosphorus_ratio=self.model_constants.structural_to_metabolic_p_ratio,
         )
 
         # Calculate the updated pool masses
@@ -355,24 +371,37 @@ class LitterModel(
             ).magnitude,
         )
 
-        # Calculate all the litter chemistry changes
-        updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
-            updated_pools=updated_pools, litter_inputs=litter_inputs
+        litter_losses = calculate_litter_losses(
+            original_pools=consumed_pools,
+            final_pools=updated_pools,
+            litter_inputs=litter_inputs,
+            input_chemistries=input_chemistries,
+            data=self.data,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "day"
+            ).magnitude,
+            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
         )
 
-        # Calculate the total mineralisation rates from the litter
+        # Calculate all the litter chemistry changes
+        updated_chemistries = self.litter_chemistry.calculate_new_pool_chemistries(
+            litter_inputs=litter_inputs,
+            litter_losses=litter_losses,
+            input_chemistries=input_chemistries,
+            original_pools=consumed_pools,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "day"
+            ).magnitude,
+        )
+
+        # Calculate the total mineralisation carbon mineralisation rate from the litter
         total_C_mineralisation_rate = calculate_total_C_mineralised(
-            decay_rates,
+            litter_losses=litter_losses,
             model_constants=self.model_constants,
             core_constants=self.core_constants,
-        )
-        total_N_mineralisation_rate = self.litter_chemistry.calculate_N_mineralisation(
-            decay_rates=decay_rates,
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
-        )
-        total_P_mineralisation_rate = self.litter_chemistry.calculate_P_mineralisation(
-            decay_rates=decay_rates,
-            active_microbe_depth=self.core_constants.max_depth_of_microbial_activity,
+            update_interval=self.model_timing.update_interval_quantity.to(
+                "day"
+            ).magnitude,
         )
 
         # Construct dictionary of data arrays to return
@@ -425,10 +454,10 @@ class LitterModel(
                 total_C_mineralisation_rate, dims="cell_id"
             ),
             "litter_N_mineralisation_rate": DataArray(
-                total_N_mineralisation_rate, dims="cell_id"
+                litter_losses.N_mineralisation_rate, dims="cell_id"
             ),
             "litter_P_mineralisation_rate": DataArray(
-                total_P_mineralisation_rate, dims="cell_id"
+                litter_losses.P_mineralisation_rate, dims="cell_id"
             ),
         }
 

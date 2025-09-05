@@ -29,7 +29,7 @@ on :mod:`~virtual_ecosystem.core.axes`.
 
 import json
 import pkgutil
-import sys
+import tomllib
 from collections.abc import Hashable
 from dataclasses import asdict, dataclass, field
 from graphlib import CycleError, TopologicalSorter
@@ -45,11 +45,6 @@ import virtual_ecosystem.core.base_model as base_model
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import ValidatorWithDefaults
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 
 def to_camel_case(snake_str: str) -> str:

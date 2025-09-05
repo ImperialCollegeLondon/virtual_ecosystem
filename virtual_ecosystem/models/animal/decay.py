@@ -295,6 +295,9 @@ class FungalFruitPool:
                 f"({self.mass_cnp})."
             )
 
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    """Vertical position of fungal fruiting pool."""
+
     @property
     def mass_current(self) -> float:
         """Return current carbon mass in the pool [kg]."""
@@ -468,7 +471,7 @@ class SoilPool:
     cell***.
     """
 
-    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.GROUND
+    vertical_occupancy: VerticalOccupancy = VerticalOccupancy.SOIL
     """Vertical position of soil pool."""
 
     def __init__(

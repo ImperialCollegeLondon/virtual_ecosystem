@@ -194,6 +194,8 @@ subtrees:
                 title: The env_factors submodule
               - file: api/models/litter/inputs
                 title: The inputs submodule
+              - file: api/models/litter/losses
+                title: The losses submodule
               - file: api/models/litter/litter_model
                 title: The litter_model submodule
           - file: api/models/soil
@@ -207,6 +209,8 @@ subtrees:
                 title: The env_factors submodule
               - file: api/models/soil/microbial_groups
                 title: The microbial_groups submodule
+              - file: api/models/soil/uptake
+                title: The uptake submodule
               - file: api/models/soil/soil_model
                 title: The soil_model submodule
           - file: api/models/plants

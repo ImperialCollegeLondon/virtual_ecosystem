@@ -7,9 +7,11 @@ set of configuration files.
 import argparse
 import sys
 import textwrap
+import tomllib
 from collections.abc import Sequence
 from pathlib import Path
 from shutil import copytree, ignore_patterns
+from tomllib import TOMLDecodeError
 from typing import Any
 
 import virtual_ecosystem as ve
@@ -18,13 +20,6 @@ from virtual_ecosystem.core.config import config_merge
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.main import Progress, ve_run
-
-if sys.version_info[:2] >= (3, 11):
-    import tomllib
-    from tomllib import TOMLDecodeError
-else:
-    import tomli as tomllib
-    from tomli import TOMLDecodeError
 
 
 def _parse_param_str(s: str) -> dict[str, Any]:

@@ -13,7 +13,7 @@ def calculate_zero_plane_displacement(
     leaf_area_index: NDArray[np.floating],
     zero_plane_scaling_parameter: float,
 ) -> NDArray[np.floating]:
-    """Calculate zero plane displacement height, [m].
+    """Calculate zero plane displacement height.
 
     The zero plane displacement height is a concept used in micrometeorology to describe
     the flow of air near the ground or over surfaces like a forest canopy or crops. It
@@ -55,7 +55,7 @@ def calculate_roughness_length_momentum(
     min_roughness_length: float,
     von_karman_constant: float,
 ) -> NDArray[np.floating]:
-    """Calculate roughness length governing momentum transfer, [m].
+    """Calculate roughness length governing momentum transfer.
 
     Roughness length is defined as the height at which the mean velocity is zero due to
     substrate roughness. Real surfaces such as the ground or vegetation are not smooth
@@ -127,9 +127,10 @@ def calculate_wind_profile(
     zero_plane_displacement: NDArray[np.floating],
     min_wind_speed: float,
 ) -> NDArray[np.floating]:
-    r"""Calculate wind speed profile, [m s-1].
+    r"""Calculate wind speed profile.
 
-    The wind speed at different heights is calculated using the following equation:
+    The wind speed at different heights is calculated using the following equation
+    (based on :cite:t:`holmes_wind_2019`):
 
     .. math::
         u(z) = u_{ref} \times \frac{ \ln \left( \frac{z - d}{z_0} \right) }
@@ -174,13 +175,14 @@ def calculate_friction_velocity(
     zero_plane_displacement: NDArray[np.floating],
     von_karman_constant: float,
 ) -> NDArray[np.floating]:
-    r"""Calculate friction velocity, [m s-1].
+    r"""Calculate friction velocity.
 
     Friction velocity is a measure of the shear stress exerted by the wind on the
     Earth's surface, representing the velocity scale that relates to turbulent energy
     transfer near the surface.
 
-    The friction velocity (:math:`u_{*}`, [m s-1]) is calculated as
+    The friction velocity (:math:`u_{*}`, [m s-1]) is calculated as (based on
+    :cite:t:`holmes_wind_2019`):
 
     :math:`u_{*} = \frac{\kappa u}{\ln{(\frac{z - d}{z_0})}}`
 
@@ -211,15 +213,16 @@ def calculate_friction_velocity(
 def calculate_ventilation_rate(
     aerodynamic_resistance: float | NDArray[np.floating],
     characteristic_height: float | NDArray[np.floating],
-) -> float | NDArray[np.floating]:
+) -> NDArray[np.floating]:
     """Calculate ventilation rate from the top of the canopy to atmosphere above.
 
     This function calculates the rate of water and heat exchange between the top of the
-    canopy and the atmosphere above.
+    canopy and the atmosphere above after :cite:t:`wolfe_forest_2011`.
 
     Args:
         aerodynamic_resistance: Aerodynamic resistance, [s m-1]
-        characteristic_height: Vertical scale of exchange, [m]
+        characteristic_height: Vertical scale of exchange, typically canopy height +
+            zero plane displacement height [m]
 
     Returns:
         Ventilation rate [s-1]
@@ -248,7 +251,7 @@ def calculate_mixing_coefficients_canopy(
 
     .. math::
 
-        k_{H,M}(z)=\kappa u_{*}z(1-z h_c)^{2}
+        k_{H,M}(z)=\kappa u_{*}z(\frac{1-z}{h_c})^{2}
 
     where :math:`\kappa` is the von Karman constant (dimensionless), :math:`u_{*}` is
     the friction velocity (m s-1), :math:`z` is the height (m) for which coefficients
@@ -278,49 +281,143 @@ def calculate_mixing_coefficients_canopy(
     return mixing_coefficients
 
 
+def clamp_variable_within_limits(
+    variable: NDArray[np.floating], limits: tuple[float, float]
+) -> NDArray[np.floating]:
+    """Clamp an array of canopy data within limits.
+
+    This function iterates from the bottom of the canopy, clamping the values of the
+    input array within the limits. When a value is altered by clamping, the residual is
+    added to the layer above to maintain the variable total within cells. Residual
+    values may be redistributed across multiple layers and empty values (representing
+    unoccupied canopy layers) are skipped.
+
+    Note:
+        If the vertical layers cannot absorb all of the accumulated residuals without
+        themselves being clamped, then the values in the top layer can still fall
+        outside the clamping limits.
+
+    Args:
+        variable: A numpy array containing canopy data.
+        limits: A tuple giving the upper and lower bounds within which to clamp the data
+    """
+
+    # Get a map of nan values and initialise the out_of_limits array
+    out_of_limits = np.zeros_like(variable[0])
+    nan_map = np.isnan(variable)
+    n_layers = variable.shape[0]
+
+    # Loop up from the row index of lowest layer, stopping before the top layer
+    for layer in np.arange(n_layers - 1, 0, -1):
+        # Calculate the clamped values for the current layer
+        in_limits = np.clip(variable[layer], *limits)
+
+        # Add under and overshoots to the out_of_limits array, trapping cells that
+        # contain no vegetation in the layer (np.nan)
+        out_of_limits += np.where(nan_map[layer], 0, variable[layer] - in_limits)
+
+        # Set the clamped data in the current layer
+        variable[layer] = in_limits
+
+        # Add out of limits to the layer above
+        variable[layer - 1] += out_of_limits
+        # Update out_of_limits
+        # - np.nan cells carry over the current out_of_limits total
+        # - otherwise the out_of_limits has been set into the layer above, so is zeroed
+        out_of_limits = np.where(nan_map[layer - 1], out_of_limits, 0)
+
+    return variable
+
+
 def mix_and_ventilate(
     input_variable: NDArray[np.floating],
     layer_thickness: NDArray[np.floating],
     mixing_coefficient: NDArray[np.floating],
-    ventilation_rate: float | NDArray[np.floating],
+    ventilation_rate: NDArray[np.floating],
+    limits: tuple[float, float],
     time_interval: float,
 ) -> NDArray[np.floating]:
-    """Mix and ventilate vertically.
+    """Apply vertical mixing and top-layer ventilation across multiple vertical layers.
 
-    This function takes an atmospheric variable such as temperature or specific
-    humidity, mixed vertically between layers and ventilates at the top of the canopy.
+    This function simulates diffusion-like mixing between vertical layers based on local
+    gradients of atmospheric variables (e.g. temperature, relative humidity) and
+    layer-specific mixing coefficients. For each internal layer (excluding the top and
+    bottom), it computes upward and downward fluxes using the nearest valid
+    (finite) values above and below, respectively. The fluxes are scaled by the layer
+    thickness and applied to update the variable.
+
+    Additionally, the function applies a ventilation adjustment to the top layer of each
+    column, representing heat or water exchange with the  above the canopy. This is
+    based on the difference between the top and next valid layer, scaled by a
+    user-provided ventilation rate, with optional limits to prevent overcorrection or
+    negative concentrations.
+
+    Advection is currently not implemented as everything is removed with time interval
+    > 1h and horizontal transfer is not implemented.
 
     Args:
         input_variable: Input variable for all true atmospheric layers
         layer_thickness: Layer thickness, [m]
         mixing_coefficient: Turbulent mixing coefficients for canopy, [m2 s-1]
         ventilation_rate: Ventilation rate, [s-1]
+        limits: Upper and lower limit for input variable, avoid overshoot when mixing
         time_interval: Time interval, [s]
 
     Returns:
         Vertically mixed input variable
     """
 
+    # Copy the input to update with mixing
     input_variable_mixed = input_variable.copy()
-    for i in range(2, len(input_variable) - 1):
-        flux_up = (
-            mixing_coefficient[i - 1]
-            * (input_variable[i - 1] - input_variable[i])
-            / layer_thickness[i]
-        )
-        flux_down = (
-            mixing_coefficient[i + 1]
-            * (input_variable[i + 1] - input_variable[i])
-            / layer_thickness[i]
-        )
-        change_input_variable = (
-            (flux_up + flux_down) * time_interval / layer_thickness[i]
-        )
-        input_variable_mixed[i] += change_input_variable
+    n_layers, n_cells = input_variable_mixed.shape
 
-    # Ventilation at top
-    input_variable_mixed[0] += (
-        ventilation_rate * (input_variable[0] - input_variable[1]) * time_interval
+    # Extract the layer thickness and current value for the canopy layers, excluding the
+    # surface layer and above canopy values
+    value_canopy = input_variable[1:-1]
+    canopy_layer_thickness = layer_thickness[1:-1]
+
+    # Get the value and mixing coefficients from the layer above.
+    value_above = input_variable[0:-2]
+    mix_above = mixing_coefficient[0:-2]
+
+    # Get the value and mixing coefficients from the layer above.
+    value_below = input_variable[2:]
+    mix_below = mixing_coefficient[2:]
+
+    # In-fill missing below values from the surface layer
+    value_below = np.where(np.isnan(value_below), input_variable[-1], value_below)
+    mix_below = np.where(np.isnan(mix_below), mix_below[-1], mix_below)
+
+    # Calculate fluxes (positive upward, negative downward) and update variable
+    flux_up = mix_above * (value_above - value_canopy) / canopy_layer_thickness
+    flux_down = mix_below * (value_below - value_canopy) / canopy_layer_thickness
+
+    value_change = (flux_up + flux_down) * time_interval / canopy_layer_thickness
+    input_variable_mixed[1:-1] += value_change
+
+    # Calculate ventilation using the value from the highest layer, which is either the
+    # top canopy layer or the surface layer if no canopy is present
+    vent_below = np.where(
+        np.isnan(input_variable_mixed[1]),
+        input_variable_mixed[-1],
+        input_variable_mixed[1],
+    )
+
+    # Get the ventilation delta and change over time
+    delta_vent = input_variable_mixed[0] - vent_below
+    vent_change = ventilation_rate * delta_vent * time_interval
+
+    # Clip the maximum ventilation rate to 10%
+    vent_max_change = 0.1 * abs(input_variable[0])
+    vent_change = np.clip(vent_change, -vent_max_change, vent_max_change)
+
+    # Update the current values
+    input_variable_mixed[0] += vent_change
+    input_variable_mixed[1] -= vent_change
+
+    # Redistribute overshoot/undershoot
+    input_variable_mixed = clamp_variable_within_limits(
+        variable=input_variable_mixed, limits=limits
     )
 
     return input_variable_mixed
@@ -337,9 +434,9 @@ def advect_water_from_toplayer(
     """Remove water by advection from above canopy layer.
 
     Args:
-        specific_humidity: Specific humidity in each layer, [kg kg-1]
-        layer_thickness: Thickness of each layer, [m]
-        density_air: Air density in each layer, [kg m-3]
+        specific_humidity: Specific humidity in top layer, [kg kg-1]
+        layer_thickness: Thickness of top layer, [m]
+        density_air: Air density in top layer, [kg m-3]
         wind_speed: Horizontal wind speed above canopy, [m s-1]
         characteristic_length: Horizontal length scale of the grid cell, [m]
         time_interval: Time step, [s]
@@ -375,9 +472,10 @@ def calculate_aerodynamic_resistance(
     wind_speed: NDArray[np.floating],
     von_karman_constant: float,
 ) -> NDArray[np.floating]:
-    r"""Calculate aerodynamic resistance in canopy, [s m-1].
+    r"""Calculate aerodynamic resistance in canopy.
 
-    The aerodynamic resistance :math:`r_{a}` is calculated as:
+    The aerodynamic resistance :math:`r_{a}` is calculated as (based on
+    :cite:t:`jansson_coupled_2004`):
 
     .. math::
         r_{a} = \frac{ln(\frac{z-d}{z_{m}})^{2}}{\kappa ^{2} u(z)}
@@ -388,7 +486,7 @@ def calculate_aerodynamic_resistance(
     :math:`u(z)` is the wind speed at height :math:`z`.
 
     Args:
-        wind_heights: Heights where wind speed is to be calculated [m].
+        wind_heights: Heights where wind speed is to be calculated, [m].
         roughness_length: Momentum roughness length, [m]
         zero_plane_displacement: Height above the actual ground where the wind speed is
             theoretically reduced to zero due to the obstruction caused by the roughness
