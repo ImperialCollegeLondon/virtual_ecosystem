@@ -1,5 +1,5 @@
-"""The :mod:`~virtual_ecosystem.models.plants.stochiometry` module contains the class
-for managing plant cohort stochiometry ratios. The carbon mass is stored in plant
+"""The :mod:`~virtual_ecosystem.models.plants.stoichiometry` module contains the class
+for managing plant cohort stoichiometry ratios. The carbon mass is stored in plant
 allometry or allocation, so this class uses those as the anchor weights and stores
 CN and CP ratios.
 
@@ -25,7 +25,7 @@ from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
 
 @dataclass
 class Tissue(ABC):
-    """A dataclass to hold tissue stochiometry data for a set of plant cohorts.
+    """A dataclass to hold tissue stoichiometry data for a set of plant cohorts.
 
     This class holds the current quantity of a given element (generally N or P) for a
     specific plant tissue type (generally foliage, wood, roots or reproductive tissue).
@@ -92,7 +92,7 @@ class Tissue(ABC):
 
 @dataclass
 class FoliageTissue(Tissue):
-    """A class to hold foliage stochiometry data for a set of plant cohorts."""
+    """A class to hold foliage stoichiometry data for a set of plant cohorts."""
 
     reclaim_ratio: NDArray[np.float64]
     """The ratio of the element that can be reclaimed from the senesced tissue."""
@@ -159,7 +159,7 @@ class FoliageTissue(Tissue):
 
 @dataclass
 class ReproductiveTissue(Tissue):
-    """Holds reproductive tissue stochiometry data for a set of plant cohorts."""
+    """Holds reproductive tissue stoichiometry data for a set of plant cohorts."""
 
     @classmethod
     def from_pft_default_ratios(
@@ -220,7 +220,7 @@ class ReproductiveTissue(Tissue):
 
 @dataclass
 class WoodTissue(Tissue):
-    """A class to hold wood stochiometry data for a set of plant cohorts."""
+    """A class to hold wood stoichiometry data for a set of plant cohorts."""
 
     @classmethod
     def from_pft_default_ratios(
@@ -278,7 +278,7 @@ class WoodTissue(Tissue):
 
 @dataclass
 class RootTissue(Tissue):
-    """A class to hold root stochiometry data for a set of plant cohorts."""
+    """A class to hold root stoichiometry data for a set of plant cohorts."""
 
     @classmethod
     def from_pft_default_ratios(
@@ -346,7 +346,7 @@ class RootTissue(Tissue):
 
 
 @dataclass
-class StemStochiometry(CohortMethods, PandasExporter):
+class StemStoichiometry(CohortMethods, PandasExporter):
     """A class holding elemental weights for a set of plant cohorts and tissues.
 
     This class holds the current ratios across tissue type for a community object, which
@@ -362,7 +362,7 @@ class StemStochiometry(CohortMethods, PandasExporter):
     tissues: list[Tissue]
     """Tissues for the associated cohorts."""
     community: Community
-    """The community object that the stochiometry is associated with."""
+    """The community object that the stoichiometry is associated with."""
     element_surplus: NDArray[np.float64] = field(init=False)
     """The surplus of the element per cohort."""
 
@@ -377,15 +377,15 @@ class StemStochiometry(CohortMethods, PandasExporter):
         extra_pft_traits: ExtraTraitsPFT,
         element: str,
     ):
-        """Create an instance of StemStochiometry from the PFT stochiometry ratios.
+        """Create an instance of StemStoichiometry from the PFT stoichiometry ratios.
 
         Args:
-            community: The community object that the stochiometry is associated with.
+            community: The community object that the stoichiometry is associated with.
             extra_pft_traits: Additional traits specific to the plant functional type.
             element: The name of the element (default is "N").
 
         Returns:
-            An instance of StemStochiometry with default tissues.
+            An instance of StemStoichiometry with default tissues.
         """
         foliage_tissue_model = FoliageTissue.from_pft_default_ratios(
             community=community,
