@@ -65,6 +65,7 @@ pytest = ">=7.1.2,<9.0.0"
 pytest-cov = ">=3,<7"
 pytest-datadir = "^1.4.1"
 pytest-mock = "^3.8.1"
+pytest-xdist = {extras = ["psutil"], version = "^3.8.0"}
 
 [tool.poetry.group.devenv.dependencies]
 codespell = "^2.4.1"
@@ -102,6 +103,7 @@ requires = ["poetry-core>=1.2.0"]
 addopts = """	
   -v
   -p no:warnings
+  -n auto
   --cov=virtual_ecosystem
   --cov-report=html:htmlcov/coverage
   --doctest-modules --ignore=virtual_ecosystem/__main__.py
