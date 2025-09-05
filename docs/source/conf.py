@@ -144,6 +144,7 @@ nitpick_ignore = [
     ("py:class", "dataclasses.InitVar"),
     ("py:class", "Quantity"),
     ("py:class", "numpy._typing._array_like._ScalarType_co"),
+    ("py:class", "numpy._typing._array_like._ScalarT"),
     # God only knows why this is needed. We don't refer to pint.util.Quantity and it
     # isn't in the pint objects.inv, so why the hell is intersphinx trying to build
     # references to it.

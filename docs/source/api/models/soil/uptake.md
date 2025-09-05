@@ -24,11 +24,10 @@ language_info:
   version: 3.11.9
 ---
 
-# API documentation for the {mod}`~virtual_ecosystem.core.axes` module
+# API documentation for the {mod}`~virtual_ecosystem.models.soil.uptake` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.core.axes
+.. automodule:: virtual_ecosystem.models.soil.uptake
     :autosummary:
     :members:
-    :special-members: __init_subclass__
 ```

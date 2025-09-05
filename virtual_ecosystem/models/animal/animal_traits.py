@@ -14,14 +14,19 @@ class MetabolicType(Enum):
 
 
 class DietType(Flag):
-    """Enumeration for diet resource types."""
+    """Enumeration for diet resource types.
+
+    TODO: refine categorizations
+
+    """
 
     ALGAE = auto()
     DETRITUS = auto()
     FLOWERS = auto()
     FOLIAGE = auto()
     FRUIT = auto()
-    FUNGUS = auto()
+    MUSHROOMS = auto()
+    FUNGI = auto()
     SEEDS = auto()
     BLOOD = auto()
     INVERTEBRATES = auto()
@@ -32,6 +37,8 @@ class DietType(Flag):
     WASTE = auto()
     WOOD = auto()
     NONFEEDING = auto()
+    POM = auto()
+    BACTERIA = auto()
 
     HERBIVORE = (
         ALGAE
@@ -39,7 +46,6 @@ class DietType(Flag):
         | FLOWERS
         | FOLIAGE
         | FRUIT
-        | FUNGUS
         | SEEDS
         | NECTAR
         | WOOD

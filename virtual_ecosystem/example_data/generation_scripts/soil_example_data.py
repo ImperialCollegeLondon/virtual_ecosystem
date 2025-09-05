@@ -16,9 +16,6 @@ gradient = np.outer(cell_displacements / 90, cell_displacements / 90)
 # Generate a range of plausible values (3.5-4.5) for the soil pH [unitless].
 pH_values = 3.5 + 1.00 * gradient / 64.0
 
-# Generate a range of plausible values (1200-1800) for the bulk density [kg m^-3].
-bulk_density_values = 1200.0 + 600.0 * gradient / 64.0
-
 # Generate a range of plausible values (0.27-0.40) for the clay fraction [fraction].
 clay_fraction_values = 0.27 + 0.13 * gradient / 64.0
 
@@ -104,7 +101,6 @@ fungal_fruiting_bodies_values = 0.1 + 0.3 * gradient / 64.0
 example_soil_data = Dataset(
     data_vars=dict(
         pH=(["x", "y"], pH_values),
-        bulk_density=(["x", "y"], bulk_density_values),
         clay_fraction=(["x", "y"], clay_fraction_values),
         soil_c_pool_lmwc=(["x", "y"], lmwc_values),
         soil_c_pool_maom=(["x", "y"], maom_values),
