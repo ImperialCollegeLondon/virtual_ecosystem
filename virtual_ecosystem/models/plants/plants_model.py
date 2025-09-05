@@ -214,7 +214,7 @@ class PlantsModel(
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
         to PlantCommunity instances for each cell."""
-        self.stochiometries: dict[int, dict[str, StemStoichiometry]]
+        self.stoichiometries: dict[int, dict[str, StemStoichiometry]]
         """A dictionary keyed by cell id giving the stoichiometry of each community."""
         self.allocations: dict[int, StemAllocation]
         """A dictionary keyed by cell id giving the allocation of each community."""
@@ -354,21 +354,21 @@ class PlantsModel(
             data=self.data, flora=self.flora, grid=self.grid
         )
 
-        # Initialize the stochiometries of each cohort. Each StemStoichiometry object
+        # Initialize the stoichiometries of each cohort. Each StemStoichiometry object
         # contains a list of StemTissue objects, which are the tissues that make up the
         # stoichiometry of the stem. The initial values for N and P are based on the
-        # ideal stochiometric ratios defined in the PlantsConsts class.
+        # ideal stoichiometric ratios defined in the PlantsConsts class.
         # TODO: #697 - these need to be configurable
-        self.stochiometries = {}
+        self.stoichiometries = {}
 
         for cell_id in self.communities.keys():
-            self.stochiometries[cell_id] = {}
-            self.stochiometries[cell_id]["N"] = StemStoichiometry.default_init(
+            self.stoichiometries[cell_id] = {}
+            self.stoichiometries[cell_id]["N"] = StemStoichiometry.default_init(
                 self.communities[cell_id],
                 extra_pft_traits=self.extra_pft_traits,
                 element="N",
             )
-            self.stochiometries[cell_id]["P"] = StemStoichiometry.default_init(
+            self.stoichiometries[cell_id]["P"] = StemStoichiometry.default_init(
                 self.communities[cell_id],
                 extra_pft_traits=self.extra_pft_traits,
                 element="P",
@@ -797,7 +797,7 @@ class PlantsModel(
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
-            stochiometries = self.stochiometries[cell_id]
+            stoichiometries = self.stoichiometries[cell_id]
 
             # Calculate the allocation of GPP per stem and store it in the attribute
             stem_allocation = StemAllocation(
@@ -892,7 +892,7 @@ class PlantsModel(
                 )
 
             # ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
-            for stoichiometry in stochiometries.values():
+            for stoichiometry in stoichiometries.values():
                 stoichiometry.account_for_element_loss_turnover(stem_allocation)
 
             # ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
@@ -920,7 +920,7 @@ class PlantsModel(
 
             # Subtract the N/P required from growth from the element store, and
             # redistribute it to the individual tissues.
-            for stoichiometry in stochiometries.values():
+            for stoichiometry in stoichiometries.values():
                 stoichiometry.account_for_growth(stem_allocation)
 
             # Balance the N & P surplus/deficit with the symbiote carbon supply
@@ -936,11 +936,11 @@ class PlantsModel(
                 element_available_per_stem = np.divide(
                     element_available_per_cohort, cohorts.n_individuals
                 )
-                stochiometries[element].element_surplus += element_available_per_stem
+                stoichiometries[element].element_surplus += element_available_per_stem
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
-                for stoichiometry in stochiometries.values():
+                for stoichiometry in stoichiometries.values():
                     if stoichiometry.element_surplus[cohort] < 0:
                         # Distribute deficit across the tissue types
                         stoichiometry.distribute_deficit(cohort)
@@ -1033,7 +1033,7 @@ class PlantsModel(
             pass
             # TODO: ask Jacob what he wants from these values
             # self.data["deadwood_c_n_ratio"][cell_id] = (
-            # self.stochiometries[cell_id]["N"]...
+            # self.stoichiometries[cell_id]["N"]...
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -1098,7 +1098,7 @@ class PlantsModel(
         # TODO: scale by atmospheric pressure and temperature (#927)
 
         for cell_id in self.communities.keys():
-            self.stochiometries[cell_id]["N"].element_surplus += (
+            self.stoichiometries[cell_id]["N"].element_surplus += (
                 self.per_stem_transpiration[cell_id]
                 * 1.8015e-11
                 * (
@@ -1107,7 +1107,7 @@ class PlantsModel(
                 ).item()
                 * 1000
             )
-            self.stochiometries[cell_id]["P"].element_surplus += (
+            self.stoichiometries[cell_id]["P"].element_surplus += (
                 self.per_stem_transpiration[cell_id]
                 * (1.8015 * pow(10.0, -11))
                 * (self.data["plant_phosphorus_uptake"][cell_id]).item()
