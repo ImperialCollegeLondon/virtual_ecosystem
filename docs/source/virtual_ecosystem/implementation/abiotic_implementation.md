@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -57,13 +57,13 @@ display_markdown(
 ## Model overview
 
 The exchange of energy between the Earth's surface or canopy and the surrounding
-atmosphere involves five important processes:
+atmosphere involves five important categories of processes:
 
 - *Absorption* and *emission* of electromagnetic radiation by the surface/canopy
 - *Thermal conduction* of heat energy within the ground
 - *Turbulent transfer* of heat energy towards or away from the surface within the
   atmosphere
-- *Evaporation* and *condensation* of water
+- *Evaporation*, *transpiration*, and *condensation* of water
 - *Primary productivity*
 
 Each of these processes can be associated with an energy flux density, which is the rate
@@ -72,14 +72,14 @@ of transfer of energy normal to a surface of unit area (in $\mathrm{W\,m^{-2}}$)
 The energy balance of a surface layer of finite depth and unit horizontal area can be
 written as:
 
-$$\frac{dQ}{dt} = R_N - G - H - \lambda E (- PP)$$
+$$\frac{dQ}{dt} = R_n - G - H - \lambda E (- PP)$$
 
 where:
 
 $Q$:
 Total heat energy stored in the surface layer.
 
-$R_N$:
+$R_n$:
 Net surface irradiance (commonly referred to as the net radiation). It
 represents the gain of energy by the surface from radiation. It is a positive number
 when it is towards the surface.
@@ -87,7 +87,7 @@ when it is towards the surface.
 $G$:
 Ground Heat Flux. It is the loss of energy by heat conduction through the
 lower boundary. It is a positive number when it is directed away from the surface into
-ground. The value at the surface is denoted G0.
+ground. The value at the surface is denoted $G_{0}$.
 
 $H$:
 Sensible Heat Flux. It represents the loss of energy by the
@@ -96,12 +96,25 @@ away from the surface into the atmosphere.
 
 $\lambda E$:
 Latent Heat Flux. It represents a loss of energy from the
-surface due to evaporation. ($\lambda$  is the specific latent heat of evaporation,
+surface due to evaporation and/or transpiration. ($\lambda$  is the specific latent heat
+of evaporation,
 units $\mathrm{J\,kg^{-1}}$ and E is the evaporation rate, with units
 $\mathrm{kg\,m^{-2}\,s^{-1}}$).
 
 $PP$:
 Primary productivity, represents the energy that plants use to photosynthesize.
+
+```{note}
+Calculating abiotic processes at coarse time scales can lead to inaccuracies, so the
+abiotic model uses an internal hourly time step. If the Virtual Ecosystem is run with a
+coarser update interval, the abiotic model first partitions the input data into hourly
+values where required, then simulates a single representative hour for the entire
+interval.
+
+The outputs returned by the abiotic model are therefore equilibrium values for that
+representative hour. A planned future improvement is to allow true hourly input, so the
+model can capture full diurnal cycles and return time-averaged values of key variables.
+```
 
 ### Net radiation
 
@@ -109,10 +122,10 @@ The current representation of the radiation balance is limited to the reflection
 absorption of direct downward shortwave radiation and the emission of longwave radiation
 as part of the surface energy balance.
 
-The net radiation $R_N$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
+The net radiation $R_n$ ($\mathrm{W\,m^{-2}}$) at the leaf or soil surface is
 calculated as:
 
-$$R_N = S_0 \cdot (1 - \alpha) - \epsilon_{s} \sigma T^{4}$$
+$$R_n = S_0 \cdot (1 - \alpha) - \epsilon_{s} \sigma T^{4}$$
 
 where:
 
@@ -147,28 +160,29 @@ soil surface by partitioning net radiation $R_N$ into different fluxes.
 
 The **sensible heat flux** from the soil surface is given by:
 
-$$H_{S} = \frac {\rho_{air} C_{air} (T_{S} - T_{A})}{r_{A}}$$
+$$H_{s} = \frac {\rho_{a} c_{p} (T_{s} - T_{a})}{r_{a}}$$
 
 where:
 
-$T_S$:
+$T_s$:
 Soil surface temperature (°C)
 
-$T_A$:
+$T_a$:
 Air temperature in the bottom atmospheric layer (°C)
 
-$r_A$:
+$r_a$:
 Aerodynamic resistance of the soil surface ($\mathrm{s\,m^{-1}}$)
 
-$\rho_{air}$:
+$\rho_{a}$:
 Air density ($\mathrm{kg\,m^{-3}}$)
 
-$C_{air}$:
-Specific heat capacity of air ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
+$c_{p}$:
+Specific heat capacity of air at constant pressure ($\mathrm{J\,kg^{-1}\,K^{-1}}$)
 
-The aerodynamic resistance of the soil surface is given by:
+The aerodynamic resistance of the soil surface is given by
+{cite:p}`barton_parameterization_1979`:
 
-$$r_{A} = \frac {C_{E}}{u}$$
+$$r_{a} = \frac{1}{C_{E} u}$$
 
 where:
 
@@ -181,9 +195,10 @@ Drag coefficient for evaporation (–)
 The **latent heat flux** is derived by conversion of surface evaporation as
 calculated by the hydrology model.
 
-The **ground heat flux** is calculated as the residual of the energy balance:
+The **ground heat flux** is calculated as the residual of the energy balance at the
+soil surface:
 
-$$G = R_N - H_S - \lambda E_S$$
+$$G = R_n - H_s - \lambda E_s$$
 
 ### Soil temperature update
 
@@ -197,7 +212,7 @@ each soil depth.
 The **soil thermal diffusivity** $\alpha$ ($\mathrm{m^{2}\,s^{-1}}$) determines the rate
 at which heat is conducted through the soil. It is defined as:
 
-$$\alpha = \frac{k}{\rho c}$$
+$$\alpha = \frac{k}{\rho_s c_s}$$
 
 where:
 
@@ -205,16 +220,17 @@ $k$:
 Soil thermal conductivity ($\mathrm{W\,m^{-1}\,K^{-1}}$), indicating how
   easily heat moves through soil
 
-$\rho$:
-Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces
+$\rho_s$:
+Soil bulk density ($\mathrm{kg\,m^{-3}}$), including solids and pore spaces, currently
+constant across all grid cells and layers
 
-$c$:
+$c_s$:
 Soil specific heat capacity ($\mathrm{J\,kg^{-1}\,K^{-1}}$), the energy required to
 raise the temperature of 1 kg of soil by 1 K.
 
 #### Temperature Update Scheme
 
-Let $T_i^t$ represent the temperature (°C or K) of the $i^{\text{th}}$ soil layer at time
+Let $T_i^t$ represent the temperature (°C) of the $i^{\text{th}}$ soil layer at time
 $t$. The soil column is discretized into $n$ layers, each of thickness $\Delta z$ (m),
 and time advances in steps of $\Delta t$ (s).
 
@@ -268,10 +284,10 @@ layer is as follows:
 
 ```{math}
     & \frac{dQ}{dt} \\
-    & = R_{N} - H - \lambda E (- PP)\\
-    & = R_{\text{abs}} - \epsilon_{s} \sigma T_{L}^{4} -
-    \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})
-    - \lambda g_{v} \frac {e_{L} - e_{A}}{p_{A}} (- PP)\\
+    & = R_{n} - H_l - \lambda E_l (- PP)\\
+    & = R_{\text{abs}} - \epsilon_{l} \sigma T_{l}^{4} -
+    \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})
+    - \lambda g_{v} \frac {e_{l} - e_{a}}{p_{a}} (- PP)\\
     & = 0
 ```
 
@@ -284,35 +300,35 @@ Shortwave radiation absorbed by the canopy, equivalent to $S_0 (1-\alpha)$
 $R_{\text{em}}$:
 Emitted longwave radiation from the canopy ($\mathrm{W\,m^{-2}}$)
 
-$H$:
+$H_{l}$:
 Sensible heat flux from the canopy to the air ($\mathrm{W\,m^{-2}}$)
 
-$\lambda E$:
+$\lambda E_{l}$:
 Latent heat flux associated with transpiration from the canopy to the air
 ($\mathrm{W\,m^{-2}}$)
 
-$\epsilon_{s}$:
+$\epsilon_{l}$:
 Emissivity of the leaf (-), typically close to 1
 
 $\sigma$:
 Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$)
 
-$T_{L}$:
+$T_{l}$:
 Temperature of the leaf (°C)
 
-$T_{A}$:
+$T_{a}$:
 Temperature of the air surrounding the leaf (°C)
 
 $\lambda$:
 Latent heat of vapourisation of water ($\mathrm{kJ\,kg^{-1}}$)
 
-$e_{L}$:
+$e_{l}$:
 Effective vapour pressure of the leaf (kPa)
 
-$e_{A}$:
+$e_{a}$:
 Vapour pressure of air (kPa)
 
-$p_{A}$:
+$p_{a}$:
 Atmospheric pressure (kPa)
 
 $g_{v}$:
@@ -338,22 +354,22 @@ To iteratively solve for the leaf temperature that satisfies the energy balance
 $\frac{dQ}{dt}$ = 0, we use the Newton method:
 
 ```{math}
-T_L^{\text{new}} = T_L^{\text{old}} + W \cdot
-\frac{\frac{dQ}{dt}}{\frac{\partial \frac{dQ}{dt}}{\partial T_L^{\text{old}}}}
+T_l^{\text{new}} = T_l^{\text{old}} + W \cdot
+\frac{\frac{dQ}{dt}}{\frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}}}
 ```
 
 where:
 
-$T_L^{\text{old}}$:
+$T_l^{\text{old}}$:
 Current estimate of leaf temperature (°C)
 
-$T_L^{\text{new}}$:
+$T_l^{\text{new}}$:
 Updated estimate of leaf temperature (°C)
 
 $W$:
 Step-size weighting factor (–), typically between 0.1 and 1
 
-$\frac{\partial \frac{dQ}{dt}}{\partial T_L^{\text{old}}}$:
+$\frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}}$:
 The first derivative of the energy balance with respect to temperature
 
 This update adjusts the leaf temperature proportionally to the energy imbalance, scaled
@@ -367,10 +383,10 @@ The temperature derivative of the energy balance as formulated above
 is calculated analytically as:
 
 ```{math}
-\frac{\partial \frac{dQ}{dt}}{\partial T_L^{\text{old}}} =
+\frac{\partial \frac{dQ}{dt}}{\partial T_l^{\text{old}}} =
 \frac{\rho_a c_p}{r_a} +
 \frac{\rho_a \Delta_v}{r_a + r_s} \lambda +
-4 \epsilon \sigma (T_L^{\text{old}} + 273.15)^3
+4 \epsilon_l \sigma (T_l^{\text{old}} + 273.15)^3
 ```
 
 where:
@@ -393,13 +409,13 @@ Slope of the saturation vapour pressure curve ($\mathrm{kPa\, K^{-1}}$)
 $\lambda$:
 Latent heat of vapourisation of water ($\mathrm{kJ\, kg^{-1}}$)
 
-$\epsilon$:
+$\epsilon_l$:
 Leaf emissivity (-)
 
 $\sigma$:
 Stefan–Boltzmann constant ($5.67 \times 10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$)
 
-$T_L^{\text{old}}$:
+$T_l^{\text{old}}$:
 Previous estimate of leaf temperature (°C, converted to K in the radiation term)
 
 This derivative represents the rate at which each energy loss term changes with leaf
@@ -412,15 +428,15 @@ After updating the canopy temperature, we update the air temperature in the
 adjacent canopy layer to reflect its coupling with the leaf temperature following
 {cite:t}`bonan_climate_2019`:
 
-$$H = \frac{\rho_a c_p}{r_a}(T_{L} - T_{A})$$
+$$H = \frac{\rho_a c_p}{r_a}(T_{l} - T_{a})$$
 
 and
 
-$$T_{A}^{\text{new}} = T_{A}^{\text{old}} + \frac{H \Delta t}{\rho_a c_p z}$$
+$$T_{a}^{\text{new}} = T_{a}^{\text{old}} + \frac{H \Delta t}{\rho_a c_p z}$$
 
 where:
 
-$T_A$:
+$T_a$:
 Air temperature, (°C)
 
 $z$:
@@ -429,41 +445,31 @@ Thickness of the air layer we are updating, (m)
 Finally, we consider vertical mixing between layers and heat is transferred to the
 air above the canopy.
 
+```{note}
+Advection of heat above the canopy is currently not implemented as everything is
+removed with time interval >= 1h and horizontal transfer is not considered.
+```
+
 #### Update of atmospheric moisture
 
-To account for moisture added to the atmosphere from canopy transpiration and soil
-evaporation, the model updates key atmospheric humidity variables in each vertical
-layer. This ensures consistency in the representation of atmospheric water content
-across the grid.
-
 Evapotranspiration and soil evaporation are initially provided in millimetres of water
-depth. These values are converted to a mass of water per unit volume of air (kg m⁻³)
-using the grid cell area. The evaporated water is then added to the relevant atmospheric
+depth. These values are converted to a mass of water per unit volume of air
+($\mathrm{kg\, m^{-3}}$) then added to the relevant atmospheric
 layers: canopy evapotranspiration is distributed across the layers surrounding the
 vegetation, while soil evaporation is added to the lowest layer near the surface.
 
 Using the updated water mass, specific humidity is recalculated for each layer by
 dividing the total water mass by the volume of air in that layer. Then, the new specific
 humidity is vertically mixed between layers and ventilated at the top of the canopy to
-make sure that water does not accumulate unrealistcaly in the canopy but stays connected
-to the atmosphere above. The resulting change in
-specific humidity is then used to compute the new vapour pressure, taking into account
-the atmospheric pressure and the molecular weight difference between water vapour and
-dry air. To maintain physical realism, the vapour pressure is capped at the saturated
-vapour pressure, avoiding supersaturation.
-
-Finally, the model derives relative humidity as the ratio of vapour pressure to
-saturated vapour pressure, expressed as a percentage. The vapour pressure deficit (VPD)
-is then calculated as the difference between saturated and actual vapour pressure,
-indicating the remaining atmospheric demand for water.
-
-This update step ensures that changes in canopy and soil water fluxes are accurately
-reflected in the atmospheric humidity profile, which in turn affects subsequent energy
-and water balance calculations.
+make sure that water does not accumulate unrealistcally in the canopy but stays connected
+to the atmosphere above. To maintain physical realism, additional redistribution steps
+are taken where necessary until all layers in the canopy are within realistic bounds.
+The resulting change in specific humidity is then used to compute the new vapour pressure
+, relative humidity, and vapour pressure deficit.
 
 ```{note}
-At the moment we get 100% relative humidity in the canopy,and 0% relative humidity above
-the canopy. This will be addressed during the model calibration.
+Advection of water above the canopy is currently not implemented as everything is
+removed with time interval >= 1h and horizontal transfer is not considered.
 ```
 
 ### Wind
@@ -506,12 +512,13 @@ with
 $$R = \sqrt{C_s + \frac{C_r LAI}{2}}$$
 
 where $C_{s}$ is the substrate surface drag coefficient, $C_{r}$ is the roughness
-element (vegetation) drag coefficient, $C_d$ is the roughness sublayer depth parameter,
+element (vegetation) drag coefficient, $C_{d}$ is the roughness sublayer depth parameter,
 $\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
 ($\mathrm{m\,m^{-1}}$).
 
 The **wind speed** ($\mathrm{m\,s^{-1}}$) at any height $z$ (m) is computed using the
-logarithmic wind profile under neutral conditions:
+logarithmic wind profile under neutral conditions (based on
+{cite:t}`holmes_wind_2019`):
 
 ```{math}
 u(z) = u_{\text{ref}} \cdot \frac{\ln\left( \frac{z - d}{z_0} \right)}
@@ -526,14 +533,16 @@ Minimum wind speed is enforced below the canopy to avoid unrealistically low tur
 transport.
 
 **Friction velocity** $u_{*}$ ($\mathrm{m\,s^{-1}}$) quantifies the shear stress
-imposed by wind near the surface and is calculated from the wind speed profile:
+imposed by wind near the surface and is calculated from the wind speed profile
+(based on {cite:t}`holmes_wind_2019`):
 
 $$u_* = \frac{\kappa \cdot u(z)}{\ln\left( \frac{z - d}{z_0} \right)}$$
 
 Friction velocity is used to estimate turbulence strength and mixing coefficients.
 
 The **aerodynamic resistance** $r_a$ ($\mathrm{s\,m^{-1}}$) quantifies the resistance to
-vertical transfer of scalars (heat, water vapour) between surface and air:
+vertical transfer of scalars (heat, water vapour) between surface and air
+(based on {cite:t}`jansson_coupled_2004`):
 
 ```{math}
 r_a = \frac{1}{g_a} = \frac{\left[ \ln\left( \frac{z - d}{z_0} \right) \right]^2}
@@ -563,7 +572,7 @@ This particular form goes to zero at both z=0 and z=h and peaks somewhere within
 canopy.
 
 The **ventilation rate** $v$ represents the rate of air exchange above the
-canopy and is defined as:
+canopy and is defined as (after {cite:t}`wolfe_forest_2011`):
 
 $$v = \frac{1}{r_a \cdot h}$$
 
