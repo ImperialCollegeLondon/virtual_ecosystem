@@ -60,11 +60,11 @@ types-jsonschema = "^4.25.1"
 types-tqdm = "^4.67.0.20250809"
 
 [tool.poetry.group.test.dependencies]
-hypothesis = "^6.138.8"
+hypothesis = "^6.138.14"
 pytest = ">=7.1.2,<9.0.0"
 pytest-cov = ">=3,<7"
 pytest-datadir = "^1.4.1"
-pytest-mock = "^3.8.1"
+pytest-mock = "^3.15.0"
 pytest-xdist = {extras = ["psutil"], version = "^3.8.0"}
 
 [tool.poetry.group.devenv.dependencies]
@@ -72,7 +72,7 @@ codespell = "^2.4.1"
 ipykernel = "^6.15.0"
 ipython = "^9.5.0"
 isort = ">=5.12,<7.0"
-jupyterlab = "^4.4.6"
+jupyterlab = "^4.4.7"
 jupyterlab-myst = "^2.4.2"
 jupytext = "^1.17.3"
 matplotlib = "^3.10.6"
