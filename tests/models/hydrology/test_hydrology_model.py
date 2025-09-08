@@ -72,7 +72,7 @@ MODEL_VAR_CHECK_LOG = [
 )
 def test_hydrology_model_initialization(
     caplog,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     fixture_core_components,
     ini_soil_moisture,
     ini_groundwater_sat,
@@ -93,7 +93,7 @@ def test_hydrology_model_initialization(
         with raises:
             # Initialize model
             model = HydrologyModel(
-                data=dummy_climate_data,
+                data=dummy_climate_data_varying_canopy,
                 core_components=fixture_core_components,
                 initial_soil_moisture=ini_soil_moisture,
                 initial_groundwater_saturation=ini_groundwater_sat,
@@ -170,7 +170,7 @@ def test_hydrology_model_initialization(
 )
 def test_generate_hydrology_model(
     caplog,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     cfg_string,
     sm_saturation,
     raises,
@@ -197,7 +197,7 @@ def test_generate_hydrology_model(
         ) as mock_setup:
             with raises:
                 HydrologyModel.from_config(
-                    data=dummy_climate_data,
+                    data=dummy_climate_data_varying_canopy,
                     core_components=core_components,
                     config=config,
                 )
@@ -230,23 +230,23 @@ def test_generate_hydrology_model(
             does_not_raise(),
             {
                 "soil_moisture": [
-                    [248.938056, 248.937037, 248.935933, 248.936385],
-                    [218.994795, 218.994795, 218.994795, 218.994795],
+                    [248.938056, 246.470017, 241.110912, 230.144438],
+                    [218.994795, 229.328526, 239.665128, 249.794233],
                 ],
                 "matric_potential": [
-                    [-56.432398, -56.438614, -56.44538, -56.442609],
-                    [-217.596626, -217.596626, -217.596626, -217.596626],
+                    [-56.432398, -70.967411, -100.068517, -158.92492],
+                    [-217.596626, -156.739248, -103.972172, -50.887597],
                 ],
                 "vertical_flow": [
-                    [0.00017, 0.00017, 0.00017, 0.00017],
-                    [0.000526, 0.000526, 0.000526, 0.000526],
+                    [0.00017, 0.000188, 0.000745, 0.00609],
+                    [0.000526, 0.000523, 0.000889, 0.025384],
                 ],
             },
             {
                 "total_river_discharge": [0, 0, 67002, 22095],
-                "surface_runoff": [20.343781, 20.66599, 20.896484, 20.443394],
-                "surface_runoff_accumulated": [0, 0, 1470, 330],
-                "soil_evaporation": [5.870856, 5.870856, 5.870856, 5.870856],
+                "surface_runoff": [20.343781, 6.316444, 2.721491, 1.192358],
+                "surface_runoff_accumulated": [0, 0, 420, 90],
+                "soil_evaporation": [5.93727, 12.359247, 25.50399, 51.620636],
             },
             id="1 month",
         ),
@@ -255,23 +255,23 @@ def test_generate_hydrology_model(
             does_not_raise(),
             {
                 "soil_moisture": [
-                    [249.628102, 249.628102, 249.628102, 249.628102],
-                    [215.713193, 215.713193, 215.713193, 215.713193],
+                    [249.628102, 248.83347, 247.201583, 243.906481],
+                    [215.713193, 227.141752, 238.570238, 249.989266],
                 ],
                 "matric_potential": [
-                    [-52.085807, -52.085807, -52.085807, -52.085807],
-                    [-196.720556, -196.720556, -196.720556, -196.720556],
+                    [-52.085807, -57.073175, -66.79106, -85.158475],
+                    [-196.720556, -144.330243, -97.954074, -49.718984],
                 ],
                 "vertical_flow": [
-                    [0.000295, 0.000295, 0.000295, 0.000295],
-                    [0.000611, 0.000611, 0.000611, 0.000611],
+                    [0.000295, 0.000345, 0.000433, 0.00545],
+                    [0.000611, 0.000658, 0.000754, 0.009276],
                 ],
             },
             {
-                "total_river_discharge": [0, 0, 5767, 1910],
-                "surface_runoff": [163.019971, 163.019971, 163.019971, 163.019971],
-                "surface_runoff_accumulated": [0, 0, 3395, 1127],
-                "soil_evaporation": [1.388223, 1.388223, 1.388223, 1.388223],
+                "total_river_discharge": [0, 0, 5668, 1894],
+                "surface_runoff": [163.019971, 158.780549, 150.030499, 132.191482],
+                "surface_runoff_accumulated": [0, 0, 3094, 1085],
+                "soil_evaporation": [1.388223, 2.904608, 6.066225, 12.622505],
             },
             id="1 week",
         ),
@@ -279,7 +279,7 @@ def test_generate_hydrology_model(
 )
 def test_setup(
     fixture_core_components,
-    dummy_climate_data,
+    dummy_climate_data_varying_canopy,
     fixture_config,
     update_interval,
     raises,
@@ -303,7 +303,7 @@ def test_setup(
         with raises:
             # initialise model. The setup is run as part of the initialisation
             model = HydrologyModel.from_config(
-                data=dummy_climate_data,
+                data=dummy_climate_data_varying_canopy,
                 core_components=core_components,
                 config=fixture_config,
             )
