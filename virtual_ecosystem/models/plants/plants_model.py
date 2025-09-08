@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
+from pyrealm.demography.community import Cohorts
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -22,6 +23,7 @@ from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -44,103 +46,105 @@ class PlantsModel(
     model_name="plants",
     model_update_bounds=("1 day", "1 year"),
     vars_required_for_init=(
-        "plant_cohorts_cell_id",
-        "plant_cohorts_pft",
-        "plant_cohorts_n",
-        "plant_cohorts_dbh",
         "downward_shortwave_radiation",
-        "subcanopy_vegetation_biomass",
+        "plant_cohorts_cell_id",
+        "plant_cohorts_dbh",
+        "plant_cohorts_n",
+        "plant_cohorts_pft",
+        "plant_pft_propagules",
         "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
     ),
     vars_populated_by_init=(
-        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "shortwave_absorption",
     ),
     vars_required_for_update=(
-        "plant_cohorts_cell_id",
-        "plant_cohorts_pft",
-        "plant_cohorts_n",
-        "plant_cohorts_dbh",
-        "downward_shortwave_radiation",
-        "subcanopy_vegetation_biomass",
-        "subcanopy_seedbank_biomass",
         "air_temperature",
-        "vapour_pressure_deficit",
-        "atmospheric_pressure",
         "atmospheric_co2",
-        "dissolved_nitrate",
+        "atmospheric_pressure",
         "dissolved_ammonium",
+        "dissolved_nitrate",
         "dissolved_phosphorus",
+        "downward_shortwave_radiation",
+        "plant_cohorts_cell_id",
+        "plant_cohorts_dbh",
+        "plant_cohorts_n",
+        "plant_cohorts_pft",
+        "plant_pft_propagules",
+        "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
+        "vapour_pressure_deficit",
         "ecto_supply_limit_n",
         "ecto_supply_limit_p",
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
     ),
     vars_updated=(
-        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
-        "layer_fapar",
-        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "shortwave_absorption",
-        "transpiration",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
-        "stem_lignin",
-        "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
-        "root_lignin",
         "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_production",
+        "fallen_non_propagule_c_mass",
+        "layer_fapar",
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "leaf_turnover",
+        "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "plant_symbiote_carbon_supply",
-        "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
-        "plant_nitrate_uptake",
-        "plant_phosphorus_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
+        "plant_nitrate_uptake",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
-        "subcanopy_vegetation_biomass",
+        "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "plant_symbiote_carbon_supply",
+        "root_carbohydrate_exudation",
+        "root_lignin",
+        "root_turnover",
+        "root_turnover_c_n_ratio",
+        "root_turnover_c_p_ratio",
+        "senesced_leaf_lignin",
+        "shortwave_absorption",
+        "stem_lignin",
         "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
+        "transpiration",
     ),
     vars_populated_by_first_update=(
-        "transpiration",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
-        "stem_lignin",
-        "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
-        "root_lignin",
         "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_production",
+        "fallen_non_propagule_c_mass",
+        "leaf_turnover",
+        "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "plant_symbiote_carbon_supply",
-        "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
-        "plant_nitrate_uptake",
-        "plant_phosphorus_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
+        "plant_nitrate_uptake",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "plant_symbiote_carbon_supply",
+        "root_carbohydrate_exudation",
+        "root_lignin",
+        "root_turnover",
+        "root_turnover_c_n_ratio",
+        "root_turnover_c_p_ratio",
+        "senesced_leaf_lignin",
+        "stem_lignin",
+        "transpiration",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -354,6 +358,30 @@ class PlantsModel(
             data=self.data, flora=self.flora, grid=self.grid
         )
 
+        # Check the pft propagules data
+        # Some development notes:
+        # - This _could_ be an optional __init__ variable that defaults to zero, but we
+        #   don't currently have optional __init__ variables.
+        # - The axis name checking here is something that the axis validation in data
+        #   loading should do, but the information (PFT names) needed to validate it
+        #   there is not part of the core configuration, so even when we pass
+        #   CoreComponents to the axis validation it won't be available (unless we
+        #   duplicate that information as part of the core, which might not be the
+        #   maddest thing ever).
+
+        # Does the propagule data have PFT coordinates
+        if "pft" not in self.data["plant_pft_propagules"].coords:
+            raise InitialisationError(
+                "The plant_pft_propagules data is missing 'pft' coordinates."
+            )
+
+        # Do the PFT coordinate values match the flora?
+        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(flora.name):
+            raise InitialisationError(
+                "The 'pft' coordinates in the plant_pft_propagules data do not match "
+                "the PFT names configured in the PlantsModel flora"
+            )
+
         # Initialize the stoichiometries of each cohort. Each StemStoichiometry object
         # contains a list of StemTissue objects, which are the tissues that make up the
         # stoichiometry of the stem. The initial values for N and P are based on the
@@ -413,9 +441,14 @@ class PlantsModel(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
 
-        # Calculate the per update interval stem mortality rate
+        # Calculate the per update interval stem mortality and recruitment rates from
+        # the annual values
         self.per_update_interval_stem_mortality_probability = 1 - (
             1 - model_constants.per_stem_annual_mortality_probability
+        ) ** (1 / self.model_timing.updates_per_year)
+
+        self.per_update_interval_propagule_recruitment_probability = 1 - (
+            1 - model_constants.per_propagule_annual_recruitment_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
         # Run the community data exporter
@@ -444,6 +477,10 @@ class PlantsModel(
             **kwargs: Further arguments to the update method.
         """
 
+        # Apply mortality and recruitment to plant cohorts
+        self.apply_mortality()
+        self.apply_recruitment()
+
         # Update the canopy layers
         self.canopies = calculate_canopies(
             communities=self.communities,
@@ -467,9 +504,6 @@ class PlantsModel(
 
         # Calculate the rate at which plants take nutrients from mycorrhizal fungi
         self.calculate_mycorrhizal_uptakes()
-
-        # Apply mortality to plant cohorts
-        self.apply_mortality()
 
         # Calculate the subcanopy vegetation
         self.calculate_subcanopy_dynamics()
@@ -747,7 +781,7 @@ class PlantsModel(
                 core_const=self.pmodel_core_consts,
             )
 
-            # Calculate and store total stem transpiration in mm  per stem and total
+            # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
             self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
                 axis=0
@@ -790,6 +824,9 @@ class PlantsModel(
             data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
             coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
         )
+
+        # Allocate canopy reproductive tissue mass. This is deliberately not
+        # partitioning tissue across canopy vertical layers.
         self.data["fallen_n_propagules"] = pft_cell_template.copy()
         self.data["canopy_n_propagules"] = pft_cell_template.copy()
         self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
@@ -799,7 +836,8 @@ class PlantsModel(
             cohorts = community.cohorts
             stoichiometries = self.stoichiometries[cell_id]
 
-            # Calculate the allocation of GPP per stem and store it in the attribute
+            # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
+            # calibrated using per kg values.
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
@@ -819,7 +857,7 @@ class PlantsModel(
             #       If the np.where is removed and this is set directly, then pyrealm
             #       will detect D <= 0 and raise an exception.
 
-            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh
+            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
             # Sum of turnover from all cohorts in a grid cell
@@ -881,7 +919,7 @@ class PlantsModel(
                 stem_canopy_non_propagule_c_mass.squeeze(),
                 cohorts.n_individuals,
             ):
-                self.data["fallen_n_propagules"].loc[cell_id, cohort_pft] += (
+                self.data["plant_pft_propagules"].loc[cell_id, cohort_pft] += (
                     fallen_n_propagules * cohort_n_stems
                 )
                 self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
@@ -994,6 +1032,64 @@ class PlantsModel(
             self.data["deadwood_production"][cell_id] = self.convert_to_litter_units(
                 input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
             )
+
+            # TODO - also need to add standing foliage, fine root and reproductive
+            #        tissue masses to the respective pools and check units of pools.
+
+    def apply_recruitment(self) -> None:
+        """Apply recruitment to plant cohorts.
+
+        This function applies recruitment to plant cohorts, currently using a single
+        recruitment rate across all plant functional types.
+        """
+
+        # Get the sequence of PFT names in the data array
+        pft_sequence = self.data["plant_pft_propagules"]["pft"].to_numpy()
+
+        # Get recruitment across all cells
+        # TODO - swap out p with a per PFT trait array.
+        recruitment = np.random.binomial(
+            n=self.data["plant_pft_propagules"],
+            p=self.per_update_interval_propagule_recruitment_probability,
+        )
+
+        # Remove recruitment from propagule pool.
+        self.data["plant_pft_propagules"] -= recruitment
+
+        # Loop over each grid cell
+        for cell_id, community in self.communities.items():
+            # Which PFTs have any recruitment in this community
+            recruiting_pfts = recruitment[cell_id, :] > 0
+
+            # If there is any recruitment, create a new set of Cohorts with a rubbish
+            # guess at initial DBH values.
+            #
+            # TODO - We need to allocate the seed mass to growing a tiny tree.
+            #        Probably that would be by using StemAllocation with an initial
+            #        value of zero and a potential GPP equal to the seed mass, but
+            #        the equations aren't defined for DBH=0. Not sure how to self
+            #        start these, so using a 2mm DBH. Need a DBH given mass solver.
+            n_recruiting = recruiting_pfts.sum()
+            if n_recruiting:
+                cohorts = Cohorts(
+                    n_individuals=recruitment[cell_id, recruiting_pfts],
+                    pft_names=pft_sequence[recruiting_pfts],
+                    dbh_values=np.repeat(0.002, n_recruiting),
+                )
+
+                # Add recruited cohorts
+                community.add_cohorts(new_data=cohorts)
+
+                self.stoichiometries[cell_id]["N"].add_cohorts(
+                    new_cohort_data=cohorts,
+                    flora=self.flora,
+                    element="N",
+                )
+                self.stoichiometries[cell_id]["P"].add_cohorts(
+                    new_cohort_data=cohorts,
+                    flora=self.flora,
+                    element="P",
+                )
 
     def update_cn_ratios(self) -> None:
         """Update the C:N and C:P ratios of plant tissues.
@@ -1274,7 +1370,7 @@ class PlantsModel(
             reproductive_tissue_mass
             * self.model_constants.propagule_mass_portion
             / self.model_constants.carbon_mass_per_propagule
-        )
+        ).astype(np.int_)
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule

@@ -14,6 +14,9 @@ class PlantsConsts(ConstantsDataclass):
     per_stem_annual_mortality_probability: float = 0.1
     """Basic annual mortality rate for plants."""
 
+    per_propagule_annual_recruitment_probability: float = 0.2
+    """Basic annual recruitment rate from plant propagules."""
+
     dsr_to_ppfd: float = 2.04
     """Convert from downward shortwave radiation to photosynthetic photon flux density.
 

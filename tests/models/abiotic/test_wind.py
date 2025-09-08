@@ -13,11 +13,11 @@ def test_calculate_zero_plane_displacement(dummy_climate_data_varying_canopy):
 
     result = calculate_zero_plane_displacement(
         canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([0.0, np.nan, 7.0, 7.0]),
+        leaf_area_index=np.array([0.0, np.nan, 7.0, 0.0]),
         zero_plane_scaling_parameter=7.5,
     )
 
-    assert_allclose(result, np.array([0.0, 0.0, 25.86256, 25.86256]))
+    assert_allclose(result, np.array([0.0, 0.0, 25.86256, 0.0]))
 
 
 def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
@@ -29,8 +29,8 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
 
     result = calculate_roughness_length_momentum(
         canopy_height=dummy_climate_data_varying_canopy["layer_heights"][1].to_numpy(),
-        leaf_area_index=np.array([np.nan, 0.0, 7, 7]),
-        zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 27.58673]),
+        leaf_area_index=np.array([np.nan, 0.0, 7, 0.0]),
+        zero_plane_displacement=np.array([0.0, 0.0, 27.58673, 0.0]),
         substrate_surface_drag_coefficient=0.003,
         roughness_element_drag_coefficient=0.3,
         roughness_sublayer_depth_parameter=0.193,
@@ -40,7 +40,7 @@ def test_calculate_roughness_length_momentum(dummy_climate_data_varying_canopy):
     )
 
     assert_allclose(
-        result, np.array([0.01, 0.01666, 0.524479, 0.524479]), rtol=1e-3, atol=1e-3
+        result, np.array([0.01, 0.01666, 0.524479, 0.01]), rtol=1e-3, atol=1e-3
     )
 
 
@@ -58,18 +58,18 @@ def test_calculate_wind_profile(
         reference_wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
         reference_height=data["layer_heights"][0].to_numpy() + 10.0,
         wind_heights=data["layer_heights"][lyr_str.index_filled_atmosphere].to_numpy(),
-        roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0, 10, 25, 25]),
+        roughness_length=np.array([0.01, 0.01666, 0.524479, 0.01]),
+        zero_plane_displacement=np.array([0, 0, 25, 0]),
         min_wind_speed=0.001,
     )
 
     exp_wind = np.array(
         [
-            [0.944971, 0.919761, 0.780217, 0.780217],
-            [0.931911, 0.899351, 0.696874, 0.696874],
-            [0.84986, 0.750916, 0.001, 0.001],
-            [0.709594, 0.001, 0.001, 0.001],
-            [0.001, 0.001, 0.001, 0.001],
+            [0.967405, 0.965281, 0.744923, 0.967405],
+            [0.959669, 0.957041, 0.648195, 0.001],
+            [0.911069, 0.905273, 0.001, 0.001],
+            [0.827986, 0.001, 0.001, 0.001],
+            [0.275995, 0.228813, 0.001, 0.275995],
         ]
     )
 
@@ -88,11 +88,11 @@ def test_calculate_friction_velocity(dummy_climate_data_varying_canopy):
     result = calculate_friction_velocity(
         reference_wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
         reference_height=data["layer_heights"][0].to_numpy() + 10.0,
-        roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0, 10, 25, 25]),
+        roughness_length=np.array([0.01, 0.01666, 0.524479, 0.01]),
+        zero_plane_displacement=np.array([0, 0, 25, 0]),
         von_karman_constant=0.4,
     )
-    exp_friction_velocity = np.array([0.080945, 0.085658, 0.099079, 0.099079])
+    exp_friction_velocity = np.array([0.047945, 0.05107, 0.11499, 0.047945])
     assert_allclose(result, exp_friction_velocity, rtol=1e-3, atol=1e-3)
 
 
@@ -238,18 +238,18 @@ def test_mix_and_ventilate(dummy_climate_data_varying_canopy, fixture_core_compo
     input_humidity = np.array(
         [
             [95.0, 95.0, 95.0, 95.0],
-            [100.0, 100.0, 100.0, 100.0],
-            [100.0, 100.0, 100.0, 100.0],
-            [90.0, 90.0, 90.0, 90.0],
+            [100.0, 100.0, 100.0, np.nan],
+            [100.0, 100.0, np.nan, np.nan],
+            [90.0, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ],
     )
 
     exp_result = np.array(
         [
-            [94.82, 94.82, 94.979866, 94.979866],
-            [100.0, 100.0, 100.0, 100.0],
-            [99.64, 98.909118, np.nan, np.nan],
+            [94.82, 94.82, 94.979866, 85.5],
+            [100.0, 100.0, 100.0, np.nan],
+            [99.64, 100.0, np.nan, np.nan],
             [98.08080808, np.nan, np.nan, np.nan],
             [100.0, 100.0, 100.0, 100.0],
         ]
@@ -307,8 +307,8 @@ def test_calculate_aerodynamic_resistance(
 
     exp_ra = np.array(
         [
-            [132.547453, 55.117259, 191.29905, 4947.049913],
-            [110.234517, 38.424838, np.nan, np.nan],
+            [132.547453, 66.273726, 98.940998, np.nan],
+            [110.234517, 55.117259, np.nan, np.nan],
             [76.849677, np.nan, np.nan, np.nan],
         ]
     )
@@ -316,7 +316,7 @@ def test_calculate_aerodynamic_resistance(
     result = calculate_aerodynamic_resistance(
         wind_heights=data["layer_heights"][lyr_str.index_filled_canopy],
         roughness_length=np.repeat(0.3, 4),
-        zero_plane_displacement=np.array([0.0, 10.0, 15.0, 25.0]),
+        zero_plane_displacement=np.array([0.0, 0.0, 25.0, 0.0]),
         wind_speed=np.array([1.0, 2.0, 0.5, 0.01]),
         von_karman_constant=0.4,
     )
