@@ -38,6 +38,15 @@ data["plant_cohorts_dbh"] = DataArray(
     np.array([0.1, 0.05] * n_cells), coords={"cohort_index": cohort_index}
 )
 
+# PFT propagules
+data["plant_pft_propagules"] = DataArray(
+    data=np.full((n_cells, 2), fill_value=100, dtype=np.int_),
+    coords={
+        "cell_id": cell_id,
+        "pft": np.array(["broadleaf", "shrub"]),
+    },
+)
+
 # Subcanopy vegetation
 # Spatio-temporal data
 data["subcanopy_vegetation_biomass"] = DataArray(
@@ -64,10 +73,12 @@ data.to_netcdf("../data/example_plant_data.nc")
 # Write cohort data to CSV file as an alternative form of this data source
 df = data.drop_vars(
     [
+        "plant_pft_propagules",
         "downward_shortwave_radiation",
         "time",
         "time_index",
         "cell_id",
+        "pft",
         "subcanopy_vegetation_biomass",
         "subcanopy_seedbank_biomass",
     ]
