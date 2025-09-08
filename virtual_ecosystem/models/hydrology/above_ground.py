@@ -421,7 +421,8 @@ def calculate_drainage_map(
 
     This function finds the lowest neighbour for each grid cell, identifies all upstream
     cell IDs and creates a dictionary that provides all upstream cell IDs for each grid
-    cell. This function currently supports only square grids.
+    cell. The function also determines cells which have no downstream neighbours (i.e.
+    where water will accumulate). This function currently supports only square grids.
 
     Args:
         grid: Grid object
@@ -429,6 +430,8 @@ def calculate_drainage_map(
 
     Returns:
         dictionary of cell IDs and their upstream neighbours
+        dictionary of accumulation cell IDs and their type (corner, edge, middle)
+
 
     TODO move this to core.grid once we decided on common use
     """
@@ -442,6 +445,8 @@ def calculate_drainage_map(
     lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
     upstream_ids = find_upstream_cells(lowest_neighbours)
 
+    # Identify accumulation points by finding cells that are their own lowest
+    # neighbour
     accumulation_cells = np.where(
         np.array(grid.cell_id, dtype=np.int64) == lowest_neighbours
     )
