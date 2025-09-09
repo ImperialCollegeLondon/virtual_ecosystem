@@ -10,7 +10,7 @@ from virtual_ecosystem.models.hydrology.constants import HydroConsts
 
 
 def test_initialise_atmosphere_for_hydrology(
-    dummy_climate_data, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components
 ):
     """Test initialisation of atmospheric variables for hydrology."""
 
@@ -18,7 +18,7 @@ def test_initialise_atmosphere_for_hydrology(
         initialise_atmosphere_for_hydrology,
     )
 
-    data = dummy_climate_data
+    data = dummy_climate_data_varying_canopy
     layer_structure = fixture_core_components.layer_structure
     output = initialise_atmosphere_for_hydrology(
         data=data,
@@ -42,7 +42,7 @@ def test_initialise_atmosphere_for_hydrology(
 
 
 def test_setup_hydrology_input_current_timestep(
-    dummy_climate_data, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components
 ):
     """Test that correct values are selected for current time step."""
 
@@ -50,9 +50,10 @@ def test_setup_hydrology_input_current_timestep(
         setup_hydrology_input_current_timestep,
     )
 
+    data = dummy_climate_data_varying_canopy
     lyr_strct = fixture_core_components.layer_structure
     result = setup_hydrology_input_current_timestep(
-        data=dummy_climate_data,
+        data=data,
         time_index=0,
         days=30,
         seed=42,
@@ -84,23 +85,23 @@ def test_setup_hydrology_input_current_timestep(
     # check if climate values are selected correctly
     np.testing.assert_allclose(
         np.sum(result["current_precipitation"], axis=1),
-        (dummy_climate_data["precipitation"].isel(time_index=0)).to_numpy(),
+        (data["precipitation"].isel(time_index=0)).to_numpy(),
     )
     # Get the surface layer index as an integer to extract a 1D slice
     surface_idx = lyr_strct.index_surface_scalar
     np.testing.assert_allclose(
         result["surface_temperature"],
-        dummy_climate_data["air_temperature"][surface_idx],
+        data["air_temperature"][surface_idx],
     )
     np.testing.assert_allclose(
         result["surface_humidity"],
-        dummy_climate_data["relative_humidity"][surface_idx],
+        data["relative_humidity"][surface_idx],
     )
     # The reference data is a time series with cell id in axis 0, the result has cell_id
     # on axis 1, so need to extract from the second axis
     np.testing.assert_allclose(
         result["surface_pressure"],
-        dummy_climate_data["atmospheric_pressure_ref"][:, 0].to_numpy(),
+        data["atmospheric_pressure_ref"][:, 0].to_numpy(),
     )
     np.testing.assert_allclose(
         result["current_soil_moisture"],
@@ -178,7 +179,7 @@ def test_check_precipitation_surface_raises_error():
         check_precipitation_surface(test_array)
 
 
-def test_calculate_effective_saturation(dummy_climate_data):
+def test_calculate_effective_saturation():
     """Test that the calculation the effective saturation works correctly."""
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
         calculate_effective_saturation,
