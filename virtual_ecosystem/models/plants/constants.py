@@ -62,11 +62,23 @@ class PlantsConsts(ConstantsDataclass):
     """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
     mass (kg kg-1)."""
 
-    subcanopy_biomass_turnover: float = 1.0
+    subcanopy_vegetation_turnover: float = 1.0
     """The annual rate of subcanopy vegetative biomass turnover (units?, y-1)."""
 
-    subcanopy_seedbank_turnover: float = 1.0
+    subcanopy_seedbank_turnover: float = 0.25
     """The annual rate of subcanopy seedbank biomass turnover (units?, y-1)."""
+
+    subcanopy_seedbank_n_ratio: float = 0.05
+    """The ideal mass ratio of nitrogen in subcanopy seedbank biomass (-)."""
+
+    subcanopy_seedbank_p_ratio: float = 0.01
+    """The ideal mass ratio of phosphorous in subcanopy seedbank biomass (-)."""
+
+    subcanopy_vegetation_n_ratio: float = 0.05
+    """The ideal mass ratio of nitrogen in subcanopy vegetation biomass (-)."""
+
+    subcanopy_vegetation_p_ratio: float = 0.01
+    """The ideal mass ratio of phosphorous in subcanopy vegetation biomass (-)."""
 
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
