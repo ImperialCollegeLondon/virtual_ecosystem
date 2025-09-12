@@ -1,15 +1,22 @@
 """The subcanopy module provides blah blah blah
 
-This is :class:`SubcanopyStoichiometry` is defined independently of the
+This is :class:`SubcanopyBiomass` is defined independently of the
 :mod:`virtual_ecosystem.models.plants.stochiometry` module, as that class explicitly
 handles communities of cohorts with multiple tissue types. The subcanopy has much
 simpler structure with two stoichiometric masses per grid cell and so the dynamics are
 more easily handled by a separate implementation.
 
+.. NOTE::
+
+This currently hardcodes the specific nutrients. If this expands beyond N and P, see the
+discussion here: https://github.com/ImperialCollegeLondon/virtual_ecosystem/pull/1032
 
 """  # noqa: D415
 
 from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -21,11 +28,50 @@ from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.models.plants.constants import PlantsConsts
 
 
-class SubcanopyStoichiometry:
-    """A stochiometry class for Subcanopy vegetation.
+@dataclass
+class Nutrient:
+    """Dataclass for subcanopy elemental nutrient details.
 
-    The class tracks the carbon, nitrogen and phosphorous masses across an array of grid
-    cells and provides properties to report the CN and CP ratios. It also provides
+    Args:
+        name: The elemental nutrient name
+        ideal_ratio: The ideal ratio for subcanopy tissue of the nutrient
+        values: An array of per-grid-cell values
+    """
+
+    name: str
+    ideal_ratio: float
+    masses: NDArray[np.floating]
+
+    @classmethod
+    def from_constants(
+        cls,
+        tissue_name: str,
+        element: str,
+        constants: PlantsConsts,
+        masses: NDArray[np.floating],
+    ) -> Nutrient:
+        """Factory method for Nutrient instances from the ideal ratio in constants.
+
+        Args:
+            tissue_name: The tissue name used in the plant constants
+            element: The element name
+            constants: A PlantConsts instance
+            masses: The carbon biomasses of cells for the tissue.
+        """
+
+        ideal_ratio = getattr(PlantsConsts, f"{tissue_name}_c_{element}_ratio")
+        return cls(name=element, ideal_ratio=ideal_ratio, masses=masses / ideal_ratio)
+
+
+SubcanopyNutrients: TypeAlias = dict[str, Nutrient]
+"""A type to indicate a dictionary of Nutrient instances."""
+
+
+class SubcanopyBiomass:
+    """A stochiometric biomass class for Subcanopy vegetation.
+
+    The class tracks the carbon and elemental nutrient masses across an array of grid
+    cells and provides properties to report the nutrient ratios. It also provides
     methods to add and remove masses from the class and to remove excess nutrients above
     ideal ratios.
     """
@@ -33,32 +79,20 @@ class SubcanopyStoichiometry:
     def __init__(
         self,
         carbon_mass: NDArray[np.floating],
-        nitrogen_mass: NDArray[np.floating],
-        phosphorous_mass: NDArray[np.floating],
-        ideal_cn_ratio: float,
-        ideal_cp_ratio: float,
+        nutrients: SubcanopyNutrients,
     ) -> None:
         # Store Init arguments
         self.carbon_mass: NDArray[np.floating] = carbon_mass
-        self.nitrogen_mass: NDArray[np.floating] = nitrogen_mass
-        self.phosphorous_mass: NDArray[np.floating] = phosphorous_mass
-        self.ideal_cn_ratio: float = ideal_cn_ratio
-        self.ideal_cp_ratio: float = ideal_cp_ratio
+        self.nutrients: SubcanopyNutrients = nutrients
 
-    @property
-    def c_n_ratio(self) -> NDArray[np.floating]:
+    def c_x_ratio(self, nutrient: str) -> NDArray[np.floating]:
         """Return the current CN ratio for the biomass."""
-        return self.carbon_mass / self.nitrogen_mass
+        return self.carbon_mass / self.nutrients[nutrient].masses
 
-    @property
-    def c_p_ratio(self) -> NDArray[np.floating]:
-        """Return the current CP ratio for the biomass."""
-        return self.carbon_mass / self.phosphorous_mass
-
-    def remove_mass_fraction(self, mass_fraction: float) -> SubcanopyStoichiometry:
+    def remove_mass_fraction(self, mass_fraction: float) -> SubcanopyBiomass:
         """Remove a proportion of the biomass.
 
-        This function returns a new SubcanopyStoichiometry object containing the
+        This function returns a new SubcanopyBiomass object containing the
         requested fraction of the carbon biomass. The removed carbon biomass is removed
         from the parent instance. The nitrogen and phosphorous masses are split using
         the same fraction to maintain the same CN and CP ratios.
@@ -67,62 +101,65 @@ class SubcanopyStoichiometry:
             mass_fraction: The proportion of mass to remove from the instance.
         """
 
+        # Calculate extracted carbon and nutrient masses
         carbon_out = self.carbon_mass * mass_fraction
-        nitrogen_out = self.nitrogen_mass * mass_fraction
-        phosphorous_out = self.phosphorous_mass * mass_fraction
 
+        nutrients_out = {
+            nm: Nutrient(
+                name=nm,
+                ideal_ratio=nutr.ideal_ratio,
+                masses=nutr.masses * mass_fraction,
+            )
+            for nm, nutr in self.nutrients.items()
+        }
+
+        # Remove masses from self
         self.carbon_mass -= carbon_out
-        self.nitrogen_mass -= nitrogen_out
-        self.phosphorous_mass -= phosphorous_out
+        for nm in self.nutrients:
+            self.nutrients[nm].masses -= nutrients_out[nm].masses
 
-        return SubcanopyStoichiometry(
-            carbon_mass=carbon_out,
-            nitrogen_mass=nitrogen_out,
-            phosphorous_mass=phosphorous_out,
-            ideal_cn_ratio=self.ideal_cn_ratio,
-            ideal_cp_ratio=self.ideal_cp_ratio,
-        )
+        return SubcanopyBiomass(carbon_mass=carbon_out, nutrients=nutrients_out)
 
-    def add_mass(self, source: SubcanopyStoichiometry):
-        """Add biomass to a SubcanopyStoichiometry instance.
+    def add_mass(self, source: SubcanopyBiomass | SubcanopyNutrients):
+        """Add biomass to a SubcanopyBiomass instance.
 
-        The method adds the carbon, nitrogen and phosphorous biomasses from a source
-        instance to the calling instance.
+        The method adds carbon and nutrient biomasses (source is of type
+        ``SubcanopyBiomass``) or just nutrient biomasses (source is of type
+        ``SubcanopyNutrients``) to the calling instance.
 
         Args:
-            source: The source SubcanopyStoichiometry instance.
+            source: The source ``SubcanopyBiomass`` or ``SubcanopyNutrients``
+            instance.
         """
-        self.carbon_mass += source.carbon_mass
-        self.nitrogen_mass += source.nitrogen_mass
-        self.phosphorous_mass += source.phosphorous_mass
 
-    def get_excess_nutrients(self) -> SubcanopyStoichiometry:
+        # Add the carbon biomass and then drop down to just the nutrients
+        if isinstance(source, SubcanopyBiomass):
+            self.carbon_mass += source.carbon_mass
+            source = source.nutrients
+
+        for nm in source:
+            self.nutrients[nm].masses -= source[nm].masses
+
+    def get_excess_nutrients(self) -> SubcanopyNutrients:
         """Extract excess nutrients.
 
         This method calculates the excess nitrogen and phosphorous biomass in a
-        SubcanopyStoichiometry instance, given the provided ideal ratios. The method
-        returns a SubcanopyStoichiometry instance containing excess nutrient masses.
-        The carbon biomass in the returned instance will always be zero and nitrogen and
-        phosphorous biomasses will also be zero where the source biomass in a cell is at
-        or below the ideal ratio.
+        SubcanopyBiomass instance, given the provided ideal ratios. The method
+        returns a SubcanopyNutrients instance containing excess nutrient masses: these
+        will be be zero where the source biomass in a cell is at or below the ideal
+        ratio.
         """
-        spare_nitrogen_mass = np.maximum(
-            self.nitrogen_mass - (self.carbon_mass / self.ideal_cn_ratio), 0
-        )
-        spare_phosphorous_mass = np.maximum(
-            self.phosphorous_mass - (self.carbon_mass / self.ideal_cp_ratio), 0
-        )
 
-        self.nitrogen_mass -= spare_nitrogen_mass
-        self.phosphorous_mass -= spare_phosphorous_mass
-
-        return SubcanopyStoichiometry(
-            carbon_mass=np.zeros_like(self.carbon_mass),
-            nitrogen_mass=spare_nitrogen_mass,
-            phosphorous_mass=spare_phosphorous_mass,
-            ideal_cn_ratio=self.ideal_cn_ratio,
-            ideal_cp_ratio=self.ideal_cp_ratio,
-        )
+        return {
+            nm: Nutrient(
+                name=nm,
+                ideal_ratio=nutr.ideal_ratio,
+                masses=np.maximum(
+                    nutr.masses - (self.carbon_mass / nutr.ideal_ratio), 0
+                ),
+            )
+            for nm, nutr in self.nutrients.items()
+        }
 
 
 class Subcanopy:
@@ -146,6 +183,9 @@ class Subcanopy:
         model_timing: The core ModelTiming instance for the simulation.
     """
 
+    elements: tuple[str, ...] = ("n", "p")
+    """The set of nutrient elements currently tracked within the simulation."""
+
     def __init__(
         self,
         data: Data,
@@ -161,25 +201,41 @@ class Subcanopy:
         self.model_timing: ModelTiming = model_timing
         self.layer_index: int = layer_index
 
-        # Stochiometry of vegetation and seedbank
-        # TODO: currently initialising assuming ideal ratios but could load
+        # TODO: currently initialising from constants using ideal ratios but could load
         #       nutrient masses from init data.
-        veg_mass = data["subcanopy_vegetation_biomass"].to_numpy()
-        self.vegetation_biomass: SubcanopyStoichiometry = SubcanopyStoichiometry(
-            carbon_mass=veg_mass,
-            nitrogen_mass=veg_mass / model_constants.subcanopy_vegetation_cn_ratio,
-            phosphorous_mass=veg_mass / model_constants.subcanopy_vegetation_cp_ratio,
-            ideal_cn_ratio=model_constants.subcanopy_vegetation_cn_ratio,
-            ideal_cp_ratio=model_constants.subcanopy_vegetation_cp_ratio,
+
+        # Stochiometry of vegetation and seedbank
+        vegetation_mass = data["subcanopy_vegetation_biomass"].to_numpy()
+
+        vegetation_nutrients: SubcanopyNutrients = {
+            elem: Nutrient.from_constants(
+                tissue_name="subcanopy_vegetation",
+                element=elem,
+                constants=self.model_constants,
+                masses=vegetation_mass,
+            )
+            for elem in self.elements
+        }
+
+        self.vegetation_biomass: SubcanopyBiomass = SubcanopyBiomass(
+            carbon_mass=vegetation_mass, nutrients=vegetation_nutrients
         )
 
-        seed_mass = data["subcanopy_seedbank_biomass"].to_numpy()
-        self.seedbank_biomass: SubcanopyStoichiometry = SubcanopyStoichiometry(
-            carbon_mass=seed_mass,
-            nitrogen_mass=seed_mass / model_constants.subcanopy_seedbank_cn_ratio,
-            phosphorous_mass=seed_mass / model_constants.subcanopy_seedbank_cp_ratio,
-            ideal_cn_ratio=model_constants.subcanopy_seedbank_cn_ratio,
-            ideal_cp_ratio=model_constants.subcanopy_seedbank_cp_ratio,
+        seedbank_mass = data["subcanopy_seedbank_biomass"].to_numpy()
+
+        # Generate accompanying nutrients
+        seedbank_nutrients: SubcanopyNutrients = {
+            elem: Nutrient.from_constants(
+                tissue_name="subcanopy_seedbank",
+                element=elem,
+                constants=self.model_constants,
+                masses=seedbank_mass,
+            )
+            for elem in self.elements
+        }
+
+        self.seedbank_biomass: SubcanopyBiomass = SubcanopyBiomass(
+            carbon_mass=seedbank_mass, nutrients=seedbank_nutrients
         )
 
         # Type other attributes not populated at __init__
@@ -278,13 +334,23 @@ class Subcanopy:
 
         # Assimilate the gained masses into the vegetation first to update the
         # nutrient masses that are available for allocation to seedbank
+
+        # TODO: Note that this section does not cleanly handle additional elements.
         self.vegetation_biomass.add_mass(
-            SubcanopyStoichiometry(
+            SubcanopyBiomass(
                 carbon_mass=subcanopy_npp,
-                nitrogen_mass=ammonium_uptake_kg + nitrate_uptake_kg,
-                phosphorous_mass=phosphorus_uptake_kg,
-                ideal_cn_ratio=self.vegetation_biomass.ideal_cn_ratio,
-                ideal_cp_ratio=self.vegetation_biomass.ideal_cp_ratio,
+                nutrients={
+                    "n": Nutrient(
+                        name="n",
+                        ideal_ratio=self.model_constants.subcanopy_vegetation_c_n_ratio,
+                        masses=ammonium_uptake_kg + nitrate_uptake_kg,
+                    ),
+                    "p": Nutrient(
+                        name="p",
+                        ideal_ratio=self.model_constants.subcanopy_vegetation_c_p_ratio,
+                        masses=phosphorus_uptake_kg,
+                    ),
+                },
             )
         )
 
@@ -319,7 +385,7 @@ class Subcanopy:
         seedbank_turnover.add_mass(sprouting_yield_losses)
 
         # Overwrite data in DataArrays with new numpy values.
-        biomasses: dict[str, SubcanopyStoichiometry] = {
+        biomasses: dict[str, SubcanopyBiomass] = {
             "subcanopy_vegetation": self.seedbank_biomass,
             "subcanopy_seedbank": self.seedbank_biomass,
             "subcanopy_litter": vegetation_turnover,
@@ -328,8 +394,9 @@ class Subcanopy:
 
         for var, biomass in biomasses.items():
             self.data[f"{var}_biomass"].data = biomass.carbon_mass
-            self.data[f"{var}_c_n_ratio"].data = biomass.c_n_ratio
-            self.data[f"{var}_c_p_ratio"].data = biomass.c_p_ratio
+
+            for elem in self.elements:
+                self.data[f"{var}_c_{elem}_ratio"].data = biomass.c_x_ratio(elem)
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
