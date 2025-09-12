@@ -85,6 +85,32 @@ class SubcanopyBiomass:
         self.carbon_mass: NDArray[np.floating] = carbon_mass
         self.nutrients: SubcanopyNutrients = nutrients
 
+    @classmethod
+    def from_constants(
+        cls,
+        tissue_name: str,
+        elements: tuple[str, ...],
+        constants: PlantsConsts,
+        masses: NDArray[np.floating],
+    ) -> SubcanopyBiomass:
+        """Factory method to generate a SubcanopyBiomass object from constants.
+
+        The returned instance uses the provided carbon masses and initialises the named
+        element masses at the ideal ratios set in the constants.
+        """
+
+        nutrients = {
+            elem: Nutrient.from_constants(
+                tissue_name=tissue_name,
+                element=elem,
+                constants=constants,
+                masses=masses,
+            )
+            for elem in elements
+        }
+
+        return cls(carbon_mass=masses, nutrients=nutrients)
+
     def c_x_ratio(self, nutrient: str) -> NDArray[np.floating]:
         """Return the current CN ratio for the biomass."""
         return self.carbon_mass / self.nutrients[nutrient].masses
@@ -205,37 +231,18 @@ class Subcanopy:
         #       nutrient masses from init data.
 
         # Stochiometry of vegetation and seedbank
-        vegetation_mass = data["subcanopy_vegetation_biomass"].to_numpy()
-
-        vegetation_nutrients: SubcanopyNutrients = {
-            elem: Nutrient.from_constants(
-                tissue_name="subcanopy_vegetation",
-                element=elem,
-                constants=self.model_constants,
-                masses=vegetation_mass,
-            )
-            for elem in self.elements
-        }
-
-        self.vegetation_biomass: SubcanopyBiomass = SubcanopyBiomass(
-            carbon_mass=vegetation_mass, nutrients=vegetation_nutrients
+        self.vegetation_biomass: SubcanopyBiomass = SubcanopyBiomass.from_constants(
+            masses=data["subcanopy_vegetation_biomass"].to_numpy(),
+            elements=self.elements,
+            tissue_name="subcanopy_vegetation",
+            constants=self.model_constants,
         )
 
-        seedbank_mass = data["subcanopy_seedbank_biomass"].to_numpy()
-
-        # Generate accompanying nutrients
-        seedbank_nutrients: SubcanopyNutrients = {
-            elem: Nutrient.from_constants(
-                tissue_name="subcanopy_seedbank",
-                element=elem,
-                constants=self.model_constants,
-                masses=seedbank_mass,
-            )
-            for elem in self.elements
-        }
-
-        self.seedbank_biomass: SubcanopyBiomass = SubcanopyBiomass(
-            carbon_mass=seedbank_mass, nutrients=seedbank_nutrients
+        self.seedbank_biomass: SubcanopyBiomass = SubcanopyBiomass.from_constants(
+            masses=data["subcanopy_seedbank_biomass"].to_numpy(),
+            elements=self.elements,
+            tissue_name="subcanopy_seedbank",
+            constants=self.model_constants,
         )
 
         # Type other attributes not populated at __init__
