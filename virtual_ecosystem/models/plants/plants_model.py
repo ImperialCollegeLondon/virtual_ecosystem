@@ -431,6 +431,11 @@ class PlantsModel(
             below_canopy_light_fraction=self.below_canopy_light_fraction
         )
 
+        # Set the ground_incident light
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * self.subcanopy.light_transmission
+        )
+
         self.set_shortwave_absorption(time_index=0)
 
         # Initialise other attributes
@@ -479,6 +484,9 @@ class PlantsModel(
         self.update_canopy_layers()
         self.subcanopy.set_light_capture(
             below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * self.subcanopy.light_transmission
         )
         self.set_shortwave_absorption(time_index=time_index)
 
@@ -1161,134 +1169,6 @@ class PlantsModel(
             0.5 * self.data["arbuscular_supply_limit_p"]
         )
         self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
-
-    def set_subcanopy_light_capture(self) -> None:
-        r"""Calculate the leaf area index and absorption of subcanopy vegetation.
-
-        The subcanopy vegetation is represented as pure leaf biomass (:math:`M_{SC}`, kg
-        m-2), with an associated extinction coefficient (:math:`k`) and specific leaf
-        area (:math:`\sigma`, kg m-2) set in the model constants. These can be used to
-        calculate the   leaf area index (:math:`L`) and hence the absorption fraction
-        (:math:`f_{a}`) of  the subcanopy vegetation layer via the Beer-Lambert law: 
-
-        .. math ::
-            :nowrap:
-
-            \[
-                \begin{align*}
-                    L &= M_{SC} \sigma \\
-                    f_a = e^{-kL}
-                \end{align*}
-            \]
-        """
-
-        # Calculate the leaf area index - values are already in kg m-2 so no need to
-        # account for the area occupied by the biomass - and set the leaf area
-        subcanopy_lai = (
-            self.data["subcanopy_vegetation_biomass"]
-            * self.model_constants.subcanopy_specific_leaf_area
-        )
-
-        # Beer-Lambert transmission - note that this is 1 when there is no biomass and
-        # so no light is absorbed by the vegetation and all of the subcanopy light
-        # reaches the ground.
-        subcanopy_light_transmission = np.exp(
-            -self.model_constants.subcanopy_extinction_coef * subcanopy_lai
-        )
-
-        # Absorb a fraction of the below canopy light and pass the rest on to the ground
-        # incident light fraction
-        sub_canopy_fapar = self.below_canopy_light_fraction * (
-            1 - subcanopy_light_transmission
-        )
-
-        self.ground_incident_light_fraction = (
-            self.below_canopy_light_fraction * subcanopy_light_transmission
-        )
-
-        # Store those values
-        self.data["leaf_area_index"][self.layer_structure.index_surface_scalar] = (
-            subcanopy_lai
-        )
-        self.data["layer_fapar"][self.layer_structure.index_surface_scalar] = (
-            sub_canopy_fapar
-        )
-
-    def calculate_subcanopy_dynamics(self) -> None:
-        r"""Estimate the dynamics of subcanopy vegetation.
-
-        The fraction of the PPFD reaching the topsoil layer is extracted, given the leaf
-        area index and fAPAR calculated from the biomass of subcanopy vegetation. That
-        is then used to estimate GPP, given the LUE from the P Model in the surface
-        layer.
-
-        The GPP allocation then follows the parameterisation of the T Model but where
-        the subcanopy vegetation biomass is represented purely as a single tissue.
-
-        At each update:
-
-        * The ``subcanopy_vegetation_biomass`` increases with the new growth from light
-          capture and the addition of a sprouting biomass from the
-          ``subcanopy_seedbank_biomass``.
-
-        * The ``subcanopy_seedbank_biomass`` loses mass due to resprouting but gains a
-          proportion of the net primary productivity from the subcanopy vegetation.
-
-        * Biomass from both pools moves into litter pools due to turnover
-        """
-
-        # Calculate the gross primary productivity since the last update.
-        #    LUE                     1 layer          [gC mol-1]
-        #    * shortwave absorption  1 layer          [µmol m-2 s-1]
-        #    * DST to PPFD           scalar           [-]
-        #    * time elapsed     scalar                [s]
-        # Units:
-        #    gC mol-1 * µmol m-2 s-1  * (-) * s = µg C m-2
-        subcanopy_gpp = (
-            self.pmodel.lue[self.layer_structure.index_surface_scalar, :]
-            * self.data["shortwave_absorption"][
-                self.layer_structure.index_surface_scalar, :
-            ]
-            * self.model_constants.dsr_to_ppfd
-            * self.model_timing.update_interval_seconds
-        )
-
-        # Calculate the transpiration associated with that GPP in moles
-        subcanopy_transpiration = (
-            subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
-        ) * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
-
-        # Calculate NPP, converting µg C m-2 to  kg C m-2
-        subcanopy_npp = (
-            self.model_constants.subcanopy_yield
-            * (subcanopy_gpp * 1e-9)
-            * (1 - self.model_constants.subcanopy_respiration_fraction)
-        )
-
-        subcanopy_growth = subcanopy_npp * (
-            1 - self.model_constants.subcanopy_reproductive_allocation
-        )
-
-        new_seedbank = subcanopy_npp - subcanopy_growth
-
-        subcanopy_sprouting_mass = self.data["subcanopy_seedbank_biomass"] * (
-            1
-            - np.exp(
-                -self.model_constants.subcanopy_sprout_rate
-                * (1 / self.model_timing.updates_per_year)
-            )
-        )
-
-        # Update the biomasses
-        self.data["subcanopy_vegetation_biomass"] += subcanopy_growth + (
-            self.model_constants.subcanopy_sprout_yield * subcanopy_sprouting_mass
-        )
-
-        self.data["subcanopy_seedbank_biomass"] += (
-            new_seedbank - subcanopy_sprouting_mass
-        )
-
-        self.data["transpiration"] += subcanopy_transpiration
 
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.floating]
