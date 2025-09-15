@@ -37,6 +37,7 @@ from virtual_ecosystem.models.plants.functional_types import (
 from virtual_ecosystem.models.plants.stoichiometry import (
     StemStoichiometry,
 )
+from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
 
 class PlantsModel(
@@ -141,6 +142,16 @@ class PlantsModel(
         "plant_n_uptake_ecto",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "subcanopy_vegetation_c_p_ratio",
+        "subcanopy_seedbank_c_p_ratio",
+        "subcanopy_litter_c_p_ratio",
+        "seedbank_litter_c_p_ratio",
+        "subcanopy_vegetation_c_n_ratio",
+        "subcanopy_seedbank_c_n_ratio",
+        "subcanopy_litter_c_n_ratio",
+        "seedbank_litter_c_n_ratio",
+        "subcanopy_litter_biomass",
+        "seedbank_litter_biomass",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -249,7 +260,8 @@ class PlantsModel(
         """Core constants used by pyrealm."""
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
-
+        self.subcanopy: Subcanopy
+        """Representation of the subcanopy vegetation."""
         # Define and populate model specific attributes
         self.exporter: CommunityDataExporter = exporter
         """A CommunityDataExporter instance providing configuration and methods for
@@ -400,10 +412,25 @@ class PlantsModel(
         self.pmodel_consts = PModelConst()
         self.pmodel_core_consts = CoreConst()
 
-        # Create and populate the canopy data layers and the subcanopy vegetation and
-        # then set the shortwave absorption from the first time index
+        # Create and populate the canopy data layers
         self.update_canopy_layers()
-        self.set_subcanopy_light_capture()
+
+        # Initialise the subcanopy vegetation class and then set the light capture of
+        # the subcanopy vegetation
+        self.subcanopy = Subcanopy(
+            data=self.data,
+            pmodel_core_constants=self.pmodel_core_consts,
+            model_constants=self.model_constants,
+            layer_index=self.layer_structure.index_surface_scalar,
+            model_timing=self.model_timing,
+        )
+
+        # This updates the data fapar and lai values of the surface layer using the
+        # subcanopy vegetation
+        self.subcanopy.set_light_capture(
+            below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
+
         self.set_shortwave_absorption(time_index=0)
 
         # Initialise other attributes
@@ -444,13 +471,15 @@ class PlantsModel(
             **kwargs: Further arguments to the update method.
         """
 
-        # Update the canopy layers
+        # Update the canopy layers and subcanopy and then set the shortwave absorption
         self.canopies = calculate_canopies(
             communities=self.communities,
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
         self.update_canopy_layers()
-        self.set_subcanopy_light_capture()
+        self.subcanopy.set_light_capture(
+            below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
         self.set_shortwave_absorption(time_index=time_index)
 
         # Estimate the canopy GPP and growth with the updated this update
@@ -472,7 +501,7 @@ class PlantsModel(
         self.apply_mortality()
 
         # Calculate the subcanopy vegetation
-        self.calculate_subcanopy_dynamics()
+        self.subcanopy.calculate_dynamics(pmodel=self.pmodel)
 
         # Run the community data exporter
         self.exporter.dump(
@@ -587,8 +616,8 @@ class PlantsModel(
 
         This method takes the shortwave radiation at the top of the canopy for a
         particular time index and uses the ``layer_fapar`` data calculated by the canopy
-        model to estimate the amount of radiation absorbed by each canopy layer and the
-        remaining radiation absorbed by the top soil layer.
+        and subcanopy models to estimate the amount of radiation absorbed by each canopy
+        layer and the remaining radiation absorbed by the top soil layer.
 
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
