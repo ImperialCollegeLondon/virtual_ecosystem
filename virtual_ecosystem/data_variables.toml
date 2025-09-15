@@ -1056,6 +1056,13 @@ unit = "kg C m^-2"
 variable_type = "float"
 
 [[variable]]
+axis = ["spatial"] # ["spatial", "pft"]
+description = "Per cell counts of propagules for each plant functional type"
+name = "plant_pft_propagules"
+unit = "count"
+variable_type = "integer"
+
+[[variable]]
 axis = ["spatial"]
 description = "Plant reproductive tissue non-propagule turnover since last update"
 name = "fallen_non_propagule_c_mass"
