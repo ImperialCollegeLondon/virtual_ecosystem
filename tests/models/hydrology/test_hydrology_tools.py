@@ -74,8 +74,6 @@ def test_setup_hydrology_input_current_timestep(
         "current_transpiration",
         "top_soil_moisture_saturation",
         "top_soil_moisture_residual",
-        "previous_accumulated_runoff",
-        "previous_subsurface_flow_accumulated",
         "groundwater_storage",
         "current_soil_moisture",
     ]
@@ -196,3 +194,43 @@ def test_calculate_effective_saturation():
     )
 
     assert np.allclose(actual_sats, expected_sats)
+
+
+def test_mass_balance_pass():
+    """Test a case where total outlet streamflow <= total precipitation."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_monthly_mass_balance,
+    )
+
+    drainage_map = {0: [], 1: [0], 2: [0, 1]}
+    surface_channel_inflow = np.array([50.0, 40.0, 30.0])  # mm per cell
+    monthly_precipitation = np.array([100.0, 100.0, 100.0])  # mm per cell
+    monthly_evaporation = np.array([10.0, 10.0, 10.0])  # mm per cell
+
+    # Should not raise an error
+    check_monthly_mass_balance(
+        drainage_map=drainage_map,
+        surface_channel_inflow_mm=surface_channel_inflow,
+        monthly_precipitation_mm=monthly_precipitation,
+        monthly_evaporation_mm=monthly_evaporation,
+    )
+
+
+def test_mass_balance_fail():
+    """Test a case where total outlet streamflow > total precipitation."""
+    from virtual_ecosystem.models.hydrology.hydrology_tools import (
+        check_monthly_mass_balance,
+    )
+
+    drainage_map = {0: [], 1: [0], 2: [0, 1]}
+    surface_channel_inflow = np.array([150.0, 140.0, 400.0])  # mm per cell
+    monthly_precipitation = np.array([100.0, 100.0, 100.0])  # total precip = 300
+    monthly_evaporation = np.array([10.0, 10.0, 10.0])  # mm per cell
+
+    with pytest.raises(AssertionError, match="Mass balance violated"):
+        check_monthly_mass_balance(
+            drainage_map=drainage_map,
+            surface_channel_inflow_mm=surface_channel_inflow,
+            monthly_precipitation_mm=monthly_precipitation,
+            monthly_evaporation_mm=monthly_evaporation,
+        )

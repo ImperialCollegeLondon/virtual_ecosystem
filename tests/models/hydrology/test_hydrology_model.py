@@ -243,9 +243,14 @@ def test_generate_hydrology_model(
                 ],
             },
             {
-                "total_river_discharge": [0, 0, 67002, 22095],
+                "total_channel_inflow": [
+                    1477.363339,
+                    1476.076772,
+                    5895.307142,
+                    2945.792003,
+                ],
                 "surface_runoff": [20.343781, 6.316444, 2.721491, 1.192358],
-                "surface_runoff_accumulated": [0, 0, 420, 90],
+                "surface_channel_inflow": [20.343781, 6.316444, 26.979121, 7.508803],
                 "soil_evaporation": [5.93727, 12.359247, 25.50399, 51.620636],
             },
             id="1 month",
@@ -268,9 +273,19 @@ def test_generate_hydrology_model(
                 ],
             },
             {
-                "total_river_discharge": [0, 0, 5668, 1894],
+                "total_channel_inflow": [
+                    483.741646,
+                    480.053134,
+                    1885.508689,
+                    936.948501,
+                ],
                 "surface_runoff": [163.019971, 158.780549, 150.030499, 132.191482],
-                "surface_runoff_accumulated": [0, 0, 3094, 1085],
+                "surface_channel_inflow": [
+                    163.019971,
+                    158.780549,
+                    595.272452,
+                    290.972032,
+                ],
                 "soil_evaporation": [1.388223, 2.904608, 6.066225, 12.622505],
             },
             id="1 week",
@@ -288,6 +303,7 @@ def test_setup(
 ):
     """Test set up and update."""
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.models.hydrology import hydrology_tools
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # Build the config object and core components
@@ -364,3 +380,16 @@ def test_setup(
                     rtol=1e-2,
                     atol=1e-2,
                 )
+            # Mass balance check for the month
+            hydrology_tools.check_monthly_mass_balance(
+                drainage_map=model.drainage_map,
+                surface_channel_inflow_mm=model.data[
+                    "surface_channel_inflow"
+                ].to_numpy(),
+                monthly_precipitation_mm=dummy_climate_data_varying_canopy[
+                    "precipitation"
+                ]
+                .isel(time_index=1)
+                .to_numpy(),
+                monthly_evaporation_mm=model.data["soil_evaporation"].to_numpy(),
+            )

@@ -170,52 +170,66 @@ def test_find_upstream_cells():
     assert result == exp_result
 
 
-@pytest.mark.parametrize(
-    "acc_runoff,raises,expected_log_entries",
-    [
-        (
-            np.array([100, 100, 100, 100, 100, 100, 100, 100]),
-            does_not_raise(),
-            {},
-        ),
-        (
-            np.array([-100, 100, 100, 100, 100, 100, 100, 100]),
-            pytest.raises(ValueError),
-            (
-                (
-                    ERROR,
-                    "The accumulated flow should not be negative!",
-                ),
-            ),
-        ),
-    ],
-)
-def accumulate_horizontal_flow(caplog, acc_runoff, raises, expected_log_entries):
-    """Test."""
+def test_route_horizontal_flow_basic():
+    """Test horizontal flow routing."""
 
-    from virtual_ecosystem.models.hydrology.above_ground import (
-        accumulate_horizontal_flow,
-    )
+    from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-    upstream_ids = {
+    # Simple 3-cell network:
+    # Cell 0: no upstream
+    # Cell 1: upstream = [0]
+    # Cell 2: upstream = [0,1]
+    drainage_map = {
         0: [],
         1: [0],
-        2: [1, 2],
-        3: [],
-        4: [],
-        5: [3],
-        6: [],
-        7: [4, 5, 6, 7],
+        2: [0, 1],
     }
-    surface_runoff = np.array([100, 100, 100, 100, 100, 100, 100, 100])
-    exp_result = np.array([100, 200, 300, 100, 100, 200, 100, 500])
 
-    with raises:
-        result = accumulate_horizontal_flow(upstream_ids, surface_runoff, acc_runoff)
-        np.testing.assert_array_equal(result, exp_result)
+    surface_runoff = np.array([1.0, 2.0, 3.0])
+    subsurface_runoff = np.array([0.5, 0.0, 1.0])
 
-    # Final check that expected logging entries are produced
-    log_check(caplog, expected_log_entries)
+    result = route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
+
+    # Local generation = surface + subsurface
+    local_gen = np.array([1.5, 2.0, 4.0])
+
+    # Expected inflow from upstream
+    expected_inflow = np.array(
+        [
+            0.0,  # Cell 0 has no upstream
+            1.5,  # Cell 1 inflow = Cell 0 local_gen
+            1.5 + 2.0,  # Cell 2 inflow = Cell 0 + Cell 1 local_gen
+        ]
+    )
+    expected_channel_inflow = local_gen + expected_inflow
+
+    np.testing.assert_array_almost_equal(result, expected_channel_inflow)
+
+
+def test_route_horizontal_flow_no_upstream():
+    """Test horizontal flow routing with no upstream cells."""
+    from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
+
+    # Single cell with no upstream
+    drainage_map = {0: []}
+    surface_runoff = np.array([5.0])
+    subsurface_runoff = np.array([2.0])
+
+    result = route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
+    expected = np.array([7.0])  # 5 + 2
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_route_horizontal_flow_raises_on_negative():
+    """Test horizontal flow routing raises on negative input."""
+    from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
+
+    drainage_map = {0: [], 1: [0]}
+    surface_runoff = np.array([-1.0, 0.0])
+    subsurface_runoff = np.array([0.0, 0.0])
+
+    with pytest.raises(ValueError, match="channel inflow should not be negative"):
+        route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
 
 
 @pytest.mark.parametrize(
