@@ -106,7 +106,7 @@ Ecosystem. Red solid arrows indicate upward vertical flow, red dashed arrows sho
 vertical downward flow. The blue arrows indicate horizontal flow out of the
 grid cell with solid lines representing water that flows out of each layer in the
 current time step and dashed lines representing water that originates from upstream
-grid cells (previous time step) and flows through the grid cell directly to the stream.
+grid cells and flows through the grid cell directly to the stream.
 **NOTE!** Top soil and middle soil are currently treated as one layer in the model.
 Subsurface runoff (Q2) and interflow (Q3) are currently not implemented; the
 river discharge is calculated as the sum of surface runoff (Q1) and the flows out of the
@@ -305,7 +305,7 @@ We do currently NOT include any horizontal flows from the soil layers towards th
 (Q2 and Q3 in {numref}`bucket_model`).
 ```
 
-### Belowground horizontal flow and groundwater storage
+### Belowground outflows and groundwater storage
 
 Groundwater storage and horizontal transport are modelled using two parallel linear
 reservoirs, similar to the approach used in the HBV-96 model
@@ -339,7 +339,7 @@ follows:
 
 $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
-where $GW_{perc}$, [mm day], is the maximum percolation rate from the upper to
+where $GW_{perc}$, [mm day-1], is the maximum percolation rate from the upper to
 the lower groundwater zone. The outflow from the lower zone to the channel $Q_{lz}$,
 (mm), (Q5 in {numref}`bucket_model`) is then computed by:
 
@@ -362,13 +362,15 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 ## Across grid hydrology
 
 The second part of the hydrology model calculates the horizontal water movement across
-the full model grid including accumulated surface runoff and sub-surface flow, and river
-discharge rate.
+the full model grid including surface runoff and sub-surface flows, combined into river
+discharge.
+
+### Drainage map
 
 The flow direction of water above and below ground is based on a digital elevation model
 which needs to be provided as a NetCDF file at the start of the simulation.
 Here an description of the steps that happen during the hydrology model
-initialisation (plotting only for illustration):
+initialisation at the example of a 30m resolution DEM:
 
 ```{code-cell} ipython3
 # # Read elevation datafrom NetCDF
@@ -376,9 +378,9 @@ import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-input_file = "../../../../virtual_ecosystem/example_data/data/example_elevation_data.nc"
+input_file = "../../_static/SRTM_UTM50N_processed1.nc"
 digital_elevation_model = xr.open_dataset(input_file)
-elevation = digital_elevation_model["elevation"]
+elevation = digital_elevation_model["band_data"]
 ```
 
 ```{code-cell} ipython3
@@ -399,9 +401,7 @@ plt.show()
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.data import Data
 
-grid = Grid(
-    grid_type="square", cell_area=8100, cell_nx=9, cell_ny=9, xoff=-45, yoff=-45
-)
+grid = Grid(grid_type="square", cell_area=1000000, cell_nx=1000, cell_ny=1000)
 data = Data(grid=grid)
 data["elevation"] = elevation
 ```
@@ -429,39 +429,56 @@ drainage_map = calculate_drainage_map(
 )
 ```
 
-The accumulated surface runoff is the calculated in each grid cell as the sum of current
-runoff and the runoff from upstream cells at the previous time step.
+### Horizontal flow and river discharge
+
+For each grid cell, the surface channel inflow represents the total water entering
+the cell via surface flow. It is calculated as the sum of:
+
+* The cell’s local surface runoff for the current timestep.
+* The surface runoff contributions from all upstream cells, also for the current
+  timestep. This captures the immediate routing of water across the landscape without
+  including previous timesteps.
+
+Each cell also contributes subsurface water (lateral flow + baseflow) to downstream
+cells. The subsurface flow contribution for each cell is calculated similarly to surface
+flow:
+
+* Local subsurface runoff generated in the cell during the current timestep.
+* Contributions from subsurface runoff from upstream cells during the same timestep.
+  This allows the model to account for below-ground movement of water through soil and
+  groundwater pathways.
+
+The total river discharge at each cell is the sum of surface and subsurface horizontal
+flows (Q):
+
+$$Q_{total}=Q_{surface}+ Q_{subsurface}$$
+
+This total flow can then be converted to a river discharge rate in cubic meters per
+second (m3 s-1) using cell area and unit conversions.
 
 ```{code-cell} ipython3
-from virtual_ecosystem.models.hydrology.above_ground import accumulate_horizontal_flow
+from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-previous_accumulated_runoff = DataArray(np.full(81, 10), dims="cell_id")
-surface_runoff = DataArray(np.full(81, 1), dims="cell_id")
+subsurface_runoff = DataArray(np.full_like(elevation, 10), dims="cell_id")
+surface_runoff = DataArray(np.full_like(elevation, 12), dims="cell_id")
 
-accumulated_runoff = accumulate_horizontal_flow(
+total_channel_inflow = route_horizontal_flow(
     drainage_map=drainage_map,
-    current_flow=surface_runoff,
-    previous_accumulated_flow=previous_accumulated_runoff,
+    surface_runoff=surface_runoff,
+    subsurface_runoff=subsurface_runoff,
 )
 
 # Plot accumulated runoff map
-reshaped_data = DataArray(accumulated_runoff.to_numpy().reshape(9, 9))
+reshaped_data = DataArray(total_channel_inflow.reshape(1000, 1000))
 plt.figure(figsize=(10, 6))
 reshaped_data.plot(cmap="Blues")
-plt.title("Accumulated runoff, mm")
+plt.title("Total channel inflow, mm")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
 ```
 
-Total river discharge is calculated as the sum of above- and below ground horizontal
-flow and converted to river discharge rate in m3/s.
-
 ```{note}
-The hydrology model requires a spinup period to establish a steady state flow of
-accumulated above and below ground flow - each simulation time step then represents the
-total flow through a grid cell. This is currently not implemented.
-
 To close the water balance, water needs to enter and leave the grid at some point. These
 boundaries are currently not implemented.
 ```

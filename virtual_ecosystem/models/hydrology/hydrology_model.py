@@ -651,7 +651,7 @@ class HydrologyModel(
             for var in ["groundwater_storage", "subsurface_flow", "baseflow"]:
                 daily_lists[var].append(below_ground_flow[var])
 
-            # Calculate horizontal flows between grid cells
+            # Calculate horizontal flows between grid cells individually for output
             # Surface runoff routed to each cell (current timestep only)
             surface_channel_inflow = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
