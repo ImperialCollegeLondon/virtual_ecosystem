@@ -1,17 +1,25 @@
-"""The subcanopy module provides blah blah blah
+"""The subcanopy module provides a representation of subcanopy biomass as two pools. The
+first is a pool of subcanopy vegetation, implemented as layer of pure leaf tissue in the
+surface layer of the model vertical structure. The second is a pool of subcanopy
+seedbank biomass.
 
-This is :class:`SubcanopyBiomass` is defined independently of the
+Both pools use a simplified stiochiometric system: this is defined independently of the
 :mod:`virtual_ecosystem.models.plants.stochiometry` module, as that class explicitly
 handles communities of cohorts with multiple tissue types. The subcanopy has much
 simpler structure with two stoichiometric masses per grid cell and so the dynamics are
 more easily handled by a separate implementation.
 
-.. NOTE::
+The module implements the following classes:
 
-This currently hardcodes the specific nutrients. If this expands beyond N and P, see the
-discussion here: https://github.com/ImperialCollegeLondon/virtual_ecosystem/pull/1032
+* The :class:`Nutrient` class provides a representation of nutrient masses per grid
+  cell.
+* The :class:`SubcanopyBiomass` class then tracks the carbon mass and an associated set
+  of nutrient masses for a given pool.
+* The :class:`Subcanopy` then maintains subcanopy biomass pools for the vegetation and
+  seedbank and provides methods to update the light gathering and ecological dynamics of
+  the subcanopy at each update step.
 
-"""  # noqa: D415
+"""  # noqa:  D205
 
 from __future__ import annotations
 
@@ -164,7 +172,7 @@ class SubcanopyBiomass:
             source = source.nutrients
 
         for nm in source:
-            self.nutrients[nm].masses -= source[nm].masses
+            self.nutrients[nm].masses += source[nm].masses
 
     def get_excess_nutrients(self) -> SubcanopyNutrients:
         """Extract excess nutrients.
@@ -176,16 +184,21 @@ class SubcanopyBiomass:
         ratio.
         """
 
-        return {
-            nm: Nutrient(
+        # Subcanopy nutrients dictionary to return excesses
+        excess_nutrients: SubcanopyNutrients = {}
+
+        for nm, nutr in self.nutrients.items():
+            # Calculate the excess for each nutrient, remove it from the instance mass
+            # and add a corresponding Nutrient to the return value.
+            excess = np.maximum(nutr.masses - (self.carbon_mass / nutr.ideal_ratio), 0)
+
+            nutr.masses -= excess
+            excess_nutrients[nm] = Nutrient(
                 name=nm,
                 ideal_ratio=nutr.ideal_ratio,
-                masses=np.maximum(
-                    nutr.masses - (self.carbon_mass / nutr.ideal_ratio), 0
-                ),
+                masses=excess,
             )
-            for nm, nutr in self.nutrients.items()
-        }
+        return excess_nutrients
 
 
 class Subcanopy:

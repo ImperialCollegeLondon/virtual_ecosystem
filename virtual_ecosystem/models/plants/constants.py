@@ -69,16 +69,16 @@ class PlantsConsts(ConstantsDataclass):
     subcanopy_seedbank_turnover: float = 0.25
     """The annual fraction of subcanopy seedbank biomass turnover (kg kg-1 m-2 y-1)."""
 
-    subcanopy_seedbank_c_n_ratio: float = 0.05
+    subcanopy_seedbank_c_n_ratio: float = 20
     """The ideal mass ratio of nitrogen in subcanopy seedbank biomass (-)."""
 
-    subcanopy_seedbank_c_p_ratio: float = 0.01
+    subcanopy_seedbank_c_p_ratio: float = 50
     """The ideal mass ratio of phosphorous in subcanopy seedbank biomass (-)."""
 
-    subcanopy_vegetation_c_n_ratio: float = 0.05
+    subcanopy_vegetation_c_n_ratio: float = 20
     """The ideal mass ratio of nitrogen in subcanopy vegetation biomass (-)."""
 
-    subcanopy_vegetation_c_p_ratio: float = 0.01
+    subcanopy_vegetation_c_p_ratio: float = 50
     """The ideal mass ratio of phosphorous in subcanopy vegetation biomass (-)."""
 
     root_exudates: float = 0.5
