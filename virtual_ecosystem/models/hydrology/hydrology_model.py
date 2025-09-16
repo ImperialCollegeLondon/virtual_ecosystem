@@ -493,20 +493,20 @@ class HydrologyModel(
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]
-            surface_runoff = above_ground.calculate_surface_runoff(
+            surface_runoff_local = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 top_soil_moisture_saturation=hydro_input[
                     "top_soil_moisture_saturation"
                 ],
             )
-            daily_lists["surface_runoff"].append(surface_runoff)
+            daily_lists["surface_runoff"].append(surface_runoff_local)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
-                available_water=precipitation_surface - surface_runoff,
+                available_water=precipitation_surface - surface_runoff_local,
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
@@ -516,7 +516,7 @@ class HydrologyModel(
                 (
                     hydro_input["current_soil_moisture"][0]
                     + precipitation_surface
-                    - surface_runoff
+                    - surface_runoff_local
                     - bypass_flow,
                 ),
                 0,
@@ -655,8 +655,10 @@ class HydrologyModel(
             # Surface runoff routed to each cell (current timestep only)
             surface_channel_inflow = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
-                surface_runoff=surface_runoff,
-                subsurface_runoff=np.zeros_like(surface_runoff),  # only surface here
+                surface_runoff=surface_runoff_local,
+                subsurface_runoff=np.zeros_like(
+                    surface_runoff_local
+                ),  # only surface here
             )
             daily_lists["surface_channel_inflow"].append(surface_channel_inflow)
 
@@ -685,7 +687,7 @@ class HydrologyModel(
             )
             daily_lists["river_discharge_rate"].append(river_discharge_rate)
 
-            # --- Update other model states for next day ---
+            # Update other model states for next day
             hydro_input["current_soil_moisture"] = soil_moisture_updated
             hydro_input["groundwater_storage"] = below_ground_flow[
                 "groundwater_storage"
