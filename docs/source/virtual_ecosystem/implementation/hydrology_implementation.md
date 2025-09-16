@@ -370,7 +370,7 @@ discharge.
 The flow direction of water above and below ground is based on a digital elevation model
 which needs to be provided as a NetCDF file at the start of the simulation.
 Here an description of the steps that happen during the hydrology model
-initialisation at the example of a 30m resolution DEM:
+initialisation (plotting only for illustration):
 
 ```{code-cell} ipython3
 # # Read elevation datafrom NetCDF
@@ -378,9 +378,9 @@ import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-input_file = "../../_static/SRTM_UTM50N_processed1.nc"
+input_file = "../../_static/river_DEM.nc"
 digital_elevation_model = xr.open_dataset(input_file)
-elevation = digital_elevation_model["band_data"]
+elevation = digital_elevation_model["elevation"]
 ```
 
 ```{code-cell} ipython3
@@ -401,7 +401,9 @@ plt.show()
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.data import Data
 
-grid = Grid(grid_type="square", cell_area=1000000, cell_nx=1000, cell_ny=1000)
+grid = Grid(
+    grid_type="square", cell_area=8100, cell_nx=9, cell_ny=9, xoff=-45, yoff=-45
+)
 data = Data(grid=grid)
 data["elevation"] = elevation
 ```
@@ -459,8 +461,8 @@ second (m3 s-1) using cell area and unit conversions.
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-subsurface_runoff = DataArray(np.full_like(elevation, 10), dims="cell_id")
-surface_runoff = DataArray(np.full_like(elevation, 12), dims="cell_id")
+subsurface_runoff = DataArray(np.full_like(data["elevation"], 10), dims="cell_id")
+surface_runoff = DataArray(np.full_like(data["elevation"], 12), dims="cell_id")
 
 total_channel_inflow = route_horizontal_flow(
     drainage_map=drainage_map,
@@ -468,10 +470,14 @@ total_channel_inflow = route_horizontal_flow(
     subsurface_runoff=subsurface_runoff,
 )
 
-# Plot accumulated runoff map
-reshaped_data = DataArray(total_channel_inflow.reshape(1000, 1000))
+# Plot total channel inflow map
+reshaped_data = DataArray(
+    total_channel_inflow.reshape((9, 9), order="F"),
+    dims=("y", "x"),
+    coords={"y": np.arange(9), "x": np.arange(9)},
+)
 plt.figure(figsize=(10, 6))
-reshaped_data.plot(cmap="Blues")
+reshaped_data.plot(cmap="viridis")
 plt.title("Total channel inflow, mm")
 plt.xlabel("x")
 plt.ylabel("y")

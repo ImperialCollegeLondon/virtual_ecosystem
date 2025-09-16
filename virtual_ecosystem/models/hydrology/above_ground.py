@@ -403,7 +403,7 @@ def route_horizontal_flow(
         subsurface_runoff: Subsurface runoff for this timestep, [mm]
 
     Returns:
-        channel_inflow: Total streamflow contribution at each grid cell, [mm]
+        Total streamflow contribution at each grid cell, [mm]
     """
     # local generation in this cell (surface + subsurface)
     local_generation = np.nan_to_num(surface_runoff, nan=0.0) + np.nan_to_num(
