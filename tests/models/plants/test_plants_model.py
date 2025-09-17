@@ -238,9 +238,12 @@ def test_PlantsModel_set_shortwave_absorption(
     wipe_canopy_layers(fxt_plants_model)
 
     # Check that calling the methods after update resets to the expected values
+    fxt_plants_model.set_canopy_top_radiation(time_index=0)
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_subcanopy_light_capture()
-    fxt_plants_model.set_shortwave_absorption(time_index=0)
+    fxt_plants_model.subcanopy.set_light_capture(
+        below_canopy_light_fraction=fxt_plants_model.below_canopy_light_fraction
+    )
+    fxt_plants_model.set_shortwave_absorption()
 
     data_validator(
         fxt_plants_model,
@@ -257,9 +260,12 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     """Test the estimate_gpp method."""
 
     # Set the canopy and absorbed irradiance
+    fxt_plants_model.set_canopy_top_radiation(time_index=0)
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_subcanopy_light_capture()
-    fxt_plants_model.set_shortwave_absorption(time_index=0)
+    fxt_plants_model.subcanopy.set_light_capture(
+        below_canopy_light_fraction=fxt_plants_model.below_canopy_light_fraction
+    )
+    fxt_plants_model.set_shortwave_absorption()
 
     # Calculate GPP
     fxt_plants_model.calculate_light_use_efficiency()

@@ -456,9 +456,7 @@ class PlantsModel(
         )
 
         # Get the canopy top shortwave downwelling radiation for the first time slice
-        self.canopy_top_radiation = (
-            self.data["downward_shortwave_radiation"].isel(time_index=0).to_numpy()
-        )
+        self.set_canopy_top_radiation(time_index=0)
 
         # This updates the data fapar and lai values of the surface layer using the
         # subcanopy vegetation
@@ -517,11 +515,7 @@ class PlantsModel(
         self.apply_recruitment()
 
         # Get the canopy top shortwave downwelling radiation for the current time slice
-        self.canopy_top_swd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
-        )
+        self.set_canopy_top_radiation(time_index=time_index)
 
         # Update the canopy layers and subcanopy and then set the shortwave absorption
         self.canopies = calculate_canopies(
@@ -664,6 +658,15 @@ class PlantsModel(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
 
+    def set_canopy_top_radiation(self, time_index: int) -> None:
+        """Set the current canopy top shortwave downwelling radiation."""
+
+        self.canopy_top_radiation = (
+            self.data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy()
+        )
+
     def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
 
@@ -751,12 +754,7 @@ class PlantsModel(
         """
 
         # Get the canopy top PPFD per grid cell for this time index
-        canopy_top_ppfd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
-            * self.model_constants.dsr_to_ppfd
-        )
+        canopy_top_ppfd = self.canopy_top_radiation * self.model_constants.dsr_to_ppfd
 
         # Initialise transpiration array to collect per grid cell values
         transpiration = self.layer_structure.from_template("transpiration")
