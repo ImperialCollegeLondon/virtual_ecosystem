@@ -175,33 +175,23 @@ def test_route_horizontal_flow_basic():
 
     from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-    # Simple 3-cell network:
-    # Cell 0: no upstream
-    # Cell 1: upstream = [0]
-    # Cell 2: upstream = [0,1]
     drainage_map = {
         0: [],
         1: [0],
-        2: [0, 1],
+        2: [1, 2],
+        3: [],
+        4: [],
+        5: [3],
+        6: [],
+        7: [4, 5, 6],
     }
 
-    surface_runoff = np.array([1.0, 2.0, 3.0])
-    subsurface_runoff = np.array([0.5, 0.0, 1.0])
+    surface_runoff = np.array([1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 2.0, 1.0])
+    subsurface_runoff = np.array([0.5, 0.0, 1.0, 0.5, 0.0, 1.0, 0.5, 1.0])
 
     result = route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
 
-    # Local generation = surface + subsurface
-    local_gen = np.array([1.5, 2.0, 4.0])
-
-    # Expected inflow from upstream
-    expected_inflow = np.array(
-        [
-            0.0,  # Cell 0 has no upstream
-            1.5,  # Cell 1 inflow = Cell 0 local_gen
-            1.5 + 2.0,  # Cell 2 inflow = Cell 0 + Cell 1 local_gen
-        ]
-    )
-    expected_channel_inflow = local_gen + expected_inflow
+    expected_channel_inflow = np.array([1.5, 3.5, 10.0, 1.5, 2.0, 5.5, 2.5, 10.5])
 
     np.testing.assert_array_almost_equal(result, expected_channel_inflow)
 
