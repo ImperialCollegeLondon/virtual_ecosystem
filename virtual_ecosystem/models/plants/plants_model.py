@@ -264,6 +264,8 @@ class PlantsModel(
         """Core constants used by pyrealm."""
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
+        self.canopy_top_radiation: NDArray[np.floating]
+        """The downwelling radiation at the canopy top for the current time step."""
         self.subcanopy: Subcanopy
         """Representation of the subcanopy vegetation."""
         # Define and populate model specific attributes
@@ -453,18 +455,19 @@ class PlantsModel(
             model_timing=self.model_timing,
         )
 
+        # Get the canopy top shortwave downwelling radiation for the first time slice
+        self.canopy_top_radiation = (
+            self.data["downward_shortwave_radiation"].isel(time_index=0).to_numpy()
+        )
+
         # This updates the data fapar and lai values of the surface layer using the
         # subcanopy vegetation
         self.subcanopy.set_light_capture(
             below_canopy_light_fraction=self.below_canopy_light_fraction
         )
 
-        # Set the ground_incident light
-        self.ground_incident_light_fraction = (
-            self.below_canopy_light_fraction * self.subcanopy.light_transmission
-        )
-
-        self.set_shortwave_absorption(time_index=0)
+        # Set the shortwave absorption profile down to the ground
+        self.set_shortwave_absorption()
 
         # Initialise other attributes
         self.per_stem_gpp = {}
@@ -513,6 +516,13 @@ class PlantsModel(
         self.apply_mortality()
         self.apply_recruitment()
 
+        # Get the canopy top shortwave downwelling radiation for the current time slice
+        self.canopy_top_swd = (
+            self.data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy()
+        )
+
         # Update the canopy layers and subcanopy and then set the shortwave absorption
         self.canopies = calculate_canopies(
             communities=self.communities,
@@ -522,10 +532,7 @@ class PlantsModel(
         self.subcanopy.set_light_capture(
             below_canopy_light_fraction=self.below_canopy_light_fraction
         )
-        self.ground_incident_light_fraction = (
-            self.below_canopy_light_fraction * self.subcanopy.light_transmission
-        )
-        self.set_shortwave_absorption(time_index=time_index)
+        self.set_shortwave_absorption()
 
         # Estimate the canopy GPP and growth with the updated this update
         self.calculate_light_use_efficiency()
@@ -543,7 +550,11 @@ class PlantsModel(
         self.calculate_mycorrhizal_uptakes()
 
         # Calculate the subcanopy vegetation
-        self.subcanopy.calculate_dynamics(pmodel=self.pmodel)
+        self.subcanopy.calculate_dynamics(
+            lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
+            iwue=self.pmodel.iwue[self.layer_structure.index_surface_scalar, :],
+            swd=self.canopy_top_radiation,
+        )
 
         # Run the community data exporter
         self.exporter.dump(
@@ -653,7 +664,7 @@ class PlantsModel(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
 
-    def set_shortwave_absorption(self, time_index: int) -> None:
+    def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
 
         This method takes the shortwave radiation at the top of the canopy for a
@@ -661,25 +672,26 @@ class PlantsModel(
         and subcanopy models to estimate the amount of radiation absorbed by each canopy
         layer and the remaining radiation absorbed by the top soil layer.
 
+        The method requires that the ``canopy_top_radiation`` attribute has been set
+        with the SWD values for the current time step.
+
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
             and shade.
         """  # noqa: D405
 
-        # Get the canopy top shortwave downwelling radiation for the current time slice
-        canopy_top_swd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
+        # Set the ground_incident light
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * self.subcanopy.light_transmission
         )
 
         # Calculate the fate of shortwave radiation through the layers assuming that the
         # vegetation fAPAR applies to all light wavelengths
-        absorbed_irradiance = self.data["layer_fapar"] * canopy_top_swd
+        absorbed_irradiance = self.data["layer_fapar"] * self.canopy_top_radiation
 
         # Add the remaining irradiance at the surface layer level
         absorbed_irradiance[self.layer_structure.index_topsoil] = (
-            canopy_top_swd * self.ground_incident_light_fraction
+            self.canopy_top_radiation * self.ground_incident_light_fraction
         )
 
         self.data["shortwave_absorption"] = absorbed_irradiance

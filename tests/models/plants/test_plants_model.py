@@ -522,49 +522,6 @@ def test_PlantsModel_apply_recruitment(fxt_plants_model):
     assert np.all(np.less(original_n_cohorts, new_n_cohorts))
 
 
-@pytest.mark.parametrize(
-    argnames="veg_biomass, seedbank_biomass, veg_comparator, seedbank_comparator",
-    argvalues=(
-        pytest.param(
-            np.ones(4), np.zeros(4), np.greater, np.greater, id="seedbank_repopulates"
-        ),
-        pytest.param(
-            np.zeros(4), np.ones(4), np.greater, np.greater, id="vegetation_repopulates"
-        ),
-        pytest.param(
-            np.zeros(4), np.zeros(4), np.equal, np.equal, id="no_biomass_persists"
-        ),
-    ),
-)
-def test_PlantsModel_subcanopy_vegetation_dynamics(
-    plants_data,
-    fixture_config,
-    fixture_core_components,
-    veg_biomass,
-    seedbank_biomass,
-    veg_comparator,
-    seedbank_comparator,
-):
-    """Test that the turnover constants can be overridden by values in config."""
-
-    from virtual_ecosystem.models.plants.plants_model import PlantsModel
-
-    plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
-    plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
-
-    plants_model = PlantsModel.from_config(
-        data=plants_data, config=fixture_config, core_components=fixture_core_components
-    )
-    plants_model._update(time_index=0)
-
-    assert np.all(
-        veg_comparator(plants_data["subcanopy_vegetation_biomass"], np.zeros(4))
-    )
-    assert np.all(
-        seedbank_comparator(plants_data["subcanopy_seedbank_biomass"], np.zeros(4))
-    )
-
-
 def test_partition_reproductive_tissue(fxt_plants_model):
     """Tests the partition reproductive tissue function."""
 

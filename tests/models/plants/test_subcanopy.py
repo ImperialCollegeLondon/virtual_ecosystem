@@ -1,6 +1,7 @@
 """Test the virtual_ecosystem.models.plants.subcanopy module."""
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 
@@ -116,4 +117,80 @@ def test_SubcanopyBiomass(fixture_plants_constants):
     assert_allclose(
         stoich_varying_ratios.c_x_ratio("p"),
         np.where(carbon_mass <= 10, cp_ratio, (carbon_mass / 0.2)),
+    )
+
+
+@pytest.mark.parametrize(
+    argnames="veg_biomass, seedbank_biomass, veg_comparator, seedbank_comparator",
+    argvalues=(
+        pytest.param(
+            np.ones(4), np.zeros(4), np.greater, np.greater, id="seedbank_repopulates"
+        ),
+        pytest.param(
+            np.zeros(4), np.ones(4), np.greater, np.greater, id="vegetation_repopulates"
+        ),
+        pytest.param(
+            np.zeros(4), np.zeros(4), np.equal, np.equal, id="no_biomass_persists"
+        ),
+    ),
+)
+def test_subcanopy_vegetation_dynamics(
+    plants_data,
+    fixture_plants_constants,
+    fixture_pyrealm_constants,
+    fixture_core_components,
+    veg_biomass,
+    seedbank_biomass,
+    veg_comparator,
+    seedbank_comparator,
+):
+    """Test that subcanopy dynamics work at a coarse scale.
+
+    The parameterised scenarios simulate the recovery of empty vegetation or seedbank as
+    long as the other pool contains some biomass.
+    """
+
+    from virtual_ecosystem.models.plants.subcanopy import Subcanopy
+
+    pyrealm_core_constants, _ = fixture_pyrealm_constants
+
+    # Update data from scenario
+    plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
+    plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
+
+    template = fixture_core_components.layer_structure.from_template()
+    template[:] = 0
+
+    plants_data["shortwave_absorption"] = template.copy()
+    plants_data["leaf_area_index"] = template.copy()
+    plants_data["layer_fapar"] = template.copy()
+
+    subcanopy = Subcanopy(
+        data=plants_data,
+        pmodel_core_constants=pyrealm_core_constants,
+        model_constants=fixture_plants_constants,
+        layer_index=fixture_core_components.layer_structure.index_surface_scalar,
+        model_timing=fixture_core_components.model_timing,
+    )
+
+    # Test initialisation sets the biomasses
+    assert_allclose(subcanopy.vegetation_biomass.carbon_mass, veg_biomass)
+    assert_allclose(subcanopy.seedbank_biomass.carbon_mass, seedbank_biomass)
+
+    # Set the subcanopy shortwave absorption - don't need finesse here - either
+    # vegetation present or not
+    subcanopy.set_light_capture(below_canopy_light_fraction=np.ones(4))
+
+    subcanopy.calculate_dynamics(lue=np.ones(4), iwue=np.ones(4), swd=np.ones(4))
+
+    # Assert that biomasses are either equal to zero or greater.
+    assert np.all(
+        veg_comparator(
+            plants_data["subcanopy_vegetation_biomass"].to_numpy(), np.zeros(4)
+        )
+    )
+    assert np.all(
+        seedbank_comparator(
+            plants_data["subcanopy_seedbank_biomass"].to_numpy(), np.zeros(4)
+        )
     )

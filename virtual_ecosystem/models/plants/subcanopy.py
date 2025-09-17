@@ -29,7 +29,7 @@ from typing import TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst
-from pyrealm.pmodel import PModel
+from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.data import Data
@@ -93,6 +93,10 @@ class SubcanopyBiomass:
         self.carbon_mass: NDArray[np.floating] = carbon_mass
         self.nutrients: SubcanopyNutrients = nutrients
 
+    def __repr__(self) -> str:
+        """Simple representation of class."""
+        return f"SubcanopyBiomass(carbon={self.carbon_mass})"
+
     @classmethod
     def from_constants(
         cls,
@@ -123,7 +127,9 @@ class SubcanopyBiomass:
         """Return the current CN ratio for the biomass."""
         return self.carbon_mass / self.nutrients[nutrient].masses
 
-    def remove_mass_fraction(self, mass_fraction: float) -> SubcanopyBiomass:
+    def remove_mass_fraction(
+        self, mass_fraction: float | NDArray[np.floating]
+    ) -> SubcanopyBiomass:
         """Remove a proportion of the biomass.
 
         This function returns a new SubcanopyBiomass object containing the
@@ -132,7 +138,8 @@ class SubcanopyBiomass:
         the same fraction to maintain the same CN and CP ratios.
 
         Args:
-            mass_fraction: The proportion of mass to remove from the instance.
+            mass_fraction: The proportion of mass to remove from each cell in the
+                instance.
         """
 
         # Calculate extracted carbon and nutrient masses
@@ -263,7 +270,12 @@ class Subcanopy:
         self.light_transmission: NDArray[np.floating]
         self.fapar: NDArray[np.floating]
 
-    def calculate_dynamics(self, pmodel: PModel) -> None:
+    def calculate_dynamics(
+        self,
+        lue: NDArray[np.floating],
+        iwue: NDArray[np.floating],
+        swd: NDArray[np.floating],
+    ) -> None:
         r"""Estimate the dynamics of subcanopy vegetation.
 
         This method models the biomass dynamics with the subcanopy vegetation and
@@ -312,15 +324,17 @@ class Subcanopy:
         )
 
         # Calculate the gross primary productivity since the last update.
-        #    LUE                     1 layer          [gC mol-1]
-        #    * shortwave absorption  1 layer          [µmol m-2 s-1]
-        #    * DST to PPFD           scalar           [-]
-        #    * time elapsed     scalar                [s]
+        #    LUE                 1 layer          [gC mol-1]
+        #    * canopy top SWD    1 layer          [µmol m-2 s-1]
+        #    * subcanopy fapar   1 layer          [-]
+        #    * DST to PPFD       scalar           [-]
+        #    * time elapsed      scalar           [s]
         # Units:
-        #    gC mol-1 * µmol m-2 s-1  * (-) * s = µg C m-2
+        #    gC mol-1 * µmol m-2 s-1  * (-) * (-) * s = µg C m-2
         subcanopy_gpp = (
-            pmodel.lue[self.layer_index, :]
-            * self.data["shortwave_absorption"][self.layer_index, :]
+            lue
+            * swd
+            * self.fapar
             * self.model_constants.dsr_to_ppfd
             * self.model_timing.update_interval_seconds
         )
@@ -339,7 +353,7 @@ class Subcanopy:
         # - Calculate the transpiration associated with the GPP in moles
         self.subcanopy_transpiration = (
             subcanopy_gpp / (self.pmodel_core_constants.k_c_molmass * 1e6)
-        ) * pmodel.iwue[self.layer_index, :]
+        ) * iwue
 
         # Calculate the volume of water from µmol to m3 to convert soil water nutrient
         # concentrations in kg m3 into uptake nutrient mass.  Water has 1e6 g / 18.015 g
@@ -348,9 +362,17 @@ class Subcanopy:
         subcanopy_volume_m3 = self.subcanopy_transpiration * 18.015e-11
 
         # Now calculate uptakes of nutrients through transpired water
-        ammonium_uptake_kg = subcanopy_volume_m3 * self.data["dissolved_ammonium"]
-        nitrate_uptake_kg = subcanopy_volume_m3 * self.data["dissolved_nitrate"]
-        phosphorus_uptake_kg = subcanopy_volume_m3 * self.data["dissolved_phosphorus"]
+        ammonium_uptake_kg = (
+            subcanopy_volume_m3 * self.data["dissolved_ammonium"].to_numpy()
+        )
+        nitrate_uptake_kg = (
+            subcanopy_volume_m3 * self.data["dissolved_nitrate"].to_numpy()
+        )
+        phosphorus_uptake_kg = (
+            subcanopy_volume_m3 * self.data["dissolved_phosphorus"].to_numpy()
+        )
+
+        # TODO need to remove uptake from soil
 
         # Assimilate the gained masses into the vegetation first to update the
         # nutrient masses that are available for allocation to seedbank
@@ -375,16 +397,22 @@ class Subcanopy:
         )
 
         # Extract the new carbon allocation for the seedbank using those new nutrient
-        # ratios
-        seedbank_carbon_fraction = (
-            subcanopy_npp * self.model_constants.subcanopy_reproductive_allocation
-        ) / self.vegetation_biomass.carbon_mass
+        # ratios, catching cells with no vegetation biomass
+        seedbank_carbon_fraction: NDArray[np.floating] = np.where(
+            self.vegetation_biomass.carbon_mass > 0,
+            subcanopy_npp
+            * self.model_constants.subcanopy_reproductive_allocation
+            / self.vegetation_biomass.carbon_mass,
+            0,
+        )
 
         seedbank_allocation = self.vegetation_biomass.remove_mass_fraction(
             mass_fraction=seedbank_carbon_fraction
         )
 
         # Extract seedbank provisioning using excess nutrients in vegetative biomass
+        # TODO - how do these nutrients make it to the seedbank if there are excess
+        #        nutrients but no carbon?
         seedbank_extra_nutrients = self.vegetation_biomass.get_excess_nutrients()
 
         # Get the new sprouted biomass from the seedbank during the time period
@@ -404,7 +432,8 @@ class Subcanopy:
         self.vegetation_biomass.add_mass(sprouting_biomass)
         seedbank_turnover.add_mass(sprouting_yield_losses)
 
-        # Overwrite data in DataArrays with new numpy values.
+        # Insert DataArrays with new values - could simply overwrite data but need to
+        # create the target data arrays in the first time step
         biomasses: dict[str, SubcanopyBiomass] = {
             "subcanopy_vegetation": self.seedbank_biomass,
             "subcanopy_seedbank": self.seedbank_biomass,
@@ -412,11 +441,14 @@ class Subcanopy:
             "seedbank_litter": seedbank_turnover,
         }
 
+        coords = {"cell_id": self.data["cell_id"].data}
         for var, biomass in biomasses.items():
-            self.data[f"{var}_biomass"].data = biomass.carbon_mass
+            self.data[f"{var}_biomass"] = DataArray(biomass.carbon_mass, coords=coords)
 
             for elem in self.elements:
-                self.data[f"{var}_c_{elem}_ratio"].data = biomass.c_x_ratio(elem)
+                self.data[f"{var}_c_{elem}_ratio"] = DataArray(
+                    biomass.c_x_ratio(elem), coords=coords
+                )
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.
@@ -455,11 +487,6 @@ class Subcanopy:
         # Absorb a fraction of the below canopy light and pass the rest on to the ground
         # incident light fraction
         self.fapar = below_canopy_light_fraction * (1 - self.light_transmission)
-
-        # MOVE INTO PLANTS MODEL
-        #        self.ground_incident_light_fraction = (
-        #            self.below_canopy_light_fraction * subcanopy_light_transmission
-        #        )
 
         # Store those values
         self.data["leaf_area_index"][self.layer_index] = self.lai
