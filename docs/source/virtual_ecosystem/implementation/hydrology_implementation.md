@@ -406,6 +406,14 @@ grid = Grid(
 )
 data = Data(grid=grid)
 data["elevation"] = elevation
+ele_plot = DataArray(
+    data["elevation"].to_numpy().reshape((9, 9)),
+    dims=("x", "y"),
+    coords={"x": np.arange(9), "y": np.arange(9)},
+)
+plt.figure(figsize=(10, 6))
+ele_plot.plot(cmap="terrain")
+plt.show()
 ```
 
 The initialisation step of the hydrology model finds all the neighbours for each grid
@@ -461,7 +469,7 @@ second (m3 s-1) using cell area and unit conversions.
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-subsurface_runoff = DataArray(np.full_like(data["elevation"], 10), dims="cell_id")
+subsurface_runoff = DataArray(np.full_like(data["elevation"], 1.0), dims="cell_id")
 surface_runoff = DataArray(np.full_like(data["elevation"], 12), dims="cell_id")
 
 total_channel_inflow = route_horizontal_flow(
@@ -472,12 +480,12 @@ total_channel_inflow = route_horizontal_flow(
 
 # Plot total channel inflow map
 reshaped_data = DataArray(
-    total_channel_inflow.reshape((9, 9), order="F"),
-    dims=("y", "x"),
-    coords={"y": np.arange(9), "x": np.arange(9)},
+    total_channel_inflow.reshape((9, 9)),
+    dims=("x", "y"),
+    coords={"x": np.arange(9), "y": np.arange(9)},
 )
 plt.figure(figsize=(10, 6))
-reshaped_data.plot(cmap="viridis")
+reshaped_data.plot(cmap="Blues")
 plt.title("Total channel inflow, mm")
 plt.xlabel("x")
 plt.ylabel("y")
