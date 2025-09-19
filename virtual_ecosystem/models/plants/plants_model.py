@@ -771,7 +771,7 @@ class PlantsModel(
         """
 
         # Initialize all turnover variables to 0 with the proper dimensions.
-        # Most variables are merged across PFTs and cohorts - one pool per cell.
+        # These variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_carbohydrate_exudation"] = xr.full_like(
@@ -867,7 +867,6 @@ class PlantsModel(
             # Allocate fallen propagules, and canopy propagules and non-propagule mass
             # into PFT specific pools by iterating over cohort PFTs.
             # TODO: not sure how performant this is, there might be a better solution.
-
             for (
                 cohort_pft,
                 fallen_n_propagules,
@@ -891,7 +890,7 @@ class PlantsModel(
                     canopy_non_propagule_mass * cohort_n_stems
                 )
 
-            # ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
+            # ALLOCATE ELEMENT MASS TO REGROW WHAT WAS LOST TO TURNOVER
             for stochiometry in stochiometries.values():
                 stochiometry.account_for_element_loss_turnover(stem_allocation)
 

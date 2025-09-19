@@ -63,7 +63,7 @@ class Tissue(ABC):
         Returns:
             The element deficit for the specified tissue.
         """
-        return self.ideal_ratio * self.carbon_mass - self.actual_element_mass
+        return self.actual_element_mass - (self.carbon_mass / self.ideal_ratio)
 
     @property
     def Cx_ratio(self) -> NDArray[np.float64]:
@@ -94,7 +94,7 @@ class Tissue(ABC):
 class FoliageTissue(Tissue):
     """A class to hold foliage stochiometry data for a set of plant cohorts."""
 
-    reclaim_ratio: NDArray[np.float64]
+    turnover_ratio: NDArray[np.float64]
     """The ratio of the element that can be reclaimed from the senesced tissue."""
 
     @classmethod
@@ -116,7 +116,7 @@ class FoliageTissue(Tissue):
             community=community,
             ideal_ratio=ideal_ratios,
             actual_element_mass=community.stem_allometry.foliage_mass * ideal_ratios,
-            reclaim_ratio=np.array(
+            turnover_ratio=np.array(
                 [
                     extra_pft_traits.traits[name][
                         f"leaf_turnover_c_{element_name}_ratio"
@@ -152,8 +152,7 @@ class FoliageTissue(Tissue):
             The element quantity lost to turnover for foliage tissue.
         """
         return (
-            allocation.foliage_turnover
-            * ((1 / self.reclaim_ratio) - (1 / self.Cx_ratio))
+            (allocation.foliage_turnover * (1 / self.turnover_ratio)).squeeze()
         ).squeeze()
 
 
@@ -429,10 +428,10 @@ class StemStochiometry(CohortMethods, PandasExporter):
 
     @property
     def tissue_deficit(self) -> NDArray[np.float64]:
-        """Calculate the element deficit for a tissue type.
+        """Calculate the total element deficit for the cohors.
 
         Returns:
-            The element deficit for the specified tissue.
+            The element deficit for all cohorts.
         """
         element_deficit = np.zeros(self.community.n_cohorts)
         for tissue in self.tissues:
@@ -459,6 +458,11 @@ class StemStochiometry(CohortMethods, PandasExporter):
         amount of that element is required to replace what was lost. To represent this
         process, the element is allocated from the surplus store in the same quantity
         as turnover. This uses current ratios so that the C:x ratios are maintained.
+
+        NOTE: these values are not subtracted from the element mass itself, as we assume
+        that the tree regrows the lost tissue in the same timestep. This means that the
+        element mass SHOULD stay the same, however the plant must have enough surplus to
+        cover the loss - hence only subtracting from the element surplus.
 
         Returns:
             The total element lost to turnover for each cohort.
