@@ -4,7 +4,7 @@ surface layer of the model vertical structure. The second is a pool of subcanopy
 seedbank biomass.
 
 Both pools use a simplified stiochiometric system: this is defined independently of the
-:mod:`virtual_ecosystem.models.plants.stochiometry` module, as that class explicitly
+:mod:`virtual_ecosystem.models.plants.stoichiometry` module, as that class explicitly
 handles communities of cohorts with multiple tissue types. The subcanopy has much
 simpler structure with two stoichiometric masses per grid cell and so the dynamics are
 more easily handled by a separate implementation.
@@ -217,6 +217,7 @@ class Subcanopy:
     carbon, nitrogen and phosphorous masses present in each pool.
 
     The class provides methods:
+
     * to calculate the leaf area index and fAPAR associated with the
       with the subcanopy, and
     * to calculate the dynamics of the subcanopy vegetation at each time step.
