@@ -176,7 +176,7 @@ def test_collect_vars_populated_by_init(known_variables, run_variables):
         model_name = "TestModel"
         vars_populated_by_init = ("test_var",)
 
-    with pytest.raises(ValueError, match="not in the known variables registry."):
+    with pytest.raises(ValueError, match=r"not in the known variables registry."):
         variables._collect_vars_populated_by_init([TestModel])
 
     variables.Variable(
@@ -207,7 +207,7 @@ def test_collect_vars_populated_by_first_update(known_variables, run_variables):
         vars_populated_by_first_update = ("test_var",)
         vars_populated_by_init = ("test_var",)
 
-    with pytest.raises(ValueError, match="not in the known variables registry."):
+    with pytest.raises(ValueError, match=r"not in the known variables registry."):
         variables._collect_vars_populated_by_first_update([TestModel])
 
     variables.Variable(
@@ -245,7 +245,7 @@ def test_collect_updated_by_vars(known_variables, run_variables, caplog):
         model_name = "TestModel"
         vars_updated = ("test_var",)
 
-    with pytest.raises(ValueError, match="not in the known variables registry."):
+    with pytest.raises(ValueError, match=r"not in the known variables registry."):
         variables._collect_updated_by_vars([TestModel])
 
     var = variables.Variable(
@@ -282,7 +282,7 @@ def test_collect_vars_required_for_update(known_variables, run_variables):
         model_name = "TestModel"
         vars_required_for_update = ("test_var",)
 
-    with pytest.raises(ValueError, match="not in the known variables registry."):
+    with pytest.raises(ValueError, match=r"not in the known variables registry."):
         variables._collect_vars_required_for_update([TestModel])
 
     var = variables.Variable(
@@ -313,7 +313,7 @@ def test_collect_vars_required_for_init(known_variables, run_variables):
         model_name = "TestModel"
         vars_required_for_init = ("test_var",)
 
-    with pytest.raises(ValueError, match="not in the known variables registry."):
+    with pytest.raises(ValueError, match=r"not in the known variables registry."):
         variables._collect_vars_required_for_init([TestModel])
 
     var = variables.Variable(
@@ -416,7 +416,7 @@ def test_get_variable(known_variables, run_variables):
     """Test the get_variable function."""
     from virtual_ecosystem.core import variables
 
-    with pytest.raises(KeyError, match="not a known variable."):
+    with pytest.raises(KeyError, match=r"not a known variable."):
         variables.get_variable("test_var")
 
     var = variables.Variable(
@@ -500,7 +500,7 @@ def test_get_model_order(run_variables):
 
     # Test wrong stage
     with pytest.raises(
-        ConfigurationError, match="Stage must be either 'init' or 'update'."
+        ConfigurationError, match=r"Stage must be either 'init' or 'update'."
     ):
         variables.get_model_order("wrong_stage")
 

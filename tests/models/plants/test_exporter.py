@@ -326,7 +326,7 @@ def test_CommunityDataExporter_dump_cohort_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    communities, canopies, stem_allocations = fixture_exporter_components
+    communities, canopies, _stem_allocations = fixture_exporter_components
     exporter._dump_cohort_data(
         communities=communities,
         canopies=canopies,
@@ -639,7 +639,7 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, stem_allocations = fixture_exporter_components
+        communities, canopies, _stem_allocations = fixture_exporter_components
         exporter.dump(
             communities=communities,
             canopies=canopies,
