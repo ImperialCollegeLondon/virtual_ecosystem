@@ -504,8 +504,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Total channel inflow"
-name = "total_channel_inflow"
+description = "Total river discharge"
+name = "total_river_discharge"
 unit = "mm"
 variable_type = "float"
 

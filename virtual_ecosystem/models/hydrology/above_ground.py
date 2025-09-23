@@ -385,9 +385,9 @@ def route_horizontal_flow(
     surface_runoff: np.ndarray,
     subsurface_runoff: np.ndarray,
 ) -> np.ndarray:
-    """Route horizontal flow for each grid cell (instantaneous routing).
+    """Route horizontal flow for each grid cell (instantaneous channel routing).
 
-    This function calculates the total streamflow contribution at each grid cell
+    This function calculates the total river discharge at each grid cell
     for the current timestep by combining:
 
     1. Local generation: the water generated in the cell itself during the timestep,
@@ -395,7 +395,9 @@ def route_horizontal_flow(
     2. Inflow from upstream cells: contributions from all cells that drain into the
        current cell, using their local generation from the same timestep.
 
-    No flows from previous timesteps are included, avoiding double-counting.
+    No flows from previous timesteps are included, avoiding double-counting, and there
+    is also no time delay, so all the water runs through the whole grid in one time step
+    .
 
     Args:
         drainage_map: Dict mapping each cell ID -> list of upstream cell IDs
@@ -403,7 +405,7 @@ def route_horizontal_flow(
         subsurface_runoff: Subsurface runoff for this timestep, [mm]
 
     Returns:
-        Total streamflow contribution at each grid cell, [mm]
+        Total river discharge at each grid cell, [mm]
     """
     # local generation in this cell (surface + subsurface)
     local_generation = np.nan_to_num(surface_runoff, nan=0.0) + np.nan_to_num(
@@ -416,14 +418,14 @@ def route_horizontal_flow(
         if upstream_ids:
             inflow_from_upstream[cell_id] = np.sum(local_generation[upstream_ids])
 
-    channel_inflow = local_generation + inflow_from_upstream
+    total_river_discharge = local_generation + inflow_from_upstream
 
-    if (channel_inflow < 0.0).any():
-        to_raise = ValueError("The channel inflow should not be negative!")
+    if (total_river_discharge < 0.0).any():
+        to_raise = ValueError("The river discharge should not be negative!")
         LOGGER.error(to_raise)
         raise to_raise
 
-    return channel_inflow
+    return total_river_discharge
 
 
 def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:

@@ -305,10 +305,10 @@ We do currently NOT include any horizontal flows from the soil layers towards th
 (Q2 and Q3 in {numref}`bucket_model`).
 ```
 
-### Belowground outflows and groundwater storage
+### Belowground runoff and groundwater storage
 
-Groundwater storage and horizontal transport are modelled using two parallel linear
-reservoirs, similar to the approach used in the HBV-96 model
+Groundwater storage and runoff towards the channel are modelled using two parallel
+linear reservoirs, similar to the approach used in the HBV-96 model
 {cite}`lindstrom_development_1997` and the LISFLOOD
 {cite}`van_der_knijff_lisflood_2010` (see for full documentation).
 
@@ -362,8 +362,13 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 ## Across grid hydrology
 
 The second part of the hydrology model calculates the horizontal water movement across
-the full model grid including surface runoff and sub-surface flows, combined into river
-discharge.
+the full model grid including {term}`surface runoff` and {term}`sub-surface runoff`,
+combined into {term}`local runoff generation` and eventually
+{term}`total river discharge`. In the following, we distinguish between:
+
+* "Runoff" = local generation (within a cell), [mm].
+* "Inflow" = upstream contributions [mm].
+* "Discharge" = the routed total passing through the cell, [mm or m3 s-1].
 
 ### Drainage map
 
@@ -428,7 +433,7 @@ grid.neighbours[56]
 Based on that relationship, the model determines all upstream neighbours
 for each grid cell and creates a drainage map, i.e. a dictionary that contains for each
 grid cell all upstream grid cells. For example, `cell_id = 56` has four upstream cells
-with the indices `[47, 56, 57, 65]`.
+with the indices `[47, 56, 57, 65]`. This gives the flow direction.
 
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
@@ -441,27 +446,33 @@ drainage_map = calculate_drainage_map(
 
 ### Horizontal flow and river discharge
 
-For each grid cell, the surface channel inflow represents the total water entering
-the cell via surface flow. It is calculated as the sum of:
+We track horizontal water fluxes in two pathways — surface and subsurface — and then
+combine them into total river discharge.
 
-* The cell’s local surface runoff for the current timestep.
-* The surface runoff contributions from all upstream cells, also for the current
-  timestep. This captures the immediate routing of water across the landscape without
-  including previous timesteps.
+#### Surface flow ($Q_{surface}$)
 
-Each cell also contributes subsurface water (lateral flow + baseflow) to downstream
-cells. The subsurface flow contribution for each cell is calculated similarly to surface
-flow:
+Water moving over the land surface into the river channel. For each cell, this includes:
 
-* Local subsurface runoff generated in the cell during the current timestep.
-* Contributions from subsurface runoff from upstream cells during the same timestep.
-  This allows the model to account for below-ground movement of water through soil and
-  groundwater pathways.
+* Local surface runoff: water generated within the cell during the current timestep.
+* Upstream surface inflow: surface runoff generated in all upstream cells during the
+  same timestep.
 
-The total river discharge at each cell is the sum of surface and subsurface horizontal
-flows (Q):
+#### Subsurface flow ($Q_{subsurface}$)
 
-$$Q_{total}=Q_{surface}+ Q_{subsurface}$$
+Water moving laterally through soil and groundwater pathways towards the river channel.
+For each cell, this includes:
+
+* Local subsurface runoff: lateral + baseflow generated in the cell during the current
+  timestep.
+* Upstream subsurface inflow: subsurface runoff generated in upstream cells during the
+  same timestep.
+
+#### Total river discharge ($Q_{total}$)
+
+The total flow passing through a cell’s channel ({term}`total river discharge`) is the
+sum of these two pathways:
+
+$$Q_{total} = Q_{surface} + Q_{subsurface}$$
 
 This total flow can then be converted to a river discharge rate in cubic meters per
 second (m3 s-1) using cell area and unit conversions.
@@ -469,24 +480,26 @@ second (m3 s-1) using cell area and unit conversions.
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
+# Local runoff
 subsurface_runoff = DataArray(np.full_like(data["elevation"], 1.0), dims="cell_id")
 surface_runoff = DataArray(np.full_like(data["elevation"], 12), dims="cell_id")
 
-total_channel_inflow = route_horizontal_flow(
+# Total river discharge = local runoff generation + upstream inflow
+total_river_discharge = route_horizontal_flow(
     drainage_map=drainage_map,
     surface_runoff=surface_runoff,
     subsurface_runoff=subsurface_runoff,
 )
 
-# Plot total channel inflow map
+# Plot total river discharge map
 reshaped_data = DataArray(
-    total_channel_inflow.reshape((9, 9)),
+    total_river_discharge.reshape((9, 9)),
     dims=("x", "y"),
     coords={"x": np.arange(9), "y": np.arange(9)},
 )
 plt.figure(figsize=(10, 6))
 reshaped_data.plot(cmap="Blues")
-plt.title("Total channel inflow, mm")
+plt.title("Total river discharge, mm")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()

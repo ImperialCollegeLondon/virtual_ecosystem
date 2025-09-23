@@ -243,7 +243,7 @@ def test_generate_hydrology_model(
                 ],
             },
             {
-                "total_channel_inflow": [
+                "total_river_discharge": [
                     1477.363339,
                     1476.076772,
                     5895.307142,
@@ -273,7 +273,7 @@ def test_generate_hydrology_model(
                 ],
             },
             {
-                "total_channel_inflow": [
+                "total_river_discharge": [
                     483.741646,
                     480.053134,
                     1885.508689,

@@ -218,7 +218,7 @@ def test_route_horizontal_flow_raises_on_negative():
     surface_runoff = np.array([-1.0, 0.0])
     subsurface_runoff = np.array([0.0, 0.0])
 
-    with pytest.raises(ValueError, match="channel inflow should not be negative"):
+    with pytest.raises(ValueError, match="The river discharge should not be negative"):
         route_horizontal_flow(drainage_map, surface_runoff, subsurface_runoff)
 
 

@@ -67,7 +67,7 @@ class HydrologyModel(
         "soil_evaporation",
         "surface_channel_inflow",
         "subsurface_channel_inflow",
-        "total_channel_inflow",
+        "total_river_discharge",
         "river_discharge_rate",
         "matric_potential",
         "groundwater_storage",
@@ -115,7 +115,7 @@ class HydrologyModel(
         "surface_channel_inflow",
         "subsurface_channel_inflow",
         "river_discharge_rate",
-        "total_channel_inflow",
+        "total_river_discharge",
         "canopy_evaporation",
     ),
 ):
@@ -326,7 +326,7 @@ class HydrologyModel(
         * baseflow, [mm]
         * surface_channel_inflow, [mm]
         * subsurface_channel_inflow, [mm]
-        * total_channel_inflow, [mm]
+        * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
         * aerodynamic_resistance_surface, [s m-1]
@@ -351,9 +351,8 @@ class HydrologyModel(
         , the excess water is added to runoff and top soil moisture is set to soil
         moisture capacity value; if the top soil is not saturated, precipitation is
         added to the current topsoil moisture level and runoff is set to zero.
-        The streamflow contribution of a cell is calculated as its own surface and
-        subsurface runoff for the current timestep, plus the surface runoff
-        contributions from all upstream cells during the same timestep.
+        The local contribution of a cell to the river channel is calculated as its own
+        surface and subsurface runoff for the current timestep.
 
         Potential soil evaporation is calculated with classical bulk aerodynamic
         formulation, following the so-called ':math:`\alpha` method', see
@@ -379,7 +378,7 @@ class HydrologyModel(
         above ground runoff.
 
         Total river discharge is calculated as the sum of above- and below ground
-        horizontal flow contributios and converted to river discharge rate in [m3 s-1].
+        horizontal flow contributions and converted to river discharge rate in [m3 s-1].
 
         The function requires the following input variables from the data object:
 
@@ -652,7 +651,7 @@ class HydrologyModel(
                 daily_lists[var].append(below_ground_flow[var])
 
             # Calculate horizontal flows between grid cells individually for output
-            # Surface runoff routed to each cell (current timestep only)
+            # Surface runoff routed to each cell
             surface_channel_inflow = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
                 surface_runoff=surface_runoff_local,
@@ -673,13 +672,13 @@ class HydrologyModel(
             )
             daily_lists["subsurface_channel_inflow"].append(subsurface_channel_inflow)
 
-            # Total river inflow at each cell = surface + subsurface contributions
-            total_channel_inflow = surface_channel_inflow + subsurface_channel_inflow
-            daily_lists["total_channel_inflow"].append(total_channel_inflow)
+            # Total river discharge at each cell = surface + subsurface contributions
+            total_river_discharge = surface_channel_inflow + subsurface_channel_inflow
+            daily_lists["total_river_discharge"].append(total_river_discharge)
 
-            # Convert total channel inflow [mm] -> [m³/s]
+            # Convert total channel flow [mm] -> [m³/s]
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
-                river_discharge_mm=total_channel_inflow,
+                river_discharge_mm=total_river_discharge,
                 area=self.grid.cell_area,
                 days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
@@ -706,7 +705,7 @@ class HydrologyModel(
             "bypass_flow",
             "surface_channel_inflow",
             "subsurface_channel_inflow",
-            "total_channel_inflow",
+            "total_river_discharge",
         ]:
             soil_hydrology[var] = DataArray(
                 np.nansum(np.stack(daily_lists[var], axis=1), axis=1),
