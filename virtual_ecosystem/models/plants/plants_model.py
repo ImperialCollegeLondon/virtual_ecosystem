@@ -1188,24 +1188,13 @@ class PlantsModel(
             # - Concentration of N/P uptake (kg m^-3)
             # - Kg to g (1000)
             # TODO: scale by atmospheric pressure and temperature (#927)
-            self.data["plant_ammonium_uptake"] = (
-                self.per_stem_transpiration[cell_id]
-                * 1.8015e-11
-                * (self.data["dissolved_ammonium"][cell_id]).item()
-                * 1000
-            )
-            self.data["plant_nitrate_uptake"] = (
-                self.per_stem_transpiration[cell_id]
-                * 1.8015e-11
-                * (self.data["dissolved_nitrate"][cell_id]).item()
-                * 1000
-            )
-            self.data["plant_phosphorus_uptake"] = (
-                self.per_stem_transpiration[cell_id]
-                * 1.8015e-11
-                * (self.data["dissolved_phosphorus"][cell_id]).item()
-                * 1000
-            )
+            for nutrient in ["ammonium", "nitrate", "phosphorus"]:
+                self.data[f"plant_{nutrient}_uptake"] = (
+                    self.per_stem_transpiration[cell_id]
+                    * 1.8015e-11
+                    * (self.data[f"dissolved_{nutrient}"][cell_id]).item()
+                    * 1000
+                )
 
             self.stoichiometries[cell_id]["N"].element_surplus += (
                 self.data["plant_ammonium_uptake"] + self.data["plant_nitrate_uptake"]
