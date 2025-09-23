@@ -917,25 +917,22 @@ class PlantsModel(
                 )
             )
 
-            # Subtract the N/P required from growth from the element store, and
-            # redistribute it to the individual tissues.
+            # Increase each tissue element mass by the growth allocation, and subtract
+            # the same amount from the element store.
             for stochiometry in stochiometries.values():
                 stochiometry.account_for_growth(stem_allocation)
 
             # Balance the N & P surplus/deficit with the symbiote carbon supply
             for element in ["N", "P"]:
-                element_weighted_avg = np.dot(
+                total_supply = float(
                     self.data["ecto_supply_limit_" + element.lower()][cell_id]
-                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id],
-                    cohorts.n_individuals,
+                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id]
                 )
-                element_available_per_cohort = element_weighted_avg / sum(
-                    element_weighted_avg
-                )
-                element_available_per_stem = np.divide(
-                    element_available_per_cohort, cohorts.n_individuals
-                )
-                stochiometries[element].element_surplus += element_available_per_stem
+                cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
+                element_per_stem = (
+                    total_supply * cohort_fractions
+                ) / cohorts.n_individuals
+                stochiometries[element].element_surplus += element_per_stem
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):

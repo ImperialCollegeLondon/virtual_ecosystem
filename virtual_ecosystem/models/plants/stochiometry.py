@@ -290,7 +290,7 @@ class RootTissue(Tissue):
         pft_names = community.cohorts.pft_names
         ideal_ratios = np.array(
             [
-                extra_pft_traits.traits[name][f"root_tunrover_c_{element_name}_ratio"]
+                extra_pft_traits.traits[name][f"root_turnover_c_{element_name}_ratio"]
                 for name in pft_names
             ]
         )
