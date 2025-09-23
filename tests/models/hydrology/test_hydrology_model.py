@@ -204,7 +204,7 @@ def test_generate_hydrology_model(
                 mock_setup.assert_called_once()
 
                 # Check arguments passed to _setup
-                called_args, called_kwargs = mock_setup.call_args
+                _called_args, called_kwargs = mock_setup.call_args
                 assert (
                     called_kwargs["initial_soil_moisture"]
                     == config["hydrology"]["initial_soil_moisture"]

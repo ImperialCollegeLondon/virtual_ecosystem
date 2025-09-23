@@ -171,8 +171,8 @@ def test_check_precipitation_surface_raises_error():
 
     with pytest.raises(
         ValueError,
-        match="Surface precipitation should not be negative! Consider checking that the"
-        " canopy water balance is correct.",
+        match=r"Surface precipitation should not be negative! "
+        r"Consider checking that the canopy water balance is correct.",
     ):
         check_precipitation_surface(test_array)
 
