@@ -1190,9 +1190,9 @@ class PlantsModel(
             # TODO: scale by atmospheric pressure and temperature (#927)
             for nutrient in ["ammonium", "nitrate", "phosphorus"]:
                 self.data[f"plant_{nutrient}_uptake"] = (
-                    self.per_stem_transpiration[cell_id]
+                    (self.data[f"dissolved_{nutrient}"][cell_id])
+                    * self.per_stem_transpiration[cell_id]
                     * 1.8015e-11
-                    * (self.data[f"dissolved_{nutrient}"][cell_id]).item()
                     * 1000
                 )
 
