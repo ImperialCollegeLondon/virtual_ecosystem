@@ -65,8 +65,8 @@ class HydrologyModel(
         "surface_runoff",
         "vertical_flow",
         "soil_evaporation",
-        "surface_channel_inflow",
-        "subsurface_channel_inflow",
+        "surface_runoff_routed_plus_local",
+        "subsurface_runoff_routed_plus_local",
         "total_river_discharge",
         "river_discharge_rate",
         "matric_potential",
@@ -112,8 +112,8 @@ class HydrologyModel(
         "matric_potential",
         "subsurface_flow",
         "baseflow",
-        "surface_channel_inflow",
-        "subsurface_channel_inflow",
+        "surface_runoff_routed_plus_local",
+        "subsurface_runoff_routed_plus_local",
         "river_discharge_rate",
         "total_river_discharge",
         "canopy_evaporation",
@@ -324,8 +324,8 @@ class HydrologyModel(
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
-        * surface_channel_inflow, [mm]
-        * subsurface_channel_inflow, [mm]
+        * surface_runoff_routed_plus_local, [mm]
+        * subsurface_runoff_routed_plus_local, [mm]
         * total_river_discharge, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
@@ -651,29 +651,35 @@ class HydrologyModel(
                 daily_lists[var].append(below_ground_flow[var])
 
             # Calculate horizontal flows between grid cells individually for output
-            # Surface runoff routed to each cell
-            surface_channel_inflow = above_ground.route_horizontal_flow(
+            # Surface runoff routed to each cell + local surface runoff
+            surface_runoff_routed_plus_local = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
                 surface_runoff=surface_runoff_local,
                 subsurface_runoff=np.zeros_like(
                     surface_runoff_local
                 ),  # only surface here
             )
-            daily_lists["surface_channel_inflow"].append(surface_channel_inflow)
+            daily_lists["surface_runoff_routed_plus_local"].append(
+                surface_runoff_routed_plus_local
+            )
 
-            # Subsurface (lateral + baseflow) routed to each cell
+            # Subsurface runoff routed to each cell + local subsurface runoff
             subsurface_flow = np.array(
                 below_ground_flow["subsurface_flow"] + below_ground_flow["baseflow"]
             )
-            subsurface_channel_inflow = above_ground.route_horizontal_flow(
+            subsurface_runoff_routed_plus_local = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
                 surface_runoff=np.zeros_like(subsurface_flow),  # only subsurface here
                 subsurface_runoff=subsurface_flow,
             )
-            daily_lists["subsurface_channel_inflow"].append(subsurface_channel_inflow)
+            daily_lists["subsurface_runoff_routed_plus_local"].append(
+                subsurface_runoff_routed_plus_local
+            )
 
             # Total river discharge at each cell = surface + subsurface contributions
-            total_river_discharge = surface_channel_inflow + subsurface_channel_inflow
+            total_river_discharge = (
+                surface_runoff_routed_plus_local + subsurface_runoff_routed_plus_local
+            )
             daily_lists["total_river_discharge"].append(total_river_discharge)
 
             # Convert total channel flow [mm] -> [m³/s]
@@ -703,8 +709,8 @@ class HydrologyModel(
             "subsurface_flow",
             "baseflow",
             "bypass_flow",
-            "surface_channel_inflow",
-            "subsurface_channel_inflow",
+            "surface_runoff_routed_plus_local",
+            "subsurface_runoff_routed_plus_local",
             "total_river_discharge",
         ]:
             soil_hydrology[var] = DataArray(

@@ -250,7 +250,12 @@ def test_generate_hydrology_model(
                     2945.792003,
                 ],
                 "surface_runoff": [20.343781, 6.316444, 2.721491, 1.192358],
-                "surface_channel_inflow": [20.343781, 6.316444, 26.979121, 7.508803],
+                "surface_runoff_routed_plus_local": [
+                    20.343781,
+                    6.316444,
+                    26.979121,
+                    7.508803,
+                ],
                 "soil_evaporation": [5.93727, 12.359247, 25.50399, 51.620636],
             },
             id="1 month",
@@ -280,7 +285,7 @@ def test_generate_hydrology_model(
                     936.948501,
                 ],
                 "surface_runoff": [163.019971, 158.780549, 150.030499, 132.191482],
-                "surface_channel_inflow": [
+                "surface_runoff_routed_plus_local": [
                     163.019971,
                     158.780549,
                     595.272452,
@@ -384,7 +389,7 @@ def test_setup(
             hydrology_tools.check_monthly_mass_balance(
                 drainage_map=model.drainage_map,
                 surface_channel_inflow_mm=model.data[
-                    "surface_channel_inflow"
+                    "surface_runoff_routed_plus_local"
                 ].to_numpy(),
                 monthly_precipitation_mm=dummy_climate_data_varying_canopy[
                     "precipitation"

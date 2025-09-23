@@ -413,8 +413,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Subsurface flow contributing to channel flow in each grid cell"
-name = "subsurface_channel_inflow"
+description = "Subsurface flow contributing to river discharge in each grid cell"
+name = "subsurface_runoff_routed_plus_local"
 unit = "mm"
 variable_type = "float"
 
@@ -490,8 +490,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Surface runoff contributing to channel flow in each grid cell"
-name = "surface_channel_inflow"
+description = "Surface runoff contributing to river discharge in each grid cell"
+name = "surface_runoff_routed_plus_local"
 unit = "mm"
 variable_type = "float"
 
