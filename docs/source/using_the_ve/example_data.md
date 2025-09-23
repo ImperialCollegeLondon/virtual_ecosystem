@@ -11,20 +11,40 @@ jupyter:
       jupytext_version: 1.17.3
 ---
 
-# Virtual Ecosystem example data
+# Installing the Virtual Ecosystem example model
 
-Example data is included with Virtual Ecosystem to provide an introduction to the file
-formats and configuration. Using this data is described in the [getting
-started](./getting_started.md) page - this page describes the structure and contents of
-the example data folder.
+The Virtual Ecosystem model package includes data to run an example model. This page
+provides:
 
-It might be useful to install the `ve_example` directory to a location of your choice
-when reading these notes, using the command shown below, but the contents of the key
-files are also linked on this page.
+* a guide to installing the example model data,
+* an introduction to the example model file structure,
+* an overview of the configuration and data files in the example model.
 
-```shell
-ve_run --install-example /location/path/
+## Installing the example model data
+
+The first step before running the example model is to install the data. You will need to
+open a terminal (e.g. `bash` or Powershell) to run the installation command below. The
+command creates a new directory called `ve_example` inside the directory you specify:
+
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} shell
+ve_run --install-example /install/path/
 ```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+ve_run --install-example C:\install\path\
+```
+````
+`````
 
 ## Example data directory structure
 
@@ -39,8 +59,12 @@ The `ve_example` directory contains the following sub-directories:
 1. The empty `out` directory is simply used as a location to store model outputs.
 
 1. The `generation_scripts` directory contains Python scripts that are used to generate
-   the contents of the `data` directory. You won't typically need to look at these, but
-   they provide simple recipes for creating or editing the input data files.
+   the contents of the `data` directory.
+
+   You don't really need to look at these, but they provide simple recipes for creating
+   or editing the example data files, so might be useful for tinkering with the example
+   inputs. For any real model you want to fit, you will need to prepare actual [data
+   inputs](./model_inputs.md) using data for your ecosystem.
 
 1. A `source` directory that contains files used to create the input data files.
 
