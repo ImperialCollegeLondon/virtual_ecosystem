@@ -1,10 +1,11 @@
 import numpy as np  # noqa: D100
 import pytest
-from virtual_ecosystem.models.plants.stochiometry import (
+
+from virtual_ecosystem.models.plants.stoichiometry import (
     FoliageTissue,
     ReproductiveTissue,
     RootTissue,
-    StemStochiometry,
+    StemStoichiometry,
     WoodTissue,
 )
 
@@ -23,6 +24,12 @@ class DummyStemTraits:
     zeta = 0.1
     sla = 2.0
     p_foliage_for_reproductive_tissue = 0.5
+
+
+class DummyExtraTraitsPFT:
+    """Minimal mock for extra PFT traits."""
+
+    pass
 
 
 class DummyCommunity:
@@ -50,8 +57,10 @@ dummy_community = DummyCommunity()
 dummy_alloc = DummyAllocation()
 
 
-def make_stem_stochiometry():
-    """Helper function to create a StemStochiometry instance with all tissues."""
+def make_stem_stoichiometry():
+    """Helper function to create a StemStoichiometry instance with all tissues."""
+
+    """"""
 
     foliage = FoliageTissue(
         community=dummy_community,
@@ -74,7 +83,9 @@ def make_stem_stochiometry():
         ideal_ratio=np.array([4.0, 5.0]),
         actual_element_mass=np.array([8.0, 12.0]),
     )
-    return StemStochiometry("N", [foliage, repro, wood, root], dummy_community)
+    return StemStoichiometry(
+        "N", [foliage, repro, wood, root], dummy_community, DummyExtraTraitsPFT()
+    )
 
 
 def test_foliage_tissue_functions():
@@ -246,9 +257,9 @@ def test_reproductive_tissue_functions():
 
 
 def test_total_element_mass_and_deficit():
-    """Test the total element mass and deficit calculations in StemStochiometry."""
+    """Test the total element mass and deficit calculations in StemStoichiometry."""
 
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
 
     # total element = sum across tissues
     expected_total = (
@@ -272,7 +283,7 @@ def test_total_element_mass_and_deficit():
 def test_account_for_growth_updates_element_masses_and_surplus():
     """Test that accounting for growth updates element masses and surplus correctly."""
 
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
 
     before = [t.actual_element_mass.copy() for t in stoich.tissues]
     stoich.account_for_growth(dummy_alloc)
@@ -292,7 +303,7 @@ def test_account_for_growth_updates_element_masses_and_surplus():
 
 def test_account_for_element_loss_turnover():
     """Test account for element loss function in StemStoichiometry."""
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
 
     stoich.account_for_element_loss_turnover(dummy_alloc)
 
@@ -306,7 +317,7 @@ def test_account_for_element_loss_turnover():
 def test_distribute_deficit():
     """Test the distribution of a negative element surplus (deficit) across tissues."""
 
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
     cohort = 0
 
     # Set actual element masses to full ideal values
@@ -348,7 +359,7 @@ def test_distribute_deficit():
 def test_distribute_partial_surplus():
     """Test distribution of a partial surplus across tissues with deficits."""
 
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
     cohort = 0
 
     # Set actual element masses to 50% of ideal to guarantee a positive deficit
@@ -386,7 +397,7 @@ def test_distribute_partial_surplus():
 def test_distribute_surplus_full():
     """Test distribution of a full surplus that exceeds all deficits."""
 
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
 
     # lower actuals so there is a deficit
     for t in stoich.tissues:
@@ -420,7 +431,7 @@ def test_distribute_surplus_full():
 def test_error_triggers(method, surplus):
     """Test that errors are raised when surplus/deficit conditions are violated."""
 
-    stoich = make_stem_stochiometry()
+    stoich = make_stem_stoichiometry()
     stoich.element_surplus[0] = surplus
     with pytest.raises(ValueError):
         getattr(stoich, method)(0)
