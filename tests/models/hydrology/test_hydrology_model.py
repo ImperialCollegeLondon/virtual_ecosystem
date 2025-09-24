@@ -243,7 +243,7 @@ def test_generate_hydrology_model(
                 ],
             },
             {
-                "total_river_discharge": [
+                "total_runoff": [
                     1477.363339,
                     1476.076772,
                     5895.307142,
@@ -278,7 +278,7 @@ def test_generate_hydrology_model(
                 ],
             },
             {
-                "total_river_discharge": [
+                "total_runoff": [
                     483.741646,
                     480.053134,
                     1885.508689,

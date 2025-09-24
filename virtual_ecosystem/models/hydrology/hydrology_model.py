@@ -67,7 +67,7 @@ class HydrologyModel(
         "soil_evaporation",
         "surface_runoff_routed_plus_local",
         "subsurface_runoff_routed_plus_local",
-        "total_river_discharge",
+        "total_runoff",
         "river_discharge_rate",
         "matric_potential",
         "groundwater_storage",
@@ -115,7 +115,7 @@ class HydrologyModel(
         "surface_runoff_routed_plus_local",
         "subsurface_runoff_routed_plus_local",
         "river_discharge_rate",
-        "total_river_discharge",
+        "total_runoff",
         "canopy_evaporation",
     ),
 ):
@@ -326,7 +326,7 @@ class HydrologyModel(
         * baseflow, [mm]
         * surface_runoff_routed_plus_local, [mm]
         * subsurface_runoff_routed_plus_local, [mm]
-        * total_river_discharge, [mm]
+        * total_runoff, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
         * aerodynamic_resistance_surface, [s m-1]
@@ -377,8 +377,8 @@ class HydrologyModel(
         . The horizontal flow between grid cells currently uses the same function as the
         above ground runoff.
 
-        Total river discharge is calculated as the sum of above- and below ground
-        horizontal flow contributions and converted to river discharge rate in [m3 s-1].
+        Total runoff is calculated as the sum of above- and below ground
+        runoff and converted to river discharge rate in [m3 s-1].
 
         The function requires the following input variables from the data object:
 
@@ -676,15 +676,15 @@ class HydrologyModel(
                 subsurface_runoff_routed_plus_local
             )
 
-            # Total river discharge at each cell = surface + subsurface contributions
-            total_river_discharge = (
+            # Total runoff at each cell = surface + subsurface contributions
+            total_runoff = (
                 surface_runoff_routed_plus_local + subsurface_runoff_routed_plus_local
             )
-            daily_lists["total_river_discharge"].append(total_river_discharge)
+            daily_lists["total_runoff"].append(total_runoff)
 
-            # Convert total channel flow [mm] -> [m³/s]
+            # Convert total runoff [mm] to river discharge rate [m³/s]
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
-                river_discharge_mm=total_river_discharge,
+                river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,
                 days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
@@ -711,7 +711,7 @@ class HydrologyModel(
             "bypass_flow",
             "surface_runoff_routed_plus_local",
             "subsurface_runoff_routed_plus_local",
-            "total_river_discharge",
+            "total_runoff",
         ]:
             soil_hydrology[var] = DataArray(
                 np.nansum(np.stack(daily_lists[var], axis=1), axis=1),

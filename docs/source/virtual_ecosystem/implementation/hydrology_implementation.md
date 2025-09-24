@@ -93,7 +93,7 @@ surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
 infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
 {term}`soil matric potential`, horizontal
-sub-surface flow out of the grid cell, and changes in groundwater storage.
+sub-surface runoff out of the grid cell, and changes in groundwater storage.
 
 :::{figure} ../../_static/images/4bucketmodel.svg
 :name: bucket_model
@@ -102,8 +102,8 @@ sub-surface flow out of the grid cell, and changes in groundwater storage.
 :width: 600px
 
 The 4-Bucket Model represented within grid cell hydrology processes in the Virtual
-Ecosystem. Red solid arrows indicate upward vertical flow, red dashed arrows show
-vertical downward flow. The blue arrows indicate horizontal flow out of the
+Ecosystem. Red solid arrows indicate upward vertical flows, red dashed arrows show
+vertical downward flows. The blue arrows indicate horizontal flows out of the
 grid cell with solid lines representing water that flows out of each layer in the
 current time step and dashed lines representing water that originates from upstream
 grid cells and flows through the grid cell directly to the stream.
@@ -316,7 +316,7 @@ The upper zone represents a quick runoff component, which includes fast groundwa
 and (vertical) subsurface flow through macro-pores in the soil. The lower zone
 represents the slow groundwater component that generates the base flow.
 
-The outflow from the upper zone to the channel, $Q_{uz}$, (mm),
+The runoff from the upper zone to the channel, $Q_{uz}$, (mm),
 (Q4 in {numref}`bucket_model`) equals:
 
 $$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
@@ -340,7 +340,7 @@ follows:
 $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
 where $GW_{perc}$, [mm day-1], is the maximum percolation rate from the upper to
-the lower groundwater zone. The outflow from the lower zone to the channel $Q_{lz}$,
+the lower groundwater zone. The runoff from the lower zone to the channel $Q_{lz}$,
 (mm), (Q5 in {numref}`bucket_model`) is then computed by:
 
 $$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
@@ -364,11 +364,11 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including {term}`surface runoff` and {term}`sub-surface runoff`,
 combined into {term}`local runoff generation` and eventually
-{term}`total river discharge`. In the following, we distinguish between:
+{term}`total river discharge`.
 
-* "Runoff" = local generation (within a cell), [mm].
-* "Inflow" = upstream contributions [mm].
-* "Discharge" = the routed total passing through the cell, [mm or m3 s-1].
+Hereinafter, we refer to river discharge $Q$ to indicate the amount of water
+passing a particular point of a river (m3 s−1), whereas total runoff $R$ is regarded as
+the depth of water produced from a drainage area during a particular time interval (mm).
 
 ### Drainage map
 
@@ -444,37 +444,37 @@ drainage_map = calculate_drainage_map(
 )
 ```
 
-### Horizontal flow and river discharge
+### Runoff and river discharge
 
-We track horizontal water fluxes in two pathways — surface and subsurface — and then
-combine them into total river discharge.
+We track horizontal water fluxes in two pathways — surface and subsurface runoff — and
+then combine them into total river discharge.
 
-#### Surface flow ($Q_{surface}$)
+#### Surface runoff ($R_{surface}$)
 
 Water moving over the land surface into the river channel. For each cell, this includes:
 
 * Local surface runoff: water generated within the cell during the current timestep.
-* Upstream surface inflow: surface runoff generated in all upstream cells during the
+* Upstream surface runoff: surface runoff generated in all upstream cells during the
   same timestep.
 
-#### Subsurface flow ($Q_{subsurface}$)
+#### Subsurface runoff ($R_{subsurface}$)
 
 Water moving laterally through soil and groundwater pathways towards the river channel.
 For each cell, this includes:
 
 * Local subsurface runoff: lateral + baseflow generated in the cell during the current
   timestep.
-* Upstream subsurface inflow: subsurface runoff generated in upstream cells during the
+* Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
   same timestep.
 
 #### Total river discharge ($Q_{total}$)
 
-The total flow passing through a cell’s channel ({term}`total river discharge`) is the
+The total volume passing through a cell’s channel ({term}`total river discharge`) is the
 sum of these two pathways:
 
-$$Q_{total} = Q_{surface} + Q_{subsurface}$$
+$$Q_{total} = R_{surface} + R_{subsurface}$$
 
-This total flow can then be converted to a river discharge rate in cubic meters per
+This total volume can then be converted to a river discharge rate in cubic meters per
 second (m3 s-1) using cell area and unit conversions.
 
 ```{code-cell} ipython3
@@ -484,22 +484,22 @@ from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flo
 subsurface_runoff = DataArray(np.full_like(data["elevation"], 1.0), dims="cell_id")
 surface_runoff = DataArray(np.full_like(data["elevation"], 12), dims="cell_id")
 
-# Total river discharge = local runoff generation + upstream inflow
-total_river_discharge = route_horizontal_flow(
+# Total runoff = local runoff generation + upstream inflow
+total_runoff = route_horizontal_flow(
     drainage_map=drainage_map,
     surface_runoff=surface_runoff,
     subsurface_runoff=subsurface_runoff,
 )
 
-# Plot total river discharge map
+# Plot total runoff map
 reshaped_data = DataArray(
-    total_river_discharge.reshape((9, 9)),
+    total_runoff.reshape((9, 9)),
     dims=("x", "y"),
     coords={"x": np.arange(9), "y": np.arange(9)},
 )
 plt.figure(figsize=(10, 6))
 reshaped_data.plot(cmap="Blues")
-plt.title("Total river discharge, mm")
+plt.title("Total runoff, mm")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
