@@ -129,6 +129,6 @@ inflow
 
 total river discharge
   The total volume of water moving through a river channel in a cell per unit time,
-  combining both surface and subsurface flows. The model returns this variable both as a
-  total volume in mm and a rate in cubic meters per second.
+  combining both surface and subsurface flows. The model returns this variable a rate
+  in cubic meters per second.
 ```
