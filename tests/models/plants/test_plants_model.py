@@ -1,8 +1,12 @@
 """Tests for the model.plants.plants_model submodule."""
 
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
 import pytest
 import xarray
+
+from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 def data_validator(model, validation_data, skip):
@@ -86,6 +90,77 @@ def test_PlantsModel__init__(
             "layer_fapar_canopy",
         ],
     )
+
+
+@pytest.mark.parametrize(
+    argnames="new_data,context_manager,error_message",
+    argvalues=(
+        pytest.param({}, does_not_raise(), None, id="all_good"),
+        pytest.param(
+            {
+                "plant_pft_propagules": xarray.DataArray(
+                    data=np.full((4, 2), fill_value=100, dtype=np.int_),
+                    coords={
+                        "cell_id": np.arange(4),
+                        "plant_functional_type": ["tree1", "tree2"],
+                    },
+                )
+            },
+            pytest.raises(InitialisationError),
+            "The plant_pft_propagules data is missing 'pft' coordinates.",
+            id="no_pft_coords",
+        ),
+        pytest.param(
+            {
+                "plant_pft_propagules": xarray.DataArray(
+                    data=np.full((4, 2), fill_value=100, dtype=np.int_),
+                    coords={
+                        "cell_id": np.arange(4),
+                        "pft": ["tree1", "tree2"],
+                    },
+                )
+            },
+            pytest.raises(InitialisationError),
+            "The 'pft' coordinates in the plant_pft_propagules data do not match "
+            "the PFT names configured in the PlantsModel flora",
+            id="bad_pft_coords",
+        ),
+    ),
+)
+def test_PlantsModel__init__errors(
+    plants_data,
+    flora,
+    extra_pft_traits,
+    fixture_core_components,
+    fixture_canopy_layer_data,
+    fixture_exporter,
+    new_data,
+    context_manager,
+    error_message,
+):
+    """Check initialisation failure models for the PlantsModel."""
+
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+    # Overwrite configuration data with new values. This is more complex than a simple
+    # replacement because the new values are altering an existing axis, so the data
+    # needs clearing out before being replaced.
+    for ky, val in new_data.items():
+        del plants_data.data[ky]
+        del plants_data.data["pft"]
+        plants_data[ky] = val
+
+    with context_manager as ctxt:
+        _ = PlantsModel(
+            data=plants_data,
+            core_components=fixture_core_components,
+            flora=flora,
+            extra_pft_traits=extra_pft_traits,
+            exporter=fixture_exporter,
+        )
+        return
+
+    assert str(ctxt.value) == error_message
 
 
 def test_PlantsModel_from_config(
@@ -253,7 +328,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
         # Ensure that leaf and root turnover exist and are > 0
         assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
-        assert np.all(fxt_plants_model.data["fallen_n_propagules"][cell_id] >= 0)
+        assert np.all(fxt_plants_model.data["plant_pft_propagules"][cell_id] >= 100)
         assert fxt_plants_model.data["fallen_non_propagule_c_mass"][cell_id] > 0
         assert np.all(fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0)
         assert np.all(
@@ -271,6 +346,10 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
     # TODO - amend this as and when layer heights gets centralised
 
     wipe_canopy_layers(fxt_plants_model)
+
+    # Set the mortality and recruitment to zero
+    fxt_plants_model.per_update_interval_propagule_recruitment_probability = 0
+    fxt_plants_model.per_update_interval_stem_mortality_probability = 0
 
     # Check reset
     fxt_plants_model.update(time_index=0)
@@ -409,6 +488,38 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             >= fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
         assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
+
+
+def test_PlantsModel_apply_recruitment(fxt_plants_model):
+    """Test the apply_recruitment method of the plants model."""
+
+    original_n_cohorts = [
+        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+    ]
+    original_n_propagules = (
+        fxt_plants_model.data["plant_pft_propagules"].to_numpy().copy()
+    )
+
+    # Increase the probability of recruitment to force changes
+    fxt_plants_model.per_update_interval_propagule_recruitment_probability = 0.5
+
+    # Apply recruitment
+    fxt_plants_model.apply_recruitment()
+
+    # Check there are fewer propagules after the recruitment
+    assert np.all(
+        np.greater(
+            original_n_propagules,
+            fxt_plants_model.data["plant_pft_propagules"].to_numpy(),
+        )
+    )
+
+    # Check there are more cohorts after the recruitment
+    new_n_cohorts = [
+        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+    ]
+
+    assert np.all(np.less(original_n_cohorts, new_n_cohorts))
 
 
 @pytest.mark.parametrize(

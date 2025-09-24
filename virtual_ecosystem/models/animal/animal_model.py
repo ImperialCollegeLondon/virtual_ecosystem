@@ -396,7 +396,7 @@ class AnimalModel(
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.
-            microbial_c_n_p_ratios: Biomass stochiometry of each microbial functional
+            microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
                 group.
             **kwargs: Further arguments to the setup method.
         """
