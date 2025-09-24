@@ -1,6 +1,5 @@
 import numpy as np  # noqa: D100
 import pytest
-
 from virtual_ecosystem.models.plants.stochiometry import (
     FoliageTissue,
     ReproductiveTissue,
