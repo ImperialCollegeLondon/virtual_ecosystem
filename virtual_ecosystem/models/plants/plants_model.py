@@ -1171,15 +1171,21 @@ class PlantsModel(
     def calculate_nutrient_uptake(self) -> None:
         """Calculate uptake of soil nutrients by the plant community.
 
-        This function calculates the rate a which plants take up inorganic nutrients
-        (ammonium, nitrate, and labile phosphorus) from the soil. The function then
-        assigns the N/P uptake values to the respective community through the
-        stoichiometry class.
-
-        Warning:
-            At present, this function just calculates uptake based on an entirely made
-            up function, and does not link to plant dynamics in any way.
+        This function calculates the amount of inorganic nutrients(ammonium, nitrate,
+        and labile phosphorus) taken up by plants from the soil, through transpiration.
+        The function then assigns the N/P uptake values to the respective community
+        through the stoichiometry class.
         """
+
+        self.data["plant_ammonium_uptake"] = xr.full_like(
+            self.data["dissolved_ammonium"], 0
+        )
+        self.data["plant_nitrate_uptake"] = xr.full_like(
+            self.data["dissolved_nitrate"], 0
+        )
+        self.data["plant_phosphorus_uptake"] = xr.full_like(
+            self.data["dissolved_phosphorus"], 0
+        )
 
         for cell_id in self.communities.keys():
             # Calculate N/P uptake (g N/P per stem) due to transpiration. Multiply:
@@ -1188,20 +1194,35 @@ class PlantsModel(
             # - Concentration of N/P uptake (kg m^-3)
             # - Kg to g (1000)
             # TODO: scale by atmospheric pressure and temperature (#927)
-            for nutrient in ["ammonium", "nitrate", "phosphorus"]:
-                self.data[f"plant_{nutrient}_uptake"] = (
-                    (self.data[f"dissolved_{nutrient}"][cell_id])
-                    * self.per_stem_transpiration[cell_id]
-                    * 1.8015e-11
-                    * 1000
-                )
-
-            self.stoichiometries[cell_id]["N"].element_surplus += (
-                self.data["plant_ammonium_uptake"] + self.data["plant_nitrate_uptake"]
+            ammonium_uptake = (
+                self.data["dissolved_ammonium"][cell_id].item()
+                * self.per_stem_transpiration[cell_id]
+                * 1.8015e-11
+                * 1000
             )
-            self.stoichiometries[cell_id]["P"].element_surplus += self.data[
-                "plant_phosphorus_uptake"
-            ]
+            nitrate_uptake = (
+                self.data["dissolved_nitrate"][cell_id].item()
+                * self.per_stem_transpiration[cell_id]
+                * 1.8015e-11
+                * 1000
+            )
+            phosphorous_uptake = (
+                self.data["dissolved_phosphorus"][cell_id].item()
+                * self.per_stem_transpiration[cell_id]
+                * 1.8015e-11
+                * 1000
+            )
+
+            # Add per-cel uptake to the data object
+            self.data["plant_ammonium_uptake"][cell_id] = sum(ammonium_uptake)
+            self.data["plant_nitrate_uptake"][cell_id] = sum(nitrate_uptake)
+            self.data["plant_phosphorus_uptake"][cell_id] = sum(phosphorous_uptake)
+
+            # Add per-stem uptake to the stoichiometry surplus
+            self.stoichiometries[cell_id]["N"].element_surplus += (
+                ammonium_uptake + nitrate_uptake
+            )
+            self.stoichiometries[cell_id]["P"].element_surplus += phosphorous_uptake
 
     def calculate_mycorrhizal_uptakes(self) -> None:
         """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
