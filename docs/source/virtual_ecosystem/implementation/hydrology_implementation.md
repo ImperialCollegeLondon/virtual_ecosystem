@@ -432,8 +432,8 @@ grid.neighbours[56]
 
 Based on that relationship, the model determines all upstream neighbours
 for each grid cell and creates a drainage map, i.e. a dictionary that contains for each
-grid cell all upstream grid cells. For example, `cell_id = 56` has four upstream cells
-with the indices `[47, 56, 57, 65]`. This gives the flow direction.
+grid cell all upstream grid cells. For example, `cell_id = 56` has one upstream cell
+with the indix `[65]`. This gives the flow direction.
 
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
@@ -442,6 +442,7 @@ drainage_map = calculate_drainage_map(
     grid=grid,
     elevation=np.array(data["elevation"]),
 )
+drainage_map
 ```
 
 ### Runoff and river discharge
@@ -500,6 +501,30 @@ reshaped_data = DataArray(
 plt.figure(figsize=(10, 6))
 reshaped_data.plot(cmap="Blues")
 plt.title("Total runoff, mm")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.show()
+```
+
+```{code-cell} ipython3
+from virtual_ecosystem.models.hydrology.above_ground import convert_mm_flow_to_m3_per_second
+river_discharge_rate = convert_mm_flow_to_m3_per_second(
+                river_discharge_mm=total_runoff,
+                area=grid.cell_area,
+                days=1,
+                seconds_to_day=86400,
+                meters_to_millimeters=1000,
+            )
+
+# Plot river discharge rate
+reshaped_data_rate = DataArray(
+    river_discharge_rate.reshape((9, 9)),
+    dims=("x", "y"),
+    coords={"x": np.arange(9), "y": np.arange(9)},
+)
+plt.figure(figsize=(10, 6))
+reshaped_data_rate.plot(cmap="Blues")
+plt.title("River discharge rate, m3 s-1")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
