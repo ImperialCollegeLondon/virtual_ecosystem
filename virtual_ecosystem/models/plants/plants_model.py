@@ -1213,7 +1213,7 @@ class PlantsModel(
                 * 1000
             )
 
-            # Add per-cel uptake to the data object
+            # Add per-cell, per-plant uptake to the data object
             self.data["plant_ammonium_uptake"][cell_id] = sum(ammonium_uptake)
             self.data["plant_nitrate_uptake"][cell_id] = sum(nitrate_uptake)
             self.data["plant_phosphorus_uptake"][cell_id] = sum(phosphorous_uptake)
