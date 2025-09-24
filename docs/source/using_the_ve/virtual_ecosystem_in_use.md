@@ -1,6 +1,4 @@
 ---
-execution:
-  timeout: 240
 jupytext:
   formats: md:myst
   text_representation:
@@ -12,16 +10,6 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.10.14
 ---
 
 # Using the Virtual Ecosystem
@@ -78,6 +66,11 @@ The `ve_example` directory contains the following files:
 * the `out` directory, which will be used to store model outputs.
 
 ```{code-cell} ipython3
+---
+editable: true
+slideshow:
+  slide_type: ''
+---
 # Get a generator of files in the example directory
 example_files = (p for p in pathlib.Path("/tmp/ve_example/").rglob("*") if p.is_file())
 

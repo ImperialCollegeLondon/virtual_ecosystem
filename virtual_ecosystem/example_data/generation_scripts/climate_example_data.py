@@ -54,7 +54,7 @@ from virtual_ecosystem.example_data.generation_scripts.common import (
 
 # 1. Load ERA5_Land data in low resolution
 
-dataset = xr.open_dataset("../source/ERA5_land_example.nc")
+dataset = xr.open_dataset("ERA5_land_example.nc")
 
 # 2. Convert temperatures units
 # The standard output unit of ERA5-Land temperatures is Kelvin which we need to convert
