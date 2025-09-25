@@ -17,7 +17,7 @@ is simply stored here and written to an appropriate file format.
 """
 
 import numpy as np
-from xarray import DataArray
+from xarray import DataArray, Dataset
 
 from virtual_ecosystem.example_data.generation_scripts.common import cell_displacements
 
@@ -64,12 +64,22 @@ dem_data = np.array(
         [0.0, 820.222, 1154.889, 850.333, 299.222, 183.556, 7.333, 8.111, 17.889],
     ]
 )
-dem_cleaned = DataArray(name="elevation", data=dem_data, dims=("x", "y"))
 
-# Change coordinates to match example data grid
-dem_placed = dem_cleaned.assign_coords(
-    {"x": cell_displacements, "y": cell_displacements}
+dem = DataArray(
+    data=dem_data,
+    dims=("x", "y"),
+    coords={"x": cell_displacements, "y": cell_displacements},
+    attrs={"units": "m", "description": "Height above sea level"},
 )
 
 # Save to netcdf and remove downloaded data
-dem_placed.to_netcdf("../data/example_elevation_data.nc")
+ds = Dataset(
+    {"elevation": dem},
+    attrs={
+        "dataset_description": """This dataset contains a simple digital elevation map 
+for the simulation, required to run, amongst other models, the
+ {mod}`~virtual_ecosystem.models.hydrology.hydrology_model`."""
+    },
+)
+
+ds.to_netcdf("../data/example_elevation_data.nc")

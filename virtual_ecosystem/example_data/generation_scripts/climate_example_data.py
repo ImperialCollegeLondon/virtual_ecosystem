@@ -148,19 +148,45 @@ dataset_filled = data_9x9x24.map(lambda x: x.fillna(x.mean(skipna=True)))
 # Further, the example model iterates over time indices rather than real datetime.
 # Therefore, we add a `time_index` coordinate to the dataset:
 
-dataset_xyt = (
-    dataset_filled.rename_dims(
-        {"longitude": "x", "latitude": "y", "valid_time": "time_index"}
-    )
-    .drop_vars({"longitude", "latitude", "valid_time"})
-    .assign_coords(
-        {
-            "x": np.arange(0, 810, 90),
-            "y": np.arange(0, 810, 90),
-            "time_index": np.arange(0, 24, 1),
-        }
-    )
+dataset_xyt = dataset_filled.rename(
+    {"longitude": "x", "latitude": "y", "valid_time": "time_index"}
+).assign_coords(
+    {
+        "x": np.arange(0, 810, 90),
+        "y": np.arange(0, 810, 90),
+        "time_index": np.arange(0, 24, 1),
+    }
 )
+
+# Add attributes
+dataset_xyt.attrs["dataset_description"] = """The dummy climate data for the example 
+simulation provides reference data for the climatic conditions above the canopy for the
+time steps in the model, along with climatological data on the mean annual temperature.
+"""
+
+
+dataset_xyt.air_temperature_ref.attrs = dict(
+    units="°C", description="Air temperature above canopy"
+)
+dataset_xyt.relative_humidity_ref.attrs = dict(
+    units="unitless", description="Relative humidity above canopy"
+)
+dataset_xyt.precipitation.attrs = dict(
+    units="mm month", description="Total monthly precipitation"
+)
+dataset_xyt.atmospheric_pressure_ref.attrs = dict(
+    units="kPa", description="Atmospheric pressure above canopy"
+)
+dataset_xyt.atmospheric_co2_ref.attrs = dict(
+    units="ppm", description="Atmospheric CO2 concentration"
+)
+dataset_xyt.wind_speed_ref.attrs = dict(
+    units="???", description="Wind speed above the canopy"
+)
+dataset_xyt.mean_annual_temperature.attrs = dict(
+    units="°C", description="Mean annual temperature"
+)
+
 
 # 10. Save netcdf
 # Once we confirmed that our dataset is complete and our calculations are correct, we

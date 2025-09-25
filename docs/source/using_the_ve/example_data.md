@@ -21,6 +21,8 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
+mystnb:
+  render_markdown_format: myst
 ---
 
 <!-- markdownlint-disable MD041-->
@@ -28,11 +30,54 @@ language_info:
 ```{code-cell} ipython3
 :tags: [remove-cell]
 
-import pathlib
+# This cell defines some Python tools used to render the page
+from pathlib import Path
 from importlib import resources
+from IPython.display import display, Markdown
+import xarray
 
 # Path to the example_data resources
 example_dir = resources.files("virtual_ecosystem.example_data")
+
+
+def data_section_markdown(section: str, ds_path: Path) -> Markdown:
+    """Data section Markdown generator
+
+    This function generates markdown to display a section for a NetCDF data file in the
+    example data directory. This is basically just a section heading, a short dataset
+    description and then a simple table of data variables in a given NetCDF file.
+    We could use the builtin IPython display of xarray  datasets but it is much more
+    complex - we just want to show the data variables.
+
+    It looks for "dataset_description" in the dataset attributes and then "description"
+    and "units" in each data variables attributes, so generates the descriptions
+    automatically from the current file contents.
+
+    Args:
+      ds_path: Path to the NetCDF dataset
+    """
+
+    ds = xarray.open_dataset(ds_path)
+
+    # Build a list-table row for each data variable using the variable name, description
+    # and units attributes and the variable dimensions
+    var_list = []
+    for var_name in ds.data_vars:
+        var = ds[var_name]
+        var_list.append(
+            f"* - `{var_name}`\n  - {var.attrs.get('description', 'Missing attribute')}\n"
+            f"  - {var.attrs.get('units', 'Missing attribute')}\n  - {var.dims}"
+        )
+
+    # Wrap the rows up in the list-table declaration
+    var_rows = "\n".join(var_list)
+    table = (
+        f"```{{list-table}}\n:align: left\n\n* - Variable\n  - Description\n"
+        f"  - Units\n  - Dims\n{var_rows}\n```"
+    )
+
+    ds_desc = ds.attrs.get("dataset_description", "Missing description")
+    return Markdown("### " + section + "\n\n" + ds_desc + "\n\n" + table)
 ```
 
 # Installing the Virtual Ecosystem example model
@@ -78,65 +123,53 @@ contents.
 The `config` directory contains configuration files that combine to provide a basic
 complete configuration for the example data. The example configuration files are:
 
-```{code-cell} ipython3
-:tags: [remove-cell]
-
-files = (p for p in (example_dir / "config").rglob("[!.|__]*") if p.is_file())
-
-# Print the relative paths of files
-for file in files:
-    print(file.relative_to(example_dir))
-```
-
 * The **`ve_run.toml`** configures the models to be used in the simulation and the order
   in which they are initialised and updated.
-
-````{admonition} config/ve_run.toml
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/ve_run.toml
-```
-````
 
 * The **`data_config.toml`** file configures the initial variables to be loaded and sets
   the paths to the source files providing those variables.
 
-````{admonition} config/data_config.toml
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/data_config.toml
-```
-````
-
 * The **`animal_functional_groups.toml`** file provides basic configuration for the
   `animal` model to set functional group definitions.
-
-````{admonition} config/animal_functional_groups.toml
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/config/animal_functional_groups.toml
-```
-````
 
 * The **`plant_config.toml`** file provides basic configuration for the
   `plants` model to set functional group definitions.
 
-````{admonition} config/plant_config.toml
-:class: dropdown
+* The **`soil_microbial_groups.toml`** file provides basic configuration for the
+  `soil` model to set microbial functional group definitions.
+
+The dropdown boxes below reveal the contents of these files, so you can see what the
+configuration format and example settings look like in practice.
+
+````{dropdown} config/ve_run.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/ve_run.toml
+```
+````
+
+````{dropdown} config/data_config.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/data_config.toml
+```
+````
+
+````{dropdown} config/animal_functional_groups.toml
+```{literalinclude} ../../../virtual_ecosystem/example_data/config/animal_functional_groups.toml
+```
+````
+
+````{dropdown} config/plant_config.toml
 ```{literalinclude} ../../../virtual_ecosystem/example_data/config/plant_config.toml
 ```
 ````
 
-* The **`soil_microbial_groups.toml`** file provides basic configuration for the
-  `soil` model to set microbial functional group definitions.
-
-````{admonition} config/soil_microbial_groups.toml
-:class: dropdown
+````{dropdown} config/soil_microbial_groups.toml
 ```{literalinclude} ../../../virtual_ecosystem/example_data/config/soil_microbial_groups.toml
 ```
 ````
 
 ## Data files
 
-The `data` directory contains NetCDF format files containing the variables required to
-initialise the model and then iterate over a time series. The [data configuration
+The `data` directory contains files containing the variables required to initialise the
+model and then iterate over a time series. The [data configuration
 file](../../../virtual_ecosystem/example_data/config/data_config.toml) sets up the links
 between the variables used in the models and the provided data file in which they are
 stored. The NetCDF files in the `data` directory are all generated by the Python scripts
@@ -149,16 +182,22 @@ data handling of the Virtual Ecosystem simulation. Although some values are take
 real source data, this is **not yet a meaningful real world example dataset**.
 ```
 
-The directory contains the following files:
-
 ```{code-cell} ipython3
-:tags: [remove-cell]
+:tags: [remove-input]
 
-files = (p for p in (example_dir / "data").rglob("[!.|__]*") if p.is_file())
+# Define the data file section names and paths
+sections = (
+    ("Elevation data", "data/example_elevation_data.nc"),
+    ("Climate data", "data/example_climate_data.nc"),
+    ("Soil data", "data/example_soil_data.nc"),
+    ("Litter data", "data/example_litter_data.nc"),
+    ("Surface runoff data", "data/example_surface_runoff_data.nc"),
+    ("Solar radiation data", "data/example_topofcanopy_radiation.nc"),
+    ("Plant data", "data/example_plant_data.nc"),
+)
 
-# Print the relative paths of files
-for file in files:
-    print(file.relative_to(example_dir))
+for section, dataset in sections:
+    display(data_section_markdown(section, example_dir / dataset))
 ```
 
 ### Elevation data
@@ -218,12 +257,6 @@ The `example_climate_data.nc` file provides:
   - °C
   - XY
 ```
-
-````{admonition} climate_example_data.py
-:class: dropdown
-```{literalinclude} ../../../virtual_ecosystem/example_data/generation_scripts/climate_example_data.py
-```
-````
 
 The dummy climate data for the example simulation is based on monthly ERA5-Land data
 which can be downloaded from the [Copernicus climate data store](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels-monthly-means?tab=overview).
@@ -406,4 +439,4 @@ The example model data directory also contains:
    inputs. For any real model you want to fit, you will need to prepare actual [data
    inputs](./model_inputs.md) using data for your ecosystem.
 
-* The `static_config` directory is empty
+* The `static_config` directory is empty and
