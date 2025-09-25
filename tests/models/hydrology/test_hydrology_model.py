@@ -107,7 +107,7 @@ def test_hydrology_model_initialization(
             assert model.initial_soil_moisture == ini_soil_moisture
             assert model.initial_groundwater_saturation == ini_groundwater_sat
             # TODO: not sure on the value below, test with more expansive drainage maps
-            assert model.drainage_map == {0: [], 1: [], 2: [0, 2, 3], 3: [1]}
+            assert model.drainage_map == {0: [], 1: [], 2: [0, 1, 2, 3], 3: [1]}
 
     # Final check that expected logging entries are produced
     if expected_log_entries:
@@ -246,14 +246,14 @@ def test_generate_hydrology_model(
                 "total_runoff": [
                     1477.363339,
                     1476.076772,
-                    5895.307142,
+                    7371.383915,
                     2945.792003,
                 ],
                 "surface_runoff": [20.343781, 6.316444, 2.721491, 1.192358],
                 "surface_runoff_routed_plus_local": [
                     20.343781,
                     6.316444,
-                    26.979121,
+                    33.295566,
                     7.508803,
                 ],
                 "soil_evaporation": [5.93727, 12.359247, 25.50399, 51.620636],
@@ -281,14 +281,14 @@ def test_generate_hydrology_model(
                 "total_runoff": [
                     483.741646,
                     480.053134,
-                    1885.508689,
+                    2365.561823,
                     936.948501,
                 ],
                 "surface_runoff": [163.019971, 158.780549, 150.030499, 132.191482],
                 "surface_runoff_routed_plus_local": [
                     163.019971,
                     158.780549,
-                    595.272452,
+                    754.053001,
                     290.972032,
                 ],
                 "soil_evaporation": [1.388223, 2.904608, 6.066225, 12.622505],

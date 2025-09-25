@@ -378,7 +378,7 @@ Here an description of the steps that happen during the hydrology model
 initialisation (plotting only for illustration):
 
 ```{code-cell} ipython3
-# # Read elevation datafrom NetCDF
+# Read elevation data from NetCDF
 import numpy as np
 import xarray as xr
 from xarray import DataArray
@@ -389,20 +389,7 @@ elevation = digital_elevation_model["elevation"]
 ```
 
 ```{code-cell} ipython3
-# Plot the elevation data
-import matplotlib.pyplot as plt
-from matplotlib import colors
-
-plt.figure(figsize=(10, 6))
-elevation.plot(cmap="terrain")
-plt.title("Elevation, m")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.show()
-```
-
-```{code-cell} ipython3
-# Create Grid and Data objects and add elevation data (this happens automatically)
+# Create Grid and Data objects and add elevation data
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.data import Data
 
@@ -411,6 +398,11 @@ grid = Grid(
 )
 data = Data(grid=grid)
 data["elevation"] = elevation
+
+# Plot elevation data on grid
+import matplotlib.pyplot as plt
+from matplotlib import colors
+
 ele_plot = DataArray(
     data["elevation"].to_numpy().reshape((9, 9)),
     dims=("x", "y"),
@@ -418,6 +410,9 @@ ele_plot = DataArray(
 )
 plt.figure(figsize=(10, 6))
 ele_plot.plot(cmap="terrain")
+plt.title("Elevation, m")
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
 ```
 
@@ -432,8 +427,8 @@ grid.neighbours[56]
 
 Based on that relationship, the model determines all upstream neighbours
 for each grid cell and creates a drainage map, i.e. a dictionary that contains for each
-grid cell all upstream grid cells. For example, `cell_id = 56` has one upstream cell
-with the indix `[65]`. This gives the flow direction.
+grid cell all upstream grid cells. For example, `cell_id = 34` has upstream cells
+with the indices `[4, 13, 22]`. This gives the flow direction.
 
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
@@ -442,7 +437,6 @@ drainage_map = calculate_drainage_map(
     grid=grid,
     elevation=np.array(data["elevation"]),
 )
-drainage_map
 ```
 
 ### Runoff and river discharge
@@ -492,12 +486,13 @@ total_runoff = route_horizontal_flow(
     subsurface_runoff=subsurface_runoff,
 )
 
-# Plot total runoff map
+# Reshape to 9x9 grid and plot total runoff map
 reshaped_data = DataArray(
     total_runoff.reshape((9, 9)),
     dims=("x", "y"),
     coords={"x": np.arange(9), "y": np.arange(9)},
 )
+
 plt.figure(figsize=(10, 6))
 reshaped_data.plot(cmap="Blues")
 plt.title("Total runoff, mm")
@@ -511,6 +506,7 @@ from virtual_ecosystem.models.hydrology.above_ground import (
     convert_mm_flow_to_m3_per_second,
 )
 
+# Convert total runoff [mm] to river discharge rate [m3 s-1]
 river_discharge_rate = convert_mm_flow_to_m3_per_second(
     river_discharge_mm=total_runoff,
     area=grid.cell_area,
@@ -519,12 +515,13 @@ river_discharge_rate = convert_mm_flow_to_m3_per_second(
     meters_to_millimeters=1000,
 )
 
-# Plot river discharge rate
+# Reshape to 9x9 grid and plot river discharge rate
 reshaped_data_rate = DataArray(
     river_discharge_rate.reshape((9, 9)),
     dims=("x", "y"),
     coords={"x": np.arange(9), "y": np.arange(9)},
 )
+
 plt.figure(figsize=(10, 6))
 reshaped_data_rate.plot(cmap="Blues")
 plt.title("River discharge rate, m3 s-1")

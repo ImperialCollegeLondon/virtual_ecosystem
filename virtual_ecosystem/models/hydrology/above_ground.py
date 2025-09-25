@@ -450,11 +450,33 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
         LOGGER.error(to_raise)
         raise to_raise
 
+    # Establish neighbour relationships
     grid.set_neighbours(distance=sqrt(grid.cell_area))
-    lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
-    upstream_ids = find_upstream_cells(lowest_neighbours)
 
-    return dict(enumerate(upstream_ids))
+    # Find flow direction: each cell -> lowest neighbor
+    lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
+    n_cells = len(lowest_neighbours)
+
+    # Build reverse graph: for each cell, who drains into it
+    direct_upstream: dict[int, list[int]] = {i: [] for i in range(n_cells)}
+    for cell, ln in enumerate(lowest_neighbours):
+        if ln is not None:  # sink cells have no lowest neighbor
+            direct_upstream[ln].append(cell)
+
+    # Recursive collection of all upstream cells
+    def collect_upstream(cell: int, visited=None) -> list[int]:
+        if visited is None:
+            visited = set()
+        for up in direct_upstream[cell]:
+            if up not in visited:
+                visited.add(up)
+                collect_upstream(up, visited)
+        return list(visited)
+
+    # Compute upstream IDs for all cells
+    upstream_ids = {cell: collect_upstream(cell) for cell in range(n_cells)}
+
+    return upstream_ids
 
 
 def calculate_interception(

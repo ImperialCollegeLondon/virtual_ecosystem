@@ -283,7 +283,7 @@ def test_calculate_drainage_map(caplog, grid_type, raises, expected_log_entries)
         result = calculate_drainage_map(grid, elevation)
 
         assert len(result) == grid.n_cells
-        assert result[1] == [2, 6]
+        assert result[1] == [2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14]
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
