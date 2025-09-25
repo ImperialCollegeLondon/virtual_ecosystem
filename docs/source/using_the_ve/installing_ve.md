@@ -23,7 +23,7 @@ language_info:
   version: 3.11.9
 ---
 
-# Installing the Virtual Ecosystem model
+# Installing the Virtual Ecosystem
 
 The Virtual Ecosystem model is written using the Python programming language and can be
 installed from the [Python Package Index (PyPI)](https://pypi.org/), which is a
@@ -39,7 +39,7 @@ to meet the minimum version. If you need to install or update Python, installers
 operating systems are available from the [official Python download
 page](https://www.python.org/downloads/).
 
-## Installing Virtual Ecosystem
+## Installing the Virtual Ecosystem package
 
 You now need to install the Virtual Ecosystem package itself. Installing Python
 automatically installs the package installer for Python (`pip`). You should be able to
@@ -102,6 +102,10 @@ ve_run --help
 ```
 ````
 `````
+
+See the pages on [installing the example data](./example_data.md) and [running the
+Virtual Ecosystem](./virtual_ecosystem_in_use.md) for details of the `ve_run` command
+options.
 
 ## Using a Virtual Environment
 
