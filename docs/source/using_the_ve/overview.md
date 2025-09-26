@@ -38,7 +38,7 @@ a step-by-step guide to getting up and running. The main sections are:
    Ecosystem.
 
 1. Once you have installed the Virtual Ecosystem package and the example model data,
-   you should be able to [run the example model](./virtual_ecosystem_in_use.md) to learn
+   you should be able to [run the example model](./virtual_ecosystem_in_use) to learn
    about how the model runs and learn about the model outputs.
 
 1. When it comes to running your own models, you will need to understand how to generate

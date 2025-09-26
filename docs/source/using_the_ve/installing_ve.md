@@ -77,7 +77,7 @@ on your computer. The `ve_run` command can be used to:
 
 * install the [example model data](./example_data.md) on your computer, and
 * run a Virtual Ecosystem simulation, such as [running the example
-  model](./virtual_ecosystem_in_use.md)
+  model](./virtual_ecosystem_in_use)
 
 However, for now, you should be able to check that the package installation has been
 successful by running the command below in a terminal to show the help for the `ve_run`
@@ -104,7 +104,7 @@ ve_run --help
 `````
 
 See the pages on [installing the example data](./example_data.md) and [running the
-Virtual Ecosystem](./virtual_ecosystem_in_use.md) for details of the `ve_run` command
+Virtual Ecosystem](./virtual_ecosystem_in_use) for details of the `ve_run` command
 options.
 
 ## Using a Virtual Environment
