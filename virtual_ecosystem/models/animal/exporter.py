@@ -21,26 +21,27 @@ from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 class AnimalCohortDataExporter:
     """The AnimalCohortDataExporter class.
 
-    The exporter appends per-cell cohort rows into a single CSV file. Callers supply
-    a mapping from ``cell_id`` to a pandas ``DataFrame`` with cohort attributes for
-    that cell. The exporter adds ``cell_id`` and ``time`` columns, performs optional
-    column subsetting, and writes or appends to the configured output path.
+    The class is used to export detailed animal cohort data from inside an AnimalModel
+    instance to CSV files. The  data is currently just cohort data:
 
-    Note:
-        This minimal version only supports a single table, ``cohorts``. Extend
-        :attr:`_outputs` and add new ``_dump_*`` methods to grow functionality.
+    * cohort data: comprehensive data on the animal cohorts including location, status,
+      number of individuals, and stoichiometric masses.
+
+    The data are written to standard file names in the provided output directory, which
+    will typically be the output directory used by the Virtual Ecosystem model run. The
+    ``required_data`` attribute is used to set which data to export by providing a set
+    of values from: ``cohorts``.
+
+    In addition, the attribute arguments can be used to specify a subset of data
+    attributes to be exported. If an empty attribute set is provided (which is the
+    default) then the exporter will write all attributes, otherwise the exported data
+    will be reduced to just the named attributes.
 
     Args:
-        output_directory: Directory in which to create output CSV files.
-        required_data: Set of table names to export. Only ``{"cohorts"}`` is valid
-            for now. If empty, the exporter becomes inactive and ``dump`` is a no-op.
-        cohort_attributes: Optional whitelist of cohort column names to export. If
-            empty, all provided columns are written. Missing names are ignored with
-            a warning.
-        float_format: Format string for floating-point export, e.g., ``"%0.6f"``.
-
-    Attributes:
-        active: Whether any export has been requested (derived from ``required_data``).
+        output_directory: The output directory for the files
+        required_data: A set of the required data outputs.
+        cohort_attributes: An optional subset of cohort attributes to export
+        float_format: A float format string used when writing data.
     """
 
     # Map logical table names to (filename, private path attribute)
