@@ -95,7 +95,7 @@ infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` 
 {term}`soil matric potential`, horizontal
 sub-surface runoff out of the grid cell, and changes in groundwater storage.
 
-:::{figure} ../../_static/images/4BucketModel.svg
+:::{figure} ../../_static/images/bucketmodel.svg
 :name: bucket_model
 :alt: 4-Bucket Model
 :class: bg-primary
