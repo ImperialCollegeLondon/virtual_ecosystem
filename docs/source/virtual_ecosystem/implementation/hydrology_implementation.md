@@ -95,22 +95,22 @@ infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` 
 {term}`soil matric potential`, horizontal
 sub-surface runoff out of the grid cell, and changes in groundwater storage.
 
-:::{figure} ../../_static/images/4bucketmodel.svg
+:::{figure} ../../_static/images/4BucketModel.svg
 :name: bucket_model
 :alt: 4-Bucket Model
 :class: bg-primary
 :width: 600px
 
-The 4-Bucket Model represented within grid cell hydrology processes in the Virtual
+The 4-Bucket Model represents within grid cell hydrology processes in the Virtual
 Ecosystem. Red solid arrows indicate upward vertical flows, red dashed arrows show
 vertical downward flows. The blue arrows indicate horizontal flows out of the
 grid cell with solid lines representing water that flows out of each layer in the
 current time step and dashed lines representing water that originates from upstream
 grid cells and flows through the grid cell directly to the stream.
 **NOTE!** Top soil and middle soil are currently treated as one layer in the model.
-Subsurface runoff (Q2) and interflow (Q3) are currently not implemented; the
-river discharge is calculated as the sum of surface runoff (Q1) and the flows out of the
-groundwater buckets (Q4+Q5).
+Subsurface stormflow (Q2) and interflow (Q3) are currently not implemented; the
+total runoff is calculated as the sum of surface runoff (Q1) and the flows out of the
+groundwater buckets (=subsurface runoff, Q4+Q5).
 :::
 
 ### Canopy interception
@@ -363,12 +363,12 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 
 The second part of the hydrology model calculates the horizontal water movement across
 the full model grid including {term}`surface runoff` and {term}`sub-surface runoff`,
-combined into {term}`local runoff generation` and eventually
-{term}`total river discharge`.
+combined into {term}`local runoff generation` per grid cell and {term}`total runoff`
+across the grid.
 
-Hereinafter, we refer to river discharge $Q$ to indicate the amount of water
-passing a particular point of a river (m3 s−1), whereas total runoff $R$ is regarded as
-the depth of water produced from a drainage area during a particular time interval (mm).
+Hereinafter, we refer to {term}`river discharge rate` to indicate the amount of water
+passing a particular point of a river (m3 s−1), whereas runoff $R$ is regarded as the
+depth of water produced from a drainage area during a particular time interval (mm).
 
 ### Drainage map
 
@@ -410,7 +410,7 @@ ele_plot = DataArray(
 )
 plt.figure(figsize=(10, 6))
 ele_plot.plot(cmap="terrain")
-plt.title("Elevation, m")
+plt.title("Elevation, [m]")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
@@ -439,10 +439,10 @@ drainage_map = calculate_drainage_map(
 )
 ```
 
-### Runoff and river discharge
+### Runoff and river discharge rate
 
 We track horizontal water fluxes in two pathways — surface and subsurface runoff — and
-then combine them into total river discharge.
+then combine them into total runoff, which can be converted to river discharge rate.
 
 #### Surface runoff ($R_{surface}$)
 
@@ -462,12 +462,11 @@ For each cell, this includes:
 * Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
   same timestep.
 
-#### Total river discharge ($Q_{total}$)
+#### Total runoff ($R_{total}$) and river discharge rate
 
-The total volume passing through a cell’s channel ({term}`total river discharge`) is the
-sum of these two pathways:
+The total water volume passing through a cell is the sum of these two pathways:
 
-$$Q_{total} = R_{surface} + R_{subsurface}$$
+$$R_{total} = R_{surface} + R_{subsurface}$$
 
 This total volume can then be converted to a river discharge rate in cubic meters per
 second (m3 s-1) using cell area and unit conversions.
@@ -487,15 +486,15 @@ total_runoff = route_horizontal_flow(
 )
 
 # Reshape to 9x9 grid and plot total runoff map
-reshaped_data = DataArray(
+reshaped_runoff = DataArray(
     total_runoff.reshape((9, 9)),
     dims=("x", "y"),
     coords={"x": np.arange(9), "y": np.arange(9)},
 )
 
 plt.figure(figsize=(10, 6))
-reshaped_data.plot(cmap="Blues")
-plt.title("Total runoff, mm")
+reshaped_runoff.plot(cmap="Blues")
+plt.title("Total runoff, [mm]")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
@@ -516,15 +515,15 @@ river_discharge_rate = convert_mm_flow_to_m3_per_second(
 )
 
 # Reshape to 9x9 grid and plot river discharge rate
-reshaped_data_rate = DataArray(
+reshaped_discharge_rate = DataArray(
     river_discharge_rate.reshape((9, 9)),
     dims=("x", "y"),
     coords={"x": np.arange(9), "y": np.arange(9)},
 )
 
 plt.figure(figsize=(10, 6))
-reshaped_data_rate.plot(cmap="Blues")
-plt.title("River discharge rate, m3 s-1")
+reshaped_discharge_rate.plot(cmap="Blues")
+plt.title("River discharge rate, [m3 s-1]")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
