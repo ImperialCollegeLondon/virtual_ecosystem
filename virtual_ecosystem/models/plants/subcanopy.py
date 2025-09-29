@@ -29,7 +29,7 @@ from typing import TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst
-from xarray import DataArray
+from xarray import DataArray, full_like
 
 from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.data import Data
@@ -433,16 +433,18 @@ class Subcanopy:
         self.vegetation_biomass.add_mass(sprouting_biomass)
         seedbank_turnover.add_mass(sprouting_yield_losses)
 
-        # Insert DataArrays with new values - could simply overwrite data but need to
-        # create the target data arrays in the first time step
+        # Insert DataArrays with new values - could simply overwrite data but these
+        # variables are created in the first update, so easier to just write afresh.
+        coords = {"cell_id": self.data["cell_id"].data}
+
+        # Write biomasses to Data
         biomasses: dict[str, SubcanopyBiomass] = {
             "subcanopy_vegetation": self.seedbank_biomass,
             "subcanopy_seedbank": self.seedbank_biomass,
-            "subcanopy_litter": vegetation_turnover,
-            "seedbank_litter": seedbank_turnover,
+            "subcanopy_vegetation_litter": vegetation_turnover,
+            "subcanopy_seedbank_litter": seedbank_turnover,
         }
 
-        coords = {"cell_id": self.data["cell_id"].data}
         for var, biomass in biomasses.items():
             self.data[f"{var}_biomass"] = DataArray(biomass.carbon_mass, coords=coords)
 
@@ -450,6 +452,23 @@ class Subcanopy:
                 self.data[f"{var}_c_{elem}_ratio"] = DataArray(
                     biomass.c_x_ratio(elem), coords=coords
                 )
+
+        # Write lignin concentrations for litter components
+        self.data["subcanopy_vegetation_litter_lignin"] = full_like(
+            self.data["cell_id"], self.model_constants.subcanopy_vegetation_lignin
+        )
+        self.data["subcanopy_seedbank_litter_lignin"] = full_like(
+            self.data["cell_id"], self.model_constants.subcanopy_seedbank_lignin
+        )
+
+        # Write nutrient uptakes and transpiration - one m3 is 1000 mm/m2
+        for name, values in (
+            ("subcanopy_ammonium_uptake", ammonium_uptake_kg),
+            ("subcanopy_nitrate_uptake", nitrate_uptake_kg),
+            ("subcanopy_phosphorus_uptake", phosphorus_uptake_kg),
+            ("subcanopy_transpiration", subcanopy_volume_m3 / 1000),
+        ):
+            self.data[name] = DataArray(values, coords=coords)
 
     def set_light_capture(self, below_canopy_light_fraction: NDArray) -> None:
         r"""Calculate the leaf area index and absorption of subcanopy vegetation.

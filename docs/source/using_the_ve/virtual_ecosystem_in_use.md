@@ -1,8 +1,6 @@
 ---
-execution:
-  timeout: 240
 jupytext:
-  formats: md:myst
+  formats: md:myst,ipynb
   text_representation:
     extension: .md
     format_name: myst
@@ -12,113 +10,157 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.10.14
 ---
+
+<!--
+This notebook presents the usage of the `ve_run` command to run the example data.
+We want the notebook to be dynamic - so that updates to the model get included
+automatically but we don't want to expose a new user to a load of tricky code from
+running the model within the notebook.
+
+So - the notebook uses `code-block` entries to show the code and then contains
+`code-cell` blocks with 'remove-cell' tags to run the actual model building in the
+background. This cells will only execute successfully on systems with a bash shell.
+-->
 
 # Using the Virtual Ecosystem
 
-The code below is a brief demonstration of the Virtual Ecosystem model in operation.
-The workflow of the model is:
+This page provides a brief demonstration of the Virtual Ecosystem model in operation.
+Once you have [installed the Virtual Ecosystem](./installing_ve.md), you should be able
+to replicate this example on your own computer using the commands below.
 
-## Create the model configuration and initial data
+## Example model data
 
-Here we are using the example data supplied with the `virtual_ecosystem`
-package, which supplies a set of example data files and a simple model configuration
-to run a simulation. The following command line arguments set up the example data
-directory in Linux, Mac or Windows Subsystem for Linux (WSL).
+The demonstration requires an [installation of the example data](./example_data.md)
+provided with the Virtual Ecosystem package. If you have previously attempted to run
+this example then the simulation will refuse to overwrite existing output files. You can
+either:
 
-```{code-cell} ipython3
-import pathlib
+* delete the existing example data folder and reinstall it,
+* create a fresh installation using a different location, or
+* create and use a new output directory with the existing example data folder.
 
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
-import xarray
-```
-
-If you have previously attempted to run this example it is probably a good idea to
-delete the existing virtual ecosystem example directory, as previously generated files
-can prevent the example simulation from running successfully. That can be done as
-follows.
+It is worth re-reading the [example data page](./example_data.md) to get an overview of
+the directory structure and the configuration and data files.
 
 ```{code-cell} ipython3
+:tags: [remove-cell]
+
 %%bash
-# Remove any existing VE data directory in the /tmp/ directory
-if [ -d /tmp/ve_example ]; then
-  rm -r /tmp/ve_example
+# Remove any existing VE data directory in the execution directory
+if [ -d ve_example ]; then
+  rm -r ve_example
 fi
+
+export PYTHONUNBUFFERED=1
+ve_run --install-example .
 ```
 
-It should be noted that this is a nuclear option, which is only really appropriate for a
-tutorial like this. In general, you can prevent errors due to output files already
-existing by either moving or deleting the contents of the `ve_example/out` folder. With
-leftover example data directories now removed, a fresh example data directory can then
-be installed.
+## The `ve_run` command
+
+You've already used this command to install the example data but most of the options to
+the `ve_run` command are used to run the simulation. The `--help` option can be used to
+show the various arguments that can be used to set how a model runs:
+
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} shell
+ve_run --help
+```
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+ve_run --help
+```
+````
+`````
 
 ```{code-cell} ipython3
+:tags: [remove-input]
+
 %%bash
-# Install the example data directory from the Virtual Ecosystem package
-ve_run --install-example /tmp/
+# Code to actually get the command line help
+export PYTHONUNBUFFERED=1
+ve_run --help
 ```
 
-The `ve_example` directory contains the following files:
+## Running the example model
 
-* the `config` directory of TOML format configuration files,
-* the `data` and `source` directories of netCDF format data files,
-* the `generation_scripts` directory containing example recipes for generating files, and
-* the `out` directory, which will be used to store model outputs.
+The code below runs a simulation using the example data. The command uses the command
+line options to set three things:
 
-```{code-cell} ipython3
-# Get a generator of files in the example directory
-example_files = (p for p in pathlib.Path("/tmp/ve_example/").rglob("*") if p.is_file())
+1. It points to the `config` directory containing the configuration files for the
+   simulation: all the configuration files in this location will be compiled to
+   configure the model.
 
-# Print the relative paths of files
-for file in example_files:
-    print(file.relative_to("/tmp/ve_example"))
-```
+1. It sets the output directory to be used by the simulation to `out`. You could create
+   a new output directory (e.g. `out_test_2`) and change this to run a new simulation
+   using the existing data.
 
-## Run the Virtual Ecosystem model
+1. It redirects the model logging to a file in the output directory, rather than
+   printing it all to screen.
 
-Now the example data and configuration have been set up, the `ve_run` command can be
-used to execute a Virtual Ecosystem simulation. When the detailed logging is redirected
-to a file, the command generates a short progress report to show the model running. This
-can be made shorter or completely muted by using the `-q` argument: repeat the argument
-to remove more details (e.g. `-qq` or `-qqq`).
+When the detailed logging is redirected to a file, the command generates a short
+progress report to show the model running. This can be made shorter or completely muted
+by using the `-q` argument: repeat the argument to remove more details (e.g. `-qq` or
+`-qqq`).
 
-```{code-cell} ipython3
-%%bash
+`````{tab-set}
+:sync-group: operating_system
+
+````{tab-item} macOS/Linux
+:sync: macoslinux
+
+```{code-block} shell
 ve_run /tmp/ve_example/config \
     --out /tmp/ve_example/out \
     --logfile /tmp/ve_example/out/logfile.log
 ```
+````
 
-The log file is very long and shows the process of running the model. The code below
-shows the start and end lines from the log to give and idea of what it contains.
+````{tab-item} Windows
+:sync: windows
+
+```{code-block} powershell
+ve_run C:\tmp\ve_example\config ,
+    --out C:\tmp\ve_example\out ,
+    --logfile C:\tmp\ve_example\logfile.log
+```
+````
+
+`````
 
 ```{code-cell} ipython3
-# Open and read the log
-with open("/tmp/ve_example/out/logfile.log") as log:
-    log_entries = log.readlines()
+:tags: [remove-input]
 
-# Print the first lines
-for entry in log_entries[:6]:
-    print(entry.strip())
+%%script bash --err discarded_stderr
+# Code to actually run the model in bash in the local directory, using the cell magic
+# to swallow any standard error output warnings.
+export PYTHONUNBUFFERED=1
+ve_run ve_example/config \
+    --out ve_example/out \
+    --logfile ve_example/out/logfile.log
 
-print("...")
-
-# Print the last lines
-for entry in log_entries[-5:]:
-    print(entry.strip())
+# Retain a truncated chunk of the log file locally to use within include directive
+(head -n 20; echo "--- many lines omitted ---"; tail -n 20;) < \
+ve_example/out/logfile.log > truncated_logfile.log
 ```
+
+The log file is very long and shows the step by step process of running the model - it
+is primarily used for diagnosing problems with the model. You can view a sample of the
+contents in the dropdown below:
+
+````{dropdown} Partial log output
+```{literalinclude} truncated_logfile.log
+```
+````
 
 ## Looking at the results
 
@@ -129,13 +171,20 @@ The Virtual Ecosystem writes out a number of data files:
   updated at each time step.
 * `final_state.nc`: The model data state at the end of the final step.
 
-These files are written to the standard NetCDF data file format.
+These files are written to the standard NetCDF data file format: below, we use the
+`xarray` and `matplotlib` Python packages to load and visualise this data. You may need
+to install these to replicate these outputs on your own computer.
 
 ```{code-cell} ipython3
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import numpy as np
+import xarray
+
 # Load the generated data files
-initial_state = xarray.load_dataset("/tmp/ve_example/out/initial_state.nc")
-continuous_data = xarray.load_dataset("/tmp/ve_example/out/all_continuous_data.nc")
-final_state = xarray.load_dataset("/tmp/ve_example/out/final_state.nc")
+initial_state = xarray.load_dataset("ve_example/out/initial_state.nc")
+continuous_data = xarray.load_dataset("ve_example/out/all_continuous_data.nc")
+final_state = xarray.load_dataset("ve_example/out/final_state.nc")
 ```
 
 ### Initial state and input data
@@ -193,7 +242,7 @@ ax.set_title("Elevation (m)")
 
 cell_bounds = range(0, 811, 90)
 ax.set_xticks(cell_bounds)
-ax.set_yticks(cell_bounds)
+_ = ax.set_yticks(cell_bounds)
 ```
 
 For other variables, such as air temperature and precipitation, the initial data
@@ -218,7 +267,7 @@ ax1.set_xlabel("Time step (months)")
 ax2.plot(initial_state["time_index"], initial_state["precipitation"])
 ax2.set_title("Precipitation forcing across grid cells")
 ax2.set_ylabel("Total monthly precipitation (mm)")
-ax2.set_xlabel("Time step (months)")
+_ = ax2.set_xlabel("Time step (months)")
 ```
 
 ### Model outputs
@@ -251,7 +300,7 @@ for idx, ax in zip([0, 10, 23], axes):
     ax.set_title(f"Time step: {idx}")
 
 fig.colorbar(im, ax=axes, orientation="vertical", shrink=0.5)
-plt.suptitle("Soil carbon: mineral-associated organic matter", y=0.78, x=0.45)
+_ = plt.suptitle("Soil carbon: mineral-associated organic matter", y=0.78, x=0.45)
 ```
 
 #### Temporal data
@@ -262,7 +311,7 @@ showing the values in each cell across time.
 ```{code-cell} ipython3
 plt.plot(continuous_data["time_index"], continuous_data["soil_c_pool_maom"])
 plt.xlabel("Time step")
-plt.ylabel("Soil carbon as MAOM")
+_ = plt.ylabel("Soil carbon as MAOM")
 ```
 
 #### Vertical structure
@@ -317,5 +366,17 @@ ax.set_ylabel("Northing (m)")
 ax.set_zlabel("Layer height (m)")
 
 ax.set_xticks(cell_bounds)
-ax.set_yticks(cell_bounds)
+_ = ax.set_yticks(cell_bounds)
+```
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+%%bash
+# Remove the example directory
+rm -r ve_example
+```
+
+```{code-cell} ipython3
+
 ```
