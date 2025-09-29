@@ -117,7 +117,7 @@ class FoliageTissue(Tissue):
     """A class to hold foliage stoichiometry data for a set of plant cohorts."""
 
     turnover_ratio: NDArray[np.float64]
-    """The ratio of the element in the turnover tissue (sensced foliage)."""
+    """The ratio of the element in the turnover tissue (senesced foliage)."""
 
     @classmethod
     def from_pft_default_ratios(

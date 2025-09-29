@@ -36,8 +36,15 @@ class DummyCommunity:
     """Mock class for a plant community with two cohorts for testing."""
 
     def __init__(self):
-        self.stem_allometry = DummyStemAllometry()
-        self.stem_traits = DummyStemTraits()
+        self.stem_allometry = SimpleNamespace(
+            foliage_mass = np.array([50.0, 80.0]),
+            stem_mass = np.array([100.0, 150.0]),
+            reproductive_tissue_mass = np.array([20.0, 40.0])
+        ),
+        self.stem_traits = SimpleNamespace(
+            zeta = 0.1, sla = 2.0, p_foliage_for_reproductive_tissue = 0.5
+         )
+        
         self.n_cohorts = 2
         self.cohorts = type("Cohorts", (), {"pft_names": ["pft1", "pft2"]})
 
@@ -53,11 +60,11 @@ class DummyAllocation:
         self.fine_root_turnover = np.array([3.0, 1.5])
 
 
-dummy_community = DummyCommunity()
-dummy_alloc = DummyAllocation()
+DUMMY_COMMUNITY = DummyCommunity()
+DUMMY_ALLOC = DummyAllocation()
 
-
-def make_stem_stoichiometry():
+@pytest.fixture
+def stem_stoichiometry():
     """Helper function to create a StemStoichiometry instance with all tissues."""
 
     """"""
@@ -256,7 +263,7 @@ def test_reproductive_tissue_functions():
     assert np.allclose(tissue.element_turnover(dummy_alloc), expected_turnover)
 
 
-def test_total_element_mass_and_deficit():
+def test_total_element_mass_and_deficit(stem_stoichiometry):
     """Test the total element mass and deficit calculations in StemStoichiometry."""
 
     stoich = make_stem_stoichiometry()
