@@ -67,7 +67,7 @@ def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
 
     Returns:
         A tuple containing a populated :class:`pyrealm.demography.flora.Flora` instance
-        and an :class:`pyrealm.demography.flora.ExtraTraitsPFT` instance.
+        and an :class:`ExtraTraitsPFT` instance.
     """
 
     extra_traits = [
