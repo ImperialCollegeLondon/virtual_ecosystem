@@ -1,6 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
 
 from logging import DEBUG
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -80,6 +81,17 @@ def reset_module_registry():
 
 
 # Shared fixtures
+
+
+@pytest.fixture
+def fixture_root_data_dir():
+    """Provides the absolute path of the root data directory.
+
+    Ideally we'd use something like pytest-datadir here, but it doesn't yet support
+    nested directories: https://github.com/gabrielcnr/pytest-datadir/issues/28
+    """
+
+    return Path(__file__).parent / "data"
 
 
 @pytest.fixture
@@ -225,12 +237,12 @@ def microbial_groups_cfg():
 
 
 @pytest.fixture
-def fixture_config(microbial_groups_cfg):
+def fixture_config(fixture_root_data_dir, microbial_groups_cfg):
     """Simple configuration fixture for use in tests."""
 
     from virtual_ecosystem.core.config import Config
 
-    cfg_string = """
+    cfg_string = f"""
         [core]
         [core.grid]
         cell_nx = 2
@@ -252,73 +264,7 @@ def fixture_config(microbial_groups_cfg):
         surface_layer_height = 0.1
 
         [plants]
-        [[plants.pft_definition]]
-        a_hd = 116.0
-        ca_ratio = 390.43
-        f_g = 0.02
-        h_max = 25.33
-        lai = 1.8
-        m = 2
-        n = 5
-        name = 'shrub'
-        par_ext = 0.5
-        resp_f = 0.1
-        resp_r = 0.913
-        resp_s = 0.044
-        resp_rt = 0.05
-        rho_s = 200.0
-        sla = 14.0
-        tau_f = 4.0
-        tau_r = 1.04
-        tau_rt = 1
-        yld = 0.6
-        zeta = 0.17
-        gpp_topslice = 0.1
-        p_foliage_for_reproductive_tissue = 0.05
-        deadwood_c_n_ratio = 60.7
-        deadwood_c_p_ratio = 856.5
-        leaf_turnover_c_n_ratio = 25.5
-        leaf_turnover_c_p_ratio = 415.0
-        plant_reproductive_tissue_turnover_c_n_ratio = 12.5
-        plant_reproductive_tissue_turnover_c_p_ratio = 125.5
-        root_turnover_c_p_ratio = 656.7
-        root_turnover_c_n_ratio = 45.6
-        foliage_c_n_ratio = 15
-        foliage_c_p_ratio = 300
-
-        [[plants.pft_definition]]
-        a_hd = 116.0
-        ca_ratio = 390.43
-        f_g = 0.02
-        h_max = 30.33
-        lai = 1.8
-        m = 2
-        n = 5
-        name = 'broadleaf'
-        par_ext = 0.5
-        resp_f = 0.1
-        resp_r = 0.913
-        resp_s = 0.044
-        resp_rt = 0.05
-        rho_s = 200.0
-        sla = 14.0
-        tau_f = 4.0
-        tau_r = 1.04
-        tau_rt = 1
-        yld = 0.6
-        zeta = 0.17
-        gpp_topslice = 0.1
-        p_foliage_for_reproductive_tissue = 0.05
-        deadwood_c_n_ratio = 60.7
-        deadwood_c_p_ratio = 856.5
-        leaf_turnover_c_n_ratio = 25.5
-        leaf_turnover_c_p_ratio = 415.0
-        plant_reproductive_tissue_turnover_c_n_ratio = 12.5
-        plant_reproductive_tissue_turnover_c_p_ratio = 125.5
-        root_turnover_c_p_ratio = 656.7
-        root_turnover_c_n_ratio = 45.6
-        foliage_c_n_ratio = 15
-        foliage_c_p_ratio = 300
+        pft_definitions_path = "{(fixture_root_data_dir / "plant_pfts.csv")!s}"
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"

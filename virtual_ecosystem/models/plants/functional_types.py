@@ -66,7 +66,8 @@ def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
         config: A validated Virtual Ecosystem model configuration object.
 
     Returns:
-        A populated :class:`pyrealm.demography.flora.Flora` instance
+        A tuple containing a populated :class:`pyrealm.demography.flora.Flora` instance
+        and an :class:`pyrealm.demography.flora.ExtraTraitsPFT` instance.
     """
 
     extra_traits = [
@@ -82,46 +83,24 @@ def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
         "foliage_c_p_ratio",
     ]
 
+    # Double check the configuration setting is present.
     if "plants" not in config:
         msg = "Model configuration for plants model not found."
         LOGGER.critical(msg)
         raise ConfigurationError(msg)
 
-    # Check for duplicate definition options - this should be prevented by the schema
-    # definition setting oneOf the following two is required
-    if (
-        "pft_definition" in config["plants"]
-        and "pft_definitions_path" in config["plants"]
-    ):
-        msg = "Do not use both `pft_definitions_path` and `pft_definition` in config."
+    if "pft_definitions_path" not in config["plants"]:
+        msg = "PFT definition path not set in plants model configuration."
         LOGGER.critical(msg)
         raise ConfigurationError(msg)
 
-    # If the data is provided in the configuration, load that
-    if "pft_definition" in config["plants"]:
-        # TODO: currently need to rename this property to match internal expectation in
-        # pyrealm, change here if this is fixed/aligned.
-
-        extra_traits_data = [
-            {k: v for k, v in d.items() if k in extra_traits or k == "name"}
-            for d in config["plants"]["pft_definition"]
-        ]
-
-        pft_traits = [
-            {k: v for k, v in d.items() if k not in extra_traits}
-            for d in config["plants"]["pft_definition"]
-        ]
-
-        extra_traits_model = ExtraTraitsPFT._from_file_data(extra_traits_data)
-
-        pft_data = {"pft": pft_traits}
-        return Flora._from_file_data(pft_data), extra_traits_model
-
+    # Read the file, handling file IO and parsing errors.
     try:
         df = pd.read_csv(config["plants"]["pft_definitions_path"])
     except (FileNotFoundError, pd.errors.ParserError) as excep:
         raise excep
 
+    # Split into pyrealm PFT traits and VE extra traits
     extra_traits_columns = [*extra_traits, "name"]
     extra_traits_data = df[extra_traits_columns]
     extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
