@@ -445,12 +445,34 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     # Check reset
     fxt_plants_model.calculate_nutrient_uptake()
 
-    # Check that all expected variables are generated and have the correct value
-    assert np.allclose(fxt_plants_model.data["plant_ammonium_uptake"], 5.0e-4)
-    assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], 7.5e-3)
-    assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-5)
+    expected_ammonium = (
+        10 * fxt_plants_model.data["dissolved_ammonium"] * 1.8015e-11 * 1000
+    )
+    expected_nitrate = (
+        10 * fxt_plants_model.data["dissolved_nitrate"] * 1.8015e-11 * 1000
+    )
+    expected_phosphorus = (
+        10 * fxt_plants_model.data["dissolved_phosphorus"] * 1.8015e-11 * 1000
+    )
 
-    # TODO: add test for element uptake
+    # Check the uptake values in the data variable
+    assert np.allclose(
+        fxt_plants_model.data["plant_ammonium_uptake"], expected_ammonium
+    )
+    assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], expected_nitrate)
+    assert np.allclose(
+        fxt_plants_model.data["plant_phosphorus_uptake"], expected_phosphorus
+    )
+
+    # Check the values in the stoichiometry surplus
+    assert np.allclose(
+        fxt_plants_model.stoichiometries[0]["N"].element_surplus,
+        expected_ammonium[0].item() + expected_nitrate[0].item(),
+    )
+    assert np.allclose(
+        fxt_plants_model.stoichiometries[0]["P"].element_surplus,
+        expected_phosphorus[0].item(),
+    )
 
 
 def test_PlantsModel_calculate_mycorrhizal_uptakes(fxt_plants_model):
