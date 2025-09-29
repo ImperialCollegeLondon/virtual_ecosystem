@@ -874,7 +874,7 @@ class PlantsModel(
         """
 
         # Initialize all turnover variables to 0 with the proper dimensions.
-        # Most variables are merged across PFTs and cohorts - one pool per cell.
+        # These variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_carbohydrate_exudation"] = xr.full_like(
@@ -974,7 +974,6 @@ class PlantsModel(
             # Allocate fallen propagules, and canopy propagules and non-propagule mass
             # into PFT specific pools by iterating over cohort PFTs.
             # TODO: not sure how performant this is, there might be a better solution.
-
             for (
                 cohort_pft,
                 fallen_n_propagules,
@@ -998,7 +997,7 @@ class PlantsModel(
                     canopy_non_propagule_mass * cohort_n_stems
                 )
 
-            # ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
+            # ALLOCATE ELEMENT MASS TO REGROW WHAT WAS LOST TO TURNOVER
             for stoichiometry in stoichiometries.values():
                 stoichiometry.account_for_element_loss_turnover(stem_allocation)
 
@@ -1032,18 +1031,16 @@ class PlantsModel(
 
             # Balance the N & P surplus/deficit with the symbiote carbon supply
             for element in ["N", "P"]:
-                element_weighted_avg = np.dot(
+                total_supply = float(
                     self.data["ecto_supply_limit_" + element.lower()][cell_id]
-                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id],
-                    cohorts.n_individuals,
+                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id]
                 )
-                element_available_per_cohort = element_weighted_avg / sum(
-                    element_weighted_avg
-                )
-                element_available_per_stem = np.divide(
-                    element_available_per_cohort, cohorts.n_individuals
-                )
-                stoichiometries[element].element_surplus += element_available_per_stem
+
+                cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
+                element_per_stem = (
+                    total_supply * cohort_fractions
+                ) / cohorts.n_individuals
+                stoichiometries[element].element_surplus += element_per_stem
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
