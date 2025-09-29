@@ -38,6 +38,15 @@ def fixture_plants_constants():
 
 
 @pytest.fixture
+def fixture_pyrealm_constants():
+    """Shareable pyrealm constants object."""
+
+    from pyrealm.constants import CoreConst, PModelConst
+
+    return CoreConst(), PModelConst()
+
+
+@pytest.fixture
 def fixture_exporter(fixture_config):
     """Construct a minimal CommunityDataExporter object.
 
