@@ -6,7 +6,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.17.3
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -56,7 +56,7 @@ for the biologically active soil layers. The "intrinsic" litter decay rates are 
 to capture the effect of temperature by multiplying them with a factor that takes the
 following form
 
-$$f(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)},$$
+$$f_t(T) = \exp{\left(\gamma \frac{T - T_{\mathrm{ref}}}{T + T_{\mathrm{off}}}\right)},$$
 
 where $T$ is the litter temperature, $T_\mathrm{ref}$ is reference temperature used to
 establish "intrinsic" litter decay rates, $T_\mathrm{off}$ is an offset temperature, and

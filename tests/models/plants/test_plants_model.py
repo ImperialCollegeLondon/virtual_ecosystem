@@ -1,8 +1,12 @@
 """Tests for the model.plants.plants_model submodule."""
 
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
 import pytest
 import xarray
+
+from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 def data_validator(model, validation_data, skip):
@@ -88,6 +92,77 @@ def test_PlantsModel__init__(
     )
 
 
+@pytest.mark.parametrize(
+    argnames="new_data,context_manager,error_message",
+    argvalues=(
+        pytest.param({}, does_not_raise(), None, id="all_good"),
+        pytest.param(
+            {
+                "plant_pft_propagules": xarray.DataArray(
+                    data=np.full((4, 2), fill_value=100, dtype=np.int_),
+                    coords={
+                        "cell_id": np.arange(4),
+                        "plant_functional_type": ["tree1", "tree2"],
+                    },
+                )
+            },
+            pytest.raises(InitialisationError),
+            "The plant_pft_propagules data is missing 'pft' coordinates.",
+            id="no_pft_coords",
+        ),
+        pytest.param(
+            {
+                "plant_pft_propagules": xarray.DataArray(
+                    data=np.full((4, 2), fill_value=100, dtype=np.int_),
+                    coords={
+                        "cell_id": np.arange(4),
+                        "pft": ["tree1", "tree2"],
+                    },
+                )
+            },
+            pytest.raises(InitialisationError),
+            "The 'pft' coordinates in the plant_pft_propagules data do not match "
+            "the PFT names configured in the PlantsModel flora",
+            id="bad_pft_coords",
+        ),
+    ),
+)
+def test_PlantsModel__init__errors(
+    plants_data,
+    flora,
+    extra_pft_traits,
+    fixture_core_components,
+    fixture_canopy_layer_data,
+    fixture_exporter,
+    new_data,
+    context_manager,
+    error_message,
+):
+    """Check initialisation failure models for the PlantsModel."""
+
+    from virtual_ecosystem.models.plants.plants_model import PlantsModel
+
+    # Overwrite configuration data with new values. This is more complex than a simple
+    # replacement because the new values are altering an existing axis, so the data
+    # needs clearing out before being replaced.
+    for ky, val in new_data.items():
+        del plants_data.data[ky]
+        del plants_data.data["pft"]
+        plants_data[ky] = val
+
+    with context_manager as ctxt:
+        _ = PlantsModel(
+            data=plants_data,
+            core_components=fixture_core_components,
+            flora=flora,
+            extra_pft_traits=extra_pft_traits,
+            exporter=fixture_exporter,
+        )
+        return
+
+    assert str(ctxt.value) == error_message
+
+
 def test_PlantsModel_from_config(
     plants_data, fixture_config, fixture_core_components, fixture_canopy_layer_data
 ):
@@ -163,9 +238,12 @@ def test_PlantsModel_set_shortwave_absorption(
     wipe_canopy_layers(fxt_plants_model)
 
     # Check that calling the methods after update resets to the expected values
+    fxt_plants_model.set_canopy_top_radiation(time_index=0)
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_subcanopy_light_capture()
-    fxt_plants_model.set_shortwave_absorption(time_index=0)
+    fxt_plants_model.subcanopy.set_light_capture(
+        below_canopy_light_fraction=fxt_plants_model.below_canopy_light_fraction
+    )
+    fxt_plants_model.set_shortwave_absorption()
 
     data_validator(
         fxt_plants_model,
@@ -182,9 +260,12 @@ def test_PlantsModel_estimate_gpp(fxt_plants_model):
     """Test the estimate_gpp method."""
 
     # Set the canopy and absorbed irradiance
+    fxt_plants_model.set_canopy_top_radiation(time_index=0)
     fxt_plants_model.update_canopy_layers()
-    fxt_plants_model.set_subcanopy_light_capture()
-    fxt_plants_model.set_shortwave_absorption(time_index=0)
+    fxt_plants_model.subcanopy.set_light_capture(
+        below_canopy_light_fraction=fxt_plants_model.below_canopy_light_fraction
+    )
+    fxt_plants_model.set_shortwave_absorption()
 
     # Calculate GPP
     fxt_plants_model.calculate_light_use_efficiency()
@@ -253,7 +334,7 @@ def test_PlantsModel_allocate_gpp(fxt_plants_model):
         # Ensure that leaf and root turnover exist and are > 0
         assert fxt_plants_model.data["leaf_turnover"][cell_id] > 0
         assert fxt_plants_model.data["root_turnover"][cell_id] > 0
-        assert np.all(fxt_plants_model.data["fallen_n_propagules"][cell_id] >= 0)
+        assert np.all(fxt_plants_model.data["plant_pft_propagules"][cell_id] >= 100)
         assert fxt_plants_model.data["fallen_non_propagule_c_mass"][cell_id] > 0
         assert np.all(fxt_plants_model.data["canopy_n_propagules"][cell_id] >= 0)
         assert np.all(
@@ -271,6 +352,10 @@ def test_PlantsModel_update(fxt_plants_model, fixture_canopy_layer_data):
     # TODO - amend this as and when layer heights gets centralised
 
     wipe_canopy_layers(fxt_plants_model)
+
+    # Set the mortality and recruitment to zero
+    fxt_plants_model.per_update_interval_propagule_recruitment_probability = 0
+    fxt_plants_model.per_update_interval_stem_mortality_probability = 0
 
     # Check reset
     fxt_plants_model.update(time_index=0)
@@ -339,12 +424,34 @@ def test_PlantsModel_calculate_nutrient_uptake(fxt_plants_model):
     # Check reset
     fxt_plants_model.calculate_nutrient_uptake()
 
-    # Check that all expected variables are generated and have the correct value
-    assert np.allclose(fxt_plants_model.data["plant_ammonium_uptake"], 5.0e-4)
-    assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], 7.5e-3)
-    assert np.allclose(fxt_plants_model.data["plant_phosphorus_uptake"], 3.0e-5)
+    expected_ammonium = (
+        10 * fxt_plants_model.data["dissolved_ammonium"] * 1.8015e-11 * 1000
+    )
+    expected_nitrate = (
+        10 * fxt_plants_model.data["dissolved_nitrate"] * 1.8015e-11 * 1000
+    )
+    expected_phosphorus = (
+        10 * fxt_plants_model.data["dissolved_phosphorus"] * 1.8015e-11 * 1000
+    )
 
-    # TODO: add test for element uptake
+    # Check the uptake values in the data variable
+    assert np.allclose(
+        fxt_plants_model.data["plant_ammonium_uptake"], expected_ammonium
+    )
+    assert np.allclose(fxt_plants_model.data["plant_nitrate_uptake"], expected_nitrate)
+    assert np.allclose(
+        fxt_plants_model.data["plant_phosphorus_uptake"], expected_phosphorus
+    )
+
+    # Check the values in the stoichiometry surplus
+    assert np.allclose(
+        fxt_plants_model.stoichiometries[0]["N"].element_surplus,
+        expected_ammonium[0].item() + expected_nitrate[0].item(),
+    )
+    assert np.allclose(
+        fxt_plants_model.stoichiometries[0]["P"].element_surplus,
+        expected_phosphorus[0].item(),
+    )
 
 
 def test_PlantsModel_calculate_mycorrhizal_uptakes(fxt_plants_model):
@@ -409,47 +516,36 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
         assert fxt_plants_model.data["deadwood_production"][cell_id] == deadwood_mass
 
 
-@pytest.mark.parametrize(
-    argnames="veg_biomass, seedbank_biomass, veg_comparator, seedbank_comparator",
-    argvalues=(
-        pytest.param(
-            np.ones(4), np.zeros(4), np.greater, np.greater, id="seedbank_repopulates"
-        ),
-        pytest.param(
-            np.zeros(4), np.ones(4), np.greater, np.greater, id="vegetation_repopulates"
-        ),
-        pytest.param(
-            np.zeros(4), np.zeros(4), np.equal, np.equal, id="no_biomass_persists"
-        ),
-    ),
-)
-def test_PlantsModel_subcanopy_vegetation_dynamics(
-    plants_data,
-    fixture_config,
-    fixture_core_components,
-    veg_biomass,
-    seedbank_biomass,
-    veg_comparator,
-    seedbank_comparator,
-):
-    """Test that the turnover constants can be overridden by values in config."""
+def test_PlantsModel_apply_recruitment(fxt_plants_model):
+    """Test the apply_recruitment method of the plants model."""
 
-    from virtual_ecosystem.models.plants.plants_model import PlantsModel
-
-    plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
-    plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
-
-    plants_model = PlantsModel.from_config(
-        data=plants_data, config=fixture_config, core_components=fixture_core_components
+    original_n_cohorts = [
+        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+    ]
+    original_n_propagules = (
+        fxt_plants_model.data["plant_pft_propagules"].to_numpy().copy()
     )
-    plants_model._update(time_index=0)
 
+    # Increase the probability of recruitment to force changes
+    fxt_plants_model.per_update_interval_propagule_recruitment_probability = 0.5
+
+    # Apply recruitment
+    fxt_plants_model.apply_recruitment()
+
+    # Check there are fewer propagules after the recruitment
     assert np.all(
-        veg_comparator(plants_data["subcanopy_vegetation_biomass"], np.zeros(4))
+        np.greater(
+            original_n_propagules,
+            fxt_plants_model.data["plant_pft_propagules"].to_numpy(),
+        )
     )
-    assert np.all(
-        seedbank_comparator(plants_data["subcanopy_seedbank_biomass"], np.zeros(4))
-    )
+
+    # Check there are more cohorts after the recruitment
+    new_n_cohorts = [
+        len(cm.cohorts.pft_names) for cm in fxt_plants_model.communities.values()
+    ]
+
+    assert np.all(np.less(original_n_cohorts, new_n_cohorts))
 
 
 def test_partition_reproductive_tissue(fxt_plants_model):

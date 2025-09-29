@@ -74,7 +74,7 @@ def test_calculate_longwave_emission(
 
     exp_result = np.array(
         [
-            [454.022275, 454.022275, 454.022275, 454.022275],
+            [454.022275, 454.022275, 454.022275, np.nan],
             [448.21345, 448.21345, np.nan, np.nan],
             [438.412504, np.nan, np.nan, np.nan],
         ]
@@ -96,7 +96,7 @@ def test_calculate_sensible_heat_flux(
 
     expected_flux = np.array(
         [
-            [-0.489356, -0.489356, -0.489356, -0.489356],
+            [-0.489356, -0.489356, -0.489356, np.nan],
             [-0.390997, -0.390997, np.nan, np.nan],
             [-0.222852, np.nan, np.nan, np.nan],
         ]
@@ -345,7 +345,7 @@ def test_update_air_temperature(
 
     exp_result = np.array(
         [
-            [29.883755, 29.883755, 29.857958, 29.857958],
+            [29.883755, 29.883755, 29.857958, np.nan],
             [28.902139, 28.886732, np.nan, np.nan],
             [27.224235, np.nan, np.nan, np.nan],
         ]
@@ -415,12 +415,12 @@ def test_update_humidity_vpd(
         density_air=data["density_air"][atm_index].to_numpy(),
         mixing_coefficient=mixing_coefficient,
         ventilation_rate=ventilation_rate,
-        wind_speed=data["wind_speed_ref"].isel(time_index=0).to_numpy(),
         molecular_weight_ratio_water_to_dry_air=(
             CoreConsts.molecular_weight_ratio_water_to_dry_air
         ),
         dry_air_factor=1 - CoreConsts.molecular_weight_ratio_water_to_dry_air,
         cell_area=fixture_core_components.grid.cell_area,
+        limits=(0, 60),
         time_interval=time_interval,
     )
 

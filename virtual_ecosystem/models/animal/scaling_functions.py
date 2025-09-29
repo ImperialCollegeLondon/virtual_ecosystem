@@ -177,6 +177,16 @@ def prey_group_selection(
         result["excrement"] = (0.0, 0.0)
     if diet_type & DietType.DETRITUS:
         result["litter"] = (0.0, 0.0)
+    if diet_type & DietType.MUSHROOMS:
+        # mushroom pool
+        result["fungal_fruiting_bodies"] = (0.0, 0.0)
+    if diet_type & DietType.FUNGI:
+        # Soil fungi pool
+        result["fungi"] = (0.0, 0.0)
+    if diet_type & DietType.POM:
+        result["pom"] = (0.0, 0.0)
+    if diet_type & DietType.BACTERIA:
+        result["bacteria"] = (0.0, 0.0)
 
     if not result:
         raise ValueError(f"No prey groups matched for diet type: {diet_type}")

@@ -114,12 +114,6 @@ class AbioticConsts(ConstantsDataclass):
     roughness significantly affects the wind flow over a particular terrain or
     surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
 
-    canopy_temperature_ini_factor: float = 0.01
-    """Factor used to initialise canopy temperature, dimensionless.
-    
-    This factor is used to initialise canopy temperature in the model setup as a
-    function of air temperature and absorbed shortwave radiation."""
-
     light_extinction_coefficient: float = 0.01
     """Light extinction coefficient for canopy, unitless.
     

@@ -31,7 +31,7 @@ def test_calculate_molar_density_air(
     exp_result = np.array(
         [
             [38.110259, 38.110259, 38.110259, 38.110259],
-            [38.129755, 38.129755, 38.129755, 38.129755],
+            [38.129755, 38.129755, 38.129755, np.nan],
             [38.252699, 38.252699, np.nan, np.nan],
             [38.46472, np.nan, np.nan, np.nan],
             [39.256827, 39.256827, 39.256827, 39.256827],
@@ -61,7 +61,7 @@ def test_calculate_air_density(
     exp_result = np.array(
         [
             [1.103205, 1.103205, 1.103205, 1.103205],
-            [1.103769, 1.103769, 1.103769, 1.103769],
+            [1.103769, 1.103769, 1.103769, np.nan],
             [1.107328, 1.107328, np.nan, np.nan],
             [1.113466, np.nan, np.nan, np.nan],
             [1.136395, 1.136395, 1.136395, 1.136395],
@@ -91,7 +91,7 @@ def test_calculate_latent_heat_vapourisation(
     exp_result = np.array(
         [
             [2432.140894, 2432.140894, 2432.140894, 2432.140894],
-            [2432.454337, 2432.454337, 2432.454337, 2432.454337],
+            [2432.454337, 2432.454337, 2432.454337, np.nan],
             [2434.432314, 2434.432314, np.nan, np.nan],
             [2437.849066, np.nan, np.nan, np.nan],
             [2450.677865, 2450.677865, 2450.677865, 2450.677865],
@@ -150,7 +150,7 @@ def test_calculate_slope_of_saturated_pressure_curve(
     exp_result = np.array(
         [
             [0.243363, 0.243363, 0.243363, 0.243363],
-            [0.241487, 0.241487, 0.241487, 0.241487],
+            [0.241487, 0.241487, 0.241487, np.nan],
             [0.229981, 0.229981, np.nan, np.nan],
             [0.211376, np.nan, np.nan, np.nan],
             [0.153957, 0.153957, 0.153957, 0.153957],
@@ -180,7 +180,7 @@ def test_calculate_actual_vapour_pressure(
     exp_result = np.array(
         [
             [3.810352, 3.810352, 3.810352, 3.810352],
-            [3.790901, 3.790901, 3.790901, 3.790901],
+            [3.790901, 3.790901, 3.790901, np.nan],
             [3.668916, 3.668916, np.nan, np.nan],
             [3.461875, np.nan, np.nan, np.nan],
             [2.503226, 2.503226, 2.503226, 2.503226],
@@ -242,8 +242,8 @@ def test_compute_layer_thickness_for_varying_canopy(
 
     exp_result = np.array(
         [
-            [2.0, 2.0, 2.0, 2.0],
-            [10.0, 10.0, 29.9, 29.9],
+            [2.0, 2.0, 2.0, 31.9],
+            [10.0, 10.0, 29.9, np.nan],
             [10.0, 19.9, np.nan, np.nan],
             [9.9, np.nan, np.nan, np.nan],
             [0.1, 0.1, 0.1, 0.1],
@@ -255,3 +255,35 @@ def test_compute_layer_thickness_for_varying_canopy(
     )
 
     np.testing.assert_allclose(result, exp_result)
+
+
+def test_calculate_specific_humidity(
+    dummy_climate_data_varying_canopy, fixture_core_components
+):
+    """Test specific humidity."""
+
+    from virtual_ecosystem.models.abiotic.abiotic_tools import (
+        calculate_specific_humidity,
+    )
+
+    data = dummy_climate_data_varying_canopy
+    atm_index = fixture_core_components.layer_structure.index_filled_atmosphere
+
+    result = calculate_specific_humidity(
+        air_temperature=data["air_temperature"][atm_index].to_numpy(),
+        relative_humidity=data["relative_humidity"][atm_index].to_numpy(),
+        atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
+        molecular_weight_ratio_water_to_dry_air=0.622,
+        pyrealm_const=PyrealmConst(),
+    )
+
+    exp_result = np.array(
+        [
+            [0.025064, 0.025064, 0.025064, 0.025064],
+            [0.024934, 0.024934, 0.024934, np.nan],
+            [0.02412, 0.02412, np.nan, np.nan],
+            [0.02274, np.nan, np.nan, np.nan],
+            [0.01638, 0.01638, 0.01638, 0.01638],
+        ]
+    )
+    np.testing.assert_allclose(result, exp_result, rtol=1e-4, atol=1e-4)

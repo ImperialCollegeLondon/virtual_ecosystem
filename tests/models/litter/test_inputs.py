@@ -1,6 +1,5 @@
 """Test module for models.litter.inputs.py."""
 
-from contextlib import nullcontext as does_not_raise
 from logging import ERROR
 
 import numpy as np
@@ -17,34 +16,34 @@ def test_determine_all_plant_to_litter_flows(dummy_litter_data):
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     expected_inputs = {
-        "leaves_meta_split": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
+        "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
         "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
         "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
-        "input_woody": [0.075, 0.099, 0.063, 0.033],
-        "input_above_metabolic": [0.02449646, 0.00805233, 0.0128768, 0.00580533],
-        "input_above_structural": [0.00553354, 0.00184767, 0.0135232, 0.0291447],
-        "input_below_metabolic": [0.01588666, 0.007971, 0.00015073, 0.01021211],
-        "input_below_structural": [0.01111334, 0.013029, 0.00014927, 0.01468789],
-        "leaf_mass": [0.02703, 0.0024, 0.02385, 0.0312],
-        "root_mass": [0.027, 0.021, 0.0003, 0.0249],
-        "deadwood_mass": [0.075, 0.099, 0.063, 0.033],
-        "reprod_mass": [0.003, 0.0075, 0.00255, 0.00375],
+        "woody": [0.0375, 0.0495, 0.0315, 0.0165],
+        "above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
+        "above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
+        "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
+        "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
+        "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
+        "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
+        "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
+        "reprod_mass": [0.0015, 0.00375, 0.001275, 0.001875],
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
-        "leaf_nitrogen": [15.00899, 32.5, 40.710063, 53.929808],
+        "leaf_nitrogen": [15.00583994, 32.23584906, 39.05894298, 47.80986065],
         "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
         "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
         "reprod_nitrogen": [12.5, 23.8, 15.7, 18.2],
-        "leaf_phosphorus": [414.77525, 342.625, 528.24654, 384.29231],
+        "leaf_phosphorus": [414.56154, 342.52452, 514.18037, 384.00081],
         "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
         "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
         "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
     litter_inputs = LitterInputs.create_from_data(
-        data=dummy_litter_data, constants=LitterConsts
+        data=dummy_litter_data, constants=LitterConsts, update_interval=2.0
     )
     # Check that the right sort of object has been created
     assert isinstance(litter_inputs, LitterInputs)
@@ -64,25 +63,25 @@ def test_combine_input_sources(dummy_litter_data):
     from virtual_ecosystem.models.litter.inputs import combine_input_sources
 
     expected_combined = {
-        "leaf_mass": [0.02703, 0.0024, 0.02385, 0.0312],
-        "root_mass": [0.027, 0.021, 0.0003, 0.0249],
-        "deadwood_mass": [0.075, 0.099, 0.063, 0.033],
-        "reprod_mass": [0.003, 0.0075, 0.00255, 0.00375],
+        "leaf_mass": [0.013515, 0.0012, 0.011925, 0.0156],
+        "root_mass": [0.0135, 0.0105, 0.00015, 0.01245],
+        "deadwood_mass": [0.0375, 0.0495, 0.0315, 0.0165],
+        "reprod_mass": [0.0015, 0.00375, 0.001275, 0.001875],
         "leaf_lignin": [0.05008879, 0.10125, 0.29641509, 0.53971154],
         "root_lignin": [0.2, 0.35, 0.27, 0.4],
         "stem_lignin": [0.233, 0.545, 0.612, 0.378],
         "reprod_lignin": [0.01, 0.03, 0.04, 0.02],
-        "leaf_nitrogen": [15.00899, 32.5, 40.710063, 53.929808],
+        "leaf_nitrogen": [15.00583994, 32.23584906, 39.05894298, 47.80986065],
         "root_nitrogen": [30.3, 45.6, 43.3, 37.1],
         "deadwood_nitrogen": [60.7, 57.9, 73.1, 55.1],
         "reprod_nitrogen": [12.5, 23.8, 15.7, 18.2],
-        "leaf_phosphorus": [414.77525, 342.625, 528.24654, 384.29231],
+        "leaf_phosphorus": [414.56154, 342.52452, 514.18037, 384.00081],
         "root_phosphorus": [656.7, 450.6, 437.3, 371.9],
         "deadwood_phosphorus": [856.5, 675.4, 933.2, 888.8],
         "reprod_phosphorus": [125.5, 105.0, 145.0, 189.2],
     }
 
-    actual_combined = combine_input_sources(dummy_litter_data)
+    actual_combined = combine_input_sources(dummy_litter_data, update_interval=2.0)
 
     assert set(expected_combined.keys()) == set(actual_combined.keys())
 
@@ -97,7 +96,7 @@ def test_calculate_metabolic_proportions_of_input(total_litter_input):
     )
 
     expected_proportions = {
-        "leaves_meta_split": [0.8123412282, 0.7504823457, 0.4509559749, 0.0852205423],
+        "leaves_meta_split": [0.8123565, 0.75097557, 0.46460743, 0.14485736],
         "reproduct_meta_split": [0.8462925685, 0.833489905, 0.83196046, 0.8390536408],
         "roots_meta_split": [0.588394858, 0.379571377, 0.5024461477, 0.410125012],
     }
@@ -119,15 +118,16 @@ def test_partion_plant_inputs_between_pools(metabolic_splits, total_litter_input
     )
 
     expected_inputs = {
-        "input_woody": [0.075, 0.099, 0.063, 0.033],
-        "input_above_metabolic": [0.02449646, 0.00805233, 0.0128768, 0.00580533],
-        "input_above_structural": [0.00553354, 0.00184767, 0.0135232, 0.02914467],
-        "input_below_metabolic": [0.01588666, 0.007971, 0.00015073, 0.01021211],
-        "input_below_structural": [0.01111334, 0.013029, 0.00014927, 0.01468789],
+        "woody": [0.0375, 0.0495, 0.0315, 0.0165],
+        "above_metabolic": [0.01224844, 0.00402676, 0.00660119, 0.00383300],
+        "above_structural": [0.00276656, 0.00092324, 0.00659881, 0.01364200],
+        "below_metabolic": [0.00794333, 0.0039855, 7.5365e-5, 0.005106055],
+        "below_structural": [0.00555667, 0.0065145, 7.4635e-5, 0.007343945],
     }
 
     actual_inputs = partion_plant_inputs_between_pools(
-        total_input=total_litter_input, metabolic_splits=metabolic_splits
+        total_input=total_litter_input,
+        metabolic_splits=metabolic_splits,
     )
 
     assert set(expected_inputs.keys()) == set(actual_inputs.keys())
@@ -214,75 +214,233 @@ def test_split_pool_into_metabolic_and_structural_litter_bad_data(
     log_check(caplog, expected_log)
 
 
-@pytest.mark.parametrize(
-    argnames=[
-        "raises",
-        "turnover_chemical_proportion",
-        "herbivory_chemical_proportion",
-        "expected_proportions",
-        "expected_log",
-    ],
-    argvalues=[
-        pytest.param(
-            does_not_raise(),
-            np.array([0.05, 0.25, 0.3, 0.57]),
-            np.array([0.13, 0.08, 0.27, 0.22]),
-            [0.05008879, 0.10125, 0.29641509, 0.53971154],
-            (),
-            id="fine values",
-        ),
-        pytest.param(
-            pytest.raises(ValueError),
-            np.array([0.05, 0.25, np.inf, 0.57]),
-            np.array([0.13, 0.08, 0.27, 0.22]),
-            [],
-            (
-                (
-                    ERROR,
-                    "Litter input from plant turnover contains an infinite chemical "
-                    "proportion!",
-                ),
-            ),
-            id="infinite turnover proportion",
-        ),
-        pytest.param(
-            pytest.raises(ValueError),
-            np.array([0.05, 0.25, 0.3, 0.57]),
-            np.array([np.inf, 0.08, 0.27, 0.22]),
-            [],
-            (
-                (
-                    ERROR,
-                    "Litter input from animal herbivory waste contains an infinite "
-                    "chemical proportion!",
-                ),
-            ),
-            id="infinite herbivory waste proportion",
-        ),
-    ],
-)
-def test_merge_input_chemical_proportions(
-    dummy_litter_data,
-    caplog,
-    raises,
-    turnover_chemical_proportion,
-    herbivory_chemical_proportion,
-    expected_proportions,
-    expected_log,
+def test_merge_input_lignin_proportions(dummy_litter_data):
+    """Test that function to merge lignin proportions works as expected."""
+    from virtual_ecosystem.models.litter.inputs import merge_input_lignin_proportions
+
+    expected_proportions = [0.05008879, 0.10125, 0.29641509, 0.53971154]
+
+    actual_proportions = merge_input_lignin_proportions(
+        turnover_mass=dummy_litter_data["leaf_turnover"],
+        herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_carbon"],
+        total_mass=dummy_litter_data["leaf_turnover"]
+        + dummy_litter_data["herbivory_waste_leaf_carbon"],
+        turnover_lignin_proportion=dummy_litter_data["senesced_leaf_lignin"],
+        herbivory_waste_lignin_proportion=dummy_litter_data[
+            "herbivory_waste_leaf_lignin"
+        ],
+    )
+    assert np.allclose(actual_proportions, expected_proportions)
+
+
+def test_average_nutrient_ratios(dummy_litter_data):
+    """Test that function to average nutrient ratios works as expected."""
+    from virtual_ecosystem.models.litter.inputs import average_nutrient_ratios
+
+    expected_proportions = [15.00583994, 32.23584906, 39.05894298, 47.80986065]
+
+    actual_proportions = average_nutrient_ratios(
+        mass_1=dummy_litter_data["leaf_turnover"],
+        mass_2=dummy_litter_data["herbivory_waste_leaf_carbon"],
+        nutrient_ratio_1=dummy_litter_data["leaf_turnover_c_n_ratio"],
+        nutrient_ratio_2=dummy_litter_data["herbivory_waste_leaf_nitrogen"],
+    )
+    assert np.allclose(actual_proportions, expected_proportions)
+
+
+def test_calculate_input_chemistries(litter_inputs):
+    """Check that calculation of input chemistries is correct."""
+    from dataclasses import asdict
+
+    from virtual_ecosystem.models.litter.inputs import calculate_input_chemistries
+
+    expected_chemistries = {
+        "woody_lignin": [0.233, 0.545, 0.612, 0.378],
+        "above_structural_lignin": [0.25011178, 0.25345463, 0.54339369, 0.61992378],
+        "below_structural_lignin": [0.48590258, 0.56412613, 0.54265483, 0.67810978],
+        "woody_nitrogen": [60.7, 57.9, 73.1, 55.1],
+        "below_metabolic_nitrogen": [
+            20.32269136,
+            22.96676383,
+            26.06473456,
+            19.59251036,
+        ],
+        "below_structural_nitrogen": [
+            101.61345679,
+            114.83381916,
+            130.32367278,
+            97.96255178,
+        ],
+        "above_metabolic_nitrogen": [12.540983, 21.600478, 20.237902, 15.403147],
+        "above_structural_nitrogen": [62.91002, 110.3194, 109.3635, 75.59183],
+        "woody_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "below_metabolic_phosphorus": [
+            440.4591226,
+            226.94788998,
+            263.23576031,
+            196.40039357,
+        ],
+        "below_structural_phosphorus": [
+            2202.29561299,
+            1134.7394499,
+            1316.17880156,
+            982.00196785,
+        ],
+        "above_metabolic_phosphorus": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_structural_phosphorus": [
+            1488.595406,
+            580.6433876,
+            1408.378272,
+            610.0666667,
+        ],
+    }
+
+    actual_chemistries = calculate_input_chemistries(
+        litter_inputs=litter_inputs,
+        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+    )
+
+    # Convert to a dict to check the values
+    actual_chemistries = asdict(actual_chemistries)
+
+    # Check that all keys match and have correct values for both dictionaries
+    assert set(expected_chemistries.keys()) == set(actual_chemistries.keys())
+
+    for key in actual_chemistries.keys():
+        assert np.allclose(actual_chemistries[key], expected_chemistries[key])
+
+
+def test_calculate_litter_input_lignin_concentrations(litter_inputs):
+    """Check calculation of lignin concentrations of each plant flow to litter."""
+    from virtual_ecosystem.models.litter.inputs import (
+        calculate_litter_input_lignin_concentrations,
+    )
+
+    expected_woody = [0.233, 0.545, 0.612, 0.378]
+    expected_concs_above_struct = [0.25011178, 0.25345463, 0.54339369, 0.61992378]
+    expected_concs_below_struct = [0.48590258, 0.56412613, 0.54265483, 0.67810978]
+
+    actual_concs = calculate_litter_input_lignin_concentrations(
+        litter_inputs=litter_inputs,
+    )
+
+    assert np.allclose(actual_concs["woody_lignin"], expected_woody)
+    assert np.allclose(
+        actual_concs["above_structural_lignin"], expected_concs_above_struct
+    )
+    assert np.allclose(
+        actual_concs["below_structural_lignin"], expected_concs_below_struct
+    )
+
+
+def test_calculate_litter_input_nitrogen_ratios(litter_inputs):
+    """Check function to calculate the C:N ratios of input to each litter pool works."""
+    from virtual_ecosystem.models.litter.inputs import (
+        calculate_litter_input_nitrogen_ratios,
+    )
+
+    expected_c_n_ratios = {
+        "woody_nitrogen": [60.7, 57.9, 73.1, 55.1],
+        "below_metabolic_nitrogen": [
+            20.32269136,
+            22.96676383,
+            26.06473456,
+            19.59251036,
+        ],
+        "below_structural_nitrogen": [
+            101.61345679,
+            114.83381916,
+            130.32367278,
+            97.96255178,
+        ],
+        "above_metabolic_nitrogen": [12.540983, 21.600478, 20.237902, 15.403147],
+        "above_structural_nitrogen": [62.91002, 110.3194, 109.3635, 75.59183],
+    }
+
+    actual_c_n_ratios = calculate_litter_input_nitrogen_ratios(
+        litter_inputs=litter_inputs,
+        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    assert set(expected_c_n_ratios.keys()) == set(actual_c_n_ratios.keys())
+
+    for key in actual_c_n_ratios.keys():
+        assert np.allclose(actual_c_n_ratios[key], expected_c_n_ratios[key])
+
+
+def test_calculate_litter_input_phosphorus_ratios(litter_inputs):
+    """Check function to calculate the C:P ratios of input to each litter pool works."""
+    from virtual_ecosystem.models.litter.inputs import (
+        calculate_litter_input_phosphorus_ratios,
+    )
+
+    expected_c_p_ratios = {
+        "woody_phosphorus": [856.5, 675.4, 933.2, 888.8],
+        "below_metabolic_phosphorus": [
+            440.4591226,
+            226.94788998,
+            263.23576031,
+            196.40039357,
+        ],
+        "below_structural_phosphorus": [
+            2202.29561299,
+            1134.7394499,
+            1316.17880156,
+            982.00196785,
+        ],
+        "above_metabolic_phosphorus": [286.886303, 107.015923, 241.802298, 136.049497],
+        "above_structural_phosphorus": [
+            1488.595406,
+            580.6433876,
+            1408.378272,
+            610.0666667,
+        ],
+    }
+
+    actual_c_p_ratios = calculate_litter_input_phosphorus_ratios(
+        litter_inputs=litter_inputs,
+        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+    )
+
+    assert set(expected_c_p_ratios.keys()) == set(actual_c_p_ratios.keys())
+
+    for key in actual_c_p_ratios.keys():
+        assert np.allclose(actual_c_p_ratios[key], expected_c_p_ratios[key])
+
+
+def test_calculate_nutrient_split_between_litter_pools(
+    dummy_litter_data, litter_inputs
 ):
-    """Test that function to merge chemical proportions works as expected."""
-    from virtual_ecosystem.models.litter.inputs import merge_input_chemical_proportions
+    """Check the function to calculate the nutrient split between litter pools."""
+    from virtual_ecosystem.models.litter.inputs import (
+        calculate_nutrient_split_between_litter_pools,
+    )
 
-    with raises:
-        actual_proportions = merge_input_chemical_proportions(
-            turnover_mass=dummy_litter_data["leaf_turnover"],
-            herbivory_waste_mass=dummy_litter_data["herbivory_waste_leaf_carbon"],
-            total_mass=dummy_litter_data["leaf_turnover"]
-            + dummy_litter_data["herbivory_waste_leaf_carbon"],
-            turnover_chemical_proportion=turnover_chemical_proportion,
-            herbivory_waste_chemical_proportion=herbivory_chemical_proportion,
-        )
-        assert np.allclose(actual_proportions, expected_proportions)
+    expected_meta_c_n = np.array([20.32269136, 22.96676383, 26.06473456, 19.59251036])
+    expected_struct_c_n = np.array([101.6134568, 114.83381915, 130.3236728, 97.9625518])
 
-    # Check the error reports
-    log_check(caplog, expected_log)
+    actual_meta_c_n, actual_struct_c_n = calculate_nutrient_split_between_litter_pools(
+        input_c_nut_ratio=dummy_litter_data["root_turnover_c_n_ratio"],
+        metabolic_split=litter_inputs.roots_meta_split,
+        struct_to_meta_nutrient_ratio=LitterConsts.structural_to_metabolic_n_ratio,
+    )
+
+    # Standard checks of the produced values
+    assert np.allclose(actual_meta_c_n, expected_meta_c_n)
+    assert np.allclose(actual_struct_c_n, expected_struct_c_n)
+    # Check that expected ratio is actually preserved by the function
+    assert np.allclose(
+        expected_struct_c_n,
+        expected_meta_c_n * LitterConsts.structural_to_metabolic_n_ratio,
+    )
+    # Check that weighted sum of the two new C:N ratios is compatible with the original
+    # C:N ratio
+    assert np.allclose(
+        dummy_litter_data["root_turnover_c_n_ratio"],
+        1
+        / (
+            (litter_inputs.roots_meta_split / actual_meta_c_n)
+            + ((1 - litter_inputs.roots_meta_split) / actual_struct_c_n)
+        ),
+    )
