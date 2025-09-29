@@ -29,8 +29,9 @@ The Virtual Ecosystem model is a complex simulation with many moving parts. It c
 intimidating to get started with using the model, so these pages are intended to provide
 a step-by-step guide to getting up and running. The main sections are:
 
-1. You need to install Python and the Virtual Ecosystem package to run a simulation so
-   you first need to [install the Virtual Ecosystem](./installing_ve.md).
+1. Before you can run a Virtual Ecosystem simulation, you need to install the Python
+   programming language and the Virtual Ecosystem Python package: see the section on
+   [installing the Virtual Ecosystem](./installing_ve.md).
 
 1. The Virtual Ecosystem package includes a simple example simulation. Before trying to
    setup your own model, [install the data to run the example model](./example_data.md)
@@ -48,5 +49,5 @@ a step-by-step guide to getting up and running. The main sections are:
 
 1. Once you have your own model running, you can run experiments on the system. One
    example is isolating a component of the model to see how it responds to constant
-   inputs through time. This is the the [static model
+   inputs through time. This is the [static model
    system](./virtual_ecosystem_in_static_mode.md).

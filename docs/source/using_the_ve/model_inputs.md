@@ -66,7 +66,7 @@ these values.
 
 The Virtual Ecosystem code is organised into distinct **models**, each of which is
 responsible for a different part of the simulation. Each model, including the central
-core model need to be configured.
+core model needs to be configured.
 
 Each model has its own configuration settings - which can be used to control particular
 options or paths to required extra files - but also a set of model specific constants.
@@ -83,7 +83,8 @@ configuration files in the [example data](./example_data.md) page.
 
     *Validation*: The model configuration is checked when the simulation starts. The
     `ve_run` command will log any configuration errors and exit without running any of
-    the actual simulation.
+    the actual simulation if any of the required variables are missing or have the wrong
+    format (as specified in the model schema).
 
     *Documentation*: TBD
 
@@ -160,4 +161,4 @@ calculate other internal variables.
 
     * The plant model also requires a defined initial cohort structure, which sets the
      initial cohorts present in each cell. This again is defined as a CSV file with the
-     path set in the in the plants model configuration options.
+     path set in the plants model configuration options.

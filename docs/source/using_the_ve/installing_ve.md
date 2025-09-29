@@ -43,7 +43,7 @@ page](https://www.python.org/downloads/).
 
 You now need to install the Virtual Ecosystem package itself. Installing Python
 automatically installs the package installer for Python (`pip`). You should be able to
-open  a terminal window and use the following command to install the Virtual Ecosystem
+open a terminal window and use the following command to install the Virtual Ecosystem
 using `pip`.
 
 This will always install the most recent release of the Virtual Ecosystem model. Note
