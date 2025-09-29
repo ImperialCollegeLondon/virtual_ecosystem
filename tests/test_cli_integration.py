@@ -18,6 +18,7 @@ def test_ve_run_install_example(capsys):
         assert captured.out.startswith(expected)
 
 
+@pytest.mark.slow
 def test_ve_run(capsys, mocker):
     """Test that the CLI can successfully run with example data.
 
