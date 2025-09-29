@@ -264,7 +264,8 @@ def fixture_config(fixture_root_data_dir, microbial_groups_cfg):
         surface_layer_height = 0.1
 
         [plants]
-        pft_definitions_path = "{(fixture_root_data_dir / "plant_pfts.csv")!s}"
+        # Deliberately using single quote to provide TOML literal string for path
+        pft_definitions_path = '{(fixture_root_data_dir / "plant_pfts.csv")!s}'
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"
