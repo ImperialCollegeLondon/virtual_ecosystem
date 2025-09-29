@@ -39,6 +39,7 @@ from virtual_ecosystem.models.plants.functional_types import (
 from virtual_ecosystem.models.plants.stoichiometry import (
     StemStoichiometry,
 )
+from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
 
 class PlantsModel(
@@ -117,6 +118,22 @@ class PlantsModel(
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
         "transpiration",
+        "subcanopy_seedbank_litter_biomass",
+        "subcanopy_seedbank_litter_c_n_ratio",
+        "subcanopy_seedbank_litter_c_p_ratio",
+        "subcanopy_seedbank_litter_lignin",
+        "subcanopy_vegetation_litter_biomass",
+        "subcanopy_vegetation_litter_c_n_ratio",
+        "subcanopy_vegetation_litter_c_p_ratio",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_vegetation_c_n_ratio",
+        "subcanopy_vegetation_c_p_ratio",
+        "subcanopy_seedbank_c_n_ratio",
+        "subcanopy_seedbank_c_p_ratio",
+        "subcanopy_ammonium_uptake",
+        "subcanopy_nitrate_uptake",
+        "subcanopy_phosphorus_uptake",
+        "subcanopy_transpiration",
     ),
     vars_populated_by_first_update=(
         "deadwood_c_n_ratio",
@@ -145,6 +162,22 @@ class PlantsModel(
         "senesced_leaf_lignin",
         "stem_lignin",
         "transpiration",
+        "subcanopy_seedbank_litter_biomass",
+        "subcanopy_seedbank_litter_c_n_ratio",
+        "subcanopy_seedbank_litter_c_p_ratio",
+        "subcanopy_seedbank_litter_lignin",
+        "subcanopy_vegetation_litter_biomass",
+        "subcanopy_vegetation_litter_c_n_ratio",
+        "subcanopy_vegetation_litter_c_p_ratio",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_vegetation_c_n_ratio",
+        "subcanopy_vegetation_c_p_ratio",
+        "subcanopy_seedbank_c_n_ratio",
+        "subcanopy_seedbank_c_p_ratio",
+        "subcanopy_ammonium_uptake",
+        "subcanopy_nitrate_uptake",
+        "subcanopy_phosphorus_uptake",
+        "subcanopy_transpiration",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -253,7 +286,10 @@ class PlantsModel(
         """Core constants used by pyrealm."""
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
-
+        self.canopy_top_radiation: NDArray[np.floating]
+        """The downwelling radiation at the canopy top for the current time step."""
+        self.subcanopy: Subcanopy
+        """Representation of the subcanopy vegetation."""
         # Define and populate model specific attributes
         self.exporter: CommunityDataExporter = exporter
         """A CommunityDataExporter instance providing configuration and methods for
@@ -428,11 +464,30 @@ class PlantsModel(
         self.pmodel_consts = PModelConst()
         self.pmodel_core_consts = CoreConst()
 
-        # Create and populate the canopy data layers and the subcanopy vegetation and
-        # then set the shortwave absorption from the first time index
+        # Create and populate the canopy data layers
         self.update_canopy_layers()
-        self.set_subcanopy_light_capture()
-        self.set_shortwave_absorption(time_index=0)
+
+        # Initialise the subcanopy vegetation class and then set the light capture of
+        # the subcanopy vegetation
+        self.subcanopy = Subcanopy(
+            data=self.data,
+            pmodel_core_constants=self.pmodel_core_consts,
+            model_constants=self.model_constants,
+            layer_index=self.layer_structure.index_surface_scalar,
+            model_timing=self.model_timing,
+        )
+
+        # Get the canopy top shortwave downwelling radiation for the first time slice
+        self.set_canopy_top_radiation(time_index=0)
+
+        # This updates the data fapar and lai values of the surface layer using the
+        # subcanopy vegetation
+        self.subcanopy.set_light_capture(
+            below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
+
+        # Set the shortwave absorption profile down to the ground
+        self.set_shortwave_absorption()
 
         # Initialise other attributes
         self.per_stem_gpp = {}
@@ -481,14 +536,19 @@ class PlantsModel(
         self.apply_mortality()
         self.apply_recruitment()
 
-        # Update the canopy layers
+        # Get the canopy top shortwave downwelling radiation for the current time slice
+        self.set_canopy_top_radiation(time_index=time_index)
+
+        # Update the canopy layers and subcanopy and then set the shortwave absorption
         self.canopies = calculate_canopies(
             communities=self.communities,
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
         self.update_canopy_layers()
-        self.set_subcanopy_light_capture()
-        self.set_shortwave_absorption(time_index=time_index)
+        self.subcanopy.set_light_capture(
+            below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
+        self.set_shortwave_absorption()
 
         # Estimate the canopy GPP and growth with the updated this update
         self.calculate_light_use_efficiency()
@@ -506,7 +566,11 @@ class PlantsModel(
         self.calculate_mycorrhizal_uptakes()
 
         # Calculate the subcanopy vegetation
-        self.calculate_subcanopy_dynamics()
+        self.subcanopy.calculate_dynamics(
+            lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
+            iwue=self.pmodel.iwue[self.layer_structure.index_surface_scalar, :],
+            swd=self.canopy_top_radiation,
+        )
 
         # Run the community data exporter
         self.exporter.dump(
@@ -616,33 +680,43 @@ class PlantsModel(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
 
-    def set_shortwave_absorption(self, time_index: int) -> None:
+    def set_canopy_top_radiation(self, time_index: int) -> None:
+        """Set the current canopy top shortwave downwelling radiation."""
+
+        self.canopy_top_radiation = (
+            self.data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy()
+        )
+
+    def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
 
         This method takes the shortwave radiation at the top of the canopy for a
         particular time index and uses the ``layer_fapar`` data calculated by the canopy
-        model to estimate the amount of radiation absorbed by each canopy layer and the
-        remaining radiation absorbed by the top soil layer.
+        and subcanopy models to estimate the amount of radiation absorbed by each canopy
+        layer and the remaining radiation absorbed by the top soil layer.
+
+        The method requires that the ``canopy_top_radiation`` attribute has been set
+        with the SWD values for the current time step.
 
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
             and shade.
         """  # noqa: D405
 
-        # Get the canopy top shortwave downwelling radiation for the current time slice
-        canopy_top_swd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
+        # Set the ground_incident light
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * self.subcanopy.light_transmission
         )
 
         # Calculate the fate of shortwave radiation through the layers assuming that the
         # vegetation fAPAR applies to all light wavelengths
-        absorbed_irradiance = self.data["layer_fapar"] * canopy_top_swd
+        absorbed_irradiance = self.data["layer_fapar"] * self.canopy_top_radiation
 
         # Add the remaining irradiance at the surface layer level
         absorbed_irradiance[self.layer_structure.index_topsoil] = (
-            canopy_top_swd * self.ground_incident_light_fraction
+            self.canopy_top_radiation * self.ground_incident_light_fraction
         )
 
         self.data["shortwave_absorption"] = absorbed_irradiance
@@ -702,12 +776,7 @@ class PlantsModel(
         """
 
         # Get the canopy top PPFD per grid cell for this time index
-        canopy_top_ppfd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
-            * self.model_constants.dsr_to_ppfd
-        )
+        canopy_top_ppfd = self.canopy_top_radiation * self.model_constants.dsr_to_ppfd
 
         # Initialise transpiration array to collect per grid cell values
         transpiration = self.layer_structure.from_template("transpiration")
@@ -1242,132 +1311,6 @@ class PlantsModel(
             0.5 * self.data["arbuscular_supply_limit_p"]
         )
         self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
-
-    def set_subcanopy_light_capture(self) -> None:
-        r"""Calculate the leaf area index and absorption of subcanopy vegetation.
-
-        The subcanopy vegetation is represented as pure leaf biomass (:math:`M_{SC}`, kg
-        m-2), with an associated extinction coefficient (:math:`k`) and specific leaf
-        area (:math:`\sigma`, kg m-2) set in the model constants. These can be used to
-        calculate the   leaf area index (:math:`L`) and hence the absorption fraction
-        (:math:`f_{a}`) of  the subcanopy vegetation layer via the Beer-Lambert law: 
-
-        .. math ::
-            :nowrap:
-
-            \[
-                \begin{align*}
-                    L &= M_{SC} \sigma \\
-                    f_a = e^{-kL}
-                \end{align*}
-            \]
-        """
-
-        # Calculate the leaf area index - values are already in kg m-2 so no need to
-        # account for the area occupied by the biomass - and set the leaf area
-        subcanopy_lai = (
-            self.data["subcanopy_vegetation_biomass"]
-            * self.model_constants.subcanopy_specific_leaf_area
-        )
-
-        # Beer-Lambert transmission - note that this is 1 when there is no biomass and
-        # so no light is absorbed by the vegetation and all of the subcanopy light
-        # reaches the ground.
-        subcanopy_light_transmission = np.exp(
-            -self.model_constants.subcanopy_extinction_coef * subcanopy_lai
-        )
-
-        # Absorb a fraction of the below canopy light and pass the rest on to the ground
-        # incident light fraction
-        sub_canopy_fapar = self.below_canopy_light_fraction * (
-            1 - subcanopy_light_transmission
-        )
-
-        self.ground_incident_light_fraction = (
-            self.below_canopy_light_fraction * subcanopy_light_transmission
-        )
-
-        # Store those values
-        self.data["leaf_area_index"][self.layer_structure.index_surface_scalar] = (
-            subcanopy_lai
-        )
-        self.data["layer_fapar"][self.layer_structure.index_surface_scalar] = (
-            sub_canopy_fapar
-        )
-
-    def calculate_subcanopy_dynamics(self) -> None:
-        r"""Estimate the dynamics of subcanopy vegetation.
-
-        The fraction of the PPFD reaching the topsoil layer is extracted, given the leaf
-        area index and fAPAR calculated from the biomass of subcanopy vegetation. That
-        is then used to estimate GPP, given the LUE from the P Model in the surface
-        layer.
-
-        The GPP allocation then follows the parameterisation of the T Model but where
-        the subcanopy vegetation biomass is represented purely as leaf tissue.
-
-        At each update:
-
-        * The ``subcanopy_vegetation_biomass`` increases with the new growth from light
-          capture and the addition of a sprouting biomass from the
-          ``subcanopy_seedbank_biomass``.
-
-        * The ``subcanopy_seedbank_biomass`` loses mass due to resprouting but gains a
-          proportion of the net primary productivity from the subcanopy vegetation.
-        """
-
-        # Calculate the gross primary productivity since the last update.
-        #    LUE                     1 layer          [gC mol-1]
-        #    * shortwave absorption  1 layer          [µmol m-2 s-1]
-        #    * DST to PPFD           scalar           [-]
-        #    * time elapsed     scalar                [s]
-        # Units:
-        #    gC mol-1 * µmol m-2 s-1  * (-) * s = µg C m-2
-        subcanopy_gpp = (
-            self.pmodel.lue[self.layer_structure.index_surface_scalar, :]
-            * self.data["shortwave_absorption"][
-                self.layer_structure.index_surface_scalar, :
-            ]
-            * self.model_constants.dsr_to_ppfd
-            * self.model_timing.update_interval_seconds
-        )
-
-        # Calculate the transpiration associated with that GPP in moles
-        subcanopy_transpiration = (
-            subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
-        ) * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
-
-        # Calculate NPP, converting µg C m-2 to  kg C m-2
-        subcanopy_npp = (
-            self.model_constants.subcanopy_yield
-            * (subcanopy_gpp * 1e-9)
-            * (1 - self.model_constants.subcanopy_respiration_fraction)
-        )
-
-        subcanopy_growth = subcanopy_npp * (
-            1 - self.model_constants.subcanopy_reproductive_allocation
-        )
-
-        new_seedbank = subcanopy_npp - subcanopy_growth
-
-        subcanopy_sprouting_mass = self.data["subcanopy_seedbank_biomass"] * (
-            1
-            - np.exp(
-                -self.model_constants.subcanopy_sprout_rate
-                * (1 / self.model_timing.updates_per_year)
-            )
-        )
-
-        # Update the biomasses
-        self.data["subcanopy_vegetation_biomass"] += subcanopy_growth + (
-            self.model_constants.subcanopy_sprout_yield * subcanopy_sprouting_mass
-        )
-
-        self.data["subcanopy_seedbank_biomass"] += (
-            new_seedbank - subcanopy_sprouting_mass
-        )
-
-        self.data["transpiration"] += subcanopy_transpiration
 
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.floating]
