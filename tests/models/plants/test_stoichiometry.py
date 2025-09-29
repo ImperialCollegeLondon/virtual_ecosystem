@@ -36,15 +36,17 @@ class DummyCommunity:
     """Mock class for a plant community with two cohorts for testing."""
 
     def __init__(self):
-        self.stem_allometry = SimpleNamespace(
-            foliage_mass = np.array([50.0, 80.0]),
-            stem_mass = np.array([100.0, 150.0]),
-            reproductive_tissue_mass = np.array([20.0, 40.0])
-        ),
+        self.stem_allometry = (
+            SimpleNamespace(
+                foliage_mass=np.array([50.0, 80.0]),
+                stem_mass=np.array([100.0, 150.0]),
+                reproductive_tissue_mass=np.array([20.0, 40.0]),
+            ),
+        )
         self.stem_traits = SimpleNamespace(
-            zeta = 0.1, sla = 2.0, p_foliage_for_reproductive_tissue = 0.5
-         )
-        
+            zeta=0.1, sla=2.0, p_foliage_for_reproductive_tissue=0.5
+        )
+
         self.n_cohorts = 2
         self.cohorts = type("Cohorts", (), {"pft_names": ["pft1", "pft2"]})
 
@@ -62,6 +64,7 @@ class DummyAllocation:
 
 DUMMY_COMMUNITY = DummyCommunity()
 DUMMY_ALLOC = DummyAllocation()
+
 
 @pytest.fixture
 def stem_stoichiometry():
