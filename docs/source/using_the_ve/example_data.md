@@ -208,8 +208,6 @@ sections = (
     ("Climate data", "data/example_climate_data.nc"),
     ("Soil data", "data/example_soil_data.nc"),
     ("Litter data", "data/example_litter_data.nc"),
-    ("Surface runoff data", "data/example_surface_runoff_data.nc"),
-    ("Solar radiation data", "data/example_topofcanopy_radiation.nc"),
     ("Plant data", "data/example_plant_data.nc"),
 )
 
@@ -220,26 +218,6 @@ for section, dataset in sections:
 <!--
 
 Original text and partial tables, to be moved into NetCDF attributes
-
-### Hydrology data
-
-The `example_surface_runoff_data.nc` file provides:
-
-```{list-table}
-* - Variable
-  - Name
-  - Unit
-  - Dims
-* - surface runoff
-  - `surface_runoff`
-  - mm
-  - XY
-```
-
-The hydrology model requires an initial surface runoff field to calculate accumulated
-surface runoff. This value is currently created using a normal distribution, and
-adjusted to Virtual Ecosystem conventions, but will in the future be estimated from
-rainfall data using the SPLASH model.
 
 ### Soil data
 
@@ -366,7 +344,7 @@ added for each of the 81 grid cells, giving 162 entries along the cohort axis.
 ## Output directory
 
 The `out` directory is empty when the example data is installed and is simply used as a
-location to store model outputs when the model is run
+location to store model outputs when the model is run.
 
 ## Additional directories
 
