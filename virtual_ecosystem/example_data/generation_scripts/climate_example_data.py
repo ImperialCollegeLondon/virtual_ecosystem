@@ -1,7 +1,8 @@
 """Climate data to run `ve_example`.
 
-This code creates a data set of climate input variables required for the Virtual
-Ecosystem. The current values are typical monthly averages for tropical regions.
+This code creates a dummy time series of climate input variables which is required to
+run the Virtual Ecosystem example. The current values are typical monthly averages for
+tropical regions.
 """
 
 import numpy as np
@@ -23,13 +24,13 @@ data["air_temperature_ref"] = DataArray(
     coords={"cell_id": cell_id, "time_index": time_index},
 )
 
-# Relative humidity [0-1]
+# Relative humidity [%]
 data["relative_humidity_ref"] = DataArray(
     data=np.random.uniform(75, 95, size=(n_cells, n_dates)),
     coords={"cell_id": cell_id, "time_index": time_index},
 )
 
-# Precipitation [mm month-1]
+# Precipitation [mm]
 data["precipitation"] = DataArray(
     data=np.random.uniform(0, 200, size=(n_cells, n_dates)),
     coords={"cell_id": cell_id, "time_index": time_index},
@@ -62,8 +63,8 @@ data["mean_annual_temperature"] = DataArray(
 data["time"] = DataArray(time, coords={"time_index": time_index})
 
 # Add attributes
-data.attrs["dataset_description"] = """The dummy climate data for the example 
-simulation provides reference data for the climatic conditions above the canopy for the
+data.attrs["dataset_description"] = """The dummy climate data for the example
+simulation provides reference data for the climatic conditions above the canopy for all
 time steps in the model, along with climatological data on the mean annual temperature.
 """
 
@@ -71,11 +72,9 @@ data.air_temperature_ref.attrs = dict(
     units="°C", description="Air temperature above canopy"
 )
 data.relative_humidity_ref.attrs = dict(
-    units="-", description="Relative humidity above canopy"
+    units="%", description="Relative humidity above canopy"
 )
-data.precipitation.attrs = dict(
-    units="mm month", description="Total monthly precipitation"
-)
+data.precipitation.attrs = dict(units="mm", description="Total monthly precipitation")
 data.atmospheric_pressure_ref.attrs = dict(
     units="kPa", description="Atmospheric pressure above canopy"
 )
@@ -89,5 +88,8 @@ data.mean_annual_temperature.attrs = dict(
     units="°C", description="Mean annual temperature"
 )
 
+# Remove datetime dimension as not needed for the example
+data_out = data.drop_vars("time")
+
 # Save to netcdf
-data.to_netcdf("../data/example_climate_data.nc")
+data_out.to_netcdf("../data/example_climate_data.nc")
