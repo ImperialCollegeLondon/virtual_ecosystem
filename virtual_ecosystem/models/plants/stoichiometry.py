@@ -59,12 +59,12 @@ class Tissue(ABC):
 
     @property
     def deficit(self) -> NDArray[np.float64]:
-        """Calculate the element deficit for the tissue type.
+        """Calculate the element deficit (ideal mass - actual mass) for the tissue.
 
         Returns:
             The element deficit for the specified tissue.
         """
-        return self.ideal_ratio * self.carbon_mass - self.actual_element_mass
+        return (self.carbon_mass / self.ideal_ratio) - self.actual_element_mass
 
     @property
     def Cx_ratio(self) -> NDArray[np.float64]:
@@ -116,8 +116,8 @@ class Tissue(ABC):
 class FoliageTissue(Tissue):
     """A class to hold foliage stoichiometry data for a set of plant cohorts."""
 
-    reclaim_ratio: NDArray[np.float64]
-    """The ratio of the element that can be reclaimed from the senesced tissue."""
+    turnover_ratio: NDArray[np.float64]
+    """The ratio of the element in the turnover tissue (senesced foliage)."""
 
     @classmethod
     def from_pft_default_ratios(
@@ -138,7 +138,7 @@ class FoliageTissue(Tissue):
             community=community,
             ideal_ratio=ideal_ratios,
             actual_element_mass=community.stem_allometry.foliage_mass * ideal_ratios,
-            reclaim_ratio=np.array(
+            turnover_ratio=np.array(
                 [
                     extra_pft_traits.traits[name][
                         f"leaf_turnover_c_{element_name}_ratio"
@@ -174,8 +174,7 @@ class FoliageTissue(Tissue):
             The element quantity lost to turnover for foliage tissue.
         """
         return (
-            allocation.foliage_turnover
-            * ((1 / self.reclaim_ratio) - (1 / self.Cx_ratio))
+            (allocation.foliage_turnover * (1 / self.turnover_ratio)).squeeze()
         ).squeeze()
 
     def add_cohort(
@@ -198,8 +197,8 @@ class FoliageTissue(Tissue):
             stem_traits: The stem traits for the cohort.
         """
 
-        self.reclaim_ratio = np.append(
-            self.reclaim_ratio,
+        self.turnover_ratio = np.append(
+            self.turnover_ratio,
             extra_pft_traits.traits[new_pft_name][
                 f"leaf_turnover_c_{element.lower()}_ratio"
             ],
@@ -318,7 +317,7 @@ class WoodTissue(Tissue):
         pft_names = community.cohorts.pft_names
         ideal_ratios = np.array(
             [
-                extra_pft_traits.traits[name][f"root_turnover_c_{element_name}_ratio"]
+                extra_pft_traits.traits[name][f"deadwood_c_{element_name}_ratio"]
                 for name in pft_names
             ]
         )
@@ -401,11 +400,11 @@ class RootTissue(Tissue):
         extra_pft_traits: ExtraTraitsPFT,
         element_name: str,
     ):
-        """Create a default instance of WoodTissue based on the PFT traits."""
+        """Create a default instance of RootTissue based on the PFT traits."""
         pft_names = community.cohorts.pft_names
         ideal_ratios = np.array(
             [
-                extra_pft_traits.traits[name][f"deadwood_c_{element_name}_ratio"]
+                extra_pft_traits.traits[name][f"root_turnover_c_{element_name}_ratio"]
                 for name in pft_names
             ]
         )
@@ -614,10 +613,10 @@ class StemStoichiometry(CohortMethods, PandasExporter):
 
     @property
     def tissue_deficit(self) -> NDArray[np.float64]:
-        """Calculate the element deficit for a tissue type.
+        """Calculate the total element deficit for the cohors.
 
         Returns:
-            The element deficit for the specified tissue.
+            The element deficit for all cohorts.
         """
         element_deficit = np.zeros(self.community.n_cohorts)
         for tissue in self.tissues:
@@ -645,6 +644,11 @@ class StemStoichiometry(CohortMethods, PandasExporter):
         process, the element is allocated from the surplus store in the same quantity
         as turnover. This uses current ratios so that the C:x ratios are maintained.
 
+        NOTE: these values are not subtracted from the element mass itself, as we assume
+        that the tree regrows the lost tissue in the same timestep. This means that the
+        element mass SHOULD stay the same, however the plant must have enough surplus to
+        cover the loss - hence only subtracting from the element surplus.
+
         Returns:
             The total element lost to turnover for each cohort.
         """
@@ -663,14 +667,16 @@ class StemStoichiometry(CohortMethods, PandasExporter):
         Args:
             cohort: The cohort to reconcile deficit.
         """
-        deficit = self.element_surplus[cohort] * -1
+
+        if self.element_surplus[cohort] > 0:
+            raise ValueError("distribute_deficit called with non-negative surplus.")
+
+        deficit = -self.element_surplus[cohort]
+        total_element_mass = self.total_element_mass[cohort].copy()
 
         for tissue in self.tissues:
-            tissue.actual_element_mass[cohort] = tissue.actual_element_mass[cohort] - (
-                deficit
-                * tissue.actual_element_mass[cohort]
-                / self.total_element_mass[cohort]
-            )
+            share = tissue.actual_element_mass[cohort] / total_element_mass
+            tissue.actual_element_mass[cohort] -= deficit * share
 
         self.element_surplus[cohort] = 0
 
@@ -680,26 +686,29 @@ class StemStoichiometry(CohortMethods, PandasExporter):
         Args:
             cohort: The cohort to reconcile surplus.
         """
-        if self.element_surplus[cohort] > self.tissue_deficit[cohort]:
+
+        if self.element_surplus[cohort] < 0:
+            raise ValueError("distribute_surplus called with non-positive surplus.")
+
+        if self.element_surplus[cohort] >= self.tissue_deficit[cohort]:
             # If there is sufficient surplus N to cover the existing deficit, the
             # amount of the deficit is subtracted from the surplus which persists until
-            # the next update. All tissue types are updated to the ideal N ratios.
+            # the next update. All tissue types are updated to the ideal ratios.
             self.element_surplus[cohort] = (
                 self.element_surplus[cohort] - self.tissue_deficit[cohort]
             )
             for tissue in self.tissues:
                 tissue.actual_element_mass[cohort] = (
-                    tissue.ideal_ratio[cohort] * tissue.carbon_mass[cohort]
+                    tissue.carbon_mass[cohort] / tissue.ideal_ratio[cohort]
                 )
         else:
-            # If there is not enough surplus N to cover the deficit, the surplus is
-            # distributed across the tissue types in proportion to the N deficit.
+            # If there is not enough surplus to cover the deficit, the surplus is
+            # distributed across the tissue types in proportion to the deficit.
             # The surplus is then set to zero.
-
-            for tissue in self.tissues:
+            total_deficit = self.tissue_deficit[cohort].copy()
+            for i, tissue in enumerate(self.tissues):
+                share = tissue.deficit[cohort] / total_deficit
                 tissue.actual_element_mass[cohort] += (
-                    self.element_surplus[cohort]
-                    * tissue.deficit[cohort]
-                    / self.tissue_deficit[cohort]
+                    share * self.element_surplus[cohort]
                 )
             self.element_surplus[cohort] = 0.0
