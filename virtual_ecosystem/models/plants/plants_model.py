@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
@@ -23,7 +24,7 @@ from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.exceptions import InitialisationError
+from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -224,15 +225,14 @@ class PlantsModel(
         model_constants: Set of constants for the plants model.
     """
 
-    # TODO - think about a shared "plant cohort" core axis that defines the cohort
-    #        initialisation  data, but the issue here is that the length of this is
-    #        variable.
-
     def __init__(
         self,
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
+        flora: Flora,
+        extra_pft_traits: ExtraTraitsPFT,
+        cohort_data: pd.DataFrame,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -242,10 +242,18 @@ class PlantsModel(
         handled in :fun:`~virtual_ecosystem.plants.plants_model._setup`.
         """
 
-        self.flora: Flora
+        # Define and populate model specific attributes
+        self.exporter: CommunityDataExporter = exporter
+        """A CommunityDataExporter instance providing configuration and methods for
+        export of community data."""
+        self.flora: Flora = flora
         """A flora containing the plant functional types used in the plants model."""
-        self.extra_pft_traits: ExtraTraitsPFT
+        self.initial_cohort_data: pd.DataFrame = cohort_data
+        """A dataframe providing the initial cohort data."""
+        self.extra_pft_traits: ExtraTraitsPFT = extra_pft_traits
         """The extra traits for each plant functional type, keyed by PFT name."""
+
+        #
         self.model_constant: PlantsConsts
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
@@ -290,10 +298,6 @@ class PlantsModel(
         """The downwelling radiation at the canopy top for the current time step."""
         self.subcanopy: Subcanopy
         """Representation of the subcanopy vegetation."""
-        # Define and populate model specific attributes
-        self.exporter: CommunityDataExporter = exporter
-        """A CommunityDataExporter instance providing configuration and methods for
-        export of community data."""
 
         # Run the base model __init__
         super().__init__(data, core_components, static, **kwargs)
@@ -320,6 +324,25 @@ class PlantsModel(
         # Generate the flora
         flora, extra_traits = get_flora_from_config(config=config)
 
+        # Load the initial cohort data
+        cohort_data_path = config["plants"].get("cohort_data_path")
+        if cohort_data_path is None:
+            msg = "Plant configuration error: cohort_data_path not provided"
+            LOGGER.error(msg)
+            raise ConfigurationError(msg)
+
+        try:
+            with open(cohort_data_path) as csv_data:
+                cohort_data = pd.read_csv(csv_data)
+        except FileNotFoundError:
+            msg = "Plant configuration error: cohort_data_path not found."
+            LOGGER.error(msg)
+            raise ConfigurationError(msg)
+        except pd.errors.ParserError as excep:
+            msg = "Plant configuration error: cannot parse cohort data " + str(excep)
+            LOGGER.error(msg)
+            raise InitialisationError(msg)
+
         # Create a CommunityDataExporter instance from config
         exporter = CommunityDataExporter.from_config(config=config)
 
@@ -328,11 +351,12 @@ class PlantsModel(
             inst = cls(
                 data=data,
                 core_components=core_components,
-                static=static,
                 flora=flora,
+                cohort_data=cohort_data,
                 extra_pft_traits=extra_traits,
                 model_constants=model_constants,
                 exporter=exporter,
+                static=static,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -346,6 +370,7 @@ class PlantsModel(
     def _setup(
         self,
         flora: Flora,
+        cohort_data: pd.DataFrame,
         extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
@@ -355,6 +380,7 @@ class PlantsModel(
         Args:
             flora: A flora containing the plant functional types used in the plants
                 model.
+            cohort_data: A data frame containing the initial cohort data.
             extra_pft_traits: Additional traits for each plant functional type, keyed by
                 PFT name.
             model_constants: Set of constants for the plants model.
@@ -391,7 +417,7 @@ class PlantsModel(
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
-            data=self.data, flora=self.flora, grid=self.grid
+            cohort_data=self.data, flora=self.flora, grid=self.grid
         )
 
         # Check the pft propagules data
