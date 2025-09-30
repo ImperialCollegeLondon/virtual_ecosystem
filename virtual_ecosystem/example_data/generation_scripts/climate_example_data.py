@@ -88,8 +88,5 @@ data.mean_annual_temperature.attrs = dict(
     units="°C", description="Mean annual temperature"
 )
 
-# Remove datetime dimension as not needed for the example
-data_out = data.drop_vars("time")
-
 # Save to netcdf
-data_out.to_netcdf("../data/example_climate_data.nc")
+data.to_netcdf("../data/example_climate_data.nc")
