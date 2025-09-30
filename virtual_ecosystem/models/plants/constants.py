@@ -9,7 +9,13 @@ from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 @dataclass(frozen=True)
 class PlantsConsts(ConstantsDataclass):
-    """Constants for the :mod:`~virtual_ecosystem.models.plants` model."""
+    """Constants for the :mod:`~virtual_ecosystem.models.plants` model.
+
+    .. TODO::
+        The subcanopy seedbank and vegetation constants have the same structure. This is
+        probably worth bringing together into a dataclass and external file,
+        particularly as and when we add shrub or liana layers, which likely mirror this.
+    """
 
     per_stem_annual_mortality_probability: float = 0.1
     """Basic annual mortality rate for plants."""
@@ -64,6 +70,31 @@ class PlantsConsts(ConstantsDataclass):
     subcanopy_sprout_yield: float = 0.5
     """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
     mass (kg kg-1)."""
+
+    subcanopy_vegetation_turnover: float = 1.0
+    """The annual fraaction of subcanopy vegetative biomass turnover (kg kg-1 m-2
+    y-1)."""
+
+    subcanopy_seedbank_turnover: float = 0.25
+    """The annual fraction of subcanopy seedbank biomass turnover (kg kg-1 m-2 y-1)."""
+
+    subcanopy_seedbank_c_n_ratio: float = 20
+    """The ideal mass ratio of nitrogen in subcanopy seedbank biomass (-)."""
+
+    subcanopy_seedbank_c_p_ratio: float = 50
+    """The ideal mass ratio of phosphorous in subcanopy seedbank biomass (-)."""
+
+    subcanopy_vegetation_c_n_ratio: float = 20
+    """The ideal mass ratio of nitrogen in subcanopy vegetation biomass (-)."""
+
+    subcanopy_vegetation_c_p_ratio: float = 50
+    """The ideal mass ratio of phosphorous in subcanopy vegetation biomass (-)."""
+
+    subcanopy_vegetation_lignin: float = 0.2
+    """The proportion of lignin in subcanopy vegetation."""
+
+    subcanopy_seedbank_lignin: float = 0.2
+    """The proportion of lignin in subcanopy seedbank."""
 
     root_exudates: float = 0.5
     """Fraction of GPP topslice allocated to root exudates."""
