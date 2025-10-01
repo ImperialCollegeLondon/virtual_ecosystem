@@ -517,6 +517,39 @@ class PlantsModel(
     def spinup(self) -> None:
         """Placeholder function to spin up the plants model."""
 
+    def reset_update_vars(self) -> None:
+        """Define variables used by the plants model during update."""
+
+        # Initialize variables that hold one value per cell
+        cell_template = xr.full_like(self.data["elevation"], 0)
+        self.data["leaf_turnover"] = cell_template.copy()
+        self.data["root_turnover"] = cell_template.copy()
+        self.data["leaf_turnover_c_n_ratio"] = cell_template.copy()
+        self.data["leaf_turnover_c_p_ratio"] = cell_template.copy()
+        self.data["root_turnover_c_n_ratio"] = cell_template.copy()
+        self.data["root_turnover_c_p_ratio"] = cell_template.copy()
+        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = cell_template.copy()
+        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = cell_template.copy()
+        self.data["root_carbohydrate_exudation"] = cell_template.copy()
+        self.data["plant_symbiote_carbon_supply"] = cell_template.copy()
+        self.data["fallen_non_propagule_c_mass"] = cell_template.copy()
+        self.data["deadwood_production"] = cell_template.copy()
+        self.data["deadwood_c_n_ratio"] = cell_template.copy()
+        self.data["deadwood_c_p_ratio"] = cell_template.copy()
+
+        # Fallen propagules and canopy RT are stored per cell and per PFT.
+        # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
+        pft_cell_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+        )
+
+        # Allocate canopy reproductive tissue mass. This is deliberately not
+        # partitioning tissue across canopy vertical layers.
+        self.data["fallen_n_propagules"] = pft_cell_template.copy()
+        self.data["canopy_n_propagules"] = pft_cell_template.copy()
+        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
+
     def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the plants model.
 
@@ -531,6 +564,8 @@ class PlantsModel(
             time_index: The index representing the current time step in the data object.
             **kwargs: Further arguments to the update method.
         """
+
+        self.reset_update_vars()
 
         # Apply mortality and recruitment to plant cohorts
         self.apply_mortality()
@@ -873,43 +908,6 @@ class PlantsModel(
         turnover values.
         """
 
-        # Initialize all turnover variables to 0 with the proper dimensions.
-        # These variables are merged across PFTs and cohorts - one pool per cell.
-        self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
-        self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
-        self.data["leaf_turnover_c_n_ratio"] = xr.full_like(self.data["elevation"], 0)
-        self.data["leaf_turnover_c_p_ratio"] = xr.full_like(self.data["elevation"], 0)
-        self.data["root_turnover_c_n_ratio"] = xr.full_like(self.data["elevation"], 0)
-        self.data["root_turnover_c_p_ratio"] = xr.full_like(self.data["elevation"], 0)
-        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = xr.full_like(
-            self.data["elevation"], 0
-        )
-        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = xr.full_like(
-            self.data["elevation"], 0
-        )
-        self.data["root_carbohydrate_exudation"] = xr.full_like(
-            self.data["elevation"], 0
-        )
-        self.data["plant_symbiote_carbon_supply"] = xr.full_like(
-            self.data["elevation"], 0
-        )
-        self.data["fallen_non_propagule_c_mass"] = xr.full_like(
-            self.data["elevation"], 0
-        )
-
-        # Fallen propagules and canopy RT are stored per cell and per PFT.
-        # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
-        pft_cell_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
-            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
-        )
-
-        # Allocate canopy reproductive tissue mass. This is deliberately not
-        # partitioning tissue across canopy vertical layers.
-        self.data["fallen_n_propagules"] = pft_cell_template.copy()
-        self.data["canopy_n_propagules"] = pft_cell_template.copy()
-        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
-
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
@@ -1066,6 +1064,7 @@ class PlantsModel(
                         .element_turnover(stem_allocation)
                     )
                 )
+
                 self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
                     root_turnover_c
                     / np.sum(
@@ -1080,8 +1079,7 @@ class PlantsModel(
                 ][cell_id] = np.sum(
                     stem_allocation.reproductive_tissue_turnover
                 ) / np.sum(
-                    stem_allocation.reproductive_tissue_turnover
-                    * stoichiometries[element]
+                    stoichiometries[element]
                     .get_tissue("ReproductiveTissue")
                     .element_turnover(stem_allocation)
                 )
@@ -1120,10 +1118,6 @@ class PlantsModel(
 
         """
 
-        self.data["deadwood_production"] = xr.full_like(self.data["elevation"], 0)
-        self.data["deadwood_c_n_ratio"] = xr.full_like(self.data["elevation"], 0)
-        self.data["deadwood_c_p_ratio"] = xr.full_like(self.data["elevation"], 0)
-
         # Loop over each grid cell
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
@@ -1147,12 +1141,14 @@ class PlantsModel(
                 self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = np.sum(
                     mortality
                     * community.stem_allometry.stem_mass
-                    * self.stoichiometries[cell_id][element]
-                    .get_tissue("WoodTissue")
-                    .Cx_ratio
+                    * (
+                        self.stoichiometries[cell_id][element]
+                        .get_tissue("WoodTissue")
+                        .Cx_ratio
+                    )
                 )
 
-                # Tissue turnover from dead treesmust be added to turnover ratios
+                # Tissue turnover from dead trees must be added to turnover ratios
                 # (Turnover C + Dead Foliage C) / (Turnover N + Dead Foliage N)
                 # Since the data objects stores CN and CP ratios, this is a bit
                 # complicated.
@@ -1403,7 +1399,6 @@ class PlantsModel(
             The input mass converted to the density units that the litter model uses [kg
             m^-2]
         """
-
         return input_mass / self.grid.cell_area
 
     def convert_to_soil_units(

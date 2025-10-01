@@ -229,6 +229,7 @@ def calculate_metabolic_proportions_of_input(
     """
 
     # Calculate split of each input biomass type
+
     leaves_metabolic_split = split_pool_into_metabolic_and_structural_litter(
         lignin_proportion=total_input["leaf_lignin"],
         carbon_nitrogen_ratio=total_input["leaf_nitrogen"],
@@ -353,13 +354,13 @@ def split_pool_into_metabolic_and_structural_litter(
         The fraction of the biomass that goes to the metabolic pool [unitless]
     """
 
-    # TODO: These are tempoaary fixes to stop the model from crashing.
-
     metabolic_fraction = max_metabolic_fraction - lignin_proportion * (
         split_sensitivity_nitrogen * carbon_nitrogen_ratio
         + split_sensitivity_phosphorus * carbon_phosphorus_ratio
     )
-    metabolic_fraction = np.where(metabolic_fraction < 0, 0.0, metabolic_fraction)
+
+    # This stops the error in ve_run:
+    # metabolic_fraction = np.where(metabolic_fraction < 0, 0.0, metabolic_fraction)
 
     if np.any(metabolic_fraction < 0.0):
         to_raise = ValueError(
@@ -367,8 +368,7 @@ def split_pool_into_metabolic_and_structural_litter(
         )
         LOGGER.error(to_raise)
         raise to_raise
-    return metabolic_fraction
-    """
+
     elif np.any(1 - metabolic_fraction < lignin_proportion):
         to_raise = ValueError(
             "Fraction of input biomass going to structural biomass is less than the "
@@ -378,7 +378,6 @@ def split_pool_into_metabolic_and_structural_litter(
         raise to_raise
     else:
         return metabolic_fraction
-    """
 
 
 def merge_input_lignin_proportions(

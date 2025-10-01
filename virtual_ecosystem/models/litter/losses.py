@@ -345,6 +345,8 @@ def calculate_nutrient_pool_loss(
     # Then calculate the amount of nutrient there initially and added due to input
     initial_nutrient = initial_pool_size / initial_carbon_nutrient_ratio
     input_nutrient = input_rate * update_interval / input_carbon_nutrient_ratio
+    initial_nutrient[np.isnan(initial_nutrient)] = 0
+    input_nutrient[np.isnan(input_nutrient)] = 0
 
     return (
         fraction_of_initial_pool_decayed * initial_nutrient
