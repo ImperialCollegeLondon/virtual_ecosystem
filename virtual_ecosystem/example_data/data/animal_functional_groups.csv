@@ -1,0 +1,16 @@
+name,taxa,diet,metabolic_type,reproductive_environment,reproductive_type,development_type,development_status,offspring_functional_group,excretion_type,migration_type,vertical_occupancy,birth_mass,adult_mass
+carnivorous_bird,bird,carnivore,endothermic,terrestrial,iteroparous,direct,adult,carnivorous_bird,uricotelic,none,ground_canopy,0.1,1.0
+herbivorous_bird,bird,herbivore,endothermic,terrestrial,iteroparous,direct,adult,herbivorous_bird,uricotelic,none,ground_canopy,0.05,0.5
+carnivorous_mammal,mammal,carnivore,endothermic,terrestrial,iteroparous,direct,adult,carnivorous_mammal,ureotelic,none,ground,4.0,40.0
+herbivorous_mammal,mammal,herbivore,endothermic,terrestrial,iteroparous,direct,adult,herbivorous_mammal,ureotelic,none,ground,1.0,10.0
+carnivorous_insect,invertebrate,carnivore,ectothermic,terrestrial,iteroparous,direct,adult,carnivorous_insect,uricotelic,none,soil_ground_canopy,0.001,0.01
+herbivorous_insect,invertebrate,herbivore,ectothermic,terrestrial,semelparous,direct,adult,herbivorous_insect,uricotelic,none,soil_ground_canopy,0.0005,0.005
+butterfly,invertebrate,herbivore,ectothermic,terrestrial,semelparous,indirect,adult,caterpillar,uricotelic,none,ground_canopy,0.0005,0.005
+caterpillar,invertebrate,herbivore,ectothermic,terrestrial,nonreproductive,indirect,larval,butterfly,uricotelic,none,canopy,0.0005,0.005
+frog,amphibian,carnivore,ectothermic,aquatic,iteroparous,direct,adult,frog,ureotelic,none,ground,0.005,0.5
+swallow,bird,carnivore,endothermic,terrestrial,iteroparous,direct,adult,swallow,uricotelic,seasonal,canopy,0.005,0.2
+earthworm,invertebrate,detritus_fungi_pom_bacteria,ectothermic,terrestrial,iteroparous,direct,adult,earthworm,uricotelic,none,soil_ground,0.0005,0.005
+dung_beetle,invertebrate,waste,ectothermic,terrestrial,iteroparous,direct,adult,dung_beetle,uricotelic,none,soil_ground,0.0003,0.003
+scavenging_mammal,mammal,carcasses,endothermic,terrestrial,iteroparous,direct,adult,scavenging_mammal,ureotelic,none,ground,2.0,20.0
+detritivorous_insect,invertebrate,detritus,ectothermic,terrestrial,iteroparous,direct,adult,detritivorous_insect,uricotelic,none,soil_ground,0.0004,0.004
+fungivorous_mammal,mammal,mushrooms,endothermic,terrestrial,iteroparous,direct,adult,fungivorous_mammal,ureotelic,none,soil_ground,1.0,10.0
