@@ -17,133 +17,6 @@
                   "PlantsConsts"
                ]
             },
-            "pft_definition": {
-               "description": "An array of plant functional types definitions",
-               "type": "array",
-               "items": {
-                  "type": "object",
-                  "properties": {
-                     "name": {
-                        "type": "string"
-                     },
-                     "a_hd": {
-                        "type": "number"
-                     },
-                     "ca_ratio": {
-                        "type": "number"
-                     },
-                     "h_max": {
-                        "type": "number"
-                     },
-                     "lai": {
-                        "type": "number"
-                     },
-                     "par_ext": {
-                        "type": "number"
-                     },
-                     "resp_f": {
-                        "type": "number"
-                     },
-                     "resp_r": {
-                        "type": "number"
-                     },
-                     "resp_rt": {
-                        "type": "number"
-                     },
-                     "resp_s": {
-                        "type": "number"
-                     },
-                     "rho_s": {
-                        "type": "number"
-                     },
-                     "sla": {
-                        "type": "number"
-                     },
-                     "tau_f": {
-                        "type": "number"
-                     },
-                     "tau_r": {
-                        "type": "number"
-                     },
-                     "tau_rt": {
-                        "type": "number"
-                     },
-                     "yld": {
-                        "type": "number"
-                     },
-                     "zeta": {
-                        "type": "number"
-                     },
-                     "f_g": {
-                        "type": "number"
-                     },
-                     "m": {
-                        "type": "number"
-                     },
-                     "n": {
-                        "type": "number"
-                     },
-                     "gpp_topslice": {
-                        "type": "number"
-                     },
-                     "p_foliage_for_reproductive_tissue": {
-                        "type": "number"
-                     },
-                     "deadwood_c_n_ratio": {
-                        "type": "number"
-                     },
-                     "deadwood_c_p_ratio": {
-                        "type": "number"
-                     },
-                     "leaf_turnover_c_n_ratio": {
-                        "type": "number"
-                     },
-                     "leaf_turnover_c_p_ratio": {
-                        "type": "number"
-                     },
-                     "plant_reproductive_tissue_turnover_c_n_ratio": {
-                        "type": "number"
-                     },
-                     "plant_reproductive_tissue_turnover_c_p_ratio": {
-                        "type": "number"
-                     },
-                     "root_turnover_c_p_ratio": {
-                        "type": "number"
-                     },
-                     "root_turnover_c_n_ratio": {
-                        "type": "number"
-                     },
-                     "foliage_c_n_ratio": {
-                        "type": "number"
-                     },
-                     "foliage_c_p_ratio": {
-                        "type": "number"
-                     }
-                  },
-                  "required": [
-                     "name",
-                     "a_hd",
-                     "ca_ratio",
-                     "h_max",
-                     "lai",
-                     "par_ext",
-                     "resp_f",
-                     "resp_r",
-                     "resp_s",
-                     "rho_s",
-                     "sla",
-                     "tau_f",
-                     "tau_r",
-                     "yld",
-                     "zeta",
-                     "f_g",
-                     "m",
-                     "n",
-                     "gpp_topslice",
-                     "p_foliage_for_reproductive_tissue"
-                  ]
-               }
-            },
             "pft_definitions_path": {
                "description": "A file path to a data file of plant functional type definitions",
                "type": "string"
@@ -208,19 +81,8 @@
             }
          },
          "default": {},
-         "oneOf": [
-            {
-               "required": [
-                  "pft_definition"
-               ]
-            },
-            {
-               "required": [
-                  "pft_definitions_path"
-               ]
-            }
-         ],
          "required": [
+            "pft_definitions_path",
             "community_data_export",
             "static"
          ]
