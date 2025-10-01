@@ -369,7 +369,6 @@ def mix_and_ventilate(
 
     # Copy the input to update with mixing
     input_variable_mixed = input_variable.copy()
-    n_layers, n_cells = input_variable_mixed.shape
 
     # Extract the layer thickness and current value for the canopy layers, excluding the
     # surface layer and above canopy values

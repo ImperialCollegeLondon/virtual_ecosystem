@@ -464,7 +464,7 @@ class TestAnimalCohort:
         # Handle zero-death cases separately
         if number_of_deaths == 0:
             with pytest.raises(
-                ValueError, match="Number of deaths must be a positive integer."
+                ValueError, match=r"Number of deaths must be a positive integer."
             ):
                 herbivore_cohort_instance.die_individual(number_of_deaths, [])
             return

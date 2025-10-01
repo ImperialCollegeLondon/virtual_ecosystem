@@ -86,12 +86,12 @@ def animal_data_for_model_instance(fixture_core_components):
 
 
 @pytest.fixture
-def animal_fixture_config(microbial_groups_cfg):
+def animal_fixture_config(fixture_root_data_dir, microbial_groups_cfg):
     """Simple configuration fixture for use in tests."""
 
     from virtual_ecosystem.core.config import Config
 
-    cfg_string = """
+    cfg_string = f"""
         [core]
         [core.grid]
         cell_nx = 3
@@ -113,53 +113,8 @@ def animal_fixture_config(microbial_groups_cfg):
         surface_layer_height = 0.1
 
         [plants]
-        [[plants.pft_definition]]
-        a_hd = 116.0
-        ca_ratio = 390.43
-        f_g = 0.02
-        h_max = 25.33
-        lai = 1.8
-        m = 2
-        n = 5
-        name = 'shrub'
-        par_ext = 0.5
-        resp_f = 0.1
-        resp_r = 0.913
-        resp_s = 0.044
-        rho_s = 200.0
-        sla = 14.0
-        tau_f = 4.0
-        tau_r = 1.04
-        yld = 0.6
-        zeta = 0.17
-        resp_rt = 0.05
-        tau_rt = 1
-        gpp_topslice = 0.1
-        p_foliage_for_reproductive_tissue = 0.05
-
-        [[plants.pft_definition]]
-        a_hd = 116.0
-        ca_ratio = 390.43
-        f_g = 0.02
-        h_max = 30.33
-        lai = 1.8
-        m = 2
-        n = 5
-        name = 'broadleaf'
-        par_ext = 0.5
-        resp_f = 0.1
-        resp_r = 0.913
-        resp_s = 0.044
-        rho_s = 200.0
-        sla = 14.0
-        tau_f = 4.0
-        tau_r = 1.04
-        yld = 0.6
-        zeta = 0.17
-        resp_rt = 0.05
-        tau_rt = 1
-        gpp_topslice = 0.1
-        p_foliage_for_reproductive_tissue = 0.05
+        # Deliberately using single quote to provide TOML literal string for path
+        pft_definitions_path = '{(fixture_root_data_dir / "plant_pfts.csv")!s}'
         
         [[animal.functional_groups]]
         name = "carnivorous_bird"

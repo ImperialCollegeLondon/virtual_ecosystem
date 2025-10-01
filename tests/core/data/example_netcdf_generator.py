@@ -23,8 +23,6 @@ def generate_files() -> None:
     x = x_off + x_idx * res + res / 2
     y = y_off + y_idx * res + res / 2
 
-    xx, yy = np.meshgrid(x, y)
-
     # Cell IDs
     cell_id = np.arange(x_n * y_n)
 
