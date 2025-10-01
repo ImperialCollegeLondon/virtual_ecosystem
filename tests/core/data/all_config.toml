@@ -19,6 +19,7 @@ save_final_state = true
 save_initial_state = true
 
 [plants]
+cohort_data_path = "cohort_data.csv"
 pft_definitions_path = "pfts.csv"
 
 [[animal.functional_groups]]

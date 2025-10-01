@@ -266,7 +266,7 @@ def fixture_config(fixture_root_data_dir, microbial_groups_cfg):
         [plants]
         # Deliberately using single quote to provide TOML literal string for path
         pft_definitions_path = '{(fixture_root_data_dir / "plant_pfts.csv")!s}'
-        cohort_data_path = '/todo'
+        cohort_data_path = '{(fixture_root_data_dir / "plant_cohort_data.csv")!s}'
 
         [[animal.functional_groups]]
         name = "carnivorous_bird"

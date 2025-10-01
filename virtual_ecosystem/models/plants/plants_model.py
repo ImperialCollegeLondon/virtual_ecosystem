@@ -49,10 +49,6 @@ class PlantsModel(
     model_update_bounds=("1 day", "1 year"),
     vars_required_for_init=(
         "downward_shortwave_radiation",
-        "plant_cohorts_cell_id",
-        "plant_cohorts_dbh",
-        "plant_cohorts_n",
-        "plant_cohorts_pft",
         "plant_pft_propagules",
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
@@ -230,9 +226,9 @@ class PlantsModel(
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
-        flora: Flora,
-        extra_pft_traits: ExtraTraitsPFT,
-        cohort_data: pd.DataFrame,
+        # flora: Flora,
+        # extra_pft_traits: ExtraTraitsPFT,
+        # cohort_data: pd.DataFrame,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -246,11 +242,11 @@ class PlantsModel(
         self.exporter: CommunityDataExporter = exporter
         """A CommunityDataExporter instance providing configuration and methods for
         export of community data."""
-        self.flora: Flora = flora
+        self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
-        self.initial_cohort_data: pd.DataFrame = cohort_data
+        self.initial_cohort_data: pd.DataFrame
         """A dataframe providing the initial cohort data."""
-        self.extra_pft_traits: ExtraTraitsPFT = extra_pft_traits
+        self.extra_pft_traits: ExtraTraitsPFT
         """The extra traits for each plant functional type, keyed by PFT name."""
 
         #
@@ -417,7 +413,7 @@ class PlantsModel(
 
         # Now build the communities with the updated rates
         self.communities = PlantCommunities(
-            cohort_data=self.data, flora=self.flora, grid=self.grid
+            cohort_data=cohort_data, flora=self.flora, grid=self.grid
         )
 
         # Check the pft propagules data
