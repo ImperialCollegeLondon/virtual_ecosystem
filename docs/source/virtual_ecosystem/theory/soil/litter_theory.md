@@ -120,6 +120,31 @@ the responsiveness of the split to changes in the product of lignin proportion a
 carbon:nitrogen ratio, and $s_P$ parametrises the responsiveness of the split to changes
 in the product of lignin proportion and carbon:phosphorus ratio.
 
+### Split of nutrient inputs between pools
+
+Now that the split of input sources between pools have be determined, we have to
+determine how the various nutrients contained in the input biomass are split between
+pools. Lignin is straightforward, as by definition only woody and structural litter pools
+contain lignin. So, all lignin from input biomass is added to the relevant structural
+(or woody) pool and none of it is added to the metabolic pools. The situation is more
+complex for nitrogen and phosphorus, as we do not define litter pools in terms of their
+nitrogen and phosphorus contents. Furthermore, the division between metabolic and
+structural litter is a modelling convenience rather than a measurable split, so pool
+elemental proportions cannot be determined based on empirical data. To address this, we
+follow {cite:t}`kirschbaum_modelling_2002` in making the assumption that there's a fixed
+ratio between the carbon:nutrient ratios of the paired metabolic and structural litter
+pools, e.g. that the carbon:nitrogen ratio of the above ground structural pool will be
+$X$ times higher than the above ground structural pool. In order to maintain these fixed
+ratios, inputs to the pools must also follow them. The ratios are model parameters and
+are set by {attr}`structural_to_metabolic_n_ratio
+<virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_n_ratio>`
+and {attr}`structural_to_metabolic_p_ratio
+<virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_p_ratio>`.
+It is important to note, that though the choice of these ratios will only affect the
+nitrogen and phosphorus mineralisation rates and not the broader litter decay dynamics.
+This is because the nitrogen and phosphorus concentrations do not directly affect pool
+decay rates.
+
 ## Litter decay dynamics
 
 The decay of all litter pools are assumed to follow linear kinetics, with the rate of
