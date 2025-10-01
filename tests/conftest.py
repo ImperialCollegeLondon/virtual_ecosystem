@@ -235,7 +235,7 @@ def microbial_groups_cfg():
     return MICROBE_CONFIG_TOML
 
 
-def generature_config(
+def generate_config(
     nx: int = 2,
     ny: int = 2,
     additional_toml: str = MICROBE_CONFIG_TOML,
@@ -516,13 +516,13 @@ def generature_config(
 @pytest.fixture
 def fixture_config():
     """Default configuration object with 2x2 grid."""
-    return generature_config()
+    return generate_config()
 
 
 @pytest.fixture
 def animal_fixture_config():
     """Default configuration object with 3x3 grid."""
-    return generature_config(nx=3, ny=3)
+    return generate_config(nx=3, ny=3)
 
 
 @pytest.fixture
