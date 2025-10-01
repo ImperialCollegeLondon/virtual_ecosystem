@@ -1,0 +1,2 @@
+# Allow a truncated ve_run log file in this directory
+!truncated_logfile.log
