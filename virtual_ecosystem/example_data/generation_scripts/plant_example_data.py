@@ -7,6 +7,7 @@ functional types.
 """
 
 import numpy as np
+from pandas import DataFrame
 from xarray import DataArray, Dataset
 
 from virtual_ecosystem.example_data.generation_scripts.common import (
@@ -17,26 +18,25 @@ from virtual_ecosystem.example_data.generation_scripts.common import (
     time_index,
 )
 
-data = Dataset()
-
 # Plant cohort dimensions
 n_cohorts = n_cells * 2
 cohort_index = np.arange(n_cohorts)
 
+# Generate the initial cohort data as a pandas dataframe
 
-# Add cohort configurations
-data["plant_cohorts_n"] = DataArray(
-    np.array([5, 10] * n_cells), coords={"cohort_index": cohort_index}
+cohort_data = DataFrame(
+    dict(
+        plant_cohorts_n=np.array([5, 10] * n_cells),
+        plant_cohorts_pft=np.array(["broadleaf", "shrub"] * n_cells),
+        plant_cohorts_cell_id=np.repeat(cell_id, 2),
+        plant_cohorts_dbh=np.array([0.1, 0.05] * n_cells),
+    )
 )
-data["plant_cohorts_pft"] = DataArray(
-    np.array(["broadleaf", "shrub"] * n_cells), coords={"cohort_index": cohort_index}
-)
-data["plant_cohorts_cell_id"] = DataArray(
-    np.repeat(cell_id, 2), coords={"cohort_index": cohort_index}
-)
-data["plant_cohorts_dbh"] = DataArray(
-    np.array([0.1, 0.05] * n_cells), coords={"cohort_index": cohort_index}
-)
+
+cohort_data.to_csv("../data/example_plant_cohorts.csv", index=False)
+
+# Populate the required array data variables into an xarray dataset
+data = Dataset()
 
 # PFT propagules
 data["plant_pft_propagules"] = DataArray(
@@ -69,19 +69,3 @@ data["downward_shortwave_radiation"] = DataArray(
 data["time"] = DataArray(time, coords={"time_index": time_index})
 
 data.to_netcdf("../data/example_plant_data.nc")
-
-# Write cohort data to CSV file as an alternative form of this data source
-df = data.drop_vars(
-    [
-        "plant_pft_propagules",
-        "downward_shortwave_radiation",
-        "time",
-        "time_index",
-        "cell_id",
-        "pft",
-        "subcanopy_vegetation_biomass",
-        "subcanopy_seedbank_biomass",
-    ]
-).to_pandas()
-
-df.to_csv("../data/example_plant_cohorts.csv", index=False)
