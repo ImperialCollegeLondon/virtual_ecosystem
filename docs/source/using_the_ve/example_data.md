@@ -252,6 +252,12 @@ The `example_plant_cohorts.csv` file is a CSV file that defines the initial plan
 communities found in each cell. It provides a set of rows identifying size structured
 cohorts of PFTs occurring in each cell.
 
+### Animal functional group definitions
+
+The `animal_functional_groups.csv` file is a CSV file that defines the animal functional
+groups to be used within the simulation. Each row defines a uniquely named functional
+group along with key traits such as the adult body mass and diet.
+
 <!--
 
 Original text and partial tables, to be moved into NetCDF attributes
