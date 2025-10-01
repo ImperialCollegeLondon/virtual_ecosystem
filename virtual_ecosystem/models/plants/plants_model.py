@@ -175,16 +175,19 @@ class PlantsModel(
 ):
     """Representation of plants in the Virtual Ecosystem.
 
-    The plants model is initialised from data describing inventories for each grid cell
-    in the simulation of size-structured cohorts. Each cohort belongs to a plant
-    functional type, from a set of functional types defined in the model configuration.
-    The inventory data is provided within the data configuration of the simulation and
-    requires the following variables:
+    The plants model is initialised using data from three sources:
 
-    * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
-    * ``plant_cohorts_pft``: The plant functional type of the cohort
-    * ``plant_cohorts_n``: The number of individuals in the cohort
-    * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in metres.
+    1. The ``flora`` object contains a set of plant functional types, associating unique
+       PFT names with sets of required traits for each PFT.
+    2. A data frame defining the initial cohort inventories for each grid cell. Each row
+       in the data frame defines a cohort in one of the grid cells and the fields set:
+
+        * ``plant_cohorts_pft``: The PFT of the cohort, matching an entry in the
+          ``flora``
+        * ``plant_cohorts_cell_id``: The grid cell id containing the cohort
+        * ``plant_cohorts_n``: The number of individuals in the cohort
+        * ``plant_cohorts_dbh``: The diameter at breast height of the individuals in
+          metres.
 
     These data are used to setup the plant communities within each grid cell, using the
     :class:`~virtual_ecosystem.models.plants.communities.PlantCommunities` class to
