@@ -37,7 +37,7 @@ in:
   [big picture workflow](./virtual_ecosystem/implementation/implementation.md) of the
   implementation of the Virtual Ecosystem.
 - Getting started by [installing the Virtual
-  Ecosystem](./using_the_ve/getting_started.md) and running a simple example.
+  Ecosystem](./using_the_ve/overview.md) and running a simple example.
 - Moving on to [configuring your own simulation](./using_the_ve/configuration/config.md)
   and [providing new data](./using_the_ve/data/data.md).
 - Contributing to the [development](./development/contributing.md) of the Virtual
