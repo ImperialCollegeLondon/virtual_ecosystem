@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-import pandas as pd
+import pandas
 import xarray as xr
 from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
@@ -225,9 +225,6 @@ class PlantsModel(
         data: Data,
         core_components: CoreComponents,
         exporter: CommunityDataExporter,
-        # flora: Flora,
-        # extra_pft_traits: ExtraTraitsPFT,
-        # cohort_data: pd.DataFrame,
         static: bool = False,
         **kwargs: Any,
     ):
@@ -243,7 +240,7 @@ class PlantsModel(
         export of community data."""
         self.flora: Flora
         """A flora containing the plant functional types used in the plants model."""
-        self.initial_cohort_data: pd.DataFrame
+        self.initial_cohort_data: pandas.DataFrame
         """A dataframe providing the initial cohort data."""
         self.extra_pft_traits: ExtraTraitsPFT
         """The extra traits for each plant functional type, keyed by PFT name."""
@@ -328,12 +325,12 @@ class PlantsModel(
 
         try:
             with open(cohort_data_path) as csv_data:
-                cohort_data = pd.read_csv(csv_data)
+                cohort_data = pandas.read_csv(csv_data)
         except FileNotFoundError:
             msg = "Plant configuration error: cohort_data_path not found."
             LOGGER.error(msg)
             raise ConfigurationError(msg)
-        except pd.errors.ParserError as excep:
+        except pandas.errors.ParserError as excep:
             msg = "Plant configuration error: cannot parse cohort data " + str(excep)
             LOGGER.error(msg)
             raise InitialisationError(msg)
@@ -365,7 +362,7 @@ class PlantsModel(
     def _setup(
         self,
         flora: Flora,
-        cohort_data: pd.DataFrame,
+        cohort_data: pandas.DataFrame,
         extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConsts = PlantsConsts(),
         **kwargs: Any,
