@@ -19,73 +19,7 @@ save_final_state = true
 save_initial_state = true
 
 [plants]
-[[plants.pft_definition]]
-a_hd = 116.0
-ca_ratio = 390.43
-f_g = 0.02
-gpp_topslice = 0.1
-h_max = 25.33
-lai = 1.8
-m = 2
-n = 5
-name = 'shrub'
-p_foliage_for_reproductive_tissue = 0.05
-par_ext = 0.5
-resp_f = 0.1
-resp_r = 0.913
-resp_rt = 0.05
-resp_s = 0.044
-rho_s = 200.0
-sla = 14.0
-tau_f = 4.0
-tau_r = 1.04
-tau_rt = 1
-yld = 0.6
-zeta = 0.17
-deadwood_c_n_ratio = 60.7
-deadwood_c_p_ratio = 856.5
-leaf_turnover_c_n_ratio = 25.5
-leaf_turnover_c_p_ratio = 415.0
-plant_reproductive_tissue_turnover_c_n_ratio = 12.5
-plant_reproductive_tissue_turnover_c_p_ratio = 125.5
-root_turnover_c_p_ratio = 656.7
-root_turnover_c_n_ratio = 45.6
-foliage_c_n_ratio = 15
-foliage_c_p_ratio = 300
-
-[[plants.pft_definition]]
-a_hd = 116.0
-ca_ratio = 390.43
-f_g = 0.02
-gpp_topslice = 0.1
-h_max = 15.33
-lai = 1.8
-m = 2
-n = 5
-name = 'broadleaf'
-p_foliage_for_reproductive_tissue = 0.05
-par_ext = 0.5
-resp_f = 0.1
-resp_r = 0.913
-resp_rt = 0.05
-resp_s = 0.044
-rho_s = 200.0
-sla = 14.0
-tau_f = 4.0
-tau_r = 1.04
-tau_rt = 1
-yld = 0.6
-zeta = 0.17
-deadwood_c_n_ratio = 60.7
-deadwood_c_p_ratio = 856.5
-leaf_turnover_c_n_ratio = 25.5
-leaf_turnover_c_p_ratio = 415.0
-plant_reproductive_tissue_turnover_c_n_ratio = 12.5
-plant_reproductive_tissue_turnover_c_p_ratio = 125.5
-root_turnover_c_p_ratio = 656.7
-root_turnover_c_n_ratio = 45.6
-foliage_c_n_ratio = 15
-foliage_c_p_ratio = 300
+pft_definitions_path = "pfts.csv"
 
 [[animal.functional_groups]]
 adult_mass = 1.0
