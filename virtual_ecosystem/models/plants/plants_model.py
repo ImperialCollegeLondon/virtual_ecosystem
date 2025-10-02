@@ -1049,9 +1049,12 @@ class PlantsModel(
                 )
 
                 cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
-                element_per_stem = (
-                    total_supply * cohort_fractions
-                ) / cohorts.n_individuals
+                element_per_stem = np.divide(
+                    total_supply * cohort_fractions,
+                    cohorts.n_individuals,
+                    out=np.zeros_like(cohort_fractions),
+                    where=cohorts.n_individuals != 0,
+                )
                 stoichiometries[element].element_surplus += element_per_stem
 
                 # Pass the turnover CN and CP ratios to the data object
@@ -1133,20 +1136,27 @@ class PlantsModel(
             cohorts.n_individuals = cohorts.n_individuals - mortality
 
             # Update deadwood production
+            deadwood_c_mass = np.sum(mortality * community.stem_allometry.stem_mass)
             self.data["deadwood_production"][cell_id] = self.convert_to_litter_units(
-                input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
+                input_mass=deadwood_c_mass,
             )
             for element in ["N", "P"]:
                 # Deadwood CN and CP ratios match the WoodTissue ratios
-                self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = np.sum(
-                    mortality
-                    * community.stem_allometry.stem_mass
-                    * (
-                        self.stoichiometries[cell_id][element]
-                        .get_tissue("WoodTissue")
-                        .Cx_ratio
+                if deadwood_c_mass:
+                    self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = (
+                        deadwood_c_mass
+                        / np.sum(
+                            (mortality * community.stem_allometry.stem_mass)
+                            * (
+                                1
+                                / self.stoichiometries[cell_id][element]
+                                .get_tissue("WoodTissue")
+                                .Cx_ratio
+                            )
+                        )
                     )
-                )
+                else:
+                    self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = np.inf
 
                 # Tissue turnover from dead trees must be added to turnover ratios
                 # (Turnover C + Dead Foliage C) / (Turnover N + Dead Foliage N)
