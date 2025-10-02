@@ -35,6 +35,7 @@ from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -55,6 +56,7 @@ from virtual_ecosystem.models.animal.decay import (
 from virtual_ecosystem.models.animal.functional_group import (
     FunctionalGroup,
     get_functional_group_by_name,
+    import_functional_groups,
 )
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
@@ -358,10 +360,20 @@ class AnimalModel(
         )
 
         # Load functional groups
-        functional_groups = [
-            FunctionalGroup(**k, constants=model_constants)
-            for k in config["animal"]["functional_groups"]
-        ]
+        functional_groups_path = config["animal"].get(
+            "functional_group_definitions_path", None
+        )
+        if functional_groups_path is None:
+            msg = (
+                "Animal model configuration does not provide the "
+                "'functional_group_definitions_path' setting"
+            )
+            LOGGER.error(msg)
+            raise ConfigurationError(msg)
+
+        functional_groups = import_functional_groups(
+            fg_csv_file=functional_groups_path, constants=model_constants
+        )
 
         # Find microbial stoichiometries based on the config
         microbial_c_n_p_ratios = find_microbial_stoichiometries(config=config)
@@ -396,7 +408,7 @@ class AnimalModel(
         Args:
             functional_groups: The list of animal functional groups present in the
                 simulation.
-            microbial_c_n_p_ratios: Biomass stochiometry of each microbial functional
+            microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
                 group.
             **kwargs: Further arguments to the setup method.
         """

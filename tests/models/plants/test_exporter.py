@@ -326,7 +326,7 @@ def test_CommunityDataExporter_dump_cohort_data(
     )
 
     # First dump in write mode with no allocations: expected behaviour in setup
-    communities, canopies, stem_allocations = fixture_exporter_components
+    communities, canopies, _stem_allocations = fixture_exporter_components
     exporter._dump_cohort_data(
         communities=communities,
         canopies=canopies,
@@ -466,16 +466,24 @@ class TestExporterDump:
     """
 
     @staticmethod
-    def calculate_expected_n(communities, canopies):
-        """Calculate expected numbers of rows in the three data files."""
+    def increment_expected_n(communities, canopies, current={}) -> dict[str, int]:
+        """Increment expected numbers of rows in the three data files."""
         cht_by_cell = np.array([c.n_cohorts for c in communities.values()])
         lyrs_by_cell = np.array([len(cpy.heights) for cpy in canopies.values()])
 
-        return dict(
-            cohorts=cht_by_cell.sum(),
-            community_canopy=lyrs_by_cell.sum(),
-            stem_canopy=(cht_by_cell * lyrs_by_cell).sum(),
-        )
+        if current:
+            return dict(
+                cohorts=current["cohorts"] + cht_by_cell.sum(),
+                community_canopy=current["community_canopy"] + lyrs_by_cell.sum(),
+                stem_canopy=current["stem_canopy"] + (cht_by_cell * lyrs_by_cell).sum(),
+            )
+
+        else:
+            return dict(
+                cohorts=cht_by_cell.sum(),
+                community_canopy=lyrs_by_cell.sum(),
+                stem_canopy=(cht_by_cell * lyrs_by_cell).sum(),
+            )
 
     def check_output(self, path, exporter, required, expected_n):
         """Shared validation function."""
@@ -528,7 +536,7 @@ class TestExporterDump:
             assert exporter._output_mode == "a"
             assert not exporter._write_header
 
-        expected_n = self.calculate_expected_n(communities, canopies)
+        expected_n = self.increment_expected_n(communities, canopies)
         self.check_output(tmp_path, exporter, required, expected_n)
 
         # Second dump to check mode switching from write to append and provided stem
@@ -540,10 +548,9 @@ class TestExporterDump:
             time=np.datetime64("2001-01-01"),
         )
 
-        # Check the files are ok and have doubled the number of rows
-        self.check_output(
-            tmp_path, exporter, required, {k: v * 2 for k, v in expected_n.items()}
-        )
+        # Check the files are ok and have increased their number of row
+        expected_n = self.increment_expected_n(communities, canopies, expected_n)
+        self.check_output(tmp_path, exporter, required, expected_n)
 
     def test_CommunityDataExporter_in_model(
         self,
@@ -585,16 +592,18 @@ class TestExporterDump:
             assert not exporter._write_header
 
         # Simple checks - files exists, can be read, have the right number of rows.
-        expected_n = self.calculate_expected_n(model.communities, model.canopies)
+        expected_n = self.increment_expected_n(model.communities, model.canopies)
         self.check_output(tmp_path, exporter, required, expected_n)
 
         # Update the model to trigger a second dump
         model.update(time_index=0)
 
-        # Check the files are ok and have doubled the number of rows
-        self.check_output(
-            tmp_path, exporter, required, {k: v * 2 for k, v in expected_n.items()}
+        # Recalculate the expected number of cohorts - recruitment and mortality affect
+        # the exporter within the model and then recheck the files
+        expected_n = self.increment_expected_n(
+            model.communities, model.canopies, expected_n
         )
+        self.check_output(tmp_path, exporter, required, expected_n)
 
     def test_CommunityDataExporter_through_config(
         self,
@@ -630,7 +639,7 @@ class TestExporterDump:
         assert exporter._write_header
 
         # First dump in write mode with no allocations: expected behaviour in setup
-        communities, canopies, stem_allocations = fixture_exporter_components
+        communities, canopies, _stem_allocations = fixture_exporter_components
         exporter.dump(
             communities=communities,
             canopies=canopies,

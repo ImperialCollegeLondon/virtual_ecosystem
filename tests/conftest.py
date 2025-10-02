@@ -1,6 +1,7 @@
 """Collection of fixtures to assist the testing scripts."""
 
 from logging import DEBUG
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -81,160 +82,187 @@ def reset_module_registry():
 
 # Shared fixtures
 
+FIXTURE_ROOT_DATA_DIR = Path(__file__).parent / "data"
+"""Provides the absolute path of the root data directory.
+
+Ideally we'd use something like pytest-datadir here, but it doesn't yet support
+nested directories: https://github.com/gabrielcnr/pytest-datadir/issues/28
+"""
+
+
+MICROBE_CONFIG_TOML = """
+[[soil.microbial_group_definition]]
+name = "bacteria"
+taxonomic_group = "bacteria"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000
+max_uptake_rate_ammonium = 5e-3
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 5e-4
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000
+reference_temperature = 12.0
+c_n_ratio = 5.2
+c_p_ratio = 16
+enzyme_production.pom = 0.005
+enzyme_production.maom = 0.005
+reproductive_allocation = 0.0
+
+[[soil.microbial_group_definition]]
+name = "saprotrophic_fungi"
+taxonomic_group = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000
+max_uptake_rate_ammonium = 5e-3
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 5e-4
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000
+reference_temperature = 12.0
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+enzyme_production.pom = 0.005
+enzyme_production.maom = 0.005
+reproductive_allocation = 0.1
+
+[[soil.microbial_group_definition]]
+name = "arbuscular_mycorrhiza"
+taxonomic_group = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000
+max_uptake_rate_ammonium = 5e-3
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 5e-4
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000
+reference_temperature = 12.0
+c_n_ratio = 18.0
+c_p_ratio = 120.0
+enzyme_production.pom = 0.0
+enzyme_production.maom = 0.0
+reproductive_allocation = 0.1
+
+[[soil.microbial_group_definition]]
+name = "ectomycorrhiza"
+taxonomic_group = "fungi"
+max_uptake_rate_labile_C = 0.04
+activation_energy_uptake_rate = 47000
+half_sat_labile_C_uptake = 0.364
+activation_energy_uptake_saturation = 30000
+max_uptake_rate_ammonium = 5e-3
+half_sat_ammonium_uptake = 0.02275
+max_uptake_rate_nitrate = 5e-4
+half_sat_nitrate_uptake = 0.02275
+max_uptake_rate_labile_p = 0.0025
+half_sat_labile_p_uptake = 0.02275
+turnover_rate = 0.005
+activation_energy_turnover = 20000
+reference_temperature = 12.0
+c_n_ratio = 18.0
+c_p_ratio = 120.0
+enzyme_production.pom = 0.02
+enzyme_production.maom = 0.02
+reproductive_allocation = 0.1
+
+[[soil.enzyme_class_definition]]
+source = "bacteria"
+substrate = "pom"
+maximum_rate = 60.0
+half_saturation_constant = 70.0
+activation_energy_rate = 37000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 5.2
+c_p_ratio = 16
+
+[[soil.enzyme_class_definition]]
+source = "bacteria"
+substrate = "maom"
+maximum_rate = 24.0
+half_saturation_constant = 350.0
+activation_energy_rate = 47000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 5.2
+c_p_ratio = 16
+
+[[soil.enzyme_class_definition]]
+source = "fungi"
+substrate = "pom"
+maximum_rate = 120.0
+half_saturation_constant = 35.0
+activation_energy_rate = 37000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+
+[[soil.enzyme_class_definition]]
+source = "fungi"
+substrate = "maom"
+maximum_rate = 48.0
+half_saturation_constant = 175.0
+activation_energy_rate = 47000
+activation_energy_saturation = 30000
+reference_temperature = 12.0
+turnover_rate = 2.4e-2
+c_n_ratio = 6.5
+c_p_ratio = 40.0
+"""
+
 
 @pytest.fixture
 def microbial_groups_cfg():
     """Configuration string containing full set of required microbial groups."""
-    return """
-        [[soil.microbial_group_definition]]
-        name = "bacteria"
-        taxonomic_group = "bacteria"
-        max_uptake_rate_labile_C = 0.04
-        activation_energy_uptake_rate = 47000
-        half_sat_labile_C_uptake = 0.364
-        activation_energy_uptake_saturation = 30000
-        max_uptake_rate_ammonium = 5e-3
-        half_sat_ammonium_uptake = 0.02275
-        max_uptake_rate_nitrate = 5e-4
-        half_sat_nitrate_uptake = 0.02275
-        max_uptake_rate_labile_p = 0.0025
-        half_sat_labile_p_uptake = 0.02275
-        turnover_rate = 0.005
-        activation_energy_turnover = 20000
-        reference_temperature = 12.0
-        c_n_ratio = 5.2
-        c_p_ratio = 16
-        enzyme_production.pom = 0.005
-        enzyme_production.maom = 0.005
-        reproductive_allocation = 0.0
-
-        [[soil.microbial_group_definition]]
-        name = "saprotrophic_fungi"
-        taxonomic_group = "fungi"
-        max_uptake_rate_labile_C = 0.04
-        activation_energy_uptake_rate = 47000
-        half_sat_labile_C_uptake = 0.364
-        activation_energy_uptake_saturation = 30000
-        max_uptake_rate_ammonium = 5e-3
-        half_sat_ammonium_uptake = 0.02275
-        max_uptake_rate_nitrate = 5e-4
-        half_sat_nitrate_uptake = 0.02275
-        max_uptake_rate_labile_p = 0.0025
-        half_sat_labile_p_uptake = 0.02275
-        turnover_rate = 0.005
-        activation_energy_turnover = 20000
-        reference_temperature = 12.0
-        c_n_ratio = 6.5
-        c_p_ratio = 40.0
-        enzyme_production.pom = 0.005
-        enzyme_production.maom = 0.005
-        reproductive_allocation = 0.1
-
-        [[soil.microbial_group_definition]]
-        name = "arbuscular_mycorrhiza"
-        taxonomic_group = "fungi"
-        max_uptake_rate_labile_C = 0.04
-        activation_energy_uptake_rate = 47000
-        half_sat_labile_C_uptake = 0.364
-        activation_energy_uptake_saturation = 30000
-        max_uptake_rate_ammonium = 5e-3
-        half_sat_ammonium_uptake = 0.02275
-        max_uptake_rate_nitrate = 5e-4
-        half_sat_nitrate_uptake = 0.02275
-        max_uptake_rate_labile_p = 0.0025
-        half_sat_labile_p_uptake = 0.02275
-        turnover_rate = 0.005
-        activation_energy_turnover = 20000
-        reference_temperature = 12.0
-        c_n_ratio = 18.0
-        c_p_ratio = 120.0
-        enzyme_production.pom = 0.0
-        enzyme_production.maom = 0.0
-        reproductive_allocation = 0.1
-
-        [[soil.microbial_group_definition]]
-        name = "ectomycorrhiza"
-        taxonomic_group = "fungi"
-        max_uptake_rate_labile_C = 0.04
-        activation_energy_uptake_rate = 47000
-        half_sat_labile_C_uptake = 0.364
-        activation_energy_uptake_saturation = 30000
-        max_uptake_rate_ammonium = 5e-3
-        half_sat_ammonium_uptake = 0.02275
-        max_uptake_rate_nitrate = 5e-4
-        half_sat_nitrate_uptake = 0.02275
-        max_uptake_rate_labile_p = 0.0025
-        half_sat_labile_p_uptake = 0.02275
-        turnover_rate = 0.005
-        activation_energy_turnover = 20000
-        reference_temperature = 12.0
-        c_n_ratio = 18.0
-        c_p_ratio = 120.0
-        enzyme_production.pom = 0.02
-        enzyme_production.maom = 0.02
-        reproductive_allocation = 0.1
-
-        [[soil.enzyme_class_definition]]
-        source = "bacteria"
-        substrate = "pom"
-        maximum_rate = 60.0
-        half_saturation_constant = 70.0
-        activation_energy_rate = 37000
-        activation_energy_saturation = 30000
-        reference_temperature = 12.0
-        turnover_rate = 2.4e-2
-        c_n_ratio = 5.2
-        c_p_ratio = 16
-
-        [[soil.enzyme_class_definition]]
-        source = "bacteria"
-        substrate = "maom"
-        maximum_rate = 24.0
-        half_saturation_constant = 350.0
-        activation_energy_rate = 47000
-        activation_energy_saturation = 30000
-        reference_temperature = 12.0
-        turnover_rate = 2.4e-2
-        c_n_ratio = 5.2
-        c_p_ratio = 16
-
-        [[soil.enzyme_class_definition]]
-        source = "fungi"
-        substrate = "pom"
-        maximum_rate = 120.0
-        half_saturation_constant = 35.0
-        activation_energy_rate = 37000
-        activation_energy_saturation = 30000
-        reference_temperature = 12.0
-        turnover_rate = 2.4e-2
-        c_n_ratio = 6.5
-        c_p_ratio = 40.0
-
-        [[soil.enzyme_class_definition]]
-        source = "fungi"
-        substrate = "maom"
-        maximum_rate = 48.0
-        half_saturation_constant = 175.0
-        activation_energy_rate = 47000
-        activation_energy_saturation = 30000
-        reference_temperature = 12.0
-        turnover_rate = 2.4e-2
-        c_n_ratio = 6.5
-        c_p_ratio = 40.0
-        """
+    return MICROBE_CONFIG_TOML
 
 
-@pytest.fixture
-def fixture_config(microbial_groups_cfg):
-    """Simple configuration fixture for use in tests."""
+def generate_config(
+    nx: int = 2,
+    ny: int = 2,
+    additional_toml: str = MICROBE_CONFIG_TOML,
+    fixture_root_data_dir: Path = FIXTURE_ROOT_DATA_DIR,
+):
+    """Configuration generator.
+
+    The different model testing uses configurations on different grids - most tests stay
+    on a 2x2 grid, but animal testing needs more cells and so uses 3x3. This function
+    centralises the code to generate the config from the shared elements and so
+    coordinates the contents of parallel configuration fixtures that can use different
+    grid sizes.
+
+    Args:
+        nx: Number of cells in x axis
+        ny: Number of cells in y axis
+        additional_toml: Any additional TOML to append to the core string
+        fixture_root_data_dir: The path of the root data directory
+    """
 
     from virtual_ecosystem.core.config import Config
 
-    cfg_string = """
+    cfg_string = f"""
         [core]
         [core.grid]
-        cell_nx = 2
-        cell_ny = 2
+        cell_nx = {nx}
+        cell_ny = {ny}
         [core.timing]
         start_date = "2020-01-01"
         update_interval = "2 weeks"
@@ -252,302 +280,29 @@ def fixture_config(microbial_groups_cfg):
         surface_layer_height = 0.1
 
         [plants]
-        [[plants.pft_definition]]
-        a_hd = 116.0
-        ca_ratio = 390.43
-        f_g = 0.02
-        h_max = 25.33
-        lai = 1.8
-        m = 2
-        n = 5
-        name = 'shrub'
-        par_ext = 0.5
-        resp_f = 0.1
-        resp_r = 0.913
-        resp_s = 0.044
-        resp_rt = 0.05
-        rho_s = 200.0
-        sla = 14.0
-        tau_f = 4.0
-        tau_r = 1.04
-        tau_rt = 1
-        yld = 0.6
-        zeta = 0.17
-        gpp_topslice = 0.1
-        p_foliage_for_reproductive_tissue = 0.05
-        deadwood_c_n_ratio = 60.7
-        deadwood_c_p_ratio = 856.5
-        leaf_turnover_c_n_ratio = 25.5
-        leaf_turnover_c_p_ratio = 415.0
-        plant_reproductive_tissue_turnover_c_n_ratio = 12.5
-        plant_reproductive_tissue_turnover_c_p_ratio = 125.5
-        root_turnover_c_p_ratio = 656.7
-        root_turnover_c_n_ratio = 45.6
-        foliage_c_n_ratio = 15
-        foliage_c_p_ratio = 300
+        # Deliberately using single quote to provide TOML literal string for path
+        pft_definitions_path = '{(fixture_root_data_dir / "plant_pfts.csv")!s}'
 
-        [[plants.pft_definition]]
-        a_hd = 116.0
-        ca_ratio = 390.43
-        f_g = 0.02
-        h_max = 30.33
-        lai = 1.8
-        m = 2
-        n = 5
-        name = 'broadleaf'
-        par_ext = 0.5
-        resp_f = 0.1
-        resp_r = 0.913
-        resp_s = 0.044
-        resp_rt = 0.05
-        rho_s = 200.0
-        sla = 14.0
-        tau_f = 4.0
-        tau_r = 1.04
-        tau_rt = 1
-        yld = 0.6
-        zeta = 0.17
-        gpp_topslice = 0.1
-        p_foliage_for_reproductive_tissue = 0.05
-        deadwood_c_n_ratio = 60.7
-        deadwood_c_p_ratio = 856.5
-        leaf_turnover_c_n_ratio = 25.5
-        leaf_turnover_c_p_ratio = 415.0
-        plant_reproductive_tissue_turnover_c_n_ratio = 12.5
-        plant_reproductive_tissue_turnover_c_p_ratio = 125.5
-        root_turnover_c_p_ratio = 656.7
-        root_turnover_c_n_ratio = 45.6
-        foliage_c_n_ratio = 15
-        foliage_c_p_ratio = 300
-
-        [[animal.functional_groups]]
-        name = "carnivorous_bird"
-        taxa = "bird"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "carnivorous_bird"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground_canopy"
-        birth_mass = 0.1
-        adult_mass = 1.0
-
-        [[animal.functional_groups]]
-        name = "herbivorous_bird"
-        taxa = "bird"
-        diet = "herbivore"
-        metabolic_type = "endothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "herbivorous_bird"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground_canopy"
-        birth_mass = 0.05
-        adult_mass = 0.5
-
-        [[animal.functional_groups]]
-        name = "carnivorous_mammal"
-        taxa = "mammal"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "carnivorous_mammal"
-        excretion_type = "ureotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground"
-        birth_mass = 4.0
-        adult_mass = 40.0
-
-        [[animal.functional_groups]]
-        name = "herbivorous_mammal"
-        taxa = "mammal"
-        diet = "herbivore"
-        metabolic_type = "endothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "herbivorous_mammal"
-        excretion_type = "ureotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground"
-        birth_mass = 1.0
-        adult_mass = 10.0
-
-        [[animal.functional_groups]]
-        name = "carnivorous_insect"
-        taxa = "insect"
-        diet = "carnivore"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "carnivorous_insect"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "soil_ground_canopy"
-        birth_mass = 0.001
-        adult_mass = 0.01
-
-        [[animal.functional_groups]]
-        name = "herbivorous_insect"
-        taxa = "insect"
-        diet = "herbivore"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "semelparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "herbivorous_insect"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "soil_ground_canopy"
-        birth_mass = 0.0005
-        adult_mass = 0.005
-
-        [[animal.functional_groups]]
-        name = "butterfly"
-        taxa = "insect"
-        diet = "herbivore"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "semelparous"
-        development_type = "indirect"
-        development_status = "adult"
-        offspring_functional_group = "caterpillar"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground_canopy"
-        birth_mass = 0.0005
-        adult_mass = 0.005
-
-        [[animal.functional_groups]]
-        name = "caterpillar"
-        taxa = "insect"
-        diet = "herbivore"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "nonreproductive"
-        development_type = "indirect"
-        development_status = "larval"
-        offspring_functional_group = "butterfly"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "canopy"
-        birth_mass = 0.0005
-        adult_mass = 0.005
-
-        [[animal.functional_groups]]
-        name = "frog"
-        taxa = "amphibian"
-        diet = "carnivore"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "aquatic"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "frog"
-        excretion_type = "ureotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground"
-        birth_mass = 0.005
-        adult_mass = 0.5
-
-        [[animal.functional_groups]]
-        name = "swallow"
-        taxa = "bird"
-        diet = "carnivore"
-        metabolic_type = "endothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "swallow"
-        excretion_type = "uricotelic"
-        migration_type = "seasonal"
-        vertical_occupancy = "canopy"
-        birth_mass = 0.005
-        adult_mass = 0.2
-
-        [[animal.functional_groups]]
-        name = "earthworm"
-        taxa = "insect"
-        diet = "herbivore"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "earthworm"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "soil"
-        birth_mass = 0.0005
-        adult_mass = 0.005
-
-        [[animal.functional_groups]]
-        name = "dung_beetle"
-        taxa = "invertebrate"
-        diet = "waste"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "dung_beetle"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "soil_ground"
-        birth_mass = 0.0003
-        adult_mass = 0.003
-
-        [[animal.functional_groups]]
-        name = "scavenging_mammal"
-        taxa = "mammal"
-        diet = "carcasses"
-        metabolic_type = "endothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "scavenging_mammal"
-        excretion_type = "ureotelic"
-        migration_type = "none"
-        vertical_occupancy = "ground"
-        birth_mass = 2.0
-        adult_mass = 20.0
-
-        [[animal.functional_groups]]
-        name = "detritivorous_insect"
-        taxa = "invertebrate"
-        diet = "detritus"
-        metabolic_type = "ectothermic"
-        reproductive_environment = "terrestrial"
-        reproductive_type = "iteroparous"
-        development_type = "direct"
-        development_status = "adult"
-        offspring_functional_group = "detritivorous_insect"
-        excretion_type = "uricotelic"
-        migration_type = "none"
-        vertical_occupancy = "soil_ground"
-        birth_mass = 0.0004
-        adult_mass = 0.004
+        [animal]
+        functional_group_definitions_path = '''
+{(fixture_root_data_dir / "animal_functional_groups.csv")!s}'''
 
         [hydrology]
     """
 
-    return Config(cfg_strings=[cfg_string, microbial_groups_cfg])
+    return Config(cfg_strings=[cfg_string, additional_toml])
+
+
+@pytest.fixture
+def fixture_config():
+    """Default configuration object with 2x2 grid."""
+    return generate_config()
+
+
+@pytest.fixture
+def animal_fixture_config():
+    """Default configuration object with 3x3 grid."""
+    return generate_config(nx=3, ny=3)
 
 
 @pytest.fixture
@@ -834,7 +589,8 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     """Creates a dummy climate data object for use in tests.
 
     This fixture modifies the parent dummy_climate_data to introduce variation in the
-    number of canopy layers within the different cells.
+    number of canopy layers within the different cells, including one grid cell without
+    vegetation.
     """
 
     lyr_str = fixture_core_components.layer_structure
@@ -843,39 +599,39 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
 
     # Structural variables
     dummy_climate_data["leaf_area_index"][index_filled_canopy] = [
-        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, np.nan],
         [1.0, 1.0, np.nan, np.nan],
         [1.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["layer_heights"][index_filled_canopy] = [
-        [30.0, 30.0, 30.0, 30.0],
+        [30.0, 30.0, 30.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
     ]
 
     # Microclimate and energy balance
     dummy_climate_data["wind_speed"][index_filled_canopy] = [
-        [0.1, 0.1, 0.1, 0.1],
+        [0.1, 0.1, 0.1, np.nan],
         [0.1, 0.1, np.nan, np.nan],
         [0.1, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["air_temperature"][index_filled_canopy] = [
-        [29.844995, 29.844995, 29.844995, 29.844995],
+        [29.844995, 29.844995, 29.844995, np.nan],
         [28.87117, 28.87117, np.nan, np.nan],
         [27.206405, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["relative_humidity"][index_filled_canopy] = [
-        [90.341644, 90.341644, 90.341644, 90.341644],
+        [90.341644, 90.341644, 90.341644, np.nan],
         [92.488034, 92.488034, np.nan, np.nan],
         [96.157312, np.nan, np.nan, np.nan],
     ]
 
     sw_indexes = [1, 2, 3, 13]
     dummy_climate_data["shortwave_absorption"][sw_indexes] = [
-        [450.0, 450.0, 450.0, 450.0],
+        [450.0, 450.0, 450.0, np.nan],
         [450.0, 450.0, np.nan, np.nan],
         [450.0, np.nan, np.nan, np.nan],
         [450.0, 450.0, 450.0, 450],
@@ -883,88 +639,88 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
     # dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
 
     dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
-        [12.5, 12.5, 12.5, 12.5],
+        [12.5, 12.5, 12.5, np.nan],
         [12.5, 12.5, np.nan, np.nan],
         [12.5, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
         [0.14, 0.14, 0.14, 0.14],
-        [0.2, 0.2, 0.2, 0.2],
+        [0.2, 0.2, 0.2, np.nan],
         [0.2, 0.2, np.nan, np.nan],
         [0.2, np.nan, np.nan, np.nan],
         [0.14, 0.14, 0.14, 0.14],
     ]
     dummy_climate_data["sensible_heat_flux"][index_filled_canopy] = [
-        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, np.nan],
         [0.0, 0.0, np.nan, np.nan],
         [0.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["latent_heat_flux"][index_filled_canopy] = [
-        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, np.nan],
         [0.0, 0.0, np.nan, np.nan],
         [0.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["net_radiation"][lyr_str.index_flux_layers] = [
-        [20.0, 20.0, 20.0, 20.0],
+        [20.0, 20.0, 20.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],
         [20.0, 20.0, 20.0, 20.0],
     ]
 
     dummy_climate_data["attenuation_coefficient"][index_filled_canopy] = [
-        [13.0, 13.0, 13.0, 13.0],
+        [13.0, 13.0, 13.0, np.nan],
         [13.0, 13.0, np.nan, np.nan],
         [13.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["relative_turbulence_intensity"][index_filled_canopy] = [
-        [16.56, 16.56, 16.56, 16.56],
+        [16.56, 16.56, 16.56, np.nan],
         [11.16, 11.16, np.nan, np.nan],
         [5.76, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_temperature"][index_filled_canopy] = [
-        [25.0, 25.0, 25.0, 25.0],
+        [25.0, 25.0, 25.0, np.nan],
         [25.0, 25.0, np.nan, np.nan],
         [25.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["canopy_evaporation"][index_filled_canopy] = [
-        [10.0, 10.0, 10.0, 10.0],
+        [10.0, 10.0, 10.0, np.nan],
         [10.0, 10.0, np.nan, np.nan],
         [10.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["leaf_air_heat_conductivity"][index_filled_canopy] = [
-        [0.13, 0.13, 0.13, 0.13],
+        [0.13, 0.13, 0.13, np.nan],
         [0.13, 0.13, np.nan, np.nan],
         [0.13, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["leaf_vapour_conductivity"][index_filled_canopy] = [
-        [0.2, 0.2, 0.2, 0.2],
+        [0.2, 0.2, 0.2, np.nan],
         [0.2, 0.2, np.nan, np.nan],
         [0.2, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["conductivity_from_ref_height"][index_filled_canopy] = [
-        [3.0, 3.0, 3.0, 3.0],
+        [3.0, 3.0, 3.0, np.nan],
         [3.0, 3.0, np.nan, np.nan],
         [3.0, np.nan, np.nan, np.nan],
     ]
 
     dummy_climate_data["stomatal_conductance"][index_filled_canopy] = [
-        [15.0, 15.0, 15.0, 15.0],
+        [15.0, 15.0, 15.0, np.nan],
         [15.0, 15.0, np.nan, np.nan],
         [15.0, np.nan, np.nan, np.nan],
     ]
 
     # Hydrology
     dummy_climate_data["transpiration"][index_filled_canopy] = [
-        [20.0, 20.0, 20.0, 20.0],
+        [20.0, 20.0, 20.0, np.nan],
         [20.0, 20.0, np.nan, np.nan],
         [20.0, np.nan, np.nan, np.nan],
     ]

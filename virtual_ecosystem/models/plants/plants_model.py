@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 from pyrealm.constants import CoreConst, PModelConst
 from pyrealm.core.water import convert_water_moles_to_mm
 from pyrealm.demography.canopy import Canopy
+from pyrealm.demography.community import Cohorts
 from pyrealm.demography.flora import Flora
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 from pyrealm.pmodel import PModel, PModelEnvironment
@@ -22,6 +23,7 @@ from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
@@ -34,9 +36,10 @@ from virtual_ecosystem.models.plants.functional_types import (
     ExtraTraitsPFT,
     get_flora_from_config,
 )
-from virtual_ecosystem.models.plants.stochiometry import (
-    StemStochiometry,
+from virtual_ecosystem.models.plants.stoichiometry import (
+    StemStoichiometry,
 )
+from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
 
 class PlantsModel(
@@ -44,103 +47,137 @@ class PlantsModel(
     model_name="plants",
     model_update_bounds=("1 day", "1 year"),
     vars_required_for_init=(
-        "plant_cohorts_cell_id",
-        "plant_cohorts_pft",
-        "plant_cohorts_n",
-        "plant_cohorts_dbh",
         "downward_shortwave_radiation",
-        "subcanopy_vegetation_biomass",
+        "plant_cohorts_cell_id",
+        "plant_cohorts_dbh",
+        "plant_cohorts_n",
+        "plant_cohorts_pft",
+        "plant_pft_propagules",
         "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
     ),
     vars_populated_by_init=(
-        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_fapar",
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
         "shortwave_absorption",
     ),
     vars_required_for_update=(
-        "plant_cohorts_cell_id",
-        "plant_cohorts_pft",
-        "plant_cohorts_n",
-        "plant_cohorts_dbh",
-        "downward_shortwave_radiation",
-        "subcanopy_vegetation_biomass",
-        "subcanopy_seedbank_biomass",
         "air_temperature",
-        "vapour_pressure_deficit",
-        "atmospheric_pressure",
         "atmospheric_co2",
-        "dissolved_nitrate",
+        "atmospheric_pressure",
         "dissolved_ammonium",
+        "dissolved_nitrate",
         "dissolved_phosphorus",
+        "downward_shortwave_radiation",
+        "plant_cohorts_cell_id",
+        "plant_cohorts_dbh",
+        "plant_cohorts_n",
+        "plant_cohorts_pft",
+        "plant_pft_propagules",
+        "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
+        "vapour_pressure_deficit",
         "ecto_supply_limit_n",
         "ecto_supply_limit_p",
         "arbuscular_supply_limit_n",
         "arbuscular_supply_limit_p",
     ),
     vars_updated=(
-        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
-        "layer_fapar",
-        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
-        "shortwave_absorption",
-        "transpiration",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
-        "stem_lignin",
-        "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
-        "root_lignin",
         "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_production",
+        "fallen_non_propagule_c_mass",
+        "layer_fapar",
+        "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
+        "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
+        "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
+        "leaf_turnover",
+        "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "plant_symbiote_carbon_supply",
-        "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
-        "plant_nitrate_uptake",
-        "plant_phosphorus_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
+        "plant_nitrate_uptake",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
-        "subcanopy_vegetation_biomass",
+        "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "plant_symbiote_carbon_supply",
+        "root_carbohydrate_exudation",
+        "root_lignin",
+        "root_turnover",
+        "root_turnover_c_n_ratio",
+        "root_turnover_c_p_ratio",
+        "senesced_leaf_lignin",
+        "shortwave_absorption",
+        "stem_lignin",
         "subcanopy_seedbank_biomass",
+        "subcanopy_vegetation_biomass",
+        "transpiration",
+        "subcanopy_seedbank_litter_biomass",
+        "subcanopy_seedbank_litter_c_n_ratio",
+        "subcanopy_seedbank_litter_c_p_ratio",
+        "subcanopy_seedbank_litter_lignin",
+        "subcanopy_vegetation_litter_biomass",
+        "subcanopy_vegetation_litter_c_n_ratio",
+        "subcanopy_vegetation_litter_c_p_ratio",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_vegetation_c_n_ratio",
+        "subcanopy_vegetation_c_p_ratio",
+        "subcanopy_seedbank_c_n_ratio",
+        "subcanopy_seedbank_c_p_ratio",
+        "subcanopy_ammonium_uptake",
+        "subcanopy_nitrate_uptake",
+        "subcanopy_phosphorus_uptake",
+        "subcanopy_transpiration",
     ),
     vars_populated_by_first_update=(
-        "transpiration",
-        "deadwood_production",
-        "leaf_turnover",
-        "fallen_non_propagule_c_mass",
-        "root_turnover",
-        "stem_lignin",
-        "senesced_leaf_lignin",
-        "plant_reproductive_tissue_lignin",
-        "root_lignin",
         "deadwood_c_n_ratio",
-        "leaf_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "root_turnover_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_production",
+        "fallen_non_propagule_c_mass",
+        "leaf_turnover",
+        "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
-        "root_turnover_c_p_ratio",
-        "plant_symbiote_carbon_supply",
-        "root_carbohydrate_exudation",
         "plant_ammonium_uptake",
-        "plant_nitrate_uptake",
-        "plant_phosphorus_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
+        "plant_nitrate_uptake",
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
+        "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_lignin",
+        "plant_reproductive_tissue_turnover_c_n_ratio",
+        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "plant_symbiote_carbon_supply",
+        "root_carbohydrate_exudation",
+        "root_lignin",
+        "root_turnover",
+        "root_turnover_c_n_ratio",
+        "root_turnover_c_p_ratio",
+        "senesced_leaf_lignin",
+        "stem_lignin",
+        "transpiration",
+        "subcanopy_seedbank_litter_biomass",
+        "subcanopy_seedbank_litter_c_n_ratio",
+        "subcanopy_seedbank_litter_c_p_ratio",
+        "subcanopy_seedbank_litter_lignin",
+        "subcanopy_vegetation_litter_biomass",
+        "subcanopy_vegetation_litter_c_n_ratio",
+        "subcanopy_vegetation_litter_c_p_ratio",
+        "subcanopy_vegetation_litter_lignin",
+        "subcanopy_vegetation_c_n_ratio",
+        "subcanopy_vegetation_c_p_ratio",
+        "subcanopy_seedbank_c_n_ratio",
+        "subcanopy_seedbank_c_p_ratio",
+        "subcanopy_ammonium_uptake",
+        "subcanopy_nitrate_uptake",
+        "subcanopy_phosphorus_uptake",
+        "subcanopy_transpiration",
     ),
 ):
     """Representation of plants in the Virtual Ecosystem.
@@ -214,8 +251,8 @@ class PlantsModel(
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
         to PlantCommunity instances for each cell."""
-        self.stochiometries: dict[int, dict[str, StemStochiometry]]
-        """A dictionary keyed by cell id giving the stochiometry of each community."""
+        self.stoichiometries: dict[int, dict[str, StemStoichiometry]]
+        """A dictionary keyed by cell id giving the stoichiometry of each community."""
         self.allocations: dict[int, StemAllocation]
         """A dictionary keyed by cell id giving the allocation of each community."""
         self._canopy_layer_indices: NDArray[np.bool_]
@@ -249,7 +286,10 @@ class PlantsModel(
         """Core constants used by pyrealm."""
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
-
+        self.canopy_top_radiation: NDArray[np.floating]
+        """The downwelling radiation at the canopy top for the current time step."""
+        self.subcanopy: Subcanopy
+        """Representation of the subcanopy vegetation."""
         # Define and populate model specific attributes
         self.exporter: CommunityDataExporter = exporter
         """A CommunityDataExporter instance providing configuration and methods for
@@ -354,21 +394,45 @@ class PlantsModel(
             data=self.data, flora=self.flora, grid=self.grid
         )
 
-        # Initialize the stochiometries of each cohort. Each StemStochiometry object
+        # Check the pft propagules data
+        # Some development notes:
+        # - This _could_ be an optional __init__ variable that defaults to zero, but we
+        #   don't currently have optional __init__ variables.
+        # - The axis name checking here is something that the axis validation in data
+        #   loading should do, but the information (PFT names) needed to validate it
+        #   there is not part of the core configuration, so even when we pass
+        #   CoreComponents to the axis validation it won't be available (unless we
+        #   duplicate that information as part of the core, which might not be the
+        #   maddest thing ever).
+
+        # Does the propagule data have PFT coordinates
+        if "pft" not in self.data["plant_pft_propagules"].coords:
+            raise InitialisationError(
+                "The plant_pft_propagules data is missing 'pft' coordinates."
+            )
+
+        # Do the PFT coordinate values match the flora?
+        if not set(self.data["plant_pft_propagules"]["pft"].data) == set(flora.name):
+            raise InitialisationError(
+                "The 'pft' coordinates in the plant_pft_propagules data do not match "
+                "the PFT names configured in the PlantsModel flora"
+            )
+
+        # Initialize the stoichiometries of each cohort. Each StemStoichiometry object
         # contains a list of StemTissue objects, which are the tissues that make up the
-        # stochiometry of the stem. The initial values for N and P are based on the
-        # ideal stochiometric ratios defined in the PlantsConsts class.
+        # stoichiometry of the stem. The initial values for N and P are based on the
+        # ideal stoichiometric ratios defined in the PlantsConsts class.
         # TODO: #697 - these need to be configurable
-        self.stochiometries = {}
+        self.stoichiometries = {}
 
         for cell_id in self.communities.keys():
-            self.stochiometries[cell_id] = {}
-            self.stochiometries[cell_id]["N"] = StemStochiometry.default_init(
+            self.stoichiometries[cell_id] = {}
+            self.stoichiometries[cell_id]["N"] = StemStoichiometry.default_init(
                 self.communities[cell_id],
                 extra_pft_traits=self.extra_pft_traits,
                 element="N",
             )
-            self.stochiometries[cell_id]["P"] = StemStochiometry.default_init(
+            self.stoichiometries[cell_id]["P"] = StemStoichiometry.default_init(
                 self.communities[cell_id],
                 extra_pft_traits=self.extra_pft_traits,
                 element="P",
@@ -400,11 +464,30 @@ class PlantsModel(
         self.pmodel_consts = PModelConst()
         self.pmodel_core_consts = CoreConst()
 
-        # Create and populate the canopy data layers and the subcanopy vegetation and
-        # then set the shortwave absorption from the first time index
+        # Create and populate the canopy data layers
         self.update_canopy_layers()
-        self.set_subcanopy_light_capture()
-        self.set_shortwave_absorption(time_index=0)
+
+        # Initialise the subcanopy vegetation class and then set the light capture of
+        # the subcanopy vegetation
+        self.subcanopy = Subcanopy(
+            data=self.data,
+            pmodel_core_constants=self.pmodel_core_consts,
+            model_constants=self.model_constants,
+            layer_index=self.layer_structure.index_surface_scalar,
+            model_timing=self.model_timing,
+        )
+
+        # Get the canopy top shortwave downwelling radiation for the first time slice
+        self.set_canopy_top_radiation(time_index=0)
+
+        # This updates the data fapar and lai values of the surface layer using the
+        # subcanopy vegetation
+        self.subcanopy.set_light_capture(
+            below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
+
+        # Set the shortwave absorption profile down to the ground
+        self.set_shortwave_absorption()
 
         # Initialise other attributes
         self.per_stem_gpp = {}
@@ -413,9 +496,14 @@ class PlantsModel(
             (self.layer_structure.n_layers, self.grid.n_cells), False
         )
 
-        # Calculate the per update interval stem mortality rate
+        # Calculate the per update interval stem mortality and recruitment rates from
+        # the annual values
         self.per_update_interval_stem_mortality_probability = 1 - (
             1 - model_constants.per_stem_annual_mortality_probability
+        ) ** (1 / self.model_timing.updates_per_year)
+
+        self.per_update_interval_propagule_recruitment_probability = 1 - (
+            1 - model_constants.per_propagule_annual_recruitment_probability
         ) ** (1 / self.model_timing.updates_per_year)
 
         # Run the community data exporter
@@ -444,14 +532,23 @@ class PlantsModel(
             **kwargs: Further arguments to the update method.
         """
 
-        # Update the canopy layers
+        # Apply mortality and recruitment to plant cohorts
+        self.apply_mortality()
+        self.apply_recruitment()
+
+        # Get the canopy top shortwave downwelling radiation for the current time slice
+        self.set_canopy_top_radiation(time_index=time_index)
+
+        # Update the canopy layers and subcanopy and then set the shortwave absorption
         self.canopies = calculate_canopies(
             communities=self.communities,
             max_canopy_layers=self.layer_structure.n_canopy_layers,
         )
         self.update_canopy_layers()
-        self.set_subcanopy_light_capture()
-        self.set_shortwave_absorption(time_index=time_index)
+        self.subcanopy.set_light_capture(
+            below_canopy_light_fraction=self.below_canopy_light_fraction
+        )
+        self.set_shortwave_absorption()
 
         # Estimate the canopy GPP and growth with the updated this update
         self.calculate_light_use_efficiency()
@@ -468,11 +565,12 @@ class PlantsModel(
         # Calculate the rate at which plants take nutrients from mycorrhizal fungi
         self.calculate_mycorrhizal_uptakes()
 
-        # Apply mortality to plant cohorts
-        self.apply_mortality()
-
         # Calculate the subcanopy vegetation
-        self.calculate_subcanopy_dynamics()
+        self.subcanopy.calculate_dynamics(
+            lue=self.pmodel.lue[self.layer_structure.index_surface_scalar, :],
+            iwue=self.pmodel.iwue[self.layer_structure.index_surface_scalar, :],
+            swd=self.canopy_top_radiation,
+        )
 
         # Run the community data exporter
         self.exporter.dump(
@@ -582,33 +680,43 @@ class PlantsModel(
             f"Updated canopy data on {self.layer_structure.index_filled_canopy.sum()}"
         )
 
-    def set_shortwave_absorption(self, time_index: int) -> None:
+    def set_canopy_top_radiation(self, time_index: int) -> None:
+        """Set the current canopy top shortwave downwelling radiation."""
+
+        self.canopy_top_radiation = (
+            self.data["downward_shortwave_radiation"]
+            .isel(time_index=time_index)
+            .to_numpy()
+        )
+
+    def set_shortwave_absorption(self) -> None:
         """Set the shortwave radiation absorption across the vertical layers.
 
         This method takes the shortwave radiation at the top of the canopy for a
         particular time index and uses the ``layer_fapar`` data calculated by the canopy
-        model to estimate the amount of radiation absorbed by each canopy layer and the
-        remaining radiation absorbed by the top soil layer.
+        and subcanopy models to estimate the amount of radiation absorbed by each canopy
+        layer and the remaining radiation absorbed by the top soil layer.
+
+        The method requires that the ``canopy_top_radiation`` attribute has been set
+        with the SWD values for the current time step.
 
         TODO:
           - With the full canopy model, this could be partitioned into sunspots
             and shade.
         """  # noqa: D405
 
-        # Get the canopy top shortwave downwelling radiation for the current time slice
-        canopy_top_swd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
+        # Set the ground_incident light
+        self.ground_incident_light_fraction = (
+            self.below_canopy_light_fraction * self.subcanopy.light_transmission
         )
 
         # Calculate the fate of shortwave radiation through the layers assuming that the
         # vegetation fAPAR applies to all light wavelengths
-        absorbed_irradiance = self.data["layer_fapar"] * canopy_top_swd
+        absorbed_irradiance = self.data["layer_fapar"] * self.canopy_top_radiation
 
         # Add the remaining irradiance at the surface layer level
         absorbed_irradiance[self.layer_structure.index_topsoil] = (
-            canopy_top_swd * self.ground_incident_light_fraction
+            self.canopy_top_radiation * self.ground_incident_light_fraction
         )
 
         self.data["shortwave_absorption"] = absorbed_irradiance
@@ -668,12 +776,7 @@ class PlantsModel(
         """
 
         # Get the canopy top PPFD per grid cell for this time index
-        canopy_top_ppfd = (
-            self.data["downward_shortwave_radiation"]
-            .isel(time_index=time_index)
-            .to_numpy()
-            * self.model_constants.dsr_to_ppfd
-        )
+        canopy_top_ppfd = self.canopy_top_radiation * self.model_constants.dsr_to_ppfd
 
         # Initialise transpiration array to collect per grid cell values
         transpiration = self.layer_structure.from_template("transpiration")
@@ -747,7 +850,7 @@ class PlantsModel(
                 core_const=self.pmodel_core_consts,
             )
 
-            # Calculate and store total stem transpiration in mm  per stem and total
+            # Calculate and store total stem transpiration in mm per stem and total
             # grid cell transpiration in mm m-2 since last update
             self.per_stem_transpiration[cell_id] = per_layer_transpiration_mm.sum(
                 axis=0
@@ -771,7 +874,7 @@ class PlantsModel(
         """
 
         # Initialize all turnover variables to 0 with the proper dimensions.
-        # Most variables are merged across PFTs and cohorts - one pool per cell.
+        # These variables are merged across PFTs and cohorts - one pool per cell.
         self.data["leaf_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_turnover"] = xr.full_like(self.data["elevation"], 0)
         self.data["root_carbohydrate_exudation"] = xr.full_like(
@@ -790,6 +893,9 @@ class PlantsModel(
             data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
             coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
         )
+
+        # Allocate canopy reproductive tissue mass. This is deliberately not
+        # partitioning tissue across canopy vertical layers.
         self.data["fallen_n_propagules"] = pft_cell_template.copy()
         self.data["canopy_n_propagules"] = pft_cell_template.copy()
         self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
@@ -797,9 +903,10 @@ class PlantsModel(
         for cell_id in self.communities.keys():
             community = self.communities[cell_id]
             cohorts = community.cohorts
-            stochiometries = self.stochiometries[cell_id]
+            stoichiometries = self.stoichiometries[cell_id]
 
-            # Calculate the allocation of GPP per stem and store it in the attribute
+            # Calculate the allocation of GPP in kgC m2 per stem, since the T Model is
+            # calibrated using per kg values.
             stem_allocation = StemAllocation(
                 stem_traits=community.stem_traits,
                 stem_allometry=community.stem_allometry,
@@ -819,7 +926,7 @@ class PlantsModel(
             #       If the np.where is removed and this is set directly, then pyrealm
             #       will detect D <= 0 and raise an exception.
 
-            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh
+            new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
             # Sum of turnover from all cohorts in a grid cell
@@ -867,7 +974,6 @@ class PlantsModel(
             # Allocate fallen propagules, and canopy propagules and non-propagule mass
             # into PFT specific pools by iterating over cohort PFTs.
             # TODO: not sure how performant this is, there might be a better solution.
-
             for (
                 cohort_pft,
                 fallen_n_propagules,
@@ -881,7 +987,7 @@ class PlantsModel(
                 stem_canopy_non_propagule_c_mass.squeeze(),
                 cohorts.n_individuals,
             ):
-                self.data["fallen_n_propagules"].loc[cell_id, cohort_pft] += (
+                self.data["plant_pft_propagules"].loc[cell_id, cohort_pft] += (
                     fallen_n_propagules * cohort_n_stems
                 )
                 self.data["canopy_n_propagules"].loc[cell_id, cohort_pft] += (
@@ -891,9 +997,9 @@ class PlantsModel(
                     canopy_non_propagule_mass * cohort_n_stems
                 )
 
-            # ALLOCATE N TO REGROW WHAT WAS LOST TO TURNOVER
-            for stochiometry in stochiometries.values():
-                stochiometry.account_for_element_loss_turnover(stem_allocation)
+            # ALLOCATE ELEMENT MASS TO REGROW WHAT WAS LOST TO TURNOVER
+            for stoichiometry in stoichiometries.values():
+                stoichiometry.account_for_element_loss_turnover(stem_allocation)
 
             # ALLOCATE GPP TO ACTIVE NUTRIENT PATHWAYS:
             # Allocate the topsliced GPP to root exudates with remainder as active
@@ -920,37 +1026,35 @@ class PlantsModel(
 
             # Subtract the N/P required from growth from the element store, and
             # redistribute it to the individual tissues.
-            for stochiometry in stochiometries.values():
-                stochiometry.account_for_growth(stem_allocation)
+            for stoichiometry in stoichiometries.values():
+                stoichiometry.account_for_growth(stem_allocation)
 
             # Balance the N & P surplus/deficit with the symbiote carbon supply
             for element in ["N", "P"]:
-                element_weighted_avg = np.dot(
+                total_supply = float(
                     self.data["ecto_supply_limit_" + element.lower()][cell_id]
-                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id],
-                    cohorts.n_individuals,
+                    + self.data["arbuscular_supply_limit_" + element.lower()][cell_id]
                 )
-                element_available_per_cohort = element_weighted_avg / sum(
-                    element_weighted_avg
-                )
-                element_available_per_stem = np.divide(
-                    element_available_per_cohort, cohorts.n_individuals
-                )
-                stochiometries[element].element_surplus += element_available_per_stem
+
+                cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
+                element_per_stem = (
+                    total_supply * cohort_fractions
+                ) / cohorts.n_individuals
+                stoichiometries[element].element_surplus += element_per_stem
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
             for cohort in range(len(cohorts.n_individuals)):
-                for stochiometry in stochiometries.values():
-                    if stochiometry.element_surplus[cohort] < 0:
+                for stoichiometry in stoichiometries.values():
+                    if stoichiometry.element_surplus[cohort] < 0:
                         # Distribute deficit across the tissue types
-                        stochiometry.distribute_deficit(cohort)
+                        stoichiometry.distribute_deficit(cohort)
 
                     elif (
-                        stochiometry.element_surplus[cohort] > 0
-                        and stochiometry.tissue_deficit[cohort] > 0
+                        stoichiometry.element_surplus[cohort] > 0
+                        and stoichiometry.tissue_deficit[cohort] > 0
                     ):
                         # Distribute the surplus across the tissue types
-                        stochiometry.distribute_surplus(cohort)
+                        stoichiometry.distribute_surplus(cohort)
 
                     else:
                         # NO ADJUSTMENT REQUIRED - there is a surplus in the store, but
@@ -995,13 +1099,71 @@ class PlantsModel(
                 input_mass=np.sum(mortality * community.stem_allometry.stem_mass),
             )
 
+            # TODO - also need to add standing foliage, fine root and reproductive
+            #        tissue masses to the respective pools and check units of pools.
+
+    def apply_recruitment(self) -> None:
+        """Apply recruitment to plant cohorts.
+
+        This function applies recruitment to plant cohorts, currently using a single
+        recruitment rate across all plant functional types.
+        """
+
+        # Get the sequence of PFT names in the data array
+        pft_sequence = self.data["plant_pft_propagules"]["pft"].to_numpy()
+
+        # Get recruitment across all cells
+        # TODO - swap out p with a per PFT trait array.
+        recruitment = np.random.binomial(
+            n=self.data["plant_pft_propagules"],
+            p=self.per_update_interval_propagule_recruitment_probability,
+        )
+
+        # Remove recruitment from propagule pool.
+        self.data["plant_pft_propagules"] -= recruitment
+
+        # Loop over each grid cell
+        for cell_id, community in self.communities.items():
+            # Which PFTs have any recruitment in this community
+            recruiting_pfts = recruitment[cell_id, :] > 0
+
+            # If there is any recruitment, create a new set of Cohorts with a rubbish
+            # guess at initial DBH values.
+            #
+            # TODO - We need to allocate the seed mass to growing a tiny tree.
+            #        Probably that would be by using StemAllocation with an initial
+            #        value of zero and a potential GPP equal to the seed mass, but
+            #        the equations aren't defined for DBH=0. Not sure how to self
+            #        start these, so using a 2mm DBH. Need a DBH given mass solver.
+            n_recruiting = recruiting_pfts.sum()
+            if n_recruiting:
+                cohorts = Cohorts(
+                    n_individuals=recruitment[cell_id, recruiting_pfts],
+                    pft_names=pft_sequence[recruiting_pfts],
+                    dbh_values=np.repeat(0.002, n_recruiting),
+                )
+
+                # Add recruited cohorts
+                community.add_cohorts(new_data=cohorts)
+
+                self.stoichiometries[cell_id]["N"].add_cohorts(
+                    new_cohort_data=cohorts,
+                    flora=self.flora,
+                    element="N",
+                )
+                self.stoichiometries[cell_id]["P"].add_cohorts(
+                    new_cohort_data=cohorts,
+                    flora=self.flora,
+                    element="P",
+                )
+
     def update_cn_ratios(self) -> None:
         """Update the C:N and C:P ratios of plant tissues.
 
         This function updates the C:N and C:P ratios of various plant tissues, including
         deadwood, leaf turnover, plant reproductive tissue turnover, and root turnover.
 
-        # TODO: Update this to use the Stochiometry class values.
+        # TODO: Update this to use the Stoichiometry class values.
 
         Warning:
             At present, this function just sets values to original constants.
@@ -1033,7 +1195,7 @@ class PlantsModel(
             pass
             # TODO: ask Jacob what he wants from these values
             # self.data["deadwood_c_n_ratio"][cell_id] = (
-            # self.stochiometries[cell_id]["N"]...
+            # self.stoichiometries[cell_id]["N"]...
 
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
@@ -1075,44 +1237,58 @@ class PlantsModel(
     def calculate_nutrient_uptake(self) -> None:
         """Calculate uptake of soil nutrients by the plant community.
 
-        This function calculates the rate a which plants take up inorganic nutrients
-        (ammonium, nitrate, and labile phosphorus) from the soil. The function then
-        assigns the N/P uptake values to the respective community through the
-        stochiometry class.
-
-        Warning:
-            At present, this function just calculates uptake based on an entirely made
-            up function, and does not link to plant dynamics in any way.
+        This function calculates the amount of inorganic nutrients(ammonium, nitrate,
+        and labile phosphorus) taken up by plants from the soil, through transpiration.
+        The function then assigns the N/P uptake values to the respective community
+        through the stoichiometry class.
         """
 
-        # Assume plants can take 0.1% of the available nutrient per day
-        self.data["plant_ammonium_uptake"] = self.data["dissolved_ammonium"] * 0.01
-        self.data["plant_nitrate_uptake"] = self.data["dissolved_nitrate"] * 0.01
-        self.data["plant_phosphorus_uptake"] = self.data["dissolved_phosphorus"] * 0.01
-
-        # Calculate N/P uptake (g N/P per stem) due to transpiration. Multiply:
-        # - Per stem transpiration (µmol H2O per stem)
-        # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
-        # - Concentration of N/P uptake (kg m^-3)
-        # - Kg to g (1000)
-        # TODO: scale by atmospheric pressure and temperature (#927)
+        self.data["plant_ammonium_uptake"] = xr.full_like(
+            self.data["dissolved_ammonium"], 0
+        )
+        self.data["plant_nitrate_uptake"] = xr.full_like(
+            self.data["dissolved_nitrate"], 0
+        )
+        self.data["plant_phosphorus_uptake"] = xr.full_like(
+            self.data["dissolved_phosphorus"], 0
+        )
 
         for cell_id in self.communities.keys():
-            self.stochiometries[cell_id]["N"].element_surplus += (
-                self.per_stem_transpiration[cell_id]
+            # Calculate N/P uptake (g N/P per stem) due to transpiration. Multiply:
+            # - Per stem transpiration (µmol H2O per stem)
+            # - Conversion factor from µmol H2O to m^3 (1.08015*10^-11)
+            # - Concentration of N/P uptake (kg m^-3)
+            # - Kg to g (1000)
+            # TODO: scale by atmospheric pressure and temperature (#927)
+            ammonium_uptake = (
+                self.data["dissolved_ammonium"][cell_id].item()
+                * self.per_stem_transpiration[cell_id]
                 * 1.8015e-11
-                * (
-                    self.data["plant_ammonium_uptake"][cell_id]
-                    + self.data["plant_nitrate_uptake"][cell_id]
-                ).item()
                 * 1000
             )
-            self.stochiometries[cell_id]["P"].element_surplus += (
-                self.per_stem_transpiration[cell_id]
-                * (1.8015 * pow(10.0, -11))
-                * (self.data["plant_phosphorus_uptake"][cell_id]).item()
+            nitrate_uptake = (
+                self.data["dissolved_nitrate"][cell_id].item()
+                * self.per_stem_transpiration[cell_id]
+                * 1.8015e-11
                 * 1000
             )
+            phosphorous_uptake = (
+                self.data["dissolved_phosphorus"][cell_id].item()
+                * self.per_stem_transpiration[cell_id]
+                * 1.8015e-11
+                * 1000
+            )
+
+            # Add per-cell, per-plant uptake to the data object
+            self.data["plant_ammonium_uptake"][cell_id] = sum(ammonium_uptake)
+            self.data["plant_nitrate_uptake"][cell_id] = sum(nitrate_uptake)
+            self.data["plant_phosphorus_uptake"][cell_id] = sum(phosphorous_uptake)
+
+            # Add per-stem uptake to the stoichiometry surplus
+            self.stoichiometries[cell_id]["N"].element_surplus += (
+                ammonium_uptake + nitrate_uptake
+            )
+            self.stoichiometries[cell_id]["P"].element_surplus += phosphorous_uptake
 
     def calculate_mycorrhizal_uptakes(self) -> None:
         """Calculate the rate at which plants take nutrients from mycorrhizal fungi.
@@ -1133,132 +1309,6 @@ class PlantsModel(
         )
         self.data["plant_p_uptake_ecto"] = 0.5 * self.data["ecto_supply_limit_p"]
 
-    def set_subcanopy_light_capture(self) -> None:
-        r"""Calculate the leaf area index and absorption of subcanopy vegetation.
-
-        The subcanopy vegetation is represented as pure leaf biomass (:math:`M_{SC}`, kg
-        m-2), with an associated extinction coefficient (:math:`k`) and specific leaf
-        area (:math:`\sigma`, kg m-2) set in the model constants. These can be used to
-        calculate the   leaf area index (:math:`L`) and hence the absorption fraction
-        (:math:`f_{a}`) of  the subcanopy vegetation layer via the Beer-Lambert law: 
-
-        .. math ::
-            :nowrap:
-
-            \[
-                \begin{align*}
-                    L &= M_{SC} \sigma \\
-                    f_a = e^{-kL}
-                \end{align*}
-            \]
-        """
-
-        # Calculate the leaf area index - values are already in kg m-2 so no need to
-        # account for the area occupied by the biomass - and set the leaf area
-        subcanopy_lai = (
-            self.data["subcanopy_vegetation_biomass"]
-            * self.model_constants.subcanopy_specific_leaf_area
-        )
-
-        # Beer-Lambert transmission - note that this is 1 when there is no biomass and
-        # so no light is absorbed by the vegetation and all of the subcanopy light
-        # reaches the ground.
-        subcanopy_light_transmission = np.exp(
-            -self.model_constants.subcanopy_extinction_coef * subcanopy_lai
-        )
-
-        # Absorb a fraction of the below canopy light and pass the rest on to the ground
-        # incident light fraction
-        sub_canopy_fapar = self.below_canopy_light_fraction * (
-            1 - subcanopy_light_transmission
-        )
-
-        self.ground_incident_light_fraction = (
-            self.below_canopy_light_fraction * subcanopy_light_transmission
-        )
-
-        # Store those values
-        self.data["leaf_area_index"][self.layer_structure.index_surface_scalar] = (
-            subcanopy_lai
-        )
-        self.data["layer_fapar"][self.layer_structure.index_surface_scalar] = (
-            sub_canopy_fapar
-        )
-
-    def calculate_subcanopy_dynamics(self) -> None:
-        r"""Estimate the dynamics of subcanopy vegetation.
-
-        The fraction of the PPFD reaching the topsoil layer is extracted, given the leaf
-        area index and fAPAR calculated from the biomass of subcanopy vegetation. That
-        is then used to estimate GPP, given the LUE from the P Model in the surface
-        layer.
-
-        The GPP allocation then follows the parameterisation of the T Model but where
-        the subcanopy vegetation biomass is represented purely as leaf tissue.
-
-        At each update:
-
-        * The ``subcanopy_vegetation_biomass`` increases with the new growth from light
-          capture and the addition of a sprouting biomass from the
-          ``subcanopy_seedbank_biomass``.
-
-        * The ``subcanopy_seedbank_biomass`` loses mass due to resprouting but gains a
-          proportion of the net primary productivity from the subcanopy vegetation.
-        """
-
-        # Calculate the gross primary productivity since the last update.
-        #    LUE                     1 layer          [gC mol-1]
-        #    * shortwave absorption  1 layer          [µmol m-2 s-1]
-        #    * DST to PPFD           scalar           [-]
-        #    * time elapsed     scalar                [s]
-        # Units:
-        #    gC mol-1 * µmol m-2 s-1  * (-) * s = µg C m-2
-        subcanopy_gpp = (
-            self.pmodel.lue[self.layer_structure.index_surface_scalar, :]
-            * self.data["shortwave_absorption"][
-                self.layer_structure.index_surface_scalar, :
-            ]
-            * self.model_constants.dsr_to_ppfd
-            * self.model_timing.update_interval_seconds
-        )
-
-        # Calculate the transpiration associated with that GPP in moles
-        subcanopy_transpiration = (
-            subcanopy_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
-        ) * self.pmodel.iwue[self.layer_structure.index_surface_scalar, :]
-
-        # Calculate NPP, converting µg C m-2 to  kg C m-2
-        subcanopy_npp = (
-            self.model_constants.subcanopy_yield
-            * (subcanopy_gpp * 1e-9)
-            * (1 - self.model_constants.subcanopy_respiration_fraction)
-        )
-
-        subcanopy_growth = subcanopy_npp * (
-            1 - self.model_constants.subcanopy_reproductive_allocation
-        )
-
-        new_seedbank = subcanopy_npp - subcanopy_growth
-
-        subcanopy_sprouting_mass = self.data["subcanopy_seedbank_biomass"] * (
-            1
-            - np.exp(
-                -self.model_constants.subcanopy_sprout_rate
-                * (1 / self.model_timing.updates_per_year)
-            )
-        )
-
-        # Update the biomasses
-        self.data["subcanopy_vegetation_biomass"] += subcanopy_growth + (
-            self.model_constants.subcanopy_sprout_yield * subcanopy_sprouting_mass
-        )
-
-        self.data["subcanopy_seedbank_biomass"] += (
-            new_seedbank - subcanopy_sprouting_mass
-        )
-
-        self.data["transpiration"] += subcanopy_transpiration
-
     def partition_reproductive_tissue(
         self, reproductive_tissue_mass: NDArray[np.floating]
     ) -> tuple[NDArray[np.int_], NDArray[np.floating]]:
@@ -1274,7 +1324,7 @@ class PlantsModel(
             reproductive_tissue_mass
             * self.model_constants.propagule_mass_portion
             / self.model_constants.carbon_mass_per_propagule
-        )
+        ).astype(np.int_)
 
         non_propagule_mass = reproductive_tissue_mass - (
             n_propagules * self.model_constants.carbon_mass_per_propagule

@@ -1,6 +1,6 @@
 ---
 execution:
-  timeout: 120
+  timeout: 210
 jupytext:
   formats: md:myst
   main_language: python
@@ -101,7 +101,7 @@ For the code run at the command line, we currently only show the syntax for usin
 
 Before setting up static experiments, make sure you can run the model successfully.
 If you haven’t yet installed and executed the example, follow the
-[example instructions](./virtual_ecosystem_in_use.md) to familiarise yourself with the
+[example instructions](./virtual_ecosystem_in_use) to familiarise yourself with the
 setup.
 
 ```{code-cell} ipython3
