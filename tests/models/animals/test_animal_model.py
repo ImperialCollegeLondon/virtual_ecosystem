@@ -160,8 +160,7 @@ class TestAnimalModel:
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
         # Build the config object and core components using the fixture
-        config = animal_fixture_config
-        core_components = CoreComponents(config)
+        core_components = CoreComponents(animal_fixture_config)
         caplog.clear()
 
         # Check whether model is initialised (or not) as expected
@@ -169,7 +168,7 @@ class TestAnimalModel:
             model = AnimalModel.from_config(
                 data=dummy_animal_data,
                 core_components=core_components,
-                config=config,
+                config=animal_fixture_config,
             )
 
             # Run the update step (once this does something should check output)

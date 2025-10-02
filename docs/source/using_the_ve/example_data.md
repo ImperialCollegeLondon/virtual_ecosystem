@@ -168,27 +168,39 @@ configuration format and example settings look like in practice.
 
 ## Data files
 
-The `data` directory contains files containing the variables required to initialise the
-model and then iterate over a time series. The [data configuration
-file](../../../virtual_ecosystem/example_data/config/data_config.toml) sets up the links
-between the variables used in the models and the provided data file in which they are
-stored.
-
 ```{warning}
 All of these data files currently contain artificial data to test the program flow and
 data handling of the Virtual Ecosystem simulation. Although some values are taken from
 real source data, this is **not yet a meaningful real world example dataset**.
 ```
 
-The sections below show the data variables defined in each of the NetCDF files:
+The `data` directory contains files containing the variables required to initialise the
+model and then iterate over a time series.
 
-* the variable name used within model,
-* a short description,
-* the units for the variable, and
-* a list of the axes of the input data.
+### Array data
 
-Within the Virtual Ecosystem, we use a data system to keep track of variables and all
-variables have defined axes. Currently we use:
+Most of the data required by the Virtual Ecosystem is organised on well defined axes and
+so is imported into a central data store (see [the data object](./data/data.md) for
+details). These input data are typically stored in NetCDF format files, which is a
+format designed around array data on defined axes.
+
+The data in the files then needs to be linked into the variables required by the Virtual
+Ecosystem model. This is set in the configuration TOML files using the
+``core.data.variable`` option, which identifies the NetCDF file containing a particular
+variable. For example:
+
+```toml
+[[core.data.variable]]
+file_path = "../data/example_litter_data.nc"
+var_name = "litter_pool_above_metabolic"
+```
+
+The configuration setting needs to be provided which for every variable required by
+a given simulation setup - see the example TOML contents above for more examples.
+
+Within the Virtual Ecosystem, the data system is used to load and track these variables.
+The system also checks that the axes of loaded data are congruent with the following
+expected data axis definitions from the core model settings.
 
 * The `x`, `y` and `cell_id` axes all record the spatial location of input cells. All
   cells have an `x` and `y` coordinate, but we also map cells onto a unique `cell_id`
@@ -198,6 +210,14 @@ variables have defined axes. Currently we use:
   within the model.
 * The `pft` axis is used to separate outputs within cells that come from different plant
   functional types.
+
+The NetCDF files provided in the example data provide a long set of required variables and
+the sections below show the data variables defined in each of the NetCDF files:
+
+* the variable name used within model,
+* a short description,
+* the units for the variable, and
+* a list of the axes that apply to the input variable.
 
 ```{code-cell} ipython3
 :tags: [remove-input]
@@ -214,6 +234,29 @@ sections = (
 for section, dataset in sections:
     display(data_section_markdown(section, example_dir / dataset))
 ```
+
+### Other data files
+
+The `data` directory also provides some model specific files that are required to
+initialise a simulation:
+
+### Plant functional type definitions
+
+The `plants_pft.csv` file is a CSV file that contains a set of plant functional types.
+It defines a set of named PFTs and then provides a set of traits that define the
+behaviour of individuals in each PFT.
+
+### Initial plant cohort data
+
+The `example_plant_cohorts.csv` file is a CSV file that defines the initial plant
+communities found in each cell. It provides a set of rows identifying size structured
+cohorts of PFTs occurring in each cell.
+
+### Animal functional group definitions
+
+The `animal_functional_groups.csv` file is a CSV file that defines the animal functional
+groups to be used within the simulation. Each row defines a uniquely named functional
+group along with key traits such as the adult body mass and diet.
 
 <!--
 
