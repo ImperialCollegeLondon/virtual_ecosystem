@@ -359,8 +359,9 @@ def split_pool_into_metabolic_and_structural_litter(
         + split_sensitivity_phosphorus * carbon_phosphorus_ratio
     )
 
-    # This stops the error in ve_run:
-    # metabolic_fraction = np.where(metabolic_fraction < 0, 0.0, metabolic_fraction)
+    # This is a naive prevention of negative metabolic fraction rates.
+    # TODO: full solution in Issue #1010.
+    metabolic_fraction = np.where(metabolic_fraction < 0, 0.0, metabolic_fraction)
 
     if np.any(metabolic_fraction < 0.0):
         to_raise = ValueError(
