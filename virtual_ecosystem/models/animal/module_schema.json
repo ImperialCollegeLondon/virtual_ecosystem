@@ -5,72 +5,9 @@
             "description": "Configuration settings for the animal module.",
             "type": "object",
             "properties": {
-                "functional_groups": {
-                    "description": "Details of the animal functional types.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "taxa": {
-                                "type": "string"
-                            },
-                            "diet": {
-                                "type": "string"
-                            },
-                            "metabolic_type": {
-                                "type": "string"
-                            },
-                            "reproductive_environment": {
-                                "type": "string"
-                            },
-                            "reproductive_type": {
-                                "type": "string"
-                            },
-                            "development_type": {
-                                "type": "string"
-                            },
-                            "development_status": {
-                                "type": "string"
-                            },
-                            "offspring_functional_group": {
-                                "type": "string"
-                            },
-                            "excretion_type": {
-                                "type": "string"
-                            },
-                            "migration_type": {
-                                "type": "string"
-                            },
-                            "vertical_occupancy": {
-                                "type": "string"
-                            },
-                            "birth_mass": {
-                                "type": "number"
-                            },
-                            "adult_mass": {
-                                "type": "number"
-                            }
-                        },
-                        "required": [
-                            "name",
-                            "taxa",
-                            "diet",
-                            "metabolic_type",
-                            "reproductive_environment",
-                            "reproductive_type",
-                            "development_type",
-                            "development_status",
-                            "offspring_functional_group",
-                            "excretion_type",
-                            "migration_type",
-                            "vertical_occupancy",
-                            "birth_mass",
-                            "adult_mass"
-                        ]
-                    }
+                "functional_group_definitions_path": {
+                    "description": "A file path to a data file of animal functional group definitions",
+                    "type": "string"
                 },
                 "static": {
                     "type": "boolean",
@@ -88,7 +25,7 @@
             },
             "default": {},
             "required": [
-                "functional_groups"
+                "functional_group_definitions_path"
             ]
         }
     },
