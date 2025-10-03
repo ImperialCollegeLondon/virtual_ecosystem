@@ -475,24 +475,7 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
         for cell_id in fxt_plants_model.communities.keys()
     }
 
-    fxt_plants_model.data["leaf_turnover"] = xarray.full_like(
-        fxt_plants_model.data["elevation"], 10
-    )
-    fxt_plants_model.data["leaf_turnover_c_n_ratio"] = xarray.full_like(
-        fxt_plants_model.data["elevation"], 1
-    )
-    fxt_plants_model.data["leaf_turnover_c_p_ratio"] = xarray.full_like(
-        fxt_plants_model.data["elevation"], 1
-    )
-    fxt_plants_model.data["root_turnover"] = xarray.full_like(
-        fxt_plants_model.data["elevation"], 10
-    )
-    fxt_plants_model.data["root_turnover_c_n_ratio"] = xarray.full_like(
-        fxt_plants_model.data["elevation"], 1
-    )
-    fxt_plants_model.data["root_turnover_c_p_ratio"] = xarray.full_like(
-        fxt_plants_model.data["elevation"], 1
-    )
+    fxt_plants_model.reset_update_vars()
 
     # Check reset
     fxt_plants_model.apply_mortality()

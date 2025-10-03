@@ -1143,17 +1143,17 @@ class PlantsModel(
             for element in ["N", "P"]:
                 # Deadwood CN and CP ratios match the WoodTissue ratios
                 if deadwood_c_mass:
-                    self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = (
-                        deadwood_c_mass
-                        / np.sum(
-                            (mortality * community.stem_allometry.stem_mass)
-                            * (
-                                1
-                                / self.stoichiometries[cell_id][element]
-                                .get_tissue("WoodTissue")
-                                .Cx_ratio
-                            )
+                    deadwood_n_mass = np.sum(
+                        (mortality * community.stem_allometry.stem_mass)
+                        * (
+                            1
+                            / self.stoichiometries[cell_id][element]
+                            .get_tissue("WoodTissue")
+                            .Cx_ratio
                         )
+                    )
+                    self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = (
+                        deadwood_c_mass / deadwood_n_mass
                     )
                 else:
                     self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = np.inf
