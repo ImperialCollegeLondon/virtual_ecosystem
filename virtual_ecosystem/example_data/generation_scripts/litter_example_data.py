@@ -81,7 +81,79 @@ example_litter_data = Dataset(
         x=(["x"], cell_displacements),
         y=(["y"], cell_displacements),
     ),
-    attrs=dict(description="Litter data for example Virtual Ecosystem model."),
+    attrs={
+        "dataset_description": """This dataset contains example values for the various
+        litter pools used in the
+        {mod}`~virtual_ecosystem.models.litter.litter_model`."""
+    },
+)
+
+example_litter_data.litter_pool_above_metabolic.attrs = dict(
+    units="kg C m^-2", description="Size of the above ground metabolic litter pool"
+)
+example_litter_data.litter_pool_above_structural.attrs = dict(
+    units="kg C m^-2", description="Size of the above ground structural litter pool"
+)
+example_litter_data.litter_pool_woody.attrs = dict(
+    units="kg C m^-2", description="Size of the woody litter pool"
+)
+example_litter_data.litter_pool_below_metabolic.attrs = dict(
+    units="kg C m^-2", description="Size of the below ground metabolic litter pool"
+)
+example_litter_data.litter_pool_below_structural.attrs = dict(
+    units="kg C m^-2", description="Size of the below ground structural litter pool"
+)
+example_litter_data.lignin_above_structural.attrs = dict(
+    units="kg lignin C (kg C)^-1",
+    description="Proportion of above-ground structural pool carbon that is lignin",
+)
+example_litter_data.lignin_woody.attrs = dict(
+    units="kg lignin C (kg C)^-1",
+    description="Proportion of woody pool carbon that is lignin",
+)
+example_litter_data.lignin_below_structural.attrs = dict(
+    units="kg lignin C (kg C)^-1",
+    description="Proportion of below-ground structural pool carbon that is lignin",
+)
+example_litter_data.c_n_ratio_above_metabolic.attrs = dict(
+    units="kg C (kg N)^-1",
+    description="Ratio of carbon to nitrogen in the above-ground metabolic pool",
+)
+example_litter_data.c_n_ratio_above_structural.attrs = dict(
+    units="kg C (kg N)^-1",
+    description="Ratio of carbon to nitrogen in the above-ground structural pool",
+)
+example_litter_data.c_n_ratio_woody.attrs = dict(
+    units="kg C (kg N)^-1",
+    description="Ratio of carbon to nitrogen in the woody litter pool",
+)
+example_litter_data.c_n_ratio_below_metabolic.attrs = dict(
+    units="kg C (kg N)^-1",
+    description="Ratio of carbon to nitrogen in the below-ground metabolic pool",
+)
+example_litter_data.c_n_ratio_below_structural.attrs = dict(
+    units="kg C (kg N)^-1",
+    description="Ratio of carbon to nitrogen in the below-ground structural pool",
+)
+example_litter_data.c_p_ratio_above_metabolic.attrs = dict(
+    units="kg C (kg P)^-1",
+    description="Ratio of carbon to phosphorus in the above-ground metabolic pool",
+)
+example_litter_data.c_p_ratio_above_structural.attrs = dict(
+    units="kg C (kg P)^-1",
+    description="Ratio of carbon to phosphorus in the above-ground structural pool",
+)
+example_litter_data.c_p_ratio_woody.attrs = dict(
+    units="kg C (kg P)^-1",
+    description="Ratio of carbon to phosphorus in the woody litter pool",
+)
+example_litter_data.c_p_ratio_below_metabolic.attrs = dict(
+    units="kg C (kg P)^-1",
+    description="Ratio of carbon to phosphorus in the below-ground metabolic pool",
+)
+example_litter_data.c_p_ratio_below_structural.attrs = dict(
+    units="kg C (kg P)^-1",
+    description="Ratio of carbon to phosphorus in the below-ground structural pool",
 )
 
 # Save the dummy litter data file as netcdf
