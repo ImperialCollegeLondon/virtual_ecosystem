@@ -96,6 +96,8 @@ class PlantsModel(
         "leaf_turnover",
         "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
+        "leaf_turnover_n_mass",
+        "leaf_turnover_p_mass",
         "plant_ammonium_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
@@ -104,14 +106,17 @@ class PlantsModel(
         "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
         "plant_reproductive_tissue_lignin",
-        "plant_reproductive_tissue_turnover_c_n_ratio",
-        "plant_reproductive_tissue_turnover_c_p_ratio",
+        "plant_rt_turnover_n_mass",
+        "plant_rt_turnover_p_mass",
+        "plant_reproductive_tissue_turnover",
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
         "root_turnover",
         "root_turnover_c_n_ratio",
         "root_turnover_c_p_ratio",
+        "root_turnover_n_mass",
+        "root_turnover_p_mass",
         "senesced_leaf_lignin",
         "shortwave_absorption",
         "stem_lignin",
@@ -138,11 +143,15 @@ class PlantsModel(
     vars_populated_by_first_update=(
         "deadwood_c_n_ratio",
         "deadwood_c_p_ratio",
+        "deadwood_n_mass",
+        "deadwood_p_mass",
         "deadwood_production",
         "fallen_non_propagule_c_mass",
         "leaf_turnover",
         "leaf_turnover_c_n_ratio",
         "leaf_turnover_c_p_ratio",
+        "leaf_turnover_n_mass",
+        "leaf_turnover_p_mass",
         "plant_ammonium_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
@@ -150,15 +159,20 @@ class PlantsModel(
         "plant_p_uptake_arbuscular",
         "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
+        "plant_reproductive_tissue_turnover",
         "plant_reproductive_tissue_lignin",
         "plant_reproductive_tissue_turnover_c_n_ratio",
         "plant_reproductive_tissue_turnover_c_p_ratio",
+        "plant_rt_turnover_n_mass",
+        "plant_rt_turnover_p_mass",
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
         "root_turnover",
         "root_turnover_c_n_ratio",
         "root_turnover_c_p_ratio",
+        "root_turnover_n_mass",
+        "root_turnover_p_mass",
         "senesced_leaf_lignin",
         "stem_lignin",
         "transpiration",
@@ -522,20 +536,34 @@ class PlantsModel(
 
         # Initialize variables that hold one value per cell
         cell_template = xr.full_like(self.data["elevation"], 0)
+
         self.data["leaf_turnover"] = cell_template.copy()
-        self.data["root_turnover"] = cell_template.copy()
         self.data["leaf_turnover_c_n_ratio"] = cell_template.copy()
         self.data["leaf_turnover_c_p_ratio"] = cell_template.copy()
+        self.data["leaf_turnover_n_mass"] = cell_template.copy()
+        self.data["leaf_turnover_p_mass"] = cell_template.copy()
+
+        self.data["root_turnover"] = cell_template.copy()
         self.data["root_turnover_c_n_ratio"] = cell_template.copy()
         self.data["root_turnover_c_p_ratio"] = cell_template.copy()
+        self.data["root_turnover_n_mass"] = cell_template.copy()
+        self.data["root_turnover_p_mass"] = cell_template.copy()
+
+        self.data["plant_reproductive_tissue_turnover"] = cell_template.copy()
         self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = cell_template.copy()
         self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = cell_template.copy()
+        self.data["plant_rt_turnover_n_mass"] = cell_template.copy()
+        self.data["plant_rt_turnover_p_mass"] = cell_template.copy()
+
         self.data["root_carbohydrate_exudation"] = cell_template.copy()
         self.data["plant_symbiote_carbon_supply"] = cell_template.copy()
         self.data["fallen_non_propagule_c_mass"] = cell_template.copy()
+
         self.data["deadwood_production"] = cell_template.copy()
         self.data["deadwood_c_n_ratio"] = cell_template.copy()
         self.data["deadwood_c_p_ratio"] = cell_template.copy()
+        self.data["deadwood_n_mass"] = cell_template.copy()
+        self.data["deadwood_p_mass"] = cell_template.copy()
 
         # Fallen propagules and canopy RT are stored per cell and per PFT.
         # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
@@ -937,20 +965,15 @@ class PlantsModel(
             new_dbh = cohorts.dbh_values + stem_allocation.delta_dbh.squeeze()
             cohorts.dbh_values = np.where(new_dbh <= 0, cohorts.dbh_values, new_dbh)
 
-            # Sum of turnover from all cohorts in a grid cell
-            leaf_turnover_c = np.sum(
+            # Store turnover quantities in the data object
+            self.data["leaf_turnover"][cell_id] += np.sum(
                 stem_allocation.foliage_turnover * cohorts.n_individuals
             )
-            root_turnover_c = np.sum(
+            self.data["root_turnover"][cell_id] += np.sum(
                 stem_allocation.fine_root_turnover * cohorts.n_individuals
             )
-
-            # Store turnover values in the data object
-            self.data["leaf_turnover"][cell_id] = self.convert_to_litter_units(
-                input_mass=leaf_turnover_c,
-            )
-            self.data["root_turnover"][cell_id] = self.convert_to_litter_units(
-                input_mass=root_turnover_c,
+            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
+                stem_allocation.reproductive_tissue_turnover * cohorts.n_individuals
             )
 
             # Partition reproductive tissue into propagule and non-propagule masses and
@@ -1057,34 +1080,26 @@ class PlantsModel(
                 )
                 stoichiometries[element].element_surplus += element_per_stem
 
-                # Pass the turnover CN and CP ratios to the data object
-                self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
-                    leaf_turnover_c
-                    / np.sum(
-                        cohorts.n_individuals
-                        * stoichiometries[element]
-                        .get_tissue("FoliageTissue")
-                        .element_turnover(stem_allocation)
-                    )
-                )
-
-                self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
-                    root_turnover_c
-                    / np.sum(
-                        cohorts.n_individuals
-                        * stoichiometries[element]
-                        .get_tissue("RootTissue")
-                        .element_turnover(stem_allocation)
-                    )
-                )
-                self.data[
-                    f"plant_reproductive_tissue_turnover_c_{element.lower()}_ratio"
-                ][cell_id] = np.sum(
-                    stem_allocation.reproductive_tissue_turnover
-                ) / np.sum(
-                    stoichiometries[element]
-                    .get_tissue("ReproductiveTissue")
+                # Add the N and P turnover masses to the data object
+                self.data[f"leaf_turnover_{element.lower()}_mass"][cell_id] += np.sum(
+                    cohorts.n_individuals
+                    * stoichiometries[element]
+                    .get_tissue("FoliageTissue")
                     .element_turnover(stem_allocation)
+                )
+                self.data[f"root_turnover_{element.lower()}_mass"][cell_id] += np.sum(
+                    cohorts.n_individuals
+                    * stoichiometries[element]
+                    .get_tissue("RootTissue")
+                    .element_turnover(stem_allocation)
+                )
+                self.data[f"plant_rt_turnover_{element.lower()}_mass"][cell_id] = (
+                    np.sum(
+                        cohorts.n_individuals
+                        * stoichiometries[element]
+                        .get_tissue("ReproductiveTissue")
+                        .element_turnover(stem_allocation)
+                    )
                 )
 
             # Cohort by cohort, distribute the surplus/deficit across the tissue types
@@ -1117,8 +1132,10 @@ class PlantsModel(
         This function applies the basic annual mortality rate to plant cohorts. The
         mortality rate is currently a constant value for all cohorts. The function
         calculates the number of individuals that have died in each cohort and updates
-        the cohort data accordingly. The function then updates deadwood production.
+        the cohort data accordingly.
 
+        The function then updates deadwood production and adds the other dead plant
+        material to the tissue turnover pools.
         """
 
         # Loop over each grid cell
@@ -1135,72 +1152,55 @@ class PlantsModel(
             # Decrease size of cohorts based on mortality
             cohorts.n_individuals = cohorts.n_individuals - mortality
 
-            # Update deadwood production
-            deadwood_c_mass = np.sum(mortality * community.stem_allometry.stem_mass)
-            self.data["deadwood_production"][cell_id] = self.convert_to_litter_units(
-                input_mass=deadwood_c_mass,
+            # Update turnover to include the dead plant material
+            self.data["deadwood_production"][cell_id] = np.sum(
+                mortality * community.stem_allometry.stem_mass
             )
+            self.data["leaf_turnover"][cell_id] += np.sum(
+                mortality * community.stem_allometry.foliage_mass
+            )
+            self.data["root_turnover"][cell_id] += np.sum(
+                mortality
+                * community.stem_allometry.foliage_mass
+                * community.stem_traits.zeta
+                * community.stem_traits.sla
+            )
+            self.data["plant_reproductive_tissue_turnover"][cell_id] += np.sum(
+                mortality * community.stem_allometry.reproductive_tissue_mass
+            )
+
+            # Update N and P masses to include dead plant material
             for element in ["N", "P"]:
-                # Deadwood CN and CP ratios match the WoodTissue ratios
-                if deadwood_c_mass:
-                    deadwood_n_mass = np.sum(
-                        (mortality * community.stem_allometry.stem_mass)
-                        * (
-                            1
-                            / self.stoichiometries[cell_id][element]
-                            .get_tissue("WoodTissue")
-                            .Cx_ratio
-                        )
-                    )
-                    self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = (
-                        deadwood_c_mass / deadwood_n_mass
-                    )
-                else:
-                    self.data[f"deadwood_c_{element.lower()}_ratio"][cell_id] = np.inf
-
-                # Tissue turnover from dead trees must be added to turnover ratios
-                # (Turnover C + Dead Foliage C) / (Turnover N + Dead Foliage N)
-                # Since the data objects stores CN and CP ratios, this is a bit
-                # complicated.
-                element_foliage_turnover = self.data["leaf_turnover"][cell_id] * (
-                    1 / self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id]
+                self.data[f"deadwood_{element.lower()}_mass"][cell_id] = np.sum(
+                    mortality
+                    * self.stoichiometries[cell_id][element]
+                    .get_tissue("WoodTissue")
+                    .actual_element_mass
                 )
-                self.data[f"leaf_turnover_c_{element.lower()}_ratio"][cell_id] = (
-                    self.data["leaf_turnover"][cell_id]
-                    + np.sum(
-                        self.stoichiometries[cell_id][element]
-                        .get_tissue("FoliageTissue")
-                        .carbon_mass
-                    )
-                ) / (
-                    element_foliage_turnover
-                    + np.sum(
-                        self.stoichiometries[cell_id][element]
-                        .get_tissue("FoliageTissue")
+
+                self.data[f"leaf_turnover_{element.lower()}_mass"][cell_id] += np.sum(
+                    mortality
+                    * self.stoichiometries[cell_id][element]
+                    .get_tissue("FoliageTissue")
+                    .actual_element_mass
+                )
+
+                self.data[f"root_turnover_{element.lower()}_mass"][cell_id] += np.sum(
+                    mortality
+                    * self.stoichiometries[cell_id][element]
+                    .get_tissue("RootTissue")
+                    .actual_element_mass
+                )
+
+                self.data[f"plant_rt_turnover_{element.lower()}_mass"][cell_id] += (
+                    np.sum(
+                        mortality
+                        * self.stoichiometries[cell_id][element]
+                        .get_tissue("ReproductiveTissue")
                         .actual_element_mass
-                        * mortality
                     )
                 )
 
-                element_root_turnover = self.data["root_turnover"][cell_id] * (
-                    1 / self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id]
-                )
-                self.data[f"root_turnover_c_{element.lower()}_ratio"][cell_id] = (
-                    self.data["root_turnover"][cell_id]
-                    + np.sum(
-                        self.stoichiometries[cell_id][element]
-                        .get_tissue("RootTissue")
-                        .carbon_mass
-                    )
-                ) / (
-                    element_root_turnover
-                    + np.sum(
-                        self.stoichiometries[cell_id][element]
-                        .get_tissue("RootTissue")
-                        .actual_element_mass
-                        * mortality
-                    )
-                )
             # TODO - also need to add standing foliage, fine root and reproductive
             #        tissue masses to the respective pools and check units of pools.
 
@@ -1262,16 +1262,14 @@ class PlantsModel(
     def calculate_turnover(self) -> None:
         """Calculate turnover of each plant biomass pool.
 
-        This function calculates the turnover rate for each plant biomass pool (wood,
-        leaves, roots, and reproductive tissues). As well as this the lignin
-        concentration, carbon nitrogen ratio and carbon phosphorus ratio of each
-        turnover flow is calculated. It also returns the rate at which plants supply
-        carbon to their nitrogen fixing symbionts in the soil and the rate at which they
-        exude carbohydrates into the soil more generally.
+        This function calculates the lignin concentration, carbon nitrogen ratio, and
+        carbon phosphorus ratio of each turnover flow. It also returns the rate at which
+        plants supply carbon to their nitrogen fixing symbionts in the soil and the rate
+        at which they exude carbohydrates into the soil more generally.
 
         Warning:
-            At present, this function literally just returns constant values for each of
-            the variables it returns.
+            At present, this function literally just returns constant values for lignin
+            and carbon fixation.
         """
 
         # Lignin concentrations
@@ -1293,6 +1291,56 @@ class PlantsModel(
         )
         self.data["nitrogen_fixation_carbon_supply"] = xr.full_like(
             self.data["elevation"], 0.01
+        )
+
+        for element in ["n", "p"]:
+            # Update carbon to nitruent ratios for turnover pools
+            self.data[f"deadwood_c_{element}_ratio"] = np.divide(
+                self.data["deadwood_production"],
+                self.data[f"deadwood_{element}_mass"],
+                out=np.full_like(self.data["deadwood_production"], np.inf, dtype=float),
+                where=self.data[f"deadwood_{element}_mass"] != 0,
+            )
+
+            self.data[f"leaf_turnover_c_{element}_ratio"] = np.divide(
+                self.data["leaf_turnover"],
+                self.data[f"leaf_turnover_{element}_mass"],
+                out=np.full_like(self.data["leaf_turnover"], np.inf, dtype=float),
+                where=self.data[f"leaf_turnover_{element}_mass"] != 0,
+            )
+
+            self.data[f"root_turnover_c_{element}_ratio"] = np.divide(
+                self.data["root_turnover"],
+                self.data[f"root_turnover_{element}_mass"],
+                out=np.full_like(self.data["root_turnover"], np.inf, dtype=float),
+                where=self.data[f"root_turnover_{element}_mass"] != 0,
+            )
+
+            self.data[f"plant_reproductive_tissue_turnover_c_{element}_ratio"] = (
+                np.divide(
+                    self.data["plant_reproductive_tissue_turnover"],
+                    self.data[f"plant_rt_turnover_{element}_mass"],
+                    out=np.full_like(
+                        self.data["plant_reproductive_tissue_turnover"],
+                        np.inf,
+                        dtype=float,
+                    ),
+                    where=self.data[f"plant_rt_turnover_{element}_mass"] != 0,
+                )
+            )
+
+        # Convert turnover pools to litter units
+        self.data["deadwood_production"] = self.convert_to_litter_units(
+            input_mass=self.data["deadwood_production"]
+        )
+        self.data["leaf_turnover"] = self.convert_to_litter_units(
+            input_mass=self.data["leaf_turnover"]
+        )
+        self.data["root_turnover"] = self.convert_to_litter_units(
+            input_mass=self.data["root_turnover"]
+        )
+        self.data["plant_reproductive_tissue_turnover"] = self.convert_to_litter_units(
+            input_mass=self.data["plant_reproductive_tissue_turnover"]
         )
 
     def calculate_nutrient_uptake(self) -> None:
@@ -1393,9 +1441,7 @@ class PlantsModel(
 
         return n_propagules, non_propagule_mass
 
-    def convert_to_litter_units(
-        self, input_mass: NDArray[np.floating]
-    ) -> NDArray[np.floating]:
+    def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
         """Helper function to convert plant quantities into litter model units.
 
         The plant model records the plant biomass in units of mass (kg) per grid square,

@@ -1162,6 +1162,69 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
+description = "Mass of Nitrogen in foliage turnover"
+name = "leaf_turnover_n_mass"
+unit = "kg N"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Phosphorus in foliage turnover"
+name = "leaf_turnover_p_mass"
+unit = "kg P"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Nitrogen in root turnover"
+name = "root_turnover_n_mass"
+unit = "kg N"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Phosphorus in root turnover"
+name = "root_turnover_p_mass"
+unit = "kg P"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Nitrogen in plant reproductive and tissue turnover"
+name = "plant_rt_turnover_n_mass"
+unit = "kg N"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Phosphorus in plant reproductive and tissue turnover"
+name = "plant_rt_turnover_p_mass"
+unit = "kg P"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Nitrogen in deadwood"
+name = "deadwood_n_mass"
+unit = "kg N"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of Phosphorus in deadwood"
+name = "deadwood_p_mass"
+unit = "kg P"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
+description = "Mass of plant reproductive tissue turnover"
+name = "plant_reproductive_tissue_turnover"
+unit = "kg C"
+variable_type = "float"
+
+[[variable]]
+axis = ["spatial"]
 description = "Rate at which plants are supplying carbon to their soil-living symbiotic partners"
 name = "plant_symbiote_carbon_supply"
 unit = "kg C m^-2 day^-1"

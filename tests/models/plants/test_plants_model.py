@@ -382,6 +382,7 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
     """Test the calculate_turnover method of the plants model."""
 
     # Check reset
+    fxt_plants_model.reset_update_vars()
     fxt_plants_model.calculate_turnover()
     consts = fxt_plants_model.model_constants
 
@@ -409,6 +410,8 @@ def test_PlantsModel_calculate_turnover_constant_override(
     plants_model = PlantsModel.from_config(
         data=plants_data, config=fixture_config, core_components=fixture_core_components
     )
+
+    plants_model.reset_update_vars()
     plants_model.calculate_turnover()
 
     assert np.allclose(plants_model.data["leaf_lignin"], 100.0)
@@ -487,10 +490,7 @@ def test_PlantsModel_apply_mortality(fxt_plants_model):
             original_population[cell_id]
             - fxt_plants_model.communities[cell_id].cohorts.n_individuals
         )
-        deadwood_mass = (
-            np.sum(mortality * community.stem_allometry.stem_mass)
-            / fxt_plants_model.grid.cell_area
-        )
+        deadwood_mass = np.sum(mortality * community.stem_allometry.stem_mass)
 
         assert np.all(
             original_population[cell_id]
