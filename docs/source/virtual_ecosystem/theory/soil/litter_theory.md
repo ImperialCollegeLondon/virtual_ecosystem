@@ -124,7 +124,7 @@ in the product of lignin proportion and carbon:phosphorus ratio.
 
 Now that the split of input sources between pools has been determined, we have to
 determine how the various nutrients contained in the input biomass are split between
-pools. For lignin is straightforward, as by definition only woody and structural litter
+pools. For lignin it is straightforward, as by definition only woody and structural litter
 pools contain lignin. So, all lignin from input biomass is added to the relevant
 structural (or woody) pool and none of it is added to the metabolic pools.
 
@@ -132,25 +132,29 @@ The situation is more complex for nitrogen and phosphorus, as litter pools are n
 defined in terms of their nitrogen and phosphorus contents. Furthermore, the division
 between metabolic and structural litter is a modelling convenience rather than a
 measurable split, so pool elemental proportions cannot be determined based on empirical
-data. Instead, following {cite:t}`kirschbaum_modelling_2002`, we make the assumption
-that the nutrient concentrations of the inputs to a metabolic/structural pool pair
-always follow a fixed ratio, i.e.
+data. Instead, following {cite:t}`kirschbaum_modelling_2002`, we assume
+that the nutrient concentrations of the inputs to a structural/metabolic pool pair
+always follow a fixed ratio,
 
 $$\rho = \frac{r_s}{r_m},$$
 
 where $r_m$ is the carbon:nutrient ratio of the input to the metabolic litter pool,
 $r_s$ is the carbon:nutrient ratio of the input to the corresponding structural litter
-pool and $\rho$ is their ratio. Based on this the nutrient concentrations for the input
-to both pools can be calculated using
+pool, and $\rho$ is their ratio. Based on this, the nutrient concentrations that
+flow into each pool is therefore
 
-$$r_m = r_i * \left(f_{m,i} + \frac{(1 - f_{m,i})}{\rho}\right)$$
+$$r_m = r_i * \left[f_{m,i} + \frac{(1 - f_{m,i})}{\rho}\right]$$
 
 and
 
 $$r_s = \rho*r_m$$
 
-where $r_i$ is the carbon:nutrient ratio of the total input (to both pools). At present,
-we allow $\rho$ to vary between nutrients but not between strata (above- vs
+where $r_i$ is the carbon:nutrient ratio of the total input (to both pools).
+The component in square brackets can be interpreted as total input $r_i$ flows into the
+metabolic litter pool first through the metabolic fractional split $f_{m,i}$, and then
+plus the remaining nutrient not flown into the structural fraction
+$\frac{(1 - f_{m,i})}{\rho}$.
+At present, we allow $\rho$ to vary between nutrients but not between strata (above- vs
 below-ground). These values are set in {attr}`structural_to_metabolic_n_ratio
 <virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_n_ratio>`
 and {attr}`structural_to_metabolic_p_ratio
