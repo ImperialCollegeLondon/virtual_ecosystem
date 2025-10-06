@@ -143,19 +143,20 @@ $r_s$ is the carbon:nutrient ratio of the input to the corresponding structural 
 pool, and $\rho$ is their ratio. Based on this, the nutrient concentrations that
 flow into each pool is therefore
 
-$$r_m = r_i * \left[f_{m,i} + \frac{(1 - f_{m,i})}{\rho}\right]$$
+$$r_m = r_i * f_{m,i} + r_i *\frac{(1 - f_{m,i})}{\rho}$$
 
 and
 
 $$r_s = \rho*r_m$$
 
-where $r_i$ is the carbon:nutrient ratio of the total input (to both pools).
-The component in square brackets can be interpreted as total input $r_i$ flows into the
-metabolic litter pool first through the metabolic fractional split $f_{m,i}$, and then
-plus the remaining nutrient not flown into the structural fraction
-$\frac{(1 - f_{m,i})}{\rho}$.
-At present, we allow $\rho$ to vary between nutrients but not between strata (above- vs
-below-ground). These values are set in {attr}`structural_to_metabolic_n_ratio
+where $r_i$ is the carbon:nutrient ratio of the total input (to both pools). The first
+term of the first equation captures how much nutrient will flow to the metabolic pool
+for a given input concentration ($r_m$), the second term then captures how much nutrient
+would have to flow to the structural pool to maintain the ratio ($\rho$). This equation
+will only be satisfied when the sum of the nutrient input flows to the pools matches the
+total input. At present, we allow $\rho$ to vary between nutrients but not between
+strata (above- vs below-ground). These values are set in
+{attr}`structural_to_metabolic_n_ratio
 <virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_n_ratio>`
 and {attr}`structural_to_metabolic_p_ratio
 <virtual_ecosystem.models.litter.constants.LitterConsts.structural_to_metabolic_p_ratio>`.
