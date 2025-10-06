@@ -1,7 +1,5 @@
 """Fixtures for plants model testing."""
 
-import io
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -62,31 +60,37 @@ def fixture_exporter(fixture_config):
 
 
 @pytest.fixture
+def plants_cohort_data():
+    """Construct a simple initial cohort dataframe."""
+
+    return pd.DataFrame(
+        {
+            "plant_cohorts_cell_id": [0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+            "plant_cohorts_n": [400, 100, 100, 300, 100, 200, 100, 100, 100, 100],
+            "plant_cohorts_pft": [
+                "broadleaf",
+                "broadleaf",
+                "shrub",
+                "broadleaf",
+                "broadleaf",
+                "broadleaf",
+                "shrub",
+                "broadleaf",
+                "broadleaf",
+                "shrub",
+            ],
+            "plant_cohorts_dbh": [1.0, 0.1, 0.01, 1.0, 0.1, 1.0, 0.01, 1.0, 0.1, 0.01],
+        }
+    )
+
+
+@pytest.fixture
 def plants_data(fixture_core_components, flora):
-    """Construct a minimal data object with plant cohort data."""
+    """Construct a minimal data object for the plant model."""
     from virtual_ecosystem.core.data import Data
 
     data = Data(grid=fixture_core_components.grid)
     n_cells = fixture_core_components.grid.n_cells
-
-    # Add cohort configuration - this adds varying numbers of cohorts with different
-    # canopy profiles to the four cells.
-    cohort_csv = io.StringIO("""cell_id,n,pft,dbh
-    0,400,broadleaf,1.0
-    0,100,broadleaf,0.1
-    0,100,shrub,0.01
-    1,300,broadleaf,1.0
-    1,100,broadleaf,0.1
-    2,200,broadleaf,1.0
-    2,100,shrub,0.01
-    3,100,broadleaf,1.0
-    3,100,broadleaf,0.1
-    3,100,shrub,0.01""")
-
-    cohorts = pd.read_csv(cohort_csv).to_xarray()
-
-    for var in cohorts:
-        data["plant_cohorts_" + var] = cohorts[var]
 
     data["plant_pft_propagules"] = DataArray(
         data=np.full((n_cells, flora.n_pfts), fill_value=100, dtype=np.int_),
@@ -166,7 +170,11 @@ def plants_data(fixture_core_components, flora):
 
 @pytest.fixture
 def fixture_canopy_layer_data(
-    plants_data, fixture_plants_constants, flora, fixture_core_components
+    plants_cohort_data,
+    plants_data,
+    fixture_plants_constants,
+    flora,
+    fixture_core_components,
 ):
     """Shared canopy layer data.
 
@@ -186,15 +194,7 @@ def fixture_canopy_layer_data(
     from pyrealm.demography.community import Cohorts, Community
 
     # Package the community data up into cell groups
-    community_data = plants_data[
-        [
-            "plant_cohorts_cell_id",
-            "plant_cohorts_dbh",
-            "plant_cohorts_pft",
-            "plant_cohorts_n",
-        ]
-    ]
-    cells = community_data.groupby("plant_cohorts_cell_id")
+    cells = plants_cohort_data.groupby("plant_cohorts_cell_id")
 
     # Build the pyrealm community for each cell
     communities = [
@@ -318,6 +318,7 @@ def fixture_canopy_layer_data(
 def fxt_plants_model(
     plants_data,
     flora,
+    plants_cohort_data,
     extra_pft_traits,
     fixture_core_components,
     fixture_plants_constants,
@@ -333,6 +334,7 @@ def fxt_plants_model(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        cohort_data=plants_cohort_data,
         extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
         model_constants=fixture_plants_constants,

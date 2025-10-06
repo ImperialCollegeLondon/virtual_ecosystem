@@ -1273,34 +1273,6 @@ unit = "kg P m^-2 day^-1"
 variable_type = "float"
 
 [[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Cell ID of plant cohorts"
-name = "plant_cohorts_cell_id"
-unit = "-"
-variable_type = "int"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Plant functional type of plant cohorts"
-name = "plant_cohorts_pft"
-unit = "-"
-variable_type = "str"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Number of individuals in a plant cohort"
-name = "plant_cohorts_n"
-unit = "-"
-variable_type = "int"
-
-[[variable]]
-axis = [] # as_yet_undefined_cohort_setup_axis
-description = "Diameter at breast height of individuals in plant cohorts"
-name = "plant_cohorts_dbh"
-unit = "m"
-variable_type = "float"
-
-[[variable]]
 axis = ["spatial"]
 description = "The fraction of clay in soil"
 name = "clay_fraction"
