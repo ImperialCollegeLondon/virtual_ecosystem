@@ -7,6 +7,7 @@ from collections.abc import Iterable
 
 import pandas as pd
 
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentStatus,
     DevelopmentType,
@@ -145,38 +146,52 @@ def import_functional_groups(
         A list of the FunctionalGroup instances created by the import.
 
     """
-    functional_group_list: list[FunctionalGroup] = []
 
-    fg = pd.read_csv(fg_csv_file)
+    try:
+        fg_data = pd.read_csv(fg_csv_file)
+    except FileNotFoundError:
+        msg = "Animal functional group definition file not found: " + fg_csv_file
+        LOGGER.error(msg)
+        raise
+    except pd.errors.ParserError:
+        msg = "Cannot parse animal functional group definition file: " + fg_csv_file
+        LOGGER.error(msg)
+        raise
 
-    expected_header = ["name", "taxa", "diet", "metabolic_type"]
-    if not set(expected_header).issubset(fg.columns):
+    required_headers = {
+        "name",
+        "taxa",
+        "diet",
+        "metabolic_type",
+        "reproductive_environment",
+        "reproductive_type",
+        "development_type",
+        "development_status",
+        "offspring_functional_group",
+        "excretion_type",
+        "migration_type",
+        "vertical_occupancy",
+        "birth_mass",
+        "adult_mass",
+    }
+
+    missing_headers = required_headers.difference(fg_data.columns)
+    if missing_headers:
         raise ValueError(
-            f"Invalid header. Expected at least {expected_header}, but got {fg.columns}"
+            "Missing required headers in animal functional group definition file:"
+            + ",".join(missing_headers)
         )
 
-    for row in fg.itertuples():
-        density = getattr(row, "density_individuals_m2", None)
+    # Set individual densities if not provided
+    if "density_individuals_m2" not in fg_data:
+        fg_data["density_individuals_m2"] = None
 
-        functional_group = FunctionalGroup(
-            row.name,
-            row.taxa,
-            row.diet,
-            row.metabolic_type,
-            row.reproductive_environment,
-            row.reproductive_type,
-            row.development_type,
-            row.development_status,
-            row.offspring_functional_group,
-            row.excretion_type,
-            row.migration_type,
-            row.vertical_occupancy,
-            row.birth_mass,
-            row.adult_mass,
-            density_individuals_m2=density,
-            constants=constants,
-        )
-        functional_group_list.append(functional_group)
+    # Build the functional group list - ignore mypy moaning about unpacking column
+    # headers from pandas: they are all strings
+    functional_group_list: list[FunctionalGroup] = [
+        FunctionalGroup(constants=constants, **row)  # type: ignore [misc]
+        for row in fg_data.to_dict(orient="records")
+    ]
 
     return functional_group_list
 
