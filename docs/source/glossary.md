@@ -110,4 +110,29 @@ gravitational head
   reference level, influencing the direction and rate of water movement. It is typically
   measured in units of length, such as meters (m), representing the height of a water
   column.
+
+local runoff generation
+  The water generated within a grid cell during a timestep. Includes both surface runoff
+  (overland flow) and subsurface runoff (lateral soil flow and baseflow).
+
+surface runoff
+  The portion of local runoff that flows over the land surface into streams and rivers.
+  In this model, this is purely precipitation-derived.
+
+sub-surface runoff
+  The portion of local runoff that moves laterally through soil and groundwater pathways
+  before reaching the stream.
+
+total runoff
+  the depth of water produced from a drainage area during a particular time interval,
+  including surface and subsurface runoff (mm).
+
+inflow
+  Water entering a cell from all upstream cells during the same timestep. Can be divided
+  into surface inflow (overland) and subsurface inflow (through soils/groundwater).
+
+river discharge rate
+  The total volume of water moving through a river channel in a cell per unit time,
+  combining both surface and subsurface flows. The model returns this variable a rate
+  in cubic meters per second.
 ```
