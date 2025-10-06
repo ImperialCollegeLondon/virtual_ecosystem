@@ -413,8 +413,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Accumulated subsurface flow"
-name = "subsurface_flow_accumulated"
+description = "Subsurface flow contributing to river discharge in each grid cell"
+name = "subsurface_runoff_routed_plus_local"
 unit = "mm"
 variable_type = "float"
 
@@ -490,8 +490,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Accumulated surface runoff"
-name = "surface_runoff_accumulated"
+description = "Surface runoff contributing to river discharge in each grid cell"
+name = "surface_runoff_routed_plus_local"
 unit = "mm"
 variable_type = "float"
 
@@ -504,8 +504,8 @@ variable_type = "float"
 
 [[variable]]
 axis = ["spatial"]
-description = "Total river discharge"
-name = "total_river_discharge"
+description = "Total runoff through each grid cell"
+name = "total_runoff"
 unit = "mm"
 variable_type = "float"
 
