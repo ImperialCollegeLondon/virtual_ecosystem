@@ -5,7 +5,7 @@
 
 This repository is the home for the development of the Virtual Ecosystem. The
 Virtual Ecosystem is a project to develop a simulation of all of the major
-processes involved in a terrestial ecosystem including the:
+processes involved in a terrestrial ecosystem including the:
 
 * growth and demographic processes of the primary producers,
 * microclimatic processes within and around the ecosystem,
