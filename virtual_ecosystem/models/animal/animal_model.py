@@ -42,6 +42,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DevelopmentType,
     DietType,
     ReproductiveEnvironment,
+    VerticalOccupancy,
 )
 from virtual_ecosystem.models.animal.cnp import CNP
 from virtual_ecosystem.models.animal.constants import AnimalConsts
@@ -58,7 +59,9 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
     import_functional_groups,
 )
-from virtual_ecosystem.models.animal.plant_resources import PlantResources
+from virtual_ecosystem.models.animal.plant_resources import (
+    ArrayResources,
+)
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
@@ -93,6 +96,12 @@ class AnimalModel(
         "c_p_ratio_below_metabolic",
         "c_p_ratio_below_structural",
         "production_of_fungal_fruiting_bodies",
+        "subcanopy_vegetation_biomass",
+        "subcanopy_vegetation_n_ratio",
+        "subcanopy_vegetation_p_ratio",
+        "subcanopy_seedbank_biomass",
+        "subcanopy_seedbank_n_ratio",
+        "subcanopy_seedbank_p_ratio",
     ),
     vars_populated_by_first_update=(
         "decomposed_excrement_carbon",
@@ -118,6 +127,8 @@ class AnimalModel(
         "animal_ectomycorrhiza_consumption",
         "animal_arbuscular_mycorrhiza_consumption",
         "decay_of_fungal_fruiting_bodies",
+        "subcanopy_vegetation_biomass_consumed",
+        "subcanopy_seedbank_biomass_consumed",
     ),
     vars_updated=(
         "decomposed_excrement_carbon",
@@ -145,6 +156,8 @@ class AnimalModel(
         "animal_arbuscular_mycorrhiza_consumption",
         "fungal_fruiting_bodies",
         "decay_of_fungal_fruiting_bodies",
+        "subcanopy_vegetation_biomass_consumed",
+        "subcanopy_seedbank_biomass_consumed",
     ),
 ):
     """A class describing the animal model.
@@ -422,12 +435,30 @@ class AnimalModel(
         """Determine grid square adjacency."""
         self.functional_groups = functional_groups
         self.model_constants = self.model_constants
+        # TODO: plant resource
+        self._plant_array_resources = (
+            ArrayResources(
+                data=self.data,
+                mass_var="subcanopy_vegetation_biomass",
+                n_ratio_var="subcanopy_vegetation_n_ratio",
+                p_ratio_var="subcanopy_vegetation_p_ratio",
+                mass_consumed_var="subcanopy_vegetation_biomass_consumed",
+                vertical_occupancy=VerticalOccupancy.GROUND,
+            ),
+            ArrayResources(
+                data=self.data,
+                mass_var="subcanopy_seedbank_biomass",
+                n_ratio_var="subcanopy_seedbank_n_ratio",
+                p_ratio_var="subcanopy_seedbank_p_ratio",
+                mass_consumed_var="subcanopy_seedbank_biomass_consumed",
+                vertical_occupancy=VerticalOccupancy.GROUND,
+            ),
+        )
+
+        # Expose per-cell Resource objects for the existing animal interface --
+        # This preserves: self.plant_resources[cell_id] -> list[Resource]
         self.plant_resources = {
-            cell_id: [
-                PlantResources(
-                    data=self.data, cell_id=cell_id, constants=self.model_constants
-                )
-            ]
+            cell_id: [arr[cell_id] for arr in self._plant_array_resources]
             for cell_id in self.data.grid.cell_id
         }
 
@@ -547,6 +578,10 @@ class AnimalModel(
         # and the rate of decay
         fruiting_bodies_decay = self.update_fungal_fruiting_bodies()
 
+        # Refresh plant resource arrays for this step
+        for resource_array in self._plant_array_resources:
+            resource_array.set_mass_and_elemental_ratios()
+
         self.forage_community(self.update_interval_timedelta)
         self.migrate_community()
         self.birth_community()
@@ -579,6 +614,10 @@ class AnimalModel(
 
         # Update population densities
         self.update_population_densities()
+
+        # Send herbivory information back to plant module through data
+        for resource_array in self._plant_array_resources:
+            resource_array.write_herbivory()
 
     def update_community_bookkeeping(self, dt: timedelta64) -> None:
         """Perform status updates and cleanup at the community level.
