@@ -1074,6 +1074,10 @@ class PlantsModel(
                     + self.data["arbuscular_supply_limit_" + element.lower()][cell_id]
                 )
 
+                # Calculate the fraction of the total supply that each stem gets by
+                # calculating the cohort share (using cohort_fractions) and then
+                # dividing by the number of individuals per cohort. Handle case where
+                # there are no individuals in the cohort, by assigning them zero.
                 cohort_fractions = cohorts.n_individuals / sum(cohorts.n_individuals)
                 element_per_stem = np.divide(
                     total_supply * cohort_fractions,
