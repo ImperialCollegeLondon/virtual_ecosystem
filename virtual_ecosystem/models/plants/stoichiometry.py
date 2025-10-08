@@ -137,7 +137,7 @@ class FoliageTissue(Tissue):
         return cls(
             community=community,
             ideal_ratio=ideal_ratios,
-            actual_element_mass=community.stem_allometry.foliage_mass * ideal_ratios,
+            actual_element_mass=community.stem_allometry.foliage_mass / ideal_ratios,
             turnover_ratio=np.array(
                 [
                     extra_pft_traits.traits[name][
@@ -237,7 +237,7 @@ class ReproductiveTissue(Tissue):
             community=community,
             ideal_ratio=ideal_ratios,
             actual_element_mass=(
-                community.stem_allometry.reproductive_tissue_mass * ideal_ratios
+                community.stem_allometry.reproductive_tissue_mass / ideal_ratios
             ),
         )
 
@@ -324,12 +324,7 @@ class WoodTissue(Tissue):
         return cls(
             community=community,
             ideal_ratio=ideal_ratios,
-            actual_element_mass=(
-                community.stem_allometry.foliage_mass
-                * community.stem_traits.zeta
-                * community.stem_traits.sla
-                * ideal_ratios
-            ),
+            actual_element_mass=(community.stem_allometry.stem_mass / ideal_ratios),
         )
 
     @property
@@ -411,7 +406,14 @@ class RootTissue(Tissue):
         return cls(
             community=community,
             ideal_ratio=ideal_ratios,
-            actual_element_mass=(community.stem_allometry.stem_mass * ideal_ratios),
+            actual_element_mass=(
+                (
+                    community.stem_allometry.foliage_mass
+                    * community.stem_traits.zeta
+                    * community.stem_traits.sla
+                )
+                / ideal_ratios
+            ),
         )
 
     @property
@@ -560,6 +562,7 @@ class StemStoichiometry(CohortMethods, PandasExporter):
             wood_tissue_model,
             root_tissue_model,
         ]
+
         return cls(
             element=element,
             tissues=tissues,
@@ -712,3 +715,17 @@ class StemStoichiometry(CohortMethods, PandasExporter):
                     share * self.element_surplus[cohort]
                 )
             self.element_surplus[cohort] = 0.0
+
+    def get_tissue(self, tissue_type: str) -> Tissue:
+        """Get the tissue model for a specific tissue type.
+
+        Args:
+            tissue_type: The type of tissue to retrieve (e.g., 'foliage', 'wood').
+
+        Returns:
+            The tissue model corresponding to the specified tissue type.
+        """
+        for tissue in self.tissues:
+            if tissue.__class__.__name__.lower() == tissue_type.lower():
+                return tissue
+        raise ValueError(f"Tissue type '{tissue_type}' not found.")
