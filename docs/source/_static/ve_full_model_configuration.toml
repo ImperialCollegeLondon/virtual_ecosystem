@@ -147,22 +147,6 @@ c_p_ratio = 40.0
 
 [[core.data.variable]]
 file_path = "/private/tmp/ve_example/data/example_plant_data.nc"
-var_name = "plant_cohorts_n"
-
-[[core.data.variable]]
-file_path = "/private/tmp/ve_example/data/example_plant_data.nc"
-var_name = "plant_cohorts_pft"
-
-[[core.data.variable]]
-file_path = "/private/tmp/ve_example/data/example_plant_data.nc"
-var_name = "plant_cohorts_cell_id"
-
-[[core.data.variable]]
-file_path = "/private/tmp/ve_example/data/example_plant_data.nc"
-var_name = "plant_cohorts_dbh"
-
-[[core.data.variable]]
-file_path = "/private/tmp/ve_example/data/example_plant_data.nc"
 var_name = "plant_pft_propagules"
 
 [[core.data.variable]]
@@ -444,6 +428,7 @@ density_scaling_method = "madingley"
 static = false
 
 [plants]
+cohort_data_path = "/private/tmp/ve_example/data/example_plant_cohorts.csv"
 pft_definitions_path = "/private/tmp/ve_example/data/plant_pfts.csv"
 static = false
 

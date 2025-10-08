@@ -336,10 +336,11 @@ def calculate_nutrient_pool_loss(
     fraction_of_initial_pool_decayed = np.where(
         carbon_loss > initial_pool_size, 1, carbon_loss / initial_pool_size
     )
-    fraction_of_new_input_decayed = np.where(
-        carbon_loss > initial_pool_size,
-        (carbon_loss - initial_pool_size) / (input_rate * update_interval),
-        0,
+    fraction_of_new_input_decayed = np.divide(
+        carbon_loss - initial_pool_size,
+        input_rate * update_interval,
+        out=np.zeros_like(carbon_loss, dtype=float),
+        where=(carbon_loss > initial_pool_size) & (input_rate != 0),
     )
 
     # Then calculate the amount of nutrient there initially and added due to input
@@ -392,10 +393,11 @@ def calculate_lignin_pool_loss(
     fraction_of_initial_pool_decayed = np.where(
         carbon_loss > initial_pool_size, 1, carbon_loss / initial_pool_size
     )
-    fraction_of_new_input_decayed = np.where(
-        carbon_loss > initial_pool_size,
-        (carbon_loss - initial_pool_size) / (input_rate * update_interval),
-        0,
+    fraction_of_new_input_decayed = np.divide(
+        carbon_loss - initial_pool_size,
+        input_rate * update_interval,
+        out=np.zeros_like(carbon_loss, dtype=float),
+        where=(carbon_loss > initial_pool_size) & (input_rate != 0),
     )
 
     # Then calculate the amount of nutrient there initially and added due to input

@@ -233,7 +233,7 @@ to the other models.
 1. You **must** provide all the required data to initialise the model. The
   list of required variables is stored in the model's `vars_required_for_init`
   attribute: see for example the [plant model required
-  variables](../../virtual_ecosystem/implementation/plants_implementation.md#required-variables).
+  variables](../../virtual_ecosystem/implementation/plants_implementation.md#required-array-variables).
 
    If you only provide the required variables, then the model will take this data and
    run the setup and first update steps and then go into static mode.
