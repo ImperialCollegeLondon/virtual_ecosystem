@@ -93,24 +93,24 @@ surface runoff out of the grid cell.
 The [below ground](../../api/models/hydrology/below_ground.md) component considers
 infiltration, bypass flow, percolation (= vertical flow), {term}`soil moisture` and
 {term}`soil matric potential`, horizontal
-sub-surface flow out of the grid cell, and changes in groundwater storage.
+sub-surface runoff out of the grid cell, and changes in groundwater storage.
 
-:::{figure} ../../_static/images/4bucketmodel.svg
+:::{figure} ../../_static/images/bucketmodel.svg
 :name: bucket_model
 :alt: 4-Bucket Model
 :class: bg-primary
 :width: 600px
 
-The 4-Bucket Model represented within grid cell hydrology processes in the Virtual
-Ecosystem. Red solid arrows indicate upward vertical flow, red dashed arrows show
-vertical downward flow. The blue arrows indicate horizontal flow out of the
+The 4-Bucket Model represents within grid cell hydrology processes in the Virtual
+Ecosystem. Red solid arrows indicate upward vertical flows, red dashed arrows show
+vertical downward flows. The blue arrows indicate horizontal flows out of the
 grid cell with solid lines representing water that flows out of each layer in the
 current time step and dashed lines representing water that originates from upstream
-grid cells (previous time step) and flows through the grid cell directly to the stream.
+grid cells and flows through the grid cell directly to the stream.
 **NOTE!** Top soil and middle soil are currently treated as one layer in the model.
-Subsurface runoff (Q2) and interflow (Q3) are currently not implemented; the
-river discharge is calculated as the sum of surface runoff (Q1) and the flows out of the
-groundwater buckets (Q4+Q5).
+Subsurface stormflow (Q2) and interflow (Q3) are currently not implemented; the
+total runoff is calculated as the sum of surface runoff (Q1) and the flows out of the
+groundwater buckets (=subsurface runoff, Q4+Q5).
 :::
 
 ### Canopy interception
@@ -305,10 +305,10 @@ We do currently NOT include any horizontal flows from the soil layers towards th
 (Q2 and Q3 in {numref}`bucket_model`).
 ```
 
-### Belowground horizontal flow and groundwater storage
+### Belowground runoff and groundwater storage
 
-Groundwater storage and horizontal transport are modelled using two parallel linear
-reservoirs, similar to the approach used in the HBV-96 model
+Groundwater storage and runoff towards the channel are modelled using two parallel
+linear reservoirs, similar to the approach used in the HBV-96 model
 {cite}`lindstrom_development_1997` and the LISFLOOD
 {cite}`van_der_knijff_lisflood_2010` (see for full documentation).
 
@@ -316,7 +316,7 @@ The upper zone represents a quick runoff component, which includes fast groundwa
 and (vertical) subsurface flow through macro-pores in the soil. The lower zone
 represents the slow groundwater component that generates the base flow.
 
-The outflow from the upper zone to the channel, $Q_{uz}$, (mm),
+The runoff from the upper zone to the channel, $Q_{uz}$, (mm),
 (Q4 in {numref}`bucket_model`) equals:
 
 $$Q_{uz} = \frac{1}{T_{uz}} \cdot UZ \cdot \Delta t$$
@@ -339,8 +339,8 @@ follows:
 
 $$D_{uz,lz} = min(GW_{perc} \cdot \Delta t, UZ)$$
 
-where $GW_{perc}$, [mm day], is the maximum percolation rate from the upper to
-the lower groundwater zone. The outflow from the lower zone to the channel $Q_{lz}$,
+where $GW_{perc}$, [mm day-1], is the maximum percolation rate from the upper to
+the lower groundwater zone. The runoff from the lower zone to the channel $Q_{lz}$,
 (mm), (Q5 in {numref}`bucket_model`) is then computed by:
 
 $$Q_{lz} = \frac{1}{T_{lz}} \cdot LZ \cdot \Delta t$$
@@ -362,8 +362,15 @@ the value of $GW_{loss}$, the larger the amount of water that leaves the system.
 ## Across grid hydrology
 
 The second part of the hydrology model calculates the horizontal water movement across
-the full model grid including accumulated surface runoff and sub-surface flow, and river
-discharge rate.
+the full model grid including {term}`surface runoff` and {term}`sub-surface runoff`,
+combined into {term}`local runoff generation` per grid cell and {term}`total runoff`
+across the grid.
+
+Hereinafter, we refer to {term}`river discharge rate` to indicate the amount of water
+passing a particular point of a river (m3 s−1), whereas runoff $R$ is regarded as the
+depth of water produced from a drainage area during a particular time interval (mm).
+
+### Drainage map
 
 The flow direction of water above and below ground is based on a digital elevation model
 which needs to be provided as a NetCDF file at the start of the simulation.
@@ -371,31 +378,18 @@ Here an description of the steps that happen during the hydrology model
 initialisation (plotting only for illustration):
 
 ```{code-cell} ipython3
-# # Read elevation datafrom NetCDF
+# Read elevation data from NetCDF
 import numpy as np
 import xarray as xr
 from xarray import DataArray
 
-input_file = "../../../../virtual_ecosystem/example_data/data/example_elevation_data.nc"
+input_file = "../../_static/river_DEM.nc"
 digital_elevation_model = xr.open_dataset(input_file)
 elevation = digital_elevation_model["elevation"]
 ```
 
 ```{code-cell} ipython3
-# Plot the elevation data
-import matplotlib.pyplot as plt
-from matplotlib import colors
-
-plt.figure(figsize=(10, 6))
-elevation.plot(cmap="terrain")
-plt.title("Elevation, m")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.show()
-```
-
-```{code-cell} ipython3
-# Create Grid and Data objects and add elevation data (this happens automatically)
+# Create Grid and Data objects and add elevation data
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.data import Data
 
@@ -404,6 +398,22 @@ grid = Grid(
 )
 data = Data(grid=grid)
 data["elevation"] = elevation
+
+# Plot elevation data on grid
+import matplotlib.pyplot as plt
+from matplotlib import colors
+
+ele_plot = DataArray(
+    data["elevation"].to_numpy().reshape((9, 9)),
+    dims=("x", "y"),
+    coords={"x": np.arange(9), "y": np.arange(9)},
+)
+plt.figure(figsize=(10, 6))
+ele_plot.plot(cmap="terrain")
+plt.title("Elevation, [m]")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.show()
 ```
 
 The initialisation step of the hydrology model finds all the neighbours for each grid
@@ -417,8 +427,8 @@ grid.neighbours[56]
 
 Based on that relationship, the model determines all upstream neighbours
 for each grid cell and creates a drainage map, i.e. a dictionary that contains for each
-grid cell all upstream grid cells. For example, `cell_id = 56` has four upstream cells
-with the indices `[47, 56, 57, 65]`.
+grid cell all upstream grid cells. For example, `cell_id = 34` has upstream cells
+with the indices `[4, 13, 22]`. This gives the flow direction.
 
 ```{code-cell} ipython3
 from virtual_ecosystem.models.hydrology.above_ground import calculate_drainage_map
@@ -429,39 +439,97 @@ drainage_map = calculate_drainage_map(
 )
 ```
 
-The accumulated surface runoff is the calculated in each grid cell as the sum of current
-runoff and the runoff from upstream cells at the previous time step.
+### Runoff and river discharge rate
+
+We track horizontal water fluxes in two pathways — surface and subsurface runoff — and
+then combine them into total runoff, which can be converted to river discharge rate.
+
+#### Surface runoff ($R_{surface}$)
+
+Water moving over the land surface into the river channel. For each cell, this includes:
+
+* Local surface runoff: water generated within the cell during the current timestep.
+* Upstream surface runoff: surface runoff generated in all upstream cells during the
+  same timestep.
+
+#### Subsurface runoff ($R_{subsurface}$)
+
+Water moving laterally through soil and groundwater pathways towards the river channel.
+For each cell, this includes:
+
+* Local subsurface runoff: lateral + baseflow generated in the cell during the current
+  timestep.
+* Upstream subsurface runoff: subsurface runoff generated in upstream cells during the
+  same timestep.
+
+#### Total runoff ($R_{total}$) and river discharge rate
+
+The total water volume passing through a cell is the sum of these two pathways:
+
+$$R_{total} = R_{surface} + R_{subsurface}$$
+
+This total volume can then be converted to a river discharge rate in cubic meters per
+second (m3 s-1) using cell area and unit conversions.
 
 ```{code-cell} ipython3
-from virtual_ecosystem.models.hydrology.above_ground import accumulate_horizontal_flow
+from virtual_ecosystem.models.hydrology.above_ground import route_horizontal_flow
 
-previous_accumulated_runoff = DataArray(np.full(81, 10), dims="cell_id")
-surface_runoff = DataArray(np.full(81, 1), dims="cell_id")
+# Local runoff
+subsurface_runoff = DataArray(np.full_like(data["elevation"], 1.0), dims="cell_id")
+surface_runoff = DataArray(np.full_like(data["elevation"], 12), dims="cell_id")
 
-accumulated_runoff = accumulate_horizontal_flow(
+# Total runoff = local runoff generation + upstream inflow
+total_runoff = route_horizontal_flow(
     drainage_map=drainage_map,
-    current_flow=surface_runoff,
-    previous_accumulated_flow=previous_accumulated_runoff,
+    surface_runoff=surface_runoff,
+    subsurface_runoff=subsurface_runoff,
 )
 
-# Plot accumulated runoff map
-reshaped_data = DataArray(accumulated_runoff.to_numpy().reshape(9, 9))
+# Reshape to 9x9 grid and plot total runoff map
+reshaped_runoff = DataArray(
+    total_runoff.reshape((9, 9)),
+    dims=("x", "y"),
+    coords={"x": np.arange(9), "y": np.arange(9)},
+)
+
 plt.figure(figsize=(10, 6))
-reshaped_data.plot(cmap="Blues")
-plt.title("Accumulated runoff, mm")
+reshaped_runoff.plot(cmap="Blues")
+plt.title("Total runoff, [mm]")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
 ```
 
-Total river discharge is calculated as the sum of above- and below ground horizontal
-flow and converted to river discharge rate in m3/s.
+```{code-cell} ipython3
+from virtual_ecosystem.models.hydrology.above_ground import (
+    convert_mm_flow_to_m3_per_second,
+)
+
+# Convert total runoff [mm] to river discharge rate [m3 s-1]
+river_discharge_rate = convert_mm_flow_to_m3_per_second(
+    river_discharge_mm=total_runoff,
+    area=grid.cell_area,
+    days=1,
+    seconds_to_day=86400,
+    meters_to_millimeters=1000,
+)
+
+# Reshape to 9x9 grid and plot river discharge rate
+reshaped_discharge_rate = DataArray(
+    river_discharge_rate.reshape((9, 9)),
+    dims=("x", "y"),
+    coords={"x": np.arange(9), "y": np.arange(9)},
+)
+
+plt.figure(figsize=(10, 6))
+reshaped_discharge_rate.plot(cmap="Blues")
+plt.title("River discharge rate, [m3 s-1]")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.show()
+```
 
 ```{note}
-The hydrology model requires a spinup period to establish a steady state flow of
-accumulated above and below ground flow - each simulation time step then represents the
-total flow through a grid cell. This is currently not implemented.
-
 To close the water balance, water needs to enter and leave the grid at some point. These
 boundaries are currently not implemented.
 ```

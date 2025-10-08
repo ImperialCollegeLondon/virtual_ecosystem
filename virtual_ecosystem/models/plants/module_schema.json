@@ -21,6 +21,10 @@
                "description": "A file path to a data file of plant functional type definitions",
                "type": "string"
             },
+            "cohort_data_path": {
+               "description": "A file path to a file of initial cohort data",
+               "type": "string"
+            },
             "static": {
                "type": "boolean",
                "default": false
@@ -83,6 +87,7 @@
          "default": {},
          "required": [
             "pft_definitions_path",
+            "cohort_data_path",
             "community_data_export",
             "static"
          ]

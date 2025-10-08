@@ -6,13 +6,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from xarray import DataArray
 
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
 @pytest.fixture
-def fixture_exporter_components(flora):
+def fixture_exporter_components(flora, plants_cohort_data, fixture_core_components):
     """Plant models components for testing exporter.
 
     Provides a set of PlantCommunities, their Canopy instances and a matching
@@ -22,25 +21,11 @@ def fixture_exporter_components(flora):
     from pyrealm.demography.canopy import Canopy
     from pyrealm.demography.tmodel import StemAllocation
 
-    from virtual_ecosystem.core.data import Data
-    from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
-    data = Data(grid=Grid(cell_ny=2, cell_nx=2, cell_area=625))
-    cohort_data = (
-        (
-            "plant_cohorts_cell_id",
-            DataArray(np.repeat(np.arange(4), np.arange(1, 5))),
-        ),
-        ("plant_cohorts_n", DataArray(np.array([5] * 10))),
-        ("plant_cohorts_pft", DataArray(np.array(["shrub", "broadleaf"] * 5))),
-        ("plant_cohorts_dbh", DataArray(np.array([1] * 10))),
+    communities = PlantCommunities(
+        cohort_data=plants_cohort_data, flora=flora, grid=fixture_core_components.grid
     )
-
-    for var, value in cohort_data:
-        data[var] = value
-
-    communities = PlantCommunities(data, flora=flora, grid=data.grid)
     canopies = {
         cell_id: Canopy(cmty, fit_ppa=True) for cell_id, cmty in communities.items()
     }
@@ -268,6 +253,8 @@ def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     out_path = '{tmp_path / inputs["path"]}'
     [plants]
     pft_definitions_path = "does/not/need/to/exist"
+    cohort_data_path = "also/does/not/need/to/exist"
+
     [plants.community_data_export]
     required_data = {inputs["required"]}
     cohort_attributes = {inputs["cohort_attrs"]}
@@ -557,6 +544,7 @@ class TestExporterDump:
         tmp_path,
         plants_data,
         flora,
+        plants_cohort_data,
         extra_pft_traits,
         fixture_core_components,
         fixture_canopy_layer_data,
@@ -583,6 +571,7 @@ class TestExporterDump:
             data=plants_data,
             core_components=fixture_core_components,
             flora=flora,
+            cohort_data=plants_cohort_data,
             extra_pft_traits=extra_pft_traits,
             exporter=exporter,
         )
@@ -625,6 +614,7 @@ class TestExporterDump:
         out_path = '{tmp_path!s}'
         [plants]
         pft_definitions_path = "does/not/need/to/exist"
+        cohort_data_path = "also/does/not/need/to/exist"
         [plants.community_data_export]
         required_data = {list(required)}
         """

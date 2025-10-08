@@ -174,7 +174,8 @@ intersphinx_mapping = {
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
     "jsonschema": ("https://python-jsonschema.readthedocs.io/en/stable/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
-    "pyrealm": ("https://pyrealm.readthedocs.io/en/latest/", None),
+    "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!

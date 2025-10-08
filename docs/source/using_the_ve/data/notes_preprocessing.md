@@ -42,10 +42,8 @@ Please check the following:
 * **What are the variables names?**
 
   Check the input data variable names match the Virtual Ecosystem naming convention
-  as listed in the table above.
-
-We have used a simple [pre-processing
-script](../../using_the_ve/example_data.md#climate-data)  to create the climate data
-used in the [example data](../../using_the_ve/example_data.md) from ERA5-Land monthly
-averaged data, downloaded from the [Copernicus Climate Data Store]
-(<https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land-monthly-means?tab=overview>).
+  as listed for
+  [abiotic](../../virtual_ecosystem/implementation/abiotic_implementation.md#required-variables)
+  and
+  [hydrology](../../virtual_ecosystem/implementation/hydrology_implementation.md#required-variables)
+  models.

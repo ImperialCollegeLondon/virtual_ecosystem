@@ -54,6 +54,7 @@ def wipe_canopy_layers(model):
 
 def test_PlantsModel__init__(
     plants_data,
+    plants_cohort_data,
     flora,
     extra_pft_traits,
     fixture_core_components,
@@ -68,6 +69,7 @@ def test_PlantsModel__init__(
         data=plants_data,
         core_components=fixture_core_components,
         flora=flora,
+        cohort_data=plants_cohort_data,
         extra_pft_traits=extra_pft_traits,
         exporter=fixture_exporter,
     )
@@ -130,6 +132,7 @@ def test_PlantsModel__init__(
 def test_PlantsModel__init__errors(
     plants_data,
     flora,
+    plants_cohort_data,
     extra_pft_traits,
     fixture_core_components,
     fixture_canopy_layer_data,
@@ -155,6 +158,7 @@ def test_PlantsModel__init__errors(
             data=plants_data,
             core_components=fixture_core_components,
             flora=flora,
+            cohort_data=plants_cohort_data,
             extra_pft_traits=extra_pft_traits,
             exporter=fixture_exporter,
         )
