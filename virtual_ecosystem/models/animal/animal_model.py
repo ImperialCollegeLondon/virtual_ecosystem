@@ -436,23 +436,33 @@ class AnimalModel(
         self.functional_groups = functional_groups
         self.model_constants = self.model_constants
         # TODO: plant resource
+        plant_resources = [
+            (
+                "subcanopy_vegetation_biomass",
+                "subcanopy_vegetation_n_ratio",
+                "subcanopy_vegetation_p_ratio",
+                "subcanopy_vegetation_biomass_consumed",
+                VerticalOccupancy.GROUND,
+            ),
+            (
+                "subcanopy_seedbank_biomass",
+                "subcanopy_seedbank_n_ratio",
+                "subcanopy_seedbank_p_ratio",
+                "subcanopy_seedbank_biomass_consumed",
+                VerticalOccupancy.GROUND,
+            ),
+        ]
+
         self._plant_array_resources = (
             ArrayResources(
                 data=self.data,
-                mass_var="subcanopy_vegetation_biomass",
-                n_ratio_var="subcanopy_vegetation_n_ratio",
-                p_ratio_var="subcanopy_vegetation_p_ratio",
-                mass_consumed_var="subcanopy_vegetation_biomass_consumed",
-                vertical_occupancy=VerticalOccupancy.GROUND,
-            ),
-            ArrayResources(
-                data=self.data,
-                mass_var="subcanopy_seedbank_biomass",
-                n_ratio_var="subcanopy_seedbank_n_ratio",
-                p_ratio_var="subcanopy_seedbank_p_ratio",
-                mass_consumed_var="subcanopy_seedbank_biomass_consumed",
-                vertical_occupancy=VerticalOccupancy.GROUND,
-            ),
+                mass_var=mvar,
+                n_ratio_var=nvar,
+                p_ratio_var=pvar,
+                mass_consumed_var=mcvar,
+                vertical_occupancy=vocc,
+            )
+            for mvar, nvar, pvar, mcvar, vocc in plant_resources
         )
 
         # Expose per-cell Resource objects for the existing animal interface --
