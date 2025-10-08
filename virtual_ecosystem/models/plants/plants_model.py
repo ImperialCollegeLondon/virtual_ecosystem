@@ -537,38 +537,34 @@ class PlantsModel(
         # Initialize variables that hold one value per cell
         cell_template = xr.full_like(self.data["elevation"], 0)
 
-reset_vars = [
-    "leaf_turnover", 
-    "leaf_turnover_c_n_ratio", 
-    "leaf_turnover_c_p_ratio", 
-    "leaf_turnover_n_mass",
-    "leaf_turnover_p_mass", 
-    ...
-]
-for var in reset_vars:
-                self.data[var] = cell_template.copy()
+        reset_vars = [
+            "leaf_turnover",
+            "leaf_turnover_c_n_ratio",
+            "leaf_turnover_c_p_ratio",
+            "leaf_turnover_n_mass",
+            "leaf_turnover_p_mass",
+            "root_turnover",
+            "root_turnover_c_n_ratio",
+            "root_turnover_c_p_ratio",
+            "root_turnover_n_mass",
+            "root_turnover_p_mass",
+            "plant_reproductive_tissue_turnover",
+            "plant_reproductive_tissue_turnover_c_n_ratio",
+            "plant_reproductive_tissue_turnover_c_p_ratio",
+            "plant_rt_turnover_n_mass",
+            "plant_rt_turnover_p_mass",
+            "root_carbohydrate_exudation",
+            "plant_symbiote_carbon_supply",
+            "fallen_non_propagule_c_mass",
+            "deadwood_production",
+            "deadwood_c_n_ratio",
+            "deadwood_c_p_ratio",
+            "deadwood_n_mass",
+            "deadwood_p_mass",
+        ]
 
-        self.data["root_turnover"] = cell_template.copy()
-        self.data["root_turnover_c_n_ratio"] = cell_template.copy()
-        self.data["root_turnover_c_p_ratio"] = cell_template.copy()
-        self.data["root_turnover_n_mass"] = cell_template.copy()
-        self.data["root_turnover_p_mass"] = cell_template.copy()
-
-        self.data["plant_reproductive_tissue_turnover"] = cell_template.copy()
-        self.data["plant_reproductive_tissue_turnover_c_n_ratio"] = cell_template.copy()
-        self.data["plant_reproductive_tissue_turnover_c_p_ratio"] = cell_template.copy()
-        self.data["plant_rt_turnover_n_mass"] = cell_template.copy()
-        self.data["plant_rt_turnover_p_mass"] = cell_template.copy()
-
-        self.data["root_carbohydrate_exudation"] = cell_template.copy()
-        self.data["plant_symbiote_carbon_supply"] = cell_template.copy()
-        self.data["fallen_non_propagule_c_mass"] = cell_template.copy()
-
-        self.data["deadwood_production"] = cell_template.copy()
-        self.data["deadwood_c_n_ratio"] = cell_template.copy()
-        self.data["deadwood_c_p_ratio"] = cell_template.copy()
-        self.data["deadwood_n_mass"] = cell_template.copy()
-        self.data["deadwood_p_mass"] = cell_template.copy()
+        for var in reset_vars:
+            self.data[var] = cell_template.copy()
 
         # Fallen propagules and canopy RT are stored per cell and per PFT.
         # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
@@ -576,12 +572,14 @@ for var in reset_vars:
             data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
             coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
         )
+        by_pft_vars = [
+            "fallen_n_propagules",
+            "canopy_n_propagules",
+            "canopy_non_propagule_c_mass",
+        ]
 
-        # Allocate canopy reproductive tissue mass. This is deliberately not
-        # partitioning tissue across canopy vertical layers.
-        self.data["fallen_n_propagules"] = pft_cell_template.copy()
-        self.data["canopy_n_propagules"] = pft_cell_template.copy()
-        self.data["canopy_non_propagule_c_mass"] = pft_cell_template.copy()
+        for var in by_pft_vars:
+            self.data[var] = pft_cell_template.copy()
 
     def _update(self, time_index: int, **kwargs: Any) -> None:
         """Update the plants model.
