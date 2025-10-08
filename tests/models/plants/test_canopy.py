@@ -83,7 +83,7 @@ def test_initialise_canopy_layers(plants_data, fixture_core_components):
 def test_calculate_canopies(
     caplog,
     fixture_core_components,
-    plants_data,
+    plants_cohort_data,
     flora,
     max_canopy_layers,
     expected_exception,
@@ -96,7 +96,7 @@ def test_calculate_canopies(
     from virtual_ecosystem.models.plants.communities import PlantCommunities
 
     communities = PlantCommunities(
-        data=plants_data, flora=flora, grid=fixture_core_components.grid
+        cohort_data=plants_cohort_data, flora=flora, grid=fixture_core_components.grid
     )
 
     with expected_exception:

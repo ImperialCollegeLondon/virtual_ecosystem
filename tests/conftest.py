@@ -282,6 +282,7 @@ def generate_config(
         [plants]
         # Deliberately using single quote to provide TOML literal string for path
         pft_definitions_path = '{(fixture_root_data_dir / "plant_pfts.csv")!s}'
+        cohort_data_path = '{(fixture_root_data_dir / "plant_cohort_data.csv")!s}'
 
         [animal]
         functional_group_definitions_path = '''

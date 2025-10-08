@@ -8,7 +8,7 @@ There are still a number of open TODOs related to process implementation and imp
 
 .. TODO:: processes
 
-    * spin up soil moisture and accumulated runoff
+    * spin up soil moisture
     * set boundaries for river discharge
     * update infiltration process
 
@@ -65,12 +65,12 @@ class HydrologyModel(
         "surface_runoff",
         "vertical_flow",
         "soil_evaporation",
-        "surface_runoff_accumulated",
-        "subsurface_flow_accumulated",
+        "surface_runoff_routed_plus_local",
+        "subsurface_runoff_routed_plus_local",
+        "total_runoff",
+        "river_discharge_rate",
         "matric_potential",
         "groundwater_storage",
-        "river_discharge_rate",
-        "total_river_discharge",
         "subsurface_flow",
         "baseflow",
         "bypass_flow",
@@ -87,8 +87,6 @@ class HydrologyModel(
         "layer_heights",
         "soil_moisture",
         "transpiration",
-        "surface_runoff_accumulated",
-        "subsurface_flow_accumulated",
         "density_air",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
@@ -98,8 +96,6 @@ class HydrologyModel(
     vars_populated_by_init=(
         "soil_moisture",
         "groundwater_storage",
-        "surface_runoff_accumulated",
-        "subsurface_flow_accumulated",
         "aerodynamic_resistance_surface",
         "aerodynamic_resistance_canopy",
         "specific_heat_air",
@@ -116,8 +112,10 @@ class HydrologyModel(
         "matric_potential",
         "subsurface_flow",
         "baseflow",
-        "total_river_discharge",
+        "surface_runoff_routed_plus_local",
+        "subsurface_runoff_routed_plus_local",
         "river_discharge_rate",
+        "total_runoff",
         "canopy_evaporation",
     ),
 ):
@@ -161,7 +159,7 @@ class HydrologyModel(
         self.model_constants: HydroConsts
         """Set of constants for the hydrology model"""
         self.drainage_map: dict
-        """Upstream neighbours for the calculation of accumulated horizontal flow."""
+        """Upstream neighbours for the calculation of horizontal flow."""
         self.soil_layer_thickness_mm: np.ndarray
         """Soil layer thickness in mm."""
         self.surface_layer_index: int
@@ -224,10 +222,6 @@ class HydrologyModel(
         aerodynamic resistances are set to an initial constant value. Some additional
         atmospheric variables are initialised to ensure they are available for update
         when the Virtual Ecosystem is run with the `abiotic_simple` model.
-
-        For the hydrology across the grid, this function initialises the accumulated
-        surface runoff variable and the subsurface accumulated flow variable. Both
-        require a spinup which is currently not implemented.
 
         Args:
             initial_soil_moisture: The initial volumetric relative water content
@@ -300,15 +294,6 @@ class HydrologyModel(
             name="groundwater_storage",
         )
 
-        # Set initial above-ground accumulated runoff and sub-surface flow to zero
-        for var in ["surface_runoff_accumulated", "subsurface_flow_accumulated"]:
-            self.data[var] = DataArray(
-                np.zeros_like(self.data["elevation"]),
-                dims="cell_id",
-                name=var,
-                coords={"cell_id": self.grid.cell_id},
-            )
-
         # Initialise atmospheric variables required for update
         atmosphere_setup = hydrology_tools.initialise_atmosphere_for_hydrology(
             data=self.data,
@@ -333,15 +318,15 @@ class HydrologyModel(
         * soil_moisture, [mm]
         * matric_potential, [kPa]
         * surface_runoff, [mm]
-        * surface_runoff_accumulated, [mm]
         * subsurface_flow, [mm]
-        * subsurface_flow_accumulated, [mm]
         * soil_evaporation, [mm]
         * vertical_flow, [mm d-1]
         * groundwater_storage, [mm]
         * subsurface_flow, [mm]
         * baseflow, [mm]
-        * total_river_discharge, [mm]
+        * surface_runoff_routed_plus_local, [mm]
+        * subsurface_runoff_routed_plus_local, [mm]
+        * total_runoff, [mm]
         * river_discharge_rate, [m3 s-1]
         * bypass flow, [mm]
         * aerodynamic_resistance_surface, [s m-1]
@@ -366,10 +351,8 @@ class HydrologyModel(
         , the excess water is added to runoff and top soil moisture is set to soil
         moisture capacity value; if the top soil is not saturated, precipitation is
         added to the current topsoil moisture level and runoff is set to zero.
-        The accumulated surface runoff is calculated as the sum of current runoff and
-        the runoff from upstream cells at the previous time step, see
-        :func:`~virtual_ecosystem.models.hydrology.above_ground.accumulate_horizontal_flow`
-        .
+        The local contribution of a cell to the river channel is calculated as its own
+        surface and subsurface runoff for the current timestep.
 
         Potential soil evaporation is calculated with classical bulk aerodynamic
         formulation, following the so-called ':math:`\alpha` method', see
@@ -394,8 +377,8 @@ class HydrologyModel(
         . The horizontal flow between grid cells currently uses the same function as the
         above ground runoff.
 
-        Total river discharge is calculated as the sum of above- and below ground
-        horizontal flow and converted to river discharge rate in m3/s.
+        Total runoff is calculated as the sum of above- and below ground
+        runoff and converted to river discharge rate in [m3 s-1].
 
         The function requires the following input variables from the data object:
 
@@ -409,8 +392,6 @@ class HydrologyModel(
         * layer heights, [m]
         * Soil moisture (previous time step), [mm]
         * transpiration (current time step), [mm]
-        * accumulated surface runoff (previous time step), [mm]
-        * accumulated subsurface flow (previous time step), [mm]
         * aerodynamic_resistance_canopy, [s m-1]
         * net radiation, [W m-2]
 
@@ -511,20 +492,20 @@ class HydrologyModel(
             daily_lists["precipitation_surface"].append(precipitation_surface)
 
             # Calculate daily surface runoff of each grid cell, [mm]
-            surface_runoff = above_ground.calculate_surface_runoff(
+            surface_runoff_local = above_ground.calculate_surface_runoff(
                 precipitation_surface=precipitation_surface,
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 top_soil_moisture_saturation=hydro_input[
                     "top_soil_moisture_saturation"
                 ],
             )
-            daily_lists["surface_runoff"].append(surface_runoff)
+            daily_lists["surface_runoff"].append(surface_runoff_local)
 
             # Calculate preferential bypass flow, [mm]
             bypass_flow = above_ground.calculate_bypass_flow(
                 top_soil_moisture=hydro_input["current_soil_moisture"][0],
                 sat_top_soil_moisture=hydro_input["top_soil_moisture_saturation"],
-                available_water=precipitation_surface - surface_runoff,
+                available_water=precipitation_surface - surface_runoff_local,
                 bypass_flow_coefficient=(self.model_constants.bypass_flow_coefficient),
             )
             daily_lists["bypass_flow"].append(bypass_flow)
@@ -534,7 +515,7 @@ class HydrologyModel(
                 (
                     hydro_input["current_soil_moisture"][0]
                     + precipitation_surface
-                    - surface_runoff
+                    - surface_runoff_local
                     - bypass_flow,
                 ),
                 0,
@@ -669,38 +650,41 @@ class HydrologyModel(
             for var in ["groundwater_storage", "subsurface_flow", "baseflow"]:
                 daily_lists[var].append(below_ground_flow[var])
 
-            # Calculate horizontal flow
-            # Calculate accumulated runoff for each cell (me+sum of upstream neighbours)
-            new_accumulated_runoff = above_ground.accumulate_horizontal_flow(
+            # Calculate horizontal flows between grid cells individually for output
+            # Surface runoff routed to each cell + local surface runoff
+            surface_runoff_routed_plus_local = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
-                current_flow=surface_runoff,
-                previous_accumulated_flow=hydro_input["previous_accumulated_runoff"],
+                surface_runoff=surface_runoff_local,
+                subsurface_runoff=np.zeros_like(
+                    surface_runoff_local
+                ),  # only surface here
             )
-            daily_lists["surface_runoff_accumulated"].append(new_accumulated_runoff)
+            daily_lists["surface_runoff_routed_plus_local"].append(
+                surface_runoff_routed_plus_local
+            )
 
-            # Calculate subsurface accumulated flow, [mm]
-            new_subsurface_flow_accumulated = above_ground.accumulate_horizontal_flow(
+            # Subsurface runoff routed to each cell + local subsurface runoff
+            subsurface_flow = np.array(
+                below_ground_flow["subsurface_flow"] + below_ground_flow["baseflow"]
+            )
+            subsurface_runoff_routed_plus_local = above_ground.route_horizontal_flow(
                 drainage_map=self.drainage_map,
-                current_flow=np.array(
-                    below_ground_flow["subsurface_flow"] + below_ground_flow["baseflow"]
-                ),
-                previous_accumulated_flow=(
-                    hydro_input["previous_subsurface_flow_accumulated"]
-                ),
+                surface_runoff=np.zeros_like(subsurface_flow),  # only subsurface here
+                subsurface_runoff=subsurface_flow,
             )
-            daily_lists["subsurface_flow_accumulated"].append(
-                new_subsurface_flow_accumulated
+            daily_lists["subsurface_runoff_routed_plus_local"].append(
+                subsurface_runoff_routed_plus_local
             )
 
-            # Calculate total river discharge as sum of above- and below-ground flow
-            total_river_discharge = (
-                new_accumulated_runoff + new_subsurface_flow_accumulated
+            # Total runoff at each cell = surface + subsurface contributions
+            total_runoff = (
+                surface_runoff_routed_plus_local + subsurface_runoff_routed_plus_local
             )
-            daily_lists["total_river_discharge"].append(total_river_discharge)
+            daily_lists["total_runoff"].append(total_runoff)
 
-            # Convert total discharge to river discharge rate, [m3 s-1]
+            # Convert total runoff [mm] to river discharge rate [m³/s]
             river_discharge_rate = above_ground.convert_mm_flow_to_m3_per_second(
-                river_discharge_mm=total_river_discharge,
+                river_discharge_mm=total_runoff,
                 area=self.grid.cell_area,
                 days=days,
                 seconds_to_day=self.core_constants.seconds_to_day,
@@ -708,13 +692,11 @@ class HydrologyModel(
             )
             daily_lists["river_discharge_rate"].append(river_discharge_rate)
 
-            # update inputs for next day
+            # Update other model states for next day
             hydro_input["current_soil_moisture"] = soil_moisture_updated
             hydro_input["groundwater_storage"] = below_ground_flow[
                 "groundwater_storage"
             ]
-            hydro_input["previous_accumulated_runoff"] = new_accumulated_runoff
-            hydro_input["subsurface_flow_accumulated"] = new_subsurface_flow_accumulated
 
         # create output dict as intermediate step to not overwrite data directly
         soil_hydrology = {}
@@ -727,9 +709,9 @@ class HydrologyModel(
             "subsurface_flow",
             "baseflow",
             "bypass_flow",
-            "surface_runoff_accumulated",
-            "subsurface_flow_accumulated",
-            "total_river_discharge",
+            "surface_runoff_routed_plus_local",
+            "subsurface_runoff_routed_plus_local",
+            "total_runoff",
         ]:
             soil_hydrology[var] = DataArray(
                 np.nansum(np.stack(daily_lists[var], axis=1), axis=1),

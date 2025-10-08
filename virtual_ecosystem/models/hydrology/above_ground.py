@@ -380,38 +380,52 @@ def find_upstream_cells(lowest_neighbour: list[int]) -> list[list[int]]:
     return upstream_ids
 
 
-def accumulate_horizontal_flow(
+def route_horizontal_flow(
     drainage_map: dict[int, list[int]],
-    current_flow: np.ndarray,
-    previous_accumulated_flow: np.ndarray,
+    surface_runoff: np.ndarray,
+    subsurface_runoff: np.ndarray,
 ) -> np.ndarray:
-    """Calculate accumulated above-/belowground horizontal flow for each grid cell.
+    """Route horizontal flow for each grid cell (instantaneous channel routing).
 
-    This function takes the accumulated above-/belowground horizontal flow from the
-    previous timestep and adds all (sub-)surface flow of the current time step from
-    upstream cell IDs.
+    This function calculates the total river discharge at each grid cell
+    for the current timestep by combining:
 
-    The function currently raises a `ValueError` if accumulated flow is negative.
+    1. Local generation: the water generated in the cell itself during the timestep,
+       including surface runoff and subsurface (lateral + baseflow) runoff.
+    2. Inflow from upstream cells: contributions from all cells that drain into the
+       current cell, using their local generation from the same timestep.
+
+    No flows from previous timesteps are included, avoiding double-counting, and there
+    is also no time delay, so all the water runs through the whole grid in one time step
+    .
 
     Args:
-        drainage_map: Dict of all upstream IDs for each grid cell
-        current_flow: (Sub-)surface flow of the current time step, [mm]
-        previous_accumulated_flow: Accumulated flow from previous time step, [mm]
+        drainage_map: Dict mapping each cell ID -> list of upstream cell IDs
+        surface_runoff: Surface runoff for this timestep, [mm]
+        subsurface_runoff: Subsurface runoff for this timestep, [mm]
 
     Returns:
-        accumulated (sub-)surface flow, [mm]
+        Total river discharge at each grid cell, [mm]
     """
+    # local generation in this cell (surface + subsurface)
+    local_generation = np.nan_to_num(surface_runoff, nan=0.0) + np.nan_to_num(
+        subsurface_runoff, nan=0.0
+    )
 
-    current_flow_true = np.nan_to_num(current_flow, nan=0.0)
+    inflow_from_upstream = np.zeros_like(local_generation)
+
     for cell_id, upstream_ids in enumerate(drainage_map.values()):
-        previous_accumulated_flow[cell_id] += np.sum(current_flow_true[upstream_ids])
+        if upstream_ids:
+            inflow_from_upstream[cell_id] = np.sum(local_generation[upstream_ids])
 
-    if (previous_accumulated_flow < 0.0).any():
-        to_raise = ValueError("The accumulated flow should not be negative!")
+    total_river_discharge = local_generation + inflow_from_upstream
+
+    if (total_river_discharge < 0.0).any():
+        to_raise = ValueError("The river discharge should not be negative!")
         LOGGER.error(to_raise)
         raise to_raise
 
-    return previous_accumulated_flow
+    return total_river_discharge
 
 
 def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[int]]:
@@ -436,11 +450,33 @@ def calculate_drainage_map(grid: Grid, elevation: np.ndarray) -> dict[int, list[
         LOGGER.error(to_raise)
         raise to_raise
 
+    # Establish neighbour relationships
     grid.set_neighbours(distance=sqrt(grid.cell_area))
-    lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
-    upstream_ids = find_upstream_cells(lowest_neighbours)
 
-    return dict(enumerate(upstream_ids))
+    # Find flow direction: each cell -> lowest neighbor
+    lowest_neighbours = find_lowest_neighbour(grid.neighbours, elevation)
+    n_cells = len(lowest_neighbours)
+
+    # Build reverse graph: for each cell, who drains into it
+    direct_upstream: dict[int, list[int]] = {i: [] for i in range(n_cells)}
+    for cell, ln in enumerate(lowest_neighbours):
+        if ln is not None:  # sink cells have no lowest neighbor
+            direct_upstream[ln].append(cell)
+
+    # Recursive collection of all upstream cells
+    def collect_upstream(cell: int, visited=None) -> list[int]:
+        if visited is None:
+            visited = set()
+        for up in direct_upstream[cell]:
+            if up not in visited:
+                visited.add(up)
+                collect_upstream(up, visited)
+        return list(visited)
+
+    # Compute upstream IDs for all cells
+    upstream_ids = {cell: collect_upstream(cell) for cell in range(n_cells)}
+
+    return upstream_ids
 
 
 def calculate_interception(
