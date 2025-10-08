@@ -27,8 +27,8 @@ language_info:
 ## Plant functional types
 
 The Plants Model requires the definition of a set of plant functional types, which are
-defined as a set of trait values that describe the allometry, demography and
-stoichiometry of each PFT.
+defined as a set of trait values that describe the allometry, carbon allocation,
+demography and stoichiometry of each PFT.
 
 The PFT definitions for a simulation need to be stored in a
 CSV file: each PFT must have a unique name and each row then provides the trait values
@@ -95,10 +95,32 @@ foliage_c_n_ratio,TBD,15,✓
 foliage_c_p_ratio,TBD,300,✓
 ```
 
-## Required variables
+## Initial cohort data
 
-The tables below show the variables that are required to initialise the plants model and
-then update it at each time step.
+The plants model then needs an initial distribution of size-structured cohorts across
+the cells within the simulation. This is configured using the `cohort_data_path`
+setting within the model configuration:
+
+```toml
+[plants]
+cohort_data_path = '/path/to/cohort_data.csv'
+```
+
+The initial cohort data must be provided as a CSV file, with each row representing a
+plant cohort. The fields in this file must set:
+
+* `plant_cohort_pft`: the plant functional type of the cohort, matching one of the
+  names set in the PFT definitions.
+* `plant_cohorts_cell_id`: the grid cell in which the cohort is found.
+* `plant_cohorts_dbh`: the initial size of each individual in the cohort, as the
+  diameter at breast height (m)
+* `plant_cohorts_n`: the initial number of individuals in the cohort
+
+## Required array variables
+
+In addition to the definition of the plant communities, the plants model needs some
+additional array data to be set. These provide values that can be easily structured as
+arrays by grid cell id and by plant functional type name:
 
 ```{code-cell} ipython3
 ---
@@ -118,20 +140,6 @@ display_markdown(
 ```
 
 ## Model overview
-
-The required variables starting with `plant_cohorts_` provide the initial inventory of
-the plants growing within each cell in the simulation. These variables are one
-dimensional arrays that together form a 'data frame', with each row representing a plant
-cohort. Each cohort:
-
-* occurs in a single cell (`plant_cohorts_cell_id`),
-* has an initial size as the diameter at breast height (`plant_cohorts_dbh`),
-* has an initial number of individuals (`plant_cohorts_n`), and
-* a plant functional type (`plant_cohort_pft`).
-
-The plant functional types (PFT) for a simulat are set in the configuration of the Plant
-Model. Each PFT defines a set of traits that determine the geometry of stem growth, root
-and leaf turnover rates, wood density and respiration costs.
 
 The Plant Model works by using the cohort data within each cell to generate the heights
 and vertical canopy profiles of all individuals. These are then used to build a

@@ -229,6 +229,7 @@ def calculate_metabolic_proportions_of_input(
     """
 
     # Calculate split of each input biomass type
+
     leaves_metabolic_split = split_pool_into_metabolic_and_structural_litter(
         lignin_proportion=total_input["leaf_lignin"],
         carbon_nitrogen_ratio=total_input["leaf_nitrogen"],
@@ -358,12 +359,17 @@ def split_pool_into_metabolic_and_structural_litter(
         + split_sensitivity_phosphorus * carbon_phosphorus_ratio
     )
 
+    # This is a naive prevention of negative metabolic fraction rates.
+    # TODO: full solution in Issue #1010.
+    metabolic_fraction = np.where(metabolic_fraction < 0, 0.0, metabolic_fraction)
+
     if np.any(metabolic_fraction < 0.0):
         to_raise = ValueError(
             "Fraction of input biomass going to metabolic pool has dropped below zero!"
         )
         LOGGER.error(to_raise)
         raise to_raise
+
     elif np.any(1 - metabolic_fraction < lignin_proportion):
         to_raise = ValueError(
             "Fraction of input biomass going to structural biomass is less than the "
