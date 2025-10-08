@@ -537,11 +537,16 @@ class PlantsModel(
         # Initialize variables that hold one value per cell
         cell_template = xr.full_like(self.data["elevation"], 0)
 
-        self.data["leaf_turnover"] = cell_template.copy()
-        self.data["leaf_turnover_c_n_ratio"] = cell_template.copy()
-        self.data["leaf_turnover_c_p_ratio"] = cell_template.copy()
-        self.data["leaf_turnover_n_mass"] = cell_template.copy()
-        self.data["leaf_turnover_p_mass"] = cell_template.copy()
+reset_vars = [
+    "leaf_turnover", 
+    "leaf_turnover_c_n_ratio", 
+    "leaf_turnover_c_p_ratio", 
+    "leaf_turnover_n_mass",
+    "leaf_turnover_p_mass", 
+    ...
+]
+for var in reset_vars:
+                self.data[var] = cell_template.copy()
 
         self.data["root_turnover"] = cell_template.copy()
         self.data["root_turnover_c_n_ratio"] = cell_template.copy()
