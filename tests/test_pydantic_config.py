@@ -2,7 +2,9 @@
 
 import json
 import tomllib
+from contextlib import nullcontext as does_not_raise
 
+import pytest
 import tomli_w
 from pydantic import create_model
 
@@ -45,3 +47,31 @@ def test_pydantic():
     # Very basic check for submodels
     for submodel, _ in submodel_details:
         assert hasattr(config, submodel)
+
+
+def test_filepath_placeholder(tmp_path):
+    """Validate the FILEPATH_PLACEHOLDER custom field."""
+    from pydantic import TypeAdapter, ValidationError
+
+    from virtual_ecosystem.core.configuration import FILEPATH_PLACEHOLDER
+
+    filepath_placeholder_field = TypeAdapter(FILEPATH_PLACEHOLDER)
+
+    # Object early to <PLACEHOLDER> in input
+    with pytest.raises(ValidationError) as err:
+        filepath_placeholder_field.validate_python("<PLACEHOLDER>")
+
+        assert str(err) == "Path placeholder value in configuration."
+
+    # Object to file path not existing
+    with pytest.raises(ValidationError) as err:
+        filepath_placeholder_field.validate_python("no_such_file.py")
+
+        assert str(err) == "Path does not point to a file"
+
+    # Do not object when the path exists.
+    tmp_file = tmp_path / "file_to_find.txt"
+    tmp_file.touch()
+    with does_not_raise():
+        filepath_placeholder_field.validate_python(tmp_file)
+    tmp_file.unlink()
