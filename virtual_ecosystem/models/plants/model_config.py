@@ -103,10 +103,11 @@ class PlantsConstants(BaseModel):
     """Mass of carbon per propagule in g."""
 
 
-class PlantExportConfig(BaseModel):
+class PlantsExportConfig(BaseModel):
     """Configuration class for plant export options."""
 
     required_data: list[str] = []
+    """Required data for export."""
     cohort_attributes: list[str] = []
     """A list of cohort attributes to write to file."""
     community_canopy_attributes: list[str] = []
@@ -124,6 +125,7 @@ class PlantsConfig(ModelConfig):
     "A file path to a data file of plant functional type definitions"
     cohort_data_path: str = ""
     """A file path to a file of initial cohort data"""
-    community_data_export: PlantExportConfig = PlantExportConfig()
+    community_data_export: PlantsExportConfig = PlantsExportConfig()
     """Configuration of plant community data export"""
     constants: PlantsConstants = PlantsConstants()
+    """Constants for the plants model"""
