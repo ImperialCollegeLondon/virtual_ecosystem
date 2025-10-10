@@ -11,6 +11,8 @@ import numpy as np
 from pydantic import BaseModel, Field
 from scipy import constants
 
+from virtual_ecosystem.core.configuration import ModelConfig
+
 
 class CoreConstants(BaseModel):
     """Core constants for use across the Virtual Ecosystem modules.
@@ -220,7 +222,7 @@ class Variables(BaseModel):
     variable: list[DataSource] = [DataSource(), DataSource()]
 
 
-class CoreConfig(BaseModel):
+class CoreConfig(ModelConfig):
     """The core model configuration."""
 
     # TODO - don't want to have static attribute on core config, but still need to be

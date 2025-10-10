@@ -11,14 +11,14 @@ from pydantic import create_model
 
 def test_pydantic():
     """Builds a combined config model from all models and then dumps and reloads it."""
-    from virtual_ecosystem.core.conf import CoreConfig
-    from virtual_ecosystem.models.abiotic.config import AbioticConfig
-    from virtual_ecosystem.models.abiotic_simple.config import AbioticSimpleConfig
-    from virtual_ecosystem.models.animal.config import AnimalConfig
-    from virtual_ecosystem.models.hydrology.config import HydrologyConfig
-    from virtual_ecosystem.models.litter.config import LitterConfig
-    from virtual_ecosystem.models.plants.config import PlantsConfig
-    from virtual_ecosystem.models.soil.config import SoilConfig
+    from virtual_ecosystem.core.model_config import CoreConfig
+    from virtual_ecosystem.models.abiotic.model_config import AbioticConfig
+    from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleConfig
+    from virtual_ecosystem.models.animal.model_config import AnimalConfig
+    from virtual_ecosystem.models.hydrology.model_config import HydrologyConfig
+    from virtual_ecosystem.models.litter.model_config import LitterConfig
+    from virtual_ecosystem.models.plants.model_config import PlantsConfig
+    from virtual_ecosystem.models.soil.model_config import SoilConfig
 
     submodel_details = (
         ("core", CoreConfig),

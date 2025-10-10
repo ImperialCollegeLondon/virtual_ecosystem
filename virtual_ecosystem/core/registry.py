@@ -16,6 +16,7 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
+from virtual_ecosystem.core.configuration import ModelConfig
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import load_schema
@@ -47,6 +48,9 @@ class ModuleInfo:
     constants_classes: dict[str, type[ConstantsDataclass]]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
+    config: type[ModelConfig]
+    """A ModelConfig class providing a pydantic model for populating and validating
+    the model configuration."""
     is_core: bool
     """Logical flag indicating if an instance contains registration information for the
     core module."""
@@ -184,6 +188,38 @@ def register_module(module_name: str) -> None:
                 class_name,
             )
 
+    # Find and register the ModelConfig
+    try:
+        config_submodule = import_module(f"{module_name}.model_config")
+    except ModuleNotFoundError:
+        raise RuntimeError("Model does not provide a model_config submodule.")
+
+    # Get all ModelConfig subclasses from the model_config submodule
+    model_config_subclasses = {
+        class_name: class_obj
+        for class_name, class_obj in getmembers(config_submodule)
+        if isclass(class_obj)
+        and issubclass(class_obj, ModelConfig)
+        and class_obj is not ModelConfig
+    }
+
+    # Trap setups that do not provide exactly one ModelConfig
+    n_config = len(model_config_subclasses)
+
+    if n_config == 0:
+        raise RuntimeError("Model provides more than one ModelConfig class.")
+
+    if n_config > 1:
+        raise RuntimeError("Model provides more than one ModelConfig class.")
+
+    model_config_name, model_config_class = model_config_subclasses.popitem()
+
+    LOGGER.info("Configuration registered for %s: %s ", module_name, model_config_name)
+
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
-        model=model, schema=schema, constants_classes=constants_classes, is_core=is_core
+        model=model,
+        schema=schema,
+        constants_classes=constants_classes,
+        config=model_config_class,
+        is_core=is_core,
     )
