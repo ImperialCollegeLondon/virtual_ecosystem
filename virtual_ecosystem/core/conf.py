@@ -214,6 +214,12 @@ class DataSource(BaseModel):
     var_name: str = "placeholder"
 
 
+class Variables(BaseModel):
+    """Variables configuration."""
+
+    variable: list[DataSource] = [DataSource(), DataSource()]
+
+
 class CoreConfig(BaseModel):
     """The core model configuration."""
 
@@ -228,4 +234,4 @@ class CoreConfig(BaseModel):
     "Options for output the Virtual Ecosystem model state"
     layers: Layers = Layers()
     "Layers to create vertical structure"
-    data: list[DataSource] = [DataSource()]
+    data: Variables = Variables()
