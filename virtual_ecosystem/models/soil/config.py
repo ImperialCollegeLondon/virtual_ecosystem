@@ -1,9 +1,9 @@
 """Configuration classes for the soil model."""
 
-from typing import ClassVar
-
 import numpy as np
 from pydantic import BaseModel
+
+from virtual_ecosystem.core.configuration import ModelConfig
 
 
 class SoilConstants(BaseModel):
@@ -376,13 +376,8 @@ class SoilConstants(BaseModel):
     """
 
 
-class SoilConfig(BaseModel):
-    """Root configuration clas for the soil model."""
-
-    config_root: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
+class SoilConfig(ModelConfig):
+    """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""
     "Microbial functional group definitions"

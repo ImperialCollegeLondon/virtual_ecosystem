@@ -7,9 +7,9 @@ Note that soil parameters vary strongly with soil type and can change over time.
 current default values are average best estimates within reasonable bounds.
 """  # noqa: D205
 
-from typing import ClassVar
-
 from pydantic import BaseModel, Field
+
+from virtual_ecosystem.core.configuration import ModelConfig
 
 
 class HydrologyConstants(BaseModel):
@@ -208,13 +208,9 @@ class HydrologyConstants(BaseModel):
     """Factor to convert matric potential from m to kPa."""
 
 
-class HydrologyConfig(BaseModel):
+class HydrologyConfig(ModelConfig):
     """Root configuration clas for the hydrology model."""
 
-    config_root: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
     initial_soil_moisture: float = Field(gt=0, default=0.5)
     """Initial soil moisture for all layers"""
     initial_groundwater_saturation: float = Field(gt=0, default=0.9)

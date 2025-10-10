@@ -4,21 +4,16 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 """  # noqa: D205, D415
 
-from typing import Annotated, ClassVar, Literal, TypeVar
+from typing import Annotated, Literal
 
-from pydantic import (
-    AfterValidator,
-    BaseModel,
-)
+from pydantic import AfterValidator, BaseModel
 
+from virtual_ecosystem.core.configuration import ModelConfig
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
     TaxaType,
 )
-
-T = TypeVar("T")
-
 
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
@@ -347,13 +342,9 @@ class AnimalConstants(BaseModel):
     """The probability a seasonal migration event occurs per time step (month)."""
 
 
-class AnimalConfig(BaseModel):
+class AnimalConfig(ModelConfig):
     """Root configuration class for the animal model."""
 
-    config_root: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
     functional_group_definitions_path: str = ""
     "A file path to a data file of animal functional group definitions"
     density_scaling_method: Literal["damuth", "madingley"] = "madingley"

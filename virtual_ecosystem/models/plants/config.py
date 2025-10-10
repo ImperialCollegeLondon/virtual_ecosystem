@@ -1,8 +1,8 @@
 """Configuration for the plants model."""
 
-from typing import ClassVar
-
 from pydantic import BaseModel
+
+from virtual_ecosystem.core.configuration import ModelConfig
 
 
 class PlantsConstants(BaseModel):
@@ -117,13 +117,9 @@ class PlantExportConfig(BaseModel):
     """A float format string to control data precision."""
 
 
-class PlantsConfig(BaseModel):
-    """Root configuration clas for the plants model."""
+class PlantsConfig(ModelConfig):
+    """Root configuration class for the plants model."""
 
-    config_root: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
     pft_definitions_path: str = ""
     "A file path to a data file of plant functional type definitions"
     cohort_data_path: str = ""

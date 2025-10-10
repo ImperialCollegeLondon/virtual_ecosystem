@@ -217,7 +217,8 @@ class DataSource(BaseModel):
 class CoreConfig(BaseModel):
     """The core model configuration."""
 
-    config_root: ClassVar[bool] = True
+    # TODO - don't want to have static attribute on core config, but still need to be
+    # able to load it. Maybe just use special case of name.
 
     constants: CoreConstants = CoreConstants()
     "Constants for the core module"

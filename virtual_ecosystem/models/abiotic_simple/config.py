@@ -1,8 +1,8 @@
 """Abiotic simple model configuration."""
 
-from typing import ClassVar
-
 from pydantic import BaseModel
+
+from virtual_ecosystem.core.configuration import ModelConfig
 
 
 class AbioticSimpleConstants(BaseModel):
@@ -58,12 +58,8 @@ class AbioticSimpleBounds(BaseModel):
     """Bounds for soil temperature, [C]."""
 
 
-class AbioticSimpleConfig(BaseModel):
+class AbioticSimpleConfig(ModelConfig):
     """Root configuration class for the abiotic simple model."""
 
-    config_root: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
     constants: AbioticSimpleConstants = AbioticSimpleConstants()
     bounds: AbioticSimpleBounds = AbioticSimpleBounds()

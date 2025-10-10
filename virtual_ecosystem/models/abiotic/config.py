@@ -5,9 +5,9 @@ These parameters are constants in that they should not be changed during a parti
 simulation.
 """  # noqa: D205
 
-from typing import ClassVar
-
 from pydantic import BaseModel
+
+from virtual_ecosystem.core.configuration import ModelConfig
 
 
 class AbioticConstants(BaseModel):
@@ -171,12 +171,8 @@ class AbioticConstants(BaseModel):
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
 
-class AbioticConfig(BaseModel):
+class AbioticConfig(ModelConfig):
     """The abiotic model configuration."""
 
-    root_config: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
     constants: AbioticConstants = AbioticConstants()
     """Constants for the abiotic model"""

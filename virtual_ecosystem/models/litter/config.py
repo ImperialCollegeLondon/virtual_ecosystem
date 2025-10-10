@@ -1,8 +1,8 @@
 """Configuration for the litter model."""
 
-from typing import ClassVar
-
 from pydantic import BaseModel
+
+from virtual_ecosystem.core.configuration import ModelConfig
 
 
 class LitterConstants(BaseModel):
@@ -163,12 +163,8 @@ class LitterConstants(BaseModel):
     """
 
 
-class LitterConfig(BaseModel):
+class LitterConfig(ModelConfig):
     """Root configuration clas for the litter model."""
 
-    config_root: ClassVar[bool] = True
-
-    static: bool = False
-    """Static mode setting"""
     constants: LitterConstants = LitterConstants()
     """Model constant for the hydrology model"""
