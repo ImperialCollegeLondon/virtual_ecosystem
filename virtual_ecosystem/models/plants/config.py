@@ -1,0 +1,133 @@
+"""Configuration for the plants model."""
+
+from typing import ClassVar
+
+from pydantic import BaseModel
+
+
+class PlantsConstants(BaseModel):
+    """Constants for the :mod:`~virtual_ecosystem.models.plants` model.
+
+    .. TODO::
+        The subcanopy seedbank and vegetation constants have the same structure. This is
+        probably worth bringing together into a dataclass and external file,
+        particularly as and when we add shrub or liana layers, which likely mirror this.
+    """
+
+    per_stem_annual_mortality_probability: float = 0.1
+    """Basic annual mortality rate for plants."""
+
+    per_propagule_annual_recruitment_probability: float = 0.2
+    """Basic annual recruitment rate from plant propagules."""
+
+    dsr_to_ppfd: float = 2.04
+    """Convert from downward shortwave radiation to photosynthetic photon flux density.
+
+    Converting DSR in W m-2 to PPFD in µmol m-2 s-1. 1 W m-2 of sunlight is roughly 4.57
+    µmol m-2 s-1 of full spectrum sunlight, of which about 4.57 * 46% = 2.04  µmol m-2
+    s-1 is PPFD.
+    """
+
+    stem_lignin: float = 0.545
+    """Fraction of stem biomass that is lignin."""
+
+    senesced_leaf_lignin: float = 0.05
+    """Fraction of senesced leaf biomass that is lignin."""
+
+    leaf_lignin: float = 0.10
+    """Fraction of leaf biomass that is lignin."""
+
+    plant_reproductive_tissue_lignin: float = 0.01
+    """Fraction of plant reproductive tissue biomass that is lignin."""
+
+    root_lignin: float = 0.20
+    """Fraction of root biomass that is lignin."""
+
+    subcanopy_extinction_coef: float = 0.5
+    """The extinction coefficient of subcanopy vegetation (unitless)."""
+
+    subcanopy_specific_leaf_area: float = 14
+    """The specific leaf area of subcanopy vegetation (m2 kg-1)."""
+
+    subcanopy_respiration_fraction: float = 0.1
+    """The fraction of gross primary productivity used in respiration (unitless)."""
+
+    subcanopy_yield: float = 0.6
+    """The yield fraction of net primary productivity in subcanopy vegetation
+    (unitless). """
+
+    subcanopy_reproductive_allocation: float = 0.1
+    """The fraction of subcanopy net primary productivity that is allocated to subcanopy
+    seedbank mass (unitless)."""
+
+    subcanopy_sprout_rate: float = 0.1
+    """The rate at which new subcanopy biomass sprouts from the subcanopy seedbank mass
+    (kg kg-1 m-2 y-1)."""
+
+    subcanopy_sprout_yield: float = 0.5
+    """The fraction of subcanopy seedbank mass that is realised as subcanopy vegetation
+    mass (kg kg-1)."""
+
+    subcanopy_vegetation_turnover: float = 1.0
+    """The annual fraaction of subcanopy vegetative biomass turnover (kg kg-1 m-2
+    y-1)."""
+
+    subcanopy_seedbank_turnover: float = 0.25
+    """The annual fraction of subcanopy seedbank biomass turnover (kg kg-1 m-2 y-1)."""
+
+    subcanopy_seedbank_c_n_ratio: float = 20
+    """The ideal mass ratio of nitrogen in subcanopy seedbank biomass (-)."""
+
+    subcanopy_seedbank_c_p_ratio: float = 50
+    """The ideal mass ratio of phosphorous in subcanopy seedbank biomass (-)."""
+
+    subcanopy_vegetation_c_n_ratio: float = 20
+    """The ideal mass ratio of nitrogen in subcanopy vegetation biomass (-)."""
+
+    subcanopy_vegetation_c_p_ratio: float = 50
+    """The ideal mass ratio of phosphorous in subcanopy vegetation biomass (-)."""
+
+    subcanopy_vegetation_lignin: float = 0.2
+    """The proportion of lignin in subcanopy vegetation."""
+
+    subcanopy_seedbank_lignin: float = 0.2
+    """The proportion of lignin in subcanopy seedbank."""
+
+    root_exudates: float = 0.5
+    """Fraction of GPP topslice allocated to root exudates."""
+
+    propagule_mass_portion: float = 0.5
+    """Fraction of reprodutive tissue allocated to propagules."""
+
+    carbon_mass_per_propagule: float = 1
+    """Mass of carbon per propagule in g."""
+
+
+class PlantExportConfig(BaseModel):
+    """Configuration class for plant export options."""
+
+    required_data: list[str] = []
+    cohort_attributes: list[str] = []
+    """A list of cohort attributes to write to file."""
+    community_canopy_attributes: list[str] = []
+    """A list of community canopy attributes to write to file."""
+    stem_canopy_attributes: list[str] = []
+    """A list of stem canopy attributes to write to file."""
+    float_format: str = "%0.5f"
+    """A float format string to control data precision."""
+
+
+class PlantsConfig(BaseModel):
+    """Root configuration clas for the plants model."""
+
+    config_root: ClassVar[bool] = True
+
+    static: bool = False
+    """Static mode setting"""
+    pft_definitions_path: str = ""
+    "A file path to a data file of plant functional type definitions"
+    cohort_data_path: str = ""
+    """A file path to a file of initial cohort data"""
+    community_data_export: PlantExportConfig = PlantExportConfig()
+    """Configuration of plant community data export"""
+    constants: PlantsConstants = PlantsConstants()
