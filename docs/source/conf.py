@@ -166,7 +166,9 @@ nitpick_ignore = [
     ("py:class", "CoreConst"),
     ("py:class", "StemAllocation"),
     ("py:class", "StemStoichiometry"),
+    ("py:class", "pydantic.types.PathType"),
 ]
+
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -176,6 +178,7 @@ intersphinx_mapping = {
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "pyrealm": ("https://pyrealm.readthedocs.io/en/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
 
 # Turn on figure numbering - this slows down build time a surprising amount!
