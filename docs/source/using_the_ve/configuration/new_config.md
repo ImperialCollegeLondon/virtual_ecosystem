@@ -30,8 +30,10 @@ language_info:
 ### Plant configuration TOML template
 
 The TOML document below shows a template complete configuration definition for the
-Plants model. Some of the values are marked as placeholders - these will need to be
-replaced with actual values when you configure the model for your use.
+Plants model, complete with the default values for each of the configuration options.
+Some of these default values are marked as placeholders: these are included to show the
+structure of the configuration document but you will need to replace these placeholders
+with actual values when you configure the model for your use.
 
 ```{code-cell} ipython3
 :tags: [remove-input]
@@ -45,37 +47,45 @@ plants_config = PlantsConfig()
 
 display(
     Markdown(
-        "```toml\n" + tomli_w.dumps({"plants": plants_config.model_dump()}) + "```"
+        "```toml\n"
+        + tomli_w.dumps({"plants": json.loads(plants_config.model_dump_json())})
+        + "```"
     )
 )
 ```
 
 ### Plants model configuration details
 
-The TOML document above maps onto the structure of the model configuration classes.
-The root configuration is shown below, along with the definitions of the root level
-settings.
+The model configuration is defined in a set of Python data structures ("classes") that
+set out the option names and their defaults.
+
+* The TOML options directly under `[plants]` are set in the root
+{class}`~virtual_ecosystem.models.plants.model_config.PlantsConfig` class.
+* There are then two nested sections, each of which has its own configuration class:
+  * The `[plants.community_data_export]` section sets whether plant cohort data is
+    exported when the model runs and is defined by the
+    {class}`~virtual_ecosystem.models.plants.model_config.PlantsExportConfig` class.
+  * The `[plants.constants]` section defines constant values for the model and is set
+    in the {class}`~virtual_ecosystem.models.plants.model_config.PlantsConstants`
+    class.
+
+The technical details of each class are shown below, which provides descriptions of each
+option.
 
 ```{eval-rst}
 .. autoclass:: virtual_ecosystem.models.plants.model_config.PlantsConfig
-    :autosummary:
     :members:
     :exclude-members: model_config
 ```
 
-The `community_data_export` and `constants` sections of the configuration then map onto
-the following two configuration classes.
-
 ```{eval-rst}
 .. autoclass:: virtual_ecosystem.models.plants.model_config.PlantsExportConfig
-    :autosummary:
     :members:
     :exclude-members: model_config
 ```
 
 ```{eval-rst}
 .. autoclass:: virtual_ecosystem.models.plants.model_config.PlantsConstants
-    :autosummary:
     :members:
     :exclude-members: model_config
 ```

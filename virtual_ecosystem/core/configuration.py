@@ -1,7 +1,7 @@
 """Configuration system elements for pydantic."""
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 from pydantic import BaseModel, BeforeValidator, Field, FilePath
 
@@ -28,11 +28,18 @@ def placeholder_validator(path: str) -> str:
     return path
 
 
-FILEPATH_PLACEHOLDER = Annotated[
+FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
     FilePath,
     Field(default=Path("<PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
 ]
 """Pydantic type that provides a default '<PLACEHOLDER>' text for writing configuration
-templates, but emits an early custom error if those values are not corrected. The type
-then uses FilePath, which validates that a path actually exists on the file system."""
+templates, but screens input before the standard validation to refuse unreplaced
+placeholder values. The type then uses FilePath, which validates that a path actually
+exists on the file system. The field does not set ``validate_defaults`` so the
+placeholder value can be written despite not being an existing file.
+
+.. TODO: Fix autodoc
+    This generates a bizarre set of autodoc link failures that generate random text 
+    chunks from the Annotator pattern. Currently tackled using nitpick ignore.
+"""

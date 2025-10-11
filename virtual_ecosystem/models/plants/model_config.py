@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import FILEPATH_PLACEHOLDER, ModelConfig
 
 
 class PlantsConstants(BaseModel):
@@ -121,9 +121,9 @@ class PlantsExportConfig(BaseModel):
 class PlantsConfig(ModelConfig):
     """Root configuration class for the plants model."""
 
-    pft_definitions_path: str = ""
+    pft_definitions_path: FILEPATH_PLACEHOLDER
     "A file path to a data file of plant functional type definitions"
-    cohort_data_path: str = ""
+    cohort_data_path: FILEPATH_PLACEHOLDER
     """A file path to a file of initial cohort data"""
     community_data_export: PlantsExportConfig = PlantsExportConfig()
     """Configuration of plant community data export"""

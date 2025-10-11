@@ -85,6 +85,13 @@ extensions = [
 autodoc_default_flags = ["members"]
 autosummary_generate = True
 
+# autodoc_typehints = "description"
+# autodoc_typehints_format = "short"
+# python_use_unqualified_type_names = True
+# autodoc_type_aliases = {
+#   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
+# }
+
 
 # Set up the external table of contents file path and configure
 external_toc_path = "_toc.yaml"
@@ -167,6 +174,16 @@ nitpick_ignore = [
     ("py:class", "StemAllocation"),
     ("py:class", "StemStoichiometry"),
     ("py:class", "pydantic.types.PathType"),
+    # Something about the pydantic annotated pattern generates a ton of peculiar
+    # intersphinx noise.
+    ("py:class", "pathlib.Annotated"),
+    ("py:class", "path_type=file"),
+    ("py:class", "file"),
+    ("py:class", "FieldInfo"),
+    ("py:class", "NoneType"),
+    ("py:class", "PosixPath"),
+    ("py:class", "virtual_ecosystem.core.configuration.placeholder_validator"),
+    ("py:class", "PydanticUndefined"),
 ]
 
 intersphinx_mapping = {
