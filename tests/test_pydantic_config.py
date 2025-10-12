@@ -9,7 +9,7 @@ import tomli_w
 from pydantic import create_model
 
 
-def test_pydantic():
+def test_pydantic(tmp_path):
     """Builds a combined config model from all models and then dumps and reloads it."""
     from virtual_ecosystem.core.model_config import CoreConfig
     from virtual_ecosystem.models.abiotic.model_config import AbioticConfig
@@ -40,9 +40,17 @@ def test_pydantic():
     with open("config.toml", "wb") as tomlfile:
         tomli_w.dump(json.loads(combined().model_dump_json()), tomlfile)
 
-    # Reload it
-    with open("config.toml", "rb") as tomlfile:
-        config = combined().model_validate_json(json.dumps(tomllib.load(tomlfile)))
+    # Reload it - substituting path placeholders for a temporary real file.
+    tmp_file = tmp_path / "temp_file.txt"
+    tmp_file.touch()
+
+    with open("config.toml") as tomlfile:
+        content = tomlfile.read()
+        content = content.replace("<PLACEHOLDER>", str(tmp_file))
+        content_parsed = tomllib.loads(content)
+        config = combined().model_validate_json(json.dumps(content_parsed))
+
+    tmp_file.unlink()
 
     # Very basic check for submodels
     for submodel, _ in submodel_details:

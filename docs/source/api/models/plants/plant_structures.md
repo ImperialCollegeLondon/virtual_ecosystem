@@ -90,3 +90,12 @@ This page documents submodules of the `plants` module used to support the centra
     :autosummary:
     :members:
 ```
+
+## The plants {mod}`~virtual_ecosystem.models.plants.model_config` module
+
+```{eval-rst}
+.. automodule:: virtual_ecosystem.models.plants.model_config
+    :autosummary:
+    :members:
+    :exclude-members: model_config
+```

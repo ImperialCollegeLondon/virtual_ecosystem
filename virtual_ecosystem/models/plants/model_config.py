@@ -2,7 +2,11 @@
 
 from pydantic import BaseModel
 
-from virtual_ecosystem.core.configuration import FILEPATH_PLACEHOLDER, ModelConfig
+from virtual_ecosystem.core.configuration import (
+    FILEPATH_PLACEHOLDER,
+    ConfigDict,
+    ModelConfig,
+)
 
 
 class PlantsConstants(BaseModel):
@@ -13,6 +17,8 @@ class PlantsConstants(BaseModel):
         probably worth bringing together into a dataclass and external file,
         particularly as and when we add shrub or liana layers, which likely mirror this.
     """
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
 
     per_stem_annual_mortality_probability: float = 0.1
     """Basic annual mortality rate for plants."""
@@ -106,6 +112,7 @@ class PlantsConstants(BaseModel):
 class PlantsExportConfig(BaseModel):
     """Configuration class for plant export options."""
 
+    model_config = ConfigDict(use_attribute_docstrings=True)
     required_data: list[str] = []
     """Required data for export."""
     cohort_attributes: list[str] = []

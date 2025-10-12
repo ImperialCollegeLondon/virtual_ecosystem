@@ -1,9 +1,10 @@
 """Configuration system elements for pydantic."""
 
 from pathlib import Path
-from typing import Annotated, TypeAlias
+from typing import Annotated, Any, TypeAlias
 
-from pydantic import BaseModel, BeforeValidator, Field, FilePath
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
+from pydantic._internal._model_construction import ModelMetaclass
 
 
 class ModelConfig(BaseModel):
@@ -16,6 +17,7 @@ class ModelConfig(BaseModel):
     root model configuration class.
     """
 
+    model_config = ConfigDict(use_attribute_docstrings=True)
     static: bool = False
     """The model static mode setting."""
 
@@ -43,3 +45,35 @@ placeholder value can be written despite not being an existing file.
     This generates a bizarre set of autodoc link failures that generate random text 
     chunks from the Annotator pattern. Currently tackled using nitpick ignore.
 """
+
+
+def model_markdown_description(model_name: str, model_config: type[Any]) -> str:
+    """Render the fields in a ModelConfig class as Markdown.
+
+    The function recurses through sub-models within a ModelConfig instance and generates
+    a definition list entry for each configuration setting. If rendered for display
+    inside a MyST markdown code cell, the notebook will need to be set to render
+    markdown from code cells using MyST rather than the default CommonMark.
+
+    .. code-block:: yaml
+
+        mystnb:
+            render_markdown_format: myst
+
+    Args:
+        model_name: The name of the model as it would appear in a configuration file.
+        model_config: The ModelConfig instance for a model
+    """
+    output = "\n\n"
+    for name, field_info in model_config.model_fields.items():
+        field_name = model_name + "." + name
+        if isinstance(field_info.annotation, ModelMetaclass):
+            output += f"[{field_name}]\n: Config section: {field_info.description}\n\n"
+            output += model_markdown_description(field_name, field_info.annotation)
+        else:
+            output += (
+                f"[{field_name}]\n: {field_info.description} "
+                f"Default = {field_info.default}\n\n"
+            )
+
+    return output + "\n\n"

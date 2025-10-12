@@ -21,6 +21,8 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
+mystnb:
+  render_markdown_format: myst
 ---
 
 # Configuration documentation example
@@ -40,6 +42,7 @@ with actual values when you configure the model for your use.
 
 import tomli_w
 import json
+from virtual_ecosystem.core.configuration import model_markdown_description
 from virtual_ecosystem.models.plants.model_config import PlantsConfig
 from IPython.display import display, Markdown
 
@@ -56,36 +59,18 @@ display(
 
 ### Plants model configuration details
 
-The model configuration is defined in a set of Python data structures ("classes") that
-set out the option names and their defaults.
+This section provides a description of each option set in the TOML document above. The
+technical details of the validation classes used to check configuration documents can be
+seen in the API documentation for the
+{mod}`~virtual_ecosystem.models.plants.model_config` module.
 
-* The TOML options directly under `[plants]` are set in the root
-{class}`~virtual_ecosystem.models.plants.model_config.PlantsConfig` class.
-* There are then two nested sections, each of which has its own configuration class:
-  * The `[plants.community_data_export]` section sets whether plant cohort data is
-    exported when the model runs and is defined by the
-    {class}`~virtual_ecosystem.models.plants.model_config.PlantsExportConfig` class.
-  * The `[plants.constants]` section defines constant values for the model and is set
-    in the {class}`~virtual_ecosystem.models.plants.model_config.PlantsConstants`
-    class.
+The TOML document contains some root options, directly under the `[plants]` section, and
+then two nested sections, setting the plant community data export options
+(`[plants.community_data_export]`) and the constants values used in the model
+(`[plants.constants]`).
 
-The technical details of each class are shown below, which provides descriptions of each
-option.
+```{code-cell} ipython3
+:tags: [remove-input]
 
-```{eval-rst}
-.. autoclass:: virtual_ecosystem.models.plants.model_config.PlantsConfig
-    :members:
-    :exclude-members: model_config
-```
-
-```{eval-rst}
-.. autoclass:: virtual_ecosystem.models.plants.model_config.PlantsExportConfig
-    :members:
-    :exclude-members: model_config
-```
-
-```{eval-rst}
-.. autoclass:: virtual_ecosystem.models.plants.model_config.PlantsConstants
-    :members:
-    :exclude-members: model_config
+display(Markdown(model_markdown_description("plants", PlantsConfig)))
 ```
