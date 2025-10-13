@@ -1,11 +1,9 @@
 """Configuration for the litter model."""
 
-from pydantic import BaseModel
-
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 
 
-class LitterConstants(BaseModel):
+class LitterConstants(ModelConfigSection):
     """Dataclass to store all constants for the `litter` model."""
 
     litter_decomp_reference_temp: float = 40.0
@@ -163,7 +161,7 @@ class LitterConstants(BaseModel):
     """
 
 
-class LitterConfig(ModelConfig):
+class LitterConfig(ModelConfigRoot):
     """Root configuration clas for the litter model."""
 
     constants: LitterConstants = LitterConstants()

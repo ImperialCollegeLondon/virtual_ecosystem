@@ -1,12 +1,11 @@
 """Configuration classes for the soil model."""
 
 import numpy as np
-from pydantic import BaseModel
 
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 
 
-class SoilConstants(BaseModel):
+class SoilConstants(ModelConfigSection):
     """Dataclass to store all constants for the `soil` model."""
 
     reference_cue_logit: float = 0.094
@@ -376,7 +375,7 @@ class SoilConstants(BaseModel):
     """
 
 
-class SoilConfig(ModelConfig):
+class SoilConfig(ModelConfigRoot):
     """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""

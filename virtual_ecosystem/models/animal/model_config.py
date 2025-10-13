@@ -6,9 +6,9 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator
 
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
@@ -55,7 +55,7 @@ DietFloats = Annotated[
 """Custom data type with post validation for dictionaries of diet type and floats."""
 
 
-class AnimalConstants(BaseModel):
+class AnimalConstants(ModelConfigSection):
     """Dataclass to store all constants related to animals.
 
     TODO: Remove unused constants.
@@ -342,7 +342,7 @@ class AnimalConstants(BaseModel):
     """The probability a seasonal migration event occurs per time step (month)."""
 
 
-class AnimalConfig(ModelConfig):
+class AnimalConfig(ModelConfigRoot):
     """Root configuration class for the animal model."""
 
     functional_group_definitions_path: str = ""

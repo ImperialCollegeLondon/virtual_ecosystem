@@ -46,7 +46,7 @@ def test_pydantic(tmp_path):
 
     with open("config.toml") as tomlfile:
         content = tomlfile.read()
-        content = content.replace("<PLACEHOLDER>", str(tmp_file))
+        content = content.replace('"<PLACEHOLDER>"', f"'{tmp_file!s}'")
         content_parsed = tomllib.loads(content)
         config = combined().model_validate_json(json.dumps(content_parsed))
 

@@ -16,7 +16,7 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import load_schema
@@ -48,7 +48,7 @@ class ModuleInfo:
     constants_classes: dict[str, type[ConstantsDataclass]]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
-    config: type[ModelConfig]
+    config: type[ModelConfigRoot]
     """A ModelConfig class providing a pydantic model for populating and validating
     the model configuration."""
     is_core: bool
@@ -199,8 +199,8 @@ def register_module(module_name: str) -> None:
         class_name: class_obj
         for class_name, class_obj in getmembers(config_submodule)
         if isclass(class_obj)
-        and issubclass(class_obj, ModelConfig)
-        and class_obj is not ModelConfig
+        and issubclass(class_obj, ModelConfigRoot)
+        and class_obj is not ModelConfigRoot
     }
 
     # Trap setups that do not provide exactly one ModelConfig

@@ -7,19 +7,34 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
 
 
-class ModelConfig(BaseModel):
+class ModelConfigRoot(BaseModel):
     """Root configuration class for models.
 
-    This model provides a common base class for all model implementations. It defines
-    the shared ``static`` option for each model. Each model should define a single class
-    inheriting from :class:`ModelConfig` in the ``model_config.py`` submodule. This file
-    can contain other :class:`pydantic.BaseModel` classes, but there must be a single
-    root model configuration class.
+    This model provides a common `pydantic` base class to be used as the root for the
+    model configuration in all model implementations. Each model must define a
+    single class inheriting from :class:`ModelConfigRoot` in the ``model_config.py``
+    submodule. The file can then include other :class:`ModelConfigSection` classes that
+    are used within the root configuration but there must be a single root model
+    configuration class.
+
+    The base model defines the shared ``static`` option for each model and also sets
+    common configuration options.
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     static: bool = False
     """The model static mode setting."""
+
+
+class ModelConfigSection(BaseModel):
+    """Section configuration class for models.
+
+    This model provides a common base class for subsections within model configurations.
+    all model implementations. The base model currently just defines common
+    configuration options.
+    """
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
 
 
 def placeholder_validator(path: str) -> str:

@@ -5,12 +5,10 @@ These parameters are constants in that they should not be changed during a parti
 simulation.
 """  # noqa: D205
 
-from pydantic import BaseModel
-
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 
 
-class AbioticConstants(BaseModel):
+class AbioticConstants(ModelConfigSection):
     """Dataclass to store all constants for the `abiotic` model."""
 
     leaf_emissivity: float = 0.98
@@ -171,7 +169,7 @@ class AbioticConstants(BaseModel):
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
 
-class AbioticConfig(ModelConfig):
+class AbioticConfig(ModelConfigRoot):
     """The abiotic model configuration."""
 
     constants: AbioticConstants = AbioticConstants()

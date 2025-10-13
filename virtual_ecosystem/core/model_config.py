@@ -8,13 +8,13 @@ from datetime import date
 from typing import ClassVar
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import Field
 from scipy import constants
 
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 
 
-class CoreConstants(BaseModel):
+class CoreConstants(ModelConfigSection):
     """Core constants for use across the Virtual Ecosystem modules.
 
     An instance of the CoreConsts dataclass provides definitions of the core constants
@@ -131,7 +131,7 @@ class CoreConstants(BaseModel):
     """
 
 
-class GridConfig(BaseModel):
+class GridConfig(ModelConfigSection):
     """Grid configuration."""
 
     grid_type: str = "square"
@@ -148,7 +148,7 @@ class GridConfig(BaseModel):
     "The x offset of the grid origin"
 
 
-class TimingConfig(BaseModel):
+class TimingConfig(ModelConfigSection):
     """Timing configuration."""
 
     start_date: date = date(2013, 1, 1)
@@ -159,7 +159,7 @@ class TimingConfig(BaseModel):
     "How long the simulation should be run for"
 
 
-class DataOutput(BaseModel):
+class DataOutput(ModelConfigSection):
     """Output settings for the Virtual Ecosystem model state."""
 
     save_initial_state: bool = False
@@ -192,7 +192,7 @@ class DataOutput(BaseModel):
     """
 
 
-class Layers(BaseModel):
+class Layers(ModelConfigSection):
     """Settings for the simulation vertical structure."""
 
     soil_layers: list[float] = Field(min_length=1, default=[-0.25, -1.0])
@@ -209,20 +209,20 @@ class Layers(BaseModel):
     "The height used to calculate subcanopy microclimate conditions."
 
 
-class DataSource(BaseModel):
+class DataSource(ModelConfigSection):
     """Data source configuration."""
 
     file_path: str = "placeholder"
     var_name: str = "placeholder"
 
 
-class Variables(BaseModel):
+class Variables(ModelConfigSection):
     """Variables configuration."""
 
     variable: list[DataSource] = [DataSource(), DataSource()]
 
 
-class CoreConfig(ModelConfig):
+class CoreConfig(ModelConfigRoot):
     """The core model configuration."""
 
     # TODO - don't want to have static attribute on core config, but still need to be

@@ -1,15 +1,13 @@
 """Configuration for the plants model."""
 
-from pydantic import BaseModel
-
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
-    ConfigDict,
-    ModelConfig,
+    ModelConfigRoot,
+    ModelConfigSection,
 )
 
 
-class PlantsConstants(BaseModel):
+class PlantsConstants(ModelConfigSection):
     """Constants for the :mod:`~virtual_ecosystem.models.plants` model.
 
     .. TODO::
@@ -17,8 +15,6 @@ class PlantsConstants(BaseModel):
         probably worth bringing together into a dataclass and external file,
         particularly as and when we add shrub or liana layers, which likely mirror this.
     """
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
 
     per_stem_annual_mortality_probability: float = 0.1
     """Basic annual mortality rate for plants."""
@@ -109,10 +105,9 @@ class PlantsConstants(BaseModel):
     """Mass of carbon per propagule in g."""
 
 
-class PlantsExportConfig(BaseModel):
+class PlantsExportConfig(ModelConfigSection):
     """Configuration class for plant export options."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
     required_data: list[str] = []
     """Required data for export."""
     cohort_attributes: list[str] = []
@@ -125,7 +120,7 @@ class PlantsExportConfig(BaseModel):
     """A float format string to control data precision."""
 
 
-class PlantsConfig(ModelConfig):
+class PlantsConfig(ModelConfigRoot):
     """Root configuration class for the plants model."""
 
     pft_definitions_path: FILEPATH_PLACEHOLDER

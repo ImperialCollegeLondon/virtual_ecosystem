@@ -1,11 +1,9 @@
 """Abiotic simple model configuration."""
 
-from pydantic import BaseModel
-
-from virtual_ecosystem.core.configuration import ModelConfig
+from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 
 
-class AbioticSimpleConstants(BaseModel):
+class AbioticSimpleConstants(ModelConfigSection):
     """Dataclass to store all constants for the `abiotic_simple` model."""
 
     saturation_vapour_pressure_factors: list[float] = [0.61078, 7.5, 237.3]
@@ -17,7 +15,7 @@ class AbioticSimpleConstants(BaseModel):
     TODO This is currently set to an arbitrary value."""
 
 
-class AbioticSimpleBounds(BaseModel):
+class AbioticSimpleBounds(ModelConfigSection):
     """Upper and lower bounds for abiotic variables.
 
     When a values falls outside these bounds, it is set to the bound value.
@@ -58,7 +56,7 @@ class AbioticSimpleBounds(BaseModel):
     """Bounds for soil temperature, [C]."""
 
 
-class AbioticSimpleConfig(ModelConfig):
+class AbioticSimpleConfig(ModelConfigRoot):
     """Root configuration class for the abiotic simple model."""
 
     constants: AbioticSimpleConstants = AbioticSimpleConstants()
