@@ -6,7 +6,11 @@ from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSec
 class AbioticSimpleConstants(ModelConfigSection):
     """Dataclass to store all constants for the `abiotic_simple` model."""
 
-    saturation_vapour_pressure_factors: list[float] = [0.61078, 7.5, 237.3]
+    saturation_vapour_pressure_factors: tuple[float, float, float] = (
+        0.61078,
+        7.5,
+        237.3,
+    )
     """Factors for saturation vapour pressure calculation."""
 
     initial_net_radiation: float = 10.0

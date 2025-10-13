@@ -6,7 +6,7 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator
+from pydantic import AfterValidator, Field
 
 from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -89,80 +89,95 @@ class AnimalConstants(ModelConfigSection):
                 f"Unsupported density scaling method: {self.density_scaling_method}"
             )
 
-    damuths_law_terms: dict[TaxaType, DamuthTerms] = {
-        TaxaType.MAMMAL: {
-            "HERBIVORE": (-0.75, 4.23),
-            "CARNIVORE": (-0.75, 1.00),
-            "OMNIVORE": (-0.75, 3.00),
-        },
-        TaxaType.BIRD: {
-            "HERBIVORE": (-0.75, 5.00),
-            "CARNIVORE": (-0.75, 2.00),
-            "OMNIVORE": (-0.75, 3.00),
-        },
-        TaxaType.INVERTEBRATE: {
-            "HERBIVORE": (-0.75, 5.00),
-            "CARNIVORE": (-0.75, 2.00),
-            "OMNIVORE": (-0.75, 3.00),
-        },
-        TaxaType.AMPHIBIAN: {
-            "HERBIVORE": (-0.75, 5.00),
-            "CARNIVORE": (-0.75, 2.00),
-            "OMNIVORE": (-0.75, 3.00),
-        },
-    }
+    damuths_law_terms: dict[TaxaType, DamuthTerms] = Field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {
+                "HERBIVORE": (-0.75, 4.23),
+                "CARNIVORE": (-0.75, 1.00),
+                "OMNIVORE": (-0.75, 3.00),
+            },
+            TaxaType.BIRD: {
+                "HERBIVORE": (-0.75, 5.00),
+                "CARNIVORE": (-0.75, 2.00),
+                "OMNIVORE": (-0.75, 3.00),
+            },
+            TaxaType.INVERTEBRATE: {
+                "HERBIVORE": (-0.75, 5.00),
+                "CARNIVORE": (-0.75, 2.00),
+                "OMNIVORE": (-0.75, 3.00),
+            },
+            TaxaType.AMPHIBIAN: {
+                "HERBIVORE": (-0.75, 5.00),
+                "CARNIVORE": (-0.75, 2.00),
+                "OMNIVORE": (-0.75, 3.00),
+            },
+        }
+    )
 
     madingley_biomass_scaling_terms: tuple[float, float] = (0.6, 300000.0)
 
-    metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = {
-        # Parameters from Madingley, mass-based metabolic rates
-        MetabolicType.ENDOTHERMIC: {
-            "basal": (4.19e10, 0.69),
-            "field": (9.08e11, 0.7),
-        },
-        MetabolicType.ECTOTHERMIC: {
-            "basal": (4.19e10, 0.69),
-            "field": (1.49e11, 0.88),
-        },
-    }
+    metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(
+        default_factory=lambda: {
+            MetabolicType.ENDOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (9.08e11, 0.7),
+            },
+            MetabolicType.ECTOTHERMIC: {
+                "basal": (4.19e10, 0.69),
+                "field": (1.49e11, 0.88),
+            },
+        }
+    )
+    """Parameters from Madingley, mass-based metabolic rates"""
 
-    energy_density: dict[str, float] = {
-        "meat": 7000.0,  # Energy of mammal meat [J/g]
-        "plant": 18200000.0,  # Energy of plant food [J/g]
-    }
+    energy_density: dict[str, float] = Field(
+        default_factory=lambda: {
+            "meat": 7000.0,
+            "plant": 18200000.0,
+        }
+    )
+    """Energy densities of different food sources [J/g]"""
 
     # TODO: rework these efficiencies to be interaction-specific, not trait based
-    conversion_efficiency: DietFloats = {
-        "HERBIVORE": 0.1,  # Toy value
-        "CARNIVORE": 0.25,  # Toy value
-        "OMNIVORE": 0.175,  # Toy value
-    }
+    conversion_efficiency: DietFloats = Field(
+        default_factory=lambda: {
+            "HERBIVORE": 0.1,  # Toy value
+            "CARNIVORE": 0.25,  # Toy value
+            "OMNIVORE": 0.175,  # Toy value
+        }
+    )
 
-    mechanical_efficiency: DietFloats = {
-        "HERBIVORE": 0.9,  # Toy value
-        "CARNIVORE": 0.8,  # Toy value
-        "OMNIVORE": 0.85,  # Toy value
-    }
+    mechanical_efficiency: DietFloats = Field(
+        default_factory=lambda: {
+            "HERBIVORE": 0.9,  # Toy value
+            "CARNIVORE": 0.8,  # Toy value
+            "OMNIVORE": 0.85,  # Toy value
+        }
+    )
 
     prey_mass_scaling_terms: dict[
         MetabolicType, dict[TaxaType, tuple[float, float]]
-    ] = {
-        MetabolicType.ENDOTHERMIC: {
-            TaxaType.MAMMAL: (1.0, 1.0),  # Toy values
-            TaxaType.BIRD: (1.0, 1.0),  # Toy values
-        },
-        MetabolicType.ECTOTHERMIC: {
-            TaxaType.INVERTEBRATE: (1.0, 1.0),
-            TaxaType.AMPHIBIAN: (1.0, 1.0),
-        },  # Toy values
-    }
+    ] = Field(
+        default_factory=lambda: {
+            MetabolicType.ENDOTHERMIC: {
+                TaxaType.MAMMAL: (1.0, 1.0),  # Toy values
+                TaxaType.BIRD: (1.0, 1.0),  # Toy values
+            },
+            MetabolicType.ECTOTHERMIC: {
+                TaxaType.INVERTEBRATE: (1.0, 1.0),
+                TaxaType.AMPHIBIAN: (1.0, 1.0),
+            },  # Toy values
+        }
+    )
 
-    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = {
-        TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
-        TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
-        TaxaType.INVERTEBRATE: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
-        TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
-    }
+    cnp_proportion_terms: dict[TaxaType, dict[str, float]] = Field(
+        default_factory=lambda: {
+            TaxaType.MAMMAL: {"carbon": 0.5, "nitrogen": 0.3, "phosphorus": 0.2},
+            TaxaType.BIRD: {"carbon": 0.4, "nitrogen": 0.3, "phosphorus": 0.3},
+            TaxaType.INVERTEBRATE: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+            TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
+        }
+    )
 
     birth_mass_threshold: float = 1.5  # Threshold for reproduction
     flow_to_reproductive_mass_threshold: float = (
