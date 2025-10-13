@@ -1,7 +1,7 @@
 """Configuration system elements for pydantic."""
 
 from pathlib import Path
-from typing import Annotated, Any, TypeAlias
+from typing import Annotated, Any, Literal, TypeAlias
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
@@ -62,7 +62,9 @@ placeholder value can be written despite not being an existing file.
 """
 
 
-def model_markdown_description(model_name: str, model_config: type[Any]) -> str:
+def model_markdown_description(
+    model_name: str, model_config: type[Any], mode: Literal["dl", "tr"] = "tr"
+) -> str:
     """Render the fields in a ModelConfig class as Markdown.
 
     The function recurses through sub-models within a ModelConfig instance and generates
@@ -78,17 +80,45 @@ def model_markdown_description(model_name: str, model_config: type[Any]) -> str:
     Args:
         model_name: The name of the model as it would appear in a configuration file.
         model_config: The ModelConfig instance for a model
+        mode: A selector for the kind of formatted output.
     """
-    output = "\n\n"
-    for name, field_info in model_config.model_fields.items():
-        field_name = model_name + "." + name
-        if isinstance(field_info.annotation, ModelMetaclass):
-            output += f"[{field_name}]\n: Config section: {field_info.description}\n\n"
-            output += model_markdown_description(field_name, field_info.annotation)
-        else:
-            output += (
-                f"[{field_name}]\n: {field_info.description} "
-                f"Default = {field_info.default}\n\n"
-            )
+    if mode == "dl":
+        output = "\n\n"
+        for name, field_info in model_config.model_fields.items():
+            field_name = model_name + "." + name
+            if isinstance(field_info.annotation, ModelMetaclass):
+                output += (
+                    f"[{field_name}]\n: Config section: {field_info.description}\n\n"
+                )
+                output += model_markdown_description(
+                    field_name, field_info.annotation, mode=mode
+                )
+            else:
+                output += (
+                    f"[{field_name}]\n: {field_info.description} "
+                    f"Default = {field_info.default}\n\n"
+                )
+        output += "\n\n"
 
-    return output + "\n\n"
+    if mode == "tr":
+        # An attempt at producing a table - needs more thought. Using HTML to
+        # potentially support colspan, which no easy markdown table formats provide.
+        output = f"<tr><td>{model_name}</td><td>{model_config.__doc__}</td></tr>"
+
+        for name, field_info in model_config.model_fields.items():
+            field_name = model_name + "." + name
+            if isinstance(field_info.annotation, ModelMetaclass):
+                output += (
+                    f"<tr><td>{field_name}</td><td>Config "
+                    f"section: {field_info.description}</td></tr>"
+                )
+                output += model_markdown_description(
+                    field_name, field_info.annotation, mode=mode
+                )
+            else:
+                output += (
+                    f"<tr><td>{field_name}</td><td>{field_info.description}, "
+                    f"Default = {field_info.default}</td></tr>"
+                )
+
+    return output

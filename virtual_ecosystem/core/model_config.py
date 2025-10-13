@@ -173,23 +173,15 @@ class DataOutput(ModelConfigSection):
     out_path: str = "."
     "File path for output files"
     out_initial_file_name: str = "initial_state.nc"
-    """File name for initial state output file
-    TODO: "pattern": "^[^/\\\\]+$" restriction
-    """
+    """File name for initial state output file"""
     out_folder_continuous: str = "."
     "Folder to save states of simulation with time to"
     out_continuous_file_name: str = "all_continuous_data.nc"
-    """Name of file to save combined continuous data to
-    TODO: "pattern": "^[^/\\\\]+$" restriction
-    """
+    """Name of file to save combined continuous data to"""
     out_final_file_name: str = "final_state.nc"
-    """File name for final state output file
-    TODO: "pattern": "^[^/\\\\]+$" restriction
-    """
+    """File name for final state output file"""
     out_merge_file_name: str = "ve_full_model_configuration.toml"
-    """Name for TOML file containing merged configs
-    TODO: "pattern": "^[^/\\\\]+$" restriction
-    """
+    """Name for TOML file containing merged configs"""
 
 
 class Layers(ModelConfigSection):
@@ -219,7 +211,7 @@ class DataSource(ModelConfigSection):
 class Variables(ModelConfigSection):
     """Variables configuration."""
 
-    variable: list[DataSource] = [DataSource(), DataSource()]
+    variable: tuple[DataSource, ...] = (DataSource(), DataSource())
 
 
 class CoreConfig(ModelConfigRoot):

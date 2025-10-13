@@ -14,6 +14,7 @@ class PlantsConstants(ModelConfigSection):
         The subcanopy seedbank and vegetation constants have the same structure. This is
         probably worth bringing together into a dataclass and external file,
         particularly as and when we add shrub or liana layers, which likely mirror this.
+
     """
 
     per_stem_annual_mortality_probability: float = 0.1
@@ -108,16 +109,16 @@ class PlantsConstants(ModelConfigSection):
 class PlantsExportConfig(ModelConfigSection):
     """Configuration class for plant export options."""
 
-    required_data: list[str] = []
-    """Required data for export."""
-    cohort_attributes: list[str] = []
-    """A list of cohort attributes to write to file."""
-    community_canopy_attributes: list[str] = []
-    """A list of community canopy attributes to write to file."""
-    stem_canopy_attributes: list[str] = []
-    """A list of stem canopy attributes to write to file."""
+    required_data: tuple[str, ...] = ()
+    """An array giving the required attributes to be exported."""
+    cohort_attributes: tuple[str, ...] = ()
+    """The cohort attributes that should be exported."""
+    community_canopy_attributes: tuple[str, ...] = ()
+    """The community canopy attributes that should be exported."""
+    stem_canopy_attributes: tuple[str, ...] = ()
+    """The stem canopy attributes that should be exported."""
     float_format: str = "%0.5f"
-    """A float format string to control data precision."""
+    """A float format string to control data precision in export files."""
 
 
 class PlantsConfig(ModelConfigRoot):
