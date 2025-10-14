@@ -1,10 +1,11 @@
 """Configuration system elements for pydantic."""
 
 from pathlib import Path
-from typing import Annotated, Any, Literal, TypeAlias
+from typing import Annotated, TypeAlias
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
+from pydantic_core import PydanticUndefined
 
 
 class ModelConfigRoot(BaseModel):
@@ -62,63 +63,67 @@ placeholder value can be written despite not being an existing file.
 """
 
 
-def model_markdown_description(
-    model_name: str, model_config: type[Any], mode: Literal["dl", "tr"] = "tr"
-) -> str:
-    """Render the fields in a ModelConfig class as Markdown.
+class ModelConfigHTMLTable:
+    """Class to render the fields in a ModelConfig class as an HTML Table.
 
     The function recurses through sub-models within a ModelConfig instance and generates
-    a definition list entry for each configuration setting. If rendered for display
-    inside a MyST markdown code cell, the notebook will need to be set to render
-    markdown from code cells using MyST rather than the default CommonMark.
-
-    .. code-block:: yaml
-
-        mystnb:
-            render_markdown_format: myst
+    a simple HTML table showing the config sections and then the description and
+    defaults of each setting.
 
     Args:
         model_name: The name of the model as it would appear in a configuration file.
-        model_config: The ModelConfig instance for a model
-        mode: A selector for the kind of formatted output.
+        config_object: A ModelConfig instance
     """
-    if mode == "dl":
-        output = "\n\n"
-        for name, field_info in model_config.model_fields.items():
+
+    def __init__(
+        self,
+        model_name: str,
+        config_object: type[ModelConfigRoot] | type[ModelConfigSection],
+    ):
+        # Initialise a list of rows
+        self.rows: list[str] = []
+
+        # Add the section header as a row with dark background
+        self.rows += [
+            f"<tr><td style='background-color:#c9c9c9;text-align:left;'>"
+            f"<strong>[{model_name}]</strong></td></tr>",
+        ]
+
+        # Iterate over the model fields
+        for name, field_info in config_object.model_fields.items():
+            # Track the nested name of the field
             field_name = model_name + "." + name
+
             if isinstance(field_info.annotation, ModelMetaclass):
-                output += (
-                    f"[{field_name}]\n: Config section: {field_info.description}\n\n"
-                )
-                output += model_markdown_description(
-                    field_name, field_info.annotation, mode=mode
-                )
+                # If the field is itself a model, then this is a nested section, so
+                # recurse into the model and then append the collected rows to the
+                # parent instance
+                self.rows += ModelConfigHTMLTable(
+                    field_name, field_info.annotation
+                ).rows
+
             else:
-                output += (
-                    f"[{field_name}]\n: {field_info.description} "
-                    f"Default = {field_info.default}\n\n"
-                )
-        output += "\n\n"
+                # Otherwise, get the default value (or not) for the field
+                default = field_info.get_default(call_default_factory=True)
 
-    if mode == "tr":
-        # An attempt at producing a table - needs more thought. Using HTML to
-        # potentially support colspan, which no easy markdown table formats provide.
-        output = f"<tr><td>{model_name}</td><td>{model_config.__doc__}</td></tr>"
+                if default is PydanticUndefined:
+                    default_string = "No default"
+                else:
+                    default_string = f"Default ={default!s}"
 
-        for name, field_info in model_config.model_fields.items():
-            field_name = model_name + "." + name
-            if isinstance(field_info.annotation, ModelMetaclass):
-                output += (
-                    f"<tr><td>{field_name}</td><td>Config "
-                    f"section: {field_info.description}</td></tr>"
-                )
-                output += model_markdown_description(
-                    field_name, field_info.annotation, mode=mode
-                )
-            else:
-                output += (
-                    f"<tr><td>{field_name}</td><td>{field_info.description}, "
-                    f"Default = {field_info.default}</td></tr>"
+                description = (
+                    "Field description missing."
+                    if field_info.description is None
+                    else field_info.description
                 )
 
-    return output
+                self.rows += [
+                    f"<tr><td style='text-align:left;background-color:#e3e3e3;'>"
+                    f"<strong>[{field_name}]</strong></td></tr>",
+                    f"<tr><td style='text-align:left;background-color:white;'>"
+                    f"{description}. {default_string}</td></tr>",
+                ]
+
+    def get_table(self) -> str:
+        """Return a compiled ModelConfig table as HTML."""
+        return "<table><tbody>" + "".join(self.rows) + "<tbody><table>"

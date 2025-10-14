@@ -32,8 +32,8 @@ mystnb:
 
 import tomli_w
 import json
-from virtual_ecosystem.core.configuration import model_markdown_description
-from IPython.display import display, Markdown
+from virtual_ecosystem.core.configuration import ModelConfigHTMLTable
+from IPython.display import display, Markdown, HTML
 ```
 
 This page is a test of the new configuration system and documentation. It is a work in
@@ -74,7 +74,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("core", CoreConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("core", CoreConfig).get_table()))
 ```
 
 ## Soil Model
@@ -107,7 +107,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("soil", SoilConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("soil", SoilConfig).get_table()))
 ```
 
 ## Plants Model
@@ -148,7 +148,7 @@ then two nested sections, setting the plant community data export options
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("plants", PlantsConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("plants", PlantsConfig).get_table()))
 ```
 
 ## Abiotic Model
@@ -179,7 +179,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("abiotic", AbioticConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("abiotic", AbioticConfig).get_table()))
 ```
 
 ## Hydrology Model
@@ -210,7 +210,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("hydrology", HydrologyConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("hydrology", HydrologyConfig).get_table()))
 ```
 
 ## Litter Model
@@ -241,7 +241,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("litter", LitterConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("litter", LitterConfig).get_table()))
 ```
 
 ## Abiotic Simple Model
@@ -275,11 +275,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(
-    Markdown(
-        model_markdown_description("abiotic_simple", AbioticSimpleConfig, mode="dl")
-    )
-)
+display(HTML(ModelConfigHTMLTable("abiotic_simple", AbioticSimpleConfig).get_table()))
 ```
 
 ## Animal Model
@@ -310,5 +306,5 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(Markdown(model_markdown_description("animal", AnimalConfig, mode="dl")))
+display(HTML(ModelConfigHTMLTable("animal", AnimalConfig).get_table()))
 ```
