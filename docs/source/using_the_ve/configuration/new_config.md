@@ -56,12 +56,10 @@ core model, complete with the default values for each of the configuration optio
 
 from virtual_ecosystem.core.model_config import CoreConfig
 
-config = CoreConfig()
-
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"core": json.loads(config.model_dump_json())})
+        + tomli_w.dumps({"core": CoreConfig().model_dump(mode="json")})
         + "```"
     )
 )
@@ -89,12 +87,10 @@ soil model, complete with the default values for each of the configuration optio
 
 from virtual_ecosystem.models.soil.model_config import SoilConfig
 
-config = SoilConfig()
-
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"soil": json.loads(config.model_dump_json())})
+        + tomli_w.dumps({"soil": SoilConfig().model_dump(mode="json")})
         + "```"
     )
 )
@@ -122,12 +118,10 @@ Plants model, complete with the default values for each of the configuration opt
 
 from virtual_ecosystem.models.plants.model_config import PlantsConfig
 
-plants_config = PlantsConfig()
-
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"plants": json.loads(plants_config.model_dump_json())})
+        + tomli_w.dumps({"plants": PlantsConfig().model_dump(mode="json")})
         + "```"
     )
 )
@@ -166,7 +160,7 @@ from virtual_ecosystem.models.abiotic.model_config import AbioticConfig
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"abiotic": json.loads(AbioticConfig().model_dump_json())})
+        + tomli_w.dumps({"abiotic": AbioticConfig().model_dump(mode="json")})
         + "```"
     )
 )
@@ -197,7 +191,7 @@ from virtual_ecosystem.models.hydrology.model_config import HydrologyConfig
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"hydrology": json.loads(HydrologyConfig().model_dump_json())})
+        + tomli_w.dumps({"hydrology": HydrologyConfig().model_dump(mode="json")})
         + "```"
     )
 )
@@ -228,7 +222,7 @@ from virtual_ecosystem.models.litter.model_config import LitterConfig
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"litter": json.loads(LitterConfig().model_dump_json())})
+        + tomli_w.dumps({"litter": LitterConfig().model_dump(mode="json")})
         + "```"
     )
 )
@@ -261,7 +255,7 @@ display(
     Markdown(
         "```toml\n"
         + tomli_w.dumps(
-            {"abiotic_simple": json.loads(AbioticSimpleConfig().model_dump_json())}
+            {"abiotic_simple": AbioticSimpleConfig().model_dump(mode="json")}
         )
         + "```"
     )
@@ -293,7 +287,7 @@ from virtual_ecosystem.models.animal.model_config import AnimalConfig
 display(
     Markdown(
         "```toml\n"
-        + tomli_w.dumps({"animal": json.loads(AnimalConfig().model_dump_json())})
+        + tomli_w.dumps({"animal": AnimalConfig().model_dump(mode="json")})
         + "```"
     )
 )
