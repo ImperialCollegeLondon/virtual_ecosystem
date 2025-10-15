@@ -78,8 +78,9 @@ exists on the file system. The field does not set ``validate_defaults`` so the
 placeholder value can be written despite not being an existing file.
 
 .. TODO: Fix autodoc
-    This generates a bizarre set of autodoc link failures that generate random text 
-    chunks from the Annotator pattern. Currently tackled using nitpick ignore.
+    This generates a bizarre set of autodoc link failures that try and build links from
+    the text elements from the Annotated pattern. Currently tackled using nitpick 
+    ignore.
 """
 
 
@@ -106,8 +107,8 @@ class ModelConfigHTMLTable:
 
         # Add the section header as a row with dark background
         self.rows += [
-            f"<tr><td style='background-color:#c9c9c9;text-align:left;'>"
-            f"<strong>[{model_name}]</strong></td></tr>",
+            f"<tr class='config-section'><td class='element-name'>"
+            f"[{model_name}]</td></tr>"
         ]
 
         # Iterate over the model fields
@@ -139,10 +140,10 @@ class ModelConfigHTMLTable:
                 )
 
                 self.rows += [
-                    f"<tr><td style='text-align:left;background-color:#e3e3e3;'>"
-                    f"<strong>[{field_name}]</strong></td></tr>",
-                    f"<tr><td style='text-align:left;background-color:white;'>"
-                    f"{description}. {default_string}</td></tr>",
+                    f"<tr class='config-element'>"
+                    f"<td class='element-name'>[{field_name}]</td></tr>",
+                    f"<tr class='config-desc'><td class='config-desc'>"
+                    f"{description} {default_string}</td></tr>",
                 ]
 
     def get_table(self) -> str:
