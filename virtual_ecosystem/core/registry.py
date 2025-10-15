@@ -16,7 +16,11 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
-from virtual_ecosystem.core.configuration import ConfigRoot
+from virtual_ecosystem.core.configuration import (
+    ConfigRoot,
+    ModelConfigRoot,
+    ModelConfigSection,
+)
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import load_schema
@@ -188,29 +192,37 @@ def register_module(module_name: str) -> None:
                 class_name,
             )
 
-    # Find and register the ModelConfig
+    # Find and register the model configuration
     try:
         config_submodule = import_module(f"{module_name}.model_config")
     except ModuleNotFoundError:
         raise RuntimeError("Model does not provide a model_config submodule.")
 
-    # Get all ModelConfig subclasses from the model_config submodule
+    # Get all subclasses inheriting from ConfigRoot from the model_config submodule
+    # This includes the imported base classes themselves, and also nested
+    # ModelConfigSection subclasses, which need to be filtered out.
     model_config_subclasses = {
         class_name: class_obj
         for class_name, class_obj in getmembers(config_submodule)
         if isclass(class_obj)
         and issubclass(class_obj, ConfigRoot)
+        and not issubclass(class_obj, ModelConfigSection)
         and class_obj is not ConfigRoot
+        and class_obj is not ModelConfigRoot
     }
 
-    # Trap setups that do not provide exactly one ModelConfig
+    # Trap setups that do not provide exactly one ConfigRoot or ModelConfigRoot
     n_config = len(model_config_subclasses)
 
     if n_config == 0:
-        raise RuntimeError("Model provides more than one ModelConfig class.")
+        raise RuntimeError(
+            f"Model {module_name_short} does not provide a root config class."
+        )
 
     if n_config > 1:
-        raise RuntimeError("Model provides more than one ModelConfig class.")
+        raise RuntimeError(
+            f"Model {module_name_short} provides more than one root config class."
+        )
 
     model_config_name, model_config_class = model_config_subclasses.popitem()
 
