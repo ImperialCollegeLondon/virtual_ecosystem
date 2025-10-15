@@ -11,7 +11,7 @@ import numpy as np
 from pydantic import Field
 from scipy import constants
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import ConfigRoot, ModelConfigSection
 
 
 class CoreConstants(ModelConfigSection):
@@ -214,11 +214,8 @@ class Variables(ModelConfigSection):
     variable: tuple[DataSource, ...] = (DataSource(), DataSource())
 
 
-class CoreConfig(ModelConfigRoot):
+class CoreConfig(ConfigRoot):
     """The core model configuration."""
-
-    # TODO - don't want to have static attribute on core config, but still need to be
-    # able to load it. Maybe just use special case of name.
 
     constants: CoreConstants = CoreConstants()
     "Constants for the core module"

@@ -1,4 +1,14 @@
-"""Configuration system elements for pydantic."""
+"""Configuration system elements for pydantic.
+
+The :mod:`~virtual_ecosystem.core.config` module is used to read in the various
+configuration files, validate their contents, and then configure a ready to run instance
+of the virtual ecosystem model. The basic details of how this system is used can be
+found :doc:`here </using_the_ve/configuration/config>`.
+
+The validation of configuration documents is done using JSONSchema documents associated
+with the different model components. See the :mod:`~virtual_ecosystem.core.schema`
+module for details.
+"""
 
 from pathlib import Path
 from typing import Annotated, TypeAlias
@@ -8,34 +18,44 @@ from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
 
 
-class ModelConfigRoot(BaseModel):
-    """Root configuration class for models.
+class ConfigRoot(BaseModel):
+    """Root configuration class for the Virtual Ecosystem.
 
-    This model provides a common `pydantic` base class to be used as the root for the
-    model configuration in all model implementations. Each model must define a
-    single class inheriting from :class:`ModelConfigRoot` in the ``model_config.py``
-    submodule. The file can then include other :class:`ModelConfigSection` classes that
-    are used within the root configuration but there must be a single root model
-    configuration class.
-
-    The base model defines the shared ``static`` option for each model and also sets
-    common configuration options.
+    This model provides a common :mod:`pydantic` base class for use in configuring the
+    Virtual Ecosystem. This base class is used to share common configuration settings
+    for all models. It is also used as the root configuration base for the core
+    configuration settings.
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
+
+
+class ModelConfigRoot(ConfigRoot):
+    """Root configuration class for models.
+
+    This model provides a common :mod:`pydantic` base class that must be used to define
+    the root configuration class of a Virtual Ecosystem model. Each model must define a
+    single class inheriting from :class:`ModelConfigRoot` in a ``model_config.py``
+    submodule. The file can then include other :class:`ModelConfigSection` classes that
+    are used as nested fields within the root configuration but can be only one
+    :class:`ModelConfigRoot` class per model. This base model sets common shared
+    attributes across models: currently just the shared ``static`` option.
+    """
+
     static: bool = False
     """The model static mode setting."""
 
 
-class ModelConfigSection(BaseModel):
+class ModelConfigSection(ConfigRoot):
     """Section configuration class for models.
 
-    This model provides a common base class for subsections within model configurations.
-    all model implementations. The base model currently just defines common
-    configuration options.
-    """
+    This model provides a common base class for nested subsections within model
+    configurations. The base model inherits shared configuration settings from the
+    :class:`ConfigRoot` class.
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    This is functionally an alias of :class:`ConfigRoot` and is used purely to
+    differentiate nested sections from the core config root.
+    """
 
 
 def placeholder_validator(path: str) -> str:
@@ -66,9 +86,10 @@ placeholder value can be written despite not being an existing file.
 class ModelConfigHTMLTable:
     """Class to render the fields in a ModelConfig class as an HTML Table.
 
-    The function recurses through sub-models within a ModelConfig instance and generates
-    a simple HTML table showing the config sections and then the description and
-    defaults of each setting.
+    This class is a helper function for use in documenting model configurations. It
+    takes a model configuration class and then iterates over model fields, recursing
+    into sub-models within the fields, to generate a simple HTML table showing the
+    config sections and then the description and defaults of each setting.
 
     Args:
         model_name: The name of the model as it would appear in a configuration file.
