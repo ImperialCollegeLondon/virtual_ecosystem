@@ -21,7 +21,7 @@ from pydantic_core import PydanticUndefined
 class ConfigRoot(BaseModel):
     """Root configuration class for the Virtual Ecosystem.
 
-    This model provides a common :mod:`pydantic` base class for use in configuring the
+    This model provides a common Pydantic base class for use in configuring the
     Virtual Ecosystem. This base class is used to share common configuration settings
     for all models. It is also used as the root configuration base for the core
     configuration settings.
@@ -33,7 +33,7 @@ class ConfigRoot(BaseModel):
 class ModelConfigRoot(ConfigRoot):
     """Root configuration class for models.
 
-    This model provides a common :mod:`pydantic` base class that must be used to define
+    This model provides a common Pydantic base class that must be used to define
     the root configuration class of a Virtual Ecosystem model. Each model must define a
     single class inheriting from :class:`ModelConfigRoot` in a ``model_config.py``
     submodule. The file can then include other :class:`ModelConfigSection` classes that
