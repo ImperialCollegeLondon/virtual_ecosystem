@@ -445,7 +445,7 @@ def test_ConfigurationLoader_load_config_toml(
         ),
     ],
 )
-def test_Config_load_config_toml_string(
+def test_ConfigurationLoader_load_config_toml_string(
     caplog, shared_datadir, cfg_paths, expected_exception, expected_log_entries
 ):
     """Check errors for incorrectly formatted cfg_strings."""
@@ -574,16 +574,30 @@ def test_Config_load_config_toml_string(
         ),
     ],
 )
+@pytest.mark.parametrize("override", [True, False])
 def test_ConfigurationLoader_load_configuration_data(
-    tmpdir, caplog, content, expected_exception, expected_path_log, expected_string_log
+    tmpdir,
+    caplog,
+    content,
+    expected_exception,
+    expected_path_log,
+    expected_string_log,
+    override,
 ):
     """This test checks the load_configuration_data method.
 
     This method wraps up the stages of collating the configuration files, loading their
     data and resolving relative paths and the final compilation of the resulting data
-    into a single configuration data dictionary.
+    into a single configuration data dictionary. It also checks that override_params is
+    handled correctly.
     """
     from virtual_ecosystem.core.config_builder import ConfigurationLoader
+
+    # Set an override value or leave empty
+    if override:
+        override_params = {"core": {"grid": {"cell_ny": 20}}}
+    else:
+        override_params = None
 
     # ----------------------------
     # Test the cfg_paths option
@@ -597,7 +611,9 @@ def test_ConfigurationLoader_load_configuration_data(
             tomli_w.dump(filedata, outfile)
 
     # Initialise the Config instance
-    config_builder = ConfigurationLoader(cfg_paths=cfg_paths)
+    config_builder = ConfigurationLoader(
+        cfg_paths=cfg_paths, override_params=override_params
+    )
     caplog.clear()
 
     # Check that load_configuration_data behaves as expected
@@ -607,7 +623,10 @@ def test_ConfigurationLoader_load_configuration_data(
         # Test the values that were passed into valid configs.
 
         assert config_builder.data["core"]["grid"]["cell_nx"] == 10
-        assert config_builder.data["core"]["grid"]["cell_nx"] == 10
+        if override:
+            assert config_builder.data["core"]["grid"]["cell_ny"] == 20
+        else:
+            assert config_builder.data["core"]["grid"]["cell_ny"] == 10
 
     log_check(caplog, expected_path_log)
 
@@ -621,7 +640,9 @@ def test_ConfigurationLoader_load_configuration_data(
     cfg_strings = [tomli_w.dumps(v) for k, v in content.items()]
 
     # Initialise the Config instance
-    config_builder = ConfigurationLoader(cfg_strings=cfg_strings)
+    config_builder = ConfigurationLoader(
+        cfg_strings=cfg_strings, override_params=override_params
+    )
     caplog.clear()
 
     # Check that load_configuration_data behaves as expected
@@ -631,7 +652,10 @@ def test_ConfigurationLoader_load_configuration_data(
         # Test the values that were passed into valid configs.
 
         assert config_builder.data["core"]["grid"]["cell_nx"] == 10
-        assert config_builder.data["core"]["grid"]["cell_nx"] == 10
+        if override:
+            assert config_builder.data["core"]["grid"]["cell_ny"] == 20
+        else:
+            assert config_builder.data["core"]["grid"]["cell_ny"] == 10
 
     log_check(caplog, expected_string_log)
 

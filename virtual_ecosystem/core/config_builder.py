@@ -59,7 +59,9 @@ def merge_configuration_dicts(
     dest = deepcopy(dest)
     source = deepcopy(source)
 
-    # Populate conflicts and path from defaults or kwargs
+    # Populate conflicts and path from defaults or kwargs. These are not provided as
+    # explicit arguments, because they would never really be used outside of recursion
+    # and so are not really part of the API.
     conflicts: set = kwargs.get("conflicts", set())
     path: str | None = kwargs.get("path", None)
 
@@ -222,14 +224,13 @@ class ConfigurationLoader:
         cfg_strings: A string or list of strings containing TOML formatted configuration
             data.
         override_params: Extra parameters provided by the user.
-        auto: A boolean flag setting whether the configuration data is automatically
-            loaded and validated
     """
 
     def __init__(
         self,
         cfg_paths: str | Path | Sequence[str | Path] = [],
         cfg_strings: str | list[str] = [],
+        override_params: dict[str, Any] | None = None,
     ) -> None:
         # Define attributes
         self.cfg_paths: list[Path] = []
@@ -252,6 +253,9 @@ class ConfigurationLoader:
         self.model_classes: dict[str, Any] = {}  # FIXME: -> dict[str, Type[BaseModel]]
         """A dictionary of the model classes specified in the configuration, keyed by
         model name."""
+        self.override_params: dict[str, Any] | None = override_params
+        """An optional set of parameters that can be used to override configuration data
+        loaded from file."""
 
         # Prohibit using neither paths and string or both paths and strings. Note that
         # these trap empty lists, so you have to provide _something_.
@@ -310,8 +314,13 @@ class ConfigurationLoader:
             LOGGER.critical(to_raise)
             raise to_raise
 
+        # Override any existing parameters. Conflicts are allowed here - although this
+        # mechanism can also be used to set configuration options _not_ in the other
+        # sources - so do nothing about conflicting settings
+        if self.override_params is not None:
+            data, _ = merge_configuration_dicts(data, self.override_params)
+
         self.data = data
-        self.conflicts = conflicts
 
         LOGGER.info("Configuration data compiled.")
 
