@@ -11,18 +11,6 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.11.9
-mystnb:
-  render_markdown_format: myst
 ---
 
 # Configuration documentation example
@@ -32,8 +20,34 @@ mystnb:
 
 import tomli_w
 import json
-from virtual_ecosystem.core.configuration import ModelConfigHTMLTable
+from virtual_ecosystem.core.configuration import model_config_to_html, Configuration
 from IPython.display import display, Markdown, HTML
+from importlib import import_module
+
+
+def get_config_class(module_name: str) -> Configuration:
+    """Helper function to get the configuration model for a module.
+
+    Returns a tuple of the module short name and configuration class.
+    """
+
+    # Get the config class for the module
+    module = import_module(f"{module_name}.model_config")
+    config_class = getattr(module, "ModelConfiguration")
+
+    return module_name.split(".")[-1], config_class
+
+
+def dump_config_toml(name: str, config_class: Configuration) -> None:
+
+    # Render the config defaults as TOML
+    display(
+        Markdown(
+            "```toml\n"
+            + tomli_w.dumps({name: config_class().model_dump(mode="json")})
+            + "```"
+        )
+    )
 ```
 
 This page is a test of the new configuration system and documentation. It is a work in
@@ -54,15 +68,8 @@ core model, complete with the default values for each of the configuration optio
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.core.model_config import CoreConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"core": CoreConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.core")
+dump_config_toml(*config_setup)
 ```
 
 ### Core model configuration details
@@ -72,7 +79,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("core", CoreConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Soil Model
@@ -85,15 +92,8 @@ soil model, complete with the default values for each of the configuration optio
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.soil.model_config import SoilConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"soil": SoilConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.soil")
+dump_config_toml(*config_setup)
 ```
 
 ### Soil model configuration details
@@ -103,7 +103,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("soil", SoilConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Plants Model
@@ -116,15 +116,8 @@ Plants model, complete with the default values for each of the configuration opt
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.plants.model_config import PlantsConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"plants": PlantsConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.plants")
+dump_config_toml(*config_setup)
 ```
 
 ### Plants model configuration details
@@ -142,7 +135,7 @@ then two nested sections, setting the plant community data export options
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("plants", PlantsConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Abiotic Model
@@ -155,15 +148,8 @@ abiotic model, complete with the default values for each of the configuration op
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.abiotic.model_config import AbioticConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"abiotic": AbioticConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.abiotic")
+dump_config_toml(*config_setup)
 ```
 
 ### Abiotic model configuration details
@@ -173,7 +159,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("abiotic", AbioticConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Hydrology Model
@@ -186,15 +172,8 @@ hydrology model, complete with the default values for each of the configuration 
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.hydrology.model_config import HydrologyConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"hydrology": HydrologyConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.hydrology")
+dump_config_toml(*config_setup)
 ```
 
 ### Hydrology model configuration details
@@ -204,7 +183,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("hydrology", HydrologyConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Litter Model
@@ -217,15 +196,8 @@ litter model, complete with the default values for each of the configuration opt
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.litter.model_config import LitterConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"litter": LitterConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.litter")
+dump_config_toml(*config_setup)
 ```
 
 ### Litter model configuration details
@@ -235,7 +207,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("litter", LitterConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Abiotic Simple Model
@@ -249,17 +221,8 @@ options.
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps(
-            {"abiotic_simple": AbioticSimpleConfig().model_dump(mode="json")}
-        )
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.abiotic_simple")
+dump_config_toml(*config_setup)
 ```
 
 ### Abiotic Simple model configuration details
@@ -269,7 +232,7 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("abiotic_simple", AbioticSimpleConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```
 
 ## Animal Model
@@ -282,15 +245,8 @@ animal model, complete with the default values for each of the configuration opt
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-from virtual_ecosystem.models.animal.model_config import AnimalConfig
-
-display(
-    Markdown(
-        "```toml\n"
-        + tomli_w.dumps({"animal": AnimalConfig().model_dump(mode="json")})
-        + "```"
-    )
-)
+config_setup = get_config_class("virtual_ecosystem.models.animal")
+dump_config_toml(*config_setup)
 ```
 
 ### Animal model configuration details
@@ -300,5 +256,5 @@ This section provides a description of each option set in the TOML document abov
 ```{code-cell} ipython3
 :tags: [remove-input]
 
-display(HTML(ModelConfigHTMLTable("animal", AnimalConfig).get_table()))
+display(HTML(model_config_to_html(*config_setup)))
 ```

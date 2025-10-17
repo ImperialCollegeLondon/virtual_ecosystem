@@ -8,7 +8,7 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, Field
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
@@ -55,7 +55,7 @@ DietFloats = Annotated[
 """Custom data type with post validation for dictionaries of diet type and floats."""
 
 
-class AnimalConstants(ModelConfigSection):
+class AnimalConstants(Configuration):
     """Dataclass to store all constants related to animals.
 
     TODO: Remove unused constants.
@@ -357,7 +357,7 @@ class AnimalConstants(ModelConfigSection):
     """The probability a seasonal migration event occurs per time step (month)."""
 
 
-class AnimalConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration class for the animal model."""
 
     functional_group_definitions_path: str = ""

@@ -1,9 +1,9 @@
 """Configuration for the litter model."""
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
-class LitterConstants(ModelConfigSection):
+class LitterConstants(Configuration):
     """Dataclass to store all constants for the `litter` model."""
 
     litter_decomp_reference_temp: float = 40.0
@@ -161,7 +161,7 @@ class LitterConstants(ModelConfigSection):
     """
 
 
-class LitterConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration clas for the litter model."""
 
     constants: LitterConstants = LitterConstants()

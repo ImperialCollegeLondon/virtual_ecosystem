@@ -2,12 +2,12 @@
 
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
-    ModelConfigRoot,
-    ModelConfigSection,
+    Configuration,
+    ModelConfigurationRoot,
 )
 
 
-class PlantsConstants(ModelConfigSection):
+class PlantsConstants(Configuration):
     """Constants for the :mod:`~virtual_ecosystem.models.plants` model.
 
     .. TODO::
@@ -106,7 +106,7 @@ class PlantsConstants(ModelConfigSection):
     """Mass of carbon per propagule in g."""
 
 
-class PlantsExportConfig(ModelConfigSection):
+class PlantsExportConfig(Configuration):
     """Configuration class for plant export options."""
 
     required_data: tuple[str, ...] = ()
@@ -121,7 +121,7 @@ class PlantsExportConfig(ModelConfigSection):
     """A float format string to control data precision in export files."""
 
 
-class PlantsConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration class for the plants model."""
 
     pft_definitions_path: FILEPATH_PLACEHOLDER

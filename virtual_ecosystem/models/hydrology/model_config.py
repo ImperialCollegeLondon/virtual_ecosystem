@@ -9,10 +9,10 @@ current default values are average best estimates within reasonable bounds.
 
 from pydantic import Field
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
-class HydrologyConstants(ModelConfigSection):
+class HydrologyConstants(Configuration):
     """Dataclass to store all constants for the `hydrology` model."""
 
     soil_moisture_residual: float = 0.175
@@ -208,7 +208,7 @@ class HydrologyConstants(ModelConfigSection):
     """Factor to convert matric potential from m to kPa."""
 
 
-class HydrologyConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration clas for the hydrology model."""
 
     initial_soil_moisture: float = Field(gt=0, default=0.5)

@@ -17,9 +17,7 @@ from inspect import getmembers, isclass
 from typing import Any
 
 from virtual_ecosystem.core.configuration import (
-    ConfigRoot,
-    ModelConfigRoot,
-    ModelConfigSection,
+    Configuration,
 )
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
@@ -52,9 +50,9 @@ class ModuleInfo:
     constants_classes: dict[str, type[ConstantsDataclass]]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
-    config: type[ConfigRoot]
-    """A ConfigRoot class, or class deriving from it, that provides a pydantic model to 
-    populate and validate the model configuration."""
+    config: type[Configuration]
+    """A Configuration subclass that provides a pydantic model to populate and validate
+    the model configuration."""
     is_core: bool
     """Logical flag indicating if an instance contains registration information for the
     core module."""
@@ -193,40 +191,9 @@ def register_module(module_name: str) -> None:
             )
 
     # Find and register the model configuration
-    try:
-        config_submodule = import_module(f"{module_name}.model_config")
-    except ModuleNotFoundError:
-        raise RuntimeError("Model does not provide a model_config submodule.")
+    model_config_class = get_model_configuration_class(module_name=module_name)
 
-    # Get all subclasses inheriting from ConfigRoot from the model_config submodule
-    # This includes the imported base classes themselves, and also nested
-    # ModelConfigSection subclasses, which need to be filtered out.
-    model_config_subclasses = {
-        class_name: class_obj
-        for class_name, class_obj in getmembers(config_submodule)
-        if isclass(class_obj)
-        and issubclass(class_obj, ConfigRoot)
-        and not issubclass(class_obj, ModelConfigSection)
-        and class_obj is not ConfigRoot
-        and class_obj is not ModelConfigRoot
-    }
-
-    # Trap setups that do not provide exactly one ConfigRoot or ModelConfigRoot
-    n_config = len(model_config_subclasses)
-
-    if n_config == 0:
-        raise RuntimeError(
-            f"Model {module_name_short} does not provide a root config class."
-        )
-
-    if n_config > 1:
-        raise RuntimeError(
-            f"Model {module_name_short} provides more than one root config class."
-        )
-
-    model_config_name, model_config_class = model_config_subclasses.popitem()
-
-    LOGGER.info("Configuration registered for %s: %s ", module_name, model_config_name)
+    LOGGER.info("Configuration class registered for %s", module_name)
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
         model=model,
@@ -235,3 +202,26 @@ def register_module(module_name: str) -> None:
         config=model_config_class,
         is_core=is_core,
     )
+
+
+def get_model_configuration_class(module_name):
+    """Get the root configuration class for a model."""
+
+    try:
+        config_submodule = import_module(f"{module_name}.model_config")
+        model_config_class = getattr(config_submodule, "ModelConfiguration")
+        assert issubclass(model_config_class, Configuration)
+    except ModuleNotFoundError:
+        raise RuntimeError(
+            f"Model {module_name} does not provide a model_config submodule."
+        )
+    except AttributeError:
+        raise RuntimeError(
+            f"A ModelConfiguration object is not found in {module_name}.model_config."
+        )
+    except AssertionError:
+        raise RuntimeError(
+            f"Model {module_name} config class does does inherit from `ConfigRoot`."
+        )
+
+    return model_config_class

@@ -1,9 +1,9 @@
 """Abiotic simple model configuration."""
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
-class AbioticSimpleConstants(ModelConfigSection):
+class AbioticSimpleConstants(Configuration):
     """Dataclass to store all constants for the `abiotic_simple` model."""
 
     saturation_vapour_pressure_factors: tuple[float, float, float] = (
@@ -19,7 +19,7 @@ class AbioticSimpleConstants(ModelConfigSection):
     TODO This is currently set to an arbitrary value."""
 
 
-class AbioticSimpleBounds(ModelConfigSection):
+class AbioticSimpleBounds(Configuration):
     """Upper and lower bounds for abiotic variables.
 
     When a values falls outside these bounds, it is set to the bound value.
@@ -60,7 +60,7 @@ class AbioticSimpleBounds(ModelConfigSection):
     """Bounds for soil temperature, [C]."""
 
 
-class AbioticSimpleConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration class for the abiotic simple model."""
 
     constants: AbioticSimpleConstants = AbioticSimpleConstants()

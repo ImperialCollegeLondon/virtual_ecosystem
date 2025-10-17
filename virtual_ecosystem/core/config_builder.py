@@ -1,11 +1,18 @@
-"""The :mod:`~virtual_ecosystem.core.config` module is used to read in the various
-configuration files, validate their contents, and then configure a ready to run instance
-of the virtual ecosystem model. The basic details of how this system is used can be
-found :doc:`here </using_the_ve/configuration/config>`.
+"""The :mod:`~virtual_ecosystem.core.config_builder` provides tools to load a set of
+TOML formatted configuration dictionaries, either from files or from strings. String
+inputs are primarily intended for use in configuring models for testing, where it is
+more convenient to simply provide a string. The main class :class:`ConfigLoader` handles
+the loading of configuration data and compiling multiple sources into a single
+dictionary of configuration data.
 
-The validation of configuration documents is done using JSONSchema documents associated
-with the different model components. See the :mod:`~virtual_ecosystem.core.schema`
-module for details.
+The :func:`get_configuration` function:
+
+* takes a compiled configuration document,
+* assembles a pydantic validation model class using the configuration validators for
+  each of the requested science modules, and
+* passes the data through the validator to return a validated configuration model for
+  the simulation.
+
 """  # noqa: D205
 
 import tomllib
@@ -16,7 +23,7 @@ from typing import Any
 
 from pydantic import ValidationError, create_model
 
-from virtual_ecosystem.core.configuration import ConfigRoot
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
@@ -462,7 +469,7 @@ class ConfigurationLoader:
                     raise excep
 
 
-def build_configuration_model(requested_modules: list[str]) -> type[ConfigRoot]:
+def build_configuration_model(requested_modules: list[str]) -> type[Configuration]:
     """Build a schema to validate the model configuration.
 
     This method identifies the modules to be configured from the top-level
@@ -501,9 +508,7 @@ def build_configuration_model(requested_modules: list[str]) -> type[ConfigRoot]:
     return combined_model
 
 
-def get_configuration(
-    data: dict[str, Any] = {},  # override_params: dict[str, Any] = {}
-) -> ConfigRoot:
+def get_configuration(data: dict[str, Any] = {}) -> Configuration:
     """Generate a configuration model from configuration data.
 
     This method takes a dictionary of configuration data - typically loaded and compiled
