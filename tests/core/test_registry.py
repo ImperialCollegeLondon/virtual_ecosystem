@@ -23,7 +23,7 @@ from tests.conftest import log_check
                 ),
                 (
                     INFO,
-                    "Configuration registered for virtual_ecosystem.core: CoreConfig",
+                    "Configuration class registered for virtual_ecosystem.core",
                 ),
             ),
             id="core_import_good",
@@ -41,7 +41,8 @@ from tests.conftest import log_check
                 (INFO, "Schema registered for virtual_ecosystem.models.testing:"),
                 (
                     INFO,
-                    "Configuration registered for virtual_ecosystem.models.testing: ",
+                    "Configuration class registered for "
+                    "virtual_ecosystem.models.testing",
                 ),
             ),
             id="testing_import_good",
@@ -64,7 +65,8 @@ from tests.conftest import log_check
                 ),
                 (
                     INFO,
-                    "Configuration registered for tests.core.test_modules.one_model: ",
+                    "Configuration class registered for "
+                    "tests.core.test_modules.one_model",
                 ),
             ),
             id="model_import_good",
