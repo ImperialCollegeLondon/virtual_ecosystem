@@ -433,18 +433,29 @@ def test_generate_litter_model(
     """Test that the function to initialise the litter model behaves as expected."""
 
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        get_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
-    core_components = CoreComponents(config=config)
+
+    cfg = ConfigurationLoader(cfg_strings=cfg_string)
+    cfg.load_configuration_data()
+    configuration = get_configuration(cfg.data)
+
+    core_components = CoreComponents(config)
+
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = LitterModel.from_config(
             data=dummy_litter_data,
+            configuration=configuration,
             core_components=core_components,
             config=config,
         )
