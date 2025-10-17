@@ -1,14 +1,18 @@
-"""Configuration system elements for pydantic.
+"""The :mod:`~virtual_ecosystem.core.configuration` module provides the core
+model configuration elements for the Virtual Ecosystem. It defines shared pydantic base
+classes that are used to define configuration settings for a model.
 
-The :mod:`~virtual_ecosystem.core.config` module is used to read in the various
-configuration files, validate their contents, and then configure a ready to run instance
-of the virtual ecosystem model. The basic details of how this system is used can be
+Each model must define an object ``model_name.model_config.ModelConfiguration``. For the
+science models, this object **must** inherit from :class:`ModelConfigurationRoot`, which
+provides the common ``static`` setting. The `core.model_config.ModelConfiguration`
+configuration instead directly uses :class:`Configuration` since it cannot be run in
+static mode. The ``model_name.model_config`` module can then include other
+:class:`Configuration` classes that are used as nested fields within the root
+configuration class.
+
+The basic details of how this system is used can be
 found :doc:`here </using_the_ve/configuration/config>`.
-
-The validation of configuration documents is done using JSONSchema documents associated
-with the different model components. See the :mod:`~virtual_ecosystem.core.schema`
-module for details.
-"""
+"""  # noqa: D205
 
 from pathlib import Path
 from typing import Annotated, TypeAlias
@@ -17,9 +21,16 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
 
+RST_TO_MD = [
+    (":cite:t:", "{cite:t}"),
+    (":cite:p:", "{cite:p}"),
+    (":attr:", "{attr}"),
+]
+"""Tags to replace when converting RST descriptions of fields to Markdown."""
 
-class ConfigRoot(BaseModel):
-    """Root configuration class for the Virtual Ecosystem.
+
+class Configuration(BaseModel):
+    """Base configuration class for the Virtual Ecosystem.
 
     This model provides a common Pydantic base class for use in configuring the
     Virtual Ecosystem. This base class is used to share common configuration settings
@@ -30,13 +41,14 @@ class ConfigRoot(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
-class ModelConfigRoot(ConfigRoot):
+class ModelConfigurationRoot(Configuration):
     """Root configuration class for models.
 
     This model provides a common Pydantic base class that must be used to define
-    the root configuration class of a Virtual Ecosystem model. Each model must define a
-    single class inheriting from :class:`ModelConfigRoot` in a ``model_config.py``
-    submodule. The file can then include other :class:`ModelConfigSection` classes that
+    the root configuration class of a Virtual Ecosystem model. Each model must define an
+    object ``model_name.model_config.ModelConfiguration`` that inherits from
+    :class:`ModelConfigurationRoot`. The ``model_name.model_config`` module
+    can then include other :class:`ModelConfigSection` classes that
     are used as nested fields within the root configuration but can be only one
     :class:`ModelConfigRoot` class per model. This base model sets common shared
     attributes across models: currently just the shared ``static`` option.
@@ -44,18 +56,6 @@ class ModelConfigRoot(ConfigRoot):
 
     static: bool = False
     """The model static mode setting."""
-
-
-class ModelConfigSection(ConfigRoot):
-    """Section configuration class for models.
-
-    This model provides a common base class for nested subsections within model
-    configurations. The base model inherits shared configuration settings from the
-    :class:`ConfigRoot` class.
-
-    This is functionally an alias of :class:`ConfigRoot` and is used purely to
-    differentiate nested sections from the core config root.
-    """
 
 
 def placeholder_validator(path: str) -> str:
@@ -84,68 +84,66 @@ placeholder value can be written despite not being an existing file.
 """
 
 
-class ModelConfigHTMLTable:
-    """Class to render the fields in a ModelConfig class as an HTML Table.
+def model_config_to_html(
+    model_name: str, config_object: type[Configuration], rows_only: bool = False
+):
+    """Renders the fields in a model configuration class as an HTML Table.
 
-    This class is a helper function for use in documenting model configurations. It
-    takes a model configuration class and then iterates over model fields, recursing
-    into sub-models within the fields, to generate a simple HTML table showing the
-    config sections and then the description and defaults of each setting.
+    This is a helper function for use in documenting model configurations. It takes a
+    model configuration class and then iterates over model fields, recursing into
+    sub-models within the fields, to generate a simple HTML table showing the config
+    sections and then the description and defaults of each setting. The CSS classes are
+    defined in ``docs/source/_static/css/custom.css``.
 
     Args:
         model_name: The name of the model as it would appear in a configuration file.
         config_object: A ModelConfig instance
+        rows_only: Should the function wrap the returned rows with HTML table and tbody
+            tags?
     """
 
-    def __init__(
-        self,
-        model_name: str,
-        config_object: type[ModelConfigRoot] | type[ModelConfigSection],
-    ):
-        # Initialise a list of rows
-        self.rows: list[str] = []
+    # Start with the section header
+    rows = (
+        f"<tr class='config-section'><td class='element-name'>[{model_name}]</td></tr>"
+    )
 
-        # Add the section header as a row with dark background
-        self.rows += [
-            f"<tr class='config-section'><td class='element-name'>"
-            f"[{model_name}]</td></tr>"
-        ]
+    # Iterate over the model fields
+    for name, field_info in config_object.model_fields.items():
+        # Track the nested name of the field
+        field_name = model_name + "." + name
 
-        # Iterate over the model fields
-        for name, field_info in config_object.model_fields.items():
-            # Track the nested name of the field
-            field_name = model_name + "." + name
+        if isinstance(field_info.annotation, ModelMetaclass):
+            # If the field is itself a model, then this is a nested section, so
+            # recurse into the model and then append the collected rows to the
+            # parent instance
+            rows += model_config_to_html(
+                field_name, field_info.annotation, rows_only=True
+            )
 
-            if isinstance(field_info.annotation, ModelMetaclass):
-                # If the field is itself a model, then this is a nested section, so
-                # recurse into the model and then append the collected rows to the
-                # parent instance
-                self.rows += ModelConfigHTMLTable(
-                    field_name, field_info.annotation
-                ).rows
+        else:
+            # Otherwise, get the default value (or not) for the field
+            default = field_info.get_default(call_default_factory=True)
 
+            if default is PydanticUndefined:
+                default_string = "No default"
             else:
-                # Otherwise, get the default value (or not) for the field
-                default = field_info.get_default(call_default_factory=True)
+                default_string = f"Default ={default!s}"
 
-                if default is PydanticUndefined:
-                    default_string = "No default"
-                else:
-                    default_string = f"Default ={default!s}"
+            if field_info.description is None:
+                description = "Field description missing."
+            else:
+                description = field_info.description
+                for rst, md in RST_TO_MD:
+                    description = description.replace(rst, md)
 
-                description = (
-                    "Field description missing."
-                    if field_info.description is None
-                    else field_info.description
-                )
+            rows += (
+                f"<tr class='config-element'>"
+                f"<td class='element-name'>[{field_name}]</td></tr>"
+                f"<tr class='config-desc'><td class='config-desc'>"
+                f"{description} {default_string}</td></tr>"
+            )
 
-                self.rows += [
-                    f"<tr class='config-element'>"
-                    f"<td class='element-name'>[{field_name}]</td></tr>",
-                    f"<tr class='config-desc'><td class='config-desc'>"
-                    f"{description} {default_string}</td></tr>",
-                ]
+    if rows_only:
+        return rows
 
-    def get_table(self) -> str:
-        """Return a compiled ModelConfig table as HTML."""
-        return "<table><tbody>" + "".join(self.rows) + "<tbody><table>"
+    return "<table><tbody>" + rows + "<tbody><table>"
