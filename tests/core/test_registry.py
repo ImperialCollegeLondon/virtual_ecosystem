@@ -21,8 +21,31 @@ from tests.conftest import log_check
                     INFO,
                     "Constants class registered for virtual_ecosystem.core: CoreConsts",
                 ),
+                (
+                    INFO,
+                    "Configuration class registered for virtual_ecosystem.core",
+                ),
             ),
             id="core_import_good",
+        ),
+        pytest.param(
+            "virtual_ecosystem.models.testing",
+            does_not_raise(),
+            (
+                (INFO, "Registering module: virtual_ecosystem.models.testing"),
+                (
+                    INFO,
+                    "Registering model class for "
+                    "virtual_ecosystem.models.testing: TestingModel",
+                ),
+                (INFO, "Schema registered for virtual_ecosystem.models.testing:"),
+                (
+                    INFO,
+                    "Configuration class registered for "
+                    "virtual_ecosystem.models.testing",
+                ),
+            ),
+            id="testing_import_good",
         ),
         pytest.param(
             "tests.core.test_modules.one_model",
@@ -39,6 +62,11 @@ from tests.conftest import log_check
                     INFO,
                     "Constants class registered for "
                     "tests.core.test_modules.one_model: TestConsts",
+                ),
+                (
+                    INFO,
+                    "Configuration class registered for "
+                    "tests.core.test_modules.one_model",
                 ),
             ),
             id="model_import_good",
@@ -95,8 +123,8 @@ from tests.conftest import log_check
 def test_registry(caplog, module_name, raises, exp_log):
     """Test the registry loading.
 
-    This uses a dummy model to impersonate the plant model, because importing any real
-    models triggers `register_module` calls from the module __init__.py files.
+    This runs tests on the actual core and testing modules and then uses some local
+    badly formatted models to check error handling.
     """
 
     from virtual_ecosystem.core.base_model import BaseModel

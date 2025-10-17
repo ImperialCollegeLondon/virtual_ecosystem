@@ -51,6 +51,7 @@ subtrees:
       - file: using_the_ve/configuration/config
         title: Configuring your model
         entries:
+          - file: using_the_ve/configuration/new_config
           - file: using_the_ve/configuration/axes
           - file: using_the_ve/configuration/grid
           - file: using_the_ve/configuration/constants
@@ -92,6 +93,8 @@ subtrees:
                 title: The base_model submodule
               - file: api/core/config.md
                 title: The config submodule
+              - file: api/core/configuration.md
+                title: The configuration submodule
               - file: api/core/constants.md
                 title: The constants submodule
               - file: api/core/constants_class.md

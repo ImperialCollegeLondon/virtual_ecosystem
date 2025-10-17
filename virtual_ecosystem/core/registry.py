@@ -16,6 +16,9 @@ from importlib import import_module, resources
 from inspect import getmembers, isclass
 from typing import Any
 
+from virtual_ecosystem.core.configuration import (
+    Configuration,
+)
 from virtual_ecosystem.core.constants_class import ConstantsDataclass
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.schema import load_schema
@@ -47,6 +50,9 @@ class ModuleInfo:
     constants_classes: dict[str, type[ConstantsDataclass]]
     """A dictionary of module constants classes. The individual ConstantsDataclass
     objects are keyed by their name."""
+    config: type[Configuration]
+    """A Configuration subclass that provides a pydantic model to populate and validate
+    the model configuration."""
     is_core: bool
     """Logical flag indicating if an instance contains registration information for the
     core module."""
@@ -184,6 +190,38 @@ def register_module(module_name: str) -> None:
                 class_name,
             )
 
+    # Find and register the model configuration
+    model_config_class = get_model_configuration_class(module_name=module_name)
+
+    LOGGER.info("Configuration class registered for %s", module_name)
+
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
-        model=model, schema=schema, constants_classes=constants_classes, is_core=is_core
+        model=model,
+        schema=schema,
+        constants_classes=constants_classes,
+        config=model_config_class,
+        is_core=is_core,
     )
+
+
+def get_model_configuration_class(module_name):
+    """Get the root configuration class for a model."""
+
+    try:
+        config_submodule = import_module(f"{module_name}.model_config")
+        model_config_class = getattr(config_submodule, "ModelConfiguration")
+        assert issubclass(model_config_class, Configuration)
+    except ModuleNotFoundError:
+        raise RuntimeError(
+            f"Model {module_name} does not provide a model_config submodule."
+        )
+    except AttributeError:
+        raise RuntimeError(
+            f"A ModelConfiguration object is not found in {module_name}.model_config."
+        )
+    except AssertionError:
+        raise RuntimeError(
+            f"Model {module_name} config class does does inherit from `ConfigRoot`."
+        )
+
+    return model_config_class
