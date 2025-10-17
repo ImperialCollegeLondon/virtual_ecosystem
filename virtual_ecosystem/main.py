@@ -16,6 +16,7 @@ from tqdm import tqdm
 from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.config_builder import ConfigurationLoader, get_configuration
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
@@ -33,6 +34,7 @@ class Progress(IntEnum):
 
 
 def initialise_models(
+    configuration: Configuration,
     config: Config,
     data: Data,
     core_components: CoreComponents,
@@ -41,6 +43,7 @@ def initialise_models(
     """Initialise a set of models for use in a `virtual_ecosystem` simulation.
 
     Args:
+        configuration: A validated Virtual Ecosystem model configuration object.
         config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
@@ -125,7 +128,7 @@ def ve_run(
         override_params=override_params,
     )
     config_loader.load_configuration_data()
-    new_config = get_configuration(config_loader.data)  # noqa: F841
+    configuration = get_configuration(config_loader.data)
 
     # Save the merged config if requested
     data_opt = config["core"]["data_output_options"]
@@ -162,6 +165,7 @@ def ve_run(
     }
 
     models_init = initialise_models(
+        configuration=configuration,
         config=config,
         data=data,
         core_components=core_components,
