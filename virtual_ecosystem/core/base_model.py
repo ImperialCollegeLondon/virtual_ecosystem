@@ -108,6 +108,7 @@ from typing import Any
 import pint
 
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
@@ -204,6 +205,7 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
+        configuration: Configuration,
         core_components: CoreComponents,
         static: bool = False,
         **kwargs: Any,
@@ -235,6 +237,8 @@ class BaseModel(ABC):
         """
         self.data: Data = data
         """A Data instance providing access to the shared simulation data."""
+        self.configuration: Configuration = configuration
+        """The configuration for a simulation"""
         self.model_timing: ModelTiming = core_components.model_timing
         """The ModelTiming details used in the model."""
         self.grid: Grid = core_components.grid
