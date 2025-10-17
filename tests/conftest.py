@@ -60,7 +60,11 @@ def record_found_in_log(
     try:
         # Iterate over the record tuples, ignoring the leading element
         # giving the logger name
-        _ = next(msg for msg in caplog.record_tuples if msg[1:] == find)
+        _ = next(
+            _
+            for _, level, message in caplog.record_tuples
+            if level == find[0] and message.startswith(find[1])
+        )
         return True
     except StopIteration:
         return False
