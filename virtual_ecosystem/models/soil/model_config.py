@@ -2,10 +2,10 @@
 
 import numpy as np
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
-class SoilConstants(ModelConfigSection):
+class SoilConstants(Configuration):
     """Dataclass to store all constants for the `soil` model."""
 
     reference_cue_logit: float = 0.094
@@ -375,7 +375,7 @@ class SoilConstants(ModelConfigSection):
     """
 
 
-class SoilConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""

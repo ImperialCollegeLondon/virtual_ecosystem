@@ -1,9 +1,9 @@
 """Configuration classes for the testing model."""
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot
+from virtual_ecosystem.core.configuration import ModelConfigurationRoot
 
 
-class TestingConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """Root configuration class for the testing model."""
 
     numeric_value: float = 1.0

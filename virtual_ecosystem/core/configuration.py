@@ -48,9 +48,9 @@ class ModelConfigurationRoot(Configuration):
     the root configuration class of a Virtual Ecosystem model. Each model must define an
     object ``model_name.model_config.ModelConfiguration`` that inherits from
     :class:`ModelConfigurationRoot`. The ``model_name.model_config`` module
-    can then include other :class:`ModelConfigSection` classes that
+    can then include other :class:`Configuration` classes that
     are used as nested fields within the root configuration but can be only one
-    :class:`ModelConfigRoot` class per model. This base model sets common shared
+    :class:`ModelConfigurationRoot` class per model. This base model sets common shared
     attributes across models: currently just the shared ``static`` option.
     """
 

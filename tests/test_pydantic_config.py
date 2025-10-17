@@ -3,6 +3,7 @@
 import json
 import tomllib
 from contextlib import nullcontext as does_not_raise
+from importlib import import_module
 
 import pytest
 import tomli_w
@@ -11,30 +12,26 @@ from pydantic import create_model
 
 def test_pydantic(tmp_path):
     """Builds a combined config model from all models and then dumps and reloads it."""
-    from virtual_ecosystem.core.model_config import CoreConfig
-    from virtual_ecosystem.models.abiotic.model_config import AbioticConfig
-    from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleConfig
-    from virtual_ecosystem.models.animal.model_config import AnimalConfig
-    from virtual_ecosystem.models.hydrology.model_config import HydrologyConfig
-    from virtual_ecosystem.models.litter.model_config import LitterConfig
-    from virtual_ecosystem.models.plants.model_config import PlantsConfig
-    from virtual_ecosystem.models.soil.model_config import SoilConfig
 
-    submodel_details = (
-        ("core", CoreConfig),
-        ("abiotic", AbioticConfig),
-        ("animal", AnimalConfig),
-        ("hydrology", HydrologyConfig),
-        ("litter", LitterConfig),
-        ("soil", SoilConfig),
-        ("plants", PlantsConfig),
-        ("abiotic_simple", AbioticSimpleConfig),
+    modules = (
+        "virtual_ecosystem.core",
+        "virtual_ecosystem.models.abiotic",
+        "virtual_ecosystem.models.abiotic_simple",
+        "virtual_ecosystem.models.animal",
+        "virtual_ecosystem.models.hydrology",
+        "virtual_ecosystem.models.litter",
+        "virtual_ecosystem.models.plants",
+        "virtual_ecosystem.models.soil",
     )
+
+    submodel_details = {}
+    for module_name in modules:
+        module = import_module(f"{module_name}.model_config")
+        config_class = getattr(module, "ModelConfiguration")
+        submodel_details[module_name.split(".")[-1]] = (config_class, config_class())
 
     # Combine
-    combined = create_model(
-        "Config", **{fname: (cname, cname()) for fname, cname in submodel_details}
-    )
+    combined = create_model("Config", **submodel_details)
 
     # Dump config to file
     with open("config.toml", "wb") as tomlfile:
@@ -53,7 +50,7 @@ def test_pydantic(tmp_path):
     tmp_file.unlink()
 
     # Very basic check for submodels
-    for submodel, _ in submodel_details:
+    for submodel in submodel_details:
         assert hasattr(config, submodel)
 
 

@@ -5,10 +5,10 @@ These parameters are constants in that they should not be changed during a parti
 simulation.
 """  # noqa: D205
 
-from virtual_ecosystem.core.configuration import ModelConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
-class AbioticConstants(ModelConfigSection):
+class AbioticConstants(Configuration):
     """Dataclass to store all constants for the `abiotic` model."""
 
     leaf_emissivity: float = 0.98
@@ -169,7 +169,7 @@ class AbioticConstants(ModelConfigSection):
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
 
-class AbioticConfig(ModelConfigRoot):
+class ModelConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""
 
     constants: AbioticConstants = AbioticConstants()

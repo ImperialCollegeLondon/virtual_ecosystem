@@ -11,10 +11,10 @@ import numpy as np
 from pydantic import Field
 from scipy import constants
 
-from virtual_ecosystem.core.configuration import ConfigRoot, ModelConfigSection
+from virtual_ecosystem.core.configuration import Configuration
 
 
-class CoreConstants(ModelConfigSection):
+class CoreConstants(Configuration):
     """Core constants for use across the Virtual Ecosystem modules.
 
     An instance of the CoreConsts dataclass provides definitions of the core constants
@@ -131,7 +131,7 @@ class CoreConstants(ModelConfigSection):
     """
 
 
-class GridConfig(ModelConfigSection):
+class GridConfig(Configuration):
     """Grid configuration."""
 
     grid_type: str = "square"
@@ -148,7 +148,7 @@ class GridConfig(ModelConfigSection):
     "The x offset of the grid origin"
 
 
-class TimingConfig(ModelConfigSection):
+class TimingConfig(Configuration):
     """Timing configuration."""
 
     start_date: date = date(2013, 1, 1)
@@ -159,7 +159,7 @@ class TimingConfig(ModelConfigSection):
     "How long the simulation should be run for"
 
 
-class DataOutput(ModelConfigSection):
+class DataOutput(Configuration):
     """Output settings for the Virtual Ecosystem model state."""
 
     save_initial_state: bool = False
@@ -184,7 +184,7 @@ class DataOutput(ModelConfigSection):
     """Name for TOML file containing merged configs"""
 
 
-class Layers(ModelConfigSection):
+class Layers(Configuration):
     """Settings for the simulation vertical structure."""
 
     soil_layers: list[float] = Field(min_length=1, default=[-0.25, -1.0])
@@ -201,20 +201,20 @@ class Layers(ModelConfigSection):
     "The height used to calculate subcanopy microclimate conditions."
 
 
-class DataSource(ModelConfigSection):
+class DataSource(Configuration):
     """Data source configuration."""
 
     file_path: str = "placeholder"
     var_name: str = "placeholder"
 
 
-class Variables(ModelConfigSection):
+class Variables(Configuration):
     """Variables configuration."""
 
     variable: tuple[DataSource, ...] = (DataSource(), DataSource())
 
 
-class CoreConfig(ConfigRoot):
+class ModelConfiguration(Configuration):
     """The core model configuration."""
 
     constants: CoreConstants = CoreConstants()
