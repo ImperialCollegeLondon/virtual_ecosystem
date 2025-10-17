@@ -205,7 +205,6 @@ class BaseModel(ABC):
     def __init__(
         self,
         data: Data,
-        configuration: Configuration,
         core_components: CoreComponents,
         static: bool = False,
         **kwargs: Any,
@@ -237,8 +236,6 @@ class BaseModel(ABC):
         """
         self.data: Data = data
         """A Data instance providing access to the shared simulation data."""
-        self.configuration: Configuration = configuration
-        """The configuration for a simulation"""
         self.model_timing: ModelTiming = core_components.model_timing
         """The ModelTiming details used in the model."""
         self.grid: Grid = core_components.grid
@@ -453,7 +450,11 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: Configuration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 

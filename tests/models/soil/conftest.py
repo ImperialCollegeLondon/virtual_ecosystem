@@ -126,6 +126,25 @@ def fixture_soil_config(microbial_groups_cfg):
 
 
 @pytest.fixture
+def fixture_soil_configuration(microbial_groups_cfg):
+    """Create a soil config with faster update interval."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        get_configuration,
+    )
+
+    cfg = ConfigurationLoader(
+        cfg_strings=[
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+            "[hydrology]",
+            microbial_groups_cfg,
+        ]
+    )
+    cfg.load_configuration_data()
+    return get_configuration(cfg.data)
+
+
+@pytest.fixture
 def fixture_soil_core_components(fixture_soil_config):
     """Create a core components from the fixture_soil_config."""
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -135,7 +154,10 @@ def fixture_soil_core_components(fixture_soil_config):
 
 @pytest.fixture
 def fixture_soil_model(
-    dummy_carbon_data, fixture_soil_config, fixture_soil_core_components
+    dummy_carbon_data,
+    fixture_soil_config,
+    fixture_soil_configuration,
+    fixture_soil_core_components,
 ):
     """Create a soil model fixture based on the dummy carbon data."""
     from tests.conftest import patch_bypass_setup, patch_run_update
@@ -148,6 +170,7 @@ def fixture_soil_model(
         mock_bypass_setup.return_value = False
         return SoilModel.from_config(
             data=dummy_carbon_data,
+            configuration=fixture_soil_configuration,
             core_components=fixture_soil_core_components,
             config=fixture_soil_config,
         )

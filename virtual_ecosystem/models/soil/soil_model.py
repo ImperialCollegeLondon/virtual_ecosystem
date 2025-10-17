@@ -26,6 +26,7 @@ from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
@@ -218,7 +219,12 @@ class SoilModel(
         handled in :fun:`~virtual_ecosystem.soil.soil_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(
+            data=data,
+            core_components=core_components,
+            static=static,
+            **kwargs,
+        )
 
         self.model_constants: SoilConsts
         """Set of constants for the soil model."""
@@ -232,7 +238,11 @@ class SoilModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: Configuration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
@@ -242,6 +252,7 @@ class SoilModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
@@ -265,6 +276,7 @@ class SoilModel(
 
         return cls(
             data=data,
+            configuration=configuration,
             core_components=core_components,
             static=static,
             model_constants=model_constants,
