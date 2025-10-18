@@ -310,7 +310,9 @@ def test_ConfigurationLoader_init(
 
     # Just check normalisation and error conditions, no processing
     with raises as err:
-        cfg = ConfigurationLoader(cfg_paths=cfg_paths, cfg_strings=cfg_strings)
+        cfg = ConfigurationLoader(
+            cfg_paths=cfg_paths, cfg_strings=cfg_strings, autoload=False
+        )
 
         if not isinstance(raises, does_not_raise):
             assert str(err) == err_msg
@@ -380,11 +382,11 @@ def test_ConfigurationLoader_collect_config_paths(
     caplog.clear()
 
     # Init the class
-    cfg = ConfigurationLoader([shared_datadir / p for p in cfg_paths])
+    cfg = ConfigurationLoader([shared_datadir / p for p in cfg_paths], autoload=False)
 
     # Check that file resolution runs as expected
     with expected_exception:
-        cfg.collect_config_paths()
+        cfg._collect_config_paths()
 
     log_check(caplog, expected_log_entries)
 
@@ -417,13 +419,13 @@ def test_ConfigurationLoader_load_config_toml(
 
     # Initialise the ConfigurationLoader instance and manually resolve the config paths
     # to toml files
-    cfg = ConfigurationLoader([shared_datadir / p for p in cfg_paths])
-    cfg.collect_config_paths()
+    cfg = ConfigurationLoader([shared_datadir / p for p in cfg_paths], autoload=False)
+    cfg._collect_config_paths()
     caplog.clear()
 
     # Check that load_config_toml behaves as expected
     with expected_exception:
-        cfg.load_config_toml()
+        cfg._load_config_toml()
 
     log_check(caplog, expected_log_entries)
 
@@ -455,12 +457,12 @@ def test_ConfigurationLoader_load_config_toml_string(
     with open(Path(shared_datadir) / cfg_paths) as cfg_file:
         cfg_strings = cfg_file.read()
 
-    cfg = ConfigurationLoader(cfg_strings=cfg_strings)
+    cfg = ConfigurationLoader(cfg_strings=cfg_strings, autoload=False)
     caplog.clear()
 
     # Check that load_config_toml behaves as expected
     with expected_exception:
-        cfg.load_config_toml_string()
+        cfg._load_config_toml_string()
 
     log_check(caplog, expected_log_entries)
 
@@ -612,13 +614,14 @@ def test_ConfigurationLoader_load_configuration_data(
 
     # Initialise the Config instance
     config_builder = ConfigurationLoader(
-        cfg_paths=cfg_paths, override_params=override_params
+        cfg_paths=cfg_paths, override_params=override_params, autoload=False
     )
     caplog.clear()
 
     # Check that load_configuration_data behaves as expected
     with expected_exception:
-        config_builder.load_configuration_data()
+        config_builder._load_data()
+        config_builder._compile_data()
 
         # Test the values that were passed into valid configs.
 
@@ -641,13 +644,14 @@ def test_ConfigurationLoader_load_configuration_data(
 
     # Initialise the Config instance
     config_builder = ConfigurationLoader(
-        cfg_strings=cfg_strings, override_params=override_params
+        cfg_strings=cfg_strings, override_params=override_params, autoload=False
     )
     caplog.clear()
 
     # Check that load_configuration_data behaves as expected
     with expected_exception:
-        config_builder.load_configuration_data()
+        config_builder._load_data()
+        config_builder._compile_data()
 
         # Test the values that were passed into valid configs.
 
@@ -734,13 +738,72 @@ def test_build_configuration_model(requested, outcome, expected):
         ),
     ),
 )
-def test_get_configuration(caplog, data, outcome, expected_attr_values, expected_log):
-    """Tests the get_configuration function."""
-    from virtual_ecosystem.core.config_builder import get_configuration
+def test_generate_configuration(
+    caplog, data, outcome, expected_attr_values, expected_log
+):
+    """Tests the generate_configuration function."""
+    from virtual_ecosystem.core.config_builder import generate_configuration
 
     with outcome:
         # Run the function
-        config = get_configuration(data=data)
+        config = generate_configuration(data=data)
+
+        # Do we get a model
+        assert isinstance(config, BaseModel)
+
+        # Are the attributes as expected
+        for attr_path, expected_value in expected_attr_values:
+            assert expected_value == attrgetter(attr_path)(config)
+
+        # Does the log contain the expected outputs
+        for message in expected_log:
+            assert record_found_in_log(caplog=caplog, find=message)
+
+
+@pytest.mark.parametrize(
+    argnames="cfg_strings, outcome, expected_attr_values, expected_log",
+    argvalues=(
+        pytest.param(
+            "[core]\n[core.grid]\ncell_nx =  10\n",
+            does_not_raise(),
+            (("core.grid.cell_nx", 10),),
+            ((INFO, "Configuration validated."),),
+            id="core_only",
+        ),
+        pytest.param(
+            [
+                "[core]\n[core.grid]\ncell_nx =  10\n",
+                "[plants]\n[plants.constants]\ndsr_to_ppfd = 0.2",
+            ],
+            does_not_raise(),
+            (("core.grid.cell_nx", 10), ("plants.constants.dsr_to_ppfd", 0.2)),
+            ((INFO, "Configuration validated."),),
+            id="core_plants",
+        ),
+        pytest.param(
+            [
+                "[core]\n[core.grid]\ncell_nx =  10\n",
+                "[plants]\n[plants.constants]\ndsr_to_ppfd = a",
+            ],
+            pytest.raises(ConfigurationError),
+            None,
+            (
+                (ERROR, "plants.constants.dsr_to_ppfd = a"),
+                (CRITICAL, "Configuration validation failed. See errors above."),
+            ),
+            id="core_plants_bad_type",
+        ),
+    ),
+)
+def test_ConfigurationLoader_get_configuration(
+    caplog, cfg_strings, outcome, expected_attr_values, expected_log
+):
+    """Tests the get_configuration function."""
+    from virtual_ecosystem.core.config_builder import ConfigurationLoader
+
+    with outcome:
+        # Run the function
+        config = ConfigurationLoader(cfg_strings=cfg_strings).get_configuration()
 
         # Do we get a model
         assert isinstance(config, BaseModel)

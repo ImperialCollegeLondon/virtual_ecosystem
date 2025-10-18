@@ -274,10 +274,7 @@ def test_generate_soil_model(
     """Test that the function to initialise the soil model behaves as expected."""
 
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.config_builder import (
-        ConfigurationLoader,
-        get_configuration,
-    )
+    from virtual_ecosystem.core.config_builder import ConfigurationLoader
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.registry import register_module
     from virtual_ecosystem.models.soil.soil_model import SoilModel
@@ -294,9 +291,8 @@ def test_generate_soil_model(
     ]
 
     config = Config(cfg_strings=cfg_strings)
-    cfg = ConfigurationLoader(cfg_strings=cfg_strings)
-    cfg.load_configuration_data()
-    configuration = get_configuration(cfg.data)
+
+    configuration = ConfigurationLoader(cfg_strings=cfg_strings).get_configuration()
 
     core_components = CoreComponents(config)
 

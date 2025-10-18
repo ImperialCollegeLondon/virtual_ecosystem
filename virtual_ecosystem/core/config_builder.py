@@ -1,13 +1,21 @@
 """The :mod:`~virtual_ecosystem.core.config_builder` provides tools to load a set of
 TOML formatted configuration dictionaries, either from files or from strings. String
 inputs are primarily intended for use in configuring models for testing, where it is
-more convenient to simply provide a string. The main class :class:`ConfigLoader` handles
-the loading of configuration data and compiling multiple sources into a single
-dictionary of configuration data.
+more convenient to simply provide a string.
 
-The :func:`get_configuration` function:
+The main class :class:`ConfigLoader` handles the loading of configuration data and
+compiling multiple sources into a single dictionary of configuration data. The public
+:meth:`ConfigLoader.get_configuration` method then passes the compiled data in the model
+instance through the :method:`generate_configuration` function to return the actual
+configuration object. Canonical use looks like this:
 
-* takes a compiled configuration document,
+.. code-block:: python
+
+    config_object = ConfigurationLoader(...).get_configuration()
+
+The :func:`generate_configuration` function:
+
+* takes a compiled dictionary of configuration settings,
 * assembles a pydantic validation model class using the configuration validators for
   each of the requested science modules, and
 * passes the data through the validator to return a validated configuration model for
@@ -231,6 +239,8 @@ class ConfigurationLoader:
         cfg_strings: A string or list of strings containing TOML formatted configuration
             data.
         override_params: Extra parameters provided by the user.
+        autoload: A boolean flag that can be used to turn off automatic data loading and
+            compilation.
     """
 
     def __init__(
@@ -238,6 +248,7 @@ class ConfigurationLoader:
         cfg_paths: str | Path | Sequence[str | Path] = [],
         cfg_strings: str | list[str] = [],
         override_params: dict[str, Any] | None = None,
+        autoload: bool = True,
     ) -> None:
         # Define attributes
         self.cfg_paths: list[Path] = []
@@ -292,23 +303,32 @@ class ConfigurationLoader:
                 else [Path(p) for p in cfg_paths]
             )
 
-    def load_configuration_data(self):
-        """Loading configuration data.
+        if autoload:
+            self._load_data()
+            self._compile_data()
+
+    def _load_data(self):
+        """Load configuration data.
 
         This method loads configuration data from the sources set when the class
-        instance was created. The method then attempts to compile the sources into a
-        single compiled dictionary of configuration data, ready for validation and
-        conversion to a configuration model.
+        instance was created.
         """
         if self.from_cfg_strings:
             # Load the TOML content
-            self.load_config_toml_string()
+            self._load_config_toml_string()
         else:
             # Load the TOML content from resolved paths and resolve file paths
             # within configuration files.
-            self.collect_config_paths()
-            self.load_config_toml()
-            self.resolve_config_file_paths()
+            self._collect_config_paths()
+            self._load_config_toml()
+            self._resolve_config_file_paths()
+
+    def _compile_data(self):
+        """Compile configuration data.
+
+        This method compiles loaded configuration data into a single data dictionary,
+        warning of conflicting or repeated settings across the sources.
+        """
 
         data, conflicts = compile_configuration_data(list(self.toml_contents.values()))
 
@@ -331,7 +351,7 @@ class ConfigurationLoader:
 
         LOGGER.info("Configuration data compiled.")
 
-    def collect_config_paths(self) -> None:
+    def _collect_config_paths(self) -> None:
         """Collect TOML config files from provided paths.
 
         The :class:`~virtual_ecosystem.core.config.Config` class is initialised with a
@@ -384,7 +404,7 @@ class ConfigurationLoader:
 
         LOGGER.info(f"Config paths resolve to {len(self.toml_files)} files")
 
-    def load_config_toml(self) -> None:
+    def _load_config_toml(self) -> None:
         """Load the contents of resolved configuration files.
 
         This method populates the
@@ -418,7 +438,7 @@ class ConfigurationLoader:
             LOGGER.critical(to_raise)
             raise to_raise
 
-    def load_config_toml_string(self) -> None:
+    def _load_config_toml_string(self) -> None:
         """Load the contents of a config provided as a string.
 
         This method populates the
@@ -442,7 +462,7 @@ class ConfigurationLoader:
 
         LOGGER.info("Config TOML loaded from config strings")
 
-    def resolve_config_file_paths(self) -> None:
+    def _resolve_config_file_paths(self) -> None:
         """Resolve the locations of configured file paths.
 
         Configuration files can contain paths to other resources, such as the paths to
@@ -467,6 +487,11 @@ class ConfigurationLoader:
                 except ValueError as excep:
                     LOGGER.critical(excep)
                     raise excep
+
+    def get_configuration(self) -> Configuration:
+        """Get the configuration instance for the loaded configuration data."""
+
+        return generate_configuration(self.data)
 
 
 def build_configuration_model(requested_modules: list[str]) -> type[Configuration]:
@@ -508,7 +533,7 @@ def build_configuration_model(requested_modules: list[str]) -> type[Configuratio
     return combined_model
 
 
-def get_configuration(data: dict[str, Any] = {}) -> Configuration:
+def generate_configuration(data: dict[str, Any] = {}) -> Configuration:
     """Generate a configuration model from configuration data.
 
     This method takes a dictionary of configuration data - typically loaded and compiled
@@ -553,20 +578,3 @@ def get_configuration(data: dict[str, Any] = {}) -> Configuration:
     LOGGER.info("Configuration validated.")
 
     return configuration
-
-
-# def override_config(self, override_params: dict[str, Any]) -> None:
-#     """Override any parameters desired.
-
-#     Args:
-#         override_params: Extra parameter settings
-#     """
-#     updated, conflicts = config_merge(self, override_params, conflicts=tuple())
-
-#     # Conflicts are not errors as we want users to be able to override parameters
-#     if conflicts:
-#         LOGGER.info(
-#             "The following parameter values were overridden: " + ", ".join(conflicts)
-#         )
-
-#     self.update(updated)
