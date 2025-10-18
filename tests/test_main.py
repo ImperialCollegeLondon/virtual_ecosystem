@@ -102,18 +102,21 @@ def test_initialise_models(
     """Test the function that initialises the models."""
 
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import ConfigurationLoader
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.main import initialise_models
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
     config = Config(cfg_strings=cfg_strings)
+    configuration = ConfigurationLoader(cfg_strings=cfg_strings).get_configuration()
     core_components = CoreComponents(config)
     caplog.clear()
 
     with raises:
         models = initialise_models(
             config=config,
+            configuration=configuration,
             data=dummy_litter_data,
             core_components=core_components,
             models=config.model_classes,
