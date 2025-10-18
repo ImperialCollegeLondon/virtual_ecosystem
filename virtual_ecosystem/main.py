@@ -60,7 +60,12 @@ def initialise_models(
     models_cfd = {}
     for model_name, model_class in models.items():
         try:
-            this_model = model_class.from_config(data, core_components, config)
+            this_model = model_class.from_config(
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
+                config=config,
+            )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)

@@ -179,11 +179,13 @@ def test_generate_hydrology_model(
     """Test that the initialisation of the hydrology model works as expected."""
 
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import ConfigurationLoader
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     config = Config(cfg_strings=cfg_string)
+    configuration = ConfigurationLoader(cfg_strings=cfg_string).get_configuration()
     core_components = CoreComponents(config)
     caplog.clear()
 
@@ -198,6 +200,7 @@ def test_generate_hydrology_model(
             with raises:
                 HydrologyModel.from_config(
                     data=dummy_climate_data_varying_canopy,
+                    configuration=configuration,
                     core_components=core_components,
                     config=config,
                 )
@@ -301,6 +304,7 @@ def test_setup(
     fixture_core_components,
     dummy_climate_data_varying_canopy,
     fixture_config,
+    fixture_configuration,
     update_interval,
     raises,
     expected_2d,
@@ -325,6 +329,7 @@ def test_setup(
             # initialise model. The setup is run as part of the initialisation
             model = HydrologyModel.from_config(
                 data=dummy_climate_data_varying_canopy,
+                configuration=fixture_configuration,
                 core_components=core_components,
                 config=fixture_config,
             )
