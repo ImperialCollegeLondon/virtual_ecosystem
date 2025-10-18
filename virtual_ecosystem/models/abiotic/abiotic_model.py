@@ -12,6 +12,7 @@ from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -122,7 +123,11 @@ class AbioticModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: Configuration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
