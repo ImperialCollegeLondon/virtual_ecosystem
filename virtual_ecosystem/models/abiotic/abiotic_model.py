@@ -137,6 +137,7 @@ class AbioticModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """

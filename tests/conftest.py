@@ -326,14 +326,11 @@ def fixture_configuration():
 @pytest.fixture
 def animal_fixture_configuration():
     """Default configuration with 3x3 grid."""
-    from virtual_ecosystem.core.config_builder import (
-        ConfigurationLoader,
-        get_configuration,
-    )
+    from virtual_ecosystem.core.config_builder import ConfigurationLoader
 
-    cfg = ConfigurationLoader(cfg_strings=generate_config_strings(nx=3, ny=3))
-    cfg.load_configuration_data()
-    return get_configuration(cfg.data)
+    return ConfigurationLoader(
+        cfg_strings=generate_config_strings(nx=3, ny=3)
+    ).get_configuration()
 
 
 @pytest.fixture

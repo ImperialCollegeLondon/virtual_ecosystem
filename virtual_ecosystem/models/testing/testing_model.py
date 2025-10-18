@@ -6,6 +6,7 @@ from typing import Any
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
@@ -47,18 +48,23 @@ class TestingModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: Configuration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> TestingModel:
         """Factory function to initialise a testing model from configuration.
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Load in the relevant constants
-        static = config["tesing"]["static"]
+        static = config["testing"]["static"]
 
         # Create the instance
         inst = cls(
