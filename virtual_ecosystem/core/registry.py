@@ -191,7 +191,9 @@ def register_module(module_name: str) -> None:
             )
 
     # Find and register the model configuration
-    model_config_class = get_model_configuration_class(module_name=module_name)
+    model_config_class = get_model_configuration_class(
+        module_name=module_name, module_name_short=module_name_short
+    )
 
     LOGGER.info("Configuration class registered for %s", module_name)
 
@@ -204,22 +206,49 @@ def register_module(module_name: str) -> None:
     )
 
 
-def get_model_configuration_class(module_name):
-    """Get the root configuration class for a model."""
+def get_model_configuration_class(module_name: str, module_name_short: str):
+    """Get the root configuration class for a model.
+
+    Discovery is name based, with the function attempting to retrieve a class based on
+    the model short name:
+
+    * ``plants`` -> ``PlantsConfiguration``,
+    * ``abiotic_simple`` -> ``AbioticSimpleConfiguration``
+
+    .. TODO:
+
+        It would probably be cleaner and more flexible to use explicit setting of the
+        configuration model name as a class attribute on the model definition, but that
+        requires more changes in the BaseModel and definitions, so use this string
+        pattern is being used to keep the rollout of the new config system simpler.
+
+    Args:
+        module_name: The full module name (e.g. ``virtual_ecosystem.models.plants``)
+        module_name_short: The short module name (e.g ``plants``)
+    """
 
     try:
+        # Raise ModuleNotFound if the configuration module is missing
         config_submodule = import_module(f"{module_name}.model_config")
-        model_config_class = getattr(config_submodule, "ModelConfiguration")
-        assert issubclass(model_config_class, Configuration)
+        # Raises Attribute error if the expected name is not found.
+        expected_config_class_name = (
+            "".join(word.capitalize() for word in module_name_short.split("_"))
+            + "Configuration"
+        )
+        model_config_class = getattr(config_submodule, expected_config_class_name)
+        # Raises a runtime error if the retrieved class is not a Configuration.
+        if not issubclass(model_config_class, Configuration):
+            raise RuntimeError
     except ModuleNotFoundError:
         raise RuntimeError(
             f"Model {module_name} does not provide a model_config submodule."
         )
     except AttributeError:
         raise RuntimeError(
-            f"A ModelConfiguration object is not found in {module_name}.model_config."
+            f"The {module_name}.model_config module does "
+            f"not contain {expected_config_class_name}"
         )
-    except AssertionError:
+    except RuntimeError:
         raise RuntimeError(
             f"Model {module_name} config class does does inherit from `ConfigRoot`."
         )

@@ -41,8 +41,35 @@ class Configuration(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
+class CompiledConfiguration(Configuration):
+    """Compiled configuration class for Virtual Ecosystem models.
+
+    This class is used as the base for dynamically compiled complete model returned by
+    the ``ConfigurationLoader(...).get_configuration()`` method. It provides a shared
+    method to extract specific model configurations by name. This is needed because the
+    dynamic creation means that model fields are not explicitly declared, so `mypy` gets
+    does not handle ``configuration.plants``, but we can use
+    `configuration.get_subconfiguration("plants")` instead.
+    """
+
+    def get_subconfiguration(self, name: str) -> Configuration:
+        """Get a named subconfiguration object from a compiled configuration.
+
+        This method can be used to extract model configurations or the core
+        configuration from a compiled configuration instance.
+
+        Args:
+            name: The required subconfiguration.
+        """
+
+        try:
+            return getattr(self, name)
+        except AttributeError:
+            raise AttributeError(f"Model configuration for {name} not loaded")
+
+
 class ModelConfigurationRoot(Configuration):
-    """Root configuration class for models.
+    """Root configuration class for individual Virtual Ecosystem models.
 
     This model provides a common Pydantic base class that must be used to define
     the root configuration class of a Virtual Ecosystem model. Each model must define an

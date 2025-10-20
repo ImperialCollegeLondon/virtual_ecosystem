@@ -121,7 +121,7 @@ class PlantsExportConfig(Configuration):
     """A float format string to control data precision in export files."""
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class PlantsConfiguration(ModelConfigurationRoot):
     """Root configuration class for the plants model."""
 
     pft_definitions_path: FILEPATH_PLACEHOLDER

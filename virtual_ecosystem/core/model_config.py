@@ -214,7 +214,7 @@ class Variables(Configuration):
     variable: tuple[DataSource, ...] = (DataSource(), DataSource())
 
 
-class ModelConfiguration(Configuration):
+class CoreConfiguration(Configuration):
     """The core model configuration."""
 
     constants: CoreConstants = CoreConstants()

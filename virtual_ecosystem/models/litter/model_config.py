@@ -161,7 +161,7 @@ class LitterConstants(Configuration):
     """
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class LitterConfiguration(ModelConfigurationRoot):
     """Root configuration clas for the litter model."""
 
     constants: LitterConstants = LitterConstants()
