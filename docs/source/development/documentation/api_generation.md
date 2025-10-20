@@ -7,7 +7,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.18.0rc0
+    jupytext_version: 1.18.1
 ---
 
 # Generating API documentation from docstrings
