@@ -143,9 +143,11 @@ class AbioticModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: AbioticConfiguration = configuration.get_subconfiguration(
-            "abiotic"
-        )  # type: ignore[assignment]
+            "abiotic", AbioticConfiguration
+        )
 
         # Load in the relevant constants
         model_constants = load_constants(config, "abiotic", "AbioticConsts")

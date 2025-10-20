@@ -64,9 +64,11 @@ class TestingModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: TestingConfiguration = configuration.get_subconfiguration(
-            "testing"
-        )  # type: ignore[assignment]
+            "testing", TestingConfiguration
+        )
 
         # Load in the relevant constants
         static = model_configuration.static

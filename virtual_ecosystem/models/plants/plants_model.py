@@ -330,9 +330,11 @@ class PlantsModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: PlantsConfiguration = configuration.get_subconfiguration(
-            "plants"
-        )  # type: ignore[assignment]
+            "plants", PlantsConfiguration
+        )
 
         # Load in the relevant constants
         model_constants = load_constants(config, "plants", "PlantsConsts")

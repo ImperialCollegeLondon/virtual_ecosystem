@@ -209,9 +209,11 @@ class LitterModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: LitterConfiguration = configuration.get_subconfiguration(
-            "litter"
-        )  # type: ignore[assignment]
+            "litter", LitterConfiguration
+        )
 
         # Load in the relevant constants
         model_constants = load_constants(config, "litter", "LitterConsts")

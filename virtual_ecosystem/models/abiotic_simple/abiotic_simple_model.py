@@ -127,8 +127,12 @@ class AbioticSimpleModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: AbioticSimpleConfiguration = (
-            configuration.get_subconfiguration("abiotic_simple")  # type: ignore[assignment]
+            configuration.get_subconfiguration(
+                "abiotic_simple", AbioticSimpleConfiguration
+            )
         )
 
         # Load in the relevant constants

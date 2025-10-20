@@ -358,9 +358,11 @@ class AnimalModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: AnimalConfiguration = configuration.get_subconfiguration(
-            "animal"
-        )  # type: ignore[assignment]
+            "animal", AnimalConfiguration
+        )
 
         # Load in the relevant constants
         model_constants = load_constants(config, "animal", "AnimalConsts")

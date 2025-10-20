@@ -258,9 +258,11 @@ class SoilModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: SoilConfiguration = configuration.get_subconfiguration(
-            "soil"
-        )  # type: ignore[assignment]
+            "soil", SoilConfiguration
+        )
 
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")

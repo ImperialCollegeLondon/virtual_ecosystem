@@ -188,8 +188,10 @@ class HydrologyModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
         model_configuration: HydrologyConfiguration = (
-            configuration.get_subconfiguration("hydrology")  # type: ignore[assignment]
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
         )
 
         # Load model parameters
