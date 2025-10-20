@@ -14,12 +14,15 @@ The basic details of how this system is used can be
 found :doc:`here </using_the_ve/configuration/config>`.
 """  # noqa: D205
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, TypeAlias
+from typing import Annotated, TypeAlias, TypeVar
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
+
+T = TypeVar("T")
 
 RST_TO_MD = [
     (":cite:t:", "{cite:t}"),
@@ -52,11 +55,21 @@ class CompiledConfiguration(Configuration):
     `configuration.get_subconfiguration("plants")` instead.
     """
 
-    def get_subconfiguration(self, name: str) -> Configuration:
+    def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
         """Get a named subconfiguration object from a compiled configuration.
 
         This method can be used to extract model configurations or the core
-        configuration from a compiled configuration instance.
+        configuration from a compiled configuration instance. The second argument is
+        used to provide support for static typing in `mypy` by explicitly providing the
+        type of the returned object. The method should be called as - for example:
+
+        .. code-block:: Python
+
+            subconfig: SubConfigConfiguration = (
+                compiled_configuration_instance.get_subconfiguration(
+                    "subconfig", SubConfigConfiguration
+                )
+            )
 
         Args:
             name: The required subconfiguration.
