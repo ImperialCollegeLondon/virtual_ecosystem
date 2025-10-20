@@ -12,7 +12,7 @@ from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -22,6 +22,7 @@ from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
 from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
+from virtual_ecosystem.models.abiotic.model_config import AbioticConfiguration
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
@@ -125,7 +126,7 @@ class AbioticModel(
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> AbioticModel:
@@ -142,9 +143,13 @@ class AbioticModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        model_configuration: AbioticConfiguration = configuration.get_subconfiguration(
+            "abiotic"
+        )  # type: ignore[assignment]
+
         # Load in the relevant constants
         model_constants = load_constants(config, "abiotic", "AbioticConsts")
-        static = config["abiotic"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "

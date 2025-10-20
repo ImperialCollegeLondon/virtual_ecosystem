@@ -108,7 +108,7 @@ from typing import Any
 import pint
 
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
@@ -452,7 +452,7 @@ class BaseModel(ABC):
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> BaseModel:

@@ -6,10 +6,11 @@ from typing import Any
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.testing.model_config import TestingConfiguration
 
 
 class TestingModel(
@@ -50,7 +51,7 @@ class TestingModel(
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> TestingModel:
@@ -63,8 +64,12 @@ class TestingModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        model_configuration: TestingConfiguration = configuration.get_subconfiguration(
+            "testing"
+        )  # type: ignore[assignment]
+
         # Load in the relevant constants
-        static = config["testing"]["static"]
+        static = model_configuration.static
 
         # Create the instance
         inst = cls(

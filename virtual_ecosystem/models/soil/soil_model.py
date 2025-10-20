@@ -26,7 +26,7 @@ from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
@@ -48,6 +48,7 @@ from virtual_ecosystem.models.soil.microbial_groups import (
     make_full_set_of_enzymes,
     make_full_set_of_microbial_groups,
 )
+from virtual_ecosystem.models.soil.model_config import SoilConfiguration
 from virtual_ecosystem.models.soil.pools import (
     SoilPools,
     calculate_maintenance_biomass_synthesis,
@@ -240,7 +241,7 @@ class SoilModel(
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> SoilModel:
@@ -257,10 +258,14 @@ class SoilModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        model_configuration: SoilConfiguration = configuration.get_subconfiguration(
+            "soil"
+        )  # type: ignore[assignment]
+
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
         core_constants = load_constants(config, "core", "CoreConsts")
-        static = config["soil"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the soil model successfully extracted."

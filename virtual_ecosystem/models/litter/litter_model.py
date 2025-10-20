@@ -32,7 +32,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -51,6 +51,7 @@ from virtual_ecosystem.models.litter.inputs import (
     calculate_input_chemistries,
 )
 from virtual_ecosystem.models.litter.losses import calculate_litter_losses
+from virtual_ecosystem.models.litter.model_config import LitterConfiguration
 
 
 class LitterModel(
@@ -191,7 +192,7 @@ class LitterModel(
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> LitterModel:
@@ -208,9 +209,13 @@ class LitterModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        model_configuration: LitterConfiguration = configuration.get_subconfiguration(
+            "litter"
+        )  # type: ignore[assignment]
+
         # Load in the relevant constants
         model_constants = load_constants(config, "litter", "LitterConsts")
-        static = config["litter"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the litter model successfully "

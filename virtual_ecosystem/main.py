@@ -16,7 +16,7 @@ from tqdm import tqdm
 from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.config_builder import ConfigurationLoader
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
@@ -34,7 +34,7 @@ class Progress(IntEnum):
 
 
 def initialise_models(
-    configuration: Configuration,
+    configuration: CompiledConfiguration,
     config: Config,
     data: Data,
     core_components: CoreComponents,
@@ -127,7 +127,7 @@ def ve_run(
     )
 
     # NEW configuration system
-    configuration = ConfigurationLoader(
+    configuration: CompiledConfiguration = ConfigurationLoader(
         cfg_paths=cfg_paths,
         cfg_strings=cfg_strings,
         override_params=override_params,

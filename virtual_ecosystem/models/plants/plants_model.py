@@ -21,7 +21,7 @@ from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -38,6 +38,7 @@ from virtual_ecosystem.models.plants.functional_types import (
     ExtraTraitsPFT,
     get_flora_from_config,
 )
+from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 from virtual_ecosystem.models.plants.stoichiometry import (
     StemStoichiometry,
 )
@@ -313,7 +314,7 @@ class PlantsModel(
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> PlantsModel:
@@ -329,9 +330,13 @@ class PlantsModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        model_configuration: PlantsConfiguration = configuration.get_subconfiguration(
+            "plants"
+        )  # type: ignore[assignment]
+
         # Load in the relevant constants
         model_constants = load_constants(config, "plants", "PlantsConsts")
-        static = config["plants"]["static"]
+        static = model_configuration.static
 
         # Generate the flora
         flora, extra_traits = get_flora_from_config(config=config)

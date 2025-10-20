@@ -32,7 +32,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -59,6 +59,7 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
     import_functional_groups,
 )
+from virtual_ecosystem.models.animal.model_config import AnimalConfiguration
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
@@ -340,7 +341,7 @@ class AnimalModel(
     def from_config(
         cls,
         data: Data,
-        configuration: Configuration,
+        configuration: CompiledConfiguration,
         core_components: CoreComponents,
         config: Config,
     ) -> AnimalModel:
@@ -357,9 +358,13 @@ class AnimalModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        model_configuration: AnimalConfiguration = configuration.get_subconfiguration(
+            "animal"
+        )  # type: ignore[assignment]
+
         # Load in the relevant constants
         model_constants = load_constants(config, "animal", "AnimalConsts")
-        static = config["animal"]["static"]
+        static = model_configuration.static
 
         density_scaling_method = config["animal"].get(
             "density_scaling_method", "madingley"

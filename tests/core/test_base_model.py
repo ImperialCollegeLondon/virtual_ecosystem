@@ -387,7 +387,7 @@ def test_check_vars_required_for_init(
 
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.configuration import Configuration
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
 
@@ -411,7 +411,7 @@ def test_check_vars_required_for_init(
         def from_config(
             cls,
             data: Data,
-            configuration: Configuration,
+            configuration: CompiledConfiguration,
             core_components: CoreComponents,
             config: Config,
         ) -> Any:
@@ -511,7 +511,7 @@ def test_check_update_speed(
 
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.configuration import Configuration
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
 
@@ -541,7 +541,7 @@ def test_check_update_speed(
         def from_config(
             cls,
             data: Data,
-            configuration: Configuration,
+            configuration: CompiledConfiguration,
             core_components: CoreComponents,
             config: Config,
         ) -> Any:
@@ -639,7 +639,7 @@ def test_bypass_setup_due_to_static_configuration(
     """Test the _bypass_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.configuration import Configuration
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
         CoreComponents,
     )
@@ -671,7 +671,7 @@ def test_bypass_setup_due_to_static_configuration(
         def from_config(
             cls,
             data: Data,
-            configuration: Configuration,
+            configuration: CompiledConfiguration,
             core_components: CoreComponents,
             config: Config,
         ) -> BaseModel:
@@ -778,7 +778,7 @@ def test_run_update_due_to_static_configuration(
 
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.configuration import Configuration
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
 
@@ -808,7 +808,7 @@ def test_run_update_due_to_static_configuration(
         def from_config(
             cls,
             data: Data,
-            configuration: Configuration,
+            configuration: CompiledConfiguration,
             core_components: CoreComponents,
             config: Config,
         ) -> BaseModel:
@@ -884,7 +884,7 @@ def test_bypass_setup_but_run_update_fails(
     """Test the _bypass_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.configuration import Configuration
+    from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
         CoreComponents,
     )
@@ -916,7 +916,7 @@ def test_bypass_setup_but_run_update_fails(
         def from_config(
             cls,
             data: Data,
-            configuration: Configuration,
+            configuration: CompiledConfiguration,
             core_components: CoreComponents,
             config: Config,
         ) -> BaseModel:
