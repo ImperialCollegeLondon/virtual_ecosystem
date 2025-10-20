@@ -23,6 +23,7 @@ from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
 
 T = TypeVar("T")
+"""Generic type to support static typing of subconfigurations."""
 
 RST_TO_MD = [
     (":cite:t:", "{cite:t}"),
@@ -73,6 +74,8 @@ class CompiledConfiguration(Configuration):
 
         Args:
             name: The required subconfiguration.
+            _: The class of objected returned by the method. This is not used by the
+                method itself but is used to support static typing of the return value.
         """
 
         try:
