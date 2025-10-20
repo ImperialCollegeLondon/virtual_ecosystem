@@ -208,7 +208,7 @@ class HydrologyConstants(Configuration):
     """Factor to convert matric potential from m to kPa."""
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration clas for the hydrology model."""
 
     initial_soil_moisture: float = Field(gt=0, default=0.5)

@@ -169,7 +169,7 @@ class AbioticConstants(Configuration):
     """Initial non-zero fill value for energy fluxes, [W m-2]."""
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""
 
     constants: AbioticConstants = AbioticConstants()

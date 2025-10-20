@@ -31,7 +31,7 @@ from typing import Any
 
 from pydantic import ValidationError, create_model
 
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.registry import MODULE_REGISTRY, register_module
@@ -488,13 +488,15 @@ class ConfigurationLoader:
                     LOGGER.critical(excep)
                     raise excep
 
-    def get_configuration(self) -> Configuration:
+    def get_configuration(self) -> CompiledConfiguration:
         """Get the configuration instance for the loaded configuration data."""
 
         return generate_configuration(self.data)
 
 
-def build_configuration_model(requested_modules: list[str]) -> type[Configuration]:
+def build_configuration_model(
+    requested_modules: list[str],
+) -> type[CompiledConfiguration]:
     """Build a schema to validate the model configuration.
 
     This method identifies the modules to be configured from the top-level
@@ -527,13 +529,15 @@ def build_configuration_model(requested_modules: list[str]) -> type[Configuratio
     # requested module. Mypy does not like this, but it seems to be used as intended:
     # https://docs.pydantic.dev/latest/concepts/models/#dynamic-model-creation
     combined_model = create_model(
-        "Configuration", **{fname: (cname, cname()) for fname, cname in submodels}
+        "CompiledConfiguration",
+        __base__=CompiledConfiguration,
+        **{fname: (cname, cname()) for fname, cname in submodels},
     )  # type: ignore[call-overload]
 
     return combined_model
 
 
-def generate_configuration(data: dict[str, Any] = {}) -> Configuration:
+def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     """Generate a configuration model from configuration data.
 
     This method takes a dictionary of configuration data - typically loaded and compiled

@@ -3,7 +3,7 @@
 from virtual_ecosystem.core.configuration import ModelConfigurationRoot
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class TestingConfiguration(ModelConfigurationRoot):
     """Root configuration class for the testing model."""
 
     numeric_value: float = 1.0

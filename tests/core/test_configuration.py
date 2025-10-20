@@ -14,20 +14,20 @@ def test_pydantic(tmp_path):
     """Builds a combined config model from all models and then dumps and reloads it."""
 
     modules = (
-        "virtual_ecosystem.core",
-        "virtual_ecosystem.models.abiotic",
-        "virtual_ecosystem.models.abiotic_simple",
-        "virtual_ecosystem.models.animal",
-        "virtual_ecosystem.models.hydrology",
-        "virtual_ecosystem.models.litter",
-        "virtual_ecosystem.models.plants",
-        "virtual_ecosystem.models.soil",
+        ("virtual_ecosystem.core", "CoreConfiguration"),
+        ("virtual_ecosystem.models.abiotic", "AbioticConfiguration"),
+        ("virtual_ecosystem.models.abiotic_simple", "AbioticSimpleConfiguration"),
+        ("virtual_ecosystem.models.animal", "AnimalConfiguration"),
+        ("virtual_ecosystem.models.hydrology", "HydrologyConfiguration"),
+        ("virtual_ecosystem.models.litter", "LitterConfiguration"),
+        ("virtual_ecosystem.models.plants", "PlantsConfiguration"),
+        ("virtual_ecosystem.models.soil", "SoilConfiguration"),
     )
 
     submodel_details = {}
-    for module_name in modules:
+    for module_name, config_name in modules:
         module = import_module(f"{module_name}.model_config")
-        config_class = getattr(module, "ModelConfiguration")
+        config_class = getattr(module, config_name)
         submodel_details[module_name.split(".")[-1]] = (config_class, config_class())
 
     # Combine
