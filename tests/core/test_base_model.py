@@ -879,7 +879,7 @@ def test_bypass_setup_but_run_update_fails(
     expected_exception,
     expected_message,
     fixture_data,
-    fixture_config,
+    fixture_core_components,
 ):
     """Test the _bypass_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -930,10 +930,10 @@ def test_bypass_setup_but_run_update_fails(
     for var in data_vars.keys():
         fixture_data[var] = fixture_data["existing_var"].copy()
 
-    core_components = CoreComponents(config=fixture_config)
-
     with expected_exception as exc:
-        TestModel(data=fixture_data, core_components=core_components, static=static)
+        TestModel(
+            data=fixture_data, core_components=fixture_core_components, static=static
+        )
 
     if expected_message:
         assert str(exc.value) == expected_message

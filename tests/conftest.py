@@ -340,11 +340,13 @@ def animal_fixture_configuration():
 
 
 @pytest.fixture
-def fixture_core_components(fixture_config):
+def fixture_core_components(fixture_configuration):
     """A CoreComponents instance for use in testing."""
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    core_components = CoreComponents(fixture_config)
+    core_cfg = fixture_configuration.get_subconfiguration("core", CoreConfiguration)
+    core_components = CoreComponents(core_cfg)
 
     # Setup three filled canopy layers
     canopy_array = np.full(
