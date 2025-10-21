@@ -237,9 +237,10 @@ def test_grid_from_config(caplog, config, expected_err, expected_log):
     """
 
     from virtual_ecosystem.core.grid import Grid
+    from virtual_ecosystem.core.model_config import GridConfiguration
 
     with expected_err:
-        _ = Grid.from_config(config)
+        _ = Grid.from_config(GridConfiguration(**config))
 
     log_check(caplog, expected_log)
 

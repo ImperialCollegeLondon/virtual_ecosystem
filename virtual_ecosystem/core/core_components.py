@@ -17,7 +17,12 @@ from xarray import DataArray
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.model_config import CoreConfiguration, CoreConstants
+from virtual_ecosystem.core.model_config import (
+    CoreConfiguration,
+    CoreConstants,
+    LayersConfiguration,
+    TimingConfiguration,
+)
 
 
 @dataclass
@@ -43,14 +48,14 @@ class CoreComponents:
 
     def __post_init__(self, config: CoreConfiguration) -> None:
         """Populate the core components from the config."""
-        self.grid = Grid.from_config(config=config)
+        self.grid = Grid.from_config(config=config.grid)
         self.core_constants = config.constants
         self.layer_structure = LayerStructure(
-            config=config,
+            config=config.layers,
             n_cells=self.grid.n_cells,
             max_depth_of_microbial_activity=self.core_constants.max_depth_of_microbial_activity,
         )
-        self.model_timing = ModelTiming(config=config)
+        self.model_timing = ModelTiming(config=config.timing)
 
 
 @dataclass
@@ -86,10 +91,10 @@ class ModelTiming:
     """The total number of model updates in the configured run."""
     updates_per_year: np.float64 = field(init=False)
     """The number of updates per year based on update_interval."""
-    config: InitVar[CoreConfiguration]
+    config: InitVar[TimingConfiguration]
     """A validated model configuration."""
 
-    def __post_init__(self, config: CoreConfiguration) -> None:
+    def __post_init__(self, config: TimingConfiguration) -> None:
         """Populate the ``ModelTiming`` instance.
 
         This method populates the ``ModelTiming`` attributes from the provided
@@ -99,14 +104,12 @@ class ModelTiming:
             config: A Config instance.
         """
 
-        tconf = config.timing
-
         # Convert configuration into datetime64 and timedelta64
-        self.start_time = np.datetime64(tconf.start_date)
-        self.update_interval = np.timedelta64(int(tconf.update_interval_seconds), "s")
-        self.run_length = np.timedelta64(int(tconf.run_length_seconds), "s")
-        self.update_interval_quantity = pint.Quantity(tconf.update_interval)
-        self.run_length_quantity = pint.Quantity(tconf.run_length)
+        self.start_time = np.datetime64(config.start_date)
+        self.update_interval = np.timedelta64(int(config.update_interval_seconds), "s")
+        self.run_length = np.timedelta64(int(config.run_length_seconds), "s")
+        self.update_interval_quantity = pint.Quantity(config.update_interval)
+        self.run_length_quantity = pint.Quantity(config.run_length)
 
         # Calculate when the simulation should stop as the first number of update
         # intervals to exceed the requested run length and calculate the actual run
@@ -239,7 +242,7 @@ class LayerStructure:
             the layer structure.
     """
 
-    config: InitVar[CoreConfiguration]
+    config: InitVar[LayersConfiguration]
     """A configuration object instance."""
 
     # These two init arguments could also be accessed directly from the config, but
@@ -291,7 +294,7 @@ class LayerStructure:
     _array_template: DataArray = field(init=False)
     """A private data array template. Access copies using get_template."""
 
-    def __post_init__(self, config: CoreConfiguration, n_cells: int) -> None:
+    def __post_init__(self, config: LayersConfiguration, n_cells: int) -> None:
         """Populate the ``LayerStructure`` instance.
 
         This method populates the ``LayerStructure`` attributes from the dataclass init
@@ -316,21 +319,19 @@ class LayerStructure:
 
         LOGGER.info("Layer structure built from model configuration")
 
-    def _initialise_layers(self, config: CoreConfiguration):
+    def _initialise_layers(self, config: LayersConfiguration):
         """Layer structure attribute initialisation.
 
         Args:
             config: A Config instance.
         """
 
-        lcfg = config.layers
-
         # Extract validated configuration values
-        self.n_canopy_layers = lcfg.canopy_layers
-        self.soil_layer_depths = np.array(lcfg.soil_layers)
+        self.n_canopy_layers = config.canopy_layers
+        self.soil_layer_depths = np.array(config.soil_layers)
         self.n_soil_layers = self.soil_layer_depths.size
-        self.above_canopy_height_offset = lcfg.above_canopy_height_offset
-        self.surface_layer_height = lcfg.surface_layer_height
+        self.above_canopy_height_offset = config.above_canopy_height_offset
+        self.surface_layer_height = config.surface_layer_height
 
         # Set the layer role sequence
         self.layer_roles: NDArray[np.str_] = np.array(

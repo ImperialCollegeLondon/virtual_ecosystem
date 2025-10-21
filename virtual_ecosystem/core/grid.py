@@ -24,7 +24,7 @@ from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
 from virtual_ecosystem.core.config import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.core.model_config import GridConfiguration
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -298,7 +298,7 @@ class Grid:
         )
 
     @classmethod
-    def from_config(cls, config: CoreConfiguration) -> Grid:
+    def from_config(cls, config: GridConfiguration) -> Grid:
         """Factory function to generate a Grid instance from a configuration dict.
 
         Args:
@@ -306,7 +306,7 @@ class Grid:
         """
 
         try:
-            grid = Grid(**config.grid.model_dump())
+            grid = Grid(**config.model_dump())
         except Exception as err:
             LOGGER.error(err)
             to_raise = ConfigurationError("Grid creation from configuration failed.")
