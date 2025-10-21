@@ -472,14 +472,19 @@ def test_LayerStructure_set_filled_canopy():
 )
 def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
     """Test that function to extract main loop timing works as intended."""
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import ModelTiming
 
-    config_obj = Config(cfg_strings=config)
+    config_data = ConfigurationLoader(cfg_strings=config)
+    config_obj = generate_configuration(config_data.data)
+
     caplog.clear()
 
     with raises:
-        model_timing = ModelTiming(config=config_obj)
+        model_timing = ModelTiming(config=config_obj.core)
 
         assert model_timing.end_time == output["end_time"]
         assert model_timing.update_interval == output["update_interval"]

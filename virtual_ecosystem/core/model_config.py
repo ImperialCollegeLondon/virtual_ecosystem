@@ -14,7 +14,7 @@ from pydantic import (
     NegativeFloat,
     PositiveFloat,
     PositiveInt,
-    PrivateAttr,
+    computed_field,
     field_validator,
 )
 from scipy import constants
@@ -176,10 +176,17 @@ class TimingConfiguration(Configuration):
     run_length: str = "2 years"
     """The total run length of the simulation."""
 
-    _update_interval_seconds: int = PrivateAttr()
-    """Interval update length in seconds"""
-    _run_length_seconds: int = PrivateAttr()
-    """Total run length in seconds"""
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def update_interval_seconds(self) -> float:
+        """Interval update length in seconds."""
+        return Quantity(self.update_interval).to("seconds").magnitude
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def run_length_seconds(self) -> float:
+        """Run length in seconds."""
+        return Quantity(self.run_length).to("seconds").magnitude
 
     @field_validator("update_interval", "run_length")
     def validate_pint_time_quantities(cls, value):
@@ -190,11 +197,9 @@ class TimingConfiguration(Configuration):
             raise ValueError(f"Cannot parse value as time quantity: {value}")
 
     def __post_init__(self):
-        """Post init to set values in seconds and check enough time for one update."""
-        self._update_interval_seconds = Quantity(self.update_interval).to("seconds")
-        self._run_length_seconds = Quantity(self._run_length_seconds).to("seconds")
+        """Post init check for enough time for one update."""
 
-        if self.run_length < self._update_interval_seconds:
+        if self.run_length < self.update_interval_seconds:
             raise ValueError(
                 f"Model run length ({self.run_length}) expires before "
                 f"first update ({self.update_interval})"
