@@ -128,15 +128,19 @@ def fixture_soil_config(microbial_groups_cfg):
 @pytest.fixture
 def fixture_soil_configuration(microbial_groups_cfg):
     """Create a soil config with faster update interval."""
-    from virtual_ecosystem.core.config_builder import ConfigurationLoader
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
 
-    return ConfigurationLoader(
+    config_data = ConfigurationLoader(
         cfg_strings=[
             "[core]\n[core.timing]\nupdate_interval = '12 hours'",
             "[hydrology]",
             microbial_groups_cfg,
         ]
-    ).get_configuration()
+    )
+    return generate_configuration(config_data.data)
 
 
 @pytest.fixture

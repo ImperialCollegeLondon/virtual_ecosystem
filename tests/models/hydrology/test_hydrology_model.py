@@ -179,13 +179,17 @@ def test_generate_hydrology_model(
     """Test that the initialisation of the hydrology model works as expected."""
 
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.config_builder import ConfigurationLoader
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     config = Config(cfg_strings=cfg_string)
-    configuration = ConfigurationLoader(cfg_strings=cfg_string).get_configuration()
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(config)
     caplog.clear()
 

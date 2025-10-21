@@ -148,7 +148,10 @@ def test_generate_abiotic_simple_model(
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
     from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.config_builder import ConfigurationLoader
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
@@ -158,8 +161,8 @@ def test_generate_abiotic_simple_model(
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
     core_components = CoreComponents(config)
-
-    configuration = ConfigurationLoader(cfg_strings=cfg_string).get_configuration()
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
 
     caplog.clear()
 
