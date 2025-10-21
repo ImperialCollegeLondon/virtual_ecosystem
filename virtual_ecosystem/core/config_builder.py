@@ -4,22 +4,22 @@ inputs are primarily intended for use in configuring models for testing, where i
 more convenient to simply provide a string.
 
 The main class :class:`ConfigLoader` handles the loading of configuration data and
-compiling multiple sources into a single dictionary of configuration data. The public
-:meth:`ConfigLoader.get_configuration` method then passes the compiled data in the model
-instance through the :method:`generate_configuration` function to return the actual
-configuration object. Canonical use looks like this:
+compiling multiple sources into a single dictionary of configuration data.
 
-.. code-block:: python
-
-    config_object = ConfigurationLoader(...).get_configuration()
-
-The :func:`generate_configuration` function:
+The :func:`generate_configuration` function then:
 
 * takes a compiled dictionary of configuration settings,
 * assembles a pydantic validation model class using the configuration validators for
   each of the requested science modules, and
 * passes the data through the validator to return a validated configuration model for
   the simulation.
+
+Canonical usage patterns for the module would be:
+
+.. code-block:: python
+
+    config_data = ConfigurationLoader(...)
+    config_object = generate_configuration(config_data.data)
 
 """  # noqa: D205
 
@@ -488,11 +488,6 @@ class ConfigurationLoader:
                     LOGGER.critical(excep)
                     raise excep
 
-    def get_configuration(self) -> CompiledConfiguration:
-        """Get the configuration instance for the loaded configuration data."""
-
-        return generate_configuration(self.data)
-
 
 def build_configuration_model(
     requested_modules: list[str],
@@ -540,13 +535,13 @@ def build_configuration_model(
 def generate_configuration(data: dict[str, Any] = {}) -> CompiledConfiguration:
     """Generate a configuration model from configuration data.
 
-    This method takes a dictionary of configuration data - typically loaded and compiled
-    using the :class:`ConfigurationLoader` class - and tries to build a validated
-    configuration model.
+    This method takes a dictionary of configuration data and tries to build a validated
+    configuration model. The input data is typically loaded and compiled using the
+    :class:`ConfigurationLoader` class.
 
     The first step is to take the root sections in the configuration data - indicating
     the various science models requested for a simulation - and uses those to build a
-    composite configuration validator.
+    composite configuration validator class.
 
     The provided data is then passed into the validator. If validation is successful
     then a validated configuration object is returned, otherwise the specific validation
