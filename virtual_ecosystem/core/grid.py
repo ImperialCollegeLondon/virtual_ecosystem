@@ -305,6 +305,14 @@ class Grid:
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # The GRID_REGISTRY is dynamic, so can only enforce the grid type checking at
+        # the point of Grid instance creation.
+        if config.grid_type not in GRID_REGISTRY:
+            LOGGER.error(f"The grid_type {config.grid_type} is not defined.")
+            to_raise = ConfigurationError("Grid creation from configuration failed.")
+            LOGGER.critical(to_raise)
+            raise to_raise
+
         try:
             grid = Grid(**config.model_dump())
         except Exception as err:

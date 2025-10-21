@@ -176,16 +176,12 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     argvalues=[
         pytest.param(
             {
-                "core": {
-                    "grid": {
-                        "grid_type": "square",
-                        "cell_area": 100,
-                        "cell_nx": 10,
-                        "cell_ny": 10,
-                        "xoff": 0,
-                        "yoff": 0,
-                    }
-                }
+                "grid_type": "square",
+                "cell_area": 100,
+                "cell_nx": 10,
+                "cell_ny": 10,
+                "xoff": 0,
+                "yoff": 0,
             },
             does_not_raise(),
             ((INFO, "Grid created from configuration."),),
@@ -193,16 +189,12 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
         ),
         pytest.param(
             {
-                "core": {
-                    "grid": {
-                        "grid_type": "hexagon",
-                        "cell_area": 100,
-                        "cell_nx": 10,
-                        "cell_ny": 10,
-                        "xoff": 0,
-                        "yoff": 0,
-                    }
-                }
+                "grid_type": "hexagon",
+                "cell_area": 100,
+                "cell_nx": 10,
+                "cell_ny": 10,
+                "xoff": 0,
+                "yoff": 0,
             },
             does_not_raise(),
             ((INFO, "Grid created from configuration."),),
@@ -210,16 +202,12 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
         ),
         pytest.param(
             {
-                "core": {
-                    "grid": {
-                        "grid_type": "penrose",
-                        "cell_area": 100,
-                        "cell_nx": 10,
-                        "cell_ny": 10,
-                        "xoff": 0,
-                        "yoff": 0,
-                    }
-                }
+                "grid_type": "penrose",
+                "cell_area": 100,
+                "cell_nx": 10,
+                "cell_ny": 10,
+                "xoff": 0,
+                "yoff": 0,
             },
             pytest.raises(ConfigurationError),
             (
@@ -231,10 +219,7 @@ def test_grid_properties(grid_type, exp_centroids, exp_n_cells, exp_bounds):
     ],
 )
 def test_grid_from_config(caplog, config, expected_err, expected_log):
-    """Test the creation of a Grid object using the from_config factory method.
-
-    NOTE: this does not use an actual Config object, just a dictionary
-    """
+    """Test the creation of a Grid object using the from_config factory method."""
 
     from virtual_ecosystem.core.grid import Grid
     from virtual_ecosystem.core.model_config import GridConfiguration

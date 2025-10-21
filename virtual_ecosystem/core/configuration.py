@@ -43,7 +43,9 @@ class Configuration(BaseModel):
     configuration settings.
     """
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_config = ConfigDict(
+        use_attribute_docstrings=True, extra="forbid", frozen=True
+    )
 
 
 class CompiledConfiguration(Configuration):

@@ -4,7 +4,10 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 """  # noqa: D205, D415
 
+from __future__ import annotations
+
 from datetime import date
+from functools import cached_property
 from typing import ClassVar
 
 import numpy as np
@@ -14,8 +17,8 @@ from pydantic import (
     NegativeFloat,
     PositiveFloat,
     PositiveInt,
-    computed_field,
     field_validator,
+    model_validator,
 )
 from scipy import constants
 
@@ -176,14 +179,12 @@ class TimingConfiguration(Configuration):
     run_length: str = "2 years"
     """The total run length of the simulation."""
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
+    @cached_property
     def update_interval_seconds(self) -> float:
         """Interval update length in seconds."""
         return Quantity(self.update_interval).to("seconds").magnitude
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
+    @cached_property
     def run_length_seconds(self) -> float:
         """Run length in seconds."""
         return Quantity(self.run_length).to("seconds").magnitude
@@ -198,14 +199,17 @@ class TimingConfiguration(Configuration):
 
         return value
 
-    def __post_init__(self):
-        """Post init check for enough time for one update."""
+    @model_validator(mode="after")
+    def run_length_too_short(self) -> TimingConfiguration:
+        """Model validation that there is enough time for at least one update."""
 
-        if self.run_length < self.update_interval_seconds:
+        if self.run_length_seconds < self.update_interval_seconds:
             raise ValueError(
                 f"Model run length ({self.run_length}) expires before "
                 f"first update ({self.update_interval})"
             )
+
+        return self
 
 
 class DataOutputConfiguration(Configuration):

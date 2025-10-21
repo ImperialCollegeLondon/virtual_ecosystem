@@ -361,12 +361,12 @@ def test_LayerStructure_set_filled_canopy():
     * Checks that the aggregate role index has been updated with the new canopy state.
     """
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import LayerStructure
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    cfg = Config(cfg_strings="[core]")
+    core_cfg = CoreConfiguration()
     layer_structure = LayerStructure(
-        cfg, n_cells=9, max_depth_of_microbial_activity=0.25
+        core_cfg.layers, n_cells=9, max_depth_of_microbial_activity=0.25
     )
 
     # Run the set_filled_canopy method to populate the filled layers and update cached
@@ -397,97 +397,3 @@ def test_LayerStructure_set_filled_canopy():
     exp_flux_layers = np.repeat(False, layer_structure.n_layers)
     exp_flux_layers[np.concatenate([np.arange(1, 9), [12]])] = True
     assert np.allclose(layer_structure.index_flux_layers, exp_flux_layers)
-
-
-@pytest.mark.parametrize(
-    "config,output,raises,expected_log_entries",
-    [
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 minutes"
-            run_length = "30 years"
-            """,
-            {
-                "start_time": np.datetime64("2020-01-01"),
-                "update_interval": np.timedelta64(10, "m"),
-                "update_interval_as_quantity": Quantity("10 minutes"),
-                "end_time": np.datetime64("2049-12-31T12:00"),
-            },
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Timing details built from model configuration: "
-                    "start - 2020-01-01, end - 2049-12-31T12:00:00, "
-                    "run length - 946728000 seconds",
-                ),
-            ),
-            id="timing correct",
-        ),
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 metres"
-            run_length = "30 years"
-            """,
-            None,
-            pytest.raises(ConfigurationError),
-            ((ERROR, "Invalid units for core.timing.update_interval: "),),
-            id="bad update dimension",
-        ),
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 epochs"
-            run_length = "30 years"
-            """,
-            None,
-            pytest.raises(ConfigurationError),
-            ((ERROR, "Invalid units for core.timing.update_interval: "),),
-            id="unknown update unit",
-        ),
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 minutes"
-            run_length = "1 minute"
-            """,
-            {},  # Fails so no output to check
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Model run length (1 minute) expires before first "
-                    "update (10 minutes)",
-                ),
-            ),
-            id="run length too short",
-        ),
-    ],
-)
-def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
-    """Test that function to extract main loop timing works as intended."""
-    from virtual_ecosystem.core.config_builder import (
-        ConfigurationLoader,
-        generate_configuration,
-    )
-    from virtual_ecosystem.core.core_components import ModelTiming
-
-    config_data = ConfigurationLoader(cfg_strings=config)
-    config_obj = generate_configuration(config_data.data)
-
-    caplog.clear()
-
-    with raises:
-        model_timing = ModelTiming(config=config_obj.core)
-
-        assert model_timing.end_time == output["end_time"]
-        assert model_timing.update_interval == output["update_interval"]
-        assert model_timing.start_time == output["start_time"]
-        assert (
-            model_timing.update_interval_quantity
-            == output["update_interval_as_quantity"]
-        )
-
-    log_check(caplog=caplog, expected_log=expected_log_entries)
