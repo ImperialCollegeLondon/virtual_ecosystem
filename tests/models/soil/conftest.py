@@ -144,11 +144,15 @@ def fixture_soil_configuration(microbial_groups_cfg):
 
 
 @pytest.fixture
-def fixture_soil_core_components(fixture_soil_config):
+def fixture_soil_core_components(fixture_soil_configuration):
     """Create a core components from the fixture_soil_config."""
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    return CoreComponents(fixture_soil_config)
+    core_cfg = fixture_soil_configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
+    return CoreComponents(config=core_cfg)
 
 
 @pytest.fixture
