@@ -795,15 +795,19 @@ def test_generate_configuration(
         ),
     ),
 )
-def test_ConfigurationLoader_get_configuration(
+def test_ConfigurationLoader_to_generate_configuration(
     caplog, cfg_strings, outcome, expected_attr_values, expected_log
 ):
-    """Tests the get_configuration function."""
-    from virtual_ecosystem.core.config_builder import ConfigurationLoader
+    """Tests the flow through the loader to the generate_configuration function."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
 
     with outcome:
         # Run the function
-        config = ConfigurationLoader(cfg_strings=cfg_strings).get_configuration()
+        config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+        config = generate_configuration(config_data.data)
 
         # Do we get a model
         assert isinstance(config, BaseModel)
