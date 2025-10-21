@@ -375,7 +375,7 @@ class SoilConstants(Configuration):
     """
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class SoilConfiguration(ModelConfigurationRoot):
     """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""

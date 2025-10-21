@@ -357,7 +357,7 @@ class AnimalConstants(Configuration):
     """The probability a seasonal migration event occurs per time step (month)."""
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class AnimalConfiguration(ModelConfigurationRoot):
     """Root configuration class for the animal model."""
 
     functional_group_definitions_path: str = ""

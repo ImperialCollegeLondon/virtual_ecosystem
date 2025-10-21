@@ -21,6 +21,7 @@ kernelspec:
 import tomli_w
 import json
 from virtual_ecosystem.core.configuration import model_config_to_html, Configuration
+from virtual_ecosystem.core.registry import get_model_configuration_class
 from IPython.display import display, Markdown, HTML
 from importlib import import_module
 
@@ -32,8 +33,8 @@ def get_config_class(module_name: str) -> Configuration:
     """
 
     # Get the config class for the module
-    module = import_module(f"{module_name}.model_config")
-    config_class = getattr(module, "ModelConfiguration")
+    short_name = module_name.split(".")[-1]
+    config_class = get_model_configuration_class(module_name, short_name)
 
     return module_name.split(".")[-1], config_class
 

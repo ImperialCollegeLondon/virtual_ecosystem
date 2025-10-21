@@ -60,7 +60,7 @@ class AbioticSimpleBounds(Configuration):
     """Bounds for soil temperature, [C]."""
 
 
-class ModelConfiguration(ModelConfigurationRoot):
+class AbioticSimpleConfiguration(ModelConfigurationRoot):
     """Root configuration class for the abiotic simple model."""
 
     constants: AbioticSimpleConstants = AbioticSimpleConstants()

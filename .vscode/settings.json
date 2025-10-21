@@ -9,7 +9,10 @@
         "-s",
         "tests",
         // --no-cov needed so that breakpoints work: https://github.com/microsoft/vscode-python/issues/693
-        "--no-cov"
+        "--no-cov",
+        // Do not use parallel workers in VSCode testing panel.
+        "-n",
+        "0"
     ],
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter-notebook"

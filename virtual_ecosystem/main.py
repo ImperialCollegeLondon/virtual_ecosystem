@@ -15,6 +15,10 @@ from tqdm import tqdm
 
 from virtual_ecosystem.core import variables
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.config_builder import (
+    ConfigurationLoader,
+    generate_configuration,
+)
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
@@ -116,6 +120,14 @@ def ve_run(
     config = Config(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
+
+    # NEW configuration system
+    config_data = ConfigurationLoader(
+        cfg_paths=cfg_paths,
+        cfg_strings=cfg_strings,
+        override_params=override_params,
+    )
+    configuration = generate_configuration(config_data.data)  # noqa: F841
 
     # Save the merged config if requested
     data_opt = config["core"]["data_output_options"]

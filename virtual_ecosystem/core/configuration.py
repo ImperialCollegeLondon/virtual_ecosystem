@@ -14,12 +14,16 @@ The basic details of how this system is used can be
 found :doc:`here </using_the_ve/configuration/config>`.
 """  # noqa: D205
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, TypeAlias
+from typing import Annotated, TypeAlias, TypeVar
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
+
+T = TypeVar("T")
+"""Generic type to support static typing of subconfigurations."""
 
 RST_TO_MD = [
     (":cite:t:", "{cite:t}"),
@@ -41,8 +45,47 @@ class Configuration(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
+class CompiledConfiguration(Configuration):
+    """Compiled configuration class for Virtual Ecosystem models.
+
+    This class is used as the base for dynamically compiled complete model returned by
+    the ``ConfigurationLoader(...).get_configuration()`` method. It provides a shared
+    method to extract specific model configurations by name. This is needed because the
+    dynamic creation means that model fields are not explicitly declared, so `mypy` gets
+    does not handle ``configuration.plants``, but we can use
+    `configuration.get_subconfiguration("plants")` instead.
+    """
+
+    def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
+        """Get a named subconfiguration object from a compiled configuration.
+
+        This method can be used to extract model configurations or the core
+        configuration from a compiled configuration instance. The second argument is
+        used to provide support for static typing in `mypy` by explicitly providing the
+        type of the returned object. The method should be called as - for example:
+
+        .. code-block:: Python
+
+            subconfig: SubConfigConfiguration = (
+                compiled_configuration_instance.get_subconfiguration(
+                    "subconfig", SubConfigConfiguration
+                )
+            )
+
+        Args:
+            name: The required subconfiguration.
+            _: The class of objected returned by the method. This is not used by the
+                method itself but is used to support static typing of the return value.
+        """
+
+        try:
+            return getattr(self, name)
+        except AttributeError:
+            raise AttributeError(f"Model configuration for {name} not loaded")
+
+
 class ModelConfigurationRoot(Configuration):
-    """Root configuration class for models.
+    """Root configuration class for individual Virtual Ecosystem models.
 
     This model provides a common Pydantic base class that must be used to define
     the root configuration class of a Virtual Ecosystem model. Each model must define an

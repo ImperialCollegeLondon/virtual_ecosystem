@@ -14,40 +14,42 @@ def test_pydantic(tmp_path):
     """Builds a combined config model from all models and then dumps and reloads it."""
 
     modules = (
-        "virtual_ecosystem.core",
-        "virtual_ecosystem.models.abiotic",
-        "virtual_ecosystem.models.abiotic_simple",
-        "virtual_ecosystem.models.animal",
-        "virtual_ecosystem.models.hydrology",
-        "virtual_ecosystem.models.litter",
-        "virtual_ecosystem.models.plants",
-        "virtual_ecosystem.models.soil",
+        ("virtual_ecosystem.core", "CoreConfiguration"),
+        ("virtual_ecosystem.models.abiotic", "AbioticConfiguration"),
+        ("virtual_ecosystem.models.abiotic_simple", "AbioticSimpleConfiguration"),
+        ("virtual_ecosystem.models.animal", "AnimalConfiguration"),
+        ("virtual_ecosystem.models.hydrology", "HydrologyConfiguration"),
+        ("virtual_ecosystem.models.litter", "LitterConfiguration"),
+        ("virtual_ecosystem.models.plants", "PlantsConfiguration"),
+        ("virtual_ecosystem.models.soil", "SoilConfiguration"),
     )
 
     submodel_details = {}
-    for module_name in modules:
+    for module_name, config_name in modules:
         module = import_module(f"{module_name}.model_config")
-        config_class = getattr(module, "ModelConfiguration")
+        config_class = getattr(module, config_name)
         submodel_details[module_name.split(".")[-1]] = (config_class, config_class())
 
     # Combine
     combined = create_model("Config", **submodel_details)
 
     # Dump config to file
-    with open("config.toml", "wb") as tomlfile:
+    config_path = tmp_path / "config.toml"
+    with open(config_path, "wb") as tomlfile:
         tomli_w.dump(json.loads(combined().model_dump_json()), tomlfile)
 
     # Reload it - substituting path placeholders for a temporary real file.
     tmp_file = tmp_path / "temp_file.txt"
     tmp_file.touch()
 
-    with open("config.toml") as tomlfile:
+    with open(config_path) as tomlfile:
         content = tomlfile.read()
         content = content.replace('"<PLACEHOLDER>"', f"'{tmp_file!s}'")
         content_parsed = tomllib.loads(content)
         config = combined().model_validate_json(json.dumps(content_parsed))
 
     tmp_file.unlink()
+    config_path.unlink()
 
     # Very basic check for submodels
     for submodel in submodel_details:
