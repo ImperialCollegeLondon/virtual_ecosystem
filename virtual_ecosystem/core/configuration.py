@@ -93,7 +93,7 @@ class CompiledConfiguration(Configuration):
             path: The path to be used to export the configuration data.
         """
 
-        with open(path, "rb") as destination:
+        with open(path, "wb") as destination:
             tomli_w.dump(self.model_dump(mode="json"), destination)
 
 

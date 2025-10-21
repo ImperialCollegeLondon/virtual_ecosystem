@@ -442,9 +442,17 @@ def test_generate_litter_model(
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
-    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+
+    # TODO - This test is currently mixing the old AbioticSimpleConsts validation with
+    # what will be replaced by configuration.abiotic_simple.constants. So for now, fake
+    # it with a hardcoded config and let the errors run through to the old system
+
+    config_data = ConfigurationLoader(
+        cfg_strings="[core.timing]\nupdate_interval = '24 hours'\n[litter]"
+    )
+
     configuration = generate_configuration(config_data.data)
-    core_components = CoreComponents(config)
+    core_components = CoreComponents(configuration.core)
 
     caplog.clear()
 

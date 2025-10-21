@@ -197,10 +197,16 @@ def test_generate_abiotic_model(
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
-    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+
+    # TODO - this is a temporary fix for #1103- the abiotic constants validation is
+    # currently being handled by Config, but will move into generate_configuration.
+    # The config strings are different, so hard code for now.
+    config_data = ConfigurationLoader(
+        cfg_strings="[core]\n[core.timing]\nupdate_interval = '12 hours'\n[abiotic]\n"
+    )
     configuration = generate_configuration(config_data.data)
 
-    core_components = CoreComponents(config)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     # We patch the _setup step as it is tested separately
@@ -273,7 +279,7 @@ def test_generate_abiotic_model_bounds_error(
     config = Config(cfg_strings=cfg_string)
     config_data = ConfigurationLoader(cfg_strings=cfg_string)
     configuration = generate_configuration(config_data.data)
-    core_components = CoreComponents(config)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected

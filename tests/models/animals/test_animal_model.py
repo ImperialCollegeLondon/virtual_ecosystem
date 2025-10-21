@@ -161,7 +161,7 @@ class TestAnimalModel:
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
         # Build the config object and core components using the fixture
-        core_components = CoreComponents(animal_fixture_config)
+        core_components = CoreComponents(animal_fixture_configuration.core)
         caplog.clear()
 
         # Check whether model is initialised (or not) as expected
@@ -217,7 +217,9 @@ class TestAnimalModel:
 
         # Update the config to include the scaling method
         animal_fixture_config["animal"]["density_scaling_method"] = scaling_method
-        animal_fixture_configuration.animal.density_scaling_method = scaling_method
+
+        # Configuration classes are frozen so update via the __dict__ entries
+        animal_fixture_configuration.animal.__dict__["density_scaling_method"]
 
         # Create the model using from_config
         model = AnimalModel.from_config(

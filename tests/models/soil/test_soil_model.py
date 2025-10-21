@@ -294,10 +294,18 @@ def test_generate_soil_model(
     ]
 
     config = Config(cfg_strings=cfg_strings)
-    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
-    configuration = generate_configuration(config_data.data)
 
-    core_components = CoreComponents(config)
+    # TODO - Another test with what will become conflation of the configuration
+    # validation with model setup. So for now, fake
+    # it with a hardcoded config and let the errors run through to the old system
+
+    config_data = ConfigurationLoader(
+        cfg_strings=(
+            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n[hydrology]"
+        )
+    )
+    configuration = generate_configuration(config_data.data)
+    core_components = CoreComponents(configuration.core)
 
     caplog.clear()
 
