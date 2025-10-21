@@ -1,6 +1,7 @@
 """Configuration classes for the soil model."""
 
 import numpy as np
+from pydantic import Field
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
@@ -375,6 +376,45 @@ class SoilConstants(Configuration):
     """
 
 
+class SoilEnzymeClass(Configuration):
+    """Microbial functional group definitions."""
+
+    source: str = Field(default="bacteria")
+    substrate: str = Field(default="pom")
+    maximum_rate: float = Field(default=60.0)
+    half_saturation_constant: float = Field(default=70.0)
+    activation_energy_rate: float = Field(default=37000)
+    activation_energy_saturation: float = Field(default=30000)
+    reference_temperature: float = Field(default=12.0)
+    turnover_rate: float = Field(default=0.024)
+    c_n_ratio: float = Field(default=5.2)
+    c_p_ratio: float = Field(default=16)
+
+
+class SoilMicrobialGroup(Configuration):
+    """Microbial functional group definitions."""
+
+    name: str = Field(default="bacteria")
+    taxonomic_group: str = Field(default="bacteria")
+    max_uptake_rate_labile_C: float = Field(default=0.04)
+    activation_energy_uptake_rate: float = Field(default=47000)
+    half_sat_labile_C_uptake: float = Field(default=0.364)
+    activation_energy_uptake_saturation: float = Field(default=30000)
+    max_uptake_rate_ammonium: float = Field(default=0.005)
+    half_sat_ammonium_uptake: float = Field(default=0.02275)
+    max_uptake_rate_nitrate: float = Field(default=0.0005)
+    half_sat_nitrate_uptake: float = Field(default=0.02275)
+    max_uptake_rate_labile_p: float = Field(default=0.0025)
+    half_sat_labile_p_uptake: float = Field(default=0.02275)
+    turnover_rate: float = Field(default=0.005)
+    activation_energy_turnover: float = Field(default=20000)
+    reference_temperature: float = Field(default=12.0)
+    c_n_ratio: float = Field(default=5.2)
+    c_p_ratio: float = Field(default=16)
+    enzyme_production: dict[str, float] = Field(default={"pom": 0.005, "maom": 0.005})
+    reproductive_allocation: float = Field(default=0.0)
+
+
 class SoilConfiguration(ModelConfigurationRoot):
     """Root configuration class for the soil model."""
 
@@ -386,3 +426,9 @@ class SoilConfiguration(ModelConfigurationRoot):
 
     constants: SoilConstants = SoilConstants()
     """Constants values for soil model."""
+
+    enzyme_class_definition: list[SoilEnzymeClass]
+    """Definition of enzyme classes for soil model."""
+
+    microbial_group_definition: list[SoilMicrobialGroup]
+    """Definition of microbial groups for soil model."""
