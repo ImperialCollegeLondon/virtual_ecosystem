@@ -22,8 +22,9 @@ from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
-from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.config import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -297,7 +298,7 @@ class Grid:
         )
 
     @classmethod
-    def from_config(cls, config: Config) -> Grid:
+    def from_config(cls, config: CoreConfiguration) -> Grid:
         """Factory function to generate a Grid instance from a configuration dict.
 
         Args:
@@ -305,7 +306,7 @@ class Grid:
         """
 
         try:
-            grid = Grid(**config["core"]["grid"])
+            grid = Grid(**config.grid.model_dump())
         except Exception as err:
             LOGGER.error(err)
             to_raise = ConfigurationError("Grid creation from configuration failed.")

@@ -10,17 +10,14 @@ from __future__ import annotations
 from dataclasses import InitVar, dataclass, field
 
 import numpy as np
+import pint
 from numpy.typing import NDArray
-from pint import Quantity
-from pint.errors import DimensionalityError, UndefinedUnitError
 from xarray import DataArray
 
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration, CoreConstants
 
 
 @dataclass
@@ -39,15 +36,15 @@ class CoreComponents:
     """The vertical layer structure for the simulation."""
     model_timing: ModelTiming = field(init=False)
     """The model timing details for the simulation."""
-    core_constants: CoreConsts = field(init=False)
-    """The core constants definitions for the simulation"""
-    config: InitVar[Config]
+    core_constants: CoreConstants = field(init=False)
+    """The core constant definitions for the simulation."""
+    config: InitVar[CoreConfiguration]
     """A validated model configuration."""
 
-    def __post_init__(self, config: Config) -> None:
+    def __post_init__(self, config: CoreConfiguration) -> None:
         """Populate the core components from the config."""
         self.grid = Grid.from_config(config=config)
-        self.core_constants = load_constants(config, "core", "CoreConsts")
+        self.core_constants = config.constants
         self.layer_structure = LayerStructure(
             config=config,
             n_cells=self.grid.n_cells,
@@ -61,16 +58,12 @@ class ModelTiming:
     """Model timing details.
 
     This data class defines the timing of a Virtual Ecosystem simulation from the
-    ``core.timing`` section of a validated model configuration. The start time, run
-    length and update interval are all extracted from the configuration and validated.
+    {class}`~virtual_ecosystem.core.model_config.TimingConfiguration` section of a
+    validated model configuration.
 
     The end time is calculated from the previously extracted timing information. This
     end time will always be the largest whole multiple of the update interval that
     exceeds or equal the configured ``run_length``.
-
-
-    Raises:
-        ConfigurationError: If the timing configuration details are incorrect.
     """
 
     start_time: np.datetime64 = field(init=False)
@@ -81,22 +74,22 @@ class ModelTiming:
     """The difference between start and calculated end time."""
     run_length: np.timedelta64 = field(init=False)
     """The configured run length."""
-    run_length_quantity: Quantity = field(init=False)
-    """The configured run length as a pint Quantity."""
     update_interval: np.timedelta64 = field(init=False)
+    """The configured update interval."""
+    run_length_quantity: pint.Quantity = field(init=False)
+    """The configured run length."""
+    update_interval_quantity: pint.Quantity = field(init=False)
     """The configured update interval."""
     update_interval_seconds: float = field(init=False)
     """The configured update interval in seconds."""
-    update_interval_quantity: Quantity = field(init=False)
-    """The configured update interval as a pint Quantity."""
     n_updates: int = field(init=False)
     """The total number of model updates in the configured run."""
     updates_per_year: np.float64 = field(init=False)
     """The number of updates per year based on update_interval."""
-    config: InitVar[Config]
+    config: InitVar[CoreConfiguration]
     """A validated model configuration."""
 
-    def __post_init__(self, config: Config) -> None:
+    def __post_init__(self, config: CoreConfiguration) -> None:
         """Populate the ``ModelTiming`` instance.
 
         This method populates the ``ModelTiming`` attributes from the provided
@@ -106,43 +99,14 @@ class ModelTiming:
             config: A Config instance.
         """
 
-        timing = config["core"]["timing"]
+        tconf = config.timing
 
-        # Validate and convert configuration
-        # NOTE: some of this is also trapped by validation against the core schema.
-        # Start date from string to np.datetime64
-        try:
-            self.start_time = np.datetime64(timing["start_date"])
-        except ValueError:
-            to_raise = ConfigurationError(
-                f"Cannot parse start_date: {timing['start_date']}"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
-
-        # Handle conversion of strings to time quantities
-        for attr in ("run_length", "update_interval"):
-            try:
-                value = timing[attr]
-                value_pint = Quantity(value).to("seconds")
-            except (DimensionalityError, UndefinedUnitError):
-                to_raise = ConfigurationError(
-                    f"Invalid units for core.timing.{attr}: {value}"
-                )
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            # Set values as timedelta64 values with second precision and store quantity
-            setattr(self, attr, np.timedelta64(round(value_pint.magnitude), "s"))
-            setattr(self, attr + "_quantity", value_pint)
-
-        if self.run_length < self.update_interval:
-            to_raise = ConfigurationError(
-                f"Model run length ({timing['run_length']}) expires before "
-                f"first update ({timing['update_interval']})"
-            )
-            LOGGER.error(to_raise)
-            raise to_raise
+        # Convert configuration into datetime64 and timedelta64
+        self.start_time = np.datetime64(tconf.start_date)
+        self.update_interval = np.timedelta64(tconf._update_interval_seconds, "s")
+        self.run_length = np.timedelta64(tconf._run_length_seconds, "s")
+        self.update_interval_quantity = pint.Quantity(tconf.update_interval)
+        self.run_length_quantity = pint.Quantity(tconf.run_length)
 
         # Calculate when the simulation should stop as the first number of update
         # intervals to exceed the requested run length and calculate the actual run
@@ -181,21 +145,8 @@ class LayerStructure:
     This class defines the structure of the vertical dimension of a simulation using the
     Virtual Ecosystem. The vertical dimension is divided into a series of layers,
     ordered from above the canopy to the bottom of the soil, that perform different
-    roles in the simulation. The layers are defined using the following five
-    configuration settings from the ``[core.layers]`` section.
-
-    * ``above_canopy_height_offset``: the height above the canopy top of the first layer
-      role ``above``, which is used as the measurement height of reference climate data.
-    * ``canopy_layers``: a fixed number of layers with the ``canopy`` role. Not all of
-      these necessarily contain canopy during a simulation as the canopy structure
-      within these layers is dynamic.
-    * ``surface_layer_height``: the height above ground level of the ground surface
-      atmospheric layer.
-    * ``soil_layers``: this provides the depths of the soil horizons to be used in the
-      simulation and so sets the number of soil layers and the horizon depth for each
-      layer relative to the surface.
-    * ``max_depth_of_microbial_activity``: the depth limit of significant microbial
-      activity.
+    roles in the simulation. The configuration of the layer structure is defined in the
+    :class:`virtual_ecosystem.core.model_config.LayersConfiguration` class.
 
     The layer structure is shown below, along with the default configured height values
     in metres relative to ground level.
@@ -288,7 +239,7 @@ class LayerStructure:
             the layer structure.
     """
 
-    config: InitVar[Config]
+    config: InitVar[CoreConfiguration]
     """A configuration object instance."""
 
     # These two init arguments could also be accessed directly from the config, but
@@ -340,7 +291,7 @@ class LayerStructure:
     _array_template: DataArray = field(init=False)
     """A private data array template. Access copies using get_template."""
 
-    def __post_init__(self, config: Config, n_cells: int) -> None:
+    def __post_init__(self, config: CoreConfiguration, n_cells: int) -> None:
         """Populate the ``LayerStructure`` instance.
 
         This method populates the ``LayerStructure`` attributes from the dataclass init
@@ -355,7 +306,7 @@ class LayerStructure:
         self._n_cells = n_cells
 
         # Validates the configuration inputs and sets the layer structure attributes
-        self._validate_and_initialise_layer_config(config)
+        self._initialise_layers(config)
 
         # Now populate the initial role indices and create the layer data template
         self._populate_role_indices()
@@ -365,29 +316,21 @@ class LayerStructure:
 
         LOGGER.info("Layer structure built from model configuration")
 
-    def _validate_and_initialise_layer_config(self, config: Config):
-        """Layer structure config validation and attribute setting.
+    def _initialise_layers(self, config: CoreConfiguration):
+        """Layer structure attribute initialisation.
 
         Args:
             config: A Config instance.
         """
 
-        lcfg = config["core"]["layers"]
+        lcfg = config.layers
 
-        # Validate configuration
-        self.n_canopy_layers = _validate_positive_integer(lcfg["canopy_layers"])
-
-        # Soil layers are negative floats
-        self.soil_layer_depths = np.array(_validate_soil_layers(lcfg["soil_layers"]))
-        self.n_soil_layers = len(self.soil_layer_depths)
-
-        # Other heights should all be positive floats
-        self.above_canopy_height_offset = _validate_positive_finite_numeric(
-            lcfg["above_canopy_height_offset"], "above_canopy_height_offset"
-        )
-        self.surface_layer_height = _validate_positive_finite_numeric(
-            lcfg["surface_layer_height"], "surface_layer_height"
-        )
+        # Extract validated configuration values
+        self.n_canopy_layers = lcfg.canopy_layers
+        self.soil_layer_depths = np.array(lcfg.soil_layers)
+        self.n_soil_layers = self.soil_layer_depths.size
+        self.above_canopy_height_offset = lcfg.above_canopy_height_offset
+        self.surface_layer_height = lcfg.surface_layer_height
 
         # Set the layer role sequence
         self.layer_roles: NDArray[np.str_] = np.array(
@@ -657,66 +600,3 @@ class LayerStructure:
     def index_surface_scalar(self) -> int:
         """Layer indices for the surface layer."""
         return self._role_indices_scalar["surface"]
-
-
-def _validate_positive_integer(value: float | int) -> int:
-    """Validation function for positive integer values including integer floats."""
-
-    # Note that float.is_integer() traps np.inf and np.nan, both of which are floats
-    if (
-        (not isinstance(value, float | int))
-        or (isinstance(value, int) and value < 1)
-        or (isinstance(value, float) and (not value.is_integer() or value < 1))
-    ):
-        to_raise = ConfigurationError(
-            "The number of canopy layers is not a positive integer."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    return int(value)
-
-
-def _validate_soil_layers(soil_layers: list[int | float]) -> list[int | float]:
-    """Validation function for soil layer configuration setting."""
-
-    # NOTE - this could become a validate_decreasing_negative_numerics() if we ever
-    #        needed that more widely.
-
-    if not isinstance(soil_layers, list) or len(soil_layers) < 1:
-        to_raise = ConfigurationError(
-            "The soil layers must be a non-empty list of layer depths."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    if not all([isinstance(v, float | int) for v in soil_layers]):
-        to_raise = ConfigurationError("The soil layer depths are not all numeric.")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    np_soil_layer = np.array(soil_layers)
-    if not (np.all(np_soil_layer < 0) and np.all(np.diff(np_soil_layer) < 0)):
-        to_raise = ConfigurationError(
-            "Soil layer depths must be strictly decreasing and negative."
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    return soil_layers
-
-
-def _validate_positive_finite_numeric(value: float | int, label: str) -> float | int:
-    """Validation function for positive numeric values."""
-
-    if (
-        not isinstance(value, float | int)
-        or np.isinf(value)
-        or np.isnan(value)
-        or value < 0
-    ):
-        to_raise = ConfigurationError(f"The {label} value must be a positive numeric.")
-        LOGGER.error(to_raise)
-        raise to_raise
-
-    return value

@@ -23,8 +23,10 @@ from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
-from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_ecosystem.core.model_config import (
+    CoreConfiguration,
+)
 
 
 class Progress(IntEnum):
@@ -139,21 +141,27 @@ def ve_run(
 
     configuration: CompiledConfiguration = generate_configuration(config_data.data)
 
+    # Get the core configuration class
+    core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
+
     # Save the merged config if requested
-    data_opt = config["core"]["data_output_options"]
-    if data_opt["save_merged_config"]:
-        outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
-        config.export_config(outfile)
+    if core_configuration.data_output_options.save_merged_config:
+        outfile = (
+            Path(core_configuration.data_output_options.out_path)
+            / core_configuration.data_output_options.out_merge_file_name
+        )
+        configuration.export_toml(outfile)
         if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")
 
     # Build core elements
-    grid = Grid.from_config(config)
-    core_components = CoreComponents(config=config)
+    core_components = CoreComponents(config=core_configuration)
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
-    data = Data(grid)
+    data = Data(core_components.grid)
     data.load_data_config(config)
     if progress > Progress.MINIMAL:
         print("* Initial data loaded")
