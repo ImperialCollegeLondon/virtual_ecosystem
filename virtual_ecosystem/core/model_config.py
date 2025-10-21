@@ -189,12 +189,14 @@ class TimingConfiguration(Configuration):
         return Quantity(self.run_length).to("seconds").magnitude
 
     @field_validator("update_interval", "run_length")
-    def validate_pint_time_quantities(cls, value):
+    def validate_pint_time_quantities(cls, value) -> str:
         """Validates time strings can be parsed as quantities."""
         try:
             _ = Quantity(value).to("seconds")
         except (DimensionalityError, UndefinedUnitError):
             raise ValueError(f"Cannot parse value as time quantity: {value}")
+
+        return value
 
     def __post_init__(self):
         """Post init check for enough time for one update."""
@@ -260,7 +262,7 @@ class LayersConfiguration(Configuration):
     (metres)."""
 
     @field_validator("soil_layers")
-    def soil_depths_unique_decreasing(cls, values):
+    def soil_depths_unique_decreasing(cls, values) -> list[float]:
         """Check the soil depths are unique and decreasing.
 
         This runs post validation, so the inputs are a list of negative floats.
@@ -273,16 +275,20 @@ class LayersConfiguration(Configuration):
         if not values == strictly_decreasing:
             raise ValueError("Soil layer depths must be strictly decreasing")
 
+        return values
+
     @field_validator(
         "above_canopy_height_offset", "subcanopy_layer_height", "surface_layer_height"
     )
-    def finite_heights(cls, value):
+    def finite_heights(cls, value) -> float:
         """Prevent infinite heights.
 
         This seems paranoid, but was in the older validation.
         """
         if value == np.inf:
             raise ValueError("Height must be finite.")
+
+        return value
 
 
 class DataSource(Configuration):

@@ -79,7 +79,7 @@ ALTERNATE_CANOPY = np.array(
             start_date = "2020-01-01"
             update_interval = "10 minutes"
             run_length = "30 years"
-            [core.constants.CoreConsts]
+            [core.constants]
             max_depth_of_microbial_activity = 0.8
             """,
             {
@@ -110,11 +110,16 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
     The expected components contain some simple values to check - the component specific
     tests provide more rigorous testing.
     """
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
 
-    cfg = Config(cfg_strings=config)
-    core_components = CoreComponents(cfg)
+    cfg_data = ConfigurationLoader(cfg_strings=config)
+    cfg = generate_configuration(cfg_data.data)
+
+    core_components = CoreComponents(config=cfg.core)
 
     for ky, val in expected_layers.items():
         # Handle different expected classes

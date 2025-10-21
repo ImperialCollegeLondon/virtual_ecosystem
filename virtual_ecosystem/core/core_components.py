@@ -103,8 +103,8 @@ class ModelTiming:
 
         # Convert configuration into datetime64 and timedelta64
         self.start_time = np.datetime64(tconf.start_date)
-        self.update_interval = np.timedelta64(tconf._update_interval_seconds, "s")
-        self.run_length = np.timedelta64(tconf._run_length_seconds, "s")
+        self.update_interval = np.timedelta64(int(tconf.update_interval_seconds), "s")
+        self.run_length = np.timedelta64(int(tconf.run_length_seconds), "s")
         self.update_interval_quantity = pint.Quantity(tconf.update_interval)
         self.run_length_quantity = pint.Quantity(tconf.run_length)
 
