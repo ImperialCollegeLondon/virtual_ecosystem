@@ -427,8 +427,10 @@ class SoilConfiguration(ModelConfigurationRoot):
     constants: SoilConstants = SoilConstants()
     """Constants values for soil model."""
 
-    enzyme_class_definition: list[SoilEnzymeClass]
+    enzyme_class_definition: list[SoilEnzymeClass] = Field(default=[SoilEnzymeClass()])
     """Definition of enzyme classes for soil model."""
 
-    microbial_group_definition: list[SoilMicrobialGroup]
+    microbial_group_definition: list[SoilMicrobialGroup] = Field(
+        default=[SoilMicrobialGroup()]
+    )
     """Definition of microbial groups for soil model."""
