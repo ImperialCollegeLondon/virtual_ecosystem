@@ -268,7 +268,9 @@ class LayersConfiguration(Configuration):
         if not values == strictly_decreasing:
             raise ValueError("Soil layer depths must be strictly decreasing")
 
-    @field_validator("soil_layers")
+    @field_validator(
+        "above_canopy_height_offset", "subcanopy_layer_height", "surface_layer_height"
+    )
     def finite_heights(cls, value):
         """Prevent infinite heights.
 
