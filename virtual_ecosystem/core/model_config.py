@@ -242,12 +242,13 @@ class LayersConfiguration(Configuration):
     and the horizon depth for each layer relative to the surface. The values must be
     unique and strictly decreasing.
     """
+
     canopy_layers: int = Field(gt=0, default=10)
     """The maximum number of canopy layers to simulate. This is used to control the 
     number of layers with the ``canopy`` role. Not all of these layers necessarily
     contain canopy during a simulation as the canopy structure within these layers is
     dynamic."""
-    ""
+
     above_canopy_height_offset: PositiveFloat = Field(default=2.0)
     """A height offset relative to the canopy top that is used as the measurement height
     of reference climate data. It sets the the height above the canopy top of the first

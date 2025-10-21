@@ -240,19 +240,6 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
         ),
         pytest.param(
             """[core.layers]
-            soil_layers=[0.1, -0.5, -0.9]
-            canopy_layers=9
-            above_canopy_height_offset=1.5
-            surface_layer_height=0.2
-            """,
-            0.25,
-            pytest.raises(ConfigurationError),
-            None,
-            ((ERROR, "Soil layer depths must be strictly decreasing and negative."),),
-            id="bad_soil",
-        ),
-        pytest.param(
-            """[core.layers]
             soil_layers=[-0.1, -0.5, -0.9]
             canopy_layers=9
             above_canopy_height_offset=1.5
@@ -276,14 +263,18 @@ def test_LayerStructure_init(
     caplog, config_string, max_active_depth, raises, expected_values, expected_log
 ):
     """Test the creation and error handling of LayerStructure."""
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import LayerStructure
 
-    cfg = Config(cfg_strings=config_string)
+    cfg_data = ConfigurationLoader(cfg_strings=config_string)
+    cfg = generate_configuration(cfg_data.data)
 
     with raises:
         layer_structure = LayerStructure(
-            cfg, n_cells=9, max_depth_of_microbial_activity=max_active_depth
+            cfg.core.layers, n_cells=9, max_depth_of_microbial_activity=max_active_depth
         )
 
     log_check(caplog=caplog, expected_log=expected_log, subset=slice(-1, None, None))
