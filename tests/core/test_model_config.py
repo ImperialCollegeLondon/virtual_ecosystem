@@ -33,7 +33,7 @@ def test_LayersConfiguration_soil_layers(value, raises):
     argvalues=[
         (1, does_not_raise()),
         (1.23, does_not_raise()),
-        (0, does_not_raise()),
+        (0, pytest.raises(ValidationError)),
         (np.inf, pytest.raises(ValidationError)),
         (np.nan, pytest.raises(ValidationError)),
         (-9, pytest.raises(ValidationError)),
@@ -51,6 +51,25 @@ def test_LayersConfiguration_heights(value, raises):
             above_canopy_height_offset=value,
             subcanopy_layer_height=value,
             surface_layer_height=value,
+        )
+
+
+@pytest.mark.parametrize(
+    argnames="surf, subc, raises",
+    argvalues=[
+        (0.1, 2, does_not_raise()),
+        (1.2, 1.21, does_not_raise()),
+        (1.2, 0.1, pytest.raises(ValidationError)),
+    ],
+)
+def test_LayersConfiguration_relative_heights(surf, subc, raises):
+    """Testing LayersConfiguration validation."""
+    from virtual_ecosystem.core.model_config import LayersConfiguration
+
+    with raises:
+        LayersConfiguration(
+            subcanopy_layer_height=subc,
+            surface_layer_height=surf,
         )
 
 
