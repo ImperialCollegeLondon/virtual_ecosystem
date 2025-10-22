@@ -247,22 +247,22 @@ class LayersConfiguration(Configuration):
     unique and strictly decreasing.
     """
 
-    canopy_layers: int = Field(gt=0, default=10)
+    canopy_layers: PositiveInt = 10
     """The maximum number of canopy layers to simulate. This is used to control the 
     number of layers with the ``canopy`` role. Not all of these layers necessarily
     contain canopy during a simulation as the canopy structure within these layers is
     dynamic."""
 
-    above_canopy_height_offset: PositiveFloat = Field(default=2.0)
+    above_canopy_height_offset: PositiveFloat = Field(default=2.0, allow_inf_nan=False)
     """A height offset relative to the canopy top that is used as the measurement height
     of reference climate data. It sets the the height above the canopy top of the first
     layer role ``above`` (metres)."""
 
-    subcanopy_layer_height: PositiveFloat = Field(default=1.5)
+    subcanopy_layer_height: PositiveFloat = Field(default=1.5, allow_inf_nan=False)
     """The height above ground level of the ground surface atmospheric layer, used to
     calculate subcanopy microclimate conditions (metres)."""
 
-    surface_layer_height: PositiveFloat = Field(default=0.1)
+    surface_layer_height: PositiveFloat = Field(default=0.1, allow_inf_nan=False)
     """The height above ground level of the ground surface atmospheric layer
     (metres)."""
 
@@ -281,19 +281,6 @@ class LayersConfiguration(Configuration):
             raise ValueError("Soil layer depths must be strictly decreasing")
 
         return values
-
-    @field_validator(
-        "above_canopy_height_offset", "subcanopy_layer_height", "surface_layer_height"
-    )
-    def _finite_heights(cls, value) -> float:
-        """Prevent infinite heights.
-
-        This seems paranoid, but was in the older validation.
-        """
-        if value == np.inf:
-            raise ValueError("Height must be finite.")
-
-        return value
 
 
 class DataSource(Configuration):
