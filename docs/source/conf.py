@@ -184,6 +184,15 @@ nitpick_ignore = [
     ("py:class", "PosixPath"),
     ("py:class", "virtual_ecosystem.core.configuration.placeholder_validator"),
     ("py:class", "PydanticUndefined"),
+    # Actually just generally intersphinx is janky when it comes to pydantic
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "PositiveFloat"),
+    ("py:class", "PositiveInt"),
+    ("py:class", "annotated_types.Lt"),
+    ("py:class", "annotated_types.MinLen"),
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "NegativeFloat"),
+    ("py:class", "date"),
 ]
 
 intersphinx_mapping = {

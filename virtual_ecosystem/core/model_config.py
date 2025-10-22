@@ -190,7 +190,7 @@ class TimingConfiguration(Configuration):
         return Quantity(self.run_length).to("seconds").magnitude
 
     @field_validator("update_interval", "run_length")
-    def validate_pint_time_quantities(cls, value) -> str:
+    def _validate_pint_time_quantities(cls, value) -> str:
         """Validates time strings can be parsed as quantities."""
         try:
             _ = Quantity(value).to("seconds")
@@ -200,7 +200,7 @@ class TimingConfiguration(Configuration):
         return value
 
     @model_validator(mode="after")
-    def run_length_too_short(self) -> TimingConfiguration:
+    def _run_length_too_short(self) -> TimingConfiguration:
         """Model validation that there is enough time for at least one update."""
 
         if self.run_length_seconds < self.update_interval_seconds:
@@ -267,7 +267,7 @@ class LayersConfiguration(Configuration):
     (metres)."""
 
     @field_validator("soil_layers")
-    def soil_depths_unique_decreasing(cls, values) -> list[float]:
+    def _soil_depths_unique_decreasing(cls, values) -> list[float]:
         """Check the soil depths are unique and decreasing.
 
         This runs post validation, so the inputs are a list of negative floats.
@@ -285,7 +285,7 @@ class LayersConfiguration(Configuration):
     @field_validator(
         "above_canopy_height_offset", "subcanopy_layer_height", "surface_layer_height"
     )
-    def finite_heights(cls, value) -> float:
+    def _finite_heights(cls, value) -> float:
         """Prevent infinite heights.
 
         This seems paranoid, but was in the older validation.

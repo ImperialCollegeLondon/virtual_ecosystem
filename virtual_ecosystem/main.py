@@ -152,7 +152,11 @@ def ve_run(
             Path(core_configuration.data_output_options.out_path)
             / core_configuration.data_output_options.out_merge_file_name
         )
-        configuration.export_toml(outfile)
+        # TODO: While in transition in configuration write out the old style Config as
+        #       the static model demo can't handle new configs right now.
+        # configuration.export_toml(outfile)
+        config.export_config(outfile)
+
         if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")
 
