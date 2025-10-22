@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from datetime import date
 from functools import cached_property
-from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
@@ -227,7 +226,7 @@ class DataOutputConfiguration(Configuration):
     "Whether the final state should be saved"
     save_merged_config: bool = True
     "Whether to save a merged TOML file containing all config options"
-    out_path: DIRPATH_PLACEHOLDER = Path("<PLACEHOLDER>")
+    out_path: DIRPATH_PLACEHOLDER  # = Path("<DIRPATH_PLACEHOLDER>")
     "Directory path for output files"
     out_initial_file_name: str = "initial_state.nc"
     """File name for initial state output file"""

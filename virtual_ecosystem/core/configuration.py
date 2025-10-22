@@ -42,8 +42,15 @@ RST_TO_MD = [
 
 
 def placeholder_validator(path: str) -> str:
-    """A custom validator to reject "<PLACEHOLDER>" when loading file paths."""
-    if path == "<PLACEHOLDER>":
+    """Check for path placeholders.
+
+    This custom validator rejects ``<FILEPATH_PLACEHOLDER>`` and
+    ``<DIRPATH_PLACEHOLDER>``  values when loading file paths.
+
+    Args:
+        path: A field path value to validate.
+    """
+    if path in ("<FILEPATH_PLACEHOLDER>", "<DIRPATH_PLACEHOLDER>"):
         raise ValueError("Path placeholder value in configuration.")
 
     return path
@@ -51,7 +58,7 @@ def placeholder_validator(path: str) -> str:
 
 FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
     FilePath,
-    Field(default=Path("<PLACEHOLDER>")),
+    Field(default=Path("<FILEPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
 ]
 """Custom type for file paths in configurations. This enforces the FilePath validation
@@ -68,7 +75,7 @@ validation specifically rejects incoming values that have been left with that de
 
 DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
     DirectoryPath,
-    Field(default=Path("<PLACEHOLDER>")),
+    Field(default=Path("<DIRPATH_PLACEHOLDER>")),
     BeforeValidator(placeholder_validator),
 ]
 """Custom type for directory paths in configurations. This enforces the DirectoryPath
