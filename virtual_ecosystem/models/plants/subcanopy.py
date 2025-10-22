@@ -67,7 +67,7 @@ class Nutrient:
             masses: The carbon biomasses of cells for the tissue.
         """
 
-        ideal_ratio = getattr(PlantsConstants, f"{tissue_name}_c_{element}_ratio")
+        ideal_ratio = getattr(constants, f"{tissue_name}_c_{element}_ratio")
         return cls(name=element, ideal_ratio=ideal_ratio, masses=masses / ideal_ratio)
 
 

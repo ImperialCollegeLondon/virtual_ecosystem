@@ -23,7 +23,10 @@ from pydantic import (
 )
 from scipy import constants
 
-from virtual_ecosystem.core.configuration import FILEPATH_PLACEHOLDER, Configuration
+from virtual_ecosystem.core.configuration import (
+    DIRPATH_PLACEHOLDER,
+    Configuration,
+)
 
 
 class CoreConstants(Configuration):
@@ -224,7 +227,7 @@ class DataOutputConfiguration(Configuration):
     "Whether the final state should be saved"
     save_merged_config: bool = True
     "Whether to save a merged TOML file containing all config options"
-    out_path: FILEPATH_PLACEHOLDER = Path("<PLACEHOLDER>")
+    out_path: DIRPATH_PLACEHOLDER = Path("<PLACEHOLDER>")
     "Directory path for output files"
     out_initial_file_name: str = "initial_state.nc"
     """File name for initial state output file"""

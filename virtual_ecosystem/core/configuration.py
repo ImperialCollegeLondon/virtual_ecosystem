@@ -19,7 +19,14 @@ from pathlib import Path
 from typing import Annotated, TypeAlias, TypeVar
 
 import tomli_w
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    DirectoryPath,
+    Field,
+    FilePath,
+)
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
 
@@ -32,6 +39,44 @@ RST_TO_MD = [
     (":attr:", "{attr}"),
 ]
 """Tags to replace when converting RST descriptions of fields to Markdown."""
+
+
+def placeholder_validator(path: str) -> str:
+    """A custom validator to reject "<PLACEHOLDER>" when loading file paths."""
+    if path == "<PLACEHOLDER>":
+        raise ValueError("Path placeholder value in configuration.")
+
+    return path
+
+
+FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
+    FilePath,
+    Field(default=Path("<PLACEHOLDER>")),
+    BeforeValidator(placeholder_validator),
+]
+"""Custom type for file paths in configurations. This enforces the FilePath validation
+to check that paths in configuration data actually point to existing paths. It also
+provides custom validation to allow a "<PLACEHOLDER>" default value. This can be written
+to file - because the field does not use ``validate_defaults`` - but the custom
+validation specifically rejects incoming values that have been left with that default.
+"""
+
+# TODO: Fix autodoc
+#       These generate a bizarre set of autodoc link failures that try and build links
+#       from the text elements from the Annotated pattern. Currently tackled using
+#       nitpick ignore.
+
+DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
+    DirectoryPath,
+    Field(default=Path("<PLACEHOLDER>")),
+    BeforeValidator(placeholder_validator),
+]
+"""Custom type for directory paths in configurations. This enforces the DirectoryPath
+validation to check that paths in configuration data actually point to existing paths.
+It also provides custom validation to allow a "<PLACEHOLDER>" default value. This can be
+written to file - because the field does not use ``validate_defaults`` - but the custom
+validation specifically rejects incoming values that have been left with that default.
+"""
 
 
 class Configuration(BaseModel):
@@ -112,32 +157,6 @@ class ModelConfigurationRoot(Configuration):
 
     static: bool = False
     """The model static mode setting."""
-
-
-def placeholder_validator(path: str) -> str:
-    """A custom validator to reject "<PLACEHOLDER>" when loading file paths."""
-    if path == "<PLACEHOLDER>":
-        raise ValueError("Path placeholder value in configuration.")
-
-    return path
-
-
-FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
-    FilePath,
-    Field(default=Path("<PLACEHOLDER>")),
-    BeforeValidator(placeholder_validator),
-]
-"""Pydantic type that provides a default '<PLACEHOLDER>' text for writing configuration
-templates, but screens input before the standard validation to refuse unreplaced
-placeholder values. The type then uses FilePath, which validates that a path actually
-exists on the file system. The field does not set ``validate_defaults`` so the
-placeholder value can be written despite not being an existing file.
-
-.. TODO: Fix autodoc
-    This generates a bizarre set of autodoc link failures that try and build links from
-    the text elements from the Annotated pattern. Currently tackled using nitpick 
-    ignore.
-"""
 
 
 def model_config_to_html(
