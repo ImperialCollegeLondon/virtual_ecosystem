@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 from functools import cached_property
+from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
@@ -22,7 +23,7 @@ from pydantic import (
 )
 from scipy import constants
 
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import FILEPATH_PLACEHOLDER, Configuration
 
 
 class CoreConstants(Configuration):
@@ -223,8 +224,8 @@ class DataOutputConfiguration(Configuration):
     "Whether the final state should be saved"
     save_merged_config: bool = True
     "Whether to save a merged TOML file containing all config options"
-    out_path: str = "."
-    "File path for output files"
+    out_path: FILEPATH_PLACEHOLDER = Path("<PLACEHOLDER>")
+    "Directory path for output files"
     out_initial_file_name: str = "initial_state.nc"
     """File name for initial state output file"""
     out_folder_continuous: str = "."
