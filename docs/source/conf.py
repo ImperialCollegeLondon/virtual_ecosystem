@@ -193,6 +193,7 @@ nitpick_ignore = [
     ("py:class", "annotated_types.Gt"),
     ("py:class", "NegativeFloat"),
     ("py:class", "date"),
+    ("py:class", "_PydanticGeneralMetadata"),
 ]
 
 intersphinx_mapping = {
