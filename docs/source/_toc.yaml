@@ -103,6 +103,8 @@ subtrees:
                 title: The constants_loader submodule
               - file: api/core/core_components.md
                 title: The core_components submodule
+              - file: api/core/model_config.md
+                title: The model_config submodule
               - file: api/core/data.md
                 title: The data submodule
               - file: api/core/exceptions.md

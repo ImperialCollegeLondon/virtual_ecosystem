@@ -79,7 +79,7 @@ ALTERNATE_CANOPY = np.array(
             start_date = "2020-01-01"
             update_interval = "10 minutes"
             run_length = "30 years"
-            [core.constants.CoreConsts]
+            [core.constants]
             max_depth_of_microbial_activity = 0.8
             """,
             {
@@ -110,11 +110,16 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
     The expected components contain some simple values to check - the component specific
     tests provide more rigorous testing.
     """
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
 
-    cfg = Config(cfg_strings=config)
-    core_components = CoreComponents(cfg)
+    cfg_data = ConfigurationLoader(cfg_strings=config)
+    cfg = generate_configuration(cfg_data.data)
+
+    core_components = CoreComponents(config=cfg.core)
 
     for ky, val in expected_layers.items():
         # Handle different expected classes
@@ -235,19 +240,6 @@ def test_CoreComponents(config, expected_layers, expected_timing, expected_const
         ),
         pytest.param(
             """[core.layers]
-            soil_layers=[0.1, -0.5, -0.9]
-            canopy_layers=9
-            above_canopy_height_offset=1.5
-            surface_layer_height=0.2
-            """,
-            0.25,
-            pytest.raises(ConfigurationError),
-            None,
-            ((ERROR, "Soil layer depths must be strictly decreasing and negative."),),
-            id="bad_soil",
-        ),
-        pytest.param(
-            """[core.layers]
             soil_layers=[-0.1, -0.5, -0.9]
             canopy_layers=9
             above_canopy_height_offset=1.5
@@ -271,14 +263,18 @@ def test_LayerStructure_init(
     caplog, config_string, max_active_depth, raises, expected_values, expected_log
 ):
     """Test the creation and error handling of LayerStructure."""
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import LayerStructure
 
-    cfg = Config(cfg_strings=config_string)
+    cfg_data = ConfigurationLoader(cfg_strings=config_string)
+    cfg = generate_configuration(cfg_data.data)
 
     with raises:
         layer_structure = LayerStructure(
-            cfg, n_cells=9, max_depth_of_microbial_activity=max_active_depth
+            cfg.core.layers, n_cells=9, max_depth_of_microbial_activity=max_active_depth
         )
 
     log_check(caplog=caplog, expected_log=expected_log, subset=slice(-1, None, None))
@@ -365,12 +361,12 @@ def test_LayerStructure_set_filled_canopy():
     * Checks that the aggregate role index has been updated with the new canopy state.
     """
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.core_components import LayerStructure
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    cfg = Config(cfg_strings="[core]")
+    core_cfg = CoreConfiguration()
     layer_structure = LayerStructure(
-        cfg, n_cells=9, max_depth_of_microbial_activity=0.25
+        core_cfg.layers, n_cells=9, max_depth_of_microbial_activity=0.25
     )
 
     # Run the set_filled_canopy method to populate the filled layers and update cached
@@ -401,153 +397,3 @@ def test_LayerStructure_set_filled_canopy():
     exp_flux_layers = np.repeat(False, layer_structure.n_layers)
     exp_flux_layers[np.concatenate([np.arange(1, 9), [12]])] = True
     assert np.allclose(layer_structure.index_flux_layers, exp_flux_layers)
-
-
-@pytest.mark.parametrize(
-    "config,output,raises,expected_log_entries",
-    [
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 minutes"
-            run_length = "30 years"
-            """,
-            {
-                "start_time": np.datetime64("2020-01-01"),
-                "update_interval": np.timedelta64(10, "m"),
-                "update_interval_as_quantity": Quantity("10 minutes"),
-                "end_time": np.datetime64("2049-12-31T12:00"),
-            },
-            does_not_raise(),
-            (
-                (
-                    INFO,
-                    "Timing details built from model configuration: "
-                    "start - 2020-01-01, end - 2049-12-31T12:00:00, "
-                    "run length - 946728000 seconds",
-                ),
-            ),
-            id="timing correct",
-        ),
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 metres"
-            run_length = "30 years"
-            """,
-            None,
-            pytest.raises(ConfigurationError),
-            ((ERROR, "Invalid units for core.timing.update_interval: "),),
-            id="bad update dimension",
-        ),
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 epochs"
-            run_length = "30 years"
-            """,
-            None,
-            pytest.raises(ConfigurationError),
-            ((ERROR, "Invalid units for core.timing.update_interval: "),),
-            id="unknown update unit",
-        ),
-        pytest.param(
-            """[core.timing]
-            start_date = "2020-01-01"
-            update_interval = "10 minutes"
-            run_length = "1 minute"
-            """,
-            {},  # Fails so no output to check
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Model run length (1 minute) expires before first "
-                    "update (10 minutes)",
-                ),
-            ),
-            id="run length too short",
-        ),
-    ],
-)
-def test_ModelTiming(caplog, config, output, raises, expected_log_entries):
-    """Test that function to extract main loop timing works as intended."""
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.core_components import ModelTiming
-
-    config_obj = Config(cfg_strings=config)
-    caplog.clear()
-
-    with raises:
-        model_timing = ModelTiming(config=config_obj)
-
-        assert model_timing.end_time == output["end_time"]
-        assert model_timing.update_interval == output["update_interval"]
-        assert model_timing.start_time == output["start_time"]
-        assert (
-            model_timing.update_interval_quantity
-            == output["update_interval_as_quantity"]
-        )
-
-    log_check(caplog=caplog, expected_log=expected_log_entries)
-
-
-@pytest.mark.parametrize(
-    argnames="value, raises",
-    argvalues=[
-        (1, does_not_raise()),
-        (1.23, does_not_raise()),
-        (np.inf, pytest.raises(ConfigurationError)),
-        (np.nan, pytest.raises(ConfigurationError)),
-        (-9, pytest.raises(ConfigurationError)),
-        (-9.5, pytest.raises(ConfigurationError)),
-        ("h", pytest.raises(ConfigurationError)),
-        ([1], pytest.raises(ConfigurationError)),
-    ],
-)
-def test__validate_positive_finite_numeric(value, raises):
-    """Testing private validation function."""
-    from virtual_ecosystem.core.core_components import _validate_positive_finite_numeric
-
-    with raises:
-        _validate_positive_finite_numeric(value, "label")
-
-
-@pytest.mark.parametrize(
-    argnames="value, raises",
-    argvalues=[
-        (10, does_not_raise()),
-        (1.23, pytest.raises(ConfigurationError)),
-        (np.inf, pytest.raises(ConfigurationError)),
-        (np.nan, pytest.raises(ConfigurationError)),
-        (-9, pytest.raises(ConfigurationError)),
-        (-9.5, pytest.raises(ConfigurationError)),
-        ("h", pytest.raises(ConfigurationError)),
-        ([1], pytest.raises(ConfigurationError)),
-    ],
-)
-def test__validate_positive_integer(value, raises):
-    """Testing private validation function."""
-    from virtual_ecosystem.core.core_components import _validate_positive_integer
-
-    with raises:
-        _validate_positive_integer(value)
-
-
-@pytest.mark.parametrize(
-    argnames="value, raises",
-    argvalues=[
-        (1, pytest.raises(ConfigurationError)),
-        ("h", pytest.raises(ConfigurationError)),
-        ([1], pytest.raises(ConfigurationError)),
-        ([-1], does_not_raise()),
-        ([-1, -0.5], pytest.raises(ConfigurationError)),
-        ([-0.5, -1.5], does_not_raise()),
-    ],
-)
-def test__validate_soil_layers(value, raises):
-    """Testing private validation function."""
-    from virtual_ecosystem.core.core_components import _validate_soil_layers
-
-    with raises:
-        _validate_soil_layers(value)

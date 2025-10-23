@@ -28,13 +28,14 @@ from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.model_config import CoreConstants, CoreConfiguration
-
+from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.models.hydrology.model_config import (
+    HydrologyConfiguration,
+)
 from virtual_ecosystem.models.litter.env_factors import (
     average_temperature_over_microbially_active_layers,
     average_water_potential_over_microbially_active_layers,
@@ -56,10 +57,6 @@ from virtual_ecosystem.models.soil.pools import (
     calculate_maintenance_biomass_synthesis,
 )
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
-from virtual_ecosystem.models.hydrology.model_config import (
-    HydrologyConfiguration,
-    HydrologyConstants,
-)
 
 
 class IntegrationError(Exception):
@@ -285,9 +282,6 @@ class SoilModel(
             enzyme_classes=enzyme_classes,
             core_constants=core_configuration.constants,
         )
-
-        # Load hydrology constants
-        hydro_constants = load_constants(config, "hydrology", "HydroConsts")
 
         return cls(
             data=data,

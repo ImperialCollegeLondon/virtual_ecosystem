@@ -22,8 +22,9 @@ from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
-from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.config import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import GridConfiguration
 
 GRID_REGISTRY: dict[str, Callable] = {}
 """A registry for different grid geometries.
@@ -297,15 +298,23 @@ class Grid:
         )
 
     @classmethod
-    def from_config(cls, config: Config) -> Grid:
+    def from_config(cls, config: GridConfiguration) -> Grid:
         """Factory function to generate a Grid instance from a configuration dict.
 
         Args:
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # The GRID_REGISTRY is dynamic, so can only enforce the grid type checking at
+        # the point of Grid instance creation.
+        if config.grid_type not in GRID_REGISTRY:
+            LOGGER.error(f"The grid_type {config.grid_type} is not defined.")
+            to_raise = ConfigurationError("Grid creation from configuration failed.")
+            LOGGER.critical(to_raise)
+            raise to_raise
+
         try:
-            grid = Grid(**config["core"]["grid"])
+            grid = Grid(**config.model_dump())
         except Exception as err:
             LOGGER.error(err)
             to_raise = ConfigurationError("Grid creation from configuration failed.")

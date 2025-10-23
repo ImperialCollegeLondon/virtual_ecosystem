@@ -188,9 +188,14 @@ def test_generate_hydrology_model(
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     config = Config(cfg_strings=cfg_string)
-    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+
+    # TODO - This test is currently mixing the old HydrologyConsts validation with
+    # what will be replaced by configuration.hydrology.constants. So for now, fake
+    # it with a hardcoded config and let the errors run through to the old system
+
+    config_data = ConfigurationLoader(cfg_strings="[core]\n[hydrology]")
     configuration = generate_configuration(config_data.data)
-    core_components = CoreComponents(config)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     with (
@@ -321,7 +326,15 @@ def test_setup(
 
     # Build the config object and core components
     fixture_config["core"]["timing"]["update_interval"] = update_interval
-    core_components = CoreComponents(fixture_config)
+
+    # Override the new update interval into the configuration object - it is frozen so
+    # need to bypass that mechanism. Also need to override the computed field
+    fixture_configuration.core.timing.__dict__["update_interval"] = update_interval
+    fixture_configuration.core.timing.__dict__["update_interval_seconds"] = (
+        update_interval.to("seconds").magnitude
+    )
+
+    core_components = CoreComponents(fixture_configuration.core)
     lyr_strct = core_components.layer_structure
 
     with (

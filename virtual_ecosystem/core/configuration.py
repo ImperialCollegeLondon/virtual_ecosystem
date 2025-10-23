@@ -18,6 +18,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, TypeAlias, TypeVar
 
+import tomli_w
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
@@ -42,7 +43,9 @@ class Configuration(BaseModel):
     configuration settings.
     """
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_config = ConfigDict(
+        use_attribute_docstrings=True, extra="forbid", frozen=True
+    )
 
 
 class CompiledConfiguration(Configuration):
@@ -82,6 +85,16 @@ class CompiledConfiguration(Configuration):
             return getattr(self, name)
         except AttributeError:
             raise AttributeError(f"Model configuration for {name} not loaded")
+
+    def export_toml(self, path: Path):
+        """TOML export method for a compiled configuration.
+
+        Args:
+            path: The path to be used to export the configuration data.
+        """
+
+        with open(path, "wb") as destination:
+            tomli_w.dump(self.model_dump(mode="json"), destination)
 
 
 class ModelConfigurationRoot(Configuration):

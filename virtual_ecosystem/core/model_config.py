@@ -4,11 +4,22 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 """  # noqa: D205, D415
 
+from __future__ import annotations
+
 from datetime import date
+from functools import cached_property
 from typing import ClassVar
 
 import numpy as np
-from pydantic import Field
+from pint import DimensionalityError, Quantity, UndefinedUnitError
+from pydantic import (
+    Field,
+    NegativeFloat,
+    PositiveFloat,
+    PositiveInt,
+    field_validator,
+    model_validator,
+)
 from scipy import constants
 
 from virtual_ecosystem.core.configuration import Configuration
@@ -131,35 +142,77 @@ class CoreConstants(Configuration):
     """
 
 
-class GridConfig(Configuration):
-    """Grid configuration."""
+class GridConfiguration(Configuration):
+    """Grid configuration.
+
+    This configuration model sets the size and shape of grid cells within the simulation
+    and then the number of cells in the X and Y directions and their locations in space.
+    """
 
     grid_type: str = "square"
-    ("The grid cell type",)
-    cell_area: float = Field(gt=0, default=8100.0)
-    ("The area of each grid cell (m^2)",)
-    cell_nx: int = Field(gt=0, default=9)
-    "Number of grid cells in x direction"
-    cell_ny: int = Field(gt=0, default=9)
-    "Number of grid cells in y direction"
+    """The grid cell type. The value must be one of the options supported by the 
+    :data:`~virtual_ecosystem.core.grid.GRID_REGISTRY`."""
+    cell_area: PositiveFloat = Field(default=8100.0)
+    """The area of each grid cell (m^2)"""
+    cell_nx: PositiveInt = Field(default=9)
+    """Number of grid cells in x direction"""
+    cell_ny: PositiveInt = Field(default=9)
+    """Number of grid cells in y direction"""
     xoff: float = -45.0
-    "The x offset of the grid origin"
+    """The x offset of the grid origin"""
     yoff: float = -45.0
-    "The x offset of the grid origin"
+    """The x offset of the grid origin"""
 
 
-class TimingConfig(Configuration):
-    """Timing configuration."""
+class TimingConfiguration(Configuration):
+    """Configuration of the model timing.
+
+    This configuration section sets the model start data, update length and run time.
+    The update length and run time are provided as a text string that will be
+    automatically parsed to give a total time in seconds.
+    """
 
     start_date: date = date(2013, 1, 1)
-    "Simulation start date"
+    """The simulation start date."""
     update_interval: str = "1 month"
-    "Interval at which all models are updated"
+    """The interval at which all models are updated."""
     run_length: str = "2 years"
-    "How long the simulation should be run for"
+    """The total run length of the simulation."""
+
+    @cached_property
+    def update_interval_seconds(self) -> float:
+        """Interval update length in seconds."""
+        return Quantity(self.update_interval).to("seconds").magnitude
+
+    @cached_property
+    def run_length_seconds(self) -> float:
+        """Run length in seconds."""
+        return Quantity(self.run_length).to("seconds").magnitude
+
+    @field_validator("update_interval", "run_length")
+    def _validate_pint_time_quantities(cls, value) -> str:
+        """Validates time strings can be parsed as quantities."""
+        try:
+            _ = Quantity(value).to("seconds")
+        except (DimensionalityError, UndefinedUnitError):
+            raise ValueError(f"Cannot parse value as time quantity: {value}")
+
+        return value
+
+    @model_validator(mode="after")
+    def _run_length_too_short(self) -> TimingConfiguration:
+        """Model validation that there is enough time for at least one update."""
+
+        if self.run_length_seconds < self.update_interval_seconds:
+            raise ValueError(
+                f"Model run length ({self.run_length}) expires before "
+                f"first update ({self.update_interval})"
+            )
+
+        return self
 
 
-class DataOutput(Configuration):
+class DataOutputConfiguration(Configuration):
     """Output settings for the Virtual Ecosystem model state."""
 
     save_initial_state: bool = False
@@ -184,21 +237,61 @@ class DataOutput(Configuration):
     """Name for TOML file containing merged configs"""
 
 
-class Layers(Configuration):
+class LayersConfiguration(Configuration):
     """Settings for the simulation vertical structure."""
 
-    soil_layers: list[float] = Field(min_length=1, default=[-0.25, -1.0])
-    """Depth and number of soil layers to simulate
-    TODO: unique items only
+    soil_layers: list[NegativeFloat] = Field(min_length=1, default=[-0.25, -1.0])
+    """A list of negative float values that provides the depth in metres of the soil
+    horizons to be used in the simulation, hence also setting the number of soil layers
+    and the horizon depth for each layer relative to the surface. The values must be
+    unique and strictly decreasing.
     """
-    canopy_layers: int = Field(gt=0, default=10)
-    "Maximum number of canopy layers to simulate"
-    above_canopy_height_offset: float = Field(gt=0, default=2.0)
-    "The height offset relative to the canopy top for climatic reference variables."
-    surface_layer_height: float = Field(gt=0, default=0.1)
-    ("The height used to calculate ground surface microclimate conditions.",)
-    subcanopy_layer_height: float = Field(gt=0, default=1.5)
-    "The height used to calculate subcanopy microclimate conditions."
+
+    canopy_layers: PositiveInt = 10
+    """The maximum number of canopy layers to simulate. This is used to control the 
+    number of layers with the ``canopy`` role. Not all of these layers necessarily
+    contain canopy during a simulation as the canopy structure within these layers is
+    dynamic."""
+
+    above_canopy_height_offset: PositiveFloat = Field(default=2.0, allow_inf_nan=False)
+    """A height offset relative to the canopy top that is used as the measurement height
+    of reference climate data. It sets the the height above the canopy top of the first
+    layer role ``above`` (metres)."""
+
+    subcanopy_layer_height: PositiveFloat = Field(default=1.5, allow_inf_nan=False)
+    """The height above ground level of the ground surface atmospheric layer, used to
+    calculate subcanopy microclimate conditions (metres)."""
+
+    surface_layer_height: PositiveFloat = Field(default=0.1, allow_inf_nan=False)
+    """The height above ground level of the ground surface atmospheric layer
+    (metres)."""
+
+    @field_validator("soil_layers")
+    def _soil_depths_unique_decreasing(cls, values) -> list[float]:
+        """Check the soil depths are unique and decreasing.
+
+        This runs post validation, so the inputs are a list of negative floats.
+        """
+
+        if len(values) != len(set(values)):
+            raise ValueError("Repeated values in soil layer depths.")
+
+        strictly_decreasing = [-m for m in sorted([abs(n) for n in values])]
+        if not values == strictly_decreasing:
+            raise ValueError("Soil layer depths must be strictly decreasing")
+
+        return values
+
+    @model_validator(mode="after")
+    def _surface_below_subcanopy(cls) -> LayersConfiguration:
+        """Check the surface height is below the subcanopy."""
+
+        if cls.surface_layer_height >= cls.subcanopy_layer_height:
+            raise ValueError(
+                f"Surface layer height ({cls.surface_layer_height}) must be "
+                f"below subcanopy layer height ({cls.subcanopy_layer_height})"
+            )
+        return cls
 
 
 class DataSource(Configuration):
@@ -218,11 +311,14 @@ class CoreConfiguration(Configuration):
     """The core model configuration."""
 
     constants: CoreConstants = CoreConstants()
-    "Constants for the core module"
-    grid: GridConfig = GridConfig()
-    "Details of the grid to configure"
-    data_output_options: DataOutput = DataOutput()
-    "Options for output the Virtual Ecosystem model state"
-    layers: Layers = Layers()
-    "Layers to create vertical structure"
+    """Constants for the core module"""
+    grid: GridConfiguration = GridConfiguration()
+    """Configuration of the spatial grid"""
+    data_output_options: DataOutputConfiguration = DataOutputConfiguration()
+    """Configuration of the output of the Virtual Ecosystem model state"""
+    layers: LayersConfiguration = LayersConfiguration()
+    """Configuration of the layers in the vertical structure"""
+    timing: TimingConfiguration = TimingConfiguration()
+    """Configuration of the model run and step lengths"""
     data: Variables = Variables()
+    """Configuration of the input variables and data sources."""
