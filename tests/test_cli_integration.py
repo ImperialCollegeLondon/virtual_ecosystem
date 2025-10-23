@@ -19,7 +19,7 @@ def test_ve_run_install_example(capsys):
 
 
 @pytest.mark.slow
-def test_ve_run(capsys, mocker):
+def test_ve_run(capsys):
     """Test that the CLI can successfully run with example data.
 
     Note that this does not currently test the various CLI options independently. We
@@ -40,6 +40,7 @@ def test_ve_run(capsys, mocker):
             example_dir = Path(tempdir) / "ve_example"
             configs = example_dir / "config"
             outdir = example_dir / "out"
+            outdir.mkdir(exist_ok=True)
             logfile = outdir / "ve_example.log"
             ve_run_cli(
                 args_list=[

@@ -11,7 +11,7 @@ import pytest
 
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
-from .conftest import log_check
+from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: litter"),
@@ -114,7 +114,7 @@ def test_initialise_models(
     config = Config(cfg_strings=cfg_strings)
     config_data = ConfigurationLoader(cfg_strings=cfg_strings)
     configuration = generate_configuration(config_data.data)
-    core_components = CoreComponents(config)
+    core_components = CoreComponents(configuration.core)
     caplog.clear()
 
     with raises:
@@ -156,7 +156,8 @@ def test_initialise_models(
             (
                 (
                     ERROR,
-                    "Invalid units for core.timing.update_interval: 0.5 martian days",
+                    "core.timing.update_interval = 0.5 martian days: Value error, "
+                    "Cannot parse value as time quantity: 0.5 martian days",
                 ),
             ),
             id="bad_config_data_one",
@@ -178,7 +179,7 @@ def test_ve_run_model_issues(caplog, config_content, expected_log_entries, mocke
     with pytest.raises(ConfigurationError):
         ve_run(cfg_strings=config_content)
 
-    log_check(caplog, expected_log_entries, subset=slice(-1, None, None))
+    record_found_in_log(caplog, expected_log_entries)
 
 
 @pytest.mark.parametrize(

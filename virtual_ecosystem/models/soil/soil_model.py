@@ -287,7 +287,6 @@ class SoilModel(
             core_components=core_components,
             static=static,
             model_constants=model_constants,
-            core_constants=core_constants,
             microbial_groups=microbial_groups,
             enzyme_classes=enzyme_classes,
             soil_moisture_saturation=hydro_constants.soil_moisture_saturation,
@@ -297,7 +296,6 @@ class SoilModel(
     def _setup(
         self,
         model_constants: SoilConsts,
-        core_constants: CoreConsts,
         microbial_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
         soil_moisture_saturation: float,
@@ -307,7 +305,6 @@ class SoilModel(
         """Function to setup up the soil model."""
 
         self.model_constants = model_constants
-        self.core_constants = core_constants
 
         # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups

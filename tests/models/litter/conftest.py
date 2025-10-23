@@ -25,7 +25,7 @@ def fixture_litter_model(dummy_litter_data):
     config_data = ConfigurationLoader(cfg_strings=cfg_strings)
     configuration = generate_configuration(config_data.data)
 
-    core_components = CoreComponents(config)
+    core_components = CoreComponents(configuration.core)
 
     with (
         patch_run_update(LitterModel),
