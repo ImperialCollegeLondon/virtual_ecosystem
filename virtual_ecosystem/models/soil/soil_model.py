@@ -26,6 +26,7 @@ from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
@@ -47,6 +48,7 @@ from virtual_ecosystem.models.soil.microbial_groups import (
     make_full_set_of_enzymes,
     make_full_set_of_microbial_groups,
 )
+from virtual_ecosystem.models.soil.model_config import SoilConfiguration
 from virtual_ecosystem.models.soil.pools import (
     SoilPools,
     calculate_maintenance_biomass_synthesis,
@@ -218,7 +220,12 @@ class SoilModel(
         handled in :fun:`~virtual_ecosystem.soil.soil_model._setup`.
         """
 
-        super().__init__(data, core_components, static, **kwargs)
+        super().__init__(
+            data=data,
+            core_components=core_components,
+            static=static,
+            **kwargs,
+        )
 
         self.model_constants: SoilConsts
         """Set of constants for the soil model."""
@@ -232,7 +239,11 @@ class SoilModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
@@ -242,14 +253,21 @@ class SoilModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: SoilConfiguration = configuration.get_subconfiguration(
+            "soil", SoilConfiguration
+        )
+
         # Load in the relevant constants
         model_constants = load_constants(config, "soil", "SoilConsts")
         core_constants = load_constants(config, "core", "CoreConsts")
-        static = config["soil"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the soil model successfully extracted."
@@ -265,6 +283,7 @@ class SoilModel(
 
         return cls(
             data=data,
+            configuration=configuration,
             core_components=core_components,
             static=static,
             model_constants=model_constants,

@@ -94,7 +94,9 @@ def test_soil_model_initialization(
     )
 
 
-def test_soil_model_initialization_no_data(caplog, fixture_core_components):
+def test_soil_model_initialization_no_data(
+    caplog, fixture_soil_configuration, fixture_core_components
+):
     """Test `SoilModel` initialization with no data."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
@@ -272,6 +274,10 @@ def test_generate_soil_model(
     """Test that the function to initialise the soil model behaves as expected."""
 
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.registry import register_module
     from virtual_ecosystem.models.soil.soil_model import SoilModel
@@ -280,21 +286,26 @@ def test_generate_soil_model(
     register_module("virtual_ecosystem.models.soil")
 
     # Build the config object and core components
-    config = Config(
-        cfg_strings=[
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
-            "[hydrology]",
-            microbial_groups_cfg,
-            cfg_string,
-        ]
-    )
+    cfg_strings = [
+        "[core]\n[core.timing]\nupdate_interval = '12 hours'",
+        "[hydrology]",
+        microbial_groups_cfg,
+        cfg_string,
+    ]
+
+    config = Config(cfg_strings=cfg_strings)
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    configuration = generate_configuration(config_data.data)
+
     core_components = CoreComponents(config)
+
     caplog.clear()
 
     # Check whether model is initialised (or not) as expected
     with raises:
         model = SoilModel.from_config(
             data=dummy_carbon_data,
+            configuration=configuration,
             core_components=core_components,
             config=config,
         )
@@ -532,6 +543,7 @@ def test_integrate_with_nans(caplog, fixture_soil_model):
 def test_order_independance(
     dummy_carbon_data,
     fixture_soil_model,
+    fixture_soil_configuration,
     fixture_soil_config,
     fixture_soil_core_components,
 ):
@@ -602,6 +614,7 @@ def test_order_independance(
     # Use this new data to make a new soil model object
     new_soil_model = SoilModel.from_config(
         data=new_data,
+        configuration=fixture_soil_configuration,
         core_components=fixture_soil_core_components,
         config=fixture_soil_config,
     )

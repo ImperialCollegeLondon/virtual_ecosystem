@@ -187,12 +187,19 @@ def test_generate_abiotic_model(
     """Test that the function to initialise the abiotic model behaves as expected."""
 
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
     from virtual_ecosystem.models.abiotic.constants import AbioticConsts
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
+
     core_components = CoreComponents(config)
     caplog.clear()
 
@@ -209,6 +216,7 @@ def test_generate_abiotic_model(
         with raises:
             AbioticModel.from_config(
                 data=dummy_climate_data_varying_canopy,
+                configuration=configuration,
                 core_components=core_components,
                 config=config,
             )
@@ -254,11 +262,17 @@ def test_generate_abiotic_model_bounds_error(
     """Test that the initialisation of the abiotic model from config."""
 
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
     config = Config(cfg_strings=cfg_string)
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
+    configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(config)
     caplog.clear()
 
@@ -271,6 +285,7 @@ def test_generate_abiotic_model_bounds_error(
         with raises:
             _ = AbioticModel.from_config(
                 data=dummy_climate_data_varying_canopy,
+                configuration=configuration,
                 core_components=core_components,
                 config=config,
             )

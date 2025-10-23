@@ -108,6 +108,7 @@ from typing import Any
 import pint
 
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
@@ -449,7 +450,11 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 

@@ -32,6 +32,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -50,6 +51,7 @@ from virtual_ecosystem.models.litter.inputs import (
     calculate_input_chemistries,
 )
 from virtual_ecosystem.models.litter.losses import calculate_litter_losses
+from virtual_ecosystem.models.litter.model_config import LitterConfiguration
 
 
 class LitterModel(
@@ -188,7 +190,11 @@ class LitterModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> LitterModel:
         """Factory function to initialise the litter model from configuration.
 
@@ -198,13 +204,20 @@ class LitterModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: LitterConfiguration = configuration.get_subconfiguration(
+            "litter", LitterConfiguration
+        )
+
         # Load in the relevant constants
         model_constants = load_constants(config, "litter", "LitterConsts")
-        static = config["litter"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the litter model successfully "

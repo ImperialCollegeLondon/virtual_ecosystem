@@ -21,6 +21,7 @@ from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -37,6 +38,7 @@ from virtual_ecosystem.models.plants.functional_types import (
     ExtraTraitsPFT,
     get_flora_from_config,
 )
+from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 from virtual_ecosystem.models.plants.stoichiometry import (
     StemStoichiometry,
 )
@@ -310,7 +312,11 @@ class PlantsModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> PlantsModel:
         """Factory function to initialise a plants model from configuration.
 
@@ -319,13 +325,20 @@ class PlantsModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: PlantsConfiguration = configuration.get_subconfiguration(
+            "plants", PlantsConfiguration
+        )
+
         # Load in the relevant constants
         model_constants = load_constants(config, "plants", "PlantsConsts")
-        static = config["plants"]["static"]
+        static = model_configuration.static
 
         # Generate the flora
         flora, extra_traits = get_flora_from_config(config=config)

@@ -12,6 +12,7 @@ from pyrealm.constants import CoreConst as PyrealmConst
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -21,6 +22,7 @@ from virtual_ecosystem.models.abiotic.energy_balance import (
     initialise_canopy_and_soil_fluxes,
 )
 from virtual_ecosystem.models.abiotic.microclimate import run_microclimate
+from virtual_ecosystem.models.abiotic.model_config import AbioticConfiguration
 from virtual_ecosystem.models.abiotic_simple.constants import (
     AbioticSimpleBounds,
     AbioticSimpleConsts,
@@ -122,7 +124,11 @@ class AbioticModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> AbioticModel:
         """Factory function to initialise the abiotic model from configuration.
 
@@ -132,13 +138,20 @@ class AbioticModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: AbioticConfiguration = configuration.get_subconfiguration(
+            "abiotic", AbioticConfiguration
+        )
+
         # Load in the relevant constants
         model_constants = load_constants(config, "abiotic", "AbioticConsts")
-        static = config["abiotic"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
