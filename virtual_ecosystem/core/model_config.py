@@ -287,10 +287,10 @@ class LayersConfiguration(Configuration):
     def _surface_below_subcanopy(cls) -> LayersConfiguration:
         """Check the surface height is below the subcanopy."""
 
-        if cls.surface_layer_height > cls.subcanopy_layer_height:
+        if cls.surface_layer_height >= cls.subcanopy_layer_height:
             raise ValueError(
-                f"Surface layer height ({cls.surface_layer_height}) cannot be "
-                f"above subcanopy layer height ({cls.subcanopy_layer_height})"
+                f"Surface layer height ({cls.surface_layer_height}) must be "
+                f"below subcanopy layer height ({cls.subcanopy_layer_height})"
             )
         return cls
 
