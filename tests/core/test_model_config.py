@@ -46,10 +46,16 @@ def test_LayersConfiguration_heights(value, raises):
     """Testing LayersConfiguration validation."""
     from virtual_ecosystem.core.model_config import LayersConfiguration
 
+    # Subcanopy must be above surface
+    try:
+        higher_value = value + 1
+    except Exception:
+        higher_value = value
+
     with raises:
         LayersConfiguration(
             above_canopy_height_offset=value,
-            subcanopy_layer_height=value,
+            subcanopy_layer_height=higher_value,
             surface_layer_height=value,
         )
 
