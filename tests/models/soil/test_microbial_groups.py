@@ -577,24 +577,6 @@ def test_build_microbial_group_errors(caplog, enzyme_classes, group_config, exp_
     log_check(caplog, exp_log)
 
 
-def test_find_microbial_stoichiometries(fixture_config):
-    """Check that extraction of stoichiometries from microbial groups works."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        find_microbial_stoichiometries,
-    )
-
-    expected_ratios = {
-        "bacteria": {"nitrogen": 5.2, "phosphorus": 16.0},
-        "saprotrophic_fungi": {"nitrogen": 6.5, "phosphorus": 40.0},
-        "arbuscular_mycorrhiza": {"nitrogen": 18.0, "phosphorus": 120.0},
-        "ectomycorrhiza": {"nitrogen": 18.0, "phosphorus": 120.0},
-    }
-
-    actual_ratios = find_microbial_stoichiometries(config=fixture_config)
-
-    assert expected_ratios == actual_ratios
-
-
 @pytest.mark.parametrize(
     argnames=["group", "expected_ratio"],
     argvalues=[

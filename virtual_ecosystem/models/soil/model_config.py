@@ -433,7 +433,9 @@ class SoilConfiguration(ModelConfigurationRoot):
     """Required named microbial groups."""
 
     @field_validator("enzyme_class_definition")
-    def _enforce_required_enzymes(cls, enzymes: list[SoilEnzymeClass]):
+    def _enforce_required_enzymes(
+        cls, enzymes: list[SoilEnzymeClass]
+    ) -> list[SoilEnzymeClass]:
         """Validates the provided sets of enzyme classes."""
         provided_enzymes = {(e.source, e.substrate) for e in enzymes}
 
@@ -444,10 +446,12 @@ class SoilConfiguration(ModelConfigurationRoot):
                 f"({cls._required_enzymes!r})"
             )
 
+        return enzymes
+
     @field_validator("microbial_group_definition")
     def _enforce_required_microbial_groups(
         cls, microbial_groups: list[SoilMicrobialGroup]
-    ):
+    ) -> list[SoilMicrobialGroup]:
         """Validates the provided sets of enzyme classes."""
         provided_groups = {g.name for g in microbial_groups}
 
@@ -456,3 +460,5 @@ class SoilConfiguration(ModelConfigurationRoot):
                 f"The microbial group definitions ({provided_groups!r}) does not match "
                 f"the required set ({cls._required_microbial_groups!r})"
             )
+
+        return microbial_groups

@@ -44,7 +44,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     ReproductiveEnvironment,
 )
-from virtual_ecosystem.models.animal.cnp import CNP
+from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometries
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -66,9 +66,6 @@ from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
     madingley_individuals_density,
     prey_group_selection,
-)
-from virtual_ecosystem.models.soil.microbial_groups import (
-    find_microbial_stoichiometries,
 )
 
 
@@ -389,7 +386,7 @@ class AnimalModel(
         )
 
         # Find microbial stoichiometries based on the config
-        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=config)
+        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "
