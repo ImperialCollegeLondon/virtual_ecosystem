@@ -33,6 +33,8 @@ from virtual_ecosystem.core.core_components import CoreComponents, LayerStructur
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants, CoreConfiguration
+
 from virtual_ecosystem.models.litter.env_factors import (
     average_temperature_over_microbially_active_layers,
     average_water_potential_over_microbially_active_layers,
@@ -48,12 +50,16 @@ from virtual_ecosystem.models.soil.microbial_groups import (
     make_full_set_of_enzymes,
     make_full_set_of_microbial_groups,
 )
-from virtual_ecosystem.models.soil.model_config import SoilConfiguration
+from virtual_ecosystem.models.soil.model_config import SoilConfiguration, SoilConstants
 from virtual_ecosystem.models.soil.pools import (
     SoilPools,
     calculate_maintenance_biomass_synthesis,
 )
 from virtual_ecosystem.models.soil.uptake import calculate_maximum_uptake_rates
+from virtual_ecosystem.models.hydrology.model_config import (
+    HydrologyConfiguration,
+    HydrologyConstants,
+)
 
 
 class IntegrationError(Exception):
@@ -227,7 +233,7 @@ class SoilModel(
             **kwargs,
         )
 
-        self.model_constants: SoilConsts
+        self.model_constants: SoilConstants
         """Set of constants for the soil model."""
 
         self.refreshed_variables = ["new_fungal_fruiting_body_production"]
@@ -258,24 +264,26 @@ class SoilModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Extract the validated model configuration from the complete compiled
-        # configuration. This syntax is odd but required to support static typing
+        # Extract the required subconfigurations from the compiled configuration.
         model_configuration: SoilConfiguration = configuration.get_subconfiguration(
             "soil", SoilConfiguration
         )
-
-        # Load in the relevant constants
-        model_constants = load_constants(config, "soil", "SoilConsts")
-        core_constants = load_constants(config, "core", "CoreConsts")
-        static = model_configuration.static
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+        hydrology_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
 
         LOGGER.info(
             "Information required to initialise the soil model successfully extracted."
         )
 
-        enzyme_classes = make_full_set_of_enzymes(config)
+        enzyme_classes = make_full_set_of_enzymes(model_configuration)
         microbial_groups = make_full_set_of_microbial_groups(
-            config, enzyme_classes=enzyme_classes, core_constants=core_constants
+            config,
+            enzyme_classes=enzyme_classes,
+            core_constants=core_configuration.constants,
         )
 
         # Load hydrology constants
@@ -285,19 +293,17 @@ class SoilModel(
             data=data,
             configuration=configuration,
             core_components=core_components,
-            static=static,
-            model_constants=model_constants,
-            core_constants=core_constants,
+            static=model_configuration.static,
+            model_constants=model_configuration.constants,
             microbial_groups=microbial_groups,
             enzyme_classes=enzyme_classes,
-            soil_moisture_saturation=hydro_constants.soil_moisture_saturation,
-            soil_moisture_residual=hydro_constants.soil_moisture_residual,
+            soil_moisture_saturation=hydrology_configuration.constants.soil_moisture_saturation,
+            soil_moisture_residual=hydrology_configuration.constants.soil_moisture_residual,
         )
 
     def _setup(
         self,
-        model_constants: SoilConsts,
-        core_constants: CoreConsts,
+        model_constants: SoilConstants,
         microbial_groups: dict[str, MicrobialGroupConstants],
         enzyme_classes: dict[str, EnzymeConstants],
         soil_moisture_saturation: float,
@@ -307,7 +313,6 @@ class SoilModel(
         """Function to setup up the soil model."""
 
         self.model_constants = model_constants
-        self.core_constants = core_constants
 
         # Store microbial functional groups and enzyme classes needed by the model
         self.microbial_groups = microbial_groups
