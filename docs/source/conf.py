@@ -194,6 +194,11 @@ nitpick_ignore = [
     ("py:class", "NegativeFloat"),
     ("py:class", "date"),
     ("py:class", "_PydanticGeneralMetadata"),
+    # Sphinx seems to insist that pydantic model types are classes, when they can be
+    # global Literals
+    ("py:class", "SUBSTRATES"),
+    ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
+    ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
 ]
 
 intersphinx_mapping = {
