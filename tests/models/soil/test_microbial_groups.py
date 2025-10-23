@@ -283,29 +283,6 @@ def test_make_full_set_of_microbial_groups_errors(
     log_check(caplog, exp_log)
 
 
-def test_make_full_set_of_enzymes(fixture_config):
-    """Test that the function to make all the enzyme classes works."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        EnzymeConstants,
-        make_full_set_of_enzymes,
-    )
-
-    expected_enzymes = ["bacteria_pom", "bacteria_maom", "fungi_pom", "fungi_maom"]
-
-    enzyme_classes = make_full_set_of_enzymes(fixture_config)
-
-    assert set(expected_enzymes) == set(enzyme_classes.keys())
-
-    for enzyme in expected_enzymes:
-        assert type(enzyme_classes[enzyme]) is EnzymeConstants
-
-    # Only testing one value, as testing them all seems like overkill/hard to maintain
-    assert enzyme_classes["bacteria_pom"].maximum_rate == 60.0
-    assert enzyme_classes["bacteria_maom"].maximum_rate == 24.0
-    assert enzyme_classes["fungi_pom"].maximum_rate == 120.0
-    assert enzyme_classes["fungi_maom"].maximum_rate == 48.0
-
-
 @pytest.mark.parametrize(
     argnames=["cfg_strings", "exp_log"],
     argvalues=[

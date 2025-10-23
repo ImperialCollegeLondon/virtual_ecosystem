@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
-from typing import ClassVar, Literal
+from typing import ClassVar, Literal, get_args
 
 import numpy as np
 from pydantic import Field, field_validator, model_validator
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
+
+HIGHER_TAXONOMIC_GROUPS = Literal["fungi", "bacteria"]
+"""Permitted higher taxonomic group names in the soil model."""
+
+REQUIRED_MICROBIAL_GROUPS = Literal[
+    "saprotrophic_fungi",
+    "ectomycorrhiza",
+    "arbuscular_mycorrhiza",
+    "bacteria",
+]
+"""Required taxonomic groups in the soil model"""
+
+SUBSTRATES = Literal["pom", "maom"]
+"""Permitted substrate types in the soil model"""
 
 
 class SoilConstants(Configuration):
@@ -299,9 +313,9 @@ class SoilConstants(Configuration):
 class SoilEnzymeClass(Configuration):
     """Soil enzyme constants."""
 
-    source: str = Field(default="bacteria")
-    """The microbial group which produces the enzyme."""
-    substrate: str = Field(default="pom")
+    source: HIGHER_TAXONOMIC_GROUPS = Field(default="bacteria")
+    """The higher microbial group which produces the enzyme."""
+    substrate: SUBSTRATES = Field(default="pom")
     """The substrate which the enzyme acts upon."""
     maximum_rate: float = Field(default=60.0)
     """The maximum rate of the enzyme at the reference temperature [day^-1]."""
@@ -326,9 +340,9 @@ class SoilEnzymeClass(Configuration):
 class SoilMicrobialGroup(Configuration):
     """Microbial functional group definitions."""
 
-    name: str = Field(default="bacteria")
+    name: REQUIRED_MICROBIAL_GROUPS = Field(default="bacteria")
     """The name of the microbial group functional type."""
-    taxonomic_group: Literal["fungi", "bacteria"] = Field(default="bacteria")
+    taxonomic_group: HIGHER_TAXONOMIC_GROUPS = Field(default="bacteria")
     """The high level taxonomic group that the microbial group belongs to."""
     max_uptake_rate_labile_C: float = Field(default=0.04)
     """Maximum rate at the reference temperature of labile carbon uptake [day^-1]."""
@@ -416,7 +430,7 @@ class SoilConfiguration(ModelConfigurationRoot):
     )
     """Definition of microbial groups for soil model."""
 
-    _required_enzymes: ClassVar[set[tuple[str, str]]] = {
+    _required_enzymes: ClassVar[set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]]] = {
         ("fungi", "pom"),
         ("fungi", "maom"),
         ("bacteria", "pom"),
@@ -424,11 +438,8 @@ class SoilConfiguration(ModelConfigurationRoot):
     }
     """Required enzyme classes, provided as source and substrate pairs."""
 
-    _required_microbial_groups: ClassVar[set[str]] = {
-        "saprotrophic_fungi",
-        "ectomycorrhiza",
-        "arbuscular_mycorrhiza",
-        "bacteria",
+    _required_microbial_groups: ClassVar[set[REQUIRED_MICROBIAL_GROUPS]] = {
+        *get_args(REQUIRED_MICROBIAL_GROUPS)
     }
     """Required named microbial groups."""
 
