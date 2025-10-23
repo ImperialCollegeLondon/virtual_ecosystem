@@ -56,6 +56,11 @@ def placeholder_validator(path: str) -> str:
     return path
 
 
+# TODO: Fix autodoc
+#       These generate a bizarre set of autodoc link failures that try and build links
+#       from the text elements from the Annotated pattern. Currently tackled using
+#       nitpick ignore.
+
 FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
     FilePath,
     Field(default=Path("<FILEPATH_PLACEHOLDER>")),
@@ -63,15 +68,12 @@ FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
 ]
 """Custom type for file paths in configurations. This enforces the FilePath validation
 to check that paths in configuration data actually point to existing paths. It also
-provides custom validation to allow a "<PLACEHOLDER>" default value. This can be written
-to file - because the field does not use ``validate_defaults`` - but the custom
-validation specifically rejects incoming values that have been left with that default.
+provides custom validation to allow a ``<FILEPATH_PLACEHOLDER>`` default value. This can
+be written to file - because the field does not use ``validate_defaults`` - but the
+custom validation specifically rejects incoming values that have been left with that
+default.
 """
 
-# TODO: Fix autodoc
-#       These generate a bizarre set of autodoc link failures that try and build links
-#       from the text elements from the Annotated pattern. Currently tackled using
-#       nitpick ignore.
 
 DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
     DirectoryPath,
@@ -80,9 +82,10 @@ DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
 ]
 """Custom type for directory paths in configurations. This enforces the DirectoryPath
 validation to check that paths in configuration data actually point to existing paths.
-It also provides custom validation to allow a "<PLACEHOLDER>" default value. This can be
-written to file - because the field does not use ``validate_defaults`` - but the custom
-validation specifically rejects incoming values that have been left with that default.
+It also provides custom validation to allow a ``<DIRPATH_PLACEHOLDER>`` default value.
+This can be written to file - because the field does not use ``validate_defaults`` - but
+the custom validation specifically rejects incoming values that have been left with that
+default.
 """
 
 

@@ -1,8 +1,6 @@
-"""The `models.animal.constants` module contains a set of dataclasses containing
-constants" (fitting relationships taken from the literature) required by the broader
-:mod:`~virtual_ecosystem.models.animal` module
-
-"""  # noqa: D205, D415
+"""The `core.model_config` module contains pydantic models defining the configuration
+settings required for the Core model in a Virtual Ecosystem simulation.
+"""  # noqa: D205
 
 from __future__ import annotations
 
