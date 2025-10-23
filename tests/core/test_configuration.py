@@ -10,8 +10,8 @@ import tomli_w
 from pydantic import create_model
 
 
-def test_pydantic(tmp_path):
-    """Builds a combined config model from all models and then dumps and reloads it."""
+def test_pydantic_models(tmp_path):
+    """Build a combined config model from all models and then dump and reload it."""
 
     modules = (
         ("virtual_ecosystem.core", "CoreConfiguration"),
@@ -44,7 +44,8 @@ def test_pydantic(tmp_path):
 
     with open(config_path) as tomlfile:
         content = tomlfile.read()
-        content = content.replace('"<PLACEHOLDER>"', f"'{tmp_file!s}'")
+        content = content.replace('"<FILEPATH_PLACEHOLDER>"', f"'{tmp_file!s}'")
+        content = content.replace('"<DIRPATH_PLACEHOLDER>"', f"'{tmp_path!s}'")
         content_parsed = tomllib.loads(content)
         config = combined().model_validate_json(json.dumps(content_parsed))
 
@@ -60,14 +61,18 @@ def test_filepath_placeholder(tmp_path):
     """Validate the FILEPATH_PLACEHOLDER custom field."""
     from pydantic import TypeAdapter, ValidationError
 
-    from virtual_ecosystem.core.configuration import FILEPATH_PLACEHOLDER
+    from virtual_ecosystem.core.configuration import (
+        DIRPATH_PLACEHOLDER,
+        FILEPATH_PLACEHOLDER,
+    )
 
     filepath_placeholder_field = TypeAdapter(FILEPATH_PLACEHOLDER)
+    dirpath_placeholder_field = TypeAdapter(DIRPATH_PLACEHOLDER)
 
-    # Object early to <PLACEHOLDER> in input
+    # Object early to <..._PLACEHOLDER> patterns in input
     with pytest.raises(ValidationError) as err:
-        filepath_placeholder_field.validate_python("<PLACEHOLDER>")
-
+        filepath_placeholder_field.validate_python("<FILEPATH_PLACEHOLDER>")
+        dirpath_placeholder_field.validate_python("<DIRPATH_PLACEHOLDER>")
         assert str(err) == "Path placeholder value in configuration."
 
     # Object to file path not existing

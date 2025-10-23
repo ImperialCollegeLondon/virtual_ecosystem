@@ -191,30 +191,6 @@ def test_CommunityDataExporter_check_attribute_subsets(
         ),
         pytest.param(
             dict(
-                path="bad/path/",
-                required=["cohorts", "community_canopy", "stem_canopy"],
-                cohort_attrs=[],
-                ccan_attrs=[],
-                scan_attrs=[],
-            ),
-            pytest.raises(ConfigurationError),
-            "The plant community data output directory does not exist or",
-            id="bad_path",
-        ),
-        pytest.param(
-            dict(
-                path="",
-                required=["cohorts", "community_canopies", "stem_canopy"],
-                cohort_attrs=[],
-                ccan_attrs=[],
-                scan_attrs=[],
-            ),
-            pytest.raises(ConfigurationError),
-            "The required_data setting contains unknown data output options",
-            id="bad required",
-        ),
-        pytest.param(
-            dict(
                 path="",
                 required=["cohorts", "community_canopy", "stem_canopy"],
                 cohort_attrs=["dbh", "crown_area"],
@@ -242,30 +218,24 @@ def test_CommunityDataExporter_check_attribute_subsets(
 def test_CommunityDataExporter_from_config(tmp_path, inputs, outcome, msg):
     """Test the from_config factory method."""
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+    from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
     # Note that the single quotes around the out_path are _required_ here: TOML uses
     # single quotes to indicate raw strings and hence protect the backslashes in Windows
     # path names from being interpreted as escape sequences.
 
-    toml = f"""[core.data_output_options]
-    out_path = '{tmp_path / inputs["path"]}'
-    [plants]
-    pft_definitions_path = "does/not/need/to/exist"
-    cohort_data_path = "also/does/not/need/to/exist"
+    cfg_data = dict(
+        required_data=inputs["required"],
+        cohort_attributes=inputs["cohort_attrs"],
+        community_canopy_attributes=inputs["ccan_attrs"],
+        stem_canopy_attributes=inputs["scan_attrs"],
+    )
 
-    [plants.community_data_export]
-    required_data = {inputs["required"]}
-    cohort_attributes = {inputs["cohort_attrs"]}
-    community_canopy_attributes = {inputs["ccan_attrs"]}
-    stem_canopy_attributes ={inputs["scan_attrs"]}
-    """
-
-    config = Config(cfg_strings=toml)
+    config = PlantsExportConfig().model_validate(cfg_data)
 
     with outcome as excep:
-        CommunityDataExporter.from_config(config=config)
+        CommunityDataExporter.from_config(output_directory=tmp_path, config=config)
 
     if excep:
         assert str(excep.value).startswith(msg)
@@ -602,25 +572,18 @@ class TestExporterDump:
     ):
         """Test the from_config factory method."""
 
-        from virtual_ecosystem.core.config import Config
         from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+        from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
         # Note that the single quotes around the out_path are _required_ here: TOML uses
         # single quotes to indicate raw strings and hence protect the backslashes in
         # Windows path names from being interpreted as escape sequences.
 
-        toml = f"""
-        [core.data_output_options]
-        out_path = '{tmp_path!s}'
-        [plants]
-        pft_definitions_path = "does/not/need/to/exist"
-        cohort_data_path = "also/does/not/need/to/exist"
-        [plants.community_data_export]
-        required_data = {list(required)}
-        """
+        config = PlantsExportConfig(required_data=required)
 
-        config = Config(cfg_strings=toml)
-        exporter = CommunityDataExporter.from_config(config=config)
+        exporter = CommunityDataExporter.from_config(
+            output_directory=tmp_path, config=config
+        )
 
         if required:
             assert exporter._active

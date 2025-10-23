@@ -7,21 +7,21 @@ from xarray import DataArray
 
 
 @pytest.fixture
-def flora(fixture_config):
+def flora(fixture_configuration):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    flora, _ = get_flora_from_config(fixture_config)
+    flora, _ = get_flora_from_config(config=fixture_configuration.plants)
 
     return flora
 
 
 @pytest.fixture
-def extra_pft_traits(fixture_config):
+def extra_pft_traits(fixture_configuration):
     """Construct a minimal Flora object."""
     from virtual_ecosystem.models.plants.functional_types import get_flora_from_config
 
-    _, extra_pft_traits = get_flora_from_config(fixture_config)
+    _, extra_pft_traits = get_flora_from_config(config=fixture_configuration.plants)
 
     return extra_pft_traits
 
@@ -45,7 +45,7 @@ def fixture_pyrealm_constants():
 
 
 @pytest.fixture
-def fixture_exporter(fixture_config):
+def fixture_exporter(tmpdir, fixture_configuration):
     """Construct a minimal CommunityDataExporter object.
 
     This exporter uses the default exporter settings that do not output plant community
@@ -53,8 +53,14 @@ def fixture_exporter(fixture_config):
     initialise a PlantsModel.
     """
     from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+    from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 
-    exporter = CommunityDataExporter.from_config(fixture_config)
+    plants_config = fixture_configuration.get_subconfiguration(
+        "plants", PlantsConfiguration
+    )
+    exporter = CommunityDataExporter.from_config(
+        output_directory=tmpdir, config=plants_config.community_data_export
+    )
 
     return exporter
 

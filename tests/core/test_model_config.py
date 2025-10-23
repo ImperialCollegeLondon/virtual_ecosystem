@@ -38,24 +38,16 @@ def test_LayersConfiguration_soil_layers(value, raises):
         (np.nan, pytest.raises(ValidationError)),
         (-9, pytest.raises(ValidationError)),
         (-9.5, pytest.raises(ValidationError)),
-        ("h", pytest.raises(ValidationError)),
-        ([1], pytest.raises(ValidationError)),
     ],
 )
 def test_LayersConfiguration_heights(value, raises):
     """Testing LayersConfiguration validation."""
     from virtual_ecosystem.core.model_config import LayersConfiguration
 
-    # Subcanopy must be above surface
-    try:
-        higher_value = value + 1
-    except Exception:
-        higher_value = value
-
     with raises:
         LayersConfiguration(
             above_canopy_height_offset=value,
-            subcanopy_layer_height=higher_value,
+            subcanopy_layer_height=value + 1,  # Must be above surface layer
             surface_layer_height=value,
         )
 

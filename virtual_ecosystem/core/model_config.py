@@ -1,8 +1,6 @@
-"""The `models.animal.constants` module contains a set of dataclasses containing
-constants" (fitting relationships taken from the literature) required by the broader
-:mod:`~virtual_ecosystem.models.animal` module
-
-"""  # noqa: D205, D415
+"""The `core.model_config` module contains pydantic models defining the configuration
+settings required for the Core model in a Virtual Ecosystem simulation.
+"""  # noqa: D205
 
 from __future__ import annotations
 
@@ -22,7 +20,10 @@ from pydantic import (
 )
 from scipy import constants
 
-from virtual_ecosystem.core.configuration import Configuration
+from virtual_ecosystem.core.configuration import (
+    DIRPATH_PLACEHOLDER,
+    Configuration,
+)
 
 
 class CoreConstants(Configuration):
@@ -223,8 +224,8 @@ class DataOutputConfiguration(Configuration):
     "Whether the final state should be saved"
     save_merged_config: bool = True
     "Whether to save a merged TOML file containing all config options"
-    out_path: str = "."
-    "File path for output files"
+    out_path: DIRPATH_PLACEHOLDER  # = Path("<DIRPATH_PLACEHOLDER>")
+    "Directory path for output files"
     out_initial_file_name: str = "initial_state.nc"
     """File name for initial state output file"""
     out_folder_continuous: str = "."
