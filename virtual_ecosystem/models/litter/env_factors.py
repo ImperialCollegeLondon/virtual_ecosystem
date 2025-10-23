@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
-from virtual_ecosystem.models.litter.constants import LitterConsts
+from virtual_ecosystem.models.litter.model_config import LitterConstants
 
 
 def calculate_environmental_factors(
@@ -16,7 +16,7 @@ def calculate_environmental_factors(
     soil_temperatures: DataArray,
     water_potentials: DataArray,
     layer_structure: LayerStructure,
-    constants: LitterConsts,
+    constants: LitterConstants,
 ):
     """Calculate the impact of the environment has on litter decay across litter layers.
 
