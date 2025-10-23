@@ -1,5 +1,7 @@
 """Configuration for the plants model."""
 
+from typing import Literal
+
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
     Configuration,
@@ -107,12 +109,46 @@ class PlantsConstants(Configuration):
 
 
 class PlantsExportConfig(Configuration):
-    """Configuration class for plant export options."""
+    """Configuration class for plant export options.
 
-    required_data: tuple[str, ...] = ()
-    """An array giving the required attributes to be exported."""
+    The plants model only writes a relatively small amount of data to the central data
+    store. These variables are typically about the light environment within vertical
+    layers and plant biomasses and stoichiometry within grid cells.
+
+    However, the model also contains a great deal of demographic and allometric data
+    about the plant communities within grid cells. If you want to look in detail at the
+    plant communities in a simulation, then you can use this configuration section to
+    output a wider range of plant model data at each model update.
+
+    There are three possible output files:
+
+    * Cohort data: details about the stems in each cohort, including the stem allometry
+      and the GPP allocation of the stem. The stem GPP allocation is not defined during
+      the model setup, so these attributes are set to ``np.nan`` for the initial output.
+      This data is exported to the file ``plants_cohort_data.csv``.
+
+    * Community canopy data: community wide data on the canopy structure, such as the
+      heights of the canopy layers and the light transmission profile. This data is
+      exported to the file ``plants_community_canopy_data.csv``.
+
+    * Stem canopy data: details of contribution in leaf area and fAPAR from each stem to
+      the community canopy model. This data is exported to the file
+      ``plants_stem_canopy_data.csv``.
+
+    By default, the exporter does not export any data, but you can configure which of
+    these files to export. You can also configure which attributes to export for each
+    data file. For each of the three files, the default is to not specify a subset of
+    attributes, but you may not require all of this data and so can set specific
+    attribute names to include in the file..
+    """
+
+    required_data: tuple[
+        Literal["cohorts", "community_canopy", "stem_canopy"], ...
+    ] = ()
+    """A list of the required data files to be exported, using `cohorts`,
+    `community_canopy` and `stem_canopy`."""
     cohort_attributes: tuple[str, ...] = ()
-    """The cohort attributes that should be exported."""
+    """A list of the cohort attributes that should be exported."""
     community_canopy_attributes: tuple[str, ...] = ()
     """The community canopy attributes that should be exported."""
     stem_canopy_attributes: tuple[str, ...] = ()

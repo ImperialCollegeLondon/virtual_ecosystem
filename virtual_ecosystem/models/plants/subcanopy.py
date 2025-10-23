@@ -33,7 +33,7 @@ from xarray import DataArray, full_like
 
 from virtual_ecosystem.core.core_components import ModelTiming
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.models.plants.constants import PlantsConsts
+from virtual_ecosystem.models.plants.model_config import PlantsConstants
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Nutrient:
         cls,
         tissue_name: str,
         element: str,
-        constants: PlantsConsts,
+        constants: PlantsConstants,
         masses: NDArray[np.floating],
     ) -> Nutrient:
         """Factory method for Nutrient instances from the ideal ratio in constants.
@@ -67,7 +67,7 @@ class Nutrient:
             masses: The carbon biomasses of cells for the tissue.
         """
 
-        ideal_ratio = getattr(PlantsConsts, f"{tissue_name}_c_{element}_ratio")
+        ideal_ratio = getattr(constants, f"{tissue_name}_c_{element}_ratio")
         return cls(name=element, ideal_ratio=ideal_ratio, masses=masses / ideal_ratio)
 
 
@@ -102,7 +102,7 @@ class SubcanopyBiomass:
         cls,
         tissue_name: str,
         elements: tuple[str, ...],
-        constants: PlantsConsts,
+        constants: PlantsConstants,
         masses: NDArray[np.floating],
     ) -> SubcanopyBiomass:
         """Factory method to generate a SubcanopyBiomass object from constants.
@@ -237,14 +237,14 @@ class Subcanopy:
         self,
         data: Data,
         pmodel_core_constants: CoreConst,
-        model_constants: PlantsConsts,
+        model_constants: PlantsConstants,
         layer_index: int,
         model_timing: ModelTiming,
     ) -> None:
         # Init attributes
         self.data: Data = data
         self.pmodel_core_constants: CoreConst = pmodel_core_constants
-        self.model_constants: PlantsConsts = model_constants
+        self.model_constants: PlantsConstants = model_constants
         self.model_timing: ModelTiming = model_timing
         self.layer_index: int = layer_index
 

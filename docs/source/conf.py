@@ -86,8 +86,8 @@ autodoc_default_flags = ["members"]
 autosummary_generate = True
 
 # autodoc_typehints = "description"
-# autodoc_typehints_format = "short"
-# python_use_unqualified_type_names = True
+autodoc_typehints_format = "short"
+python_use_unqualified_type_names = True
 # autodoc_type_aliases = {
 #   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
 # }
@@ -194,6 +194,11 @@ nitpick_ignore = [
     ("py:class", "NegativeFloat"),
     ("py:class", "date"),
     ("py:class", "_PydanticGeneralMetadata"),
+    ("py:class", "dir"),
+    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
+    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
+    # when both do actually appear in the API docs? It's right there.
+    ("py:class", "DIRPATH_PLACEHOLDER"),
 ]
 
 intersphinx_mapping = {
