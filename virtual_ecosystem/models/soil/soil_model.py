@@ -278,7 +278,7 @@ class SoilModel(
 
         # Extract enzyme classes to a dictionary
         enzyme_classes: dict[str, SoilEnzymeClass] = {
-            "{enzyme.source}_{enzyme.substrate}": enzyme
+            f"{enzyme.source}_{enzyme.substrate}": enzyme
             for enzyme in soil_configuration.enzyme_class_definition
         }
 

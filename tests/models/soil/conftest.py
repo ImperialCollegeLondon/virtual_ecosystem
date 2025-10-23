@@ -336,7 +336,10 @@ def functional_groups(fixture_config, enzyme_classes):
 def enzyme_classes(fixture_configuration):
     """Set of functional groups based on the soil model constants."""
 
-    return {e.name: e for e in fixture_configuration.soil.enzyme_class_definitions}
+    return {
+        f"{e.source}_{e.substrate}": e
+        for e in fixture_configuration.soil.enzyme_class_definition
+    }
 
 
 @pytest.fixture
