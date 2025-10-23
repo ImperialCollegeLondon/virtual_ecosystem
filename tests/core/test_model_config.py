@@ -59,6 +59,7 @@ def test_LayersConfiguration_heights(value, raises):
     argvalues=[
         (0.1, 2, does_not_raise()),
         (1.2, 1.21, does_not_raise()),
+        (1.2, 1.2, pytest.raises(ValidationError)),  # Validation is > not >=
         (1.2, 0.1, pytest.raises(ValidationError)),
     ],
 )
