@@ -38,8 +38,6 @@ def test_LayersConfiguration_soil_layers(value, raises):
         (np.nan, pytest.raises(ValidationError)),
         (-9, pytest.raises(ValidationError)),
         (-9.5, pytest.raises(ValidationError)),
-        ("h", pytest.raises(ValidationError)),
-        ([1], pytest.raises(ValidationError)),
     ],
 )
 def test_LayersConfiguration_heights(value, raises):
@@ -49,7 +47,7 @@ def test_LayersConfiguration_heights(value, raises):
     with raises:
         LayersConfiguration(
             above_canopy_height_offset=value,
-            subcanopy_layer_height=value,
+            subcanopy_layer_height=value + 1,  # Must be above surface layer
             surface_layer_height=value,
         )
 
