@@ -144,27 +144,6 @@ def fixture_soil_configuration(microbial_groups_cfg):
 
 
 @pytest.fixture
-def fixture_core_constants(fixture_soil_configuration):
-    """Get the core constants instance from the config."""
-
-    return fixture_soil_configuration.core.constants
-
-
-@pytest.fixture
-def fixture_soil_constants(fixture_soil_configuration):
-    """Get the soil constants instance from the config."""
-
-    return fixture_soil_configuration.soil.constants
-
-
-@pytest.fixture
-def fixture_hydrology_constants(fixture_soil_configuration):
-    """Get the hydrology constants instance from the config."""
-
-    return fixture_soil_configuration.hydrology.constants
-
-
-@pytest.fixture
 def fixture_soil_core_components(fixture_soil_configuration):
     """Create a core components from the fixture_soil_config."""
     from virtual_ecosystem.core.core_components import CoreComponents

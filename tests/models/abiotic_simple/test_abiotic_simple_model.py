@@ -34,10 +34,10 @@ def test_abiotic_simple_model_initialization(
     fixture_core_components,
     raises,
     expected_log_entries,
+    fixture_abiotic_constants,
 ):
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
@@ -58,7 +58,7 @@ def test_abiotic_simple_model_initialization(
                 data=dummy_climate_data_varying_canopy,
                 core_components=fixture_core_components,
                 model_configuration=default_config,
-                abiotic_constants=AbioticConstants(),
+                abiotic_constants=fixture_abiotic_constants,
             )
 
             # In cases where it passes then checks that the object has the right
@@ -161,10 +161,13 @@ def test_generate_abiotic_simple_model(
     log_check(caplog, expected_log_entries)
 
 
-def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
+def test_setup(
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_abiotic_constants,
+):
     """Test set up and update."""
 
-    from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
@@ -184,7 +187,7 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
             data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
             model_configuration=AbioticSimpleConfiguration(),
-            abiotic_constants=AbioticConstants(),
+            abiotic_constants=fixture_abiotic_constants,
         )
 
     exp_soil_temp = lyr_strct.from_template()
