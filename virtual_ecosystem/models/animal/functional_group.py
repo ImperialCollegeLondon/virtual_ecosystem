@@ -20,7 +20,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     TaxaType,
     VerticalOccupancy,
 )
-from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
 
 class FunctionalGroup:
@@ -53,7 +53,7 @@ class FunctionalGroup:
         birth_mass: float,
         adult_mass: float,
         density_individuals_m2: float | None = None,
-        constants: AnimalConsts = AnimalConsts(),
+        constants: AnimalConstants = AnimalConstants(),
     ) -> None:
         """The constructor for the FunctionalGroup class.
 
@@ -125,7 +125,7 @@ class FunctionalGroup:
 
 
 def import_functional_groups(
-    fg_csv_file: str, constants: AnimalConsts
+    fg_csv_file: str, constants: AnimalConstants
 ) -> list[FunctionalGroup]:
     """The function to import pre-defined functional groups.
 

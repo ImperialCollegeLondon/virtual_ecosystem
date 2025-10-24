@@ -8,7 +8,11 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, Field
 
-from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
+from virtual_ecosystem.core.configuration import (
+    FILEPATH_PLACEHOLDER,
+    Configuration,
+    ModelConfigurationRoot,
+)
 from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     MetabolicType,
@@ -18,6 +22,8 @@ from virtual_ecosystem.models.animal.animal_traits import (
 BOLTZMANN_CONSTANT: float = 8.617333262145e-5  # Boltzmann constant [eV/K]
 
 TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
+
+DENSITY_SCALING_METHODS = Literal["damuth", "madingley"]
 
 
 def deserialise_diet_items(
@@ -43,13 +49,13 @@ def deserialise_diet_items(
 
 
 DamuthTerms = Annotated[
-    dict[str, tuple[float, ...]],
+    dict[DietType, tuple[float, float]],
     AfterValidator(deserialise_diet_items),
 ]
 """Custom data type with post validation for dictionaries of Damuth coefficients."""
 
 DietFloats = Annotated[
-    dict[str, float],
+    dict[DietType, float],
     AfterValidator(deserialise_diet_items),
 ]
 """Custom data type with post validation for dictionaries of diet type and floats."""
@@ -62,7 +68,8 @@ class AnimalConstants(Configuration):
 
     """
 
-    density_scaling_method: str = "damuth"
+    density_scaling_method: DENSITY_SCALING_METHODS = "damuth"
+    """The density scaling method to use within a simulation."""
 
     def get_population_density_terms(
         self, taxa: TaxaType, diet: DietType
@@ -92,29 +99,31 @@ class AnimalConstants(Configuration):
     damuths_law_terms: dict[TaxaType, DamuthTerms] = Field(
         default_factory=lambda: {
             TaxaType.MAMMAL: {
-                "HERBIVORE": (-0.75, 4.23),
-                "CARNIVORE": (-0.75, 1.00),
-                "OMNIVORE": (-0.75, 3.00),
+                DietType.HERBIVORE: (-0.75, 4.23),
+                DietType.CARNIVORE: (-0.75, 1.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
             TaxaType.BIRD: {
-                "HERBIVORE": (-0.75, 5.00),
-                "CARNIVORE": (-0.75, 2.00),
-                "OMNIVORE": (-0.75, 3.00),
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
             TaxaType.INVERTEBRATE: {
-                "HERBIVORE": (-0.75, 5.00),
-                "CARNIVORE": (-0.75, 2.00),
-                "OMNIVORE": (-0.75, 3.00),
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
             TaxaType.AMPHIBIAN: {
-                "HERBIVORE": (-0.75, 5.00),
-                "CARNIVORE": (-0.75, 2.00),
-                "OMNIVORE": (-0.75, 3.00),
+                DietType.HERBIVORE: (-0.75, 5.00),
+                DietType.CARNIVORE: (-0.75, 2.00),
+                DietType.OMNIVORE: (-0.75, 3.00),
             },
         }
     )
+    """Damuth Law terms, structured by taxonomic type and broad diet category."""
 
     madingley_biomass_scaling_terms: tuple[float, float] = (0.6, 300000.0)
+    """Biomass scaling terms from the Madingley model."""
 
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(
         default_factory=lambda: {
@@ -141,19 +150,21 @@ class AnimalConstants(Configuration):
     # TODO: rework these efficiencies to be interaction-specific, not trait based
     conversion_efficiency: DietFloats = Field(
         default_factory=lambda: {
-            "HERBIVORE": 0.1,  # Toy value
-            "CARNIVORE": 0.25,  # Toy value
-            "OMNIVORE": 0.175,  # Toy value
+            DietType.HERBIVORE: 0.1,  # Toy value
+            DietType.CARNIVORE: 0.25,  # Toy value
+            DietType.OMNIVORE: 0.175,  # Toy value
         }
     )
+    """Conversion efficiencies by broad diet categories."""
 
     mechanical_efficiency: DietFloats = Field(
         default_factory=lambda: {
-            "HERBIVORE": 0.9,  # Toy value
-            "CARNIVORE": 0.8,  # Toy value
-            "OMNIVORE": 0.85,  # Toy value
+            DietType.HERBIVORE: 0.9,  # Toy value
+            DietType.CARNIVORE: 0.8,  # Toy value
+            DietType.OMNIVORE: 0.85,  # Toy value
         }
     )
+    """Mechanical efficiencies by broad diet categories."""
 
     prey_mass_scaling_terms: dict[
         MetabolicType, dict[TaxaType, tuple[float, float]]
@@ -169,6 +180,7 @@ class AnimalConstants(Configuration):
             },  # Toy values
         }
     )
+    """Prey mass scaling terms by metabolic type."""
 
     cnp_proportion_terms: dict[TaxaType, dict[str, float]] = Field(
         default_factory=lambda: {
@@ -178,13 +190,16 @@ class AnimalConstants(Configuration):
             TaxaType.AMPHIBIAN: {"carbon": 0.4, "nitrogen": 0.2, "phosphorus": 0.4},
         }
     )
+    """Stoichiometric proportions structured by taxon type."""
 
-    birth_mass_threshold: float = 1.5  # Threshold for reproduction
-    flow_to_reproductive_mass_threshold: float = (
-        1.0  # Threshold of trophic flow to reproductive mass
-    )
-    dispersal_mass_threshold: float = 0.8  # Threshold for dispersal
-    energy_percentile_threshold: float = 0.5  # Threshold for initiating migration
+    birth_mass_threshold: float = 1.5
+    """Mass threshold for reproduction"""
+    flow_to_reproductive_mass_threshold: float = 1.0
+    """Threshold of trophic flow to reproductive mass."""
+    dispersal_mass_threshold: float = 0.8
+    """Mass threshold for dispersal."""
+    energy_percentile_threshold: float = 0.5
+    """Energy threshold for initiating migration."""
 
     # Madingley Foraging Parameters
 
@@ -360,9 +375,10 @@ class AnimalConstants(Configuration):
 class AnimalConfiguration(ModelConfigurationRoot):
     """Root configuration class for the animal model."""
 
-    functional_group_definitions_path: str = ""
+    functional_group_definitions_path: FILEPATH_PLACEHOLDER
     "A file path to a data file of animal functional group definitions"
-    density_scaling_method: Literal["damuth", "madingley"] = "madingley"
+    density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
     """Specifies which density scaling equation to use for initialization. Options are
     'damuth' or 'madingley'."""
     constants: AnimalConstants = AnimalConstants()
+    """The constants class for the animal model."""
