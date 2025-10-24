@@ -194,6 +194,11 @@ nitpick_ignore = [
     ("py:class", "NegativeFloat"),
     ("py:class", "date"),
     ("py:class", "_PydanticGeneralMetadata"),
+    # Sphinx seems to insist that pydantic model types are classes, when they can be
+    # global Literals
+    ("py:class", "SUBSTRATES"),
+    ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
+    ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
     ("py:class", "dir"),
     # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
     # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and

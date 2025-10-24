@@ -1,7 +1,7 @@
 """Test module for soil_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import DEBUG, ERROR, INFO
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ from scipy.optimize import OptimizeResult  # type: ignore
 from xarray import DataArray, Dataset
 
 from tests.conftest import log_check
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.models.soil.soil_model import IntegrationError
 
 # Shared log entries from model initialisation
@@ -59,25 +59,23 @@ def test_soil_model_initialization(
     caplog,
     dummy_carbon_data,
     fixture_soil_core_components,
+    fixture_soil_constants,
+    fixture_hydrology_constants,
     functional_groups,
     enzyme_classes,
 ):
     """Test `SoilModel` initialization with good data."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     model = SoilModel(
         data=dummy_carbon_data,
         core_components=fixture_soil_core_components,
-        model_constants=SoilConsts(),
+        model_constants=fixture_soil_constants,
         microbial_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual,
-        core_constants=CoreConsts,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -95,13 +93,11 @@ def test_soil_model_initialization(
 
 
 def test_soil_model_initialization_no_data(
-    caplog, fixture_soil_configuration, fixture_core_components
+    caplog, fixture_soil_constants, fixture_hydrology_constants, fixture_core_components
 ):
     """Test `SoilModel` initialization with no data."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     with pytest.raises(ValueError):
@@ -113,9 +109,9 @@ def test_soil_model_initialization_no_data(
         _ = SoilModel(
             data=empty_data,
             core_components=fixture_core_components,
-            model_constants=SoilConsts(),
-            soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-            soil_moisture_residual=HydroConsts.soil_moisture_residual,
+            model_constants=fixture_soil_constants,
+            soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+            soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
         )
 
     # Final check that expected logging entries are produced: modify shared
@@ -143,13 +139,12 @@ def test_soil_model_initialization_bounds_error(
     caplog,
     dummy_carbon_data,
     fixture_core_components,
+    fixture_soil_constants,
+    fixture_hydrology_constants,
     functional_groups,
     enzyme_classes,
 ):
     """Test `SoilModel` initialization."""
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     with pytest.raises(InitialisationError):
@@ -162,12 +157,11 @@ def test_soil_model_initialization_bounds_error(
         _ = SoilModel(
             data=dummy_carbon_data,
             core_components=fixture_core_components,
-            model_constants=SoilConsts(),
+            model_constants=fixture_soil_constants,
             microbial_groups=functional_groups,
             enzyme_classes=enzyme_classes,
-            soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-            soil_moisture_residual=HydroConsts.soil_moisture_residual,
-            core_constants=CoreConsts,
+            soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+            soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
         )
 
     # Final check that expected logging entries are produced
@@ -182,24 +176,25 @@ def test_soil_model_initialization_bounds_error(
 
 
 def test_soil_model_all_pools_positive(
-    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
+    dummy_carbon_data,
+    fixture_core_components,
+    fixture_soil_constants,
+    fixture_hydrology_constants,
+    functional_groups,
+    enzyme_classes,
 ):
     """Test `SoilModel` initialization."""
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import SoilModel
 
     # Initialise model with bad data object
     soil_model = SoilModel(
         data=dummy_carbon_data,
         core_components=fixture_core_components,
-        model_constants=SoilConsts(),
+        model_constants=fixture_soil_constants,
         microbial_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual,
-        core_constants=CoreConsts,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
     )
 
     assert soil_model._all_pools_positive()
@@ -220,45 +215,28 @@ def test_soil_model_all_pools_positive(
             0.005,
             does_not_raise(),
             (
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (INFO, "Initialised hydrology.HydroConsts from config"),
                 *POST_SETUP_LOG,
             ),
             id="default_config",
         ),
         pytest.param(
-            "[soil.constants.SoilConsts]\nsolubility_coefficient_labile_p = 0.05",
+            "[soil.constants]\nsolubility_coefficient_labile_p = 0.05",
             0.05,
             does_not_raise(),
             (
-                (INFO, "Initialised soil.SoilConsts from config"),
-                (INFO, "Initialised core.CoreConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the soil model successfully "
                     "extracted.",
                 ),
-                (INFO, "Initialised hydrology.HydroConsts from config"),
                 *POST_SETUP_LOG,
             ),
             id="modified_config_correct",
-        ),
-        pytest.param(
-            "[soil.constants.SoilConsts]\nmax_decomp_rate = 0.05\n",
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (ERROR, "Unknown names supplied for SoilConsts: max_decomp_rate"),
-                (INFO, "Valid names are: "),
-                (CRITICAL, "Could not initialise soil.SoilConsts from config"),
-            ),
-            id="modified_config_incorrect",
         ),
     ],
 )
@@ -273,17 +251,12 @@ def test_generate_soil_model(
 ):
     """Test that the function to initialise the soil model behaves as expected."""
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
     )
     from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.core.registry import register_module
     from virtual_ecosystem.models.soil.soil_model import SoilModel
-
-    # Register the module components to access constants classes
-    register_module("virtual_ecosystem.models.soil")
 
     # Build the config object and core components
     cfg_strings = [
@@ -293,17 +266,7 @@ def test_generate_soil_model(
         cfg_string,
     ]
 
-    config = Config(cfg_strings=cfg_strings)
-
-    # TODO - Another test with what will become conflation of the configuration
-    # validation with model setup. So for now, fake
-    # it with a hardcoded config and let the errors run through to the old system
-
-    config_data = ConfigurationLoader(
-        cfg_strings=(
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'\n[soil]\n[hydrology]"
-        )
-    )
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
     configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(configuration.core)
 
@@ -315,7 +278,7 @@ def test_generate_soil_model(
             data=dummy_carbon_data,
             configuration=configuration,
             core_components=core_components,
-            config=config,
+            config=configuration,
         )
         assert model.model_constants.solubility_coefficient_labile_p == solub_coeff
 
@@ -811,12 +774,15 @@ def test_calculate_symbiotic_supply_limits(fixture_soil_model, expected_limits, 
 
 
 def test_construct_full_soil_model(
-    dummy_carbon_data, fixture_core_components, functional_groups, enzyme_classes
+    dummy_carbon_data,
+    fixture_core_components,
+    fixture_core_constants,
+    fixture_soil_constants,
+    fixture_hydrology_constants,
+    functional_groups,
+    enzyme_classes,
 ):
     """Test that the function that creates the object to integrate exists and works."""
-    from virtual_ecosystem.core.constants import CoreConsts
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.soil_model import (
         SoilModel,
         construct_full_soil_model,
@@ -953,12 +919,12 @@ def test_construct_full_soil_model(
         no_cells=4,
         layer_structure=fixture_core_components.layer_structure,
         delta_pools_ordered=delta_pools_ordered,
-        model_constants=SoilConsts,
+        model_constants=fixture_soil_constants,
         functional_groups=functional_groups,
         enzyme_classes=enzyme_classes,
-        core_constants=CoreConsts,
-        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+        core_constants=fixture_core_constants,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
         top_soil_layer_thickness=fixture_core_components.layer_structure.soil_layer_thickness[
             0
         ],

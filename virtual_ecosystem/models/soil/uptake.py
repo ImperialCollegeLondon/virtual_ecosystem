@@ -8,12 +8,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.soil.constants import SoilConsts
 from virtual_ecosystem.models.soil.env_factors import (
     calculate_carbon_use_efficiency,
     calculate_temperature_effect_on_microbes,
 )
 from virtual_ecosystem.models.soil.microbial_groups import MicrobialGroupConstants
+from virtual_ecosystem.models.soil.model_config import SoilConstants
 
 
 @dataclass
@@ -86,7 +86,7 @@ def calculate_nutrient_uptake_rates(
     water_factor: NDArray[np.floating],
     pH_factor: NDArray[np.floating],
     soil_temp: NDArray[np.floating],
-    constants: SoilConsts,
+    constants: SoilConstants,
     functional_group: MicrobialGroupConstants,
 ) -> tuple[NDArray[np.floating], NetNutrientConsumption]:
     """Calculate the rate at which microbes uptake each nutrient.

@@ -75,7 +75,6 @@ class TestAnimalModel:
                 does_not_raise(),
                 (
                     (INFO, "Initialised animal.AnimalConsts from config"),
-                    (INFO, "Initialised core.CoreConsts from config"),
                     (
                         INFO,
                         "Information required to initialise the animal model"
