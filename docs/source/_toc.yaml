@@ -196,6 +196,8 @@ subtrees:
                 title: The litter chemistry submodule
               - file: api/models/litter/constants
                 title: The constants submodule
+              - file: api/models/litter/model_config
+                title: The model_config submodule
               - file: api/models/litter/env_factors
                 title: The env_factors submodule
               - file: api/models/litter/inputs
