@@ -125,6 +125,8 @@ class AbioticModel(
         """Set of constants for simple abiotic model."""
         self.simple_bounds: AbioticSimpleBounds
         """Set of bound for simple abiotic model."""
+        self.pyrealm_constants: PyrealmConst
+        """Pyrealm constants."""
 
     @classmethod
     def from_config(
@@ -153,7 +155,9 @@ class AbioticModel(
             "abiotic", AbioticConfiguration
         )
 
+        # Hard coding these here until we figure out how to resolve config issues
         abiotic_simple_configuration = AbioticSimpleConfiguration()
+        pyrealm_consts = PyrealmConst()
 
         LOGGER.info(
             "Information required to initialise the abiotic model successfully "
@@ -165,12 +169,14 @@ class AbioticModel(
             static=model_configuration.static,
             model_constants=model_configuration.constants,
             simple_config=abiotic_simple_configuration,
+            pyrealm_consts=pyrealm_consts,
         )
 
     def _setup(
         self,
         model_constants: AbioticConstants = AbioticConstants(),
         simple_config: AbioticSimpleConfiguration = AbioticSimpleConfiguration(),
+        pyrealm_constants: PyrealmConst = PyrealmConst(),
         **kwargs,
     ) -> None:
         """Function to set up the abiotic model.
@@ -183,12 +189,14 @@ class AbioticModel(
         Args:
             model_constants: Set of constants for the abiotic model.
             simple_config: Configuration options for the abiotic simple model.
+            pyrealm_constants: Additional configuration options to the pyrealm package.
             **kwargs: Further arguments to the setup method.
         """
 
         self.model_constants = model_constants
         self.simple_constants = simple_config.constants
         self.simple_bounds = simple_config.bounds
+        self.pyrealm_constants = pyrealm_constants
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
@@ -254,7 +262,7 @@ class AbioticModel(
             layer_structure=self.layer_structure,
             abiotic_constants=self.model_constants,
             core_constants=self.core_constants,
-            pyrealm_const=PyrealmConst,
+            pyrealm_const=self.pyrealm_constants,
             abiotic_bounds=self.simple_bounds,
         )
 
