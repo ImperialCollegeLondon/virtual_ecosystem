@@ -39,7 +39,6 @@ from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.model_config import (
     AbioticConfiguration,
@@ -249,25 +248,10 @@ class HydrologyModel(
             **kwargs: Further arguments to the setup method.
         """
 
-        # Sanity checks for initial soil moisture and initial_groundwater_saturation
-        for attr, value in (
-            ("initial_soil_moisture", initial_soil_moisture),
-            ("initial_groundwater_saturation", initial_groundwater_saturation),
-        ):
-            if not isinstance(value, float | int):
-                to_raise = InitialisationError(f"The {attr} must be numeric!")
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            if value < 0 or value > 1:
-                to_raise = InitialisationError(f"The {attr} has to be between 0 and 1!")
-                LOGGER.error(to_raise)
-                raise to_raise
-
         self.initial_soil_moisture = initial_soil_moisture
         self.initial_groundwater_saturation = initial_groundwater_saturation
         self.model_constants = model_constants
-        self.abiotic_constants = AbioticConstants()
+        self.abiotic_constants = abiotic_constants
         self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(

@@ -211,8 +211,8 @@ class HydrologyConstants(Configuration):
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration clas for the hydrology model."""
 
-    initial_soil_moisture: float = Field(gt=0, default=0.5)
+    initial_soil_moisture: float = Field(ge=0, le=1, default=0.5)
     """Initial soil moisture for all layers"""
-    initial_groundwater_saturation: float = Field(gt=0, default=0.9)
+    initial_groundwater_saturation: float = Field(ge=0, le=1, default=0.9)
     """Initial ground water saturation for all layers, unitless"""
     constants: HydrologyConstants = HydrologyConstants()
