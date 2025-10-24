@@ -41,7 +41,6 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.model_config import (
-    AbioticConfiguration,
     AbioticConstants,
 )
 from virtual_ecosystem.models.hydrology import (
@@ -197,9 +196,14 @@ class HydrologyModel(
             configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
         )
 
-        abiotic_configuration: AbioticConfiguration = (
-            configuration.get_subconfiguration("abiotic", AbioticConfiguration)
-        )
+        # The abiotic constants are currently hardcoded here - the issue is that the
+        # model relies on two abiotic constants:
+        #         abiotic_constants.latent_heat_vap_equ_factors
+        #         abiotic_constants.saturated_pressure_slope_parameters
+        # These need to be inherited properly from the configuration but at the moment
+        # we're using abiotic_simple in testing and it isn't a simple swap. So, leaving
+        # this hardcoded for now.
+        abiotic_constants: AbioticConstants = AbioticConstants()
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
@@ -212,7 +216,7 @@ class HydrologyModel(
             initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
             initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
             model_constants=hydrology_configuration.constants,
-            abiotic_constants=abiotic_configuration.constants,
+            abiotic_constants=abiotic_constants,
         )
 
     def _setup(
