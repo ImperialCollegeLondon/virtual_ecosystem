@@ -1,7 +1,7 @@
 """Test module for abiotic_simple.abiotic_simple_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import DEBUG, INFO
 from unittest.mock import patch
 
 import numpy as np
@@ -10,7 +10,6 @@ import xarray as xr
 from xarray import DataArray
 
 from tests.conftest import log_check, patch_bypass_setup, patch_run_update
-from virtual_ecosystem.core.exceptions import ConfigurationError
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -38,13 +37,15 @@ def test_abiotic_simple_model_initialization(
 ):
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
+    from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_ecosystem.models.abiotic_simple.constants import (
-        AbioticSimpleBounds,
-        AbioticSimpleConsts,
+    from virtual_ecosystem.models.abiotic_simple.model_config import (
+        AbioticSimpleConfiguration,
     )
+
+    default_config = AbioticSimpleConfiguration()
 
     with (
         patch_run_update(AbioticSimpleModel),
@@ -56,7 +57,8 @@ def test_abiotic_simple_model_initialization(
             model = AbioticSimpleModel(
                 data=dummy_climate_data_varying_canopy,
                 core_components=fixture_core_components,
-                model_constants=AbioticSimpleConsts(),
+                model_configuration=default_config,
+                abiotic_constants=AbioticConstants(),
             )
 
             # In cases where it passes then checks that the object has the right
@@ -64,7 +66,7 @@ def test_abiotic_simple_model_initialization(
             assert isinstance(model, BaseModel)
             assert model.model_name == "abiotic_simple"
             assert repr(model) == "AbioticSimpleModel(update_interval=1209600 seconds)"
-            assert model.bounds == AbioticSimpleBounds()
+            assert model.bounds == default_config.bounds
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -81,10 +83,6 @@ def test_abiotic_simple_model_initialization(
                 [
                     (
                         INFO,
-                        "Initialised abiotic_simple.AbioticSimpleConsts from config",
-                    ),
-                    (
-                        INFO,
                         "Information required to initialise the abiotic simple model "
                         "successfully extracted.",
                     ),
@@ -95,16 +93,12 @@ def test_abiotic_simple_model_initialization(
         ),
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
-            "[abiotic_simple.constants.AbioticSimpleConsts]\n"
+            "[abiotic_simple.constants]\n"
             "saturation_vapour_pressure_factors = [1.0, 2.0, 3.0]\n",
             [1.0, 2.0, 3.0],
             does_not_raise(),
             tuple(
                 [
-                    (
-                        INFO,
-                        "Initialised abiotic_simple.AbioticSimpleConsts from config",
-                    ),
                     (
                         INFO,
                         "Information required to initialise the abiotic simple model "
@@ -114,27 +108,6 @@ def test_abiotic_simple_model_initialization(
                 ],
             ),
             id="modified_config_correct",
-        ),
-        pytest.param(
-            "[core.timing]\nupdate_interval = '1 week'\n"
-            "[abiotic_simple.constants.AbioticSimpleConsts]\n"
-            "saturation_vapour_pressure_factorx = [1.0, 2.0, 3.0]\n",
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (
-                    ERROR,
-                    "Unknown names supplied for AbioticSimpleConsts: "
-                    "saturation_vapour_pressure_factorx",
-                ),
-                (INFO, "Valid names are: "),
-                (
-                    CRITICAL,
-                    "Could not initialise abiotic_simple.AbioticSimpleConsts "
-                    "from config",
-                ),
-            ),
-            id="modified_config_incorrect",
         ),
     ],
 )
@@ -147,7 +120,6 @@ def test_generate_abiotic_simple_model(
     expected_log_entries,
 ):
     """Test that the initialisation of the simple abiotic model works as expected."""
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -156,25 +128,14 @@ def test_generate_abiotic_simple_model(
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
 
-    # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
-
-    # TODO - This test is currently mixing the old AbioticSimpleConsts validation with
-    # what will be replaced by configuration.abiotic_simple.constants. So for now, fake
-    # it with a hardcoded config and let the errors run through to the old system
-
-    config_data = ConfigurationLoader(
-        cfg_strings="[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n"
-    )
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
     configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(configuration.core)
 
     caplog.clear()
 
     # We patch the _setup step as it is tested separately
-    expected_const = AbioticSimpleConsts(saturation_vapour_pressure_factors=satvap1)
     object_to_patch = (
         "virtual_ecosystem.models.abiotic_simple.abiotic_simple_model"
         ".AbioticSimpleModel"
@@ -191,9 +152,10 @@ def test_generate_abiotic_simple_model(
                 data=dummy_climate_data_varying_canopy,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
+                config=configuration,
             )
-            mock_setup.assert_called_once_with(model_constants=expected_const)
+
+            mock_setup.assert_called_once()
 
     # Final check that expected logging entries are produced
     log_check(caplog, expected_log_entries)
@@ -202,10 +164,13 @@ def test_generate_abiotic_simple_model(
 def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
     """Test set up and update."""
 
+    from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
     from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (
         AbioticSimpleModel,
     )
-    from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleConsts
+    from virtual_ecosystem.models.abiotic_simple.model_config import (
+        AbioticSimpleConfiguration,
+    )
 
     lyr_strct = fixture_core_components.layer_structure
 
@@ -218,7 +183,8 @@ def test_setup(dummy_climate_data_varying_canopy, fixture_core_components):
         model = AbioticSimpleModel(
             data=dummy_climate_data_varying_canopy,
             core_components=fixture_core_components,
-            model_constants=AbioticSimpleConsts(),
+            model_configuration=AbioticSimpleConfiguration(),
+            abiotic_constants=AbioticConstants(),
         )
 
     exp_soil_temp = lyr_strct.from_template()
