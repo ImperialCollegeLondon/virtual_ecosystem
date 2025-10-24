@@ -92,9 +92,9 @@ def test_calculate_nutrient_uptake_rates(
     symbiotic,
     expected_carbon_gain,
     expected_consumption_rates,
+    fixture_soil_constants,
 ):
     """Check microbial uptake function calculates correctly."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.uptake import (
         calculate_nutrient_uptake_rates,
     )
@@ -114,7 +114,7 @@ def test_calculate_nutrient_uptake_rates(
             water_factor=environmental_factors.water,
             pH_factor=environmental_factors.pH,
             soil_temp=averaged_soil_temp,
-            constants=SoilConsts,
+            constants=fixture_soil_constants,
             functional_group=functional_groups["ectomycorrhiza"],
         )
     else:
@@ -132,7 +132,7 @@ def test_calculate_nutrient_uptake_rates(
             water_factor=environmental_factors.water,
             pH_factor=environmental_factors.pH,
             soil_temp=averaged_soil_temp,
-            constants=SoilConsts,
+            constants=fixture_soil_constants,
             functional_group=functional_groups["bacteria"],
         )
 
@@ -156,9 +156,9 @@ def test_calculate_nutrient_uptake_rates_errors(
     environmental_factors,
     functional_groups,
     carbon_supply_from_plants,
+    fixture_soil_constants,
 ):
     """Check microbial uptake function returns sensible errors for bad input."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.uptake import (
         calculate_nutrient_uptake_rates,
     )
@@ -186,7 +186,7 @@ def test_calculate_nutrient_uptake_rates_errors(
             water_factor=environmental_factors.water,
             pH_factor=environmental_factors.pH,
             soil_temp=averaged_soil_temp,
-            constants=SoilConsts,
+            constants=fixture_soil_constants,
             functional_group=functional_groups["ectomycorrhiza"],
         )
 
@@ -233,12 +233,9 @@ def test_calculate_maximum_uptake_rates(
 
 
 def test_find_net_nutrient_consumptions_free_living(
-    carbon_use_efficiency,
-    functional_groups,
-    max_uptake_rates,
+    carbon_use_efficiency, functional_groups, max_uptake_rates, fixture_soil_constants
 ):
     """Test that the function to find the net nutrient consumptions works correctly."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.uptake import (
         calculate_actual_carbon_gain_free_living,
         find_net_nutrient_consumptions_free_living,
@@ -263,7 +260,7 @@ def test_find_net_nutrient_consumptions_free_living(
         actual_carbon_gain=actual_carbon_gain,
         carbon_use_efficiency=carbon_use_efficiency,
         functional_group=functional_groups["bacteria"],
-        ammonium_mineralisation_proportion=SoilConsts.ammonium_mineralisation_proportion,
+        ammonium_mineralisation_proportion=fixture_soil_constants.ammonium_mineralisation_proportion,
     )
     for attr in dir(actual_consumptions):
         if not attr.startswith("_"):

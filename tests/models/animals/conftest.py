@@ -407,13 +407,11 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def microbial_c_n_p_ratios(fixture_config):
+def microbial_c_n_p_ratios(fixture_configuration):
     """Fixture containing the microbial C:N:P ratios for use in animal model testing."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        find_microbial_stoichiometries,
-    )
+    from virtual_ecosystem.models.animal.cnp import find_microbial_stoichiometries
 
-    return find_microbial_stoichiometries(config=fixture_config)
+    return find_microbial_stoichiometries(config=fixture_configuration)
 
 
 @pytest.fixture
