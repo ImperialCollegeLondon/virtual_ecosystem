@@ -298,14 +298,14 @@ class SoilConstants(Configuration):
 
     @model_validator(mode="after")
     def _check_pH_sequence(cls) -> SoilConstants:
-        """Checks that the microbe pH values are in the correct order."""
+        """Checks that the microbe pH thresholds are in the correct order."""
         if not (
             cls.min_pH_microbes
             < cls.lowest_optimal_pH_microbes
             < cls.highest_optimal_pH_microbes
             < cls.max_pH_microbes
         ):
-            raise ValueError("Microbe pH values not in increasing sequence")
+            raise ValueError("Microbe pH thresholds not in increasing sequence")
 
         return cls
 
