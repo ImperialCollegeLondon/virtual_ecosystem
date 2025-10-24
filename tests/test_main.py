@@ -15,7 +15,6 @@ from .conftest import log_check, record_found_in_log
 
 INITIALISATION_LOG = [
     (INFO, "Initialising models: litter"),
-    (INFO, "Initialised litter.LitterConsts from config"),
     (
         INFO,
         "Information required to initialise the litter model successfully extracted.",
