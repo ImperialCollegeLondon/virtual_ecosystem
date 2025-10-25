@@ -388,9 +388,9 @@ def animal_data_for_cohorts_instance(fixture_core_components):
 @pytest.fixture
 def constants_instance():
     """Fixture for an instance of animal constants."""
-    from virtual_ecosystem.models.animal.constants import AnimalConsts
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
-    return AnimalConsts(density_scaling_method="madingley")
+    return AnimalConstants(density_scaling_method="madingley")
 
 
 @pytest.fixture

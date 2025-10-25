@@ -4,9 +4,15 @@ constants" (fitting relationships taken from the literature) required by the bro
 
 """  # noqa: D205, D415
 
+import operator
+from functools import reduce
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, Field
+from pydantic import (
+    Field,
+    PlainSerializer,
+    PlainValidator,
+)
 
 from virtual_ecosystem.core.configuration import (
     FILEPATH_PLACEHOLDER,
@@ -26,9 +32,7 @@ TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 DENSITY_SCALING_METHODS = Literal["damuth", "madingley"]
 
 
-def deserialise_diet_items(
-    diet_items: dict[str, float | tuple[float, ...]],
-) -> dict[DietType, float | tuple[float, ...]]:
+def deserialise_diet_type_dicts(diet_items: dict[str, float]) -> dict[DietType, float]:
     """Deserialise string diet terms to DietType.
 
     For standard ``Enum`` types, pydantic correctly serialises and deserialise a string
@@ -36,27 +40,38 @@ def deserialise_diet_items(
     these are seriliased and deserialised as with an ``Enum``, then users would need to
     use numeric diet codes in the configuration.
 
-    This shim takes a string from a config, such as "CARNIVORE" or "seeds_fruit", and
-    uses the ``DietType.parse()`` to convert and validate the value.
+    This function takes a string such as "CARNIVORE" or "FRUIT|SEEDS" and returns the
+    appropriate DietType.
     """
 
-    try:
-        return_value = {DietType.parse(k): v for k, v in diet_items.items()}
-    except ValueError:
-        raise
+    return {
+        reduce(operator.or_, [DietType[d] for d in key.split("|")]): value
+        for key, value in diet_items.items()
+    }
 
-    return return_value
+
+def serialise_diet_type_dicts(diet_items: dict[DietType, float]) -> dict[str, float]:
+    """Serialise DietType Flag value to string.
+
+    This shim simply exports the ``DietType._name_`` attribute, which is a string
+    representation of the Flag value.
+    """
+
+    return {key._name_: value for key, value in diet_items.items()}  # type: ignore[misc]
 
 
 DamuthTerms = Annotated[
     dict[DietType, tuple[float, float]],
-    AfterValidator(deserialise_diet_items),
+    None,
+    PlainSerializer(serialise_diet_type_dicts),
+    PlainValidator(deserialise_diet_type_dicts),
 ]
 """Custom data type with post validation for dictionaries of Damuth coefficients."""
 
 DietFloats = Annotated[
     dict[DietType, float],
-    AfterValidator(deserialise_diet_items),
+    PlainSerializer(serialise_diet_type_dicts),
+    PlainValidator(deserialise_diet_type_dicts),
 ]
 """Custom data type with post validation for dictionaries of diet type and floats."""
 

@@ -360,6 +360,13 @@ def fixture_core_components(fixture_configuration):
 
 
 @pytest.fixture
+def fixture_core_constants(fixture_configuration):
+    """A core constants instance for use in testing."""
+
+    return fixture_configuration.core.constants
+
+
+@pytest.fixture
 def dummy_litter_data(fixture_core_components):
     """Creates a dummy litter data object for use in tests."""
 

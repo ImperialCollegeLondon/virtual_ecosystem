@@ -57,7 +57,6 @@ from virtual_ecosystem.models.animal.functional_group import (
     import_functional_groups,
 )
 from virtual_ecosystem.models.animal.model_config import (
-    DENSITY_SCALING_METHODS,
     AnimalConfiguration,
     AnimalConstants,
 )
@@ -165,7 +164,6 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        density_scaling_method: DENSITY_SCALING_METHODS = "madingley",
         **kwargs: Any,
     ):
         """Animal init function.
@@ -174,15 +172,12 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
-        self.density_scaling_method = density_scaling_method
-        """Which density scaling equations are used, "damuth" or "madingley"."""
-        self.model_constants: AnimalConstants = AnimalConstants(
-            density_scaling_method=self.density_scaling_method
-        )
-        """Animal constants."""
-
         super().__init__(data, core_components, static, **kwargs)  # runs _setup
 
+        self.density_scaling_method
+        """Which density scaling equations are used."""
+        self.model_constants: AnimalConstants
+        """Animal constants."""
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
         self.active_cohorts: dict[uuid.UUID, AnimalCohort] = {}
@@ -381,7 +376,6 @@ class AnimalModel(
             static=model_configuration.static,
             functional_groups=functional_groups,
             model_constants=model_configuration.constants,
-            density_scaling_method=model_configuration.density_scaling_method,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
@@ -389,6 +383,7 @@ class AnimalModel(
         self,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
+        model_constants: AnimalConstants,
         **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
@@ -402,8 +397,18 @@ class AnimalModel(
                 simulation.
             microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
                 group.
+            model_constants: An
+                :class:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+                instance, providing constants for the model and setting the density
+                scaling method to be used in simulation.
             **kwargs: Further arguments to the setup method.
         """
+
+        self.model_constants = model_constants
+        """Animal constants."""
+        self.density_scaling_method = self.model_constants.density_scaling_method
+        """Which density scaling equations are used, "damuth" or "madingley"."""
+
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
         self.update_interval_in_days = days_as_float
         """Store update interval as a number of days."""

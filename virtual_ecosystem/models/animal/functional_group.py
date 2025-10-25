@@ -4,6 +4,7 @@ constants and rate equations used by AnimalCohorts in the
 """  # noqa: D205
 
 from collections.abc import Iterable
+from pathlib import Path
 
 import pandas as pd
 
@@ -125,7 +126,7 @@ class FunctionalGroup:
 
 
 def import_functional_groups(
-    fg_csv_file: str, constants: AnimalConstants
+    fg_csv_file: Path, constants: AnimalConstants
 ) -> list[FunctionalGroup]:
     """The function to import pre-defined functional groups.
 
@@ -150,11 +151,11 @@ def import_functional_groups(
     try:
         fg_data = pd.read_csv(fg_csv_file)
     except FileNotFoundError:
-        msg = "Animal functional group definition file not found: " + fg_csv_file
+        msg = f"Animal functional group definition file not found: {fg_csv_file!s}"
         LOGGER.error(msg)
         raise
     except pd.errors.ParserError:
-        msg = "Cannot parse animal functional group definition file: " + fg_csv_file
+        msg = f"Cannot parse animal functional group definition file: {fg_csv_file!s}"
         LOGGER.error(msg)
         raise
 
