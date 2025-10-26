@@ -49,13 +49,14 @@ class TestAnimalModel:
         """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         # Initialize the model
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
-            density_scaling_method=scaling_method,
+            model_constants=AnimalConstants(density_scaling_method=scaling_method),
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
@@ -212,11 +213,11 @@ class TestAnimalModel:
         """Test that AnimalModel.from_config correctly sets density_scaling_method."""
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Update the config to include the scaling method
+        # Update the constants to set the scaling method
         # Configuration classes are frozen so update via the __dict__ entries
-        animal_fixture_configuration.animal.__dict__["density_scaling_method"] = (
-            scaling_method
-        )
+        animal_fixture_configuration.animal.constants.__dict__[
+            "density_scaling_method"
+        ] = scaling_method
 
         # Create the model using from_config
         model = AnimalModel.from_config(

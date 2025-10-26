@@ -425,6 +425,7 @@ def animal_model_instance(
     from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
     # Make sure each call gets a fresh copy
     clean_data = deepcopy(dummy_animal_data)
@@ -432,7 +433,7 @@ def animal_model_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        density_scaling_method="madingley",
+        model_constants=AnimalConstants(density_scaling_method="madingley"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )
@@ -449,6 +450,7 @@ def animal_model_damuth_instance(
     from copy import deepcopy
 
     from virtual_ecosystem.models.animal.animal_model import AnimalModel
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
     # Make sure each call gets a fresh copy
     clean_data = deepcopy(dummy_animal_data)
@@ -456,7 +458,7 @@ def animal_model_damuth_instance(
     return AnimalModel(
         data=clean_data,
         core_components=fixture_core_components,
-        density_scaling_method="damuth",
+        model_constants=AnimalConstants(density_scaling_method="damuth"),
         functional_groups=functional_group_list_instance,
         microbial_c_n_p_ratios=microbial_c_n_p_ratios,
     )

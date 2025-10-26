@@ -32,7 +32,7 @@ TEMPERATURE: float = 37.0  # Toy temperature for setting up metabolism [C].
 DENSITY_SCALING_METHODS = Literal["damuth", "madingley"]
 
 
-def deserialise_diet_type_dicts(diet_items: dict[str, float]) -> dict[DietType, float]:
+def deserialise_diet_type(diet: str) -> DietType:
     """Deserialise string diet terms to DietType.
 
     For standard ``Enum`` types, pydantic correctly serialises and deserialise a string
@@ -44,36 +44,26 @@ def deserialise_diet_type_dicts(diet_items: dict[str, float]) -> dict[DietType, 
     appropriate DietType.
     """
 
-    return {
-        reduce(operator.or_, [DietType[d] for d in key.split("|")]): value
-        for key, value in diet_items.items()
-    }
+    return reduce(operator.or_, [DietType[d] for d in diet.split("|")])
 
 
-def serialise_diet_type_dicts(diet_items: dict[DietType, float]) -> dict[str, float]:
+def serialise_diet_type(diet: DietType) -> str:
     """Serialise DietType Flag value to string.
 
     This shim simply exports the ``DietType._name_`` attribute, which is a string
     representation of the Flag value.
     """
 
-    return {key._name_: value for key, value in diet_items.items()}  # type: ignore[misc]
+    # The _name_ value _can_ be None, but I don't think will be in this use case.
+    return diet._name_  # type: ignore[return-value]
 
 
-DamuthTerms = Annotated[
-    dict[DietType, tuple[float, float]],
-    None,
-    PlainSerializer(serialise_diet_type_dicts),
-    PlainValidator(deserialise_diet_type_dicts),
+DietTypeSer = Annotated[
+    DietType,
+    PlainSerializer(serialise_diet_type),
+    PlainValidator(deserialise_diet_type),
 ]
-"""Custom data type with post validation for dictionaries of Damuth coefficients."""
-
-DietFloats = Annotated[
-    dict[DietType, float],
-    PlainSerializer(serialise_diet_type_dicts),
-    PlainValidator(deserialise_diet_type_dicts),
-]
-"""Custom data type with post validation for dictionaries of diet type and floats."""
+"""Custom data type to serialise and deserialise DietType Flag values."""
 
 
 class AnimalConstants(Configuration):
@@ -95,23 +85,17 @@ class AnimalConstants(Configuration):
             taxa: The TaxaType of the functional group (used for damuth).
             diet: The DietType of the functional group (used for damuth).
 
-        ..TODO:
-            Need to fix the typing here - the damuths_law_terms dict entries are typed
-            as str, but are autoconverted to DietType on load.
-
         Returns:
             A tuple (exponent, scalar) for the scaling law.
         """
-        if self.density_scaling_method == "damuth":
-            return self.damuths_law_terms[taxa][diet]  # type: ignore[index]
-        elif self.density_scaling_method == "madingley":
-            return self.madingley_biomass_scaling_terms
-        else:
-            raise ValueError(
-                f"Unsupported density scaling method: {self.density_scaling_method}"
-            )
 
-    damuths_law_terms: dict[TaxaType, DamuthTerms] = Field(
+        return (
+            self.damuths_law_terms[taxa][diet]
+            if self.density_scaling_method == "damuth"
+            else self.madingley_biomass_scaling_terms
+        )
+
+    damuths_law_terms: dict[TaxaType, dict[DietTypeSer, tuple[float, float]]] = Field(
         default_factory=lambda: {
             TaxaType.MAMMAL: {
                 DietType.HERBIVORE: (-0.75, 4.23),
@@ -163,7 +147,7 @@ class AnimalConstants(Configuration):
     """Energy densities of different food sources [J/g]"""
 
     # TODO: rework these efficiencies to be interaction-specific, not trait based
-    conversion_efficiency: DietFloats = Field(
+    conversion_efficiency: dict[DietTypeSer, float] = Field(
         default_factory=lambda: {
             DietType.HERBIVORE: 0.1,  # Toy value
             DietType.CARNIVORE: 0.25,  # Toy value
@@ -172,7 +156,7 @@ class AnimalConstants(Configuration):
     )
     """Conversion efficiencies by broad diet categories."""
 
-    mechanical_efficiency: DietFloats = Field(
+    mechanical_efficiency: dict[DietTypeSer, float] = Field(
         default_factory=lambda: {
             DietType.HERBIVORE: 0.9,  # Toy value
             DietType.CARNIVORE: 0.8,  # Toy value
@@ -392,8 +376,8 @@ class AnimalConfiguration(ModelConfigurationRoot):
 
     functional_group_definitions_path: FILEPATH_PLACEHOLDER
     "A file path to a data file of animal functional group definitions"
-    density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
-    """Specifies which density scaling equation to use for initialization. Options are
-    'damuth' or 'madingley'."""
+    # density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
+    # """Specifies which density scaling equation to use for initialization. Options are
+    # 'damuth' or 'madingley'."""
     constants: AnimalConstants = AnimalConstants()
     """The constants class for the animal model."""
