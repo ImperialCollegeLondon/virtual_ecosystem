@@ -376,8 +376,6 @@ class AnimalConfiguration(ModelConfigurationRoot):
 
     functional_group_definitions_path: FILEPATH_PLACEHOLDER
     "A file path to a data file of animal functional group definitions"
-    # density_scaling_method: DENSITY_SCALING_METHODS = "madingley"
-    # """Specifies which density scaling equation to use for initialization. Options are
-    # 'damuth' or 'madingley'."""
+
     constants: AnimalConstants = AnimalConstants()
     """The constants class for the animal model."""
