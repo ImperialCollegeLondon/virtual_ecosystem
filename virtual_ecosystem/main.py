@@ -127,6 +127,9 @@ def ve_run(
         print("* Loading configuration")
 
     variables.register_all_variables()
+
+    # All tests now pass if this is replaced with an empty dictionary. Of course mypy
+    # throws a bazillion complaints, but should now be okay to rip the old system out.
     config = Config(
         cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
     )
