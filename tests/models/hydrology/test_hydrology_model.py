@@ -1,7 +1,7 @@
 """Test module for hydrology.hydrology_model.py."""
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR, INFO
+from logging import DEBUG, INFO
 from unittest.mock import patch
 
 import numpy as np
@@ -10,7 +10,6 @@ import pytest
 from xarray import DataArray
 
 from tests.conftest import log_check, patch_bypass_setup, patch_run_update
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
 
 # Global set of messages from model required var checks
 MODEL_VAR_CHECK_LOG = [
@@ -20,53 +19,13 @@ MODEL_VAR_CHECK_LOG = [
 
 
 @pytest.mark.parametrize(
-    "ini_soil_moisture, ini_groundwater_sat, raises, expected_log_entries",
+    "ini_soil_moisture, ini_groundwater_sat, expected_log_entries",
     [
         pytest.param(
             0.5,
             0.9,
-            does_not_raise(),
             None,
             id="succeeds",
-        ),
-        pytest.param(
-            -0.5,
-            0.9,
-            pytest.raises(InitialisationError),
-            tuple(
-                [
-                    *MODEL_VAR_CHECK_LOG,
-                    (ERROR, "The initial_soil_moisture has to be between 0 and 1!"),
-                ]
-            ),
-            id="soil moisture out of bounds",
-        ),
-        pytest.param(
-            DataArray([50, 30, 20, 20]),
-            0.9,
-            pytest.raises(InitialisationError),
-            tuple(
-                [
-                    *MODEL_VAR_CHECK_LOG,
-                    (ERROR, "The initial_soil_moisture must be numeric!"),
-                ]
-            ),
-            id="soil moisture not numeric",
-        ),
-        pytest.param(
-            0.5,
-            1.9,
-            pytest.raises(InitialisationError),
-            tuple(
-                [
-                    *MODEL_VAR_CHECK_LOG,
-                    (
-                        ERROR,
-                        "The initial_groundwater_saturation has to be between 0 and 1!",
-                    ),
-                ]
-            ),
-            id="grnd sat out of bounds",
         ),
     ],
 )
@@ -76,7 +35,6 @@ def test_hydrology_model_initialization(
     fixture_core_components,
     ini_soil_moisture,
     ini_groundwater_sat,
-    raises,
     expected_log_entries,
 ):
     """Test `HydrologyModel` initialization."""
@@ -90,24 +48,24 @@ def test_hydrology_model_initialization(
         patch_bypass_setup(HydrologyModel) as mock_bypass_setup,
     ):
         mock_bypass_setup.return_value = False
-        with raises:
-            # Initialize model
-            model = HydrologyModel(
-                data=dummy_climate_data_varying_canopy,
-                core_components=fixture_core_components,
-                initial_soil_moisture=ini_soil_moisture,
-                initial_groundwater_saturation=ini_groundwater_sat,
-                model_constants=HydroConsts(),
-            )
 
-            # In cases where it passes we check that the object has the right properties
-            assert isinstance(model, BaseModel)
-            assert model.model_name == "hydrology"
-            assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
-            assert model.initial_soil_moisture == ini_soil_moisture
-            assert model.initial_groundwater_saturation == ini_groundwater_sat
-            # TODO: not sure on the value below, test with more expansive drainage maps
-            assert model.drainage_map == {0: [], 1: [], 2: [0, 1, 2, 3], 3: [1]}
+        # Initialize model
+        model = HydrologyModel(
+            data=dummy_climate_data_varying_canopy,
+            core_components=fixture_core_components,
+            initial_soil_moisture=ini_soil_moisture,
+            initial_groundwater_saturation=ini_groundwater_sat,
+            model_constants=HydroConsts(),
+        )
+
+        # In cases where it passes we check that the object has the right properties
+        assert isinstance(model, BaseModel)
+        assert model.model_name == "hydrology"
+        assert repr(model) == "HydrologyModel(update_interval=1209600 seconds)"
+        assert model.initial_soil_moisture == ini_soil_moisture
+        assert model.initial_groundwater_saturation == ini_groundwater_sat
+        # TODO: not sure on the value below, test with more expansive drainage maps
+        assert model.drainage_map == {0: [], 1: [], 2: [0, 1, 2, 3], 3: [1]}
 
     # Final check that expected logging entries are produced
     if expected_log_entries:
@@ -118,13 +76,12 @@ def test_hydrology_model_initialization(
     "cfg_string,sm_saturation,raises,expected_log_entries",
     [
         pytest.param(
-            "[core]\n"
+            "[core]\n[abiotic]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.51\n",
             0.51,
             does_not_raise(),
             (
-                (INFO, "Initialised hydrology.HydroConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the hydrology model "
@@ -135,14 +92,13 @@ def test_hydrology_model_initialization(
             id="default_config",
         ),
         pytest.param(
-            "[core]\n"
+            "[core]\n[abiotic]\n"
             "[hydrology]\ninitial_soil_moisture = 0.5\n"
             "initial_groundwater_saturation = 0.9\n"
-            "[hydrology.constants.HydroConsts]\nsoil_moisture_saturation = 0.7\n",
+            "[hydrology.constants]\nsoil_moisture_saturation = 0.7\n",
             0.7,
             does_not_raise(),
             (
-                (INFO, "Initialised hydrology.HydroConsts from config"),
                 (
                     INFO,
                     "Information required to initialise the hydrology model "
@@ -151,20 +107,6 @@ def test_hydrology_model_initialization(
                 *MODEL_VAR_CHECK_LOG,
             ),
             id="modified_config_correct",
-        ),
-        pytest.param(
-            "[core]\n"
-            "[hydrology]\ninitial_soil_moisture = 0.5\n"
-            "initial_groundwater_saturation = 0.9\n"
-            "[hydrology.constants.HydroConsts]\nsoilm_cap = 0.7\n",
-            None,
-            pytest.raises(ConfigurationError),
-            (
-                (ERROR, "Unknown names supplied for HydroConsts: soilm_cap"),
-                (INFO, "Valid names are: "),
-                (CRITICAL, "Could not initialise hydrology.HydroConsts from config"),
-            ),
-            id="modified_config_incorrect",
         ),
     ],
 )
@@ -178,22 +120,15 @@ def test_generate_hydrology_model(
 ):
     """Test that the initialisation of the hydrology model works as expected."""
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
     )
     from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
+    from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
 
-    config = Config(cfg_strings=cfg_string)
-
-    # TODO - This test is currently mixing the old HydrologyConsts validation with
-    # what will be replaced by configuration.hydrology.constants. So for now, fake
-    # it with a hardcoded config and let the errors run through to the old system
-
-    config_data = ConfigurationLoader(cfg_strings="[core]\n[hydrology]")
+    config_data = ConfigurationLoader(cfg_strings=cfg_string)
     configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(configuration.core)
     caplog.clear()
@@ -211,7 +146,7 @@ def test_generate_hydrology_model(
                     data=dummy_climate_data_varying_canopy,
                     configuration=configuration,
                     core_components=core_components,
-                    config=config,
+                    config=configuration,
                 )
                 mock_setup.assert_called_once()
 
@@ -219,15 +154,15 @@ def test_generate_hydrology_model(
                 _called_args, called_kwargs = mock_setup.call_args
                 assert (
                     called_kwargs["initial_soil_moisture"]
-                    == config["hydrology"]["initial_soil_moisture"]
+                    == configuration.hydrology.initial_soil_moisture
                 )
                 assert (
                     called_kwargs["initial_groundwater_saturation"]
-                    == config["hydrology"]["initial_groundwater_saturation"]
+                    == configuration.hydrology.initial_groundwater_saturation
                 )
 
                 model_constants = called_kwargs["model_constants"]
-                assert isinstance(model_constants, HydroConsts)
+                assert isinstance(model_constants, HydrologyConstants)
                 if sm_saturation is not None:
                     assert model_constants.soil_moisture_saturation == sm_saturation
 
@@ -312,7 +247,6 @@ def test_generate_hydrology_model(
 def test_setup(
     fixture_core_components,
     dummy_climate_data_varying_canopy,
-    fixture_config,
     fixture_configuration,
     update_interval,
     raises,
@@ -323,9 +257,6 @@ def test_setup(
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.hydrology import hydrology_tools
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
-
-    # Build the config object and core components
-    fixture_config["core"]["timing"]["update_interval"] = update_interval
 
     # Override the new update interval into the configuration object - it is frozen so
     # need to bypass that mechanism. Also need to override the computed field
@@ -348,7 +279,7 @@ def test_setup(
                 data=dummy_climate_data_varying_canopy,
                 configuration=fixture_configuration,
                 core_components=core_components,
-                config=fixture_config,
+                config=fixture_configuration,
             )
 
             # Test soil moisture

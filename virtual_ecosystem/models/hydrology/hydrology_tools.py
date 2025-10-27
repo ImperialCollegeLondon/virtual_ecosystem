@@ -5,21 +5,21 @@ from numpy.typing import NDArray
 from pyrealm.core.hygro import calc_specific_heat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.hydrology import above_ground
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
 
 
 def initialise_atmosphere_for_hydrology(
     data: Data,
-    model_constants: HydroConsts,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
+    model_constants: HydrologyConstants,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
     layer_structure: LayerStructure,
 ):
     """Initialise atmospheric variables required for hydrology model.
