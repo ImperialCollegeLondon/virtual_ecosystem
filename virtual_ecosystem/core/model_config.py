@@ -44,9 +44,6 @@ class CoreConstants(Configuration):
         0.75
     """
 
-    placeholder: float = 123.4
-    """A placeholder configurable constant."""
-
     zero_Celsius: ClassVar[float] = constants.zero_Celsius
     """Conversion constant from Kelvin to Celsius (°)."""
 
@@ -216,7 +213,11 @@ class TimingConfiguration(Configuration):
 
 
 class DataOutputConfiguration(Configuration):
-    """Output settings for the Virtual Ecosystem model state."""
+    """Output settings for the Virtual Ecosystem model state.
+
+    TODO - this is very confusingly named and structure - restructure and add class
+    validation.
+    """
 
     save_initial_state: bool = False
     "Whether the initial state should be saved"

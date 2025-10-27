@@ -122,7 +122,6 @@ configurations across all files **must not** contain repeated data variable name
 
 """  # noqa: D205
 
-from copy import copy
 from itertools import groupby
 from pathlib import Path
 from typing import Any
@@ -132,10 +131,10 @@ import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_ecosystem.core.config import Config, ConfigurationError
-from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.core.config import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.core.readers import load_to_dataarray
 from virtual_ecosystem.core.utils import check_outfile
 
@@ -441,7 +440,7 @@ class Data:
     def output_current_state(
         self,
         variables_to_save: list[str],
-        data_options: dict[str, Any],
+        output_directory_path: Path,
         time_index: int,
     ) -> Path:
         """Method to output the current state of the data object.
@@ -453,7 +452,7 @@ class Data:
 
         Args:
             variables_to_save: List of variables to save
-            data_options: Set of options concerning what to output and where
+            output_directory_path: The output directory for the current state data.
             time_index: The index representing the current time step in the data object.
 
         Raises:
@@ -466,10 +465,7 @@ class Data:
         """
 
         # Create output file path for specific time index
-        out_path = (
-            Path(data_options["out_folder_continuous"])
-            / f"continuous_state{time_index:05}.nc"
-        )
+        out_path = output_directory_path / f"continuous_state{time_index:05}.nc"
 
         # Save the required variables by appending to existing file
         self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
@@ -478,7 +474,7 @@ class Data:
 
 
 def merge_continuous_data_files(
-    data_options: dict[str, Any], continuous_data_files: list[Path]
+    merged_file_path: Path, continuous_data_files: list[Path]
 ) -> None:
     """Merge all continuous data files in a folder into a single file.
 
@@ -486,7 +482,7 @@ def merge_continuous_data_files(
     once the combined output is saved.
 
     Args:
-        data_options: Set of options concerning what to output and where
+        merged_file_path: The output file name for the merged continuous data.
         continuous_data_files: Files containing previously output continuous data
 
     Raises:
@@ -494,15 +490,8 @@ def merge_continuous_data_files(
             exists
     """
 
-    # Path to folder containing the continuous output (that merged file should be saved
-    # to)
-    out_path = (
-        Path(data_options["out_folder_continuous"])
-        / data_options["out_continuous_file_name"]
-    )
-
     # Check that output file doesn't already exist
-    check_outfile(out_path)
+    check_outfile(merged_file_path)
 
     # Open all files as a single dataset
     with open_mfdataset(continuous_data_files, lock=False) as all_data:
@@ -510,7 +499,7 @@ def merge_continuous_data_files(
         all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
 
         # Save and close complete dataset
-        all_data.to_netcdf(out_path)
+        all_data.to_netcdf(merged_file_path)
 
     # Iterate over all continuous files and delete them
     for file_path in continuous_data_files:
