@@ -85,7 +85,7 @@ jobs:
       
       - name: Archive built docs for error checking on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: built-docs
           path: docs/build
