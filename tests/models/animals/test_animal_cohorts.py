@@ -990,7 +990,7 @@ class TestAnimalCohort:
         """Testing for calculate alpha."""
         # Assuming necessary imports and setup based on previous examples
         from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
-        from virtual_ecosystem.models.animal.constants import AnimalConsts
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         # Mock the scaling function to control its return value
         mocker.patch(
@@ -999,7 +999,7 @@ class TestAnimalCohort:
         )
 
         # Setup constants and functional group mock
-        constants = AnimalConsts()
+        constants = AnimalConstants()
         functional_group_mock = herbivore_functional_group_instance
 
         # Initialize the AnimalCohort instance with test parameters
