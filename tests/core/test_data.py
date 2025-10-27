@@ -531,23 +531,21 @@ def test_Data_load_to_dataarray_data_handling(
 
 
 @pytest.mark.parametrize(
-    argnames=["cfg_strings", "exp_error", "exp_msg", "exp_log"],
+    argnames=["cfg_data", "exp_error", "exp_msg", "exp_log"],
     argvalues=[
         pytest.param(
-            """[core]
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "temp"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "prec"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "elev"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "vapd"
-               """,
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {"file_path": "cellid_coords.nc", "var_name": "temp"},
+                            {"file_path": "cellid_coords.nc", "var_name": "prec"},
+                            {"file_path": "cellid_coords.nc", "var_name": "elev"},
+                            {"file_path": "cellid_coords.nc", "var_name": "vapd"},
+                        ]
+                    }
+                }
+            },
             does_not_raise(),
             None,
             (
@@ -561,7 +559,7 @@ def test_Data_load_to_dataarray_data_handling(
             id="valid config",
         ),
         pytest.param(
-            """[core]\n""",
+            {"core": {"data": {"variable": []}}},
             does_not_raise(),
             None,
             (
@@ -571,20 +569,18 @@ def test_Data_load_to_dataarray_data_handling(
             id="no data",
         ),
         pytest.param(
-            """[core]
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "temp"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "prec"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "elev"
-               [[core.data.variable]]
-               file_path =  "cellid_coords.nc"
-               var_name = "elev"
-               """,
+            {
+                "core": {
+                    "data": {
+                        "variable": [
+                            {"file_path": "cellid_coords.nc", "var_name": "temp"},
+                            {"file_path": "cellid_coords.nc", "var_name": "prec"},
+                            {"file_path": "cellid_coords.nc", "var_name": "elev"},
+                            {"file_path": "cellid_coords.nc", "var_name": "elev"},
+                        ]
+                    }
+                }
+            },
             pytest.raises(ConfigurationError),
             "Data configuration did not load cleanly - check log",
             (
@@ -610,7 +606,7 @@ def test_Data_load_from_config(
     caplog,
     shared_datadir,
     fixture_load_data_grids,
-    cfg_strings,
+    cfg_data,
     exp_error,
     exp_msg,
     exp_log,
@@ -624,21 +620,27 @@ def test_Data_load_from_config(
 
     # Setup a Data instance to match the example files generated in tests/core/data
 
-    from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        generate_configuration,
+    )
     from virtual_ecosystem.core.data import Data
+    from virtual_ecosystem.core.model_config import CoreConfiguration
+
+    # Update the paths to point to copies of actual files in shared_datadir
+    # This has to happen before generating the configuration, because the config
+    # BaseModel requires that files actually exist.
+    for each_var in cfg_data["core"]["data"]["variable"]:
+        each_var["file_path"] = shared_datadir / each_var["file_path"]
 
     data = Data(fixture_load_data_grids)
-    cfg = Config(cfg_strings=cfg_strings)
+    config = generate_configuration(cfg_data)
+
+    core_config = config.get_subconfiguration("core", CoreConfiguration)
+
     caplog.clear()
 
-    # Edit the paths loaded to point to copies in shared_datadir
-    # Note that the no data test gets the default empty dict for cfg["core"]["data"]
-    if "variable" in cfg["core"]["data"]:
-        for each_var in cfg["core"]["data"]["variable"]:
-            each_var["file_path"] = shared_datadir / each_var["file_path"]
-
     with exp_error as err:
-        data.load_data_config(config=cfg)
+        data.load_data_config(config=core_config)
 
     if err:
         assert str(err.value) == exp_msg

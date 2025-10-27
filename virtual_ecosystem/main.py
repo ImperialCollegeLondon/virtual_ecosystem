@@ -127,9 +127,9 @@ def ve_run(
         print("* Loading configuration")
 
     variables.register_all_variables()
-    config = Config(
-        cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
-    )
+    # config = Config(
+    #     cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
+    # )
 
     # NEW configuration system
 
@@ -152,10 +152,8 @@ def ve_run(
             Path(core_configuration.data_output_options.out_path)
             / core_configuration.data_output_options.out_merge_file_name
         )
-        # TODO: While in transition in configuration write out the old style Config as
-        #       the static model demo can't handle new configs right now.
-        # configuration.export_toml(outfile)
-        config.export_config(outfile)
+        # Export the merged configuration
+        configuration.export_toml(outfile)
 
         if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")

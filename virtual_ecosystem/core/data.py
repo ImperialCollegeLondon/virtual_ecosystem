@@ -122,6 +122,7 @@ configurations across all files **must not** contain repeated data variable name
 
 """  # noqa: D205
 
+from copy import copy
 from itertools import groupby
 from pathlib import Path
 from typing import Any
@@ -132,6 +133,7 @@ from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
 from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.readers import load_to_dataarray
@@ -292,7 +294,7 @@ class Data:
 
         return True
 
-    def load_data_config(self, config: Config) -> None:
+    def load_data_config(self, config: CoreConfiguration) -> None:
         """Setup the simulation data from a user configuration.
 
         This is a method is used to validate a provided user data configuration and
@@ -309,71 +311,51 @@ class Data:
 
         LOGGER.info("Loading data from configuration")
 
-        # Check the data configuration is provided - note that the default configuration
-        # is to include cfg['core']['data'] = {} - so check first for something totally
-        # broken/
-        if ("core" not in config) or ("data" not in config["core"]):
-            msg = "Data configuration not found in config object."
-            LOGGER.critical(msg)
-            raise ConfigurationError(msg)
-
         # Track errors in loading multiple files from a configuration
-        data_config = config["core"]["data"]
-        data_source_types = ["variable", "constant", "generator"]
-        clean_load = True
+        data_config = config.data
 
-        # Check for an empty data configuration - do not make this an error or critical
-        # but do log it, so that users can trace back when variables are missing
-        if not set(data_source_types).intersection(data_config):
-            msg = "No data sources defined in the data configuration."
-            LOGGER.warning(msg)
+        # The previous code here tested for "constant" and "generator" data types, but
+        # since those are not yet implemented, this has been dropped
 
         # Handle variables
-        if "variable" in data_config:
-            # Check what name the data will be saved under but do then carry on to check
-            # for other loading problems
-            data_var_names = [v["var_name"] for v in data_config["variable"]]
+        if len(data_config.variable) == 0:
+            LOGGER.warning("No data sources defined in the data configuration.")
+            return
 
-            dupl_names = {
-                str(md) for md in data_var_names if data_var_names.count(md) > 1
-            }
-            if dupl_names:
-                LOGGER.error("Duplicate variable names in data configuration.")
+        clean_load = True
+
+        # Check what name the data will be saved under but do then carry on to check
+        # for other loading problems
+        data_var_names = [var.var_name for var in data_config.variable]
+
+        dupl_names = {str(md) for md in data_var_names if data_var_names.count(md) > 1}
+        if dupl_names:
+            LOGGER.error("Duplicate variable names in data configuration.")
+            clean_load = False
+
+        # Group variables by file
+        variables = list(data_config.variable)
+        variables.sort(key=lambda var: var.file_path)
+        file_groups = groupby(variables, key=lambda var: var.file_path)
+
+        # Load data from each data source
+        for file, file_vars in file_groups:
+            # Attempt to load the file, trapping exceptions as critical logger
+            # messages and defer failure until the whole configuration has been
+            # processed
+
+            try:
+                loaded_data = load_to_dataarray(
+                    file=Path(file),
+                    var_names=[var.var_name for var in file_vars],
+                )
+
+            except Exception as err:
+                LOGGER.error(str(err))
                 clean_load = False
-
-            # Group variables by file
-            variables = data_config["variable"]
-            variables.sort(key=lambda v: v["file_path"])
-            file_groups = groupby(variables, key=lambda v: v["file_path"])
-
-            # Load data from each data source
-            for file, file_vars in file_groups:
-                # Attempt to load the file, trapping exceptions as critical logger
-                # messages and defer failure until the whole configuration has been
-                # processed
-
-                try:
-                    loaded_data = load_to_dataarray(
-                        file=Path(file),
-                        var_names=[var["var_name"] for var in file_vars],
-                    )
-
-                except Exception as err:
-                    LOGGER.error(str(err))
-                    clean_load = False
-                else:
-                    for var_name, data_array in loaded_data.items():
-                        self[var_name] = data_array
-
-        if "constant" in data_config:
-            msg = "Data config for constants not yet implemented."
-            LOGGER.critical(msg)
-            raise NotImplementedError(msg)
-
-        if "generator" in data_config:
-            msg = "Data config for generators not yet implemented."
-            LOGGER.critical(msg)
-            raise NotImplementedError(msg)
+            else:
+                for var_name, data_array in loaded_data.items():
+                    self[var_name] = data_array
 
         if not clean_load:
             msg = "Data configuration did not load cleanly - check log"

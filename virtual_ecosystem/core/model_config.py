@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 from functools import cached_property
+from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
@@ -22,6 +23,7 @@ from scipy import constants
 
 from virtual_ecosystem.core.configuration import (
     DIRPATH_PLACEHOLDER,
+    FILEPATH_PLACEHOLDER,
     Configuration,
 )
 
@@ -224,7 +226,7 @@ class DataOutputConfiguration(Configuration):
     "Whether the final state should be saved"
     save_merged_config: bool = True
     "Whether to save a merged TOML file containing all config options"
-    out_path: DIRPATH_PLACEHOLDER  # = Path("<DIRPATH_PLACEHOLDER>")
+    out_path: DIRPATH_PLACEHOLDER = Path("<DIRPATH_PLACEHOLDER>")
     "Directory path for output files"
     out_initial_file_name: str = "initial_state.nc"
     """File name for initial state output file"""
@@ -298,12 +300,12 @@ class LayersConfiguration(Configuration):
 class DataSource(Configuration):
     """Data source configuration."""
 
-    file_path: str = "placeholder"
-    var_name: str = "placeholder"
+    file_path: FILEPATH_PLACEHOLDER = Path("<FILEPATH_PLACEHOLDER>")
+    var_name: str = "variable_name_placeholder"
 
 
-class Variables(Configuration):
-    """Variables configuration."""
+class DataConfiguration(Configuration):
+    """Data configuration."""
 
     variable: tuple[DataSource, ...] = (DataSource(), DataSource())
 
@@ -321,5 +323,5 @@ class CoreConfiguration(Configuration):
     """Configuration of the layers in the vertical structure"""
     timing: TimingConfiguration = TimingConfiguration()
     """Configuration of the model run and step lengths"""
-    data: Variables = Variables()
+    data: DataConfiguration = DataConfiguration()
     """Configuration of the input variables and data sources."""
