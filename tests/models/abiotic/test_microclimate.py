@@ -3,12 +3,14 @@
 import numpy as np
 from pyrealm.constants import CoreConst as PyrealmConst
 
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleBounds
 
-
-def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_components):
+def test_run_microclimate(
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_core_constants,
+    fixture_abiotic_constants,
+    fixture_abiotic_simple_configuration,
+):
     """Test microclimate function."""
 
     from virtual_ecosystem.models.abiotic.microclimate import (
@@ -22,10 +24,10 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
         time_interval=86400 * 30,
         cell_area=10000,
         layer_structure=lyr_str,
-        abiotic_constants=AbioticConsts(),
-        core_constants=CoreConsts(),
+        abiotic_constants=fixture_abiotic_constants,
+        core_constants=fixture_core_constants,
         pyrealm_const=PyrealmConst(),
-        abiotic_bounds=AbioticSimpleBounds(),
+        abiotic_bounds=fixture_abiotic_simple_configuration.bounds,
     )
 
     for var in [
@@ -85,7 +87,11 @@ def test_run_microclimate(dummy_climate_data_varying_canopy, fixture_core_compon
 
 
 def test_run_microclimate_subdaily(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_core_constants,
+    fixture_abiotic_constants,
+    fixture_abiotic_simple_configuration,
 ):
     """Test microclimate function iterates over hours - no time index."""
 
@@ -110,10 +116,10 @@ def test_run_microclimate_subdaily(
         time_interval=3600 * 4,
         cell_area=10000,
         layer_structure=lyr_str,
-        abiotic_constants=AbioticConsts(),
-        core_constants=CoreConsts(),
+        abiotic_constants=fixture_abiotic_constants,
+        core_constants=fixture_core_constants,
         pyrealm_const=PyrealmConst(),
-        abiotic_bounds=AbioticSimpleBounds(),
+        abiotic_bounds=fixture_abiotic_simple_configuration.bounds,
     )
 
     for var in [
@@ -173,7 +179,11 @@ def test_run_microclimate_subdaily(
 
 
 def test_run_microclimate_minutes(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_core_constants,
+    fixture_abiotic_constants,
+    fixture_abiotic_simple_configuration,
 ):
     """Test microclimate function iterates once for <1h time interval."""
 
@@ -196,10 +206,10 @@ def test_run_microclimate_minutes(
         time_interval=60,
         cell_area=10000,
         layer_structure=lyr_str,
-        abiotic_constants=AbioticConsts(),
-        core_constants=CoreConsts(),
+        abiotic_constants=fixture_abiotic_constants,
+        core_constants=fixture_core_constants,
         pyrealm_const=PyrealmConst(),
-        abiotic_bounds=AbioticSimpleBounds(),
+        abiotic_bounds=fixture_abiotic_simple_configuration.bounds,
     )
 
     # Check that values fall within a reasonable expected range

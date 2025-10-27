@@ -209,6 +209,7 @@ nitpick_ignore = [
     ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
     ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
     ("py:class", "always"),
+    ("py:class", "PyrealmConst"),
 ]
 
 intersphinx_mapping = {

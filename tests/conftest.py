@@ -291,6 +291,7 @@ def generate_config_strings(
 {(fixture_root_data_dir / "animal_functional_groups.csv")!s}'''
 
         [hydrology]
+        [abiotic]
     """
 
     return [cfg_string, additional_toml]
@@ -340,6 +341,49 @@ def animal_fixture_configuration():
 
 
 @pytest.fixture
+def fixture_core_constants(fixture_configuration):
+    """Get the core constants instance from the config."""
+
+    return fixture_configuration.core.constants
+
+
+@pytest.fixture
+def fixture_soil_constants(fixture_configuration):
+    """Get the soil constants instance from the config."""
+
+    return fixture_configuration.soil.constants
+
+
+@pytest.fixture
+def fixture_hydrology_constants(fixture_configuration):
+    """Get the hydrology constants instance from the config."""
+
+    return fixture_configuration.hydrology.constants
+
+
+@pytest.fixture
+def fixture_abiotic_constants(fixture_configuration):
+    """Get the abiotic constants instance from the config."""
+
+    return fixture_configuration.abiotic.constants
+
+
+@pytest.fixture
+def fixture_abiotic_simple_configuration():
+    """Get an abiotic_simple configuration instance to provide bounds and constants.
+
+    The abiotic simple model is not used in the fixture_configuration so this fixture
+    creates one from scratch.
+    """
+
+    from virtual_ecosystem.models.abiotic_simple.model_config import (
+        AbioticSimpleConfiguration,
+    )
+
+    return AbioticSimpleConfiguration()
+
+
+@pytest.fixture
 def fixture_core_components(fixture_configuration):
     """A CoreComponents instance for use in testing."""
     from virtual_ecosystem.core.core_components import CoreComponents
@@ -357,13 +401,6 @@ def fixture_core_components(fixture_configuration):
     core_components.layer_structure.set_filled_canopy(canopy_array)
 
     return core_components
-
-
-@pytest.fixture
-def fixture_core_constants(fixture_configuration):
-    """A core constants instance for use in testing."""
-
-    return fixture_configuration.core.constants
 
 
 @pytest.fixture

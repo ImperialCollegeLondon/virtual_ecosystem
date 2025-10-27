@@ -18,14 +18,14 @@ from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_vp_sat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import energy_balance
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import (
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
+from virtual_ecosystem.models.abiotic_simple.model_config import (
     AbioticSimpleBounds,
-    AbioticSimpleConsts,
+    AbioticSimpleConstants,
 )
 
 
@@ -33,9 +33,9 @@ def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    simple_constants: AbioticSimpleConsts,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
+    simple_constants: AbioticSimpleConstants,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     r"""Calculate simple microclimate.
