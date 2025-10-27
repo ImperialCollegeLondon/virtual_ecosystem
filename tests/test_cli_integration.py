@@ -109,6 +109,8 @@ save_initial_state = false
 save_continuous_data = false
 save_final_state = false
 save_merged_config = false
+[core.data]
+variable = []
 [testing]
 """
         )

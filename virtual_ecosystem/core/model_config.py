@@ -308,7 +308,10 @@ class DataSource(Configuration):
 class DataConfiguration(Configuration):
     """Data configuration."""
 
-    variable: tuple[DataSource, ...] = (DataSource(), DataSource())
+    variable: tuple[DataSource, ...] = (
+        DataSource(var_name="variable_name_placeholder_one"),
+        DataSource(var_name="variable_name_placeholder_two"),
+    )
 
 
 class CoreConfiguration(Configuration):

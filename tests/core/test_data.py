@@ -942,9 +942,7 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
 
     register_module("virtual_ecosystem.models.litter")
 
-    data_options = {"out_folder_continuous": "."}
-
-    # Patch the relevant lower level function
+    # Patch the relevant lower level function so no actual files get saved.
     mock_save = mocker.patch("virtual_ecosystem.main.Data.save_timeslice_to_netcdf")
 
     # Extract model from registry and put into expected dictionary format
@@ -959,7 +957,9 @@ def test_output_current_state(mocker, dummy_litter_data, time_index):
 
     # Then call the top level function
     outpath = dummy_litter_data.output_current_state(
-        variables_to_save, data_options, time_index
+        variables_to_save=variables_to_save,
+        output_directory_path=Path("."),
+        time_index=time_index,
     )
 
     # Check that the mocked function was called once with correct input (which is
@@ -1001,16 +1001,12 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["litter_pool_woody", "soil_temperature"]
-    data_options = {
-        "out_folder_continuous": str(shared_datadir),
-        "out_continuous_file_name": "all_continuous_data.nc",
-    }
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state1.nc",
-        variables_to_save,
-        1,
+        output_file_path=shared_datadir / "continuous_state1.nc",
+        variables_to_save=variables_to_save,
+        time_index=1,
     )
 
     # Alter data so that files differ (slightly)
@@ -1021,18 +1017,19 @@ def test_merge_continuous_data_files(shared_datadir, dummy_litter_data):
 
     # Save second data file
     dummy_litter_data.save_timeslice_to_netcdf(
-        shared_datadir / "continuous_state2.nc",
-        variables_to_save,
-        2,
+        output_file_path=shared_datadir / "continuous_state2.nc",
+        variables_to_save=variables_to_save,
+        time_index=2,
     )
 
-    continuous_files = [
-        shared_datadir / "continuous_state1.nc",
-        shared_datadir / "continuous_state2.nc",
-    ]
-
     # Merge data
-    merge_continuous_data_files(data_options, continuous_files)
+    merge_continuous_data_files(
+        merged_file_path=shared_datadir / "all_continuous_data.nc",
+        continuous_data_files=[
+            shared_datadir / "continuous_state1.nc",
+            shared_datadir / "continuous_state2.nc",
+        ],
+    )
 
     # Check that original two files have been deleted
     assert len(list(shared_datadir.rglob("continuous_state*.nc"))) == 0
@@ -1088,10 +1085,6 @@ def test_merge_continuous_file_already_exists(
 
     # Simple and slightly more complex data for the file
     variables_to_save = ["litter_pool_woody", "soil_temperature"]
-    data_options = {
-        "out_folder_continuous": str(shared_datadir),
-        "out_continuous_file_name": "already_exists.nc",
-    }
 
     # Save first data file
     dummy_litter_data.save_timeslice_to_netcdf(
@@ -1100,14 +1093,15 @@ def test_merge_continuous_file_already_exists(
         1,
     )
 
-    continuous_files = [
-        shared_datadir / "continuous_state1.nc",
-        shared_datadir / "already_exists.nc",
-    ]
-
     with pytest.raises(ConfigurationError):
         # Merge data
-        merge_continuous_data_files(data_options, continuous_files)
+        merge_continuous_data_files(
+            shared_datadir / "already_exists.nc",
+            continuous_data_files=[
+                shared_datadir / "continuous_state1.nc",
+                shared_datadir / "already_exists.nc",
+            ],
+        )
 
     log_check(
         caplog,
