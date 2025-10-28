@@ -198,7 +198,6 @@ def test_generate_abiotic_model(
                 data=dummy_climate_data_varying_canopy,
                 configuration=configuration,
                 core_components=core_components,
-                config=configuration,
             )
             mock_setup.assert_called_once()
             mock_bypass_setup.assert_called_once()
@@ -240,7 +239,6 @@ def test_generate_abiotic_model_bounds_error(
 ):
     """Test that the initialisation of the abiotic model from config."""
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -249,7 +247,6 @@ def test_generate_abiotic_model_bounds_error(
     from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel
 
     # Build the config object and core components
-    config = Config(cfg_strings=cfg_string)
     config_data = ConfigurationLoader(cfg_strings=cfg_string)
     configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(configuration.core)
@@ -266,7 +263,6 @@ def test_generate_abiotic_model_bounds_error(
                 data=dummy_climate_data_varying_canopy,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
 
     # Final check that expected logging entries are produced
