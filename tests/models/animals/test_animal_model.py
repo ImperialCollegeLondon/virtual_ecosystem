@@ -150,7 +150,6 @@ class TestAnimalModel:
         self,
         caplog,
         dummy_animal_data,
-        animal_fixture_config,  # Use the config fixture
         animal_fixture_configuration,
         raises,
         expected_log_entries,
@@ -169,7 +168,6 @@ class TestAnimalModel:
                 data=dummy_animal_data,
                 configuration=animal_fixture_configuration,
                 core_components=core_components,
-                config=animal_fixture_config,
             )
 
             # Run the update step (once this does something should check output)
@@ -224,7 +222,6 @@ class TestAnimalModel:
             data=dummy_animal_data,
             configuration=animal_fixture_configuration,
             core_components=fixture_core_components,
-            config=dict(),
         )
 
         # Check that the model has the correct scaling method set
