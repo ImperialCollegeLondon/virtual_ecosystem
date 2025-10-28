@@ -362,6 +362,13 @@ def fixture_litter_constants(fixture_configuration):
 
 
 @pytest.fixture
+def fixture_plants_constants(fixture_configuration):
+    """Get the plants constants instance from the config."""
+
+    return fixture_configuration.plants.constants
+
+
+@pytest.fixture
 def fixture_hydrology_constants(fixture_configuration):
     """Get the hydrology constants instance from the config."""
 
