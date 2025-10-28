@@ -3,11 +3,10 @@
 import numpy as np
 import pytest
 
-from virtual_ecosystem.core.constants import CoreConsts
-
 
 def test_calculate_litter_losses(
     dummy_litter_data,
+    fixture_core_constants,
     post_consumption_pools,
     updated_pools,
     litter_inputs,
@@ -48,7 +47,7 @@ def test_calculate_litter_losses(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         update_interval=2.0,
-        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
+        active_microbe_depth=fixture_core_constants.max_depth_of_microbial_activity,
     )
 
     # Convert to a dict to check the values
