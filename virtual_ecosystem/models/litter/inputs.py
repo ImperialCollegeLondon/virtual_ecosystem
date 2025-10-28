@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.litter.constants import LitterConsts
+from virtual_ecosystem.models.litter.model_config import LitterConstants
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ class LitterInputs:
 
     @classmethod
     def create_from_data(
-        cls, data: Data, constants: LitterConsts, update_interval: float
+        cls, data: Data, constants: LitterConstants, update_interval: float
     ) -> LitterInputs:
         """Factory method to populate the various litter input flows.
 
@@ -207,7 +207,7 @@ def combine_input_sources(
 
 
 def calculate_metabolic_proportions_of_input(
-    total_input: dict[str, NDArray[np.floating]], constants: LitterConsts
+    total_input: dict[str, NDArray[np.floating]], constants: LitterConstants
 ) -> dict[str, NDArray[np.floating]]:
     """Calculate the proportion of each input type that flows to the metabolic pool.
 
