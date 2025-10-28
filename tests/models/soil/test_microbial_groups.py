@@ -70,7 +70,7 @@ def test_find_enzyme_substrates(
     ],
 )
 def test_calculate_new_biomass_average_nutrient_ratios(
-    fixture_config, enzyme_classes, group, expected_ratio, fixture_core_constants
+    fixture_configuration, enzyme_classes, group, expected_ratio, fixture_core_constants
 ):
     """Check method to calculate average new biomass nutrient ratios works."""
     import numpy as np
@@ -81,16 +81,16 @@ def test_calculate_new_biomass_average_nutrient_ratios(
 
     group_config = next(
         functional_group
-        for functional_group in fixture_config["soil"]["microbial_group_definition"]
-        if functional_group["name"] == group
+        for functional_group in fixture_configuration.soil.microbial_group_definition
+        if functional_group.name == group
     )
 
     averaged_nutrient_ratios = calculate_new_biomass_average_nutrient_ratios(
-        taxonomic_group=group_config["taxonomic_group"],
+        taxonomic_group=group_config.taxonomic_group,
         c_n_ratio=5.7,
         c_p_ratio=15.5,
-        enzyme_production=group_config["enzyme_production"],
-        reproductive_allocation=group_config["reproductive_allocation"],
+        enzyme_production=group_config.enzyme_production,
+        reproductive_allocation=group_config.reproductive_allocation,
         c_n_ratio_fruiting_bodies=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
         c_p_ratio_fruiting_bodies=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
         enzyme_classes=enzyme_classes,

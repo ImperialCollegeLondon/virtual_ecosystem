@@ -4,7 +4,7 @@ This module tests the functionality of base_model.py
 """
 
 from contextlib import nullcontext as does_not_raise
-from logging import CRITICAL, DEBUG, ERROR
+from logging import CRITICAL, ERROR
 from typing import Any
 
 import pytest
@@ -383,7 +383,6 @@ def test_check_update_speed(
     """Tests check on update speed."""
 
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -516,7 +515,6 @@ def test_bypass_setup_due_to_static_configuration(
 ):
     """Test the _bypass_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
         CoreComponents,
@@ -653,7 +651,6 @@ def test_run_update_due_to_static_configuration(
     """Test the _run_update_due_to_static_configuration method."""
 
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.core.data import Data
@@ -757,7 +754,6 @@ def test_bypass_setup_but_run_update_fails(
 ):
     """Test the _bypass_setup_due_to_static_configuration method."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.configuration import CompiledConfiguration
     from virtual_ecosystem.core.core_components import (
         CoreComponents,

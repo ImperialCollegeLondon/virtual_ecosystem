@@ -278,7 +278,6 @@ def test_generate_soil_model(
             data=dummy_carbon_data,
             configuration=configuration,
             core_components=core_components,
-            config=configuration,
         )
         assert model.model_constants.solubility_coefficient_labile_p == solub_coeff
 
@@ -515,7 +514,6 @@ def test_order_independance(
     dummy_carbon_data,
     fixture_soil_model,
     fixture_soil_configuration,
-    fixture_soil_config,
     fixture_soil_core_components,
 ):
     """Check that pool order in the data object doesn't change integration result."""
@@ -587,7 +585,6 @@ def test_order_independance(
         data=new_data,
         configuration=fixture_soil_configuration,
         core_components=fixture_soil_core_components,
-        config=fixture_soil_config,
     )
 
     # Integrate using both data objects

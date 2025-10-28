@@ -25,7 +25,6 @@ from scipy.integrate import solve_ivp
 from xarray import DataArray, where
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents, LayerStructure
 from virtual_ecosystem.core.data import Data
@@ -246,7 +245,6 @@ class SoilModel(
         data: Data,
         configuration: CompiledConfiguration,
         core_components: CoreComponents,
-        config: Config,
     ) -> SoilModel:
         """Factory function to initialise the soil model from configuration.
 
