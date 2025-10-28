@@ -107,7 +107,6 @@ from typing import Any
 
 import pint
 
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
@@ -455,7 +454,6 @@ class BaseModel(ABC):
         data: Data,
         configuration: CompiledConfiguration,
         core_components: CoreComponents,
-        config: Config,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 

@@ -320,133 +320,6 @@ def test_check_failure_on_missing_methods(dummy_climate_data, fixture_core_compo
     assert str(err.value).startswith("Can't instantiate abstract class InitVarModel ")
 
 
-@pytest.mark.skip(
-    "This functionality is going to be handed off to the variables system "
-    "so skipping for now but this will probably be deleted"
-)
-@pytest.mark.parametrize(
-    argnames="req_init_vars, raises, exp_err_msg, exp_log",
-    argvalues=[
-        pytest.param(
-            [("temperature", ("spatial",))],
-            does_not_raise(),
-            None,
-            ((DEBUG, "init_var model: required var 'temperature' checked"),),
-            id="single var with axes ok",
-        ),
-        pytest.param(
-            [("precipitation", tuple())],
-            does_not_raise(),
-            None,
-            ((DEBUG, "init_var model: required var 'precipitation' checked"),),
-            id="single var without axes ok",
-        ),
-        pytest.param(
-            [("temperature", ("spatial",)), ("precipitation", tuple())],
-            does_not_raise(),
-            None,
-            (
-                (DEBUG, "init_var model: required var 'temperature' checked"),
-                (DEBUG, "init_var model: required var 'precipitation' checked"),
-            ),
-            id="multivar ok",
-        ),
-        pytest.param(
-            [("precipitation", ("spatial",))],
-            pytest.raises(ValueError),
-            "init_var model: error checking vars_required_for_init, see log.",
-            (
-                (
-                    ERROR,
-                    "init_var model: required var 'precipitation' not on required "
-                    "axes: spatial",
-                ),
-                (
-                    ERROR,
-                    "init_var model: error checking vars_required_for_init, see log.",
-                ),
-            ),
-            id="missing axis",
-        ),
-    ],
-)
-def test_check_vars_required_for_init(
-    caplog,
-    fixture_data_instance_for_model_validation,
-    fixture_core_components,
-    req_init_vars,
-    raises,
-    exp_err_msg,
-    exp_log,
-):
-    """Tests the validation of the vars_required_for_init property on init."""
-
-    # This gets registered for each parameterisation but I can't figure out how to
-    # create the instance via a module-scope fixture and the alternative is just
-    # defining it at the top, which isn't encapsulated in a test.
-
-    from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.config import Config
-    from virtual_ecosystem.core.configuration import CompiledConfiguration
-    from virtual_ecosystem.core.core_components import CoreComponents
-    from virtual_ecosystem.core.data import Data
-
-    class TestCaseModel(
-        BaseModel,
-        model_name="init_var",
-        model_update_bounds=("1 second", "1 year"),
-        vars_required_for_init=(),
-        vars_updated=[],
-    ):
-        def spinup(self) -> None:
-            pass
-
-        def update(self, time_index: int, **kwargs: Any) -> None:
-            pass
-
-        def cleanup(self) -> None:
-            pass
-
-        @classmethod
-        def from_config(
-            cls,
-            data: Data,
-            configuration: CompiledConfiguration,
-            core_components: CoreComponents,
-            config: Config,
-        ) -> Any:
-            return super().from_config(
-                data=data,
-                configuration=configuration,
-                core_components=core_components,
-                config=config,
-            )
-
-    # Registration of TestClassModel emits logging messages - discard.
-    caplog.clear()
-
-    # Override the vars_required_for_init for different test cases against the
-    # data_instance
-    TestCaseModel.vars_required_for_init = req_init_vars
-
-    # Create an instance to check the handling
-    with raises as err:
-        inst = TestCaseModel(
-            data=fixture_data_instance_for_model_validation,
-            core_components=fixture_core_components,
-        )
-
-    if err:
-        # Check any error message
-        assert str(err.value) == exp_err_msg
-    else:
-        # Check the special methods
-        assert repr(inst).startswith("TestCaseModel(")
-        assert str(inst) == "A init_var model instance"
-
-    log_check(caplog, exp_log)
-
-
 @pytest.mark.parametrize(
     argnames=["config_string", "raises", "expected_log"],
     argvalues=[
@@ -547,13 +420,11 @@ def test_check_update_speed(
             data: Data,
             configuration: CompiledConfiguration,
             core_components: CoreComponents,
-            config: Config,
         ) -> Any:
             return super().from_config(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
 
     # Process the configuration
@@ -680,13 +551,11 @@ def test_bypass_setup_due_to_static_configuration(
             data: Data,
             configuration: CompiledConfiguration,
             core_components: CoreComponents,
-            config: Config,
         ) -> BaseModel:
             return super().from_config(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
 
     for var in data_vars.keys():
@@ -817,13 +686,11 @@ def test_run_update_due_to_static_configuration(
             data: Data,
             configuration: CompiledConfiguration,
             core_components: CoreComponents,
-            config: Config,
         ) -> BaseModel:
             return super().from_config(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
 
     for var in data_vars.keys():
@@ -925,13 +792,11 @@ def test_bypass_setup_but_run_update_fails(
             data: Data,
             configuration: CompiledConfiguration,
             core_components: CoreComponents,
-            config: Config,
         ) -> BaseModel:
             return super().from_config(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
 
     for var in data_vars.keys():
