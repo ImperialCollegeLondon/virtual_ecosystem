@@ -16,7 +16,7 @@ from typing import Any
 
 import virtual_ecosystem as ve
 from virtual_ecosystem import example_data_path
-from virtual_ecosystem.core.config import config_merge
+from virtual_ecosystem.core.config_builder import merge_configuration_dicts
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.main import Progress, ve_run
@@ -50,11 +50,11 @@ def _parse_command_line_params(
     Raises:
         ConfigurationError: Invalid format for parameters or conflicting values supplied
     """
-    conflicts: tuple = ()
+
     for param_str in params_str:
         param_dict = _parse_param_str(param_str)
-        override_params, conflicts = config_merge(
-            override_params, param_dict, conflicts
+        override_params, conflicts = merge_configuration_dicts(
+            override_params, param_dict
         )
 
     if conflicts:
@@ -213,19 +213,23 @@ def ve_run_cli(args_list: list[str] | None = None) -> int:
         )
         return 1
 
-    # Install the example directory to the provided empty location if requested
+    # Install the example directory to the provided empty location if requested and then
+    # exit.
     if args.install_example:
         installed = install_example_directory(args.install_example)
         return installed
 
-    # Otherwise run with the provided  config paths
+    # Otherwise run with the provided configuration paths, collecting any configuration
+    # setting passed in at the command line
     override_params: dict[str, Any] = {}
+
+    # Set the output path if provide on the command line
     if args.outpath:
         # Set the output path
-        outpath_opt = {"core": {"data_output_options": {"out_path": args.outpath}}}
-        override_params, _ = config_merge(override_params, outpath_opt)
+        override_params = {"core": {"data_output_options": {"out_path": args.outpath}}}
+
+    # Parse any extra parameters passed using the --param flag
     if args.params:
-        # Parse any extra parameters passed using the --param flag
         _parse_command_line_params(args.params, override_params)
 
     # Figure out the progress reporting level - the defaults is FULL (3 - 0) and as
