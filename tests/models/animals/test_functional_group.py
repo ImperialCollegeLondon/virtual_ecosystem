@@ -109,7 +109,7 @@ class TestFunctionalGroup:
             TaxaType,
             VerticalOccupancy,
         )
-        from virtual_ecosystem.models.animal.constants import AnimalConsts
+        from virtual_ecosystem.models.animal.constants import AnimalConstants
         from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
         func_group = FunctionalGroup(
@@ -127,7 +127,7 @@ class TestFunctionalGroup:
             vertical_occupancy,
             birth_mass,
             adult_mass,
-            constants=AnimalConsts(density_scaling_method="damuth"),
+            constants=AnimalConstants(density_scaling_method="damuth"),
         )
         assert func_group.name == name
         assert func_group.taxa == TaxaType(taxa)
@@ -418,14 +418,14 @@ def test_import_functional_groups(
         TaxaType,
         VerticalOccupancy,
     )
-    from virtual_ecosystem.models.animal.constants import AnimalConsts
     from virtual_ecosystem.models.animal.functional_group import (
         FunctionalGroup,
         import_functional_groups,
     )
+    from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
     file = shared_datadir / "example_functional_group_import.csv"
-    fg_list = import_functional_groups(file, constants=AnimalConsts())
+    fg_list = import_functional_groups(file, constants=AnimalConstants())
 
     fg = fg_list[index]
     assert isinstance(fg, FunctionalGroup)
