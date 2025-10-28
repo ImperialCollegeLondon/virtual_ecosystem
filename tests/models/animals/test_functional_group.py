@@ -109,8 +109,8 @@ class TestFunctionalGroup:
             TaxaType,
             VerticalOccupancy,
         )
-        from virtual_ecosystem.models.animal.constants import AnimalConstants
         from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         func_group = FunctionalGroup(
             name,
