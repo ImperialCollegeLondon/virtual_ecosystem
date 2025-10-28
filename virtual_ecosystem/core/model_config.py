@@ -31,9 +31,9 @@ from virtual_ecosystem.core.configuration import (
 class CoreConstants(Configuration):
     """Core constants for use across the Virtual Ecosystem modules.
 
-    An instance of the CoreConsts dataclass provides definitions of the core constants
-    used across an entire simulation. The core constants can be changed, as shown below,
-    although for many this would likely generate nonsensical results.
+    An instance of the CoreConstants dataclass provides definitions of the core
+    constants used across an entire simulation. The core constants can be changed, as
+    shown below, although for many this would likely generate nonsensical results.
 
     Example:
         >>> consts = CoreConstants()
