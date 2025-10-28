@@ -22,7 +22,7 @@ from scipy.spatial.distance import cdist, pdist, squareform  # type: ignore
 from shapely.affinity import scale, translate  # type: ignore
 from shapely.geometry import GeometryCollection, Point, Polygon  # type: ignore
 
-from virtual_ecosystem.core.config import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import GridConfiguration
 

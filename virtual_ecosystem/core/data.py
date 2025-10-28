@@ -131,7 +131,7 @@ import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_ecosystem.core.config import ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.core.model_config import CoreConfiguration

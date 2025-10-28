@@ -14,7 +14,6 @@ from typing import Any
 from tqdm import tqdm
 
 from virtual_ecosystem.core import variables
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
@@ -40,7 +39,6 @@ class Progress(IntEnum):
 
 def initialise_models(
     configuration: CompiledConfiguration,
-    config: Config,
     data: Data,
     core_components: CoreComponents,
     models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
@@ -69,7 +67,6 @@ def initialise_models(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
@@ -128,14 +125,7 @@ def ve_run(
 
     variables.register_all_variables()
 
-    # All tests now pass if this is replaced with an empty dictionary. Of course mypy
-    # throws a bazillion complaints, but should now be okay to rip the old system out.
-    config = Config(
-        cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
-    )
-
-    # NEW configuration system
-
+    # Load the configuration data
     config_data: ConfigurationLoader = ConfigurationLoader(
         cfg_paths=cfg_paths,
         cfg_strings=cfg_strings,
@@ -190,7 +180,6 @@ def ve_run(
 
     models_init = initialise_models(
         configuration=configuration,
-        config=config,  # TODO remove
         data=data,
         core_components=core_components,
         models=init_sequence,
