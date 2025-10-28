@@ -291,6 +291,7 @@ def generate_config_strings(
 {(fixture_root_data_dir / "animal_functional_groups.csv")!s}'''
 
         [hydrology]
+        [litter]
     """
 
     return [cfg_string, additional_toml]
