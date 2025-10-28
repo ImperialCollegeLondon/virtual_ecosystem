@@ -51,7 +51,7 @@ def run_simple_microclimate(
     :math:`y = m * LAI + c`
 
     where :math:`y` is the variable of interest, :math:`m` is the gradient
-    (:data:`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleConsts`)
+    (:data:`~virtual_ecosystem.models.abiotic_simple.model_config.AbioticSimpleConstants`)
     and :math:`c` is the intersect which we set to the external data values. We assume
     that the gradient remains constant.
 
