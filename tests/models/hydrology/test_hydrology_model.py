@@ -33,13 +33,13 @@ def test_hydrology_model_initialization(
     caplog,
     dummy_climate_data_varying_canopy,
     fixture_core_components,
+    fixture_hydrology_constants,
     ini_soil_moisture,
     ini_groundwater_sat,
     expected_log_entries,
 ):
     """Test `HydrologyModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.hydrology.hydrology_model import HydrologyModel
 
     # We patch the _setup step as it is tested separately
@@ -55,7 +55,7 @@ def test_hydrology_model_initialization(
             core_components=fixture_core_components,
             initial_soil_moisture=ini_soil_moisture,
             initial_groundwater_saturation=ini_groundwater_sat,
-            model_constants=HydroConsts(),
+            model_constants=fixture_hydrology_constants,
         )
 
         # In cases where it passes we check that the object has the right properties

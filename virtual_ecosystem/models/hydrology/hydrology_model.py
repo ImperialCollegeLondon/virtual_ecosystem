@@ -399,7 +399,7 @@ class HydrologyModel(
         * net radiation, [W m-2]
 
         and a number of parameters that as described in detail in
-        :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
+        :class:`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
         """
         # Determine number of days
         days_float: float = self.model_timing.update_interval_seconds / 86400

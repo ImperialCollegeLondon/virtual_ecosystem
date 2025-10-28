@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_ecosystem.models.hydrology.constants` module contains a set of
+"""The :mod:`~virtual_ecosystem.models.hydrology.model_config` defines configuration
 dataclasses containing parameters required by the
 :mod:`~virtual_ecosystem.models.hydrology.hydrology_model`. These parameters are
 constants in that they should not be changed during a particular simulation.
