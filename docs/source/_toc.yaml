@@ -151,6 +151,8 @@ subtrees:
                 title: The abiotic_simple_constants submodule
               - file: api/models/abiotic_simple/abiotic_simple_model
                 title: The abiotic simple_model submodule
+              - file: api/models/abiotic_simple/model_config
+                title: The model_config submodule
               - file: api/models/abiotic_simple/microclimate_simple
                 title: The simple microclimate submodule
           - file: api/models/animal
