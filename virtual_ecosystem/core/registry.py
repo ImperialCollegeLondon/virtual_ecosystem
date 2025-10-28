@@ -11,16 +11,12 @@ function, which is used to populate the registry with the components of a given 
 """  # noqa: D205
 
 from dataclasses import dataclass
-from importlib import import_module, resources
+from importlib import import_module
 from inspect import getmembers, isclass
 from typing import Any
 
-from virtual_ecosystem.core.configuration import (
-    Configuration,
-)
-from virtual_ecosystem.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.schema import load_schema
 
 
 @dataclass
@@ -41,12 +37,6 @@ class ModuleInfo:
 
     model: Any
     """The BaseModel subclass associated with the module."""
-    schema: dict[str, Any]
-    """The module JSON schema as a dictionary, used to validate configuration data for
-    running a simulation."""
-    constants_classes: dict[str, type[ConstantsDataclass]]
-    """A dictionary of module constants classes. The individual ConstantsDataclass
-    objects are keyed by their name."""
     config: type[Configuration]
     """A Configuration subclass that provides a pydantic model to populate and validate
     the model configuration."""
@@ -145,48 +135,6 @@ def register_module(module_name: str) -> None:
         # Register the resulting single model class
         LOGGER.info(f"Registering model class for {module_name}: {model.__name__}")
 
-    # Register the schema
-    with resources.as_file(
-        resources.files(module) / "module_schema.json"
-    ) as schema_file_path:
-        try:
-            schema = load_schema(
-                module_name=module_name_short, schema_file_path=schema_file_path
-            )
-        except Exception as excep:
-            LOGGER.critical(
-                f"Schema registration for {module_name_short} failed: check log"
-            )
-            raise excep
-
-    LOGGER.info("Schema registered for %s: %s ", module_name, schema_file_path)
-
-    # Find and register the constant dataclasses
-    try:
-        constants_submodule = import_module(f"{module_name}.constants")
-    except ModuleNotFoundError:
-        constants_submodule = None
-
-    if constants_submodule is None:
-        constants_classes = {}
-    else:
-        # Get all subclasses of ConstantsDataclass, excluding the ABC where imported
-        # into the module members.
-        constants_classes = {
-            class_name: class_obj
-            for class_name, class_obj in getmembers(constants_submodule)
-            if isclass(class_obj)
-            and issubclass(class_obj, ConstantsDataclass)
-            and class_obj is not ConstantsDataclass
-        }
-
-        for class_name in constants_classes.keys():
-            LOGGER.info(
-                "Constants class registered for %s: %s ",
-                module_name,
-                class_name,
-            )
-
     # Find and register the model configuration
     model_config_class = get_model_configuration_class(
         module_name=module_name, module_name_short=module_name_short
@@ -196,8 +144,6 @@ def register_module(module_name: str) -> None:
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
         model=model,
-        schema=schema,
-        constants_classes=constants_classes,
         config=model_config_class,
         is_core=is_core,
     )

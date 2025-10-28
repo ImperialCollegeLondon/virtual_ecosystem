@@ -36,10 +36,10 @@ class CoreConstants(Configuration):
     although for many this would likely generate nonsensical results.
 
     Example:
-        >>> consts = CoreConsts()
+        >>> consts = CoreConstants()
         >>> consts.max_depth_of_microbial_activity
         0.25
-        >>> consts = CoreConsts(max_depth_of_microbial_activity=0.75)
+        >>> consts = CoreConstants(max_depth_of_microbial_activity=0.75)
         >>> consts.max_depth_of_microbial_activity
         0.75
     """

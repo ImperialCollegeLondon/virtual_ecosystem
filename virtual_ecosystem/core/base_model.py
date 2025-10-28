@@ -226,8 +226,9 @@ class BaseModel(ABC):
         * ``layer_structure``: the
           :class:`~virtual_ecosystem.core.core_components.LayerStructure` instance from
           the ``core_components`` argument.
-        * ``core_constants``: the :class:`~virtual_ecosystem.core.constants.CoreConsts`
-          instance from the ``core_components`` argument.
+        * ``core_constants``: the
+          :class:`~virtual_ecosystem.core.model_config.CoreConstants` instance from the
+          ``core_components`` argument.
 
         It then uses the
         :meth:`~virtual_ecosystem.core.base_model.BaseModel.check_init_data` method to
