@@ -460,7 +460,7 @@ class PlantsModel(
         # Initialize the stoichiometries of each cohort. Each StemStoichiometry object
         # contains a list of StemTissue objects, which are the tissues that make up the
         # stoichiometry of the stem. The initial values for N and P are based on the
-        # ideal stoichiometric ratios defined in the PlantsConsts class.
+        # ideal stoichiometric ratios defined in the PlantsConstants configuration.
         # TODO: #697 - these need to be configurable
         self.stoichiometries = {}
 

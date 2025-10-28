@@ -63,7 +63,7 @@ class Nutrient:
         Args:
             tissue_name: The tissue name used in the plant constants
             element: The element name
-            constants: A PlantConsts instance
+            constants: A PlantConstants instance
             masses: The carbon biomasses of cells for the tissue.
         """
 
