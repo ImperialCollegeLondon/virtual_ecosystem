@@ -341,6 +341,34 @@ def animal_fixture_configuration():
 
 
 @pytest.fixture
+def fixture_core_constants(fixture_configuration):
+    """Get the core constants instance from the config."""
+
+    return fixture_configuration.core.constants
+
+
+@pytest.fixture
+def fixture_soil_constants(fixture_configuration):
+    """Get the soil constants instance from the config."""
+
+    return fixture_configuration.soil.constants
+
+
+@pytest.fixture
+def fixture_hydrology_constants(fixture_configuration):
+    """Get the hydrology constants instance from the config."""
+
+    return fixture_configuration.hydrology.constants
+
+
+@pytest.fixture
+def fixture_abiotic_constants(fixture_configuration):
+    """Get the abiotic constants instance from the config."""
+
+    return fixture_configuration.abiotic.constants
+
+
+@pytest.fixture
 def fixture_core_components(fixture_configuration):
     """A CoreComponents instance for use in testing."""
     from virtual_ecosystem.core.core_components import CoreComponents

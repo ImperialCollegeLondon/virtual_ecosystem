@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
-
 
 def test_initialise_atmosphere_for_hydrology(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_hydrology_constants,
+    fixture_abiotic_constants,
+    fixture_core_constants,
 ):
     """Test initialisation of atmospheric variables for hydrology."""
 
@@ -22,9 +22,9 @@ def test_initialise_atmosphere_for_hydrology(
     layer_structure = fixture_core_components.layer_structure
     output = initialise_atmosphere_for_hydrology(
         data=data,
-        model_constants=HydroConsts,
-        abiotic_constants=AbioticConsts,
-        core_constants=CoreConsts,
+        model_constants=fixture_hydrology_constants,
+        abiotic_constants=fixture_abiotic_constants,
+        core_constants=fixture_core_constants,
         layer_structure=layer_structure,
     )
 
@@ -177,7 +177,7 @@ def test_check_precipitation_surface_raises_error():
         check_precipitation_surface(test_array)
 
 
-def test_calculate_effective_saturation():
+def test_calculate_effective_saturation(fixture_hydrology_constants):
     """Test that the calculation the effective saturation works correctly."""
     from virtual_ecosystem.models.hydrology.hydrology_tools import (
         calculate_effective_saturation,
@@ -189,8 +189,8 @@ def test_calculate_effective_saturation():
 
     actual_sats = calculate_effective_saturation(
         soil_moisture=soil_moistures,
-        soil_moisture_saturation=HydroConsts.soil_moisture_saturation,
-        soil_moisture_residual=HydroConsts.soil_moisture_residual,
+        soil_moisture_saturation=fixture_hydrology_constants.soil_moisture_saturation,
+        soil_moisture_residual=fixture_hydrology_constants.soil_moisture_residual,
     )
 
     assert np.allclose(actual_sats, expected_sats)
