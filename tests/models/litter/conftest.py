@@ -2,9 +2,6 @@
 
 import pytest
 
-from virtual_ecosystem.core.constants import CoreConsts
-from virtual_ecosystem.models.litter.constants import LitterConsts
-
 
 @pytest.fixture
 def fixture_litter_model(dummy_litter_data):
@@ -41,7 +38,7 @@ def fixture_litter_model(dummy_litter_data):
 
 
 @pytest.fixture
-def decay_rates(dummy_litter_data, fixture_core_components):
+def decay_rates(dummy_litter_data, fixture_core_components, fixture_litter_constants):
     """Decay rates for the various litter pools."""
 
     from virtual_ecosystem.models.litter.carbon import calculate_decay_rates
@@ -54,7 +51,7 @@ def decay_rates(dummy_litter_data, fixture_core_components):
         soil_temperatures=dummy_litter_data["soil_temperature"],
         water_potentials=dummy_litter_data["matric_potential"],
         layer_structure=fixture_core_components.layer_structure,
-        constants=LitterConsts,
+        constants=fixture_litter_constants,
     )
 
     return decay_rates
@@ -71,21 +68,21 @@ def litter_chemistry(dummy_litter_data):
 
 
 @pytest.fixture
-def input_chemistries(litter_inputs):
+def input_chemistries(litter_inputs, fixture_litter_constants):
     """Chemistries of each input flow."""
     from virtual_ecosystem.models.litter.inputs import calculate_input_chemistries
 
     input_chemistries = calculate_input_chemistries(
         litter_inputs=litter_inputs,
-        struct_to_meta_nitrogen_ratio=LitterConsts.structural_to_metabolic_n_ratio,
-        struct_to_meta_phosphorus_ratio=LitterConsts.structural_to_metabolic_p_ratio,
+        struct_to_meta_nitrogen_ratio=fixture_litter_constants.structural_to_metabolic_n_ratio,
+        struct_to_meta_phosphorus_ratio=fixture_litter_constants.structural_to_metabolic_p_ratio,
     )
 
     return input_chemistries
 
 
 @pytest.fixture
-def metabolic_splits(total_litter_input):
+def metabolic_splits(total_litter_input, fixture_litter_constants):
     """Metabolic splits for the various plant inputs."""
     from virtual_ecosystem.models.litter.inputs import (
         calculate_metabolic_proportions_of_input,
@@ -93,7 +90,7 @@ def metabolic_splits(total_litter_input):
 
     metabolic_splits = calculate_metabolic_proportions_of_input(
         total_input=total_litter_input,
-        constants=LitterConsts,
+        constants=fixture_litter_constants,
     )
 
     return metabolic_splits
@@ -154,13 +151,13 @@ def updated_pools(decay_rates, post_consumption_pools, litter_inputs):
 
 
 @pytest.fixture
-def litter_inputs(dummy_litter_data):
+def litter_inputs(dummy_litter_data, fixture_litter_constants):
     """Complete set of details for inputs to the litter model."""
     from virtual_ecosystem.models.litter.inputs import LitterInputs
 
     litter_inputs = LitterInputs.create_from_data(
         data=dummy_litter_data,
-        constants=LitterConsts,
+        constants=fixture_litter_constants,
         update_interval=2.0,
     )
 
@@ -170,6 +167,7 @@ def litter_inputs(dummy_litter_data):
 @pytest.fixture
 def litter_losses(
     dummy_litter_data,
+    fixture_core_constants,
     post_consumption_pools,
     updated_pools,
     litter_inputs,
@@ -185,5 +183,5 @@ def litter_losses(
         litter_inputs=litter_inputs,
         input_chemistries=input_chemistries,
         update_interval=2.0,
-        active_microbe_depth=CoreConsts.max_depth_of_microbial_activity,
+        active_microbe_depth=fixture_core_constants.max_depth_of_microbial_activity,
     )
