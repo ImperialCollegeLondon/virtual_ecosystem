@@ -96,18 +96,22 @@ additional class must inherit from the
 {class}`~virtual_ecosystem.core.configuration.Configuration` class, which again freezes
 configuration model instances and makes them intolerant of extra data.
 
-As an example, the new `freshwater.model_config` module might look like this:
+All of your configuration models and fields must have clear docstrings that describe
+what the model and fields are. As an example, the new `freshwater.model_config` module
+might look like this:
 
 ```{code} python
 
 class FreshwaterConstants(Configuration):
     """Constants settings for the freshwater model."""
 
+    number_of_pools: int = 5
+    """Number of pools to simulate."""
     ashrae_model_a: float = 95
     """The A constant of the ASHRAE evaporation model."""
     ashrae_model_b: float = Field(gt=0, default=37.4)
     """The B constant of the ASHRAE evaporation model."""
-    molar_mass_water: Literal[18.01528] = 18.01528
+    molar_mass_water: ClassVar[float] = 18.01528
     """The molar mass of water."""
 
 class FreshwaterConfiguration(ModelConfigurationRoot):
@@ -137,14 +141,69 @@ record of the settings used in a particular model.
 ### Defining constants
 
 The definition of 'constant' in the Virtual Ecosystem is basically a parameter of any
-kind that should be held constant throughout a simulation. Some constants are likely
-never to be altered, but many are estimated with error and users may want to explore the
-sensitivity of simulations to changes in those values. For this reason, all constants
-with your model should be included in your model configuration.
+kind that should be held constant throughout a simulation. Many of the parameters
+required in a Virtual Ecosystem simulation have been estimated from field data, The
+values may have uncertainty or may vary significantly between sites. For this reason,
+all parameters for your model should be included in your model configuration, to allow
+other users to experiment with the results of changing variables and to explore the
+sensitivity of model predictions to the configuration settings.
 
-The example above for the molar mass of water shows how you can include a constant in
-your configuration and stop users from altering it. If a different value was set in a
-configuration file, then it would generate a configuration error.
+However, some variables are genuine constants, such as the molar mass of water in the
+example above. The `pydantic` package has a few ways of fixing constants:
+
+* For integer values and strings, the `Literal` type can be used to specify the exact
+  value to be used and then no other value will be accepted. For example,
+  {code}`number_of_pools: Literal[5] = 5`, would enforce a fixed number of pools.
+* The `Literal` type cannot be used with floating point numbers, which is unfortunate
+  since most parameters will be floats! You _can_ write a custom field validator that
+  will enforce the specified default value.
+* Alternatively, you can make the constant field a class attribute using `ClassVar`, as
+  in the example above. Whenever the configuration model is used, it will always have
+  this fixed value. Additionally, class attributes are not included when configuration
+  models are dumped to file, so the constant field will not appear in the TOML version
+  of the configuration. If users try to add it, it will be rejected. The class
+  attributes _do_ occur in the configuration documentation though!
+
+  This is probably the cleanest way to set fixed constants, but you should clearly
+  document which parameters in your configuration cannot be changed.
+
+The example model below shows the various options in practice:
+
+```{code-cell} ipython3
+:lines_to_next_cell: 2
+
+from pydantic import field_validator
+from typing import ClassVar, Literal
+from scipy import constants
+from virtual_ecosystem.core.configuration import ModelConfigurationRoot
+
+
+class Example(Configuration):
+    """An example configuration model."""
+
+    f1: ClassVar[float] = 12.3
+    """A constant float set as a class attribute. This field does not appear in the TOML
+    representation of the model and cannot be changed."""
+    f2: Literal[3] = 3
+    """A constant  integer set using Literal. This field _does_ appear in the TOML
+    representation of the model but users cannot change the value."""
+    f3: float = constants.Boltzmann
+    """The Bolzmann constant"""
+    f4: float = constants.angstrom
+    """One angstrom in metres."""
+
+    @field_validator("f3", "f4", mode="after")
+    @classmethod
+    def enforce_constants(cls, value, context):
+        """Custom validation to enforce constants in field f3 and f4."""
+
+        fname = context.field_name
+        constant_default = cls.model_fields[fname].default
+        if not value == constant_default:
+            raise ValueError(
+                f"The {fname} field can only take the constant value {constant_default}"
+            )
+```
 
 ### Validation
 
@@ -173,7 +232,7 @@ The example above provides defaults for all values and you should do the same. T
 partly to give users some kind of a sense check of what expected values look like, but
 also because it is easy to export example configurations as templates when all fields
 have defaults. Defaults can either be provided by assignment - as with
-`ashrae_model_a: float = 95` or be provided using `Field(default=...)`.
+`ashrae_model_a: float = 95` - or be provided using `Field(default=...)`.
 
 When a model instance is created from configuration files (de-serialised), the defaults
 will be used to fill in any missing settings. This is extremely useful if a user wants
