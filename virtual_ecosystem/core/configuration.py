@@ -18,7 +18,15 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, TypeAlias, TypeVar
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, FilePath
+import tomli_w
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    DirectoryPath,
+    Field,
+    FilePath,
+)
 from pydantic._internal._model_construction import ModelMetaclass
 from pydantic_core import PydanticUndefined
 
@@ -33,6 +41,54 @@ RST_TO_MD = [
 """Tags to replace when converting RST descriptions of fields to Markdown."""
 
 
+def placeholder_validator(path: str) -> str:
+    """Check for path placeholders.
+
+    This custom validator rejects ``<FILEPATH_PLACEHOLDER>`` and
+    ``<DIRPATH_PLACEHOLDER>``  values when loading file paths.
+
+    Args:
+        path: A field path value to validate.
+    """
+    if path in ("<FILEPATH_PLACEHOLDER>", "<DIRPATH_PLACEHOLDER>"):
+        raise ValueError("Path placeholder value in configuration.")
+
+    return path
+
+
+# TODO: Fix autodoc
+#       These generate a bizarre set of autodoc link failures that try and build links
+#       from the text elements from the Annotated pattern. Currently tackled using
+#       nitpick ignore.
+
+FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
+    FilePath,
+    Field(default=Path("<FILEPATH_PLACEHOLDER>")),
+    BeforeValidator(placeholder_validator),
+]
+"""Custom type for file paths in configurations. This enforces the FilePath validation
+to check that paths in configuration data actually point to existing paths. It also
+provides custom validation to allow a ``<FILEPATH_PLACEHOLDER>`` default value. This can
+be written to file - because the field does not use ``validate_defaults`` - but the
+custom validation specifically rejects incoming values that have been left with that
+default.
+"""
+
+
+DIRPATH_PLACEHOLDER: TypeAlias = Annotated[
+    DirectoryPath,
+    Field(default=Path("<DIRPATH_PLACEHOLDER>")),
+    BeforeValidator(placeholder_validator),
+]
+"""Custom type for directory paths in configurations. This enforces the DirectoryPath
+validation to check that paths in configuration data actually point to existing paths.
+It also provides custom validation to allow a ``<DIRPATH_PLACEHOLDER>`` default value.
+This can be written to file - because the field does not use ``validate_defaults`` - but
+the custom validation specifically rejects incoming values that have been left with that
+default.
+"""
+
+
 class Configuration(BaseModel):
     """Base configuration class for the Virtual Ecosystem.
 
@@ -42,17 +98,19 @@ class Configuration(BaseModel):
     configuration settings.
     """
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_config = ConfigDict(
+        use_attribute_docstrings=True, extra="forbid", frozen=True
+    )
 
 
 class CompiledConfiguration(Configuration):
     """Compiled configuration class for Virtual Ecosystem models.
 
     This class is used as the base for dynamically compiled complete model returned by
-    the ``ConfigurationLoader(...).get_configuration()`` method. It provides a shared
-    method to extract specific model configurations by name. This is needed because the
-    dynamic creation means that model fields are not explicitly declared, so `mypy` gets
-    does not handle ``configuration.plants``, but we can use
+    the ``generate_configuration()`` function. It provides a shared method to extract
+    specific model configurations by name. This is needed because the dynamic creation
+    means that model fields are not explicitly declared, so `mypy` gets does not handle
+    ``configuration.plants``, but we can use
     `configuration.get_subconfiguration("plants")` instead.
     """
 
@@ -83,6 +141,16 @@ class CompiledConfiguration(Configuration):
         except AttributeError:
             raise AttributeError(f"Model configuration for {name} not loaded")
 
+    def export_toml(self, path: Path):
+        """TOML export method for a compiled configuration.
+
+        Args:
+            path: The path to be used to export the configuration data.
+        """
+
+        with open(path, "wb") as destination:
+            tomli_w.dump(self.model_dump(mode="json"), destination)
+
 
 class ModelConfigurationRoot(Configuration):
     """Root configuration class for individual Virtual Ecosystem models.
@@ -99,32 +167,6 @@ class ModelConfigurationRoot(Configuration):
 
     static: bool = False
     """The model static mode setting."""
-
-
-def placeholder_validator(path: str) -> str:
-    """A custom validator to reject "<PLACEHOLDER>" when loading file paths."""
-    if path == "<PLACEHOLDER>":
-        raise ValueError("Path placeholder value in configuration.")
-
-    return path
-
-
-FILEPATH_PLACEHOLDER: TypeAlias = Annotated[
-    FilePath,
-    Field(default=Path("<PLACEHOLDER>")),
-    BeforeValidator(placeholder_validator),
-]
-"""Pydantic type that provides a default '<PLACEHOLDER>' text for writing configuration
-templates, but screens input before the standard validation to refuse unreplaced
-placeholder values. The type then uses FilePath, which validates that a path actually
-exists on the file system. The field does not set ``validate_defaults`` so the
-placeholder value can be written despite not being an existing file.
-
-.. TODO: Fix autodoc
-    This generates a bizarre set of autodoc link failures that try and build links from
-    the text elements from the Annotated pattern. Currently tackled using nitpick 
-    ignore.
-"""
 
 
 def model_config_to_html(

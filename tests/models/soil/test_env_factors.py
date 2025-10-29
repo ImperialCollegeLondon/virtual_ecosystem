@@ -28,10 +28,9 @@ def test_top_soil_data_extraction(dummy_carbon_data, fixture_core_components):
 
 
 def test_calculate_environmental_effect_factors(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Test that function to calculate all set of environmental factors works."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_environmental_effect_factors,
     )
@@ -46,7 +45,7 @@ def test_calculate_environmental_effect_factors(
         ],
         pH=dummy_carbon_data["pH"],
         clay_fraction=dummy_carbon_data["clay_fraction"],
-        constants=SoilConsts,
+        constants=fixture_soil_constants,
     )
 
     assert np.allclose(env_factors.water, expected_water)
@@ -86,10 +85,10 @@ def test_calculate_temperature_effect_on_microbes(
 
 
 def test_calculate_water_potential_impact_on_microbes(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Test the calculation of the impact of soil water on microbial rates."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
@@ -100,17 +99,16 @@ def test_calculate_water_potential_impact_on_microbes(
         water_potential=dummy_carbon_data["matric_potential"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
-        water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
-        response_curvature=SoilConsts.microbial_water_response_curvature,
+        water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
+        water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
+        response_curvature=fixture_soil_constants.microbial_water_response_curvature,
     )
 
     assert np.allclose(actual_factor, expected_factor)
 
 
-def test_soil_water_potential_too_high(dummy_carbon_data):
+def test_soil_water_potential_too_high(dummy_carbon_data, fixture_soil_constants):
     """Test that too high soil water potential results in an error."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_water_potential_impact_on_microbes,
     )
@@ -120,15 +118,14 @@ def test_soil_water_potential_too_high(dummy_carbon_data):
     with pytest.raises(ValueError):
         calculate_water_potential_impact_on_microbes(
             water_potential=water_potentials,
-            water_potential_halt=SoilConsts.soil_microbe_water_potential_halt,
-            water_potential_opt=SoilConsts.soil_microbe_water_potential_optimum,
-            response_curvature=SoilConsts.microbial_water_response_curvature,
+            water_potential_halt=fixture_soil_constants.soil_microbe_water_potential_halt,
+            water_potential_opt=fixture_soil_constants.soil_microbe_water_potential_optimum,
+            response_curvature=fixture_soil_constants.microbial_water_response_curvature,
         )
 
 
-def test_calculate_pH_suitability():
+def test_calculate_pH_suitability(fixture_soil_constants):
     """Test that calculation of pH suitability is correct."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import calculate_pH_suitability
 
     pH_values = np.array([3.0, 7.5, 9.0, 10.0, 5.7, 2.0, 11.5])
@@ -136,10 +133,10 @@ def test_calculate_pH_suitability():
 
     actual_inhib = calculate_pH_suitability(
         soil_pH=pH_values,
-        maximum_pH=SoilConsts.max_pH_microbes,
-        minimum_pH=SoilConsts.min_pH_microbes,
-        lower_optimum_pH=SoilConsts.lowest_optimal_pH_microbes,
-        upper_optimum_pH=SoilConsts.highest_optimal_pH_microbes,
+        maximum_pH=fixture_soil_constants.max_pH_microbes,
+        minimum_pH=fixture_soil_constants.min_pH_microbes,
+        lower_optimum_pH=fixture_soil_constants.lowest_optimal_pH_microbes,
+        upper_optimum_pH=fixture_soil_constants.highest_optimal_pH_microbes,
     )
 
     assert np.allclose(expected_inhib, actual_inhib)
@@ -187,9 +184,11 @@ def test_calculate_pH_suitability_errors(params):
         calculate_pH_suitability(soil_pH=pH_values, **params)
 
 
-def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
+def test_calculate_clay_impact_on_enzyme_saturation(
+    dummy_carbon_data, fixture_soil_constants
+):
     """Test calculation of the effect of soil clay fraction on saturation constants."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_clay_impact_on_enzyme_saturation,
     )
@@ -198,18 +197,17 @@ def test_calculate_clay_impact_on_enzyme_saturation(dummy_carbon_data):
 
     actual_factor = calculate_clay_impact_on_enzyme_saturation(
         clay_fraction=dummy_carbon_data["clay_fraction"],
-        base_protection=SoilConsts.base_soil_protection,
-        protection_with_clay=SoilConsts.soil_protection_with_clay,
+        base_protection=fixture_soil_constants.base_soil_protection,
+        protection_with_clay=fixture_soil_constants.soil_protection_with_clay,
     )
 
     assert np.allclose(expected_factor, actual_factor)
 
 
 def test_calculate_nitrification_temperature_factor(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Test calculation of nitrification temperature factor."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_nitrification_temperature_factor,
     )
@@ -220,19 +218,18 @@ def test_calculate_nitrification_temperature_factor(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        optimum_temp=SoilConsts.nitrification_optimum_temperature,
-        max_temp=SoilConsts.nitrification_maximum_temperature,
-        thermal_sensitivity=SoilConsts.nitrification_thermal_sensitivity,
+        optimum_temp=fixture_soil_constants.nitrification_optimum_temperature,
+        max_temp=fixture_soil_constants.nitrification_maximum_temperature,
+        thermal_sensitivity=fixture_soil_constants.nitrification_thermal_sensitivity,
     )
 
     assert np.allclose(expected_factor, actual_factor)
 
 
 def test_calculate_nitrification_moisture_factor(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_hydrology_constants
 ):
     """Test calculation of nitrification moisture factor."""
-    from virtual_ecosystem.models.hydrology.constants import HydroConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_nitrification_moisture_factor,
     )
@@ -242,7 +239,7 @@ def test_calculate_nitrification_moisture_factor(
     ] / (
         fixture_core_components.layer_structure.soil_layer_thickness[0]
         * 1e3
-        * HydroConsts.soil_moisture_saturation
+        * fixture_hydrology_constants.soil_moisture_saturation
     )
 
     expected_factor = [0.32030643, 0.70383072, 0.99987347, 0.83450707]
@@ -255,10 +252,9 @@ def test_calculate_nitrification_moisture_factor(
 
 
 def test_calculate_denitrification_temperature_factor(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Test calculation of nitrification temperature factor."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_denitrification_temperature_factor,
     )
@@ -269,21 +265,20 @@ def test_calculate_denitrification_temperature_factor(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        factor_at_infinity=SoilConsts.denitrification_infinite_temperature_factor,
-        minimum_temp=SoilConsts.denitrification_minimum_temperature,
-        thermal_sensitivity=SoilConsts.denitrification_thermal_sensitivity,
+        factor_at_infinity=fixture_soil_constants.denitrification_infinite_temperature_factor,
+        minimum_temp=fixture_soil_constants.denitrification_minimum_temperature,
+        thermal_sensitivity=fixture_soil_constants.denitrification_thermal_sensitivity,
     )
 
     assert np.allclose(expected_factor, actual_factor)
 
 
 def test_denitrification_temperature_factor_bad_temp(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Check denitrification temperature factor handles bad temperature values."""
     from scipy.constants import convert_temperature
 
-    from virtual_ecosystem.models.soil.constants import SoilConsts
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_denitrification_temperature_factor,
     )
@@ -294,12 +289,12 @@ def test_denitrification_temperature_factor_bad_temp(
 
     # Modify some of the soil temps to be below the minimum
     soil_temp[1] = convert_temperature(
-        SoilConsts.denitrification_minimum_temperature,
+        fixture_soil_constants.denitrification_minimum_temperature,
         old_scale="Kelvin",
         new_scale="Celsius",
     )
     soil_temp[3] = convert_temperature(
-        SoilConsts.denitrification_minimum_temperature,
+        fixture_soil_constants.denitrification_minimum_temperature,
         old_scale="Kelvin",
         new_scale="Celsius",
     )
@@ -310,19 +305,19 @@ def test_denitrification_temperature_factor_bad_temp(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        factor_at_infinity=SoilConsts.denitrification_infinite_temperature_factor,
-        minimum_temp=SoilConsts.denitrification_minimum_temperature,
-        thermal_sensitivity=SoilConsts.denitrification_thermal_sensitivity,
+        factor_at_infinity=fixture_soil_constants.denitrification_infinite_temperature_factor,
+        minimum_temp=fixture_soil_constants.denitrification_minimum_temperature,
+        thermal_sensitivity=fixture_soil_constants.denitrification_thermal_sensitivity,
     )
 
     assert np.allclose(expected_factor, actual_factor)
 
 
 def test_calculate_symbiotic_nitrogen_fixation_carbon_cost(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Test calculation of symbiotic nitrogen fixation cost."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_symbiotic_nitrogen_fixation_carbon_cost,
     )
@@ -333,20 +328,20 @@ def test_calculate_symbiotic_nitrogen_fixation_carbon_cost(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        cost_at_zero_celsius=SoilConsts.nitrogen_fixation_cost_zero_celcius,
-        infinite_temp_cost_offset=SoilConsts.nitrogen_fixation_cost_infinite_temp_offset,
-        thermal_sensitivity=SoilConsts.nitrogen_fixation_cost_thermal_sensitivity,
-        cost_equality_temp=SoilConsts.nitrogen_fixation_cost_equality_temperature,
+        cost_at_zero_celsius=fixture_soil_constants.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=fixture_soil_constants.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=fixture_soil_constants.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=fixture_soil_constants.nitrogen_fixation_cost_equality_temperature,
     )
 
     assert np.allclose(expected_cost, actual_cost)
 
 
 def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Check calculation of nitrogen fixation cost handles bad temperature values."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_symbiotic_nitrogen_fixation_carbon_cost,
     )
@@ -365,18 +360,18 @@ def test_calculate_symbiotic_nitrogen_fixation_carbon_cost_bad_temp(
         soil_temp=dummy_carbon_data["soil_temperature"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        cost_at_zero_celsius=SoilConsts.nitrogen_fixation_cost_zero_celcius,
-        infinite_temp_cost_offset=SoilConsts.nitrogen_fixation_cost_infinite_temp_offset,
-        thermal_sensitivity=SoilConsts.nitrogen_fixation_cost_thermal_sensitivity,
-        cost_equality_temp=SoilConsts.nitrogen_fixation_cost_equality_temperature,
+        cost_at_zero_celsius=fixture_soil_constants.nitrogen_fixation_cost_zero_celcius,
+        infinite_temp_cost_offset=fixture_soil_constants.nitrogen_fixation_cost_infinite_temp_offset,
+        thermal_sensitivity=fixture_soil_constants.nitrogen_fixation_cost_thermal_sensitivity,
+        cost_equality_temp=fixture_soil_constants.nitrogen_fixation_cost_equality_temperature,
     )
 
     assert np.allclose(expected_cost, actual_cost)
 
 
-def test_calculate_carbon_use_efficiency(averaged_soil_temp):
+def test_calculate_carbon_use_efficiency(averaged_soil_temp, fixture_soil_constants):
     """Check carbon use efficiency calculates correctly."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_carbon_use_efficiency,
     )
@@ -385,19 +380,19 @@ def test_calculate_carbon_use_efficiency(averaged_soil_temp):
 
     actual_cues = calculate_carbon_use_efficiency(
         soil_temp=averaged_soil_temp,
-        reference_cue_logit=SoilConsts.reference_cue_logit,
-        cue_reference_temp=SoilConsts.cue_reference_temp,
-        logit_cue_with_temp=SoilConsts.logit_cue_with_temperature,
+        reference_cue_logit=fixture_soil_constants.reference_cue_logit,
+        cue_reference_temp=fixture_soil_constants.cue_reference_temp,
+        logit_cue_with_temp=fixture_soil_constants.logit_cue_with_temperature,
     )
 
     assert np.allclose(actual_cues, expected_cues)
 
 
 def test_calculate_solute_removal_by_soil_water(
-    dummy_carbon_data, fixture_core_components
+    dummy_carbon_data, fixture_core_components, fixture_soil_constants
 ):
     """Test calculation of solute removal rates."""
-    from virtual_ecosystem.models.soil.constants import SoilConsts
+
     from virtual_ecosystem.models.soil.env_factors import (
         calculate_solute_removal_by_soil_water,
     )
@@ -411,7 +406,7 @@ def test_calculate_solute_removal_by_soil_water(
         soil_moisture=dummy_carbon_data["soil_moisture"][
             fixture_core_components.layer_structure.index_topsoil_scalar
         ],
-        solubility_coefficient=SoilConsts.solubility_coefficient_lmwc,
+        solubility_coefficient=fixture_soil_constants.solubility_coefficient_lmwc,
     )
 
     assert np.allclose(expected_rate, actual_rate)

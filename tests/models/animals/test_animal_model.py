@@ -75,7 +75,6 @@ class TestAnimalModel:
                 does_not_raise(),
                 (
                     (INFO, "Initialised animal.AnimalConsts from config"),
-                    (INFO, "Initialised core.CoreConsts from config"),
                     (
                         INFO,
                         "Information required to initialise the animal model"
@@ -152,6 +151,7 @@ class TestAnimalModel:
         caplog,
         dummy_animal_data,
         animal_fixture_config,  # Use the config fixture
+        animal_fixture_configuration,
         raises,
         expected_log_entries,
     ):
@@ -160,13 +160,14 @@ class TestAnimalModel:
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
         # Build the config object and core components using the fixture
-        core_components = CoreComponents(animal_fixture_config)
+        core_components = CoreComponents(animal_fixture_configuration.core)
         caplog.clear()
 
         # Check whether model is initialised (or not) as expected
         with raises:
             model = AnimalModel.from_config(
                 data=dummy_animal_data,
+                configuration=animal_fixture_configuration,
                 core_components=core_components,
                 config=animal_fixture_config,
             )
@@ -207,6 +208,7 @@ class TestAnimalModel:
         scaling_method,
         dummy_animal_data,
         animal_fixture_config,
+        animal_fixture_configuration,
         fixture_core_components,
     ):
         """Test that AnimalModel.from_config correctly sets density_scaling_method."""
@@ -215,9 +217,13 @@ class TestAnimalModel:
         # Update the config to include the scaling method
         animal_fixture_config["animal"]["density_scaling_method"] = scaling_method
 
+        # Configuration classes are frozen so update via the __dict__ entries
+        animal_fixture_configuration.animal.__dict__["density_scaling_method"]
+
         # Create the model using from_config
         model = AnimalModel.from_config(
             data=dummy_animal_data,
+            configuration=animal_fixture_configuration,
             core_components=fixture_core_components,
             config=animal_fixture_config,
         )

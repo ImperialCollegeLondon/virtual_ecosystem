@@ -86,8 +86,8 @@ autodoc_default_flags = ["members"]
 autosummary_generate = True
 
 # autodoc_typehints = "description"
-# autodoc_typehints_format = "short"
-# python_use_unqualified_type_names = True
+autodoc_typehints_format = "short"
+python_use_unqualified_type_names = True
 # autodoc_type_aliases = {
 #   "FILEPATH_PLACEHOLDER": "virtual_ecosystem.core.configuration.FILEPATH_PLACEHOLDER",
 # }
@@ -184,6 +184,26 @@ nitpick_ignore = [
     ("py:class", "PosixPath"),
     ("py:class", "virtual_ecosystem.core.configuration.placeholder_validator"),
     ("py:class", "PydanticUndefined"),
+    # Actually just generally intersphinx is janky when it comes to pydantic
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "PositiveFloat"),
+    ("py:class", "PositiveInt"),
+    ("py:class", "annotated_types.Lt"),
+    ("py:class", "annotated_types.MinLen"),
+    ("py:class", "annotated_types.Gt"),
+    ("py:class", "NegativeFloat"),
+    ("py:class", "date"),
+    ("py:class", "_PydanticGeneralMetadata"),
+    # Sphinx seems to insist that pydantic model types are classes, when they can be
+    # global Literals
+    ("py:class", "SUBSTRATES"),
+    ("py:class", "REQUIRED_MICROBIAL_GROUPS"),
+    ("py:class", "HIGHER_TAXONOMIC_GROUPS"),
+    ("py:class", "dir"),
+    # FOR PITY'S SAKE, SPHINX - why can you not find DIRPATH_PLACEHOLDER when you _can_
+    # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
+    # when both do actually appear in the API docs? It's right there.
+    ("py:class", "DIRPATH_PLACEHOLDER"),
 ]
 
 intersphinx_mapping = {

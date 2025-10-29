@@ -86,11 +86,16 @@ def animal_data_for_model_instance(fixture_core_components):
 
 
 @pytest.fixture
-def animal_fixture_core_components(animal_fixture_config):
+def animal_fixture_core_components(animal_fixture_configuration):
     """A CoreComponents instance for use in testing."""
-    from virtual_ecosystem.core.core_components import CoreComponents
 
-    core_components = CoreComponents(animal_fixture_config)
+    from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
+
+    core_cfg = animal_fixture_configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
+    core_components = CoreComponents(core_cfg)
 
     # Setup three filled canopy layers
     canopy_array = np.full(
@@ -402,13 +407,11 @@ def functional_group_list_instance(shared_datadir, constants_instance):
 
 
 @pytest.fixture
-def microbial_c_n_p_ratios(fixture_config):
+def microbial_c_n_p_ratios(fixture_configuration):
     """Fixture containing the microbial C:N:P ratios for use in animal model testing."""
-    from virtual_ecosystem.models.soil.microbial_groups import (
-        find_microbial_stoichiometries,
-    )
+    from virtual_ecosystem.models.animal.cnp import find_microbial_stoichiometries
 
-    return find_microbial_stoichiometries(config=fixture_config)
+    return find_microbial_stoichiometries(config=fixture_configuration)
 
 
 @pytest.fixture

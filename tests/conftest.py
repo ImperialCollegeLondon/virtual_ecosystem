@@ -239,7 +239,7 @@ def microbial_groups_cfg():
     return MICROBE_CONFIG_TOML
 
 
-def generate_config(
+def generate_config_strings(
     nx: int = 2,
     ny: int = 2,
     additional_toml: str = MICROBE_CONFIG_TOML,
@@ -259,8 +259,6 @@ def generate_config(
         additional_toml: Any additional TOML to append to the core string
         fixture_root_data_dir: The path of the root data directory
     """
-
-    from virtual_ecosystem.core.config import Config
 
     cfg_string = f"""
         [core]
@@ -295,27 +293,60 @@ def generate_config(
         [hydrology]
     """
 
-    return Config(cfg_strings=[cfg_string, additional_toml])
+    return [cfg_string, additional_toml]
 
 
 @pytest.fixture
 def fixture_config():
     """Default configuration object with 2x2 grid."""
-    return generate_config()
+
+    from virtual_ecosystem.core.config import Config
+
+    return Config(cfg_strings=generate_config_strings())
 
 
 @pytest.fixture
 def animal_fixture_config():
     """Default configuration object with 3x3 grid."""
-    return generate_config(nx=3, ny=3)
+    from virtual_ecosystem.core.config import Config
+
+    return Config(cfg_strings=generate_config_strings(nx=3, ny=3))
 
 
 @pytest.fixture
-def fixture_core_components(fixture_config):
+def fixture_configuration():
+    """Default configuration with 2x2 grid."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+
+    config_data = ConfigurationLoader(cfg_strings=generate_config_strings())
+
+    return generate_configuration(config_data.data)
+
+
+@pytest.fixture
+def animal_fixture_configuration():
+    """Default configuration with 3x3 grid."""
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
+
+    config_data = ConfigurationLoader(cfg_strings=generate_config_strings(nx=3, ny=3))
+
+    return generate_configuration(config_data.data)
+
+
+@pytest.fixture
+def fixture_core_components(fixture_configuration):
     """A CoreComponents instance for use in testing."""
     from virtual_ecosystem.core.core_components import CoreComponents
+    from virtual_ecosystem.core.model_config import CoreConfiguration
 
-    core_components = CoreComponents(fixture_config)
+    core_cfg = fixture_configuration.get_subconfiguration("core", CoreConfiguration)
+    core_components = CoreComponents(core_cfg)
 
     # Setup three filled canopy layers
     canopy_array = np.full(

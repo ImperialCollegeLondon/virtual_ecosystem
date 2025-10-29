@@ -21,21 +21,25 @@ from pyrealm.pmodel import PModel, PModelEnvironment
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
+from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
 )
 from virtual_ecosystem.models.plants.communities import PlantCommunities
-from virtual_ecosystem.models.plants.constants import PlantsConsts
 from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
 from virtual_ecosystem.models.plants.functional_types import (
     ExtraTraitsPFT,
     get_flora_from_config,
+)
+from virtual_ecosystem.models.plants.model_config import (
+    PlantsConfiguration,
+    PlantsConstants,
 )
 from virtual_ecosystem.models.plants.stoichiometry import (
     StemStoichiometry,
@@ -260,7 +264,7 @@ class PlantsModel(
         """The extra traits for each plant functional type, keyed by PFT name."""
 
         #
-        self.model_constant: PlantsConsts
+        self.model_constant: PlantsConstants
         """Set of constants for the plants model"""
         self.communities: PlantCommunities
         """An instance of PlantCommunities providing dictionary access keyed by cell id
@@ -310,7 +314,11 @@ class PlantsModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,  # TO BE DELETED
     ) -> PlantsModel:
         """Factory function to initialise a plants model from configuration.
 
@@ -319,38 +327,37 @@ class PlantsModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Load in the relevant constants
-        model_constants = load_constants(config, "plants", "PlantsConsts")
-        static = config["plants"]["static"]
+        # Extract subconfigurations from the complete compiled configuration.
+        model_configuration: PlantsConfiguration = configuration.get_subconfiguration(
+            "plants", PlantsConfiguration
+        )
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
 
         # Generate the flora
-        flora, extra_traits = get_flora_from_config(config=config)
+        flora, extra_traits = get_flora_from_config(config=model_configuration)
 
-        # Load the initial cohort data
-        cohort_data_path = config["plants"].get("cohort_data_path")
-        if cohort_data_path is None:
-            msg = "Plant configuration error: cohort_data_path not provided"
-            LOGGER.error(msg)
-            raise ConfigurationError(msg)
-
+        # Load the initial cohort data - use of FILEPATH_PLACEHOLDER guarantees that
+        # this path has been set and exists.
         try:
-            with open(cohort_data_path) as csv_data:
+            with open(model_configuration.cohort_data_path) as csv_data:
                 cohort_data = pandas.read_csv(csv_data)
-        except FileNotFoundError:
-            msg = "Plant configuration error: cohort_data_path not found."
-            LOGGER.error(msg)
-            raise ConfigurationError(msg)
         except pandas.errors.ParserError as excep:
             msg = "Plant configuration error: cannot parse cohort data " + str(excep)
             LOGGER.error(msg)
             raise InitialisationError(msg)
 
         # Create a CommunityDataExporter instance from config
-        exporter = CommunityDataExporter.from_config(config=config)
+        exporter = CommunityDataExporter.from_config(
+            output_directory=core_configuration.data_output_options.out_path,
+            config=model_configuration.community_data_export,
+        )
 
         # Try and create the instance - safeguard against exceptions from __init__
         try:
@@ -360,9 +367,9 @@ class PlantsModel(
                 flora=flora,
                 cohort_data=cohort_data,
                 extra_pft_traits=extra_traits,
-                model_constants=model_constants,
+                model_constants=model_configuration.constants,
                 exporter=exporter,
-                static=static,
+                static=model_configuration.static,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -378,7 +385,7 @@ class PlantsModel(
         flora: Flora,
         cohort_data: pandas.DataFrame,
         extra_pft_traits: ExtraTraitsPFT,
-        model_constants: PlantsConsts = PlantsConsts(),
+        model_constants: PlantsConstants = PlantsConstants(),
         **kwargs: Any,
     ) -> None:
         """Setup implementation for the Plants Model.

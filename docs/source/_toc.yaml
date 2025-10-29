@@ -103,6 +103,8 @@ subtrees:
                 title: The constants_loader submodule
               - file: api/core/core_components.md
                 title: The core_components submodule
+              - file: api/core/model_config.md
+                title: The model_config submodule
               - file: api/core/data.md
                 title: The data submodule
               - file: api/core/exceptions.md
@@ -194,6 +196,8 @@ subtrees:
                 title: The litter chemistry submodule
               - file: api/models/litter/constants
                 title: The constants submodule
+              - file: api/models/litter/model_config
+                title: The model_config submodule
               - file: api/models/litter/env_factors
                 title: The env_factors submodule
               - file: api/models/litter/inputs
@@ -207,6 +211,8 @@ subtrees:
             entries:
               - file: api/models/soil/pools
                 title: The pools submodule
+              - file: api/models/soil/model_config
+                title: The model_config submodule
               - file: api/models/soil/constants
                 title: The constants submodule
               - file: api/models/soil/env_factors

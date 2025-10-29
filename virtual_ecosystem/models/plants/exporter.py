@@ -20,10 +20,10 @@ from pyrealm.demography.canopy import Canopy, CohortCanopyData, CommunityCanopyD
 from pyrealm.demography.community import Cohorts
 from pyrealm.demography.tmodel import StemAllocation, StemAllometry
 
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.plants.communities import PlantCommunities
+from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
 
 
 class CommunityDataExporter:
@@ -218,38 +218,29 @@ class CommunityDataExporter:
                 raise ConfigurationError(msg)
 
     @classmethod
-    def from_config(cls, config: Config) -> CommunityDataExporter:
-        """Factory class to create a CommunityDataExporter from a configuration.
+    def from_config(
+        cls, output_directory: Path, config: PlantsExportConfig
+    ) -> CommunityDataExporter:
+        """Factory class to create a CommunityDataExporter from configuration data.
 
-        The configuration requires that the following details are present in the plants
-        model section of the configuration;
+        See the documentation of
+        :class:`~virtual_ecosystem.models.plants.model_config.PlantsExportConfig`
+        for details of the configuration settings for this method.
 
-        .. code-block:: toml
+        Args:
+            output_directory: The path to the output directory for the files
+            config: An instance of ``PlantsExportConfig``
 
-            [plants.community_data_export]
-            required_data = ["cohorts", "community_canopy", "stem_canopy"]
-            cohort_attributes = []
-            community_canopy_attributes = []
-            stem_canopy_attributes = []
-
-        The ``required_data`` section specifies which community data files are to be
-        exported. If the "attributes" sections are empty arrays, then all attributes are
-        written to file, but specific fields may be named here to reduce the amount of
-        data exported.
         """
 
         # Try and build the arguments as a dictionary from the config, substituting
         # explicit None values for empty strings
         try:
-            out_path = config["core"]["data_output_options"]["out_path"]
-            xcfg = config["plants"]["community_data_export"]
-
-            # Get arguments and convert inputs
-            output_directory = Path(out_path)
-            required_data = set(xcfg["required_data"])
-            cohort_attributes = set(xcfg["cohort_attributes"])
-            community_canopy_attributes = set(xcfg["community_canopy_attributes"])
-            stem_canopy_attributes = set(xcfg["stem_canopy_attributes"])
+            # Get arguments and convert inputs - reduce Literals to plain strings.
+            required_data = set([str(x) for x in config.required_data])
+            cohort_attributes = set(config.cohort_attributes)
+            community_canopy_attributes = set(config.community_canopy_attributes)
+            stem_canopy_attributes = set(config.stem_canopy_attributes)
         except KeyError as excep:
             LOGGER.error(excep)
             raise

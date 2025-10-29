@@ -8,8 +8,7 @@ from __future__ import annotations
 import pandas as pd
 from pyrealm.demography.flora import Flora
 
-from virtual_ecosystem.core.config import Config, ConfigurationError
-from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.models.plants.model_config import PlantsConfiguration
 
 
 class ExtraTraitsPFT:
@@ -59,11 +58,11 @@ class ExtraTraitsPFT:
         return cls._from_file_data(traits)
 
 
-def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
+def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTraitsPFT]:
     """Generate a Flora object from a Virtual Ecosystem configuration.
 
     Args:
-        config: A validated Virtual Ecosystem model configuration object.
+        config: A validated PlantsConfiguration instance.
 
     Returns:
         A tuple containing a populated :class:`pyrealm.demography.flora.Flora` instance
@@ -83,20 +82,9 @@ def get_flora_from_config(config: Config) -> tuple[Flora, ExtraTraitsPFT]:
         "foliage_c_p_ratio",
     ]
 
-    # Double check the configuration setting is present.
-    if "plants" not in config:
-        msg = "Model configuration for plants model not found."
-        LOGGER.critical(msg)
-        raise ConfigurationError(msg)
-
-    if "pft_definitions_path" not in config["plants"]:
-        msg = "PFT definition path not set in plants model configuration."
-        LOGGER.critical(msg)
-        raise ConfigurationError(msg)
-
     # Read the file, handling file IO and parsing errors.
     try:
-        df = pd.read_csv(config["plants"]["pft_definitions_path"])
+        df = pd.read_csv(config.pft_definitions_path)
     except (FileNotFoundError, pd.errors.ParserError) as excep:
         raise excep
 

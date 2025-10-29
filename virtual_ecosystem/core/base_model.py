@@ -108,7 +108,7 @@ from typing import Any
 import pint
 
 from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants import CoreConsts
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import (
     CoreComponents,
     LayerStructure,
@@ -117,6 +117,7 @@ from virtual_ecosystem.core.core_components import (
 from virtual_ecosystem.core.data import Data, Grid
 from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 
 
 class BaseModel(ABC):
@@ -241,7 +242,7 @@ class BaseModel(ABC):
         """The Grid details used in the model."""
         self.layer_structure: LayerStructure = core_components.layer_structure
         """The LayerStructure details used in the model."""
-        self.core_constants: CoreConsts = core_components.core_constants
+        self.core_constants: CoreConstants = core_components.core_constants
         """The core constants used in the model."""
         self._repr: list[tuple[str, ...]] = [("model_timing", "update_interval")]
         """A list of attributes to be included in the class __repr__ output"""
@@ -449,7 +450,11 @@ class BaseModel(ABC):
     @classmethod
     @abstractmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> BaseModel:
         """Factory function to unpack config and initialise a model instance."""
 

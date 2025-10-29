@@ -11,14 +11,21 @@ def fixture_litter_model(dummy_litter_data):
     """Create a litter model fixture based on the dummy litter data."""
     from tests.conftest import patch_bypass_setup, patch_run_update
     from virtual_ecosystem.core.config import Config
+    from virtual_ecosystem.core.config_builder import (
+        ConfigurationLoader,
+        generate_configuration,
+    )
     from virtual_ecosystem.core.core_components import CoreComponents
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     # Build the config object
-    config = Config(
-        cfg_strings="[core]\n[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
-    )
-    core_components = CoreComponents(config)
+    cfg_strings = "[core]\n[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
+    config = Config(cfg_strings=cfg_strings)
+
+    config_data = ConfigurationLoader(cfg_strings=cfg_strings)
+    configuration = generate_configuration(config_data.data)
+
+    core_components = CoreComponents(configuration.core)
 
     with (
         patch_run_update(LitterModel),
@@ -26,7 +33,10 @@ def fixture_litter_model(dummy_litter_data):
     ):
         mock_bypass_setup.return_value = False
         return LitterModel.from_config(
-            data=dummy_litter_data, core_components=core_components, config=config
+            data=dummy_litter_data,
+            configuration=configuration,
+            core_components=core_components,
+            config=config,
         )
 
 

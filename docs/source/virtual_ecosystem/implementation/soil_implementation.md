@@ -81,10 +81,8 @@ function](virtual_ecosystem.models.soil.microbial_groups.make_full_set_of_microb
 Similarly, enzyme classes are distinguished by whether they were produced by fungi or
 bacteria and by what substrate they break down ({term}`MAOM` or {term}`POM`). So, there
 is a total of four enzyme classes in the model. The parameters associated with each
-class are stored in an [EnzymeConstants data
-class](virtual_ecosystem.models.soil.microbial_groups.EnzymeConstants), and the full set
-of them can be constructed using the [make_full_set_of_enzymes
-function](virtual_ecosystem.models.soil.microbial_groups.make_full_set_of_enzymes).
+class are stored in an [SoilEnzymeClass data
+class](virtual_ecosystem.models.soil.model_config.SoilEnzymeClass).
 
 ## Model variables
 

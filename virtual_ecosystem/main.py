@@ -19,11 +19,14 @@ from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
 )
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data, merge_continuous_data_files
 from virtual_ecosystem.core.exceptions import ConfigurationError, InitialisationError
-from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER, add_file_logger, remove_file_logger
+from virtual_ecosystem.core.model_config import (
+    CoreConfiguration,
+)
 
 
 class Progress(IntEnum):
@@ -36,6 +39,7 @@ class Progress(IntEnum):
 
 
 def initialise_models(
+    configuration: CompiledConfiguration,
     config: Config,
     data: Data,
     core_components: CoreComponents,
@@ -44,6 +48,7 @@ def initialise_models(
     """Initialise a set of models for use in a `virtual_ecosystem` simulation.
 
     Args:
+        configuration: A validated Virtual Ecosystem model configuration object.
         config: A validated Virtual Ecosystem model configuration object.
         data: A Data instance.
         core_components: A CoreComponents instance.
@@ -60,7 +65,12 @@ def initialise_models(
     models_cfd = {}
     for model_name, model_class in models.items():
         try:
-            this_model = model_class.from_config(data, core_components, config)
+            this_model = model_class.from_config(
+                data=data,
+                configuration=configuration,
+                core_components=core_components,
+                config=config,
+            )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
             failed_models.append(model_name)
@@ -122,28 +132,40 @@ def ve_run(
     )
 
     # NEW configuration system
-    config_data = ConfigurationLoader(
+
+    config_data: ConfigurationLoader = ConfigurationLoader(
         cfg_paths=cfg_paths,
         cfg_strings=cfg_strings,
         override_params=override_params,
     )
-    configuration = generate_configuration(config_data.data)  # noqa: F841
+
+    configuration: CompiledConfiguration = generate_configuration(config_data.data)
+
+    # Get the core configuration class
+    core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+        "core", CoreConfiguration
+    )
 
     # Save the merged config if requested
-    data_opt = config["core"]["data_output_options"]
-    if data_opt["save_merged_config"]:
-        outfile = Path(data_opt["out_path"]) / data_opt["out_merge_file_name"]
+    if core_configuration.data_output_options.save_merged_config:
+        outfile = (
+            Path(core_configuration.data_output_options.out_path)
+            / core_configuration.data_output_options.out_merge_file_name
+        )
+        # TODO: While in transition in configuration write out the old style Config as
+        #       the static model demo can't handle new configs right now.
+        # configuration.export_toml(outfile)
         config.export_config(outfile)
+
         if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")
 
     # Build core elements
-    grid = Grid.from_config(config)
-    core_components = CoreComponents(config=config)
+    core_components = CoreComponents(config=core_configuration)
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
-    data = Data(grid)
+    data = Data(core_components.grid)
     data.load_data_config(config)
     if progress > Progress.MINIMAL:
         print("* Initial data loaded")
@@ -164,6 +186,7 @@ def ve_run(
     }
 
     models_init = initialise_models(
+        configuration=configuration,
         config=config,
         data=data,
         core_components=core_components,

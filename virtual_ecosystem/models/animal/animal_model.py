@@ -32,6 +32,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -43,7 +44,7 @@ from virtual_ecosystem.models.animal.animal_traits import (
     DietType,
     ReproductiveEnvironment,
 )
-from virtual_ecosystem.models.animal.cnp import CNP
+from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometries
 from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
@@ -58,15 +59,13 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
     import_functional_groups,
 )
+from virtual_ecosystem.models.animal.model_config import AnimalConfiguration
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
     damuths_law,
     madingley_individuals_density,
     prey_group_selection,
-)
-from virtual_ecosystem.models.soil.microbial_groups import (
-    find_microbial_stoichiometries,
 )
 
 
@@ -337,7 +336,11 @@ class AnimalModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> AnimalModel:
         """Factory function to initialise the animal model from configuration.
 
@@ -347,13 +350,20 @@ class AnimalModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
 
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: AnimalConfiguration = configuration.get_subconfiguration(
+            "animal", AnimalConfiguration
+        )
+
         # Load in the relevant constants
         model_constants = load_constants(config, "animal", "AnimalConsts")
-        static = config["animal"]["static"]
+        static = model_configuration.static
 
         density_scaling_method = config["animal"].get(
             "density_scaling_method", "madingley"
@@ -376,7 +386,7 @@ class AnimalModel(
         )
 
         # Find microbial stoichiometries based on the config
-        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=config)
+        microbial_c_n_p_ratios = find_microbial_stoichiometries(config=configuration)
 
         LOGGER.info(
             "Information required to initialise the animal model successfully "

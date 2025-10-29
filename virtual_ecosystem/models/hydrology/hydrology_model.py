@@ -36,6 +36,7 @@ from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -48,6 +49,7 @@ from virtual_ecosystem.models.hydrology import (
     hydrology_tools,
 )
 from virtual_ecosystem.models.hydrology.constants import HydroConsts
+from virtual_ecosystem.models.hydrology.model_config import HydrologyConfiguration
 
 
 class HydrologyModel(
@@ -167,7 +169,11 @@ class HydrologyModel(
 
     @classmethod
     def from_config(
-        cls, data: Data, core_components: CoreComponents, config: Config
+        cls,
+        data: Data,
+        configuration: CompiledConfiguration,
+        core_components: CoreComponents,
+        config: Config,
     ) -> HydrologyModel:
         """Factory function to initialise the hydrology model from configuration.
 
@@ -177,9 +183,16 @@ class HydrologyModel(
 
         Args:
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
+            configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
             config: A validated Virtual Ecosystem model configuration object.
         """
+
+        # Extract the validated model configuration from the complete compiled
+        # configuration. This syntax is odd but required to support static typing
+        model_configuration: HydrologyConfiguration = (
+            configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
+        )
 
         # Load model parameters
         initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
@@ -189,7 +202,7 @@ class HydrologyModel(
 
         # Load in the relevant constants
         model_constants = load_constants(config, "hydrology", "HydroConsts")
-        static = config["hydrology"]["static"]
+        static = model_configuration.static
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
