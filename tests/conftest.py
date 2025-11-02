@@ -370,6 +370,13 @@ def fixture_abiotic_constants(fixture_configuration):
 
 
 @pytest.fixture
+def fixture_plants_constants(fixture_configuration):
+    """Get the abiotic constants instance from the config."""
+
+    return fixture_configuration.plants.constants
+
+
+@pytest.fixture
 def fixture_abiotic_simple_configuration():
     """Get an abiotic_simple configuration instance to provide bounds and constants.
 
