@@ -75,7 +75,7 @@ The linear regression for below canopy values (1.5 m) is based on
 $$y = m * LAI + c$$
 
 where $y$ is the variable of interest, $m$ is the gradient
-(see {py:class}`~virtual_ecosystem.models.abiotic_simple.constants.AbioticSimpleBounds`)
+(see {py:class}`~virtual_ecosystem.models.abiotic_simple.model_config.AbioticSimpleBounds`)
 and $c$ is the intersect which we set to the external data values,
 see {numref}`abiotic_simple_step1`.
 We assume that the gradient remains constant throughout the simulation.
