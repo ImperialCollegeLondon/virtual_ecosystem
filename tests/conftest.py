@@ -292,6 +292,7 @@ def generate_config_strings(
 
         [hydrology]
         [litter]
+        [abiotic]
     """
 
     return [cfg_string, additional_toml]
@@ -352,20 +353,6 @@ def fixture_soil_constants(fixture_configuration):
     """Get the soil constants instance from the config."""
 
     return fixture_configuration.soil.constants
-
-
-@pytest.fixture
-def fixture_litter_constants(fixture_configuration):
-    """Get the litter constants instance from the config."""
-
-    return fixture_configuration.litter.constants
-
-
-@pytest.fixture
-def fixture_plants_constants(fixture_configuration):
-    """Get the plants constants instance from the config."""
-
-    return fixture_configuration.plants.constants
 
 
 @pytest.fixture

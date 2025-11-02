@@ -7,13 +7,13 @@ from pyrealm.constants import CoreConst as PyrealmConst
 from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance, wind
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import AbioticSimpleBounds
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
+from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
 def run_microclimate(
@@ -22,8 +22,8 @@ def run_microclimate(
     time_interval: float,
     cell_area: float,
     layer_structure: LayerStructure,
-    abiotic_constants: AbioticConsts,
-    core_constants: CoreConsts,
+    abiotic_constants: AbioticConstants,
+    core_constants: CoreConstants,
     pyrealm_const: PyrealmConst,
     abiotic_bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
@@ -373,7 +373,7 @@ def run_microclimate(
             molecular_weight_ratio_water_to_dry_air=(
                 core_constants.molecular_weight_ratio_water_to_dry_air
             ),
-            pyrealm_const=PyrealmConst(),
+            pyrealm_const=pyrealm_const,
         )
 
         # Calculate specific humidity at saturation

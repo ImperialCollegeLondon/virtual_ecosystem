@@ -204,6 +204,7 @@ nitpick_ignore = [
     # find FILEPATH_PLACEHOLDER, which is defined in the same way, in the same file and
     # when both do actually appear in the API docs? It's right there.
     ("py:class", "DIRPATH_PLACEHOLDER"),
+    ("py:class", "PyrealmConst"),
 ]
 
 intersphinx_mapping = {
