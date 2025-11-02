@@ -1,19 +1,20 @@
 """Test module for animal_traits.py."""
 
 import pytest
+from pydantic import ValidationError
 
 from virtual_ecosystem.models.animal.animal_traits import DietType, TaxaType
-from virtual_ecosystem.models.animal.constants import AnimalConsts
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
 
-class TestAnimalConsts:
-    """Tests for the AnimalConsts dataclass methods."""
+class TestAnimalConstants:
+    """Tests for the AnimalConstants dataclass methods."""
 
     def test_get_population_density_terms_damuth(self):
         """Test Damuth method returns correct terms."""
 
         # Create instance with damuth method
-        animal_consts = AnimalConsts(density_scaling_method="damuth")
+        animal_consts = AnimalConstants(density_scaling_method="damuth")
 
         # Get terms for Mammal Herbivore
         result = animal_consts.get_population_density_terms(
@@ -30,7 +31,7 @@ class TestAnimalConsts:
         """Test Madingley method returns correct terms."""
 
         # Create instance with madingley method
-        animal_consts = AnimalConsts(density_scaling_method="madingley")
+        animal_consts = AnimalConstants(density_scaling_method="madingley")
 
         # Get terms (taxa/diet ignored in madingley)
         result = animal_consts.get_population_density_terms(
@@ -43,11 +44,6 @@ class TestAnimalConsts:
     def test_get_population_density_terms_invalid_method(self):
         """Test invalid scaling method raises ValueError."""
 
-        # Create instance with invalid method
-        animal_consts = AnimalConsts(density_scaling_method="invalid_method")
-
-        # Ensure ValueError is raised
-        with pytest.raises(ValueError):
-            animal_consts.get_population_density_terms(
-                TaxaType.MAMMAL, DietType.HERBIVORE
-            )
+        # Ensure ValidationError is raised
+        with pytest.raises(ValidationError):
+            AnimalConstants(density_scaling_method="invalid_method")

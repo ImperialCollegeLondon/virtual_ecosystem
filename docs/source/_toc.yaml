@@ -162,6 +162,8 @@ subtrees:
                 title: The animal_cohorts submodule
               - file: api/models/animal/animal_model
                 title: The animal_model submodule
+              - file: api/models/animal/model_config
+                title: The model_config submodule
               - file: api/models/animal/animal_traits
                 title: The animal_traits submodule
               - file: api/models/animal/constants

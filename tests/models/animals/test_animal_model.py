@@ -49,13 +49,14 @@ class TestAnimalModel:
         """Test `AnimalModel` initialization with both scaling methods."""
         from virtual_ecosystem.core.base_model import BaseModel
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         # Initialize the model
         model = AnimalModel(
             data=dummy_animal_data,
             core_components=fixture_core_components,
             functional_groups=functional_group_list_instance,
-            density_scaling_method=scaling_method,
+            model_constants=AnimalConstants(density_scaling_method=scaling_method),
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
@@ -74,7 +75,6 @@ class TestAnimalModel:
             pytest.param(
                 does_not_raise(),
                 (
-                    (INFO, "Initialised animal.AnimalConsts from config"),
                     (
                         INFO,
                         "Information required to initialise the animal model"
@@ -207,25 +207,24 @@ class TestAnimalModel:
         self,
         scaling_method,
         dummy_animal_data,
-        animal_fixture_config,
         animal_fixture_configuration,
         fixture_core_components,
     ):
         """Test that AnimalModel.from_config correctly sets density_scaling_method."""
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
 
-        # Update the config to include the scaling method
-        animal_fixture_config["animal"]["density_scaling_method"] = scaling_method
-
+        # Update the constants to set the scaling method
         # Configuration classes are frozen so update via the __dict__ entries
-        animal_fixture_configuration.animal.__dict__["density_scaling_method"]
+        animal_fixture_configuration.animal.constants.__dict__[
+            "density_scaling_method"
+        ] = scaling_method
 
         # Create the model using from_config
         model = AnimalModel.from_config(
             data=dummy_animal_data,
             configuration=animal_fixture_configuration,
             core_components=fixture_core_components,
-            config=animal_fixture_config,
+            config=dict(),
         )
 
         # Check that the model has the correct scaling method set
@@ -638,6 +637,7 @@ class TestAnimalModel:
         self,
         litter_soil_data_instance,
         fixture_core_components,
+        fixture_core_constants,
         functional_group_list_instance,
         constants_instance,
         microbial_c_n_p_ratios,
@@ -647,7 +647,6 @@ class TestAnimalModel:
 
         import numpy as np
 
-        from virtual_ecosystem.core.constants import CoreConsts
         from virtual_ecosystem.models.animal.animal_model import AnimalModel
         from virtual_ecosystem.models.animal.decay import SoilPool
 
@@ -724,7 +723,7 @@ class TestAnimalModel:
                     cell_id=cid,
                     data=new_data,
                     cell_area=cell_area,
-                    max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+                    max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
                     c_n_p_ratios=microbial_c_n_p_ratios,
                 )
                 for pool_name in pool_names
@@ -982,8 +981,8 @@ class TestAnimalModel:
 
         from math import ceil
 
-        from virtual_ecosystem.models.animal.constants import AnimalConsts
         from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+        from virtual_ecosystem.models.animal.model_config import AnimalConstants
 
         # Always patch damuths_law to return predictable 42.0
         mock_damuth = mocker.patch(
@@ -1016,7 +1015,7 @@ class TestAnimalModel:
             vertical_occupancy="ground",
             birth_mass=0.1,
             adult_mass=10.0,
-            constants=AnimalConsts(density_scaling_method=scaling_method),
+            constants=AnimalConstants(density_scaling_method=scaling_method),
             density_individuals_m2=density,
         )
 

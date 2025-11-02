@@ -212,11 +212,10 @@ def test_find_decay_consumed_split(decay_rate, scavenging_rate, expected_split):
 class TestFungalFruitPool:
     """Test the FungalFruitPool class."""
 
-    def test_initialization(self, mocker):
+    def test_initialization(self, mocker, fixture_core_constants):
         """Test initialization of FungalFruitPool."""
         import numpy as np
 
-        from virtual_ecosystem.core.constants import CoreConsts
         from virtual_ecosystem.core.data import Data
         from virtual_ecosystem.models.animal.decay import FungalFruitPool
 
@@ -236,8 +235,8 @@ class TestFungalFruitPool:
             cell_id=cell_id,
             data=mock_data,
             cell_area=cell_area,
-            c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
-            c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+            c_n_ratio=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
+            c_p_ratio=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
         )
 
         c_mass = fungi_mass[cell_id] * cell_area
@@ -262,11 +261,10 @@ class TestFungalFruitPool:
 
         assert result == 12.34
 
-    def test_get_eaten(self, mocker, dummy_animal_data):
+    def test_get_eaten(self, mocker, dummy_animal_data, fixture_core_constants):
         """Test FungalFruitPool.get_eaten for correct nutrient consumption."""
         import numpy as np
 
-        from virtual_ecosystem.core.constants import CoreConsts
         from virtual_ecosystem.models.animal.decay import FungalFruitPool
 
         cell_area = 1.0
@@ -276,8 +274,8 @@ class TestFungalFruitPool:
             cell_id=cell_id,
             data=dummy_animal_data,
             cell_area=cell_area,
-            c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
-            c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+            c_n_ratio=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
+            c_p_ratio=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
         )
 
         detritivore = mocker.MagicMock()
@@ -308,11 +306,10 @@ class TestFungalFruitPool:
                 f" got {nutrients[key]}"
             )
 
-    def test_apply_decay(self, dummy_animal_data):
+    def test_apply_decay(self, dummy_animal_data, fixture_core_constants):
         """Test FungalFruitPool.get_eaten for correct nutrient consumption."""
         import numpy as np
 
-        from virtual_ecosystem.core.constants import CoreConsts
         from virtual_ecosystem.models.animal.decay import FungalFruitPool
 
         cell_area = 100.0
@@ -322,12 +319,12 @@ class TestFungalFruitPool:
             cell_id=cell_id,
             data=dummy_animal_data,
             cell_area=cell_area,
-            c_n_ratio=CoreConsts.fungal_fruiting_bodies_c_n_ratio,
-            c_p_ratio=CoreConsts.fungal_fruiting_bodies_c_p_ratio,
+            c_n_ratio=fixture_core_constants.fungal_fruiting_bodies_c_n_ratio,
+            c_p_ratio=fixture_core_constants.fungal_fruiting_bodies_c_p_ratio,
         )
 
         total_decay = fungal_fruit.apply_decay(
-            decay_constant=CoreConsts.fungal_fruiting_bodies_decay_rate,
+            decay_constant=fixture_core_constants.fungal_fruiting_bodies_decay_rate,
             time_period=30.0,
         )
         assert np.isclose(total_decay, 51.036906692032936)
@@ -475,6 +472,7 @@ class TestSoilPool:
     def test_initialization(
         self,
         litter_soil_data_instance,
+        fixture_core_constants,
         microbial_c_n_p_ratios,
         pool_name,
         expected_mass,
@@ -483,7 +481,6 @@ class TestSoilPool:
         """Test initialization of LitterPool."""
         import numpy as np
 
-        from virtual_ecosystem.core.constants import CoreConsts
         from virtual_ecosystem.models.animal.decay import SoilPool
 
         with expected_error:
@@ -492,7 +489,7 @@ class TestSoilPool:
                 cell_id=2,
                 data=litter_soil_data_instance,
                 cell_area=100.0,
-                max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+                max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
                 c_n_p_ratios=microbial_c_n_p_ratios,
             )
 
@@ -516,11 +513,16 @@ class TestSoilPool:
 
         assert result == 12.34
 
-    def test_get_eaten(self, mocker, litter_soil_data_instance, microbial_c_n_p_ratios):
+    def test_get_eaten(
+        self,
+        mocker,
+        litter_soil_data_instance,
+        fixture_core_constants,
+        microbial_c_n_p_ratios,
+    ):
         """Test `get_eaten` method of SoilPool for correct nutrient consumption."""
         import numpy as np
 
-        from virtual_ecosystem.core.constants import CoreConsts
         from virtual_ecosystem.models.animal.decay import SoilPool
 
         pool_name = "pom"
@@ -532,7 +534,7 @@ class TestSoilPool:
             cell_id=cell_id,
             data=litter_soil_data_instance,
             cell_area=cell_area,
-            max_depth_microbial_activity=CoreConsts.max_depth_of_microbial_activity,
+            max_depth_microbial_activity=fixture_core_constants.max_depth_of_microbial_activity,
             c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
