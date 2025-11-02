@@ -205,6 +205,11 @@ nitpick_ignore = [
     # when both do actually appear in the API docs? It's right there.
     ("py:class", "DIRPATH_PLACEHOLDER"),
     ("py:class", "PyrealmConst"),
+    # Typing on animal.model_config
+    ("py:class", "virtual_ecosystem.models.animal.animal_traits.Annotated"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.serialise_diet_type"),
+    ("py:class", "virtual_ecosystem.models.animal.model_config.deserialise_diet_type"),
+    ("py:class", "always"),
 ]
 
 intersphinx_mapping = {

@@ -33,10 +33,8 @@ from xarray import DataArray
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_cohorts import AnimalCohort
 from virtual_ecosystem.models.animal.animal_traits import (
@@ -45,7 +43,6 @@ from virtual_ecosystem.models.animal.animal_traits import (
     ReproductiveEnvironment,
 )
 from virtual_ecosystem.models.animal.cnp import CNP, find_microbial_stoichiometries
-from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
@@ -59,7 +56,10 @@ from virtual_ecosystem.models.animal.functional_group import (
     get_functional_group_by_name,
     import_functional_groups,
 )
-from virtual_ecosystem.models.animal.model_config import AnimalConfiguration
+from virtual_ecosystem.models.animal.model_config import (
+    AnimalConfiguration,
+    AnimalConstants,
+)
 from virtual_ecosystem.models.animal.plant_resources import PlantResources
 from virtual_ecosystem.models.animal.protocols import Resource
 from virtual_ecosystem.models.animal.scaling_functions import (
@@ -164,7 +164,6 @@ class AnimalModel(
         data: Data,
         core_components: CoreComponents,
         static: bool = False,
-        density_scaling_method: str = "madingley",
         **kwargs: Any,
     ):
         """Animal init function.
@@ -173,15 +172,12 @@ class AnimalModel(
         handled in :fun:`~virtual_ecosystem.animal.animal_model._setup`.
         """
 
-        self.density_scaling_method = density_scaling_method
-        """Which density scaling equations are used, "damuth" or "madingley"."""
-        self.model_constants: AnimalConsts = AnimalConsts(
-            density_scaling_method=self.density_scaling_method
-        )
-        """Animal constants."""
-
         super().__init__(data, core_components, static, **kwargs)  # runs _setup
 
+        self.density_scaling_method
+        """Which density scaling equations are used."""
+        self.model_constants: AnimalConstants
+        """Animal constants."""
         self.communities: dict[int, list[AnimalCohort]]
         """Animal communities with grid cell IDs and lists of AnimalCohorts."""
         self.active_cohorts: dict[uuid.UUID, AnimalCohort] = {}
@@ -356,33 +352,14 @@ class AnimalModel(
         """
 
         # Extract the validated model configuration from the complete compiled
-        # configuration. This syntax is odd but required to support static typing
+        # configuration.
         model_configuration: AnimalConfiguration = configuration.get_subconfiguration(
             "animal", AnimalConfiguration
         )
 
-        # Load in the relevant constants
-        model_constants = load_constants(config, "animal", "AnimalConsts")
-        static = model_configuration.static
-
-        density_scaling_method = config["animal"].get(
-            "density_scaling_method", "madingley"
-        )
-
-        # Load functional groups
-        functional_groups_path = config["animal"].get(
-            "functional_group_definitions_path", None
-        )
-        if functional_groups_path is None:
-            msg = (
-                "Animal model configuration does not provide the "
-                "'functional_group_definitions_path' setting"
-            )
-            LOGGER.error(msg)
-            raise ConfigurationError(msg)
-
         functional_groups = import_functional_groups(
-            fg_csv_file=functional_groups_path, constants=model_constants
+            fg_csv_file=model_configuration.functional_group_definitions_path,
+            constants=model_configuration.constants,
         )
 
         # Find microbial stoichiometries based on the config
@@ -396,10 +373,9 @@ class AnimalModel(
         return cls(
             data=data,
             core_components=core_components,
-            static=static,
+            static=model_configuration.static,
             functional_groups=functional_groups,
-            model_constants=model_constants,
-            density_scaling_method=density_scaling_method,
+            model_constants=model_configuration.constants,
             microbial_c_n_p_ratios=microbial_c_n_p_ratios,
         )
 
@@ -407,6 +383,7 @@ class AnimalModel(
         self,
         functional_groups: list[FunctionalGroup],
         microbial_c_n_p_ratios: dict[str, dict[str, float]],
+        model_constants: AnimalConstants,
         **kwargs: Any,
     ) -> None:
         """Method to setup the animal model specific data variables.
@@ -420,8 +397,18 @@ class AnimalModel(
                 simulation.
             microbial_c_n_p_ratios: Biomass stoichiometry of each microbial functional
                 group.
+            model_constants: An
+                :class:`~virtual_ecosystem.models.animal.model_config.AnimalConstants`
+                instance, providing constants for the model and setting the density
+                scaling method to be used in simulation.
             **kwargs: Further arguments to the setup method.
         """
+
+        self.model_constants = model_constants
+        """Animal constants."""
+        self.density_scaling_method = self.model_constants.density_scaling_method
+        """Which density scaling equations are used, "damuth" or "madingley"."""
+
         days_as_float = self.model_timing.update_interval_quantity.to("days").magnitude
         self.update_interval_in_days = days_as_float
         """Store update interval as a number of days."""

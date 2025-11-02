@@ -15,7 +15,6 @@ from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.animal.animal_traits import VerticalOccupancy
 from virtual_ecosystem.models.animal.cnp import CNP
-from virtual_ecosystem.models.animal.constants import AnimalConsts
 from virtual_ecosystem.models.animal.decay import (
     CarcassPool,
     ExcrementPool,
@@ -25,6 +24,7 @@ from virtual_ecosystem.models.animal.decay import (
     find_decay_consumed_split,
 )
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
+from virtual_ecosystem.models.animal.model_config import AnimalConstants
 from virtual_ecosystem.models.animal.protocols import Resource
 
 _T = TypeVar("_T")
@@ -41,7 +41,7 @@ class AnimalCohort:
         individuals: int,
         centroid_key: int,
         grid: Grid,
-        constants: AnimalConsts = AnimalConsts(),
+        constants: AnimalConstants = AnimalConstants(),
     ) -> None:
         if age < 0:
             raise ValueError("Age must be a positive number.")
