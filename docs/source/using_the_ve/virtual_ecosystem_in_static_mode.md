@@ -1,6 +1,4 @@
 ---
-execution:
-  timeout: 210
 jupytext:
   formats: md:myst
   main_language: python
@@ -13,16 +11,9 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-language_info:
-  codemirror_mode:
-    name: ipython
-    version: 3
-  file_extension: .py
-  mimetype: text/x-python
-  name: python
-  nbconvert_exporter: python
-  pygments_lexer: ipython3
-  version: 3.11.14
+mystnb:
+  execution_timeout: 60
+  execution_mode: 'off'
 ---
 
 # Running the Virtual Ecosystem in Static Mode

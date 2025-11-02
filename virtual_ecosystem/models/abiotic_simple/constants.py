@@ -25,7 +25,7 @@ class AbioticSimpleConsts(ConstantsDataclass):
 
 
 @dataclass(frozen=True)
-class AbioticSimpleBounds(ConstantsDataclass):
+class AbioticSimpleBoundsOld(ConstantsDataclass):
     """Upper and lower bounds for abiotic variables.
 
     When a values falls outside these bounds, it is set to the bound value.

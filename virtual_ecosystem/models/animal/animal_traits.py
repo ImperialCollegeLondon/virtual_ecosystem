@@ -3,6 +3,8 @@ animal traits into enumerations for use by the Functional Group class in the
 :mod:`~virtual_ecosystem.models.animal.functional_group` module.
 """  # noqa: D205
 
+from __future__ import annotations
+
 from enum import Enum, Flag, auto
 
 
@@ -55,7 +57,7 @@ class DietType(Flag):
     OMNIVORE = HERBIVORE | CARNIVORE
 
     @classmethod
-    def parse(cls, diet_string: str) -> "DietType":
+    def parse(cls, diet_string: str) -> DietType:
         """Parse a string of underscore-separated diet terms into a DietType flag.
 
         This method takes a lowercase string such as 'fruit_foliage_fish' and converts
@@ -91,7 +93,7 @@ class DietType(Flag):
 
         return flags
 
-    def coarse_category(self) -> "DietType":
+    def coarse_category(self) -> DietType:
         """Classify the detailed diet into a broad trophic category.
 
         This method examines the components of the current DietType flag and returns one
@@ -191,7 +193,7 @@ class VerticalOccupancy(Flag):
     CANOPY = auto()
 
     @classmethod
-    def parse(cls, occupancy: str) -> "VerticalOccupancy":
+    def parse(cls, occupancy: str) -> VerticalOccupancy:
         """Convert a string like 'soil_ground' into a VerticalOccupancy flag.
 
         This method parses a lowercase underscore-separated string into a combined
