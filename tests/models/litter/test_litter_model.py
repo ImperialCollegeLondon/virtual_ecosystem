@@ -13,17 +13,16 @@ from virtual_ecosystem.core.exceptions import InitialisationError
 
 
 def test_litter_model_initialization(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     model = LitterModel(
         data=dummy_litter_data,
         core_components=fixture_core_components,
-        model_constants=LitterConsts(),
+        model_constants=fixture_litter_constants,
     )
 
     # In cases where it passes then checks that the object has the right properties
@@ -64,11 +63,12 @@ def test_litter_model_initialization(
     )
 
 
-def test_litter_model_initialization_no_data(caplog, fixture_core_components):
+def test_litter_model_initialization_no_data(
+    caplog, fixture_core_components, fixture_litter_constants
+):
     """Test `LitterModel` initialization fails when all data is missing."""
     from virtual_ecosystem.core.data import Data
     from virtual_ecosystem.core.grid import Grid
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     caplog.clear()
@@ -81,7 +81,7 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
         LitterModel(
             data=litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts(),
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that expected logging entries are produced
@@ -174,10 +174,9 @@ def test_litter_model_initialization_no_data(caplog, fixture_core_components):
 
 
 def test_litter_model_initialization_bad_pool_bounds(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization fails when litter pools are out of bounds."""
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
@@ -189,7 +188,7 @@ def test_litter_model_initialization_bad_pool_bounds(
         LitterModel(
             data=dummy_litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts,
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that the last log entry is as expected
@@ -201,10 +200,10 @@ def test_litter_model_initialization_bad_pool_bounds(
 
 
 def test_litter_model_initialization_bad_lignin_bounds(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization fails for lignin proportions not in bounds."""
-    from virtual_ecosystem.models.litter.constants import LitterConsts
+
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
@@ -216,7 +215,7 @@ def test_litter_model_initialization_bad_lignin_bounds(
         LitterModel(
             data=litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts,
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that expected logging entries are produced
@@ -228,10 +227,9 @@ def test_litter_model_initialization_bad_lignin_bounds(
 
 
 def test_litter_model_initialization_bad_nutrient_ratio_bounds(
-    caplog, dummy_litter_data, fixture_core_components
+    caplog, dummy_litter_data, fixture_core_components, fixture_litter_constants
 ):
     """Test `LitterModel` initialization fails for nutrient ratios not in bounds."""
-    from virtual_ecosystem.models.litter.constants import LitterConsts
     from virtual_ecosystem.models.litter.litter_model import LitterModel
 
     with pytest.raises(InitialisationError):
@@ -245,7 +243,7 @@ def test_litter_model_initialization_bad_nutrient_ratio_bounds(
         LitterModel(
             data=litter_data,
             core_components=fixture_core_components,
-            model_constants=LitterConsts,
+            model_constants=fixture_litter_constants,
         )
 
     # Final check that expected logging entries are produced
