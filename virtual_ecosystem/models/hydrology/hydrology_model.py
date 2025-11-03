@@ -37,19 +37,21 @@ from xarray import DataArray
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
-from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
+from virtual_ecosystem.models.abiotic.model_config import (
+    AbioticConstants,
+)
 from virtual_ecosystem.models.hydrology import (
     above_ground,
     below_ground,
     hydrology_tools,
 )
-from virtual_ecosystem.models.hydrology.constants import HydroConsts
-from virtual_ecosystem.models.hydrology.model_config import HydrologyConfiguration
+from virtual_ecosystem.models.hydrology.model_config import (
+    HydrologyConfiguration,
+    HydrologyConstants,
+)
 
 
 class HydrologyModel(
@@ -158,7 +160,7 @@ class HydrologyModel(
         cells identical."""
         self.initial_groundwater_saturation: float
         """Initial level of groundwater saturation for all layers identical."""
-        self.model_constants: HydroConsts
+        self.model_constants: HydrologyConstants
         """Set of constants for the hydrology model"""
         self.drainage_map: dict
         """Upstream neighbours for the calculation of horizontal flow."""
@@ -188,21 +190,20 @@ class HydrologyModel(
             config: A validated Virtual Ecosystem model configuration object.
         """
 
-        # Extract the validated model configuration from the complete compiled
-        # configuration. This syntax is odd but required to support static typing
-        model_configuration: HydrologyConfiguration = (
+        # Extract the validated hydrology and abiotic configuration from the complete
+        # compiled configuration.
+        hydrology_configuration: HydrologyConfiguration = (
             configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
         )
 
-        # Load model parameters
-        initial_soil_moisture = config["hydrology"]["initial_soil_moisture"]
-        initial_groundwater_saturation = config["hydrology"][
-            "initial_groundwater_saturation"
-        ]
-
-        # Load in the relevant constants
-        model_constants = load_constants(config, "hydrology", "HydroConsts")
-        static = model_configuration.static
+        # The abiotic constants are currently hardcoded here - the issue is that the
+        # model relies on two abiotic constants:
+        #         abiotic_constants.latent_heat_vap_equ_factors
+        #         abiotic_constants.saturated_pressure_slope_parameters
+        # These need to be inherited properly from the configuration but at the moment
+        # we're using abiotic_simple in testing and it isn't a simple swap. So, leaving
+        # this hardcoded for now.
+        abiotic_constants: AbioticConstants = AbioticConstants()
 
         LOGGER.info(
             "Information required to initialise the hydrology model successfully "
@@ -211,17 +212,19 @@ class HydrologyModel(
         return cls(
             data=data,
             core_components=core_components,
-            static=static,
-            initial_soil_moisture=initial_soil_moisture,
-            initial_groundwater_saturation=initial_groundwater_saturation,
-            model_constants=model_constants,
+            static=hydrology_configuration.static,
+            initial_soil_moisture=hydrology_configuration.initial_soil_moisture,
+            initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
+            model_constants=hydrology_configuration.constants,
+            abiotic_constants=abiotic_constants,
         )
 
     def _setup(
         self,
         initial_soil_moisture: float,
         initial_groundwater_saturation: float,
-        model_constants: HydroConsts = HydroConsts(),
+        model_constants: HydrologyConstants = HydrologyConstants(),
+        abiotic_constants: AbioticConstants = AbioticConstants(),
         **kwargs: Any,
     ) -> None:
         """Function to set up the hydrology model.
@@ -244,28 +247,15 @@ class HydrologyModel(
                 (between 0 and 1) for all layers and grid cells identical. This will be
                 converted to groundwater storage in mm.
             model_constants: Set of constants for the hydrology model.
+            abiotic_constants: Some abiotic constants are required in the hydrology
+                model.
             **kwargs: Further arguments to the setup method.
         """
-
-        # Sanity checks for initial soil moisture and initial_groundwater_saturation
-        for attr, value in (
-            ("initial_soil_moisture", initial_soil_moisture),
-            ("initial_groundwater_saturation", initial_groundwater_saturation),
-        ):
-            if not isinstance(value, float | int):
-                to_raise = InitialisationError(f"The {attr} must be numeric!")
-                LOGGER.error(to_raise)
-                raise to_raise
-
-            if value < 0 or value > 1:
-                to_raise = InitialisationError(f"The {attr} has to be between 0 and 1!")
-                LOGGER.error(to_raise)
-                raise to_raise
 
         self.initial_soil_moisture = initial_soil_moisture
         self.initial_groundwater_saturation = initial_groundwater_saturation
         self.model_constants = model_constants
-        self.abiotic_constants = AbioticConsts()
+        self.abiotic_constants = abiotic_constants
         self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
@@ -409,7 +399,7 @@ class HydrologyModel(
         * net radiation, [W m-2]
 
         and a number of parameters that as described in detail in
-        :class:`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
+        :class:`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
         """
         # Determine number of days
         days_float: float = self.model_timing.update_interval_seconds / 86400
