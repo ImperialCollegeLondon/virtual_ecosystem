@@ -10,6 +10,12 @@ from jsonschema.exceptions import SchemaError
 from tests.conftest import log_check
 
 
+@pytest.fixture(autouse=True)
+def skip_these_tests():
+    """Do not run tests in this module."""
+    pytest.skip("These tests rely on the old configuration system and will be deleted.")
+
+
 @pytest.mark.parametrize(
     "module_name, schema_file_path, expected_exception, expected_log_entries",
     [

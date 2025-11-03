@@ -16,6 +16,12 @@ from tests.conftest import log_check, record_found_in_log
 from virtual_ecosystem.core.exceptions import ConfigurationError
 
 
+@pytest.fixture(autouse=True)
+def skip_these_tests():
+    """Do not run tests in this module."""
+    pytest.skip("These tests rely on the old configuration system and will be deleted.")
+
+
 @pytest.mark.parametrize(
     "dest,source,exp_result, exp_conflicts",
     [
