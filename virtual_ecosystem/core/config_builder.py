@@ -3,8 +3,8 @@ TOML formatted configuration dictionaries, either from files or from strings. St
 inputs are primarily intended for use in configuring models for testing, where it is
 more convenient to simply provide a string.
 
-The main class :class:`ConfigLoader` handles the loading of configuration data and
-compiling multiple sources into a single dictionary of configuration data.
+The main class :class:`ConfigurationLoader` handles the loading of configuration data
+and compiling multiple sources into a single dictionary of configuration data.
 
 The :func:`generate_configuration` function then:
 
