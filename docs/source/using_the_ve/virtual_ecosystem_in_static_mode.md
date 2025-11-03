@@ -11,9 +11,6 @@ kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
   name: python3
-mystnb:
-  execution_timeout: 60
-  execution_mode: 'off'
 ---
 
 # Running the Virtual Ecosystem in Static Mode

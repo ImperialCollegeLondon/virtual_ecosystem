@@ -66,7 +66,7 @@ def register_module(module_name: str) -> None:
     module.
 
     This function is primarily used within the
-    :meth:`~virtual_ecosystem.core.config_loader.build_configuration_model` method to
+    :meth:`~virtual_ecosystem.core.config_builder.build_configuration_model` method to
     register the components required to validate and setup the model configuration for a
     particular simulation.
 
