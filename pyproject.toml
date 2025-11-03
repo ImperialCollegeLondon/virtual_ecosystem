@@ -5,6 +5,7 @@ authors = [
   {name = "Jacob Cook", email = "j.cook17@imperial.ac.uk"},
   {name = "Vivienne Groner", email = "v.groner@imperial.ac.uk"},
   {name = "Taran Rallings", email = "t.rallings@imperial.ac.uk"},
+  {name = "Sally Matson", email = "sally.matson21@imperial.ac.uk"},
   {name = "Olivia Daniel", email = "olivia.daniel08@imperial.ac.uk"},
   {name = "Jaideep Joshi", email = "joshi@iiasa.ac.at"},
   {name = "Anna Rallings", email = "a.rallings@imperial.ac.uk"},
@@ -31,7 +32,6 @@ dependencies = [
   "Shapely (>2.0)",
   "dask (>2023.6)",
   "dpath (>2.0)",
-  "jsonschema (>4.14)",
   "netcdf4 (>1.6)",
   "numpy  (>2.0)",
   "openpyxl (>3.1)",
@@ -134,7 +134,7 @@ select = [
 # On top of the Google convention, disable:
 ignore = [
   "D202", # Blank line after docstring is ok
-  "D107", # Location of __init__ docstring in class not __init__"  # "F401", # module imported but unused
+  "D107", # Location of __init__ docstring in class not __init__"
 ]
 
 [tool.ruff.lint.pydocstyle]
