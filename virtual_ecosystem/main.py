@@ -193,6 +193,7 @@ def ve_run(
 
     # Data output options
     output_config = core_configuration.data_output_options
+
     # Create output folder if it does not exist
     os.makedirs(output_config.out_path, exist_ok=True)
 

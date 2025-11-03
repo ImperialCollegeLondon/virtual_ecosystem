@@ -203,14 +203,20 @@ def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_leng
     remove_file_logger()
     variables.KNOWN_VARIABLES.clear()
 
+    # Make the output directory - need to make a decision about whether ve_run creates
+    # this.
+    out_dir = tmp_path / "out_dir"
+    out_dir.mkdir()
+
     # Run ve_run with just a minimal TestingModel used and don't save any outputs
     ve_run(
-        cfg_strings="""
+        cfg_strings=f"""
 [core.data_output_options]
 save_initial_state = false
 save_continuous_data = false
 save_final_state = false
 save_merged_config = false
+out_path='{out_dir!s}'
 [core.data]
 variable = []
 [testing]
