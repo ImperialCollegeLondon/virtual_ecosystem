@@ -27,15 +27,6 @@ def extra_pft_traits(fixture_configuration):
 
 
 @pytest.fixture
-def fixture_plants_constants():
-    """Shareable plants constants object."""
-
-    from virtual_ecosystem.models.plants.constants import PlantsConsts
-
-    return PlantsConsts()
-
-
-@pytest.fixture
 def fixture_pyrealm_constants():
     """Shareable pyrealm constants object."""
 

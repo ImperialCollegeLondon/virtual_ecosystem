@@ -17,8 +17,8 @@ import numpy as np
 from numpy.typing import NDArray
 from xarray import DataArray
 
-from virtual_ecosystem.core.constants import CoreConsts
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.litter.chemistry import calculate_litter_chemistry_factor
 from virtual_ecosystem.models.litter.env_factors import (
     calculate_environmental_factors,
@@ -161,7 +161,7 @@ def calculate_decay_rates(
 def calculate_total_C_mineralised(
     litter_losses: LitterLosses,
     model_constants: LitterConstants,
-    core_constants: CoreConsts,
+    core_constants: CoreConstants,
     update_interval: float,
 ) -> NDArray[np.floating]:
     """Calculate the total carbon mineralisation rate from all five litter pools.

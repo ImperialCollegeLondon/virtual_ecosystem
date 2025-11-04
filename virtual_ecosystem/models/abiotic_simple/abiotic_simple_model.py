@@ -17,21 +17,18 @@ from pyrealm.constants import CoreConst as PyrealmConst
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic.constants import AbioticConsts
-from virtual_ecosystem.models.abiotic_simple.constants import (
-    AbioticSimpleBounds,
-    AbioticSimpleConsts,
-)
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_vapour_pressure_deficit,
     run_simple_microclimate,
 )
 from virtual_ecosystem.models.abiotic_simple.model_config import (
+    AbioticSimpleBounds,
     AbioticSimpleConfiguration,
+    AbioticSimpleConstants,
 )
 
 
@@ -101,10 +98,12 @@ class AbioticSimpleModel(
 
         super().__init__(data, core_components, static, **kwargs)
 
-        self.model_constants: AbioticSimpleConsts
+        self.model_constants: AbioticSimpleConstants
         """Set of constants for the abiotic simple model"""
         self.bounds: AbioticSimpleBounds
         """Upper and lower bounds for abiotic variables."""
+        self.abiotic_constants: AbioticConstants
+        """Abiotic constants required for some calculations"""
 
     @classmethod
     def from_config(
@@ -128,18 +127,15 @@ class AbioticSimpleModel(
         """
 
         # Extract the validated model configuration from the complete compiled
-        # configuration. This syntax is odd but required to support static typing
+        # configuration
         model_configuration: AbioticSimpleConfiguration = (
             configuration.get_subconfiguration(
                 "abiotic_simple", AbioticSimpleConfiguration
             )
         )
 
-        # Load in the relevant constants
-        model_constants = load_constants(
-            config, "abiotic_simple", "AbioticSimpleConsts"
-        )
-        static = model_configuration.static
+        # Hard coding abiotic constants here until we resolve the config setup
+        abiotic_constants: AbioticConstants = AbioticConstants()
 
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
@@ -148,11 +144,17 @@ class AbioticSimpleModel(
         return cls(
             data=data,
             core_components=core_components,
-            static=static,
-            model_constants=model_constants,
+            static=model_configuration.static,
+            model_configuration=model_configuration,
+            abiotic_constants=abiotic_constants,
         )
 
-    def _setup(self, model_constants: AbioticSimpleConsts, **kwargs) -> None:
+    def _setup(
+        self,
+        model_configuration: AbioticSimpleConfiguration,
+        abiotic_constants: AbioticConstants,
+        **kwargs,
+    ) -> None:
         """Function to set up the abiotic simple model.
 
         This function initializes soil temperature for all soil layers and calculates
@@ -160,11 +162,14 @@ class AbioticSimpleModel(
         added directly to the self.data object.
 
         Args:
-            model_constants: Set of constants for the abiotic simple model.
+            model_configuration: Configuration object from the abiotic_simple model.
+            abiotic_constants: Provides required abiotic constants.
             **kwargs: Further arguments to the setup method.
         """
-        self.model_constants = model_constants
-        self.bounds = AbioticSimpleBounds()
+        # Populate model attributes
+        self.model_constants = model_configuration.constants
+        self.bounds = model_configuration.bounds
+        self.abiotic_constants = abiotic_constants
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
@@ -206,7 +211,7 @@ class AbioticSimpleModel(
             layer_structure=self.layer_structure,
             time_index=time_index,
             simple_constants=self.model_constants,
-            abiotic_constants=AbioticConsts(),
+            abiotic_constants=self.abiotic_constants,
             core_constants=self.core_constants,
             bounds=self.bounds,
         )

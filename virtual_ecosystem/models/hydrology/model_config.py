@@ -1,4 +1,4 @@
-"""The :mod:`~virtual_ecosystem.models.hydrology.constants` module contains a set of
+"""The :mod:`~virtual_ecosystem.models.hydrology.model_config` defines configuration
 dataclasses containing parameters required by the
 :mod:`~virtual_ecosystem.models.hydrology.hydrology_model`. These parameters are
 constants in that they should not be changed during a particular simulation.
@@ -211,8 +211,8 @@ class HydrologyConstants(Configuration):
 class HydrologyConfiguration(ModelConfigurationRoot):
     """Root configuration clas for the hydrology model."""
 
-    initial_soil_moisture: float = Field(gt=0, default=0.5)
+    initial_soil_moisture: float = Field(ge=0, le=1, default=0.5)
     """Initial soil moisture for all layers"""
-    initial_groundwater_saturation: float = Field(gt=0, default=0.9)
+    initial_groundwater_saturation: float = Field(ge=0, le=1, default=0.9)
     """Initial ground water saturation for all layers, unitless"""
     constants: HydrologyConstants = HydrologyConstants()

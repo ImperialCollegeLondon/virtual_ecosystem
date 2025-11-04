@@ -20,8 +20,8 @@ Each of the hydrology sub-modules has its own API reference page:
   Ecosystem. At the moment, this includes vertical flow, soil moisture and
   matric potential, groundwater storage, and subsurface horizontal flow.
 
-* The :mod:`~virtual_ecosystem.models.hydrology.constants` submodule contains
-  parameters and constants for the hydrology model.
+* The :mod:`~virtual_ecosystem.models.hydrology.model_config` submodule defines the
+  model configuration and constants for the hydrology model.
 
 * The :mod:`~virtual_ecosystem.models.hydrology.hydrology_tools` submodule
   contains a set of functions that support the data preprocessing for the model update,

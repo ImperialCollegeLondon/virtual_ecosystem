@@ -5,10 +5,8 @@ This module tests the functionality of the litter chemistry module
 
 import numpy as np
 
-from virtual_ecosystem.models.litter.constants import LitterConsts
 
-
-def test_calculate_litter_chemistry_factor():
+def test_calculate_litter_chemistry_factor(fixture_litter_constants):
     """Test that litter chemistry effects on decomposition are calculated correctly."""
     from virtual_ecosystem.models.litter.chemistry import (
         calculate_litter_chemistry_factor,
@@ -19,7 +17,7 @@ def test_calculate_litter_chemistry_factor():
     expected_factor = [0.95122942, 0.60653065, 0.08208499, 0.01831563]
 
     actual_factor = calculate_litter_chemistry_factor(
-        lignin_proportions, LitterConsts.lignin_inhibition_factor
+        lignin_proportions, fixture_litter_constants.lignin_inhibition_factor
     )
 
     assert np.allclose(actual_factor, expected_factor)
