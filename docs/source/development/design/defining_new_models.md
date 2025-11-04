@@ -51,34 +51,54 @@ to add other python modules containing different parts of the module functionali
   `virtual_ecosystem` package.
 * A python module  `{model_name}_model.py` that will contain the main model
   object.
-* A python module `model_config.py` that will define any configuration options and
-  constants required by the model.
+* A JSON Schema file defining the model configuration, called `schema.json`.
+* A python module  `constants.py` that will contain the constants relevant to the model.
 
 For example:
 
 ```bash
 touch virtual_ecosystem/models/freshwater/__init__.py
 touch virtual_ecosystem/models/freshwater/freshwater_model.py
-touch virtual_ecosystem/models/freshwater/model_config.py
+touch virtual_ecosystem/models/freshwater/schema.json
+touch virtual_ecosystem/models/freshwater/constants.py
 ```
 
-## Model configuration
+## Defining constants and their default values
 
-Your model will likely have both configuration options and model constants.
+The definition of 'constant' in the Virtual Ecosystem is basically a parameter of any
+kind that should be held constant throughout a simulation. However, while some constants
+are likely never to be varied, many constants are estimated with error and users
+may want to explore the sensitivity of simulations to changes in those values. We
+therefore use a framework for constants that allows constant values to be configured for
+any given simulation.
 
-* Configuration options can include a wide variety of things: for example, the plant and
-  animal models include paths to initial cohort data and several models have options to
-  switch between alternative methods when running model calculations.
+Each model needs to define a `constants.py` module that will define  one or more
+constants _dataclasses_. Dataclasses provide an simple way to define a class containing
+a set of named constant attributes with default values. However, when an instance of a
+dataclass is created, it can be provided with an alternative value for an attribute,
+allowing default values to be overridden by the configuration for a particular
+simulation. All constant dataclasses must be configured to be _frozen_: the resulting
+dataclass instance can be configured when it is created, but cannot be altered while a
+simulation is running.
 
-* The definition of 'constant' in the Virtual Ecosystem is basically a parameter of any
-  kind that should be held constant throughout a simulation. Some global constants
-  should probably never be varied, but it is more consistent to define them in a single
-  location rather than hard-coding them in multiple locations. However, other constants
-  may be empirical estimates with error and users may want to explore the sensitivity of
-  simulations to changes in those values.
+The constants for a module can be stored in a single data class or spread over multiple
+data classes. However, having a large number of data classes is likely to make the
+downstream code messier, so constants should only be split across multiple classes when
+there's a strong reason to do so.
 
-The configuration for your model should be defined in the `model_config.py` file. You
-can structure your model a
+Because dataclasses are widely used structures in Python, the Virtual Ecosystem defines
+a specific base
+class to uniquely identify _constants dataclasses_ from other dataclasses. This base
+class also provides the
+methods,
+which validates a configuration dictionary against the dataclass definition and returns
+a configured dataclass instance.
+
+Constants dataclasses can also provide truly universal constants that you explicitly do
+not want users to be able to alter. This can be done by  typing a constants attribute as
+a class variable. All instances of the constants dataclass will provide the value, but
+it cannot be altered through configuration. Be aware that untyped attributes are also
+treated as class attributes but we prefer that class attributes are explicitly typed.
 
 Putting all of these components together, the contents of a `constants.py` file will
 look like the following code:
@@ -86,8 +106,6 @@ look like the following code:
 ```{code-block} python
 from dataclasses import dataclass
 from typing import ClassVar
-
-from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 # Dataclasses are frozen to prevent constants from changing during a simulation
 @dataclass(frozen=True)
@@ -130,18 +148,21 @@ from pint import Quantity
 
 # These are the main imports required to set up a BaseModel instance:
 # - the BaseModel itself
+# - a Config , used to configure a BaseModel instance.
+# - the load_constants helper function to configure model constants.
 # - the Data class, used as a central data store within the simulation
 # - an custom exception to cover model initialisation failure
 # - the global LOGGER, used to report information to users.
 from virtual_ecosystem.core.base_model import BaseModel
+from virtual_ecosystem.core.config import Config
+from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
 
 # You will likely also have a set of imports of model specific code such as constants
 # classes and other classes and functions. For example:
-
-from virtual_ecosystem.models.freshwater.model_config import FreshwaterConfig
+from virtual_ecosystem.models.freshwater.constants import FreshwaterConsts
 from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 ```
 
@@ -264,7 +285,7 @@ def __init__(
     self._repr.append("no_of_ponds")
 ```
 
-## Model configuration 222
+## Model configuration
 
 The arguments to the model `__init__` method define the **model configuration**: a
 collection of settings that set how the model runs. To allow the model to be defined and
@@ -394,9 +415,8 @@ be provided informing on the specific issue.
 
 ### The `from_config` factory method
 
-Configuration files are used to create a configuration object (see
-{class}`~virtual_ecosystem.core.config.Config`), which contains details of the
-configuration process but also provides a dictionary interface to the configuration
+Configuration files are used to create a configuration object  which contains details of
+the configuration process but also provides a dictionary interface to the configuration
 data. So, the example above might result in a `Config` object with the following model
 specific data.
 
@@ -416,7 +436,7 @@ method should raise an `InitialisationError` if the configuration fails.
 The `from_config` method should also generate the required constants classes from the
 config. At least one constants class should be created, but it's fine to split constants
 across more classes if that makes for clearer code. For each constants class the
-{func}`~virtual_ecosystem.core.constants_loader.load_constants` utility function can be
+utility function can be
 used to construct the class with the default values replaced if they are overwritten in
 the config.
 
@@ -513,7 +533,7 @@ Under the hood, when a given model is used in a simulation, then the configurati
 process automatically loads all of the model components for that model using the
 {func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
 loads and validates the model schema, discovers any
-{class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` in the `constants`
+ in the `constants`
 submodule and then adds those, along with the BaseModel subclass to a central
 {data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
 the simulation code to easily access model components.

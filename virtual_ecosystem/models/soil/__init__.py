@@ -14,7 +14,7 @@ Each of the soil sub-modules has its own API reference page:
   functional groups used in the soil model.
 * The :mod:`~virtual_ecosystem.models.soil.uptake` provides the functionality related to
   microbial carbon/nutrient uptake.
-* The :mod:`~virtual_ecosystem.models.soil.cmodel_config` submodule provides
+* The :mod:`~virtual_ecosystem.models.soil.model_config` submodule provides
   configuration options for the model along with constants required by the broader soil
   model.
 """  # noqa: D205

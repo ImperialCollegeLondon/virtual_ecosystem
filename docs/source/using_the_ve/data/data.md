@@ -218,7 +218,7 @@ configuration files to be swapped in a more modular fashion.
 
 To load configuration data , you will typically use the `cfg_paths` argument
 to pass one or more TOML formatted configuration files to create a
-{class}`~virtual_ecosystem.core.config.Config` object. You can also use a string
+ object. You can also use a string
 containing TOML formatted text or a list of TOML strings to create a configuration
 object:
 

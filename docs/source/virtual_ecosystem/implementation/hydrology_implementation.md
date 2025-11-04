@@ -80,8 +80,8 @@ display_markdown(
 )
 ```
 
-The model also requires several parameters that as described in detail in
-{py:class}`~virtual_ecosystem.models.hydrology.constants.HydroConsts`.
+The model also requires several parameters that are described in detail in
+{py:class}`~virtual_ecosystem.models.hydrology.model_config.HydrologyConstants`.
 The default values are set for forest ecosystems.
 
 ## Within grid cell hydrology

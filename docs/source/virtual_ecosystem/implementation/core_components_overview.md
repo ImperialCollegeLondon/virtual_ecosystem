@@ -51,7 +51,7 @@ When a simulation starts, the Virtual Ecosystem:
   * Any required fields without defaults are not completed.
 
 Further details can be found in the [configuration
-documentation](../../using_the_ve/configuration/config.md).
+documentation](../../using_the_ve/configuration/new_config.md).
 
 ## The grid
 
@@ -106,8 +106,8 @@ uses 12 equal length months and equal length years, ignoring leap years.
 
 ## Core constants
 
-The [core constants](../../api/core/constants.md) contains values that are shared across
-the whole simulation. This includes:
+The [core constants](../../api/core/model_config.md) contains values that are shared
+across the whole simulation. This includes:
 
 * Global scientific constants, such as the gravitational constant $G$.
 * Simulation constants that are either:
