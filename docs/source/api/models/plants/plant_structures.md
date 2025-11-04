@@ -75,14 +75,6 @@ This page documents submodules of the `plants` module used to support the centra
     :members:
 ```
 
-## The plants {mod}`~virtual_ecosystem.models.plants.constants` module
-
-```{eval-rst}
-.. automodule:: virtual_ecosystem.models.plants.constants
-    :autosummary:
-    :members:
-```
-
 ## The plant {mod}`~virtual_ecosystem.models.plants.exporter` module
 
 ```{eval-rst}

@@ -311,8 +311,6 @@ from pint import Quantity
 # - an custom exception to cover model initialisation failure
 # - the global LOGGER, used to report information to users.
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
-from virtual_ecosystem.core.constants_loader import load_constants
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
@@ -385,8 +383,9 @@ class FreshWaterModel(
 The next step is to define the `__init__` method for the class. This needs to do a few
 things.
 
-1. It should define any specific instance attributes of the new model class. For
-  example, the class might require that the user set a number of ponds. These should be
+1. It should define any specific attributes of the new model class. For
+  example, the configuration above defines a path to a CSV file of pond data, which
+  needs to be provided to the models and the set of model constants. These should be
   added to the signature of the `__init__` method, alongside the required parameters of
   the base class, and then stored as attributes of the instance.
 
@@ -416,30 +415,22 @@ def __init__(
     self,
     data: Data,
     update_interval: pint.Quantity,
-    no_of_ponds: int,
+    pond_data_path: Path,
     constants: FreshwaterConstants,
     **kwargs: Any,
 ):
-
-    # Sanity checking of input variables goes here
-    if no_of_ponds < 0:
-        to_raise = InitialisationError(
-            "There has to be at least one pond in the freshwater model!"
-        )
-        LOGGER.error(to_raise)
-        raise to_raise
 
     # Call the __init__() method of the base class
     super().__init__(data, update_interval, **kwargs)
 
     # Store model specific details as attributes.
-    self.no_of_ponds = int(no_of_ponds)
+    self.pond_data_path = pond_data_path
 
     # Store the constants relevant to the freshwater model
     self.constants = constants
 
     # Save attribute names to be used by the __repr__
-    self._repr.append("no_of_ponds")
+    self._repr.append("pond_data_path")
 ```
 
 #### Model dependencies
@@ -454,24 +445,20 @@ be provided informing on the specific issue.
 
 ### The `from_config` factory method
 
-The job of the `from_config` method for a model is to take that a validated
-configuration model, along with the shared `data` and `start_time` inputs, and then do
-any processing and validating to convert the configuration into the arguments required
-by the `__init__` method.
+The job of the `from_config` method for a model is to take a validated configuration and
+then do any processing and validating to convert the configuration into the arguments
+required by the `__init__` method. The configuration object will contain all
 
 The method then uses those parsed arguments to actually call the `__init__` method and
 return an initialised instance of the model using the settings. The `from_config`
 method should raise an `InitialisationError` if the configuration fails.
 
-The `from_config` method should also extract the required constants classes from the
-config. At least one constants class should be created, but it's fine to split constants
-across more classes if that makes for clearer code.
 As an example:
 
 ```{code-block} ipython3
 @classmethod
 def from_config(
-    cls, data: Data, config: Config, update_interval: Quantity
+    cls, data: Data, config: Configuration, update_interval: Quantity
 ) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
@@ -481,15 +468,12 @@ def from_config(
 
     Args:
         data: A :class:`~virtual_ecosystem.core.data.Data` instance.
-        config: A validated Virtual Ecosystem model configuration object.
+        configuration: A validated Virtual Ecosystem model configuration object.
         update_interval: Frequency with which all models are updated
     """
 
-    # Non-timing details now extracted
-    no_of_pools = config["freshwater"]["no_of_pools"]
+    pond_data_path = configuration.
 
-    # Load in the relevant constants
-    constants = load_constants(config, "freshwater", "FreshwaterConsts")
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
@@ -559,7 +543,7 @@ Under the hood, when a given model is used in a simulation, then the configurati
 process automatically loads all of the model components for that model using the
 {func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
 loads and validates the model schema, discovers any
-{class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` in the `constants`
+ in the `constants`
 submodule and then adds those, along with the BaseModel subclass to a central
 {data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
 the simulation code to easily access model components.

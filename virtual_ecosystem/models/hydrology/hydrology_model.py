@@ -35,7 +35,6 @@ from pyrealm.constants import CoreConst as PyrealmConst
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -175,7 +174,6 @@ class HydrologyModel(
         data: Data,
         configuration: CompiledConfiguration,
         core_components: CoreComponents,
-        config: Config,
     ) -> HydrologyModel:
         """Factory function to initialise the hydrology model from configuration.
 
@@ -187,7 +185,6 @@ class HydrologyModel(
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Extract the validated hydrology and abiotic configuration from the complete

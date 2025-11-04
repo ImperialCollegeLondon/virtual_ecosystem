@@ -24,11 +24,11 @@ language_info:
   version: 3.11.9
 ---
 
-#  API for the {mod}`~virtual_ecosystem.models.abiotic.constants` module
+# API documentation for the {mod}`~virtual_ecosystem.core.config_builder` module
 
 ```{eval-rst}
-.. automodule:: virtual_ecosystem.models.abiotic.constants
+.. automodule:: virtual_ecosystem.core.config_builder
     :autosummary:
     :members:
-    :special-members: __init__
+    :private-members:
 ```

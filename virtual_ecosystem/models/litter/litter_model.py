@@ -31,7 +31,6 @@ import numpy as np
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
@@ -195,7 +194,6 @@ class LitterModel(
         data: Data,
         configuration: CompiledConfiguration,
         core_components: CoreComponents,
-        config: Config,
     ) -> LitterModel:
         """Factory function to initialise the litter model from configuration.
 
@@ -207,7 +205,6 @@ class LitterModel(
             data: A :class:`~virtual_ecosystem.core.data.Data` instance.
             configuration: A validated Virtual Ecosystem model configuration object.
             core_components: The core components used across models.
-            config: A validated Virtual Ecosystem model configuration object.
         """
 
         # Extract the validated model configuration from the complete compiled

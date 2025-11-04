@@ -169,7 +169,6 @@ def test_PlantsModel__init__errors(
 
 def test_PlantsModel_from_config(
     plants_data,
-    fixture_config,
     fixture_configuration,
     fixture_core_components,
     fixture_canopy_layer_data,
@@ -181,7 +180,6 @@ def test_PlantsModel_from_config(
     plants_model = PlantsModel.from_config(
         data=plants_data,
         configuration=fixture_configuration,
-        config=fixture_config,
         core_components=fixture_core_components,
     )
 
@@ -411,7 +409,7 @@ def test_PlantsModel_calculate_turnover(fxt_plants_model):
 
 
 def test_PlantsModel_calculate_turnover_constant_override(
-    plants_data, fixture_config, fixture_configuration, fixture_core_components
+    plants_data, fixture_configuration, fixture_core_components
 ):
     """Test that the turnover constants can be overridden by values in config.
 
@@ -426,7 +424,6 @@ def test_PlantsModel_calculate_turnover_constant_override(
     plants_model = PlantsModel.from_config(
         data=plants_data,
         configuration=fixture_configuration,
-        config=fixture_config,
         core_components=fixture_core_components,
     )
 

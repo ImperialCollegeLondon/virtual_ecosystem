@@ -16,7 +16,7 @@ found :doc:`here </using_the_ve/configuration/config>`.
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, TypeAlias, TypeVar
+from typing import Annotated, Any, ClassVar, TypeAlias, TypeVar
 
 import tomli_w
 from pydantic import (
@@ -113,6 +113,10 @@ class CompiledConfiguration(Configuration):
     ``configuration.plants``, but we can use
     `configuration.get_subconfiguration("plants")` instead.
     """
+
+    _model_classes: ClassVar[dict[str, Any]]  # FIXME - can we make this VEBaseModel
+    """A dictionary of the requested modules in the simulation and their
+    VirtualEcosystem BaseModel classes."""
 
     def get_subconfiguration(self, name: str, _: Callable[..., T]) -> T:
         """Get a named subconfiguration object from a compiled configuration.

@@ -30,4 +30,5 @@ language_info:
 .. automodule:: virtual_ecosystem.core.variables
     :autosummary:
     :members:
+    :exclude-members: model_config
 ```

@@ -152,7 +152,6 @@ def test_generate_abiotic_simple_model(
                 data=dummy_climate_data_varying_canopy,
                 configuration=configuration,
                 core_components=core_components,
-                config=configuration,
             )
 
             mock_setup.assert_called_once()

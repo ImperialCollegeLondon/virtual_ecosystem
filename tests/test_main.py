@@ -100,7 +100,6 @@ def test_initialise_models(
 ):
     """Test the function that initialises the models."""
 
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -110,7 +109,6 @@ def test_initialise_models(
 
     # Generate a configuration to use, using simple inputs to populate most from
     # defaults. Then clear the caplog to isolate the logging for the function,
-    config = Config(cfg_strings=cfg_strings)
     config_data = ConfigurationLoader(cfg_strings=cfg_strings)
     configuration = generate_configuration(config_data.data)
     core_components = CoreComponents(configuration.core)
@@ -118,11 +116,10 @@ def test_initialise_models(
 
     with raises:
         models = initialise_models(
-            config=config,
             configuration=configuration,
             data=dummy_litter_data,
             core_components=core_components,
-            models=config.model_classes,
+            models=configuration._model_classes,
         )
 
         if output is None:
@@ -206,14 +203,22 @@ def test_ve_run_progress_reporting(capsys, tmp_path, progress_value, output_leng
     remove_file_logger()
     variables.KNOWN_VARIABLES.clear()
 
+    # Make the output directory - need to make a decision about whether ve_run creates
+    # this.
+    out_dir = tmp_path / "out_dir"
+    out_dir.mkdir()
+
     # Run ve_run with just a minimal TestingModel used and don't save any outputs
     ve_run(
-        cfg_strings="""
+        cfg_strings=f"""
 [core.data_output_options]
 save_initial_state = false
 save_continuous_data = false
 save_final_state = false
 save_merged_config = false
+out_path='{out_dir!s}'
+[core.data]
+variable = []
 [testing]
 """,
         progress=progress_value,

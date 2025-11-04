@@ -4,9 +4,10 @@ and then to configure them, populate them with data and provide logging.
 
 Each of the core sub-modules has its own API reference page:
 
-* The :mod:`~virtual_ecosystem.core.config` submodule covers the definition of formal
-  configuration schema for components and the parsing and validation of TOML
-  configuration documents against those schema.
+* The :mod:`~virtual_ecosystem.core.config_builder` submodule covers the parsing and
+  compilation of TOML configuration documents.
+* The :mod:`~virtual_ecosystem.core.configuration` submodule provides tools to validate
+  loaded configuration documents and return configuration class objects.
 * The :mod:`~virtual_ecosystem.core.logger` configures the :class:`~logging.Logger`
   instance used throughout the package.
 * The :mod:`~virtual_ecosystem.core.grid` submodule covers the definition of the
@@ -22,8 +23,8 @@ Each of the core sub-modules has its own API reference page:
 * The :mod:`~virtual_ecosystem.core.base_model` submodule provides an Abstract Base
   Class describing the shared API to be used by science models within the Virtual
   Ecosystem.
-* The :mod:`~virtual_ecosystem.core.constants` contains the constants that are shared
-  across multiple models.
+* The :mod:`~virtual_ecosystem.core.model_config` module contains the core module
+  configuration and constants that are shared across multiple models.
 * The :mod:`~virtual_ecosystem.core.utils` contains the utility functions that are used
   across the Virtual Ecosystem.
 * The :mod:`~virtual_ecosystem.core.exceptions` submodule defines custom exceptions

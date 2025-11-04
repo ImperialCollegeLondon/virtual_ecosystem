@@ -297,17 +297,17 @@ class SoilConstants(Configuration):
     [unitless]. The remainder goes to arbuscular mycorrhizal fungi."""
 
     @model_validator(mode="after")
-    def _check_pH_sequence(cls) -> SoilConstants:
+    def _check_pH_sequence(self) -> SoilConstants:
         """Checks that the microbe pH thresholds are in the correct order."""
         if not (
-            cls.min_pH_microbes
-            < cls.lowest_optimal_pH_microbes
-            < cls.highest_optimal_pH_microbes
-            < cls.max_pH_microbes
+            self.min_pH_microbes
+            < self.lowest_optimal_pH_microbes
+            < self.highest_optimal_pH_microbes
+            < self.max_pH_microbes
         ):
             raise ValueError("Microbe pH thresholds not in increasing sequence")
 
-        return cls
+        return self
 
 
 class SoilEnzymeClass(Configuration):
@@ -389,13 +389,13 @@ class SoilMicrobialGroup(Configuration):
     """
 
     @model_validator(mode="after")
-    def _only_fungi_fruit(cls) -> SoilMicrobialGroup:
-        if cls.taxonomic_group != "fungi" and cls.reproductive_allocation > 0:
+    def _only_fungi_fruit(self) -> SoilMicrobialGroup:
+        if self.taxonomic_group != "fungi" and self.reproductive_allocation > 0:
             raise ValueError(
                 "Reproductive allocation for non fungal groups must be zero."
             )
 
-        return cls
+        return self
 
 
 class SoilConfiguration(ModelConfigurationRoot):

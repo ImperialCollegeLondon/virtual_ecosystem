@@ -146,7 +146,6 @@ def test_generate_hydrology_model(
                     data=dummy_climate_data_varying_canopy,
                     configuration=configuration,
                     core_components=core_components,
-                    config=configuration,
                 )
                 mock_setup.assert_called_once()
 
@@ -279,7 +278,6 @@ def test_setup(
                 data=dummy_climate_data_varying_canopy,
                 configuration=fixture_configuration,
                 core_components=core_components,
-                config=fixture_configuration,
             )
 
             # Test soil moisture

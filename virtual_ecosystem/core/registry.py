@@ -1,40 +1,33 @@
 """The :mod:`~virtual_ecosystem.core.registry` module is used to populate the
-:data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`. This provides a dictionary
-giving access to the key components (schema, constants classes and model) of Virtual
-Ecosystem modules used in model setup and configuration. Those components are stored in
-the dictionary as instances of the :class:`~virtual_ecosystem.core.registry.ModuleInfo`
-dataclass, which has ``schema``, ``model`` and ``constant_classes`` attributes. The
-dictionary is keyed by either the model name or ``core``, which provides details on the
-core schema and constants, but does not provide a model object.
+:data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`.
+
+The registry is a dictionary, keyed using the short names of models, such as ``core`` or
+``plants``. Each entry provides a :class:`~virtual_ecosystem.core.registry.ModuleInfo`
+dataclass, which provides the BaseModel subclass for each model and its configuration
+model. The ``core`` model has a configuration model but has no BaseModel subclass.
 
 The module also provides the :func:`~virtual_ecosystem.core.registry.register_module`
 function, which is used to populate the registry with the components of a given module.
 """  # noqa: D205
 
 from dataclasses import dataclass
-from importlib import import_module, resources
+from importlib import import_module
 from inspect import getmembers, isclass
 from typing import Any
 
-from virtual_ecosystem.core.configuration import (
-    Configuration,
-)
-from virtual_ecosystem.core.constants_class import ConstantsDataclass
+from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.schema import load_schema
 
 
 @dataclass
 class ModuleInfo:
     """Dataclass for module information.
 
-    This dataclass is used to hold the core components of individual modules within the
-    :data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`. Each class attribute
-    contains one of the core components of ``schema``, ``model`` and
-    ``constant_classes``.
-
-    Note that the  :mod:`virtual_ecosystem.core` module does not have an associated
-    BaseModel subclass and the ``model`` attribute for the ``core`` module will be None.
+    This dataclass holds references to BaseModel subclass and configuration class for a
+    model and is used to hold that information with  the
+    data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY`. Note that the
+    :mod:`virtual_ecosystem.core` module does not have an associated BaseModel subclass
+    and the ``model`` attribute for the ``core`` module will be None.
     """
 
     # FIXME The typing below for model should be `None | type[BaseModel]`, but this is
@@ -44,12 +37,6 @@ class ModuleInfo:
 
     model: Any
     """The BaseModel subclass associated with the module."""
-    schema: dict[str, Any]
-    """The module JSON schema as a dictionary, used to validate configuration data for
-    running a simulation."""
-    constants_classes: dict[str, type[ConstantsDataclass]]
-    """A dictionary of module constants classes. The individual ConstantsDataclass
-    objects are keyed by their name."""
     config: type[Configuration]
     """A Configuration subclass that provides a pydantic model to populate and validate
     the model configuration."""
@@ -64,24 +51,24 @@ MODULE_REGISTRY: dict[str, ModuleInfo] = {}
 As each module is registered using
 :func:`~virtual_ecosystem.core.registry.register_module`, a
 :class:`~virtual_ecosystem.core.registry.ModuleInfo` dataclass will be added to this
-registry using the stem name of the module being registered.
+registry using the short name of the module being registered.
 """
 
 
 def register_module(module_name: str) -> None:
     """Register module components.
 
-    This function loads the module schema, any constants classes and the main
-    :func:`~virtual_ecosystem.core.base_model.BaseModel` subclass for a module and then
-    adds a :class:`~virtual_ecosystem.core.registry.ModuleInfo` dataclass instance to
-    the :data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY` containing those
-    details. The :mod:`~virtual_ecosystem.core` module does not have an associated
+    This function loads the main :func:`~virtual_ecosystem.core.base_model.BaseModel`
+    subclass for a module and the root configuration object for a module. It then adds a
+    :class:`~virtual_ecosystem.core.registry.ModuleInfo` dataclass instance to the
+    :data:`~virtual_ecosystem.core.registry.MODULE_REGISTRY` containing references to
+    those classes. The :mod:`~virtual_ecosystem.core` module does not have an associated
     module.
 
     This function is primarily used within the
-    :meth:`~virtual_ecosystem.core.config.Config.build_schema` method to register the
-    components required to validate and setup the model configuration for a particular
-    simulation.
+    :meth:`~virtual_ecosystem.core.config_builder.generate_configuration` method to
+    register the components required to validate and setup the model configuration for a
+    particular simulation.
 
     Args:
         module_name: The full name of the module to be registered (e.g.
@@ -148,48 +135,6 @@ def register_module(module_name: str) -> None:
         # Register the resulting single model class
         LOGGER.info(f"Registering model class for {module_name}: {model.__name__}")
 
-    # Register the schema
-    with resources.as_file(
-        resources.files(module) / "module_schema.json"
-    ) as schema_file_path:
-        try:
-            schema = load_schema(
-                module_name=module_name_short, schema_file_path=schema_file_path
-            )
-        except Exception as excep:
-            LOGGER.critical(
-                f"Schema registration for {module_name_short} failed: check log"
-            )
-            raise excep
-
-    LOGGER.info("Schema registered for %s: %s ", module_name, schema_file_path)
-
-    # Find and register the constant dataclasses
-    try:
-        constants_submodule = import_module(f"{module_name}.constants")
-    except ModuleNotFoundError:
-        constants_submodule = None
-
-    if constants_submodule is None:
-        constants_classes = {}
-    else:
-        # Get all subclasses of ConstantsDataclass, excluding the ABC where imported
-        # into the module members.
-        constants_classes = {
-            class_name: class_obj
-            for class_name, class_obj in getmembers(constants_submodule)
-            if isclass(class_obj)
-            and issubclass(class_obj, ConstantsDataclass)
-            and class_obj is not ConstantsDataclass
-        }
-
-        for class_name in constants_classes.keys():
-            LOGGER.info(
-                "Constants class registered for %s: %s ",
-                module_name,
-                class_name,
-            )
-
     # Find and register the model configuration
     model_config_class = get_model_configuration_class(
         module_name=module_name, module_name_short=module_name_short
@@ -199,8 +144,6 @@ def register_module(module_name: str) -> None:
 
     MODULE_REGISTRY[module_name_short] = ModuleInfo(
         model=model,
-        schema=schema,
-        constants_classes=constants_classes,
         config=model_config_class,
         is_core=is_core,
     )

@@ -2989,8 +2989,8 @@ class TestAnimalCohort:
 
         # Build singleton-per-cell dict of "fungal fruiting pools".
         # We use simple objects to avoid needing real Data; only identity matters.
-        fungal_fruiting_bodies: dict[int, object] = {}
-        all_fruits: list[tuple[object, bool]] = []
+        fungal_fruiting_bodies = {}  # dict[int, object]
+        all_fruits = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_fruit_map.items():
             fruit = SimpleNamespace(cell_id=cell_id)
@@ -3061,8 +3061,8 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Build soil_pools: dict[int, dict[str, SoilPool-like]]
-        soil_pools: dict[int, dict[str, object]] = {}
-        all_fungi: list[tuple[object, bool]] = []
+        soil_pools = {}  # dict[int, dict[str, object]]
+        all_fungi = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_soil_map.items():
             pool = SimpleNamespace(cell_id=cell_id)
@@ -3132,8 +3132,8 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Build soil_pools: dict[int, dict[str, SoilPool-like]]
-        soil_pools: dict[int, dict[str, object]] = {}
-        all_pom: list[tuple[object, bool]] = []
+        soil_pools = {}  # dict[int, dict[str, object]]
+        all_pom = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_soil_map.items():
             pool = SimpleNamespace(cell_id=cell_id)
@@ -3203,8 +3203,8 @@ class TestAnimalCohort:
         cohort.territory = territory
 
         # Build soil_pools: dict[int, dict[str, SoilPool-like]]
-        soil_pools: dict[int, dict[str, object]] = {}
-        all_bacteria: list[tuple[object, bool]] = []
+        soil_pools = {}  # dict[int, dict[str, object]]
+        all_bacteria = []  # list[tuple[object, bool]]
 
         for cell_id, label in cell_soil_map.items():
             pool = SimpleNamespace(cell_id=cell_id)

@@ -16,11 +16,6 @@ from tests.conftest import log_check
             does_not_raise(),
             (
                 (INFO, "Registering module: virtual_ecosystem.core"),
-                (INFO, "Schema registered for virtual_ecosystem.core:"),
-                (
-                    INFO,
-                    "Constants class registered for virtual_ecosystem.core: CoreConsts",
-                ),
                 (
                     INFO,
                     "Configuration class registered for virtual_ecosystem.core",
@@ -38,7 +33,6 @@ from tests.conftest import log_check
                     "Registering model class for "
                     "virtual_ecosystem.models.testing: TestingModel",
                 ),
-                (INFO, "Schema registered for virtual_ecosystem.models.testing:"),
                 (
                     INFO,
                     "Configuration class registered for "
@@ -56,12 +50,6 @@ from tests.conftest import log_check
                     INFO,
                     "Registering model class for "
                     "tests.core.test_modules.one_model: ATestModel",
-                ),
-                (INFO, "Schema registered for tests.core.test_modules.one_model:"),
-                (
-                    INFO,
-                    "Constants class registered for "
-                    "tests.core.test_modules.one_model: TestConsts",
                 ),
                 (
                     INFO,
@@ -128,7 +116,7 @@ def test_registry(caplog, module_name, raises, exp_log):
     """
 
     from virtual_ecosystem.core.base_model import BaseModel
-    from virtual_ecosystem.core.constants_class import ConstantsDataclass
+    from virtual_ecosystem.core.configuration import Configuration
     from virtual_ecosystem.core.registry import (
         MODULE_REGISTRY,
         ModuleInfo,
@@ -152,10 +140,7 @@ def test_registry(caplog, module_name, raises, exp_log):
             if not mod_info.is_core:
                 assert issubclass(mod_info.model, BaseModel)
 
-            assert isinstance(mod_info.schema, dict)
-            assert isinstance(mod_info.constants_classes, dict)
-            for c_class in mod_info.constants_classes.values():
-                assert issubclass(c_class, ConstantsDataclass)
+            assert issubclass(mod_info.config, Configuration)
 
         # Check the last N entries in the log match the expectation.
         log_check(
