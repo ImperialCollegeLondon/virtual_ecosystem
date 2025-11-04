@@ -7,7 +7,6 @@ import pytest
 def fixture_litter_model(dummy_litter_data):
     """Create a litter model fixture based on the dummy litter data."""
     from tests.conftest import patch_bypass_setup, patch_run_update
-    from virtual_ecosystem.core.config import Config
     from virtual_ecosystem.core.config_builder import (
         ConfigurationLoader,
         generate_configuration,
@@ -17,7 +16,6 @@ def fixture_litter_model(dummy_litter_data):
 
     # Build the config object
     cfg_strings = "[core]\n[core.timing]\nupdate_interval = '48 hours'\n[litter]\n"
-    config = Config(cfg_strings=cfg_strings)
 
     config_data = ConfigurationLoader(cfg_strings=cfg_strings)
     configuration = generate_configuration(config_data.data)
@@ -33,7 +31,6 @@ def fixture_litter_model(dummy_litter_data):
             data=dummy_litter_data,
             configuration=configuration,
             core_components=core_components,
-            config=config,
         )
 
 

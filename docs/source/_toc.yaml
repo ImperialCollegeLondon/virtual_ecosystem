@@ -93,6 +93,8 @@ subtrees:
                 title: The base_model submodule
               - file: api/core/config.md
                 title: The config submodule
+              - file: api/core/config_builder.md
+                title: The config_builder submodule
               - file: api/core/configuration.md
                 title: The configuration submodule
               - file: api/core/constants.md

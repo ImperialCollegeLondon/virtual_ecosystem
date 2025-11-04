@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 from functools import cached_property
+from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
@@ -22,6 +23,7 @@ from scipy import constants
 
 from virtual_ecosystem.core.configuration import (
     DIRPATH_PLACEHOLDER,
+    FILEPATH_PLACEHOLDER,
     Configuration,
 )
 
@@ -29,21 +31,18 @@ from virtual_ecosystem.core.configuration import (
 class CoreConstants(Configuration):
     """Core constants for use across the Virtual Ecosystem modules.
 
-    An instance of the CoreConsts dataclass provides definitions of the core constants
-    used across an entire simulation. The core constants can be changed, as shown below,
-    although for many this would likely generate nonsensical results.
+    An instance of the CoreConstants dataclass provides definitions of the core
+    constants used across an entire simulation. The core constants can be changed, as
+    shown below, although for many this would likely generate nonsensical results.
 
     Example:
-        >>> consts = CoreConsts()
+        >>> consts = CoreConstants()
         >>> consts.max_depth_of_microbial_activity
         0.25
-        >>> consts = CoreConsts(max_depth_of_microbial_activity=0.75)
+        >>> consts = CoreConstants(max_depth_of_microbial_activity=0.75)
         >>> consts.max_depth_of_microbial_activity
         0.75
     """
-
-    placeholder: float = 123.4
-    """A placeholder configurable constant."""
 
     zero_Celsius: ClassVar[float] = constants.zero_Celsius
     """Conversion constant from Kelvin to Celsius (°)."""
@@ -214,7 +213,11 @@ class TimingConfiguration(Configuration):
 
 
 class DataOutputConfiguration(Configuration):
-    """Output settings for the Virtual Ecosystem model state."""
+    """Output settings for the Virtual Ecosystem model state.
+
+    TODO - this is very confusingly named and structure - restructure and add class
+    validation.
+    """
 
     save_initial_state: bool = False
     "Whether the initial state should be saved"
@@ -224,7 +227,7 @@ class DataOutputConfiguration(Configuration):
     "Whether the final state should be saved"
     save_merged_config: bool = True
     "Whether to save a merged TOML file containing all config options"
-    out_path: DIRPATH_PLACEHOLDER  # = Path("<DIRPATH_PLACEHOLDER>")
+    out_path: DIRPATH_PLACEHOLDER = Path("<DIRPATH_PLACEHOLDER>")
     "Directory path for output files"
     out_initial_file_name: str = "initial_state.nc"
     """File name for initial state output file"""
@@ -298,14 +301,17 @@ class LayersConfiguration(Configuration):
 class DataSource(Configuration):
     """Data source configuration."""
 
-    file_path: str = "placeholder"
-    var_name: str = "placeholder"
+    file_path: FILEPATH_PLACEHOLDER = Path("<FILEPATH_PLACEHOLDER>")
+    var_name: str = "variable_name_placeholder"
 
 
-class Variables(Configuration):
-    """Variables configuration."""
+class DataConfiguration(Configuration):
+    """Data configuration."""
 
-    variable: tuple[DataSource, ...] = (DataSource(), DataSource())
+    variable: tuple[DataSource, ...] = (
+        DataSource(var_name="variable_name_placeholder_one"),
+        DataSource(var_name="variable_name_placeholder_two"),
+    )
 
 
 class CoreConfiguration(Configuration):
@@ -321,5 +327,5 @@ class CoreConfiguration(Configuration):
     """Configuration of the layers in the vertical structure"""
     timing: TimingConfiguration = TimingConfiguration()
     """Configuration of the model run and step lengths"""
-    data: Variables = Variables()
+    data: DataConfiguration = DataConfiguration()
     """Configuration of the input variables and data sources."""

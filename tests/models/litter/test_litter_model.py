@@ -435,7 +435,6 @@ def test_generate_litter_model(
             data=dummy_litter_data,
             configuration=configuration,
             core_components=core_components,
-            config=dict(),  # TODO - delete on removal of old system
         )
         assert model.model_constants.litter_decomp_temp_response == temp_response
 

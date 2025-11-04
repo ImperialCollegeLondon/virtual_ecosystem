@@ -112,20 +112,6 @@ def dummy_carbon_data(fixture_core_components):
 
 
 @pytest.fixture
-def fixture_soil_config(microbial_groups_cfg):
-    """Create a soil config with faster update interval."""
-    from virtual_ecosystem.core.config import Config
-
-    return Config(
-        cfg_strings=[
-            "[core]\n[core.timing]\nupdate_interval = '12 hours'",
-            "[hydrology]",
-            microbial_groups_cfg,
-        ]
-    )
-
-
-@pytest.fixture
 def fixture_soil_configuration(microbial_groups_cfg):
     """Create a soil config with faster update interval."""
     from virtual_ecosystem.core.config_builder import (
@@ -158,7 +144,6 @@ def fixture_soil_core_components(fixture_soil_configuration):
 @pytest.fixture
 def fixture_soil_model(
     dummy_carbon_data,
-    fixture_soil_config,
     fixture_soil_configuration,
     fixture_soil_core_components,
 ):
@@ -175,7 +160,6 @@ def fixture_soil_model(
             data=dummy_carbon_data,
             configuration=fixture_soil_configuration,
             core_components=fixture_soil_core_components,
-            config=fixture_soil_config,
         )
 
 

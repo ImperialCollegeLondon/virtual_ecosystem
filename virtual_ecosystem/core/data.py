@@ -131,9 +131,10 @@ import numpy as np
 from xarray import DataArray, Dataset, open_mfdataset
 
 from virtual_ecosystem.core.axes import AXIS_VALIDATORS, validate_dataarray
-from virtual_ecosystem.core.config import Config, ConfigurationError
+from virtual_ecosystem.core.exceptions import ConfigurationError
 from virtual_ecosystem.core.grid import Grid
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.core.readers import load_to_dataarray
 from virtual_ecosystem.core.utils import check_outfile
 
@@ -292,7 +293,7 @@ class Data:
 
         return True
 
-    def load_data_config(self, config: Config) -> None:
+    def load_data_config(self, config: CoreConfiguration) -> None:
         """Setup the simulation data from a user configuration.
 
         This is a method is used to validate a provided user data configuration and
@@ -309,71 +310,51 @@ class Data:
 
         LOGGER.info("Loading data from configuration")
 
-        # Check the data configuration is provided - note that the default configuration
-        # is to include cfg['core']['data'] = {} - so check first for something totally
-        # broken/
-        if ("core" not in config) or ("data" not in config["core"]):
-            msg = "Data configuration not found in config object."
-            LOGGER.critical(msg)
-            raise ConfigurationError(msg)
-
         # Track errors in loading multiple files from a configuration
-        data_config = config["core"]["data"]
-        data_source_types = ["variable", "constant", "generator"]
-        clean_load = True
+        data_config = config.data
 
-        # Check for an empty data configuration - do not make this an error or critical
-        # but do log it, so that users can trace back when variables are missing
-        if not set(data_source_types).intersection(data_config):
-            msg = "No data sources defined in the data configuration."
-            LOGGER.warning(msg)
+        # The previous code here tested for "constant" and "generator" data types, but
+        # since those are not yet implemented, this has been dropped
 
         # Handle variables
-        if "variable" in data_config:
-            # Check what name the data will be saved under but do then carry on to check
-            # for other loading problems
-            data_var_names = [v["var_name"] for v in data_config["variable"]]
+        if len(data_config.variable) == 0:
+            LOGGER.warning("No data sources defined in the data configuration.")
+            return
 
-            dupl_names = {
-                str(md) for md in data_var_names if data_var_names.count(md) > 1
-            }
-            if dupl_names:
-                LOGGER.error("Duplicate variable names in data configuration.")
+        clean_load = True
+
+        # Check what name the data will be saved under but do then carry on to check
+        # for other loading problems
+        data_var_names = [var.var_name for var in data_config.variable]
+
+        dupl_names = {str(md) for md in data_var_names if data_var_names.count(md) > 1}
+        if dupl_names:
+            LOGGER.error("Duplicate variable names in data configuration.")
+            clean_load = False
+
+        # Group variables by file
+        variables = list(data_config.variable)
+        variables.sort(key=lambda var: var.file_path)
+        file_groups = groupby(variables, key=lambda var: var.file_path)
+
+        # Load data from each data source
+        for file, file_vars in file_groups:
+            # Attempt to load the file, trapping exceptions as critical logger
+            # messages and defer failure until the whole configuration has been
+            # processed
+
+            try:
+                loaded_data = load_to_dataarray(
+                    file=Path(file),
+                    var_names=[var.var_name for var in file_vars],
+                )
+
+            except Exception as err:
+                LOGGER.error(str(err))
                 clean_load = False
-
-            # Group variables by file
-            variables = data_config["variable"]
-            variables.sort(key=lambda v: v["file_path"])
-            file_groups = groupby(variables, key=lambda v: v["file_path"])
-
-            # Load data from each data source
-            for file, file_vars in file_groups:
-                # Attempt to load the file, trapping exceptions as critical logger
-                # messages and defer failure until the whole configuration has been
-                # processed
-
-                try:
-                    loaded_data = load_to_dataarray(
-                        file=Path(file),
-                        var_names=[var["var_name"] for var in file_vars],
-                    )
-
-                except Exception as err:
-                    LOGGER.error(str(err))
-                    clean_load = False
-                else:
-                    for var_name, data_array in loaded_data.items():
-                        self[var_name] = data_array
-
-        if "constant" in data_config:
-            msg = "Data config for constants not yet implemented."
-            LOGGER.critical(msg)
-            raise NotImplementedError(msg)
-
-        if "generator" in data_config:
-            msg = "Data config for generators not yet implemented."
-            LOGGER.critical(msg)
-            raise NotImplementedError(msg)
+            else:
+                for var_name, data_array in loaded_data.items():
+                    self[var_name] = data_array
 
         if not clean_load:
             msg = "Data configuration did not load cleanly - check log"
@@ -459,7 +440,7 @@ class Data:
     def output_current_state(
         self,
         variables_to_save: list[str],
-        data_options: dict[str, Any],
+        output_directory_path: Path,
         time_index: int,
     ) -> Path:
         """Method to output the current state of the data object.
@@ -471,7 +452,7 @@ class Data:
 
         Args:
             variables_to_save: List of variables to save
-            data_options: Set of options concerning what to output and where
+            output_directory_path: The output directory for the current state data.
             time_index: The index representing the current time step in the data object.
 
         Raises:
@@ -484,10 +465,7 @@ class Data:
         """
 
         # Create output file path for specific time index
-        out_path = (
-            Path(data_options["out_folder_continuous"])
-            / f"continuous_state{time_index:05}.nc"
-        )
+        out_path = output_directory_path / f"continuous_state{time_index:05}.nc"
 
         # Save the required variables by appending to existing file
         self.save_timeslice_to_netcdf(out_path, variables_to_save, time_index)
@@ -496,7 +474,7 @@ class Data:
 
 
 def merge_continuous_data_files(
-    data_options: dict[str, Any], continuous_data_files: list[Path]
+    merged_file_path: Path, continuous_data_files: list[Path]
 ) -> None:
     """Merge all continuous data files in a folder into a single file.
 
@@ -504,7 +482,7 @@ def merge_continuous_data_files(
     once the combined output is saved.
 
     Args:
-        data_options: Set of options concerning what to output and where
+        merged_file_path: The output file name for the merged continuous data.
         continuous_data_files: Files containing previously output continuous data
 
     Raises:
@@ -512,15 +490,8 @@ def merge_continuous_data_files(
             exists
     """
 
-    # Path to folder containing the continuous output (that merged file should be saved
-    # to)
-    out_path = (
-        Path(data_options["out_folder_continuous"])
-        / data_options["out_continuous_file_name"]
-    )
-
     # Check that output file doesn't already exist
-    check_outfile(out_path)
+    check_outfile(merged_file_path)
 
     # Open all files as a single dataset
     with open_mfdataset(continuous_data_files, lock=False) as all_data:
@@ -528,7 +499,7 @@ def merge_continuous_data_files(
         all_data["layer_roles"] = all_data["layer_roles"].astype("S9")
 
         # Save and close complete dataset
-        all_data.to_netcdf(out_path)
+        all_data.to_netcdf(merged_file_path)
 
     # Iterate over all continuous files and delete them
     for file_path in continuous_data_files:

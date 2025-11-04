@@ -14,7 +14,6 @@ from typing import Any
 from tqdm import tqdm
 
 from virtual_ecosystem.core import variables
-from virtual_ecosystem.core.config import Config
 from virtual_ecosystem.core.config_builder import (
     ConfigurationLoader,
     generate_configuration,
@@ -40,7 +39,6 @@ class Progress(IntEnum):
 
 def initialise_models(
     configuration: CompiledConfiguration,
-    config: Config,
     data: Data,
     core_components: CoreComponents,
     models: dict[str, Any],  # FIXME -> dict[str, Type[BaseModel]]
@@ -69,7 +67,6 @@ def initialise_models(
                 data=data,
                 configuration=configuration,
                 core_components=core_components,
-                config=config,
             )
             models_cfd[model_name] = this_model
         except (InitialisationError, ConfigurationError):
@@ -127,18 +124,16 @@ def ve_run(
         print("* Loading configuration")
 
     variables.register_all_variables()
-    config = Config(
-        cfg_paths=cfg_paths, cfg_strings=cfg_strings, override_params=override_params
-    )
 
-    # NEW configuration system
-
+    # Load the configuration data
     config_data: ConfigurationLoader = ConfigurationLoader(
         cfg_paths=cfg_paths,
         cfg_strings=cfg_strings,
         override_params=override_params,
     )
 
+    # Generate the compiled configuration for the simulation. This step also registers
+    # the models required to run the simulation.
     configuration: CompiledConfiguration = generate_configuration(config_data.data)
 
     # Get the core configuration class
@@ -152,10 +147,8 @@ def ve_run(
             Path(core_configuration.data_output_options.out_path)
             / core_configuration.data_output_options.out_merge_file_name
         )
-        # TODO: While in transition in configuration write out the old style Config as
-        #       the static model demo can't handle new configs right now.
-        # configuration.export_toml(outfile)
-        config.export_config(outfile)
+        # Export the merged configuration
+        configuration.export_toml(outfile)
 
         if progress > Progress.MINIMAL:
             print(f"* Saved compiled configuration: {outfile}")
@@ -165,14 +158,14 @@ def ve_run(
     if progress > Progress.MINIMAL:
         print("* Built core model components")
 
-    data = Data(core_components.grid)
-    data.load_data_config(config)
+    data = Data(grid=core_components.grid)
+    data.load_data_config(config=core_configuration)
     if progress > Progress.MINIMAL:
         print("* Initial data loaded")
 
     # Setup the variables for the requested modules and verify consistency
     variables.setup_variables(
-        list(config.model_classes.values()), list(data.data.keys())
+        list(configuration._model_classes.values()), list(data.data.keys())
     )
 
     # Verify that all variables have the correct axis
@@ -181,41 +174,46 @@ def ve_run(
 
     # Get the model initialisation sequence and initialise
     init_sequence = {
-        model_name: config.model_classes[model_name]
+        model_name: configuration._model_classes[model_name]
         for model_name in variables.get_model_order("init")
     }
 
     models_init = initialise_models(
         configuration=configuration,
-        config=config,
         data=data,
         core_components=core_components,
         models=init_sequence,
     )
     if progress > Progress.MINIMAL:
-        print(f"* Models initialised: {', '.join(config.model_classes.keys())}")
+        print(f"* Models initialised: {', '.join(configuration._model_classes.keys())}")
 
     LOGGER.info("All models successfully initialised.")
 
     # TODO - A model spin up might be needed here in future
 
+    # Data output options
+    output_config = core_configuration.data_output_options
+
     # Create output folder if it does not exist
-    out_path = Path(config["core"]["data_output_options"]["out_path"])
-    os.makedirs(out_path, exist_ok=True)
+    os.makedirs(output_config.out_path, exist_ok=True)
 
     # Save the initial state of the model
-    if config["core"]["data_output_options"]["save_initial_state"]:
+    if output_config.save_initial_state:
         data.save_to_netcdf(
-            out_path / config["core"]["data_output_options"]["out_initial_file_name"]
+            output_config.out_path / output_config.out_initial_file_name
         )
         if progress > Progress.MINIMAL:
             print("* Saved model initial state")
 
     # If no path for saving continuous data is specified, fall back on using out_path
-    if "out_folder_continuous" not in config["core"]["data_output_options"]:
-        config["core"]["data_output_options"]["out_folder_continuous"] = str(out_path)
+    # TODO - this config section is silly, but fix this later
+    if output_config.out_folder_continuous == ".":
+        continuous_output_dir: Path = output_config.out_path
+    else:
+        continuous_output_dir = Path(output_config.out_folder_continuous)
 
     # Container to store paths to continuous data files
+
     continuous_data_files = []
 
     # Only variables in the data object that are updated by a model should be output
@@ -254,9 +252,11 @@ def ve_run(
         time_index += 1
 
         # Append updated data to the continuous data file
-        if config["core"]["data_output_options"]["save_continuous_data"]:
+        if output_config.save_continuous_data:
             outfile_path = data.output_current_state(
-                variables_to_save, config["core"]["data_output_options"], time_index
+                variables_to_save=variables_to_save,
+                output_directory_path=continuous_output_dir,
+                time_index=time_index,
             )
             continuous_data_files.append(outfile_path)
 
@@ -268,18 +268,18 @@ def ve_run(
         print("* Simulation completed")
 
     # Merge all files together based on a list
-    if config["core"]["data_output_options"]["save_continuous_data"]:
+    if output_config.save_continuous_data:
         merge_continuous_data_files(
-            config["core"]["data_output_options"], continuous_data_files
+            merged_file_path=continuous_output_dir
+            / output_config.out_continuous_file_name,
+            continuous_data_files=continuous_data_files,
         )
         if progress > Progress.MINIMAL:
             print("* Merged time series data")
 
     # Save the final model state
-    if config["core"]["data_output_options"]["save_final_state"]:
-        data.save_to_netcdf(
-            out_path / config["core"]["data_output_options"]["out_final_file_name"]
-        )
+    if output_config.save_final_state:
+        data.save_to_netcdf(output_config.out_path / output_config.out_final_file_name)
         if progress > Progress.MINIMAL:
             print("* Saved final model state")
 

@@ -3,8 +3,8 @@ TOML formatted configuration dictionaries, either from files or from strings. St
 inputs are primarily intended for use in configuring models for testing, where it is
 more convenient to simply provide a string.
 
-The main class :class:`ConfigLoader` handles the loading of configuration data and
-compiling multiple sources into a single dictionary of configuration data.
+The main class :class:`ConfigurationLoader` handles the loading of configuration data
+and compiling multiple sources into a single dictionary of configuration data.
 
 The :func:`generate_configuration` function then:
 
@@ -492,13 +492,20 @@ class ConfigurationLoader:
 def build_configuration_model(
     requested_modules: list[str],
 ) -> type[CompiledConfiguration]:
-    """Build a schema to validate the model configuration.
+    """Build a configuration model for a simulation.
 
-    This method identifies the modules to be configured from the top-level
-    configuration keys, setting the requested modules to be used in the configured
-    simulation. The schemas for the requested modules are then loaded and combined
-    using the :meth:`~virtual_ecosystem.core.schema.merge_schemas` function to
-    generate a single validation schema for model configuration.
+    This function identifies the modules to be configured from the top-level
+    configuration keys in a compiled configuration dictionary. It then registers the
+    required modules to populate the module registry and to access the BaseModel and
+    root configuration models for each requested model.
+
+    The configuration models are then combined dynamically to give a single combined
+    pydantic base model for the model elements requested for a given simulation. This is
+    returned and can then be used to validate the data provided in the configuration
+    files.
+
+    The returned model class also provides the class variables ``_model_classes`` that
+    provides a dictionary of the requested modules and their BaseModel instances.
     """
 
     # The core module is mandatory
@@ -521,13 +528,20 @@ def build_configuration_model(
     )
 
     # Use pydantic create_model to dynamically generate a model with a field for each
-    # requested module. Mypy does not like this, but it seems to be used as intended:
+    # requested module
+    #  Mypy does not like this, but it seems to be used as intended:
     # https://docs.pydantic.dev/latest/concepts/models/#dynamic-model-creation
     combined_model = create_model(
         "CompiledConfiguration",
         __base__=CompiledConfiguration,
         **{fname: (cname, cname()) for fname, cname in submodels},
     )  # type: ignore[call-overload]
+
+    # Populate the _model_classes class variable with the required dictionary of VE
+    # BaseModel science models by requested model name.
+    combined_model._model_classes = {
+        m: MODULE_REGISTRY[m].model for m in requested_modules if m != "core"
+    }
 
     return combined_model
 
