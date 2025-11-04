@@ -447,7 +447,10 @@ be provided informing on the specific issue.
 
 The job of the `from_config` method for a model is to take a validated configuration and
 then do any processing and validating to convert the configuration into the arguments
-required by the `__init__` method. The configuration object will contain all
+required by the `__init__` method. The configuration object will contain sections for
+all of the models being used in a simulation, so you should extract the configuration
+for your model and then do any processing - this might simply be passing sections of the
+configuration to the `__init__` method or might need to do some pre-processing.
 
 The method then uses those parsed arguments to actually call the `__init__` method and
 return an initialised instance of the model using the settings. The `from_config`
@@ -458,7 +461,7 @@ As an example:
 ```{code-block} ipython3
 @classmethod
 def from_config(
-    cls, data: Data, config: Configuration, update_interval: Quantity
+    cls, data: Data, configuration: Configuration, update_interval: Quantity
 ) -> FreshWaterModel:
     """Factory function to initialise the freshwater model from configuration.
 
@@ -472,13 +475,24 @@ def from_config(
         update_interval: Frequency with which all models are updated
     """
 
-    pond_data_path = configuration.
+    # Extract the model configuration from the complete configuration.
+    model_config: FreshwaterConfiguration = configuration.get_subconfiguration(
+        "freshwater", FreshwaterConfiguration
+    )
+
+    pond_data_path = model_config.pond_data_path
+    constants = model_config.constants
 
 
     LOGGER.info(
         "Information required to initialise the soil model successfully extracted."
     )
-    return cls(data, update_interval, no_pools, constants)
+    return cls(
+        data=data,
+        update_interval=update_interval,
+        pond_data_path=pond_data_path,
+        constants=constants
+    )
 ```
 
 ## Other model steps
@@ -541,9 +555,7 @@ from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
 
 Under the hood, when a given model is used in a simulation, then the configuration
 process automatically loads all of the model components for that model using the
-{func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
-loads and validates the model schema, discovers any
- in the `constants`
-submodule and then adds those, along with the BaseModel subclass to a central
-{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
+{func}`~virtual_ecosystem.core.registry.register_module` function. This adds the
+BaseModel subclass and root model configuration to a central
+{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object that is used to allow
 the simulation code to easily access model components.
