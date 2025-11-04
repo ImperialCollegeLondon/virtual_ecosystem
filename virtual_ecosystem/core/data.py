@@ -95,7 +95,7 @@ Using a data configuration
 A :class:`~virtual_ecosystem.core.data.Data` instance can also be populated using the
 :meth:`~virtual_ecosystem.core.data.Data.load_data_config` method. This is expecting to
 take a properly validated configuration object, typically created from TOML files
-(see :class:`~virtual_ecosystem.core.config.Config`). The expected
+(see :class:`~virtual_ecosystem.core.config_builder.ConfigurationLoader`). The expected
 structure of the data configuration section within those TOML files is as follows:
 
 .. code-block:: toml
