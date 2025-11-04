@@ -287,15 +287,15 @@ class LayersConfiguration(Configuration):
         return values
 
     @model_validator(mode="after")
-    def _surface_below_subcanopy(cls) -> LayersConfiguration:
+    def _surface_below_subcanopy(self) -> LayersConfiguration:
         """Check the surface height is below the subcanopy."""
 
-        if cls.surface_layer_height >= cls.subcanopy_layer_height:
+        if self.surface_layer_height >= self.subcanopy_layer_height:
             raise ValueError(
-                f"Surface layer height ({cls.surface_layer_height}) must be "
-                f"below subcanopy layer height ({cls.subcanopy_layer_height})"
+                f"Surface layer height ({self.surface_layer_height}) must be "
+                f"below subcanopy layer height ({self.subcanopy_layer_height})"
             )
-        return cls
+        return self
 
 
 class DataSource(Configuration):
