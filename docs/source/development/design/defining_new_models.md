@@ -87,10 +87,10 @@ downstream code messier, so constants should only be split across multiple class
 there's a strong reason to do so.
 
 Because dataclasses are widely used structures in Python, the Virtual Ecosystem defines
-a specific {class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` base
+a specific base
 class to uniquely identify _constants dataclasses_ from other dataclasses. This base
 class also provides the
-{meth}`~virtual_ecosystem.core.constants_class.ConstantsDataclass.from_config` methods,
+methods,
 which validates a configuration dictionary against the dataclass definition and returns
 a configured dataclass instance.
 
@@ -106,8 +106,6 @@ look like the following code:
 ```{code-block} python
 from dataclasses import dataclass
 from typing import ClassVar
-
-from virtual_ecosystem.core.constants_class import ConstantsDataclass
 
 # Dataclasses are frozen to prevent constants from changing during a simulation
 @dataclass(frozen=True)
@@ -417,9 +415,8 @@ be provided informing on the specific issue.
 
 ### The `from_config` factory method
 
-Configuration files are used to create a configuration object (see
-{class}`~virtual_ecosystem.core.config.Config`), which contains details of the
-configuration process but also provides a dictionary interface to the configuration
+Configuration files are used to create a configuration object  which contains details of
+the configuration process but also provides a dictionary interface to the configuration
 data. So, the example above might result in a `Config` object with the following model
 specific data.
 
@@ -439,7 +436,7 @@ method should raise an `InitialisationError` if the configuration fails.
 The `from_config` method should also generate the required constants classes from the
 config. At least one constants class should be created, but it's fine to split constants
 across more classes if that makes for clearer code. For each constants class the
-{func}`~virtual_ecosystem.core.constants_loader.load_constants` utility function can be
+utility function can be
 used to construct the class with the default values replaced if they are overwritten in
 the config.
 
@@ -536,7 +533,7 @@ Under the hood, when a given model is used in a simulation, then the configurati
 process automatically loads all of the model components for that model using the
 {func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
 loads and validates the model schema, discovers any
-{class}`~virtual_ecosystem.core.constants_class.ConstantsDataclass` in the `constants`
+ in the `constants`
 submodule and then adds those, along with the BaseModel subclass to a central
 {data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
 the simulation code to easily access model components.

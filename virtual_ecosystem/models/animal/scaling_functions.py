@@ -13,7 +13,8 @@ from math import exp, log
 import numpy as np
 
 from virtual_ecosystem.models.animal.animal_traits import DietType, MetabolicType
-from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
+
+# from virtual_ecosystem.models.animal.constants import BOLTZMANN_CONSTANT
 from virtual_ecosystem.models.animal.functional_group import FunctionalGroup
 
 
@@ -96,7 +97,7 @@ def metabolic_rate(
     Es = 3.7 * 10 ** (-2)  # energy to mass conversion constant (g/kJ)
     sig = 0.5  # proportion of time-step with temp in active range (toy)
     Ea = 0.69  # aggregate activation energy of metabolic reactions
-    kB = BOLTZMANN_CONSTANT
+    kB = 1.380649e-23
     mass_g = mass * 1000  # convert mass to grams
 
     if metabolic_type == MetabolicType.ENDOTHERMIC:

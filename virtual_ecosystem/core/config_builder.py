@@ -191,47 +191,53 @@ def _resolve_config_paths(config_dir: Path, config_dict: dict[str, Any]) -> None
 class ConfigurationLoader:
     """Configuration loading.
 
-    The ``Config`` class is used to generate a validated configuration for a Virtual
-    Ecosystem simulation. The ``cfg_paths`` attribute is used to provide paths to TOML
-    configuration files or directories containing sets of files to be used. The provided
-    paths are then run through the follow steps to resolve and load the configuration
-    data.
+    The ``ConfigurationLoader`` class is used to load and compile configuration data for
+    a Virtual Ecosystem simulation. Configuration data can be passed in as one of:
 
-    * The :meth:`~virtual_ecosystem.core.config.Config.collect_config_paths` method is
-      used to collect the actual TOML files to be used to build the configuration from
-      the provided paths.
+    * a list of paths to individual TOML configuration files or directories of TOML
+      files  (the ``cfg_paths`` argument) or
+    * a list of TOML strings providing configuration data (the ``cfg_strings``
+      argument).
 
-    * The :meth:`~virtual_ecosystem.core.config.Config.load_config_toml` method is then
-      used to load the parsed contents of each resolved file into the
-      :attr:`~virtual_ecosystem.core.config.Config.toml_contents` attribute.
+    In both cases, there is initial input validation of the argument values and then two
+    data handling steps are run.
 
-    Alternatively, configuration data may be passed as a string or list of strings using
-    the ``cfg_strings`` argument. These strings must contain TOML formatted data, which
-    is parsed and added to the
-    :attr:`~virtual_ecosystem.core.config.Config.toml_contents` attribute.
+    Data loading
+    ~~~~~~~~~~~~
 
-    Whichever approach is used, the next two steps are then applied to the provided TOML
-    data:
+    The :meth:`_load_data` method handles the parsing of the TOML inputs. For
+    configuration data passed as strings, this is largely checking that the data is
+    valid TOML.
 
-    * The :meth:`~virtual_ecosystem.core.config.Config.build_config` method is used to
-      merge the loaded configuration across files and check that configuration settings
-      are uniquely defined.
+    For configuration data passed as paths, the following steps occur:
 
-    * The :meth:`~virtual_ecosystem.core.config.Config.validate_config` method
-      validates the compiled configuration against the appropriate configuration schema
-      for the :mod:`~virtual_ecosystem.core` module and any models included in the
-      configuration. This validation will also fill in any missing configuration
-      settings with defined defaults.
+    * The :meth:`_collect_config_paths` method is used to compile a complete list of the
+      individual TOML files to be used to build the configuration from the provided
+      paths.
 
-    By default, creating a ``Config`` instance automatically runs these steps across the
-    provided ``cfg_paths``, but the ``auto`` argument can be used to turn off automatic
-    validation.
+    * The :meth:`_load_config_toml` method is then
+      used to parse the TOML content of each file, verifying that is valid TOML, and
+      then store the parsed contents.
 
-    The :meth:`~virtual_ecosystem.core.config.Config.export_config` method can be used
-    to export the compiled and validated configuration as a single TOML file.
+    * The :meth:`_resolve_config_file_paths` method is then used to to update file paths
+      in configuration inputs to resolve them to absolute file paths. This is so that
+      the file paths in the final compiled configuration data are all mutually
+      resolvable, as the input files may use relative paths and do not necessarily all
+      live in the same directory.
 
-    If the core.data_output_options.save_merged_config option is set to true a merged
-    config file will be automatically generated, unless ``auto`` is set to false.
+    At the end of this step, the :attr:`toml_contents` attribute will have been
+    populated with individual parsed dictionaries of configuration data from each file
+    or input string.
+
+    Data compilation
+    ~~~~~~~~~~~~~~~~
+
+    The :meth:`_compile_data` method is then run to compile the different individual
+    dictionaries into a single configuration document. This method checks that
+    configuration settings are uniquely set across the various configuration data
+    sources. The :attr:`data` attribute then contains the complete compiled set of
+    configuration data from the provided sources.
+
 
     Args:
         cfg_paths: A string, Path or list of strings or Paths giving configuration
@@ -274,6 +280,9 @@ class ConfigurationLoader:
         self.override_params: dict[str, Any] | None = override_params
         """An optional set of parameters that can be used to override configuration data
         loaded from file."""
+        self.data: dict[str, Any]
+        """A dictionary of the compiled configuration data from the provided data
+        sources."""
 
         # Prohibit using neither paths and string or both paths and strings. Note that
         # these trap empty lists, so you have to provide _something_.
@@ -354,11 +363,11 @@ class ConfigurationLoader:
     def _collect_config_paths(self) -> None:
         """Collect TOML config files from provided paths.
 
-        The :class:`~virtual_ecosystem.core.config.Config` class is initialised with a
-        list of paths to either individual TOML config files or directories containing
-        possibly multiple config files. This method examines that list to collect all
-        the individual TOML config files in the provided locations and then populates
-        the :attr:`~virtual_ecosystem.core.config.Config.toml_files` attribute.
+        The :class:`ConfigurationLoader` class is initialised with a list of paths to
+        either individual TOML config files or directories containing possibly multiple
+        config files. This method examines that list to collect all the individual TOML
+        config files in the provided locations and then populates the :attr:`toml_files`
+        attribute.
 
         Raises:
             ConfigurationError: this is raised if any of the paths: do not exist, are
@@ -407,14 +416,8 @@ class ConfigurationLoader:
     def _load_config_toml(self) -> None:
         """Load the contents of resolved configuration files.
 
-        This method populates the
-        :attr:`~virtual_ecosystem.core.config.Config.toml_contents` dictionary with the
-        contents of the configuration files set in
-        :attr:`~virtual_ecosystem.core.config.Config.toml_files`. That attribute is
-        normally populated by providing a set of paths to
-        :class:`~virtual_ecosystem.core.config.Config` and running the
-        :meth:`~virtual_ecosystem.core.config.Config.collect_config_paths` method, but
-        it can also be set directly.
+        This method populates the :attr:`toml_contents` dictionary with the contents of
+        the configuration files set in :attr:`toml_files`.
 
         Raises:
             ConfigurationError: Invalid TOML content in config files.
@@ -441,8 +444,7 @@ class ConfigurationLoader:
     def _load_config_toml_string(self) -> None:
         """Load the contents of a config provided as a string.
 
-        This method populates the
-        :attr:`~virtual_ecosystem.core.config.Config.toml_contents` dictionary with the
+        This method populates the :attr:`toml_contents` dictionary with the parsed
         contents of a provided TOML formatted string.
 
         Raises:

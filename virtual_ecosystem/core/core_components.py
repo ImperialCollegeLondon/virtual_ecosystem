@@ -98,10 +98,10 @@ class ModelTiming:
         """Populate the ``ModelTiming`` instance.
 
         This method populates the ``ModelTiming`` attributes from the provided
-        :class:`~virtual_ecosystem.core.config.Config` instance.
+        :class:`~virtual_ecosystem.core.model_config.TimingConfiguration` instance.
 
         Args:
-            config: A Config instance.
+            config: A TimingConfiguration instance.
         """
 
         # Convert configuration into datetime64 and timedelta64

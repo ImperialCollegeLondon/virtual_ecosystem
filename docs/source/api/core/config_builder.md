@@ -30,4 +30,5 @@ language_info:
 .. automodule:: virtual_ecosystem.core.config_builder
     :autosummary:
     :members:
+    :private-members:
 ```

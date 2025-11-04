@@ -9,8 +9,8 @@ Each of the abiotic sub-modules has its own API reference page:
   abiotic model into a single class, which the high level functions of the
   Virtual Ecosystem can then use.
 
-* The :mod:`~virtual_ecosystem.models.abiotic.constants` submodule provides a
-  set of dataclasses containing the constants required by the broader abiotic model.
+* The :mod:`~virtual_ecosystem.models.abiotic.model_config` submodule provides
+  configuration settings for the model and a set of constants required by the model.
 
 * The :mod:`~virtual_ecosystem.models.abiotic.abiotic_tools` submodule contains a set
   of general functions that are shared across submodules in the

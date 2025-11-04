@@ -82,8 +82,8 @@ subclass. The method must follow the signature of that method, providing:
 * ``data`` as an instance of :class:`~virtual_ecosystem.core.data.Data`.
 * ``core_components`` as an instance of
   :class:`~virtual_ecosystem.core.core_components.CoreComponents`.
-* ``config`` as an instance of
-  :class:`~virtual_ecosystem.core.config.Config`.
+* ``configuration`` as an instance of
+  :class:`~virtual_ecosystem.core.configuration.CompiledConfiguration`.
 
 The method should provide any code to validate the configuration for that model and then
 use the configuration to initialise and return a new instance of the class.
@@ -91,12 +91,11 @@ use the configuration to initialise and return a new instance of the class.
 Model registration
 ------------------
 
-Models have three core components: the
-:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``),
-a JSON schema for validating the model configuration (``schema``) and an optional set of
-user modifiable constants classes (``constants``, see
-:class:`~virtual_ecosystem.core.constants_class.ConstantsDataclass`). All model
-modules must register these components when they are imported: see the
+Models have two core components: the
+:class:`~virtual_ecosystem.core.base_model.BaseModel` subclass itself (``model``) and a
+model configuration module that both defines the configuration options and constants
+associated with the model and provides validation of configuration data from TOML files.
+All model modules must register these components when they are imported: see the
 :mod:`~virtual_ecosystem.core.registry` module.
 """  # noqa: D205, D415
 
