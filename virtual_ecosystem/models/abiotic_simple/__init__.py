@@ -14,9 +14,9 @@ Each of the abiotic simple sub-modules has its own API reference page:
   temperature, relative humidity, vapour pressure deficit, wind speed, :math:`\ce{CO2}`,
   and atmospheric pressure profiles as well as soil temperature profiles.
 
-* The :mod:`~virtual_ecosystem.models.abiotic_simple.constants` submodule provides a
-  set of dataclasses containing the constants required by the broader abiotic model
-  including the regression parameters for deriving vertical profiles.
+* The :mod:`~virtual_ecosystem.models.abiotic_simple.model_config` submodule provides
+  configuration options for the model along with constants required by the broader
+  abiotic model including the regression parameters for deriving vertical profiles.
 
 """  # noqa: D205
 
