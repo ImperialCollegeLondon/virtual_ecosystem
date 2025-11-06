@@ -124,6 +124,22 @@ class AnimalConstants(Configuration):
     madingley_biomass_scaling_terms: tuple[float, float] = (0.6, 300000.0)
     """Biomass scaling terms from the Madingley model."""
 
+    metabolic_scaling_coefficients: tuple[float, float, float] = (
+        0.037,  # Es
+        0.5,  # sig
+        0.69,  # Ea
+    )
+    """Metabolic rate scaling coefficients.
+    
+    These are the coefficients of Madingley style scaling of metabolic rate with  mass
+    and temperature, assuming a power-law relationship with mass and an exponential
+    relationship with temperature. The three values are:
+
+    * $E_s$ - energy to mass conversion constant (g/kJ)
+    * $\sigma$ - proportion of time-step with temp in active range (toy default value)
+    * $E_a$ - aggregate activation energy of metabolic reactions
+    """
+
     metabolic_rate_terms: dict[MetabolicType, dict[str, tuple[float, float]]] = Field(
         default_factory=lambda: {
             MetabolicType.ENDOTHERMIC: {
