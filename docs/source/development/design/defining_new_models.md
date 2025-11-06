@@ -511,12 +511,13 @@ Lastly, you will need to set up the `__init__.py` file in the submodule director
 file is used to tell Python that the directory contains a package submodule, but can
 also be used to supply code that is automatically run when a module is imported.
 
-In the Virtual Ecosystem, we use the `__init__.py` file in model submodules to:
+In the Virtual Ecosystem, we just use the `__init__.py` file in model submodules to
+provide a brief overview of the module. It can be used to provide a short description
+of any submodules and how they are used within the model. The submodule files should
+then have their own docstring progviding more detail. These docstrings are automatically
+included in the HTML documentation of the package.
 
-* provide a brief overview of the module, and
-* import the model object into the module root to make it easier to import.
-
-The file will look something like:
+A docstring should be formatted using block quotes, as below:
 
 ```{code-block} python
 """This is the freshwater model module. The module level docstring should contain a
@@ -524,16 +525,4 @@ short description of the overall model design and purpose, and link to key compo
 and how they interact.
 """  # noqa: D204, D415
 
-from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
-    FreshwaterModel,
-)
 ```
-
-Under the hood, when a given model is used in a simulation, then the configuration
-process automatically loads all of the model components for that model using the
-{func}`~virtual_ecosystem.core.registry.register_module` function. This automatically
-loads and validates the model schema, discovers any
- in the `constants`
-submodule and then adds those, along with the BaseModel subclass to a central
-{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object, which is used to allow
-the simulation code to easily access model components.
