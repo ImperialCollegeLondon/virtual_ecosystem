@@ -81,59 +81,20 @@ def register_module(module_name: str) -> None:
         Exception: other exceptions can occur when loading the JSON schema fails.
     """
 
-    from virtual_ecosystem.core.base_model import BaseModel
-
     # Extract the last component of the module name to act as unique short name
-    _, _, module_name_short = module_name.rpartition(".")
+    module_name_short = module_name.rpartition(".")[-1]
 
     if module_name_short in MODULE_REGISTRY:
         LOGGER.warning(f"Module already registered: {module_name}")
         return
 
-    # Try and import the module from the name to get a reference to the module
-    try:
-        module = import_module(module_name)
-    except ModuleNotFoundError as excep:
-        LOGGER.critical(f"Unknown module - registration failed: {module_name}")
-        raise excep
-
-    is_core = module_name == "virtual_ecosystem.core"
-
     LOGGER.info(f"Registering module: {module_name}")
-
-    # Locate _one_ BaseModel class in the module root if this is not the core.
-    if is_core:
+    if module_name_short == "core":
+        is_core = True
         model = None
     else:
-        models_found = [
-            (obj_name, obj)
-            for obj_name, obj in getmembers(module)
-            if isclass(obj) and issubclass(obj, BaseModel)
-        ]
-
-        # Trap missing and multiple models
-        if len(models_found) == 0:
-            msg = f"Model object not found in {module_name}"
-            LOGGER.critical(msg)
-            raise RuntimeError(msg)
-
-        if len(models_found) > 1:
-            msg = "More than one model defined in in {module_name}"
-            LOGGER.critical(msg)
-            raise RuntimeError(msg)
-
-        # Trap models that do not follow the requirement that the BaseModel.model_name
-        # attribute matches the virtual_ecosystem.models.model_name
-        # TODO - can we retire the model_name attribute if it just duplicates the module
-        #        name or force it to match programmatically.
-        _, model = models_found[0]
-        if module_name_short != model.model_name:
-            msg = f"Different model_name attribute and module name {module_name}"
-            LOGGER.critical(msg)
-            raise RuntimeError(msg)
-
-        # Register the resulting single model class
-        LOGGER.info(f"Registering model class for {module_name}: {model.__name__}")
+        is_core = False
+        model = get_model(module_name, module_name_short)
 
     # Find and register the model configuration
     model_config_class = get_model_configuration_class(
@@ -147,6 +108,63 @@ def register_module(module_name: str) -> None:
         config=model_config_class,
         is_core=is_core,
     )
+
+
+def get_model(module_name: str, module_name_short: str):
+    """Get the model class for a model.
+
+    Discovery is by looking for a single BaseModel subclass within a submodule with a
+    name matching the the model short name plus '_model'.
+
+    * ``models.plants`` -> ``models.plants.plants_model.py``,
+
+    Args:
+        module_name: The full module name (e.g. ``virtual_ecosystem.models.plants``)
+        module_name_short: The short module name (e.g ``plants``)
+    """
+
+    from virtual_ecosystem.core.base_model import BaseModel
+
+    # Try and import the module from the name to get a reference to the module
+    try:
+        module = import_module(module_name + f".{module_name_short}_model")
+    except ModuleNotFoundError as excep:
+        LOGGER.critical(f"Unknown module - registration failed: {module_name}")
+        raise excep
+
+    # Locate _one_ BaseModel subclass in the module that is not the imported
+    # BaseModelABC.
+    models_found = [
+        (obj_name, obj)
+        for obj_name, obj in getmembers(module)
+        if isclass(obj) and issubclass(obj, BaseModel) and obj is not BaseModel
+    ]
+
+    # Trap missing and multiple models
+    if len(models_found) == 0:
+        msg = f"Model object not found in {module_name}"
+        LOGGER.critical(msg)
+        raise RuntimeError(msg)
+
+    if len(models_found) > 1:
+        msg = f"More than one model defined in in {module_name}"
+        LOGGER.critical(msg)
+        raise RuntimeError(msg)
+
+    # Trap models that do not follow the requirement that the BaseModel.model_name
+    # attribute matches the virtual_ecosystem.models.model_name
+    # TODO - can we retire the model_name attribute if it just duplicates the module
+    #        name or force it to match programmatically.
+    _, model = models_found[0]
+    if module_name_short != model.model_name:
+        msg = f"Different model_name attribute and module name {module_name}"
+        LOGGER.critical(msg)
+        raise RuntimeError(msg)
+
+    # Register the resulting single model class
+    LOGGER.info(f"Registering model class for {module_name}: {model.__name__}")
+
+    return model
 
 
 def get_model_configuration_class(module_name: str, module_name_short: str):
