@@ -6,6 +6,10 @@ simulation.
 """  # noqa: D205
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
+from virtual_ecosystem.models.abiotic_simple.model_config import (
+    AbioticSimpleBounds,
+    AbioticSimpleConstants,
+)
 
 
 class AbioticConstants(Configuration):
@@ -174,3 +178,10 @@ class AbioticConfiguration(ModelConfigurationRoot):
 
     constants: AbioticConstants = AbioticConstants()
     """Constants for the abiotic model"""
+
+    bounds: AbioticSimpleBounds = AbioticSimpleBounds()
+    """Bounds for abiotic variables."""
+
+    simple_constants: AbioticSimpleConstants = AbioticSimpleConstants()
+    """Constants used for the simple abiotic model, used to set up initial
+    conditions."""
