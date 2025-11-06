@@ -22,7 +22,6 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import energy_balance
-from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import (
     AbioticSimpleBounds,
     AbioticSimpleConstants,
@@ -33,8 +32,7 @@ def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    simple_constants: AbioticSimpleConstants,
-    abiotic_constants: AbioticConstants,
+    constants: AbioticSimpleConstants,
     core_constants: CoreConstants,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
@@ -88,8 +86,7 @@ def run_simple_microclimate(
         data: Data object
         layer_structure: The LayerStructure instance for the simulation.
         time_index: Time index, integer
-        simple_constants: Set of constants for the abiotic simple model
-        abiotic_constants: Set of constants for the abiotic model
+        constants: Set of constants for the abiotic simple model
         core_constants: Set of constants shared across all models
         bounds: Upper and lower allowed values for vertical profiles, used to constrain
             log interpolation. Note that currently no conservation of water and energy!
@@ -160,14 +157,14 @@ def run_simple_microclimate(
     # Calculate net radiation, [W m-2].
     canopy_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=canopy_temperature.to_numpy(),
-        emissivity=abiotic_constants.leaf_emissivity,
+        emissivity=constants.leaf_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
     soil_longwave_emission = energy_balance.calculate_longwave_emission(
         temperature=output["soil_temperature"][
             layer_structure.index_topsoil_scalar
         ].to_numpy(),
-        emissivity=abiotic_constants.soil_emissivity,
+        emissivity=constants.soil_emissivity,
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
