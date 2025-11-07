@@ -345,5 +345,10 @@ class CoreConfiguration(Configuration):
     """Configuration of the model run and step lengths"""
     data: DataConfiguration = DataConfiguration()
     """Configuration of the input variables and data sources."""
-    pyrealm: PyrealmConfig = PyrealmConfig()
-    """Constant dataclasses for the pyrealm package."""
+    pyrealm: PyrealmConfig = Field(default=PyrealmConfig(), exclude=True)
+    """Constant dataclasses for the pyrealm package.
+    
+    At present, the pyrealm configuration settings are excluded from model serialisation
+    because of issues with serialising numpy arrays. This is a problem for replicating
+    simulations where these settings have been altered.
+    """
