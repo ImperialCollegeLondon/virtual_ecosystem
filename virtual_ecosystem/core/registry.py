@@ -12,11 +12,11 @@ function, which is used to populate the registry with the components of a given 
 
 from dataclasses import dataclass
 from importlib import import_module
-from inspect import getmembers, isclass
 from typing import Any
 
 from virtual_ecosystem.core.configuration import Configuration
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.variables import to_camel_case
 
 
 @dataclass
@@ -111,12 +111,13 @@ def register_module(module_name: str) -> None:
 
 
 def get_model(module_name: str, module_name_short: str):
-    """Get the model class for a model.
+    """Get the main model class for a model.
 
-    Discovery is by looking for a single BaseModel subclass within a submodule with a
-    name matching the the model short name plus '_model'.
+    Model classes are discovered by name, following the pattern below:
 
-    * ``models.plants`` -> ``models.plants.plants_model.py``,
+    * ``models.plants`` -> ``models.plants.plants_model.PlantsModel``
+    * ``models.abiotic_simple`` ->
+      ``models.abiotic_simple.abiotic_simple_model.AbioticSimpleModel``
 
     Args:
         module_name: The full module name (e.g. ``virtual_ecosystem.models.plants``)
@@ -125,37 +126,32 @@ def get_model(module_name: str, module_name_short: str):
 
     from virtual_ecosystem.core.base_model import BaseModel
 
-    # Try and import the module from the name to get a reference to the module
+    # Try and import the submodule containing the model
+    model_submodule_name = module_name + f".{module_name_short}_model"
     try:
-        module = import_module(module_name + f".{module_name_short}_model")
+        module = import_module(model_submodule_name)
     except ModuleNotFoundError as excep:
-        LOGGER.critical(f"Unknown module - registration failed: {module_name}")
+        LOGGER.critical(f"Registration failed, cannot import {model_submodule_name}")
         raise excep
 
-    # Locate _one_ BaseModel subclass in the module that is not the imported
-    # BaseModelABC.
-    models_found = [
-        (obj_name, obj)
-        for obj_name, obj in getmembers(module)
-        if isclass(obj) and issubclass(obj, BaseModel) and obj is not BaseModel
-    ]
+    # Try and get the model by name
+    try:
+        expected_model_name = to_camel_case(module_name_short) + "Model"
+        model = getattr(module, expected_model_name)
+    except AttributeError:
+        raise RuntimeError(
+            f"The {model_submodule_name} module does "
+            f"not define the {expected_model_name} class."
+        )
 
-    # Trap missing and multiple models
-    if len(models_found) == 0:
-        msg = f"Model object not found in {module_name}"
-        LOGGER.critical(msg)
-        raise RuntimeError(msg)
-
-    if len(models_found) > 1:
-        msg = f"More than one model defined in in {module_name}"
-        LOGGER.critical(msg)
-        raise RuntimeError(msg)
+    # Raises a runtime error if the retrieved class is not a Configuration.
+    if not issubclass(model, BaseModel):
+        raise RuntimeError(f"Model is not a BaseModel subclass: {expected_model_name}")
 
     # Trap models that do not follow the requirement that the BaseModel.model_name
     # attribute matches the virtual_ecosystem.models.model_name
     # TODO - can we retire the model_name attribute if it just duplicates the module
     #        name or force it to match programmatically.
-    _, model = models_found[0]
     if module_name_short != model.model_name:
         msg = f"Different model_name attribute and module name {module_name}"
         LOGGER.critical(msg)
