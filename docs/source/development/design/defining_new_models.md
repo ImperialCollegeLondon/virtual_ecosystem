@@ -35,6 +35,27 @@ However, the simulation is designed to be modular:
 This page sets out the steps needed to add a new model to the Virtual Ecosystem and
 ensure that it can be accessed by the `core` processes in the simulation.
 
+```{important}
+When a model is used in the Virtual Ecosystem, the code relies on naming conventions to
+access the different model components used in the model. You need to choose a unique
+model name that will be used to name the root model directory, submodules within the
+model and then two critical model components.
+
+There are two naming conventions:
+
+* Model directory and file names use **snake case** (lower case with underscores): e.g.
+  `abiotic` or `abiotic_simple`.
+* Class names use **camel case** (capitalised words with no spaces): e.g. `Abiotic` and
+  `AbioticSimple`.
+
+The critical names are the model subclass and configuration subclasses.
+
+* `abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
+* `abiotic_simple.model_config.AbioticSimpleConfiguration`
+```
+
+The rest of this page assumes a new `freshwater` model.
+
 ## Create a new submodule folder
 
 Start by creating  a new folder for your model, within the `virtual_ecosystem/models/`
@@ -49,8 +70,8 @@ to add other python modules containing different parts of the module functionali
 
 * An `__init__.py` file, which tells Python that the folder is a submodule within the
   `virtual_ecosystem` package.
-* A python module  `{model_name}_model.py` that will contain the main model
-  object.
+* A python module  `freshwater_model.py` that will contain the main model
+  object, which must be called `FreshwaterModel`.
 * A JSON Schema file defining the model configuration, called `schema.json`.
 * A python module  `constants.py` that will contain the constants relevant to the model.
 
@@ -168,8 +189,10 @@ from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 
 ### Defining the new class and class attributes
 
-Now create a new class, that derives from the
-{mod}`~virtual_ecosystem.core.base_model.BaseModel`. To begin with, choose a class name
+Now create a new class that derives from the
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`.
+
+To begin with, choose a class name
 for the model and define the following class attributes.
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
