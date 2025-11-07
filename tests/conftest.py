@@ -349,6 +349,13 @@ def fixture_core_constants(fixture_configuration):
 
 
 @pytest.fixture
+def fixture_pyrealm_config(fixture_configuration):
+    """Get the pyrealm config instance from the config."""
+
+    return fixture_configuration.core.pyrealm
+
+
+@pytest.fixture
 def fixture_soil_constants(fixture_configuration):
     """Get the soil constants instance from the config."""
 
