@@ -3,7 +3,7 @@
 from virtual_ecosystem.core.base_model import BaseModel
 
 
-class ATestModel(
+class OneModelModel(
     BaseModel,
     model_name="one_model",
     vars_required_for_init=tuple(),

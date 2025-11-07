@@ -33,5 +33,3 @@ Each of the abiotic sub-modules has its own API reference page:
   fluxes. The model also provides vertical profiles of atmospheric pressure and
   :math:`\ce{CO_{2}}`.
 """  # noqa: D205
-
-from virtual_ecosystem.models.abiotic.abiotic_model import AbioticModel  # noqa: F401

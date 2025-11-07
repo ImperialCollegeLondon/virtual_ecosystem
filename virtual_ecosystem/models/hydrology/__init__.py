@@ -28,7 +28,3 @@ Each of the hydrology sub-modules has its own API reference page:
   for example by preselecting relevant layers, distributing monthly rainfall over 30
   days, and so on.
 """  # noqa: D205
-
-from virtual_ecosystem.models.hydrology.hydrology_model import (  # noqa: F401
-    HydrologyModel,
-)
