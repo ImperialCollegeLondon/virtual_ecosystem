@@ -22,6 +22,7 @@ from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.model_config import CoreConstants
 from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import (
     AbioticSimpleBounds,
     AbioticSimpleConstants,
@@ -32,7 +33,7 @@ def run_simple_microclimate(
     data: Data,
     layer_structure: LayerStructure,
     time_index: int,  # could be datetime?
-    constants: AbioticSimpleConstants,
+    constants: AbioticSimpleConstants | AbioticConstants,
     core_constants: CoreConstants,
     bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:

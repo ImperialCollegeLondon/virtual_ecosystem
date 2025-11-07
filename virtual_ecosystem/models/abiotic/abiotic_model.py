@@ -27,10 +27,7 @@ from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_vapour_pressure_deficit,
     run_simple_microclimate,
 )
-from virtual_ecosystem.models.abiotic_simple.model_config import (
-    AbioticSimpleBounds,
-    AbioticSimpleConstants,
-)
+from virtual_ecosystem.models.abiotic_simple.model_config import AbioticSimpleBounds
 
 
 class AbioticModel(
@@ -119,8 +116,6 @@ class AbioticModel(
 
         self.model_constants: AbioticConstants
         """Set of constants for the abiotic model."""
-        self.simple_constants: AbioticSimpleConstants
-        """Set of constants for simple abiotic model."""
         self.bounds: AbioticSimpleBounds
         """A set of bounds on microclimates variables, used with both the simple model
         of the initial state and the full energy balance calculations."""
@@ -163,9 +158,8 @@ class AbioticModel(
             data=data,
             core_components=core_components,
             static=model_configuration.static,
-            model_constants=model_configuration.constants,
+            constants=model_configuration.constants,
             bounds=model_configuration.bounds,
-            simple_constants=model_configuration.simple_constants,
             pyrealm_consts=pyrealm_consts,
         )
 
@@ -173,7 +167,6 @@ class AbioticModel(
         self,
         model_constants: AbioticConstants = AbioticConstants(),
         bounds: AbioticSimpleBounds = AbioticSimpleBounds(),
-        simple_constants: AbioticSimpleConstants = AbioticSimpleConstants(),
         pyrealm_constants: PyrealmConst = PyrealmConst(),
         **kwargs,
     ) -> None:
@@ -186,15 +179,12 @@ class AbioticModel(
 
         Args:
             model_constants: Set of constants for the abiotic model.
-            simple_constants: Constants for the simple abiotic model methods, used to
-                estimate initial conditions.
             bounds: A set of bounds to be applied to abiotic variables.
             pyrealm_constants: Additional configuration options to the pyrealm package.
             **kwargs: Further arguments to the setup method.
         """
 
         self.model_constants = model_constants
-        self.simple_constants = simple_constants
         self.bounds = bounds
         self.pyrealm_constants = pyrealm_constants
 
@@ -222,8 +212,7 @@ class AbioticModel(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=0,
-            simple_constants=self.simple_constants,
-            abiotic_constants=self.model_constants,
+            constants=self.model_constants,
             core_constants=self.core_constants,
             bounds=self.bounds,
         )
