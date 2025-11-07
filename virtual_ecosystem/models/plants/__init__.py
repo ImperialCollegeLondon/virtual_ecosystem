@@ -27,5 +27,3 @@ The other submodules include:
   calculate the complete canopy structure across all cohorts for the plant community
   present in a particular grid cell.
 """  # noqa: D205
-
-from virtual_ecosystem.models.plants.plants_model import PlantsModel  # noqa: F401
