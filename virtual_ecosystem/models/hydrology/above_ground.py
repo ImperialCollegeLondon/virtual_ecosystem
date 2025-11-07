@@ -11,7 +11,7 @@ from math import sqrt
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_vp_sat
 
 from virtual_ecosystem.core.grid import Grid
@@ -240,7 +240,7 @@ def calculate_soil_evaporation(
     drag_coefficient_evaporation: float,
     extinction_coefficient_global_radiation: float,
     time_interval: float,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
 ) -> dict[str, NDArray[np.floating]]:
     r"""Calculate soil evaporation based on classical bulk aerodynamic formulation.
 
@@ -284,7 +284,7 @@ def calculate_soil_evaporation(
         extinction_coefficient_global_radiation: Extinction coefficient for global
             radiation, [unitless]
         time_interval: Time interval, [s]
-        pyrealm_const: Constants from pyrealm package
+        pyrealm_core_constants: Core constants from pyrealm package
 
     Returns:
         soil evaporation, [mm per time interval], aerodynamic resistance surface [s m-1]
@@ -306,7 +306,7 @@ def calculate_soil_evaporation(
     # Calculate saturation vapour pressure, kPa
     saturation_vapour_pressure = calc_vp_sat(
         ta=temperature,
-        core_const=pyrealm_const(),
+        core_const=pyrealm_core_constants,
     )
 
     saturated_specific_humidity = (

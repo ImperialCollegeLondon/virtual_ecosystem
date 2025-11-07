@@ -12,13 +12,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 
 from virtual_ecosystem.core.base_model import BaseModel
 from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_vapour_pressure_deficit,
@@ -103,6 +104,8 @@ class AbioticSimpleModel(
         """Upper and lower bounds for abiotic variables."""
         self.abiotic_constants: AbioticConstants
         """Abiotic constants required for some calculations"""
+        self.pyrealm_core_constants: PyrealmCoreConst
+        """Core constants for the pyrealm package."""
 
     @classmethod
     def from_config(
@@ -131,6 +134,11 @@ class AbioticSimpleModel(
             )
         )
 
+        # Core configuration
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
         # Hard coding abiotic constants here until we resolve the config setup
         abiotic_constants: AbioticConstants = AbioticConstants()
 
@@ -144,12 +152,14 @@ class AbioticSimpleModel(
             static=model_configuration.static,
             model_configuration=model_configuration,
             abiotic_constants=abiotic_constants,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
         )
 
     def _setup(
         self,
         model_configuration: AbioticSimpleConfiguration,
         abiotic_constants: AbioticConstants,
+        pyrealm_core_constants: PyrealmCoreConst,
         **kwargs,
     ) -> None:
         """Function to set up the abiotic simple model.
@@ -161,12 +171,14 @@ class AbioticSimpleModel(
         Args:
             model_configuration: Configuration object from the abiotic_simple model.
             abiotic_constants: Provides required abiotic constants.
+            pyrealm_core_constants: Core constants for the pyrealm package.
             **kwargs: Further arguments to the setup method.
         """
         # Populate model attributes
         self.model_constants = model_configuration.constants
         self.bounds = model_configuration.bounds
         self.abiotic_constants = abiotic_constants
+        self.pyrealm_core_constants = pyrealm_core_constants
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
@@ -181,7 +193,7 @@ class AbioticSimpleModel(
         vapour_pressure_and_deficit = calculate_vapour_pressure_deficit(
             temperature=self.data["air_temperature_ref"],
             relative_humidity=self.data["relative_humidity_ref"],
-            pyrealm_const=PyrealmConst(),
+            pyrealm_core_constants=self.pyrealm_core_constants,
         )
         self.data["vapour_pressure_deficit_ref"] = vapour_pressure_and_deficit[
             "vapour_pressure_deficit"

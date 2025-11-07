@@ -3,7 +3,7 @@ balance in the Virtual Ecosystem.
 """  # noqa: D205
 
 import numpy as np
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from pyrealm.core.hygro import calc_specific_heat, calc_vp_sat
 from xarray import DataArray
 
@@ -24,7 +24,7 @@ def run_microclimate(
     layer_structure: LayerStructure,
     abiotic_constants: AbioticConstants,
     core_constants: CoreConstants,
-    pyrealm_const: PyrealmConst,
+    pyrealm_core_constants: PyrealmCoreConst,
     abiotic_bounds: AbioticSimpleBounds,
 ) -> dict[str, DataArray]:
     """Run microclimate model.
@@ -44,7 +44,7 @@ def run_microclimate(
         layer_structure: Layer structure object
         abiotic_constants: Set of constants for abiotic model
         core_constants: Set of constants that are shared across all models
-        pyrealm_const: Set of constants from pyrealm
+        pyrealm_core_constants: Set of core constants for pyrealm
         abiotic_bounds: Bounds for vertical mixing of atmospheric variables
 
     Returns:
@@ -362,7 +362,7 @@ def run_microclimate(
         # Saturated vapour pressure of air, [kPa]
         saturated_vapour_pressure_air = calc_vp_sat(
             ta=all_air_temperature,
-            core_const=PyrealmConst(),
+            core_const=pyrealm_core_constants,
         )
 
         # Specific humidity of air, [kg kg-1]
@@ -373,7 +373,7 @@ def run_microclimate(
             molecular_weight_ratio_water_to_dry_air=(
                 core_constants.molecular_weight_ratio_water_to_dry_air
             ),
-            pyrealm_const=pyrealm_const,
+            pyrealm_core_constants=pyrealm_core_constants,
         )
 
         # Calculate specific humidity at saturation
