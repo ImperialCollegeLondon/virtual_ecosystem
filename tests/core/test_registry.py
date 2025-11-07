@@ -49,7 +49,7 @@ from tests.conftest import log_check
                 (
                     INFO,
                     "Registering model class for "
-                    "tests.core.test_modules.one_model: ATestModel",
+                    "tests.core.test_modules.one_model: OneModelModel",
                 ),
                 (
                     INFO,

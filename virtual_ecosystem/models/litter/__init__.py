@@ -20,5 +20,3 @@ Each of the litter sub-modules has its own API reference page:
 * :mod:`~virtual_ecosystem.models.litter.model_config` submodule provides configuration
   options for the model along with constants required by the broader litter model.
 """  # noqa: D205
-
-from virtual_ecosystem.models.litter.litter_model import LitterModel  # noqa: F401

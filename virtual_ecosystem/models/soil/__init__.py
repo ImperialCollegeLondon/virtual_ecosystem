@@ -18,5 +18,3 @@ Each of the soil sub-modules has its own API reference page:
   configuration options for the model along with constants required by the broader soil
   model.
 """  # noqa: D205
-
-from virtual_ecosystem.models.soil.soil_model import SoilModel  # noqa: F401
