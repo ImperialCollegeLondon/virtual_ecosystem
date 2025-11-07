@@ -12,6 +12,7 @@ from typing import ClassVar
 import numpy as np
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 from pydantic import (
+    ConfigDict,
     Field,
     NegativeFloat,
     PositiveFloat,
@@ -19,6 +20,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pyrealm.constants import CoreConst, PModelConst
 from scipy import constants
 
 from virtual_ecosystem.core.configuration import (
@@ -314,6 +316,20 @@ class DataConfiguration(Configuration):
     )
 
 
+class PyrealmConfig(Configuration):
+    """Configuration class for pyrealm constant dataclasses.
+
+    These dataclasses are not pydantic models and so we permit arbitrary types.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    core: CoreConst = CoreConst()
+    """Core pyrealm constants"""
+    pmodel: PModelConst = PModelConst()
+    """Pyrealm constants for the PModel."""
+
+
 class CoreConfiguration(Configuration):
     """The core model configuration."""
 
@@ -329,3 +345,5 @@ class CoreConfiguration(Configuration):
     """Configuration of the model run and step lengths"""
     data: DataConfiguration = DataConfiguration()
     """Configuration of the input variables and data sources."""
+    pyrealm: PyrealmConfig = PyrealmConfig()
+    """Constant dataclasses for the pyrealm package."""
