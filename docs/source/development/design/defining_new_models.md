@@ -35,31 +35,69 @@ However, the simulation is designed to be modular:
 This page sets out the steps needed to add a new model to the Virtual Ecosystem and
 ensure that it can be accessed by the `core` processes in the simulation.
 
-## Create a new submodule folder
+```{important}
+When a model is used in the Virtual Ecosystem, the code relies on naming conventions to
+access the different model components used in the model and register these components so
+that they can be easily found from within the code - see the
+{mod}`~virtual_ecosystem.core.registry` submodule for details.
 
-Start by creating  a new folder for your model, within the `virtual_ecosystem/models/`
-directory.
+You need to choose a unique model name that will be used to name the root model
+directory, submodules within the model and then two critical model components. The name
+will be used following two standard Python naming conventions:
 
-```bash
-mkdir virtual_ecosystem/models/freshwater
+* Model directory and file names use **snake case** (lower case with underscores): e.g.
+  `abiotic` or `abiotic_simple`.
+* Class names use **camel case** (capitalised words with no spaces): e.g. `Abiotic` and
+  `AbioticSimple`.
+
+The critical names are the model subclass and configuration subclasses and the example
+below shows the required pattern.
+
+* `abiotic_simple.abiotic_simple_model.AbioticSimpleModel`
+* `abiotic_simple.model_config.AbioticSimpleConfiguration`
 ```
 
-You will need to create at least three files within this folder, although you may choose
-to add other python modules containing different parts of the module functionality.
+The rest of this page assumes that you are creating a new `freshwater` model.
 
-* An `__init__.py` file, which tells Python that the folder is a submodule within the
-  `virtual_ecosystem` package.
-* A python module  `{model_name}_model.py` that will contain the main model
-  object.
-* A python module `model_config.py` that defines the settings needed to configure how
+## Create a new submodule folder
+
+Start by creating  a new directory for your model within the `models` directory:
+`virtual_ecosystem/models/freshwater`
+
+You will then need to create the three files shown below within this folder:
+
+* The init file `virtual_ecosystem/models/freshwater/__init__.py`. This is
+  required to indicate to Python that the folder is a submodule within the
+  `virtual_ecosystem` package, but we also use it to provide overview documentation of
+  the model structure.
+* The `virtual_ecosystem/models/freshwater/model_config.py` submodule, providing the
+  `FreshwaterConfiguration` class that defines  the settings needed to configure how
   the model runs.
+* The `virtual_ecosystem/models/freshwater/freshwater_model.py` submodule, providing the
+  main `FreshwaterModel` class that implements the model itself.
 
-For example:
+It is very likely that you will also want to create additional code submodules within
+this directory to split out different parts of the module functionality and  to keep
+code files organised and a manageable size.
 
-```bash
-touch virtual_ecosystem/models/freshwater/__init__.py
-touch virtual_ecosystem/models/freshwater/freshwater_model.py
-touch virtual_ecosystem/models/freshwater/model_config.py
+## The model `__init__.py` file
+
+This file is used to tell Python that the directory contains a package submodule. It
+_can_ be used to run code automatically when any component of the submodule is imported,
+but in the Virtual Ecosystem, we only use the `__init__.py` to provide a brief overview
+of the module as a docstring. It can be used to provide a short description of any
+submodules and how they are used within the model. The submodule files should then have
+their own docstring progviding more detail. These docstrings are automatically included
+in the HTML documentation of the package.
+
+A docstring should be formatted using block quotes, as below:
+
+```{code-block} python
+"""This is the freshwater model module. The module level docstring should contain a
+short description of the overall model design and purpose, and link to key components
+and how they interact.
+"""  # noqa: D204, D415
+
 ```
 
 ## Model configuration
@@ -323,8 +361,10 @@ from virtual_ecosystem.models.freshwater.streamflow import calculate_streamflow
 
 ### Defining the new class and class attributes
 
-Now create a new class, that derives from the
-{mod}`~virtual_ecosystem.core.base_model.BaseModel`. To begin with, choose a class name
+Now create a new class that derives from the
+{mod}`~virtual_ecosystem.core.base_model.BaseModel`.
+
+To begin with, choose a class name
 for the model and define the following class attributes.
 
 The {attr}`~virtual_ecosystem.core.base_model.BaseModel.model_name` attribute
@@ -495,11 +535,9 @@ def from_config(
     )
 ```
 
-## Other model steps
+### Other model steps
 
-There are four functions that must be included as part of the model class. The names and
-roles of these functions might well change as the Virtual Ecosystem model develops, but
-that kind of API change is something that would require significant discussion. Only the
+There are four functions that must be included as part of the model class. Only the
 `update` function is used at present. The other functions need to be included, but
 there's no need to include any particular content within them (i.e. they can just be
 function definitions with docstrings).
@@ -528,34 +566,3 @@ def update(self, time_index: int) -> None:
 def cleanup(self) -> None:
     """Placeholder function for freshwater model cleanup."""
 ```
-
-## Setting up the model `__init__.py` file
-
-Lastly, you will need to set up the `__init__.py` file in the submodule directory. This
-file is used to tell Python that the directory contains a package submodule, but can
-also be used to supply code that is automatically run when a module is imported.
-
-In the Virtual Ecosystem, we use the `__init__.py` file in model submodules to:
-
-* provide a brief overview of the module, and
-* import the model object into the module root to make it easier to import.
-
-The file will look something like:
-
-```{code-block} python
-"""This is the freshwater model module. The module level docstring should contain a
-short description of the overall model design and purpose, and link to key components
-and how they interact.
-"""  # noqa: D204, D415
-
-from virtual_ecosystem.models.freshwater.freshwater_model import (  # noqa: F401
-    FreshwaterModel,
-)
-```
-
-Under the hood, when a given model is used in a simulation, then the configuration
-process automatically loads all of the model components for that model using the
-{func}`~virtual_ecosystem.core.registry.register_module` function. This adds the
-BaseModel subclass and root model configuration to a central
-{data}`~virtual_ecosystem.core.registry.MODULE_REGISTRY` object that is used to allow
-the simulation code to easily access model components.

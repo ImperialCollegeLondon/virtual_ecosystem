@@ -19,7 +19,3 @@ Each of the abiotic simple sub-modules has its own API reference page:
   abiotic model including the regression parameters for deriving vertical profiles.
 
 """  # noqa: D205
-
-from virtual_ecosystem.models.abiotic_simple.abiotic_simple_model import (  # noqa: F401
-    AbioticSimpleModel,
-)
