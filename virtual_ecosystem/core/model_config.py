@@ -59,6 +59,9 @@ class CoreConstants(Configuration):
     gravity: float = constants.gravitational_constant
     """Newtonian constant of gravitation, [m s-1]."""
 
+    boltzmann_constant: float = constants.Boltzmann
+    """The Boltzmann constant, [J K-1]"""
+
     stefan_boltzmann_constant: float = constants.Stefan_Boltzmann
     """Stefan-Boltzmann constant, [W m-2 K-4].
 
