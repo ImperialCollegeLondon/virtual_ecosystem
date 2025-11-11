@@ -21,6 +21,8 @@ language_info:
   nbconvert_exporter: python
   pygments_lexer: ipython3
   version: 3.11.9
+mystnb:
+  render_markdown_format: myst
 ---
 
 # The Virtual Ecosystem core configuration
@@ -66,7 +68,6 @@ coordinate system.
 
 from config_display import (
     dump_config_toml,
-    model_config_to_html,
     model_config_to_deflist,
 )
 from virtual_ecosystem.core.model_config import GridConfiguration
