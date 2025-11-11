@@ -19,7 +19,6 @@ from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.microclimate_simple import (
     calculate_vapour_pressure_deficit,
     run_simple_microclimate,
@@ -101,8 +100,6 @@ class AbioticSimpleModel(
         """Set of constants for the abiotic simple model"""
         self.bounds: AbioticSimpleBounds
         """Upper and lower bounds for abiotic variables."""
-        self.abiotic_constants: AbioticConstants
-        """Abiotic constants required for some calculations"""
 
     @classmethod
     def from_config(
@@ -131,9 +128,6 @@ class AbioticSimpleModel(
             )
         )
 
-        # Hard coding abiotic constants here until we resolve the config setup
-        abiotic_constants: AbioticConstants = AbioticConstants()
-
         LOGGER.info(
             "Information required to initialise the abiotic simple model successfully "
             "extracted."
@@ -143,13 +137,11 @@ class AbioticSimpleModel(
             core_components=core_components,
             static=model_configuration.static,
             model_configuration=model_configuration,
-            abiotic_constants=abiotic_constants,
         )
 
     def _setup(
         self,
         model_configuration: AbioticSimpleConfiguration,
-        abiotic_constants: AbioticConstants,
         **kwargs,
     ) -> None:
         """Function to set up the abiotic simple model.
@@ -166,7 +158,6 @@ class AbioticSimpleModel(
         # Populate model attributes
         self.model_constants = model_configuration.constants
         self.bounds = model_configuration.bounds
-        self.abiotic_constants = abiotic_constants
 
         # create soil temperature array
         self.data["soil_temperature"] = self.layer_structure.from_template()
@@ -207,8 +198,7 @@ class AbioticSimpleModel(
             data=self.data,
             layer_structure=self.layer_structure,
             time_index=time_index,
-            simple_constants=self.model_constants,
-            abiotic_constants=self.abiotic_constants,
+            constants=self.model_constants,
             core_constants=self.core_constants,
             bounds=self.bounds,
         )
