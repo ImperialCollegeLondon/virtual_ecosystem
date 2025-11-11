@@ -26,92 +26,171 @@ language_info:
 # The Virtual Ecosystem core configuration
 
 The core configuration of the Virtual Ecosystem sets up the following parts of the
-simulation, which are shared across all of the science models
+simulation, which are shared across all of the science models. Each of these parts is
+configured in its own configuration section:
 
-* the [spatial grid](#the-spatial-grid),
-* the [temporal extent and resolution](#the-temporal-extent-and-resolution),
-* the [vertical layer structure](#the-vertical-layer-structure),
-* the [core constants](#core-constants), and
-* the [data output settings](#data-output-settings) for a simulation.
+* the [spatial grid](#the-spatial-grid) (`[core.grid]`),
+* the [temporal extent and resolution](#the-temporal-extent-and-resolution)
+  (`[core.timing]`),
+* the [vertical layer structure](#the-vertical-layer-structure) (`[core.layers]`),
+* the [core constants](#core-constants) (`[core.constants]`), and
+* the [data output settings](#data-output-settings) for a simulation
+  (`[core.data_output_options]`),
 
 The core configuration section is also used to set the location of data input files for
-required forcing variables for the simulation, but this section is discussed in the
-[model inputs](./model_inputs.md) section.
+required forcing variables for the simulation, but the `[core.data]` section is
+discussed in the [model inputs](./model_inputs.md) documentation.
+
+```{tip}
+You may find it useful to create the core TOML configuration for your system as the
+first step in developing your own simulations. You can then load the TOML settings into
+data preparation scripts used to create other VE inputs. This can help keep the various
+data settings aligned across your project.
+```
 
 ## The spatial grid
 
+The `[core.grid]` configuration section is central to a Virtual Ecosystem simulation and
+defines a set of grid cells within which the simulation will run. Each cell can have its
+own climate and elevation and may contain different plant and animal communities. The
+relative elevations of the cells will also define the hydrology of the simulation.
+
+At present, simulations only support rectangular arrays of square grid cells: you can
+set the number of cells and their area in square metres. You can also set an offset for
+the origin coordinates of the grid. This can be useful if you want to match your
+simulation coordinates to incoming data that has real world coordinates from a projected
+coordinate system.
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from config_display import (
+    dump_config_toml,
+    model_config_to_html,
+    model_config_to_deflist,
+)
+from virtual_ecosystem.core.model_config import GridConfiguration
+from virtual_ecosystem.core.grid import Grid
+import matplotlib.pyplot as plt
+import numpy as np
+
+dump_config_toml("core.grid", GridConfiguration)
+model_config_to_deflist("core.grid", GridConfiguration)
+```
+
+When running a simulation, the Virtual Ecosystem assigns a unique numeric cell id to
+each cell and these cell ids are widely used in data outputs. They are simply increasing
+integers starting from zero in the top left and increase across rows first ['row major'
+order](https://en.wikipedia.org/wiki/Row-_and_column-major_order). The default values
+above result in the grid layout, coordinates and cell id values shown below: a 9x9 grid
+of 90m resolution cells, with the coordinate origin in the centre of the lower left
+cell.
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+square_grid = Grid(**GridConfiguration().model_dump())
+
+# Side by side plots of the two grid systems
+fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+
+# Plot the boundary polygon of each cell and label at the centroid
+for cell_id in square_grid.cell_id:
+
+    poly = square_grid.polygons[cell_id]
+    centroid = square_grid.centroids[cell_id]
+
+    cx, cy = poly.exterior.coords.xy
+    ax.plot(cx, cy, color="k", linewidth=0.5)
+    ax.text(
+        x=centroid[0],
+        y=centroid[1],
+        c="red",
+        s=cell_id,
+        ha="center",
+        va="center",
+    )
+
+# 1:1 aspect ratio
+ax.set_aspect("equal")
+ticks = np.arange(0, 90 * 9, 90)
+ax.set_xticks(ticks)
+ax.set_yticks(ticks)
+plt.tight_layout()
+```
+
+```{important}
+You need to make sure that all spatially structured input data - which is nearly all of
+the required starting variables for a simulation - is congruent with the grid
+configuration you use. That might be using the unique cell id codes or providing data
+as spatial grids in NetCDF format using the cell coordinates from your configuration.
+```
+
 ## The temporal extent and resolution
+
+The `[core.timing]` configuration section sets the temporal resolution of the simulation
+and the total number of time steps. You need to provide a start date, the time interval
+of updates and the total run length. The update interval and total run length can be
+provided as string descriptions.
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.core.model_config import TimingConfiguration
+
+dump_config_toml("core.timing", TimingConfiguration)
+model_config_to_deflist("core.timing", TimingConfiguration)
+```
+
+```{important}
+You need to make sure that all temporally structured input data is congruent with the
+timing configuration you use. That will typically be providing a time axis within a
+NetCDF file that matches the number of time steps defined above.
+```
 
 ## The vertical layer structure
 
-## Core constants
+The `[core.layers]` configuration section defines the vertical layer structure of the
+simulation. The model uses a fixed number of layers along the vertical height axis: this
+configuration is used to set the actual heights of layers - sometimes relative to the
+canopy layer heights - and the number of layers. See the [vertical structure
+implementation](../virtual_ecosystem/implementation/core_components_overview.md#the-vertical-layer-structure)
+page for more details.
 
-## Data variable inputs
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.core.model_config import LayersConfiguration
+
+dump_config_toml("core.layers", LayersConfiguration)
+model_config_to_deflist("core.layers", LayersConfiguration)
+```
 
 ## Data output settings
 
-```TOML
-[core.constants]
-standard_pressure = 101.325
-standard_mole = 44.642
-molar_heat_capacity_air = 29.19
-gravity = 6.6743e-11
-stefan_boltzmann_constant = 5.6703744191844314e-08
-von_karmans_constant = 0.4
-max_depth_of_microbial_activity = 0.25
-meters_to_mm = 1000.0
-molecular_weight_air = 28.96
-gas_constant_water_vapour = 461.51
-seconds_to_day = 86400.0
-seconds_to_hour = 3600.0
-characteristic_dimension_leaf = 0.01
-specific_gas_constant_dry_air = 287.05
-molecular_weight_ratio_water_to_dry_air = 0.622
-conductance_to_resistance_conversion_factor = 40.9
-density_water = 1000.0
-fungal_fruiting_bodies_c_n_ratio = 10.0
-fungal_fruiting_bodies_c_p_ratio = 75.0
-fungal_fruiting_bodies_decay_rate = 0.013862943611198907
+The `[core.data_output_options]` section is used to control when data is exported from
+the simulation.
 
-[core.grid]
-grid_type = "square"
-cell_area = 8100.0
-cell_nx = 9
-cell_ny = 9
-xoff = -45.0
-yoff = -45.0
+```{code-cell} ipython3
+:tags: [remove-input]
 
-[core.data_output_options]
-save_initial_state = false
-save_continuous_data = true
-save_final_state = true
-save_merged_config = true
-out_path = "<DIRPATH_PLACEHOLDER>"
-out_initial_file_name = "initial_state.nc"
-out_folder_continuous = "."
-out_continuous_file_name = "all_continuous_data.nc"
-out_final_file_name = "final_state.nc"
-out_merge_file_name = "ve_full_model_configuration.toml"
+from virtual_ecosystem.core.model_config import DataOutputConfiguration
 
-[core.layers]
-soil_layers = [
-    -0.25,
-    -1.0,
-]
-canopy_layers = 10
-above_canopy_height_offset = 2.0
-subcanopy_layer_height = 1.5
-surface_layer_height = 0.1
+dump_config_toml("core.data_output_options", DataOutputConfiguration)
+model_config_to_deflist("core.data_output_options", DataOutputConfiguration)
+```
 
-[core.timing]
-start_date = "2013-01-01"
-update_interval = "1 month"
-run_length = "2 years"
+## Core constants
 
-[core.data]
-variable = [
-    { file_path = "<FILEPATH_PLACEHOLDER>", var_name = "variable_name_placeholder_one" },
-    { file_path = "<FILEPATH_PLACEHOLDER>", var_name = "variable_name_placeholder_two" },
-]
+The `[core.constants]` section defines a set of constants values that are shared across
+the whole simulation. This includes some global constants, as well as some values
+that are required across multiple models.
 
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.core.model_config import CoreConstants
+
+dump_config_toml("core.constants", CoreConstants)
+model_config_to_deflist("core.constants", CoreConstants)
 ```

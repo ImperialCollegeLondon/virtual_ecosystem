@@ -45,6 +45,8 @@ subtrees:
         entries:
           - file: using_the_ve/installing_ve
           - file: using_the_ve/example_data
+          - file: using_the_ve/core_configuration
+          - file: using_the_ve/science_model_configuration
           - file: using_the_ve/virtual_ecosystem_in_use
           - file: using_the_ve/model_inputs
           - file: using_the_ve/virtual_ecosystem_in_static_mode

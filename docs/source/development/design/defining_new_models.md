@@ -207,13 +207,11 @@ example above. The `pydantic` package has a few ways of fixing constants:
 
 The example model below shows the various options in practice:
 
-```{code-cell} ipython3
-:lines_to_next_cell: 2
-
+```{code-block} ipython3
 from pydantic import field_validator
 from typing import ClassVar, Literal
 from scipy import constants
-from virtual_ecosystem.core.configuration import ModelConfigurationRoot
+from virtual_ecosystem.core.configuration import ModelConfigurationRoot, Configuration
 
 
 class Example(Configuration):
