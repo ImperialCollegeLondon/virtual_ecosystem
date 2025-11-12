@@ -2,7 +2,6 @@
 
 import numpy as np
 import xarray as xr
-from pyrealm.constants import CoreConst as PyrealmConst
 from xarray import DataArray
 
 
@@ -42,7 +41,7 @@ def test_varying_canopy_log_interpolation(
 
 
 def test_varying_canopy_calculate_vapour_pressure_deficit(
-    fixture_core_components, dummy_climate_data_varying_canopy
+    fixture_core_components, dummy_climate_data_varying_canopy, fixture_pyrealm_config
 ):
     """Test calculation of VPD with different number of canopy layers."""
 
@@ -56,7 +55,7 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
     result = calculate_vapour_pressure_deficit(
         temperature=data["air_temperature"],
         relative_humidity=data["relative_humidity"],
-        pyrealm_const=PyrealmConst(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
     exp_output = lyr_strct.from_template()
     exp_output[lyr_strct.index_filled_atmosphere] = [

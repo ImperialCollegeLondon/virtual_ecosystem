@@ -25,7 +25,7 @@ from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.exceptions import InitialisationError
 from virtual_ecosystem.core.logger import LOGGER
-from virtual_ecosystem.core.model_config import CoreConfiguration
+from virtual_ecosystem.core.model_config import CoreConfiguration, PyrealmConfig
 from virtual_ecosystem.models.plants.canopy import (
     calculate_canopies,
     initialise_canopy_layers,
@@ -297,9 +297,9 @@ class PlantsModel(
         self.pmodel: PModel
         """A P Model instance providing estimates of light use efficiency through the
         canopy and across cells."""
-        self.pmodel_consts: PModelConst
+        self.pyrealm_pmodel_consts: PModelConst
         """PModel constants used by pyrealm."""
-        self.pmodel_core_consts: CoreConst
+        self.pyrealm_core_consts: CoreConst
         """Core constants used by pyrealm."""
         self.per_update_interval_stem_mortality_probability: np.float64
         """The rate of stem mortality per update interval."""
@@ -361,12 +361,13 @@ class PlantsModel(
             inst = cls(
                 data=data,
                 core_components=core_components,
+                static=model_configuration.static,
                 flora=flora,
                 cohort_data=cohort_data,
                 extra_pft_traits=extra_traits,
                 model_constants=model_configuration.constants,
                 exporter=exporter,
-                static=model_configuration.static,
+                pyrealm_config=core_configuration.pyrealm,
             )
         except Exception as excep:
             LOGGER.critical(
@@ -383,6 +384,7 @@ class PlantsModel(
         cohort_data: pandas.DataFrame,
         extra_pft_traits: ExtraTraitsPFT,
         model_constants: PlantsConstants = PlantsConstants(),
+        pyrealm_config: PyrealmConfig = PyrealmConfig(),
         **kwargs: Any,
     ) -> None:
         """Setup implementation for the Plants Model.
@@ -394,6 +396,7 @@ class PlantsModel(
             extra_pft_traits: Additional traits for each plant functional type, keyed by
                 PFT name.
             model_constants: Set of constants for the plants model.
+            pyrealm_config: Configuration options to the pyrealm package.
             **kwargs: Further arguments to the setup method.
         """
 
@@ -496,9 +499,9 @@ class PlantsModel(
         # populated by the update method but not at setup.
         self.stem_allocations = {}
 
-        # TODO - #697 these need to be configurable
-        self.pmodel_consts = PModelConst()
-        self.pmodel_core_consts = CoreConst()
+        # Set pyrealm configuration
+        self.pyrealm_pmodel_consts = pyrealm_config.pmodel
+        self.pyrealm_core_consts = pyrealm_config.core
 
         # Create and populate the canopy data layers
         self.update_canopy_layers()
@@ -507,7 +510,7 @@ class PlantsModel(
         # the subcanopy vegetation
         self.subcanopy = Subcanopy(
             data=self.data,
-            pmodel_core_constants=self.pmodel_core_consts,
+            pyrealm_core_constants=self.pyrealm_core_consts,
             model_constants=self.model_constants,
             layer_index=self.layer_structure.index_surface_scalar,
             model_timing=self.model_timing,
@@ -825,8 +828,8 @@ class PlantsModel(
             vpd=self.data["vapour_pressure_deficit"].to_numpy(),
             patm=self.data["atmospheric_pressure"].to_numpy(),
             co2=self.data["atmospheric_co2"].to_numpy(),
-            core_const=self.pmodel_core_consts,
-            pmodel_const=self.pmodel_consts,
+            core_const=self.pyrealm_core_consts,
+            pmodel_const=self.pyrealm_pmodel_consts,
         )
 
         self.pmodel = PModel(pmodel_env)
@@ -919,7 +922,7 @@ class PlantsModel(
             # Units:
             #    mol C  * µmol H2O mol C -1 = µmol H2O
             per_layer_transpiration_micromolar = (
-                per_layer_gpp / (self.pmodel_core_consts.k_c_molmass * 1e6)
+                per_layer_gpp / (self.pyrealm_core_consts.k_c_molmass * 1e6)
             ) * self.pmodel.iwue[active_layers, :][:, [cell_id]]
 
             # Convert to mm
@@ -935,7 +938,7 @@ class PlantsModel(
                     canopy.n_cohorts,
                     axis=1,
                 ),
-                core_const=self.pmodel_core_consts,
+                core_const=self.pyrealm_core_consts,
             )
 
             # Calculate and store total stem transpiration in mm per stem and total

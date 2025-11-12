@@ -1,7 +1,6 @@
 """Test microclimate.py."""
 
 import numpy as np
-from pyrealm.constants import CoreConst as PyrealmConst
 
 
 def test_run_microclimate(
@@ -10,6 +9,7 @@ def test_run_microclimate(
     fixture_core_constants,
     fixture_abiotic_constants,
     fixture_abiotic_simple_configuration,
+    fixture_pyrealm_config,
 ):
     """Test microclimate function."""
 
@@ -26,7 +26,7 @@ def test_run_microclimate(
         layer_structure=lyr_str,
         abiotic_constants=fixture_abiotic_constants,
         core_constants=fixture_core_constants,
-        pyrealm_const=PyrealmConst(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
         abiotic_bounds=fixture_abiotic_simple_configuration.bounds,
     )
 
@@ -92,6 +92,7 @@ def test_run_microclimate_subdaily(
     fixture_core_constants,
     fixture_abiotic_constants,
     fixture_abiotic_simple_configuration,
+    fixture_pyrealm_config,
 ):
     """Test microclimate function iterates over hours - no time index."""
 
@@ -118,7 +119,7 @@ def test_run_microclimate_subdaily(
         layer_structure=lyr_str,
         abiotic_constants=fixture_abiotic_constants,
         core_constants=fixture_core_constants,
-        pyrealm_const=PyrealmConst(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
         abiotic_bounds=fixture_abiotic_simple_configuration.bounds,
     )
 
@@ -184,6 +185,7 @@ def test_run_microclimate_minutes(
     fixture_core_constants,
     fixture_abiotic_constants,
     fixture_abiotic_simple_configuration,
+    fixture_pyrealm_config,
 ):
     """Test microclimate function iterates once for <1h time interval."""
 
@@ -208,7 +210,7 @@ def test_run_microclimate_minutes(
         layer_structure=lyr_str,
         abiotic_constants=fixture_abiotic_constants,
         core_constants=fixture_core_constants,
-        pyrealm_const=PyrealmConst(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
         abiotic_bounds=fixture_abiotic_simple_configuration.bounds,
     )
 
