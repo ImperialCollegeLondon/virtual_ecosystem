@@ -224,7 +224,7 @@ class Subcanopy:
 
     Args:
         data: The model Data instance
-        pmodel_core_constants: The PModel core constants for the simulation.
+        pyrealm_core_constants: The PModel core constants for the simulation.
         model_constants: The PlantModel constants for the simulation
         layer_index: The layer index of the surface layer in the vertical layer axis.
         model_timing: The core ModelTiming instance for the simulation.
@@ -236,14 +236,14 @@ class Subcanopy:
     def __init__(
         self,
         data: Data,
-        pmodel_core_constants: CoreConst,
+        pyrealm_core_constants: CoreConst,
         model_constants: PlantsConstants,
         layer_index: int,
         model_timing: ModelTiming,
     ) -> None:
         # Init attributes
         self.data: Data = data
-        self.pmodel_core_constants: CoreConst = pmodel_core_constants
+        self.pyrealm_core_constants: CoreConst = pyrealm_core_constants
         self.model_constants: PlantsConstants = model_constants
         self.model_timing: ModelTiming = model_timing
         self.layer_index: int = layer_index
@@ -353,7 +353,7 @@ class Subcanopy:
         # Transpiration and nutrient acquisition
         # - Calculate the transpiration associated with the GPP in moles
         self.subcanopy_transpiration = (
-            subcanopy_gpp / (self.pmodel_core_constants.k_c_molmass * 1e6)
+            subcanopy_gpp / (self.pyrealm_core_constants.k_c_molmass * 1e6)
         ) * iwue
 
         # Calculate the volume of water from µmol to m3 to convert soil water nutrient

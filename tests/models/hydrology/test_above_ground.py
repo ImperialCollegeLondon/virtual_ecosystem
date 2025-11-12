@@ -5,7 +5,6 @@ from logging import ERROR
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as PyrealmConst
 
 from tests.conftest import log_check
 
@@ -101,7 +100,11 @@ def test_calculate_canopy_evaporation():
     ],
 )
 def test_calculate_soil_evaporation(
-    dens_air, latvap, fixture_hydrology_constants, fixture_core_constants
+    dens_air,
+    latvap,
+    fixture_hydrology_constants,
+    fixture_core_constants,
+    fixture_pyrealm_config,
 ):
     """Test soil evaporation with float and DataArray."""
 
@@ -127,7 +130,7 @@ def test_calculate_soil_evaporation(
             fixture_hydrology_constants.extinction_coefficient_global_radiation
         ),
         time_interval=86400,
-        pyrealm_const=PyrealmConst,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
 
     exp_evap = np.array([2.18791, 0.521941, 0.090352])
