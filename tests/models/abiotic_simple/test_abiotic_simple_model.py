@@ -75,11 +75,10 @@ def test_abiotic_simple_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "cfg_string,satvap1,raises,expected_log_entries",
+    "cfg_string,raises,expected_log_entries",
     [
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n",
-            [0.61078, 7.5, 237.3],
             does_not_raise(),
             tuple(
                 [
@@ -96,8 +95,7 @@ def test_abiotic_simple_model_initialization(
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants]\n"
-            "saturation_vapour_pressure_factors = [1.0, 2.0, 3.0]\n",
-            [1.0, 2.0, 3.0],
+            "initial_net_radiation = 20\n",
             does_not_raise(),
             tuple(
                 [
@@ -117,7 +115,6 @@ def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data_varying_canopy,
     cfg_string,
-    satvap1,
     raises,
     expected_log_entries,
 ):

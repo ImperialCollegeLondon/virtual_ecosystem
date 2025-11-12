@@ -71,7 +71,6 @@ def test_varying_canopy_calculate_vapour_pressure_deficit(
 def test_run_microclimate_varying_canopy(
     dummy_climate_data_varying_canopy,
     fixture_core_components,
-    fixture_abiotic_constants,
     fixture_core_constants,
     fixture_abiotic_simple_configuration,
 ):
@@ -88,8 +87,7 @@ def test_run_microclimate_varying_canopy(
         data=data,
         layer_structure=lyr_strct,
         time_index=0,
-        simple_constants=fixture_abiotic_simple_configuration.constants,
-        abiotic_constants=fixture_abiotic_constants,
+        constants=fixture_abiotic_simple_configuration.constants,
         core_constants=fixture_core_constants,
         bounds=fixture_abiotic_simple_configuration.bounds,
     )
