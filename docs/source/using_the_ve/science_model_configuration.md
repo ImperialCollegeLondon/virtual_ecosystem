@@ -136,20 +136,12 @@ model_config_to_deflist("litter.constants", LitterConstants)
 
 ## Hydrology model
 
-The hydrology model only requires one configuration section:
+The hydrology model requires two simple initialisation values and then a set of
+hydrology constants one configuration section:
 
-* The hydrology model constants (`[hydrology.constants]`)
-
-### Hydrology constants
-
-```{code-cell} ipython3
-:tags: [remove-input]
-
-from virtual_ecosystem.models.hydrology.model_config import HydrologyConstants
-
-dump_config_toml("hydrology.constants", HydrologyConstants)
-model_config_to_deflist("hydrology.constants", HydrologyConstants)
-```
+* the initial soil moisture,
+* the initial groundwater saturation, and
+* the hydrology model constants (`[hydrology.constants]`)
 
 ```{code-cell} ipython3
 :tags: [remove-input]
@@ -159,3 +151,9 @@ from virtual_ecosystem.models.hydrology.model_config import HydrologyConfigurati
 dump_config_toml("hydrology", HydrologyConfiguration)
 model_config_to_deflist("hydrology", HydrologyConfiguration)
 ```
+
+## Soil model
+
+## Plants model
+
+## Animal model

@@ -402,10 +402,11 @@ class SoilConfiguration(ModelConfigurationRoot):
     """Root configuration class for the soil model."""
 
     enzyme_class_definition_path: str = ""
-    "Microbial functional group definitions"
+    """Path to a CSV file of microbial enzyme class definitions. Not yet implemented."""
 
     microbial_group_definition_path: str = ""
-    "Microbial functional group definitions"
+    """Path to a CSV file of microbial functional group definitions. Not yet
+    implemented."""
 
     constants: SoilConstants = SoilConstants()
     """Constants values for soil model."""
