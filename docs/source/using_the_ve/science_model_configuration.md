@@ -57,6 +57,14 @@ header section. So for example:
 [abiotic]
 ```
 
+## Validation of science model configurations
+
+As with the core configuration, each science model configuration option has specific
+validation settings that are enforced when a configuration is loaded. These constraints
+should be described in the documentation of each setting. If configuration data contains
+invalid values, then the simulation will exit and the log will contain a detailed
+breakdown of any configuration validation issues.
+
 ## Simple abiotic model
 
 Configuration for the `abiotic_simple` model includes two sections:
@@ -119,6 +127,12 @@ model_config_to_deflist("abiotic.constants", AbioticConstants)
 
 ## Litter model
 
+```{eval-rst}
+..
+    This is needed to allow sphinx to resolve the :attr: links for litter constants
+.. currentmodule:: virtual_ecosystem.models.litter.model_config
+```
+
 The litter model only requires one configuration section:
 
 * The litter model constants (`[litter.constants]`)
@@ -154,6 +168,197 @@ model_config_to_deflist("hydrology", HydrologyConfiguration)
 
 ## Soil model
 
+```{eval-rst}
+..
+    This is needed to allow sphinx to resolve the :attr: links for soils config objects
+.. currentmodule:: virtual_ecosystem.models.soil.model_config
+```
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+from myst_nb import glue
+from typing import get_args
+from virtual_ecosystem.models.soil.model_config import (
+    REQUIRED_MICROBIAL_GROUPS,
+    REQUIRED_ENZYMES,
+)
+
+glue("soil_required_enzymes", ", ".join([str(pair) for pair in REQUIRED_ENZYMES]))
+glue("soil_required_groups", ", ".join([*get_args(REQUIRED_MICROBIAL_GROUPS)]))
+```
+
+The Soil model configuration is used to provide:
+
+* Trait data on the microbial groups required for the soil model. The soil model
+  requires a defined set of these groups, currently: {glue:text}`soil_required_groups`.
+
+  These are currently configured directly in the TOML file using the
+  `soil.microbial_group_definition` configuration option but this may move to loading
+  from a CSV file using the `soil.microbial_group_definition_path` setting.
+
+* Enzyme kinetics data for the enzymes produced by the taxonomic groups. Data is
+  required for each pair of the higher taxonomic groups of microbes (fungi or bacteria)
+  and the enzyme substrates targeted in the model (particulate organic matter or mineral
+  associated organic matter): {glue:text}`soil_required_enzymes`
+
+  These are currently configured directly in the TOML file using the
+  `soil.enzyme_class_definition` configuration option but this may move to loading from
+  a CSV file using the `soil.enzyme_class_definition_path` setting.
+
+* A set of soil model constants using the `soil.constants` configuration.
+
+### Soil microbial groups
+
+The soil microbial groups are defined as a set of traits associated with each of the
+required groups.
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.models.soil.model_config import SoilMicrobialGroup
+
+dump_config_toml("soil.microbial_group_definition", SoilMicrobialGroup)
+model_config_to_deflist("soil.microbial_group_definition", SoilMicrobialGroup)
+```
+
+### Soil enzyme classes
+
+The soil enzyme classes are defined as a set of traits associated with each pair of
+higher taxon and substrate
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.models.soil.model_config import SoilEnzymeClass
+
+dump_config_toml("soil.enzyme_class_definition", SoilEnzymeClass)
+model_config_to_deflist("soil.enzyme_class_definition", SoilEnzymeClass)
+```
+
+### Soil constants
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.models.soil.model_config import SoilConstants
+
+dump_config_toml("soil.constants", SoilConstants)
+model_config_to_deflist("soil.constants", SoilConstants)
+```
+
 ## Plants model
+
+Configuration for the `plants` model includes four sections:
+
+* A path to a CSV file defining the plant functional types to be used in the model
+  (`[plants.pft_definitions_path]`)
+* A path to another CSV file defining the size-structured communities of plant
+  functional types found in each cell (`[plants.cohort_data_path]`).
+* Configuration details for the export of plant community data at each time step
+  (`[plants.community_data_export]`).
+* A set of constants values used within the model (`[plants.constants]`)
+
+### Plant functional types
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+from myst_nb import glue
+from pyrealm.demography.flora import Flora
+from virtual_ecosystem.models.plants.functional_types import ExtraTraitsPFT
+
+glue("pft_traits", ", ".join([*Flora.array_attrs, *ExtraTraitsPFT.array_attrs]))
+```
+
+The `plants.pft_definitions_path` configuration setting must point to a CSV defining
+the plant functional types to be used in a simulation. Each row in the CSV must provide
+a unique PFT name and then a set of plant functional trait values for that PFT. The file
+in the example data is a good template to use for preparing this file. The required
+trait fields are:
+
+{glue:text}`pft_traits`.
+
+### Plant cohort data
+
+The `plants.cohort_data_path` configuration setting must point to a CSV file defining
+the cohorts in each cell. Again, the file in the example data is a good template but the
+basic structure is that each row must provide size-structured cohort data as:
+
+* the name of a PFT,
+* a cell ID value,
+* the size of the individuals in the cohort as diameter at breast height, and
+* the number of individuals in the cohort.
+
+### Plants community data export
+
+The plants model holds a large amount of detailed data on the plant communities growing
+in each cell, on the community-wide canopy structure within each cell and the canopy
+properties of individual stems within each cohort. This data is not required by other
+science models and so is not shared through the central data store. If you want to look
+at plant community data within a simulation, you will need to configure export of plant
+community data using the following configuration settings.
+
+```{code-cell} ipython3
+:tags: [remove-cell]
+
+from myst_nb import glue
+from virtual_ecosystem.models.plants.exporter import CommunityDataExporter
+
+glue(
+    "cohort_attributes",
+    ", ".join(CommunityDataExporter.available_attributes["cohort_attributes"]),
+)
+
+glue(
+    "community_canopy_attributes",
+    ", ".join(
+        CommunityDataExporter.available_attributes["community_canopy_attributes"]
+    ),
+)
+
+glue(
+    "stem_canopy_attributes",
+    ", ".join(CommunityDataExporter.available_attributes["stem_canopy_attributes"]),
+)
+```
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.models.plants.model_config import PlantsExportConfig
+
+dump_config_toml("plants.community_data_export", PlantsExportConfig)
+model_config_to_deflist("plants.community_data_export", PlantsExportConfig)
+```
+
+There are three possible data files that can be exported - you select one or more by
+including them in `[plants.community_data_export.required]` and can then select which
+attributes you want exported using the appropriate attributes configuration option.
+
+The choices are:
+
+* If `cohorts` is included in `required` then the file `plants_cohorts_data.csv`
+  will be exported for each time step. The available attributes for plant cohort data
+  are: {glue:text}`cohort_attributes`.
+
+* If `community_canopy` is included in `required` then the file
+  `plants_community_canopy_data.csv` will be exported for each time step. The available
+  attributes for plant cohort data are: {glue:text}`community_canopy_attributes`.
+
+* If `stem_canopy` is included in `required` then the file `plants_stem_canopy_data.csv`
+  will be exported for each time step. The available attributes for plant cohort data
+  are: {glue:text}`stem_canopy_attributes`.
+
+### Plants constants
+
+```{code-cell} ipython3
+:tags: [remove-input]
+
+from virtual_ecosystem.models.plants.model_config import PlantsConstants
+
+dump_config_toml("plants.constants", PlantsConstants)
+model_config_to_deflist("plants.constants", PlantsConstants)
+```
 
 ## Animal model

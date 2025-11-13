@@ -399,6 +399,6 @@ The example model data directory also contains:
    You don't really need to look at these, but they provide simple recipes for creating
    or editing the example data files, so might be useful for tinkering with the example
    inputs. For any real model you want to fit, you will need to prepare actual [data
-   inputs](./model_inputs.md) using data for your ecosystem.
+   data inputs](./model_data_inputs.md) using data for your ecosystem.
 
 * The `static_config` directory is empty and

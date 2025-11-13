@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
+from itertools import product
 from typing import ClassVar, Literal, get_args
 
 import numpy as np
 from pydantic import Field, field_validator, model_validator
 
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
-
-HIGHER_TAXONOMIC_GROUPS = Literal["fungi", "bacteria"]
-"""Permitted higher taxonomic group names in the soil model."""
 
 REQUIRED_MICROBIAL_GROUPS = Literal[
     "saprotrophic_fungi",
@@ -20,8 +18,17 @@ REQUIRED_MICROBIAL_GROUPS = Literal[
 ]
 """Required taxonomic groups in the soil model"""
 
+HIGHER_TAXONOMIC_GROUPS = Literal["fungi", "bacteria"]
+"""Permitted higher taxonomic group names in the soil model."""
+
 SUBSTRATES = Literal["pom", "maom"]
 """Permitted substrate types in the soil model"""
+
+
+REQUIRED_ENZYMES: set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]] = set(
+    product(get_args(HIGHER_TAXONOMIC_GROUPS), get_args(SUBSTRATES))
+)
+"""Required enzyme classes as all pairs of higher taxon source and substrate."""
 
 
 class SoilConstants(Configuration):
@@ -57,27 +64,29 @@ class SoilConstants(Configuration):
     # vary
     min_pH_microbes: float = 2.5
     """Soil pH below which microbial activity is completely inhibited [unitless]. This
-    value cannot be larger than :attr:`lowest_optimal_pH_microbes`. The default value
-    was obtained by averaging the fungi and bacteria specific values given in
-    :cite:t:`orwin_organic_2011`."""
+    value cannot be larger than :attr:`SoilConstants.lowest_optimal_pH_microbes`. The
+    default value was obtained by averaging the fungi and bacteria specific values given
+    in :cite:t:`orwin_organic_2011`."""
 
     lowest_optimal_pH_microbes: float = 4.5
     """Soil pH above which microbial activity is not inhibited at all [unitless]. This
-    value cannot be smaller than :attr:`min_pH_microbes` or larger than
-    :attr:`highest_optimal_pH_microbes`. The default value was obtained by averaging the
-    fungi and bacteria specific values given in :cite:t:`orwin_organic_2011`."""
+    value cannot be smaller than :attr:`SoilConstants.min_pH_microbes` or larger than
+    :attr:`SoilConstants.highest_optimal_pH_microbes`. The default value was obtained by
+    averaging the fungi and bacteria specific values given in
+    :cite:t:`orwin_organic_2011`."""
 
     highest_optimal_pH_microbes: float = 7.5
     """Soil pH below which microbial activity is not inhibited at all [unitless]. This
-    value cannot be smaller than :attr:`lowest_optimal_pH_microbes` or larger than 
-    :attr:`max_pH_microbes`. The default value was obtained by averaging the fungi
-    and bacteria specific values given in :cite:t:`orwin_organic_2011`."""
+    value cannot be smaller than :attr:`SoilConstants.lowest_optimal_pH_microbes` or
+    larger than :attr:`SoilConstants.max_pH_microbes`. The default value was obtained by
+    averaging the fungi and bacteria specific values given in
+    :cite:t:`orwin_organic_2011`."""
 
     max_pH_microbes: float = 11.0
     """Soil pH above which microbial activity is completely inhibited [unitless]. This
-    value cannot be smaller than :attr:`highest_optimal_pH_microbes`. The default 
-    value was obtained by averaging the fungi and bacteria specific values given in
-    :cite:t:`orwin_organic_2011`."""
+    value cannot be smaller than :attr:`SoilConstants.highest_optimal_pH_microbes`. The
+    default value was obtained by averaging the fungi and bacteria specific values given
+    in :cite:t:`orwin_organic_2011`."""
 
     base_soil_protection: float = 0.694
     """Basal change in saturation constants due to soil structure [unitless]. This value
@@ -130,9 +139,10 @@ class SoilConstants(Configuration):
 
     necromass_sorption_rate: float = 1.0 * np.log(2)
     """Rate constant for necromass sorption to minerals [day^-1]. The default value was
-    chosen to be three times the value of :attr:`necromass_decay_rate`, this means that
-    75% of necromass becomes MAOM with the remainder becoming LMWC. Replacing this with
-    a function that depends on environmental conditions is a post release goal."""
+    chosen to be three times the value of :attr:`SoilConstants.necromass_decay_rate`,
+    this means that 75% of necromass becomes MAOM with the remainder becoming LMWC.
+    Replacing this with a function that depends on environmental conditions is a post
+    release goal."""
 
     litter_leaching_fraction_carbon: float = 0.0015
     """Fraction of carbon mineralisation from litter that occurs by leaching [unitless].
@@ -190,42 +200,42 @@ class SoilConstants(Configuration):
     nitrification_optimum_temperature: float = 311.15
     """Soil temperature at which nitrification is maximised [K]. Value taken from
     :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied independently of
-    :attr:`nitrification_maximum_temperature` and
-    :attr:`nitrification_thermal_sensitivity`!"""
+    :attr:`SoilConstants.nitrification_maximum_temperature` and
+    :attr:`SoilConstants.nitrification_thermal_sensitivity`!"""
 
     nitrification_maximum_temperature: float = 343.15
     """Temperature at which our empirical nitrification model stops working [K].
     This is well outside field values so this should be too much of a problem. Value
     taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
-    independently of :attr:`nitrification_optimum_temperature` and
-    :attr:`nitrification_thermal_sensitivity`!"""
+    independently of :attr:`SoilConstants.nitrification_optimum_temperature` and
+    :attr:`SoilConstants.nitrification_thermal_sensitivity`!"""
 
     nitrification_thermal_sensitivity: int = 12
     """Sensitivity of nitrification rate to changes in temperature [unitless]. Value
     taken from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied 
-    independently of :attr:`nitrification_optimum_temperature` and
-    :attr:`nitrification_maximum_temperature`!"""
+    independently of :attr:`SoilConstants.nitrification_optimum_temperature` and
+    :attr:`SoilConstants.nitrification_maximum_temperature`!"""
 
     denitrification_infinite_temperature_factor: float = 93.34598
     """Denitrification temperature factor at infinite temperature [unitless]. Value is
     obtained from :cite:t:`xu-ri_terrestrial_2008`, by taking the exponential of the
     constant part of the expression. This value should not be varied independently of
-    :attr:`denitrification_minimum_temperature` and
-    :attr:`denitrification_thermal_sensitivity`!"""
+    :attr:`SoilConstants.denitrification_minimum_temperature` and
+    :attr:`SoilConstants.denitrification_thermal_sensitivity`!"""
 
     denitrification_minimum_temperature: float = 273.15 - 46.02
     """Temperature at which denitrification stops entirely [K]. Value is obtained from
     :cite:t:`xu-ri_terrestrial_2008`, and converted to Kelvin. The expression we are
     using does not function below this temperature, but this is not a major problem as
     it is a very low temperature. This value should not be varied independently of
-    :attr:`denitrification_infinite_temperature_factor` and
-    :attr:`denitrification_thermal_sensitivity`!"""
+    :attr:`SoilConstants.denitrification_infinite_temperature_factor` and
+    :attr:`SoilConstants.denitrification_thermal_sensitivity`!"""
 
     denitrification_thermal_sensitivity: float = 308.56
     """Sensitivity of denitrification rate to changes in temperature [K]. Value is
     obtained from :cite:t:`xu-ri_terrestrial_2008`. This value should not be varied
-    independently of :attr:`denitrification_infinite_temperature_factor` and
-    :attr:`denitrification_minimum_temperature`!"""
+    independently of :attr:`SoilConstants.denitrification_infinite_temperature_factor`
+    and :attr:`SoilConstants.denitrification_minimum_temperature`!"""
 
     nitrogen_fixation_cost_zero_celcius: float = 59.19651970522086
     """Cost (in carbon) that plants pay to their symbiotic partners at zero Celsius [kg
@@ -254,12 +264,12 @@ class SoilConstants(Configuration):
     """Rate at which free living microbes fix nitrogen (at the reference temperature).
     Units of [kg N m^-2 day^-1]. Value specific to tropical forests, and is taken from
     :cite:t:`lin_modelling_2000` (with the units adjusted). Should not be changed
-    independently from :attr:`free_living_N_fixation_reference_temp`."""
+    independently from :attr:`SoilConstants.free_living_N_fixation_reference_temp`."""
 
     free_living_N_fixation_reference_temp: float = 293.15
     """Temperature reference rate of free-living nitrogen fixation was measured at [K].
     Value taken from :cite:t:`lin_modelling_2000`. Should not be changed independently
-    from :attr:`free_living_N_fixation_reference_rate`.
+    from :attr:`SoilConstants.free_living_N_fixation_reference_rate`.
     """
 
     free_living_N_fixation_q10_coefficent: float = 3.0
@@ -431,13 +441,11 @@ class SoilConfiguration(ModelConfigurationRoot):
     )
     """Definition of microbial groups for soil model."""
 
-    _required_enzymes: ClassVar[set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]]] = {
-        ("fungi", "pom"),
-        ("fungi", "maom"),
-        ("bacteria", "pom"),
-        ("bacteria", "maom"),
-    }
-    """Required enzyme classes, provided as source and substrate pairs."""
+    _required_enzymes: ClassVar[set[tuple[HIGHER_TAXONOMIC_GROUPS, SUBSTRATES]]] = (
+        REQUIRED_ENZYMES
+    )
+    """Required enzyme classes, provided as all pairs of higher taxon source and
+    substrates."""
 
     _required_microbial_groups: ClassVar[set[REQUIRED_MICROBIAL_GROUPS]] = {
         *get_args(REQUIRED_MICROBIAL_GROUPS)

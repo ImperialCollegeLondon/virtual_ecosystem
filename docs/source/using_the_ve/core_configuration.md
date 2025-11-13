@@ -41,7 +41,7 @@ configured in its own configuration section:
 
 The core configuration section is also used to set the location of data input files for
 required forcing variables for the simulation, but the `[core.data]` section is
-discussed in the [model inputs](./model_inputs.md) documentation.
+discussed in the [model data inputs](./model_data_inputs.md) documentation.
 
 ```{tip}
 You may find it useful to create the core TOML configuration for your system as the
@@ -49,6 +49,14 @@ first step in developing your own simulations. You can then load the TOML settin
 data preparation scripts used to create other VE inputs. This can help keep the various
 data settings aligned across your project.
 ```
+
+## Validation of the core configuration
+
+Each of the model configuration option has specific validation settings that are
+enforced when a configuration is loaded. These constraints should be described in the
+documentation of each setting. If configuration data contains invalid values, then the
+simulation will exit and the log will contain a detailed breakdown of any configuration
+validation issues.
 
 ## The spatial grid
 

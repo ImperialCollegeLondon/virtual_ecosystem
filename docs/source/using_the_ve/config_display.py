@@ -33,7 +33,7 @@ def dump_config_toml(path: str, config_class: type[Configuration]) -> None:
     for p in reversed(path.split(".")):
         conf_dict = {p: conf_dict}
 
-    display_markdown("```toml\n" + tomli_w.dumps(conf_dict) + "```")
+    display_markdown("```toml\n" + tomli_w.dumps(conf_dict) + "```", raw=True)
 
 
 def model_config_to_deflist(
