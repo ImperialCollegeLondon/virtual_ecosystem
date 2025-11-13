@@ -95,7 +95,7 @@ def get_flora_from_config(config: PlantsConfiguration) -> tuple[Flora, ExtraTrai
     extra_traits_columns = [*ExtraTraitsPFT.array_attrs, "name"]
     extra_traits_data = df[extra_traits_columns]
     extra_traits_model = ExtraTraitsPFT.from_df(df=extra_traits_data)
-    pft_traits = df.drop(columns=ExtraTraitsPFT.array_attrs)
+    pft_traits = df.drop(columns=list(ExtraTraitsPFT.array_attrs))
     pft_data = {"pft": pft_traits.to_dict(orient="records")}
 
     return Flora._from_file_data(pft_data), extra_traits_model
