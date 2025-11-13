@@ -1818,6 +1818,7 @@ class AnimalModel(
             centroid_key=centroid_key,
             grid=self.data.grid,
             constants=self.model_constants,
+            core_constants=self.core_constants,
         )
 
         self.assign_prey_groups(cohort)

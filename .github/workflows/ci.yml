@@ -81,7 +81,7 @@ jobs:
       - name: Build docs using sphinx
         run: |
           cd docs
-          poetry run sphinx-build --jobs auto -W --keep-going source build
+          poetry run sphinx-build -W --keep-going source build
       
       - name: Archive built docs for error checking on failure
         if: failure()
