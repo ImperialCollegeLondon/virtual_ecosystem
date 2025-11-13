@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-from pyrealm.constants import CoreConst as PyrealmConst
 
 
 def test_calculate_molar_density_air(
@@ -160,7 +159,7 @@ def test_calculate_slope_of_saturated_pressure_curve(
 
 
 def test_calculate_actual_vapour_pressure(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
 ):
     """Test calculate effective vapour pressure."""
 
@@ -174,7 +173,7 @@ def test_calculate_actual_vapour_pressure(
     result = calculate_actual_vapour_pressure(
         air_temperature=data["air_temperature"][atm_index],
         relative_humidity=data["relative_humidity"][atm_index],
-        pyrealm_const=PyrealmConst,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
 
     exp_result = np.array(
@@ -258,7 +257,7 @@ def test_compute_layer_thickness_for_varying_canopy(
 
 
 def test_calculate_specific_humidity(
-    dummy_climate_data_varying_canopy, fixture_core_components
+    dummy_climate_data_varying_canopy, fixture_core_components, fixture_pyrealm_config
 ):
     """Test specific humidity."""
 
@@ -274,7 +273,7 @@ def test_calculate_specific_humidity(
         relative_humidity=data["relative_humidity"][atm_index].to_numpy(),
         atmospheric_pressure=data["atmospheric_pressure"][atm_index].to_numpy(),
         molecular_weight_ratio_water_to_dry_air=0.622,
-        pyrealm_const=PyrealmConst(),
+        pyrealm_core_constants=fixture_pyrealm_config.core,
     )
 
     exp_result = np.array(

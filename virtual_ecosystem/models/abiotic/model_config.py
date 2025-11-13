@@ -5,19 +5,16 @@ These parameters are constants in that they should not be changed during a parti
 simulation.
 """  # noqa: D205
 
-from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
+from virtual_ecosystem.core.configuration import ModelConfigurationRoot
+from virtual_ecosystem.models.abiotic_simple.model_config import (
+    AbioticSharedConstants,
+    AbioticSimpleBounds,
+    AbioticSimpleConstants,
+)
 
 
-class AbioticConstants(Configuration):
+class AbioticConstants(AbioticSharedConstants):
     """Dataclass to store all constants for the `abiotic` model."""
-
-    leaf_emissivity: float = 0.98
-    """Leaf emissivity, unitless.
-    
-    Leaf emissivity is a measure of how efficiently a leaf emits thermal radiation
-    compared to a perfect blackbody, typically ranging from 0.95 to 0.99. Value for
-    tropical vegetation is taken from :cite:t:`ma_an_2019`.
-    """
 
     leaf_albedo: float = 0.15
     """Leaf albedo, unitless.
@@ -142,14 +139,6 @@ class AbioticConstants(Configuration):
     The value is takes from a study that compares changes in surface albedo before and
     after deforestation in South East Asia :cite:p:`wilson_role_2020`."""
 
-    soil_emissivity: float = 0.95
-    """Soil emissivity, dimensionless.
-    
-    Soil emissivity is a measure of how efficiently the soil surface emits thermal
-    radiation compared to a perfect blackbody, with values typically ranging from 0.90
-    to 0.98 depending on soil texture, moisture, and surface roughness. Value taken
-    from :cite:t:`molders_plant_2005`."""
-
     saturated_pressure_slope_parameters: tuple[float, float, float, float] = (
         4098.0,
         0.6108,
@@ -174,3 +163,10 @@ class AbioticConfiguration(ModelConfigurationRoot):
 
     constants: AbioticConstants = AbioticConstants()
     """Constants for the abiotic model"""
+
+    bounds: AbioticSimpleBounds = AbioticSimpleBounds()
+    """Bounds for abiotic variables."""
+
+    simple_constants: AbioticSimpleConstants = AbioticSimpleConstants()
+    """Constants used for the simple abiotic model, used to set up initial
+    conditions."""

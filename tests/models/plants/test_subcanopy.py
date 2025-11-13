@@ -137,7 +137,7 @@ def test_SubcanopyBiomass(fixture_plants_constants):
 def test_subcanopy_vegetation_dynamics(
     plants_data,
     fixture_plants_constants,
-    fixture_pyrealm_constants,
+    fixture_pyrealm_config,
     fixture_core_components,
     veg_biomass,
     seedbank_biomass,
@@ -152,8 +152,6 @@ def test_subcanopy_vegetation_dynamics(
 
     from virtual_ecosystem.models.plants.subcanopy import Subcanopy
 
-    pyrealm_core_constants, _ = fixture_pyrealm_constants
-
     # Update data from scenario
     plants_data["subcanopy_vegetation_biomass"][:] = veg_biomass
     plants_data["subcanopy_seedbank_biomass"][:] = seedbank_biomass
@@ -167,7 +165,7 @@ def test_subcanopy_vegetation_dynamics(
 
     subcanopy = Subcanopy(
         data=plants_data,
-        pmodel_core_constants=pyrealm_core_constants,
+        pyrealm_core_constants=fixture_pyrealm_config.core,
         model_constants=fixture_plants_constants,
         layer_index=fixture_core_components.layer_structure.index_surface_scalar,
         model_timing=fixture_core_components.model_timing,

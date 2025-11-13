@@ -31,7 +31,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from pyrealm.constants import CoreConst as PyrealmConst
+from pyrealm.constants import CoreConst as PyrealmCoreConst
 from xarray import DataArray
 
 from virtual_ecosystem.core.base_model import BaseModel
@@ -39,6 +39,7 @@ from virtual_ecosystem.core.configuration import CompiledConfiguration
 from virtual_ecosystem.core.core_components import CoreComponents
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.logger import LOGGER
+from virtual_ecosystem.core.model_config import CoreConfiguration
 from virtual_ecosystem.models.abiotic.model_config import (
     AbioticConstants,
 )
@@ -161,6 +162,8 @@ class HydrologyModel(
         """Initial level of groundwater saturation for all layers identical."""
         self.model_constants: HydrologyConstants
         """Set of constants for the hydrology model"""
+        self.pyrealm_core_constants: PyrealmCoreConst
+        """Set of core constants for the pyrealm package"""
         self.drainage_map: dict
         """Upstream neighbours for the calculation of horizontal flow."""
         self.soil_layer_thickness_mm: np.ndarray
@@ -193,6 +196,11 @@ class HydrologyModel(
             configuration.get_subconfiguration("hydrology", HydrologyConfiguration)
         )
 
+        # Extract the pyrealm configuration from the core constants
+        core_configuration: CoreConfiguration = configuration.get_subconfiguration(
+            "core", CoreConfiguration
+        )
+
         # The abiotic constants are currently hardcoded here - the issue is that the
         # model relies on two abiotic constants:
         #         abiotic_constants.latent_heat_vap_equ_factors
@@ -214,6 +222,7 @@ class HydrologyModel(
             initial_groundwater_saturation=hydrology_configuration.initial_groundwater_saturation,
             model_constants=hydrology_configuration.constants,
             abiotic_constants=abiotic_constants,
+            pyrealm_core_constants=core_configuration.pyrealm.core,
         )
 
     def _setup(
@@ -222,6 +231,7 @@ class HydrologyModel(
         initial_groundwater_saturation: float,
         model_constants: HydrologyConstants = HydrologyConstants(),
         abiotic_constants: AbioticConstants = AbioticConstants(),
+        pyrealm_core_constants: PyrealmCoreConst = PyrealmCoreConst(),
         **kwargs: Any,
     ) -> None:
         """Function to set up the hydrology model.
@@ -246,6 +256,7 @@ class HydrologyModel(
             model_constants: Set of constants for the hydrology model.
             abiotic_constants: Some abiotic constants are required in the hydrology
                 model.
+            pyrealm_core_constants: Core constants for the pyrealm package.
             **kwargs: Further arguments to the setup method.
         """
 
@@ -253,6 +264,8 @@ class HydrologyModel(
         self.initial_groundwater_saturation = initial_groundwater_saturation
         self.model_constants = model_constants
         self.abiotic_constants = abiotic_constants
+        self.pyrealm_core_constants = pyrealm_core_constants
+
         self.grid.set_neighbours(distance=sqrt(self.grid.cell_area))
         """Set neighbours."""
         self.drainage_map = above_ground.calculate_drainage_map(
@@ -552,7 +565,7 @@ class HydrologyModel(
                     self.model_constants.extinction_coefficient_global_radiation
                 ),
                 time_interval=self.core_constants.seconds_to_day,
-                pyrealm_const=PyrealmConst,
+                pyrealm_core_constants=self.pyrealm_core_constants,
             )
             daily_lists["soil_evaporation"].append(soil_evaporation["soil_evaporation"])
             daily_lists["aerodynamic_resistance_surface"].append(

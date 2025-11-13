@@ -3,15 +3,32 @@
 from virtual_ecosystem.core.configuration import Configuration, ModelConfigurationRoot
 
 
-class AbioticSimpleConstants(Configuration):
-    """Dataclass to store all constants for the `abiotic_simple` model."""
+class AbioticSharedConstants(Configuration):
+    """Shared abiotic constants.
 
-    saturation_vapour_pressure_factors: tuple[float, float, float] = (
-        0.61078,
-        7.5,
-        237.3,
-    )
-    """Factors for saturation vapour pressure calculation."""
+    This is a pydantic basemodel to hold constants shared between the `abiotic` and
+    `abiotic_simple` models.
+    """
+
+    leaf_emissivity: float = 0.98
+    """Leaf emissivity, unitless.
+    
+    Leaf emissivity is a measure of how efficiently a leaf emits thermal radiation
+    compared to a perfect blackbody, typically ranging from 0.95 to 0.99. Value for
+    tropical vegetation is taken from :cite:t:`ma_an_2019`.
+    """
+
+    soil_emissivity: float = 0.95
+    """Soil emissivity, dimensionless.
+    
+    Soil emissivity is a measure of how efficiently the soil surface emits thermal
+    radiation compared to a perfect blackbody, with values typically ranging from 0.90
+    to 0.98 depending on soil texture, moisture, and surface roughness. Value taken
+    from :cite:t:`molders_plant_2005`."""
+
+
+class AbioticSimpleConstants(AbioticSharedConstants):
+    """Dataclass to store all constants for the `abiotic_simple` model."""
 
     initial_net_radiation: float = 10.0
     """Initial value for net radiation per layer, W m-2.

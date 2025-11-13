@@ -35,6 +35,7 @@ def test_abiotic_simple_model_initialization(
     raises,
     expected_log_entries,
     fixture_abiotic_constants,
+    fixture_pyrealm_config,
 ):
     """Test `AbioticSimpleModel` initialization."""
     from virtual_ecosystem.core.base_model import BaseModel
@@ -59,6 +60,7 @@ def test_abiotic_simple_model_initialization(
                 core_components=fixture_core_components,
                 model_configuration=default_config,
                 abiotic_constants=fixture_abiotic_constants,
+                pyrealm_core_constants=fixture_pyrealm_config.core,
             )
 
             # In cases where it passes then checks that the object has the right
@@ -73,11 +75,10 @@ def test_abiotic_simple_model_initialization(
 
 
 @pytest.mark.parametrize(
-    "cfg_string,satvap1,raises,expected_log_entries",
+    "cfg_string,raises,expected_log_entries",
     [
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n[abiotic_simple]\n",
-            [0.61078, 7.5, 237.3],
             does_not_raise(),
             tuple(
                 [
@@ -94,8 +95,7 @@ def test_abiotic_simple_model_initialization(
         pytest.param(
             "[core.timing]\nupdate_interval = '1 week'\n"
             "[abiotic_simple.constants]\n"
-            "saturation_vapour_pressure_factors = [1.0, 2.0, 3.0]\n",
-            [1.0, 2.0, 3.0],
+            "initial_net_radiation = 20\n",
             does_not_raise(),
             tuple(
                 [
@@ -115,7 +115,6 @@ def test_generate_abiotic_simple_model(
     caplog,
     dummy_climate_data_varying_canopy,
     cfg_string,
-    satvap1,
     raises,
     expected_log_entries,
 ):
@@ -164,6 +163,7 @@ def test_setup(
     dummy_climate_data_varying_canopy,
     fixture_core_components,
     fixture_abiotic_constants,
+    fixture_pyrealm_config,
 ):
     """Test set up and update."""
 
@@ -187,6 +187,7 @@ def test_setup(
             core_components=fixture_core_components,
             model_configuration=AbioticSimpleConfiguration(),
             abiotic_constants=fixture_abiotic_constants,
+            pyrealm_core_constants=fixture_pyrealm_config.core,
         )
 
     exp_soil_temp = lyr_strct.from_template()
