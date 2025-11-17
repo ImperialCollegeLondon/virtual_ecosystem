@@ -352,9 +352,9 @@ def test_update_air_temperature(
 
     exp_result = np.array(
         [
-            [29.883755, 29.883755, 29.857958, np.nan],
-            [28.902139, 28.886732, np.nan, np.nan],
-            [27.224235, np.nan, np.nan, np.nan],
+            [29.806235, 29.806235, 29.832032, np.nan],
+            [28.840201, 28.855608, np.nan, np.nan],
+            [27.188575, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(updated_air_temperature, exp_result, rtol=1e-4)

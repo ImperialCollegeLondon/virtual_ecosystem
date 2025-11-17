@@ -269,11 +269,12 @@ def run_microclimate(
             data["soil_evaporation"].to_numpy()
             * core_constants.density_water
             * latent_heat_vapourisation[-1]
+            / 1000
         ) / core_constants.seconds_to_hour
 
         # Ground heat flux, [W m-2]
         ground_heat_flux = (
-            net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
+            net_radiation_soil + latent_heat_flux_soil + sensible_heat_flux_soil
         )
 
         # Update soil temperatures, [C]
@@ -309,7 +310,7 @@ def run_microclimate(
             density_air=density_air[1:-1],
             density_water=core_constants.density_water,
             aerodynamic_resistance=aerodynamic_resistance_canopy,
-            latent_heat_vapourisation=latent_heat_vapourisation[1:-1],
+            latent_heat_vapourisation=latent_heat_vapourisation[1:-1] / 1000,
             emissivity_leaf=abiotic_constants.leaf_emissivity,
             stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
             zero_Celsius=core_constants.zero_Celsius,
@@ -425,7 +426,7 @@ def run_microclimate(
         density_air=density_air[1:-1],
         density_water=core_constants.density_water,
         aerodynamic_resistance=aerodynamic_resistance_canopy,
-        latent_heat_vapourisation=latent_heat_vapourisation[1:-1],
+        latent_heat_vapourisation=latent_heat_vapourisation[1:-1] / 1000,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
@@ -513,7 +514,7 @@ def run_microclimate(
     air_temperature_out = layer_structure.from_template()
     air_temperature_out[layer_structure.index_above] = all_air_temperature[0]
     air_temperature_out[layer_structure.index_filled_canopy] = air_temperature_canopy
-    air_temperature_out[layer_structure.index_surface] = surface_air_temperature
+    air_temperature_out[layer_structure.index_surface_scalar] = surface_air_temperature
     output["air_temperature"] = air_temperature_out
 
     canopy_temperature_out = layer_structure.from_template()

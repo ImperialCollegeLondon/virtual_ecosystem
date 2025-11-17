@@ -561,7 +561,7 @@ def update_air_temperature(
 
     # Update air temperature over a layer of height z (e.g., canopy height)
     new_air_temperature = air_temperature + (
-        -sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
+        sensible_heat_flux / (density_air * specific_heat_air * mixing_layer_thickness)
     )
     return new_air_temperature
 
