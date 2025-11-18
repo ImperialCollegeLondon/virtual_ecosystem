@@ -276,6 +276,8 @@ def run_microclimate(
         ) / core_constants.seconds_to_hour
 
         # Ground heat flux, [W m-2]
+        # Note the convention is that latent and sensible heat fluxes are negative when
+        # directed away from the surface, hence added here
         ground_heat_flux = (
             net_radiation_soil + latent_heat_flux_soil + sensible_heat_flux_soil
         )
