@@ -81,19 +81,52 @@ class PlantsModel(
         "arbuscular_supply_limit_p",
     ),
     vars_updated=(
-        "deadwood_c_n_ratio",
-        "deadwood_c_p_ratio",
-        "deadwood_production",
-        "fallen_non_propagule_c_mass",
+        "stem_turnover_cnp",  # i.e. deadwood
+        "deadwood_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "deadwood_c_p_ratio",  # NOTE - will be deprecated in #1131
+        "deadwood_production",  # NOTE - will be deprecated in #1131
+        "foliage_turnover_cnp",
+        "leaf_turnover",  # NOTE - will be deprecated in #1131
+        "leaf_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "leaf_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
+        "leaf_turnover_n_mass",  # NOTE - will be deprecated in #1131
+        "leaf_turnover_p_mass",  # NOTE - will be deprecated in #1131
+        "root_turnover_cnp",
+        "root_turnover",  # NOTE - will be deprecated in #1131
+        "root_turnover_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "root_turnover_c_p_ratio",  # NOTE - will be deprecated in #1131
+        "root_turnover_n_mass",  # NOTE - will be deprecated in #1131
+        "root_turnover_p_mass",  # NOTE - will be deprecated in #1131
+        "canopy_fruit_n",
+        "canopy_fruit_cnp",
+        "canopy_seeds_per_fruit",
+        "canopy_seeds_cnp",
+        "fallen_fruit_n",
+        "fallen_fruit_cnp",
+        "fallen_seeeds_per_fruit",
+        "fallen_seeds_cnp",
+        "fallen_non_propagule_c_mass",  # NOTE - will be deprecated in #1131
+        "plant_rt_turnover_n_mass",  # NOTE - will be deprecated in #1131
+        "plant_rt_turnover_p_mass",  # NOTE - will be deprecated in #1131
+        "plant_reproductive_tissue_turnover",  # NOTE - will be deprecated in #1131
+        "subcanopy_seedbank_litter_cnp",
+        "subcanopy_seedbank_litter_biomass",  # NOTE - will be deprecated in #1131
+        "subcanopy_seedbank_litter_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_seedbank_litter_c_p_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_vegetation_litter_cnp",
+        "subcanopy_vegetation_litter_biomass",  # NOTE - will be deprecated in #1131
+        "subcanopy_vegetation_litter_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_vegetation_litter_c_p_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_vegetation_cnp",
+        "subcanopy_vegetation_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_vegetation_c_p_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_seedbank_cnp",
+        "subcanopy_seedbank_c_n_ratio",  # NOTE - will be deprecated in #1131
+        "subcanopy_seedbank_c_p_ratio",  # NOTE - will be deprecated in #1131
         "layer_fapar",
         "layer_heights",  # NOTE - includes soil, canopy and above canopy heights
         "layer_leaf_mass",  # NOTE - placeholder resource for herbivory
         "leaf_area_index",  # NOTE - LAI is integrated into the full layer roles
-        "leaf_turnover",
-        "leaf_turnover_c_n_ratio",
-        "leaf_turnover_c_p_ratio",
-        "leaf_turnover_n_mass",
-        "leaf_turnover_p_mass",
         "plant_ammonium_uptake",
         "plant_n_uptake_arbuscular",
         "plant_n_uptake_ecto",
@@ -102,41 +135,38 @@ class PlantsModel(
         "plant_p_uptake_ecto",
         "plant_phosphorus_uptake",
         "plant_reproductive_tissue_lignin",
-        "plant_rt_turnover_n_mass",
-        "plant_rt_turnover_p_mass",
-        "plant_reproductive_tissue_turnover",
         "plant_symbiote_carbon_supply",
         "root_carbohydrate_exudation",
         "root_lignin",
-        "root_turnover",
-        "root_turnover_c_n_ratio",
-        "root_turnover_c_p_ratio",
-        "root_turnover_n_mass",
-        "root_turnover_p_mass",
         "senesced_leaf_lignin",
         "shortwave_absorption",
         "stem_lignin",
         "subcanopy_seedbank_biomass",
         "subcanopy_vegetation_biomass",
         "transpiration",
-        "subcanopy_seedbank_litter_biomass",
-        "subcanopy_seedbank_litter_c_n_ratio",
-        "subcanopy_seedbank_litter_c_p_ratio",
         "subcanopy_seedbank_litter_lignin",
-        "subcanopy_vegetation_litter_biomass",
-        "subcanopy_vegetation_litter_c_n_ratio",
-        "subcanopy_vegetation_litter_c_p_ratio",
         "subcanopy_vegetation_litter_lignin",
-        "subcanopy_vegetation_c_n_ratio",
-        "subcanopy_vegetation_c_p_ratio",
-        "subcanopy_seedbank_c_n_ratio",
-        "subcanopy_seedbank_c_p_ratio",
         "subcanopy_ammonium_uptake",
         "subcanopy_nitrate_uptake",
         "subcanopy_phosphorus_uptake",
         "subcanopy_transpiration",
     ),
     vars_populated_by_first_update=(
+        "stem_turnover_cnp",
+        "foliage_turnover_cnp",
+        "root_turnover_cnp",
+        "canopy_fruit_n",
+        "canopy_fruit_cnp",
+        "canopy_seeds_per_fruit",
+        "canopy_seeds_cnp",
+        "fallen_fruit_n",
+        "fallen_fruit_cnp",
+        "fallen_seeeds_per_fruit",
+        "fallen_seeds_cnp",
+        "subcanopy_seedbank_litter_cnp",
+        "subcanopy_vegetation_litter_cnp",
+        "subcanopy_vegetation_cnp",
+        "subcanopy_seedbank_cnp",
         "deadwood_c_n_ratio",
         "deadwood_c_p_ratio",
         "deadwood_n_mass",
@@ -279,8 +309,8 @@ class PlantsModel(
         """A dictionary giving the canopy structure of each grid cell."""
         self.stem_allocations: dict[int, StemAllocation]
         """A dictionary giving the stem allocation of GPP for the community in each grid
-       cell. The dictionary is only populated by the update method - before that the
-       dictionary will be empty."""
+        cell. The dictionary is only populated by the update method - before that the
+        dictionary will be empty."""
         self.below_canopy_light_fraction: NDArray[np.floating]
         """The fraction of light transmitted through the canopy."""
         self.ground_incident_light_fraction: NDArray[np.floating]
@@ -477,6 +507,29 @@ class PlantsModel(
                 element="P",
             )
 
+        # Initialize the fruit and seed DataArrays for the data object. These values
+        # accumulate across the model run, so are not reset at each update.
+        array_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
+            coords={
+                "cell_id": self.data["cell_id"],
+                "pft": self.flora.name,
+                "element": ["C", "N", "P"],
+            },
+        )
+        vars_to_initialize = [
+            "canopy_fruit_n",
+            "canopy_fruit_cnp",
+            "canopy_seeds_per_fruit",
+            "canopy_seeds_cnp",
+            "fallen_fruit_n",
+            "fallen_fruit_cnp",
+            "fallen_seeeds_per_fruit",
+            "fallen_seeds_cnp",
+        ]
+        for var_name in vars_to_initialize:
+            self.data[var_name] = array_template.copy()
+
         # This is widely used internally so store it as an attribute.
         self._canopy_layer_indices = self.layer_structure.index_canopy
 
@@ -557,53 +610,53 @@ class PlantsModel(
         """Placeholder function to spin up the plants model."""
 
     def reset_update_vars(self) -> None:
-        """Define variables used by the plants model during update."""
+        """Resets specified variables in the data object before each update."""
+
+        # The deprecated variables have been moved to a separate method to keep this one
+        # current, but still need to be initialised until they are deleted in #1131:
+        self.old_stoichiometry_ratios_to_depricate()
 
         # Initialize variables that hold one value per cell
         cell_template = xr.full_like(self.data["elevation"], 0)
-
         reset_vars = [
-            "leaf_turnover",
-            "leaf_turnover_c_n_ratio",
-            "leaf_turnover_c_p_ratio",
-            "leaf_turnover_n_mass",
-            "leaf_turnover_p_mass",
-            "root_turnover",
-            "root_turnover_c_n_ratio",
-            "root_turnover_c_p_ratio",
-            "root_turnover_n_mass",
-            "root_turnover_p_mass",
-            "plant_reproductive_tissue_turnover",
-            "plant_reproductive_tissue_turnover_c_n_ratio",
-            "plant_reproductive_tissue_turnover_c_p_ratio",
-            "plant_rt_turnover_n_mass",
-            "plant_rt_turnover_p_mass",
             "root_carbohydrate_exudation",
             "plant_symbiote_carbon_supply",
-            "fallen_non_propagule_c_mass",
-            "deadwood_production",
-            "deadwood_c_n_ratio",
-            "deadwood_c_p_ratio",
-            "deadwood_n_mass",
-            "deadwood_p_mass",
         ]
-
         for var in reset_vars:
             self.data[var] = cell_template.copy()
 
-        # Fallen propagules and canopy RT are stored per cell and per PFT.
-        # Canopy RT mass is deliberately not partitioned across canopy vertical layers.
-        pft_cell_template = xr.DataArray(
-            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
-            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+        # Initialize variables that are stored per cell and per element
+        cnp_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, 3)),
+            coords={"cell_id": self.data["cell_id"], "element": ["C", "N", "P"]},
         )
-        by_pft_vars = [
-            "fallen_n_propagules",
-            "canopy_n_propagules",
-            "canopy_non_propagule_c_mass",
+        cnp_vars = [
+            "stem_turnover_cnp",
+            "foliage_turnover_cnp",
+            "root_turnover_cnp",
+            "canopy_fruit_cnp",
+            "subcanopy_vegetation_litter_cnp",
+            "subcanopy_vegetation_cnp",
+        ]
+        for var in cnp_vars:
+            print(var)
+            self.data[var] = cnp_template.copy()
+
+        # Initialize variables that are stored by cell x PFT x CNP
+        pft_cell_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, self.flora.n_pfts, 3)),
+            coords={
+                "cell_id": self.data["cell_id"],
+                "pft": self.flora.name,
+                "element": ["C", "N", "P"],
+            },
+        )
+        pft_cnp_vars = [
+            "subcanopy_seedbank_litter_cnp",
+            "subcanopy_seedbank_cnp",
         ]
 
-        for var in by_pft_vars:
+        for var in pft_cnp_vars:
             self.data[var] = pft_cell_template.copy()
 
     def _update(self, time_index: int, **kwargs: Any) -> None:
@@ -1472,6 +1525,53 @@ class PlantsModel(
         )
 
         return n_propagules, non_propagule_mass
+
+    def old_stoichiometry_ratios_to_depricate(self) -> None:
+        """Temporary function to initialise variables for the litter and soil models.
+
+        These have been replaced by singualar DataArrays that hold CNP masses. Once
+        the litter and soil models have been updated these can be removed.
+        """
+
+        vars_to_update = [
+            "leaf_turnover",
+            "leaf_turnover_c_n_ratio",
+            "leaf_turnover_c_p_ratio",
+            "leaf_turnover_n_mass",
+            "leaf_turnover_p_mass",
+            "root_turnover",
+            "root_turnover_c_n_ratio",
+            "root_turnover_c_p_ratio",
+            "root_turnover_n_mass",
+            "root_turnover_p_mass",
+            "plant_reproductive_tissue_turnover",
+            "plant_reproductive_tissue_turnover_c_n_ratio",
+            "plant_reproductive_tissue_turnover_c_p_ratio",
+            "plant_rt_turnover_n_mass",
+            "plant_rt_turnover_p_mass",
+            "fallen_non_propagule_c_mass",
+            "deadwood_production",
+            "deadwood_c_n_ratio",
+            "deadwood_c_p_ratio",
+            "deadwood_n_mass",
+            "deadwood_p_mass",
+        ]
+        cell_template = xr.full_like(self.data["elevation"], 0)
+        for var_name in vars_to_update:
+            self.data[var_name] = cell_template.copy()
+
+        pft_cell_template = xr.DataArray(
+            data=np.zeros((self.grid.n_cells, self.flora.n_pfts)),
+            coords={"cell_id": self.data["cell_id"], "pft": self.flora.name},
+        )
+        by_pft_vars = [
+            "fallen_n_propagules",
+            "canopy_n_propagules",
+            "canopy_non_propagule_c_mass",
+        ]
+
+        for var in by_pft_vars:
+            self.data[var] = pft_cell_template.copy()
 
     def convert_to_litter_units(self, input_mass: xr.DataArray) -> xr.DataArray:
         """Helper function to convert plant quantities into litter model units.
