@@ -557,10 +557,8 @@ class SoilModel(
 
         return {
             "production_of_fungal_fruiting_bodies": total_production
-            / (
-                self.core_constants.max_depth_of_microbial_activity
-                * self.model_timing.update_interval_quantity.to("days").magnitude
-            )
+            * self.core_constants.max_depth_of_microbial_activity
+            / self.model_timing.update_interval_quantity.to("days").magnitude
         }
 
     def calculate_dissolved_nutrient_concentrations(self) -> dict[str, DataArray]:
