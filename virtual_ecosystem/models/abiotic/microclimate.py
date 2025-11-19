@@ -307,7 +307,7 @@ def run_microclimate(
         return_fluxes=False,
         maxiter=10000,
     )
-    print(canopy_temperature)
+
     # Update air temperature based on new canopy and soil temperatures, [C]
     air_temperature_canopy = energy_balance.update_air_temperature(
         air_temperature=air_temperature_canopy,
