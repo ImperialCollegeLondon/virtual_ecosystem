@@ -256,7 +256,6 @@ def calculate_energy_balance_residual(
     absorbed_radiation_canopy: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
-    density_water: float | NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     leaf_emissivity: float,
@@ -288,7 +287,6 @@ def calculate_energy_balance_residual(
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        density_water: Density of water, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
         leaf_emissivity: Leaf emissivity, dimensionless
@@ -322,9 +320,8 @@ def calculate_energy_balance_residual(
     # Latent heat flux canopy, [W m-2]
     # The current implementation converts outputs from plant and hydrology model to
     # ensure energy conservation between modules for now.
-    # TODO cross-check units with plant model, time step currently hour to second
     latent_heat_flux_canopy = (
-        evapotranspiration * density_water * latent_heat_vapourisation
+        evapotranspiration * latent_heat_vapourisation
     ) / seconds_to_hour
 
     # Energy balance residual, [W m-2]
@@ -355,7 +352,6 @@ def solve_canopy_temperature(
     absorbed_radiation_canopy: NDArray[np.floating],
     specific_heat_air: NDArray[np.floating],
     density_air: NDArray[np.floating],
-    density_water: float | NDArray[np.floating],
     aerodynamic_resistance: NDArray[np.floating],
     latent_heat_vapourisation: NDArray[np.floating],
     emissivity_leaf: float,
@@ -416,7 +412,6 @@ def solve_canopy_temperature(
             [W m-2]
         specific_heat_air: Specific heat capacity of air, [J kg-1 K-1]
         density_air: Density of air, [kg m-3]
-        density_water: Density of water, [kg m-3]
         aerodynamic_resistance: Aerodynamic resistamce of canopy, [s m-1]
         stomatal_resistance: Stomatal resistance, [s m-1]
         latent_heat_vapourisation: Latent heat of vapourisation, [kJ kg-1]
@@ -437,11 +432,6 @@ def solve_canopy_temperature(
 
     nrows, ncols = canopy_temperature_initial.shape
     solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float64)
-
-    if isinstance(density_water, float):
-        density_water_array = np.full(solved_temperature.shape, density_water)
-    else:
-        density_water_array = density_water
 
     # TODO this loop might be a potential performance bottleneck.
     # The function only takes scalar values
@@ -467,9 +457,6 @@ def solve_canopy_temperature(
                         [[specific_heat_air[i, j]]], dtype=np.float64
                     ),
                     density_air=np.array([[density_air[i, j]]], dtype=np.float64),
-                    density_water=np.array(
-                        [[density_water_array[i, j]]], dtype=np.float64
-                    ),
                     aerodynamic_resistance=np.array(
                         [[aerodynamic_resistance[i, j]]], dtype=np.float64
                     ),
