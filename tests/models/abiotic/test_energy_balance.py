@@ -108,7 +108,7 @@ def test_calculate_sensible_heat_flux(
         specific_heat_air=data["specific_heat_air"][index].to_numpy(),
         air_temperature=data["air_temperature"][index].to_numpy(),
         surface_temperature=data["canopy_temperature"][index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][index].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
     )
 
     # Assert all elements are close
@@ -207,9 +207,7 @@ def test_energy_balance_residual_only(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
         ].to_numpy()
@@ -248,9 +246,7 @@ def test_energy_balance_return_fluxes(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
         ].to_numpy()
@@ -295,9 +291,7 @@ def test_solve_canopy_temperature(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
         ].to_numpy()
@@ -344,9 +338,7 @@ def test_update_air_temperature(
         surface_temperature=data["canopy_temperature"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
-            canopy_index
-        ].to_numpy(),
+        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
     )
 

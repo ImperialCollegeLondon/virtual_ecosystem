@@ -458,7 +458,7 @@ def solve_canopy_temperature(
                     ),
                     density_air=np.array([[density_air[i, j]]], dtype=np.float64),
                     aerodynamic_resistance=np.array(
-                        [[aerodynamic_resistance[i, j]]], dtype=np.float64
+                        [[aerodynamic_resistance[i]]], dtype=np.float64
                     ),
                     latent_heat_vapourisation=np.array(
                         [[latent_heat_vapourisation[i, j]]], dtype=np.float64
@@ -497,6 +497,10 @@ def solve_canopy_temperature(
                 )
 
             except RuntimeError:
+                print(
+                    "Warning: Canopy temperature solver did not converge."
+                    "Using last best estimate."
+                )
                 solved_temperature[i, j] = best_estimate[0]  # use last known good value
 
     return solved_temperature

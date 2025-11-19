@@ -564,6 +564,7 @@ def dummy_climate_data(fixture_core_components):
         "diabatic_correction_momentum_canopy": 1.0,
         "mean_mixing_length": 1.3,
         "aerodynamic_resistance_surface": 12.5,
+        "aerodynamic_resistance_canopy": 12.5,
         "mean_annual_temperature": 20.0,
     }
     for var, val in spatially_constant.items():
@@ -584,9 +585,6 @@ def dummy_climate_data(fixture_core_components):
     # - Vertically structured
     data["wind_speed"] = from_template()
     data["wind_speed"][lyr_str.index_filled_atmosphere] = 0.1
-
-    data["aerodynamic_resistance_canopy"] = from_template()
-    data["aerodynamic_resistance_canopy"][lyr_str.index_filled_canopy] = 12.5
 
     data["atmospheric_pressure"] = from_template()
     data["atmospheric_pressure"][lyr_str.index_filled_atmosphere] = 96.0
@@ -739,12 +737,6 @@ def dummy_climate_data_varying_canopy(fixture_core_components, dummy_climate_dat
         [450.0, 450.0, 450.0, 450],
     ]
     # dummy_climate_data["shortwave_absorption"][13] = np.repeat(0.0, 4)
-
-    dummy_climate_data["aerodynamic_resistance_canopy"][index_filled_canopy] = [
-        [12.5, 12.5, 12.5, np.nan],
-        [12.5, 12.5, np.nan, np.nan],
-        [12.5, np.nan, np.nan, np.nan],
-    ]
 
     dummy_climate_data["vapour_pressure_deficit"][index_filled_atmosphere] = [
         [0.14, 0.14, 0.14, 0.14],

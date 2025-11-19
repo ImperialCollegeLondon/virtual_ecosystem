@@ -148,21 +148,27 @@ def run_microclimate(
     )
 
     # Aerodynamic resistance canopy, [s m-1]
-    aerodynamic_resistance_canopy = wind.calculate_aerodynamic_resistance(
-        wind_heights=data["layer_heights"][
-            layer_structure.index_filled_canopy
-        ].to_numpy(),
-        roughness_length=roughness_length,
-        zero_plane_displacement=zero_plane_displacement,
-        wind_speed=wind_profile[1:-1],
-        von_karman_constant=core_constants.von_karmans_constant,
+    # TODO Revisit when model produces realistic forest structure and/or calibrate
+    # default value.
+    # Very high r_a (>1000 s/m) breaks Newton method, but physically possible when:
+    #    - LAI is small
+    #    - wind speed is very low (u < 0.5 m/s)
+    #    - roughness length is small (z0 < 0.01 m)
+    #
+    # aerodynamic_resistance_canopy = wind.calculate_aerodynamic_resistance(
+    #     wind_heights=canopy_height,
+    #     roughness_length=roughness_length,
+    #     zero_plane_displacement=zero_plane_displacement,
+    #     wind_speed=wind_profile[1],
+    #     von_karman_constant=core_constants.von_karmans_constant,
+    # )
+    aerodynamic_resistance_canopy = np.repeat(
+        abiotic_constants.aerodynamic_resistance_canopy_default, data.grid.n_cells
     )
 
-    aerodynamic_resistance_canopy_out = layer_structure.from_template()
-    aerodynamic_resistance_canopy_out[layer_structure.index_filled_canopy] = (
-        aerodynamic_resistance_canopy
+    output["aerodynamic_resistance_canopy"] = DataArray(
+        aerodynamic_resistance_canopy, dims="cell_id"
     )
-    output["aerodynamic_resistance_canopy"] = aerodynamic_resistance_canopy_out
 
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
@@ -177,7 +183,7 @@ def run_microclimate(
 
     #  Ventilation rate above canopy, [s-1]
     ventilation_rate = wind.calculate_ventilation_rate(
-        aerodynamic_resistance=aerodynamic_resistance_canopy[0],
+        aerodynamic_resistance=aerodynamic_resistance_canopy,
         characteristic_height=canopy_height + zero_plane_displacement,
     )
 
@@ -471,12 +477,6 @@ def run_microclimate(
     net_radiation[layer_structure.index_filled_canopy] = net_radiation_canopy
     net_radiation[layer_structure.index_topsoil_scalar] = net_radiation_soil
     output["net_radiation"] = net_radiation
-
-    aero_resistance_canopy_out = layer_structure.from_template()
-    aero_resistance_canopy_out[layer_structure.index_filled_canopy] = (
-        aerodynamic_resistance_canopy
-    )
-    output["aerodynamic_resistance_canopy"] = aero_resistance_canopy_out
 
     latent_heat_vapourisation_out = layer_structure.from_template()
     latent_heat_vapourisation_out[layer_structure.index_filled_atmosphere] = (

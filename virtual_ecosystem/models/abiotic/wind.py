@@ -37,11 +37,11 @@ def calculate_zero_plane_displacement(
     # Calculate zero displacement height
     scale_displacement = np.sqrt(zero_plane_scaling_parameter * displacement)
     zero_plane_displacement = (
-        (1 - (1 - np.exp(-scale_displacement)) / scale_displacement) * canopy_height,
-    )
+        1 - (1 - np.exp(-scale_displacement)) / scale_displacement
+    ) * canopy_height
 
     # No displacement in absence of vegetation
-    return np.nan_to_num(zero_plane_displacement, nan=0.0).squeeze()
+    return np.nan_to_num(zero_plane_displacement, nan=0.0)
 
 
 def calculate_roughness_length_momentum(
