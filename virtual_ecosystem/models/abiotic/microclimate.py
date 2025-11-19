@@ -29,8 +29,10 @@ def run_microclimate(
 ) -> dict[str, DataArray]:
     """Run microclimate model.
 
-    This function iteratively updates air, soil and canopy temperatures by calculating
-    the energy balance for each layer.
+    This function updates air, soil and canopy temperatures by calculating
+    the energy balance for each layer. We currently make the assumption that over the
+    time interval of one month, different compartments are in equilibrium. For numerical
+    stability, the integration interval is 1 hour.
 
     ..TODO: Temperatures change between Kelvin and Celsius due to a mix of references,
     needs to be revisited and converted properly.
