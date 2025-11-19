@@ -29,8 +29,10 @@ def run_microclimate(
 ) -> dict[str, DataArray]:
     """Run microclimate model.
 
-    This function iteratively updates air, soil and canopy temperatures by calculating
-    the energy balance for each layer.
+    This function updates air, soil and canopy temperatures by calculating
+    the energy balance for each layer. We currently make the assumption that over the
+    time interval of one month, different compartments are in equilibrium. For numerical
+    stability, the integration interval is 1 hour.
 
     ..TODO: Temperatures change between Kelvin and Celsius due to a mix of references,
     needs to be revisited and converted properly.
@@ -53,10 +55,14 @@ def run_microclimate(
 
     output = {}
 
-    # Selection of often used subsets (could be moved to separate function, e.g. tools)
+    # Precompute reusable quantities
+
     # NOTE Canopy height will likely become a separate variable, update as required
     canopy_height = data["layer_heights"][1].to_numpy()
-    leaf_area_index_sum = np.nansum(data["leaf_area_index"].to_numpy(), axis=0)
+    # NOTE currently sums LAI over all canopy layers, not surface grass layer
+    leaf_area_index_sum = np.nansum(
+        data["leaf_area_index"][layer_structure.index_filled_canopy].to_numpy(), axis=0
+    )
 
     atmospheric_pressure_out = layer_structure.from_template()
     atmospheric_pressure_out[layer_structure.index_filled_atmosphere] = data[
@@ -176,7 +182,7 @@ def run_microclimate(
     )
 
     # -------------------------------------------------------------------------
-    # Initialise variables to iterate energy balance to update temperatures
+    # Initialise temperatures and humidity profiles
     # -------------------------------------------------------------------------
 
     all_air_temperature = data["air_temperature"][
@@ -198,217 +204,201 @@ def run_microclimate(
         layer_structure.index_filled_atmosphere
     ].to_numpy()
 
-    # Get combined evapotranspiration from plant and hydrology model, per hour
+    # Evapotranspiration from plant and hydrology model, per time interval
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
-    # If hourly input data is provided, iterate over day, else equilibrium assumption
-    hourly_time_interval = max(int(time_interval / core_constants.seconds_to_hour), 1)
+    # -------------------------------------------------------------------------
+    #  Calculate atmospheric background variables
+    # -------------------------------------------------------------------------
+    # Density of air, [kg m-3]
+    density_air = abiotic_tools.calculate_air_density(
+        air_temperature=all_air_temperature,
+        atmospheric_pressure=atmospheric_pressure,
+        specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+    )
 
-    # TODO Run diurnal cycle
-    # enable hourly input in data object, select by time index, iterate over hours,
-    # and return averages/min/max over the VE time interval, similar to hydrology
-    if core_constants.seconds_to_hour <= time_interval <= core_constants.seconds_to_day:
-        iteration = hourly_time_interval
+    # Specific heat capacity of air, [J kg-1 K-1]
+    specific_heat_air = calc_specific_heat(
+        tc=all_air_temperature,
+    )
 
-    else:
-        iteration = 1
+    #   Latent heat of vapourisation, [kJ kg-1]
+    latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
+        temperature=all_air_temperature,
+        celsius_to_kelvin=core_constants.zero_Celsius,
+        latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
+    )
 
-    for _ in range(iteration):
-        # -------------------------------------------------------------------------
-        #  Calculate atmospheric background variables
-        # -------------------------------------------------------------------------
-        # Density of air, [kg m-3]
-        density_air = abiotic_tools.calculate_air_density(
-            air_temperature=all_air_temperature,
-            atmospheric_pressure=atmospheric_pressure,
-            specific_gas_constant_dry_air=core_constants.specific_gas_constant_dry_air,
-            celsius_to_kelvin=core_constants.zero_Celsius,
-        )
+    # -------------------------------------------------------------------------
+    # Soil energy balance
+    # -------------------------------------------------------------------------
+    # Longwave emission from soil, [W m-2]
+    longwave_emission_soil = energy_balance.calculate_longwave_emission(
+        temperature=soil_temperature[0] + core_constants.zero_Celsius,
+        emissivity=abiotic_constants.soil_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
 
-        # Specific heat capacity of air, [J kg-1 K-1]
-        specific_heat_air = calc_specific_heat(
-            tc=all_air_temperature,
-        )
+    # Net radiation topsoil, shortwave in - longwave out, [W m-2]
+    net_radiation_soil = (
+        data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        - longwave_emission_soil
+    )
 
-        #   Latent heat of vapourisation, [kJ kg-1]
-        latent_heat_vapourisation = abiotic_tools.calculate_latent_heat_vapourisation(
-            temperature=all_air_temperature,
-            celsius_to_kelvin=core_constants.zero_Celsius,
-            latent_heat_vap_equ_factors=abiotic_constants.latent_heat_vap_equ_factors,
-        )
+    #  Sensible heat flux from topsoil, [W m-2]
+    sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
+        density_air=density_air[-1],
+        specific_heat_air=specific_heat_air[-1],
+        air_temperature=surface_air_temperature,
+        surface_temperature=soil_temperature[0],
+        aerodynamic_resistance=aerodynamic_resistance_soil,
+    )
 
-        # -------------------------------------------------------------------------
-        # Soil energy balance
-        # -------------------------------------------------------------------------
-        # Longwave emission from soil, [W m-2]
-        longwave_emission_soil = energy_balance.calculate_longwave_emission(
-            temperature=soil_temperature[0] + core_constants.zero_Celsius,
-            emissivity=abiotic_constants.soil_emissivity,
-            stefan_boltzmann=core_constants.stefan_boltzmann_constant,
-        )
+    # Latent heat flux topsoil, [W m-2]
+    latent_heat_flux_soil = (
+        data["soil_evaporation"].to_numpy() * latent_heat_vapourisation[-1] * 1000
+    ) / time_interval
 
-        # Net radiation topsoil, shortwave in - longwave out, [W m-2]
-        net_radiation_soil = (
-            data["shortwave_absorption"][
-                layer_structure.index_topsoil_scalar
-            ].to_numpy()
-            - longwave_emission_soil
-        )
+    # Ground heat flux, [W m-2]
+    # Note the convention is that latent and sensible heat fluxes are negative when
+    # directed away from the surface, hence added here
+    ground_heat_flux = (
+        net_radiation_soil + latent_heat_flux_soil + sensible_heat_flux_soil
+    )
 
-        #  Sensible heat flux from topsoil, [W m-2]
-        sensible_heat_flux_soil = energy_balance.calculate_sensible_heat_flux(
-            density_air=density_air[-1],
-            specific_heat_air=specific_heat_air[-1],
-            air_temperature=surface_air_temperature,
-            surface_temperature=soil_temperature[0],
-            aerodynamic_resistance=aerodynamic_resistance_soil,
-        )
+    # Update soil temperatures, [C], integration interval 1 hour
+    # TODO Revisit implementation of soil temperature update, consider Newton
+    # TODO Soil parameter currently constants, replace with soil maps
+    # TODO include effect of soil moisture
+    soil_temperature = energy_balance.update_soil_temperature(
+        ground_heat_flux=ground_heat_flux,
+        soil_temperature=soil_temperature,
+        soil_layer_thickness=layer_structure.soil_layer_thickness,
+        soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
+        soil_bulk_density=abiotic_constants.bulk_density_soil,
+        specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
+        time_interval=core_constants.seconds_to_hour,
+    )
 
-        # Latent heat flux topsoil, [W m-2]
-        latent_heat_flux_soil = (
-            data["soil_evaporation"].to_numpy()
-            * core_constants.density_water
-            * latent_heat_vapourisation[-1]
-        ) / core_constants.seconds_to_hour
+    # -------------------------------------------------------------------------
+    # Update canopy and air temperatures using the Newton method
+    # -------------------------------------------------------------------------
 
-        # Ground heat flux, [W m-2]
-        ground_heat_flux = (
-            net_radiation_soil - latent_heat_flux_soil - sensible_heat_flux_soil
-        )
+    # Solve energy balance for canopy temperature, [C], integration interval 1 hour
+    canopy_temperature = energy_balance.solve_canopy_temperature(
+        canopy_temperature_initial=canopy_temperature,
+        air_temperature=air_temperature_canopy,
+        evapotranspiration=evapotranspiration[
+            layer_structure.index_filled_canopy
+        ].to_numpy()
+        / (time_interval * core_constants.seconds_to_hour),
+        absorbed_radiation_canopy=data["shortwave_absorption"][
+            layer_structure.index_filled_canopy
+        ].to_numpy(),
+        specific_heat_air=specific_heat_air[1:-1],
+        density_air=density_air[1:-1],
+        aerodynamic_resistance=aerodynamic_resistance_canopy,
+        latent_heat_vapourisation=latent_heat_vapourisation[1:-1] * 1000,
+        emissivity_leaf=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
+        zero_Celsius=core_constants.zero_Celsius,
+        seconds_to_hour=core_constants.seconds_to_hour,
+        return_fluxes=False,
+        maxiter=10000,
+    )
 
-        # Update soil temperatures, [C]
-        # TODO Revisit implementation of soil temperature update, consider Newton
-        # TODO Soil parameter currently constants, replace with soil maps
-        # TODO include effect of soil moisture
-        soil_temperature = energy_balance.update_soil_temperature(
-            ground_heat_flux=ground_heat_flux,
-            soil_temperature=soil_temperature,
-            soil_layer_thickness=layer_structure.soil_layer_thickness,
-            soil_thermal_conductivity=abiotic_constants.soil_thermal_conductivity,
-            soil_bulk_density=abiotic_constants.bulk_density_soil,
-            specific_heat_capacity_soil=abiotic_constants.specific_heat_capacity_soil,
-            time_interval=core_constants.seconds_to_hour,
-        )
+    # Update air temperature based on new canopy and soil temperatures, [C]
+    air_temperature_canopy = energy_balance.update_air_temperature(
+        air_temperature=air_temperature_canopy,
+        surface_temperature=canopy_temperature,
+        specific_heat_air=specific_heat_air[1:-1],
+        density_air=density_air[1:-1],
+        aerodynamic_resistance=aerodynamic_resistance_canopy,
+        mixing_layer_thickness=above_ground_layer_thickness[1:-1],
+    )
 
-        # -------------------------------------------------------------------------
-        # Update canopy and air temperatures using the Newton method
-        # -------------------------------------------------------------------------
+    surface_air_temperature = energy_balance.update_air_temperature(
+        air_temperature=surface_air_temperature,
+        surface_temperature=soil_temperature[0],
+        specific_heat_air=specific_heat_air[-1],
+        density_air=density_air[-1],
+        aerodynamic_resistance=aerodynamic_resistance_soil,
+        mixing_layer_thickness=above_ground_layer_thickness[-1],
+    )
 
-        # Solve energy balance for canopy temperature, [C]
-        canopy_temperature = energy_balance.solve_canopy_temperature(
-            canopy_temperature_initial=canopy_temperature,
-            air_temperature=air_temperature_canopy,
-            evapotranspiration=evapotranspiration[
-                layer_structure.index_filled_canopy
-            ].to_numpy()
-            / hourly_time_interval,
-            absorbed_radiation_canopy=data["shortwave_absorption"][
-                layer_structure.index_filled_canopy
-            ].to_numpy(),
-            specific_heat_air=specific_heat_air[1:-1],
-            density_air=density_air[1:-1],
-            density_water=core_constants.density_water,
-            aerodynamic_resistance=aerodynamic_resistance_canopy,
-            latent_heat_vapourisation=latent_heat_vapourisation[1:-1],
-            emissivity_leaf=abiotic_constants.leaf_emissivity,
-            stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
-            zero_Celsius=core_constants.zero_Celsius,
-            seconds_to_hour=core_constants.seconds_to_hour,
-            return_fluxes=False,
-            maxiter=10000,
-        )
+    all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
+    all_air_temperature[-1] = surface_air_temperature
 
-        # Update air temperature based on new canopy and soil temperatures, [C]
-        air_temperature_canopy = energy_balance.update_air_temperature(
-            air_temperature=air_temperature_canopy,
-            surface_temperature=canopy_temperature,
-            specific_heat_air=specific_heat_air[1:-1],
-            density_air=density_air[1:-1],
-            aerodynamic_resistance=aerodynamic_resistance_canopy,
-            mixing_layer_thickness=above_ground_layer_thickness[1:-1],
-        )
+    all_air_temperature = wind.mix_and_ventilate(
+        input_variable=all_air_temperature,
+        layer_thickness=above_ground_layer_thickness,
+        ventilation_rate=ventilation_rate,
+        mixing_coefficient=mixing_coefficient,
+        limits=abiotic_bounds.air_temperature[:2],
+        time_interval=core_constants.seconds_to_hour,
+    )
 
-        surface_air_temperature = energy_balance.update_air_temperature(
-            air_temperature=surface_air_temperature,
-            surface_temperature=soil_temperature[0],
-            specific_heat_air=specific_heat_air[-1],
-            density_air=density_air[-1],
-            aerodynamic_resistance=aerodynamic_resistance_soil,
-            mixing_layer_thickness=above_ground_layer_thickness[-1],
-        )
+    # NOTE Advection not implemented as everything is removed with time interval>1h
+    # and horizontal transfer is not implemented
+    # advection_rate = (
+    #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
+    #   / np.sqrt(cell_area)
+    # )
+    # advected_fraction = np.clip(advection_rate * time_interval, 0, 1)
+    # all_air_temperature[0] -=all_air_temperature[0] *advected_fraction
 
-        all_air_temperature[1 : len(canopy_temperature) + 1] = air_temperature_canopy
-        all_air_temperature[-1] = surface_air_temperature
+    # Update atmospheric humidity/VPD
+    # Saturated vapour pressure of air, [kPa]
+    saturated_vapour_pressure_air = calc_vp_sat(
+        ta=all_air_temperature,
+        core_const=pyrealm_core_constants,
+    )
 
-        all_air_temperature = wind.mix_and_ventilate(
-            input_variable=all_air_temperature,
-            layer_thickness=above_ground_layer_thickness,
-            ventilation_rate=ventilation_rate,
-            mixing_coefficient=mixing_coefficient,
-            limits=abiotic_bounds.air_temperature[:2],
-            time_interval=core_constants.seconds_to_hour,
-        )
-
-        # NOTE Advection not implemented as everything is removed with time interval>1h
-        # and horizontal transfer is not implemented
-        # advection_rate = (
-        #   data["wind_speed_ref"].isel(time_index=time_index).to_numpy()
-        #   / np.sqrt(cell_area)
-        # )
-        # advected_fraction = np.clip(advection_rate * time_interval, 0, 1)
-        # all_air_temperature[0] -=all_air_temperature[0] *advected_fraction
-
-        # Update atmospheric humidity/VPD
-        # Saturated vapour pressure of air, [kPa]
-        saturated_vapour_pressure_air = calc_vp_sat(
-            ta=all_air_temperature,
-            core_const=pyrealm_core_constants,
-        )
-
-        # Specific humidity of air, [kg kg-1]
-        specific_humidity_air = abiotic_tools.calculate_specific_humidity(
-            air_temperature=all_air_temperature,
-            relative_humidity=relative_humidity,
-            atmospheric_pressure=atmospheric_pressure,
-            molecular_weight_ratio_water_to_dry_air=(
-                core_constants.molecular_weight_ratio_water_to_dry_air
-            ),
-            pyrealm_core_constants=pyrealm_core_constants,
-        )
-
-        # Calculate specific humidity at saturation
-        mixing_ratio_saturation = (
+    # Specific humidity of air, [kg kg-1]
+    specific_humidity_air = abiotic_tools.calculate_specific_humidity(
+        air_temperature=all_air_temperature,
+        relative_humidity=relative_humidity,
+        atmospheric_pressure=atmospheric_pressure,
+        molecular_weight_ratio_water_to_dry_air=(
             core_constants.molecular_weight_ratio_water_to_dry_air
-            * saturated_vapour_pressure_air
-            / (atmospheric_pressure - saturated_vapour_pressure_air)
-        )
-        max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
+        ),
+        pyrealm_core_constants=pyrealm_core_constants,
+    )
 
-        # Update atmospheric humidity variables
-        new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
-            evapotranspiration=evapotranspiration[
-                layer_structure.index_filled_canopy
-            ].to_numpy(),
-            soil_evaporation=data["soil_evaporation"].to_numpy(),
-            saturated_vapour_pressure=saturated_vapour_pressure_air,
-            specific_humidity=specific_humidity_air,
-            layer_thickness=above_ground_layer_thickness,
-            atmospheric_pressure=atmospheric_pressure,
-            density_air=density_air,
-            mixing_coefficient=mixing_coefficient,
-            ventilation_rate=ventilation_rate,
-            molecular_weight_ratio_water_to_dry_air=(
-                core_constants.molecular_weight_ratio_water_to_dry_air
-            ),
-            dry_air_factor=abiotic_constants.dry_air_factor,
-            cell_area=cell_area,
-            limits=(0, max_specific_humidity[0]),  # TODO make layer specific
-            time_interval=core_constants.seconds_to_hour,
-        )
+    # Calculate specific humidity at saturation
+    mixing_ratio_saturation = (
+        core_constants.molecular_weight_ratio_water_to_dry_air
+        * saturated_vapour_pressure_air
+        / (atmospheric_pressure - saturated_vapour_pressure_air)
+    )
+    max_specific_humidity = mixing_ratio_saturation / (1 + mixing_ratio_saturation)
 
-        relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
+    # Update atmospheric humidity variables, integration interval 1 hour
+    new_atmospheric_humidity_vars = energy_balance.update_humidity_vpd(
+        evapotranspiration=evapotranspiration[
+            layer_structure.index_filled_canopy
+        ].to_numpy()
+        / (time_interval * core_constants.seconds_to_hour),
+        soil_evaporation=data["soil_evaporation"].to_numpy()
+        / (time_interval * core_constants.seconds_to_hour),
+        saturated_vapour_pressure=saturated_vapour_pressure_air,
+        specific_humidity=specific_humidity_air,
+        layer_thickness=above_ground_layer_thickness,
+        atmospheric_pressure=atmospheric_pressure,
+        density_air=density_air,
+        mixing_coefficient=mixing_coefficient,
+        ventilation_rate=ventilation_rate,
+        molecular_weight_ratio_water_to_dry_air=(
+            core_constants.molecular_weight_ratio_water_to_dry_air
+        ),
+        dry_air_factor=abiotic_constants.dry_air_factor,
+        cell_area=cell_area,
+        limits=(0, max_specific_humidity[0]),  # TODO make layer specific
+        time_interval=core_constants.seconds_to_hour,
+    )
 
-    # End of loop, write out fluxes and variables
+    relative_humidity = new_atmospheric_humidity_vars["relative_humidity"]
 
     # Calculate new energy balance and return all fluxes, [W m-2]
     new_energy_balance_canopy = energy_balance.calculate_energy_balance_residual(
@@ -416,16 +406,16 @@ def run_microclimate(
         air_temperature=air_temperature_canopy,
         evapotranspiration=evapotranspiration[
             layer_structure.index_filled_canopy
-        ].to_numpy(),
+        ].to_numpy()
+        / (time_interval * core_constants.seconds_to_hour),
         absorbed_radiation_canopy=data["shortwave_absorption"][
             layer_structure.index_filled_canopy
         ].to_numpy(),
         leaf_emissivity=abiotic_constants.leaf_emissivity,
         specific_heat_air=specific_heat_air[1:-1],
         density_air=density_air[1:-1],
-        density_water=core_constants.density_water,
         aerodynamic_resistance=aerodynamic_resistance_canopy,
-        latent_heat_vapourisation=latent_heat_vapourisation[1:-1],
+        latent_heat_vapourisation=latent_heat_vapourisation[1:-1] * 1000,
         stefan_boltzmann_constant=core_constants.stefan_boltzmann_constant,
         zero_Celsius=core_constants.zero_Celsius,
         seconds_to_hour=core_constants.seconds_to_hour,
@@ -513,7 +503,7 @@ def run_microclimate(
     air_temperature_out = layer_structure.from_template()
     air_temperature_out[layer_structure.index_above] = all_air_temperature[0]
     air_temperature_out[layer_structure.index_filled_canopy] = air_temperature_canopy
-    air_temperature_out[layer_structure.index_surface] = surface_air_temperature
+    air_temperature_out[layer_structure.index_surface_scalar] = surface_air_temperature
     output["air_temperature"] = air_temperature_out
 
     canopy_temperature_out = layer_structure.from_template()

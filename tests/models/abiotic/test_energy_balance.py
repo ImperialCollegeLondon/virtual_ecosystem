@@ -207,13 +207,13 @@ def test_energy_balance_residual_only(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        density_water=np.full_like(data["density_air"][canopy_index], 1000),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
             canopy_index
         ].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
-        ].to_numpy(),
+        ].to_numpy()
+        * 1000,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -248,13 +248,13 @@ def test_energy_balance_return_fluxes(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        density_water=np.full_like(data["density_air"][canopy_index], 1000),
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
             canopy_index
         ].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
-        ].to_numpy(),
+        ].to_numpy()
+        * 1000,
         leaf_emissivity=fixture_abiotic_constants.leaf_emissivity,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -295,13 +295,13 @@ def test_solve_canopy_temperature(
         absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
         specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
         density_air=data["density_air"][canopy_index].to_numpy(),
-        density_water=1000.0,
         aerodynamic_resistance=data["aerodynamic_resistance_canopy"][
             canopy_index
         ].to_numpy(),
         latent_heat_vapourisation=data["latent_heat_vapourisation"][
             canopy_index
-        ].to_numpy(),
+        ].to_numpy()
+        * 1000,
         emissivity_leaf=0.96,
         stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
         zero_Celsius=fixture_core_constants.zero_Celsius,
@@ -352,9 +352,9 @@ def test_update_air_temperature(
 
     exp_result = np.array(
         [
-            [29.883755, 29.883755, 29.857958, np.nan],
-            [28.902139, 28.886732, np.nan, np.nan],
-            [27.224235, np.nan, np.nan, np.nan],
+            [29.806235, 29.806235, 29.832032, np.nan],
+            [28.840201, 28.855608, np.nan, np.nan],
+            [27.188575, np.nan, np.nan, np.nan],
         ]
     )
     np.testing.assert_allclose(updated_air_temperature, exp_result, rtol=1e-4)
