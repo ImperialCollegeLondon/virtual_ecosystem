@@ -306,7 +306,7 @@ def test_update(mocker, fixture_soil_model, dummy_carbon_data):
 
     # And fungal fruiting body production to test that step
     fruiting_body_production = [2.0235824e-6, 2.6018971e-4, 4.7134783e-4, 3.9772191e-4]
-    production_rate = [1.618865952e-5, 0.00208151768, 0.00377078264, 0.003181775276]
+    production_rate = [1.01179122e-6, 0.000130094855, 0.000235673915, 0.00019886095475]
 
     mock_integrate = mocker.patch.object(fixture_soil_model, "integrate")
 
@@ -684,7 +684,7 @@ def test_convert_fruiting_body_production_to_rate(fixture_soil_model):
         [2.02358244e-6, 0.00026018971, 0.00047134783, 0.0003977219095]
     )
 
-    expected_rate = [1.618865952e-5, 0.00208151768, 0.00377078264, 0.003181775276]
+    expected_rate = [1.01179122e-6, 0.000130094855, 0.000235673915, 0.00019886095475]
 
     actual_rate = fixture_soil_model.convert_fruiting_body_production_to_rate(
         total_production=total_production
