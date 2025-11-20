@@ -120,8 +120,24 @@ def test_run_microclimate_varying_canopy(
     xr.testing.assert_allclose(result["wind_speed"], exp_wind)
 
     exp_pressure = lyr_strct.from_template()
-    exp_pressure[lyr_strct.index_atmosphere] = 96
+    exp_pressure[lyr_strct.index_filled_atmosphere] = [
+        [96, 96, 96, 96],
+        [96, 96, 96, np.nan],
+        [96, 96, np.nan, np.nan],
+        [96, np.nan, np.nan, np.nan],
+        [96, 96, 96, 96],
+    ]
     xr.testing.assert_allclose(result["atmospheric_pressure"], exp_pressure)
+
+    exp_co2 = lyr_strct.from_template()
+    exp_co2[lyr_strct.index_filled_atmosphere] = [
+        [400, 400, 400, 400],
+        [400, 400, 400, np.nan],
+        [400, 400, np.nan, np.nan],
+        [400, np.nan, np.nan, np.nan],
+        [400, 400, 400, 400],
+    ]
+    xr.testing.assert_allclose(result["atmospheric_co2"], exp_co2)
 
 
 def test_interpolate_soil_temperature(dummy_climate_data, fixture_core_components):

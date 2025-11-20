@@ -122,19 +122,26 @@ def run_simple_microclimate(
             gradient=gradient,
         ).rename(var)
 
+    # Create atmospheric mask for filling constant values
+    atm_mask = ~np.isnan(
+        output["air_temperature"].isel(layers=layer_structure.index_filled_atmosphere)
+    )
+
     # Mean atmospheric pressure profile, [kPa]
-    # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_pressure"] = layer_structure.from_template()
-    output["atmospheric_pressure"][layer_structure.index_atmosphere] = data[
-        "atmospheric_pressure_ref"
-    ].isel(time_index=time_index)
+    atmospheric_pressure = data["atmospheric_pressure_ref"].isel(time_index=time_index)
+    valid_values_atmospheric_pressure = atmospheric_pressure.where(atm_mask)
+    output["atmospheric_pressure"][layer_structure.index_filled_atmosphere] = (
+        valid_values_atmospheric_pressure
+    )
 
     # Mean atmospheric C02 profile, [ppm]
-    # TODO: this should only be filled for filled/true above ground layers
     output["atmospheric_co2"] = layer_structure.from_template()
-    output["atmospheric_co2"][layer_structure.index_atmosphere] = data[
-        "atmospheric_co2_ref"
-    ].isel(time_index=time_index)
+    atmospheric_co2 = data["atmospheric_co2_ref"].isel(time_index=time_index)
+    valid_values_atmospheric_co2 = atmospheric_co2.where(atm_mask)
+    output["atmospheric_co2"][layer_structure.index_filled_atmosphere] = (
+        valid_values_atmospheric_co2
+    )
 
     # Calculate soil temperatures, [C]
     lower, upper = getattr(bounds, "soil_temperature")
