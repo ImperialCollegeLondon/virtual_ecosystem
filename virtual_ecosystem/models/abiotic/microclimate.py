@@ -105,8 +105,8 @@ def run_microclimate(
         canopy_height=canopy_height,
         leaf_area_index=leaf_area_index_sum,
         zero_plane_displacement=zero_plane_displacement,
-        substrate_surface_drag_coefficient=(
-            abiotic_constants.substrate_surface_drag_coefficient
+        substrate_surface_roughness_length=(
+            abiotic_constants.substrate_surface_roughness_length
         ),
         roughness_element_drag_coefficient=(
             abiotic_constants.roughness_element_drag_coefficient

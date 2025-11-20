@@ -53,13 +53,12 @@ class AbioticConstants(AbioticSharedConstants):
     Implementation after :cite:t:`maclean_microclimc_2021`, value is taken from
     :cite:t:`raupach_simplified_1994`."""
 
-    substrate_surface_drag_coefficient: float = 0.003
-    """Substrate-surface drag coefficient, dimensionless.
+    substrate_surface_roughness_length: float = 0.003
+    """Substrate-surface roughness length, m.
 
-    The substrate-surface drag coefficient represents the resistance encountered by an
-    object moving on or through a surface and varies based on the nature of the
-    surface and the object's properties. Here, it affects how wind speed is altered by a
-    surface. Implementation and value from :cite:t:`maclean_microclimc_2021`."""
+    The substrate-surface roughness length is the "baseline roughness" of the ground
+    itself before adding vegetation on top. Implementation and value from
+    :cite:t:`maclean_microclimc_2021`."""
 
     roughness_element_drag_coefficient: float = 0.3
     """Roughness-element drag coefficient, dimensionless.

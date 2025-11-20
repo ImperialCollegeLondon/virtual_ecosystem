@@ -511,7 +511,7 @@ with
 
 $$R = \sqrt{C_s + \frac{C_r LAI}{2}}$$
 
-where $C_{s}$ is the substrate surface drag coefficient, $C_{r}$ is the roughness
+where $C_{s}$ is the substrate surface roughness length, $C_{r}$ is the roughness
 element (vegetation) drag coefficient, $C_{d}$ is the roughness sublayer depth parameter,
 $\kappa$ is the von Karman constant, and $LAI$ is the leaf area index
 ($\mathrm{m\,m^{-1}}$).

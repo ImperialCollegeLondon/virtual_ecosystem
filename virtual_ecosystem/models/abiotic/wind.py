@@ -48,7 +48,7 @@ def calculate_roughness_length_momentum(
     canopy_height: NDArray[np.floating],
     leaf_area_index: NDArray[np.floating],
     zero_plane_displacement: NDArray[np.floating],
-    substrate_surface_drag_coefficient: float,
+    substrate_surface_roughness_length: float,
     roughness_element_drag_coefficient: float,
     roughness_sublayer_depth_parameter: float,
     max_ratio_wind_to_friction_velocity: float,
@@ -68,8 +68,8 @@ def calculate_roughness_length_momentum(
         zero_plane_displacement: Height above the actual ground where the wind speed is
             theoretically reduced to zero due to the obstruction caused by the roughness
             elements (like trees or buildings), [m]
-        substrate_surface_drag_coefficient: Substrate-surface drag coefficient,
-            dimensionless
+        substrate_surface_roughness_length: Substrate-surface roughness length is the
+            baseline roughness of the ground itself before adding vegetation, [m]
         roughness_element_drag_coefficient: Roughness-element drag coefficient
         roughness_sublayer_depth_parameter: Parameter that characterizes the roughness
             sublayer depth, dimensionless
@@ -86,30 +86,25 @@ def calculate_roughness_length_momentum(
 
     # Calculate ratio of wind velocity to friction velocity
     ratio_wind_to_friction_velocity = np.sqrt(
-        substrate_surface_drag_coefficient
+        substrate_surface_roughness_length
         + (roughness_element_drag_coefficient * leaf_area_index) / 2
     )
 
-    # If the ratio of wind velocity to friction velocity is larger than the set maximum,
-    # set the value to set maximum
-    set_maximum_ratio = np.where(
-        ratio_wind_to_friction_velocity > max_ratio_wind_to_friction_velocity,
-        max_ratio_wind_to_friction_velocity,
-        ratio_wind_to_friction_velocity,
+    # Set wind to friction velocity ratio
+    ratio_wind_to_friction_velocity = np.minimum(
+        ratio_wind_to_friction_velocity, max_ratio_wind_to_friction_velocity
     )
 
     # Calculate initial roughness length
     initial_roughness_length = (canopy_height - zero_plane_displacement) * np.exp(
-        -von_karman_constant * (1 / set_maximum_ratio)
+        -von_karman_constant * (1 / ratio_wind_to_friction_velocity)
         - roughness_sublayer_depth_parameter
     )
 
     # If roughness smaller than the substrate surface drag coefficient, set to value to
     # the substrate surface drag coefficient
-    roughness_length = np.where(
-        initial_roughness_length < substrate_surface_drag_coefficient,
-        substrate_surface_drag_coefficient,
-        initial_roughness_length,
+    roughness_length = np.maximum(
+        initial_roughness_length, substrate_surface_roughness_length
     )
 
     # If roughness length in nan, zero or below sero, set to minimum value
