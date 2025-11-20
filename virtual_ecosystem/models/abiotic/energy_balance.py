@@ -50,6 +50,7 @@ from scipy.optimize import newton
 from xarray import DataArray
 
 from virtual_ecosystem.core.core_components import LayerStructure
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic import wind
 from virtual_ecosystem.models.abiotic.abiotic_tools import set_unintended_nan_to_zero
 
@@ -432,6 +433,7 @@ def solve_canopy_temperature(
 
     nrows, ncols = canopy_temperature_initial.shape
     solved_temperature = np.empty_like(canopy_temperature_initial, dtype=np.float64)
+    convergence_info = []
 
     # TODO this loop might be a potential performance bottleneck.
     # The function only takes scalar values
@@ -458,7 +460,7 @@ def solve_canopy_temperature(
                     ),
                     density_air=np.array([[density_air[i, j]]], dtype=np.float64),
                     aerodynamic_resistance=np.array(
-                        [[aerodynamic_resistance[i, j]]], dtype=np.float64
+                        [[aerodynamic_resistance[i]]], dtype=np.float64
                     ),
                     latent_heat_vapourisation=np.array(
                         [[latent_heat_vapourisation[i, j]]], dtype=np.float64
@@ -482,9 +484,11 @@ def solve_canopy_temperature(
             x0 = canopy_temperature_initial[i, j]
 
             best_estimate = [x0]  # use a mutable object to track updates
+            iteration_history = []
 
             # Wrapper to extract best estimate if function does not converge
             def tracked_func(x):
+                iteration_history.append(x)
                 best_estimate[0] = x  # update best estimate
                 return residual_func(x)
 
@@ -495,9 +499,34 @@ def solve_canopy_temperature(
                     maxiter=maxiter,
                     tol=0.01,
                 )
+                converged = True
 
             except RuntimeError:
                 solved_temperature[i, j] = best_estimate[0]  # use last known good value
+                converged = False
+
+    convergence_info.append(
+        {
+            "row": i,
+            "col": j,
+            "converged": converged,
+            "final_value": solved_temperature[i, j],
+            "best_estimate": best_estimate[0],
+            "history": iteration_history,
+        }
+    )
+
+    # Log a message based on whether all cells converged or not
+    num_not_converged = sum(not c["converged"] for c in convergence_info)
+    total_cells = nrows * ncols
+
+    if num_not_converged == 0:
+        LOGGER.info(f"Solver finished successfully: all {total_cells} cells converged.")
+    else:
+        LOGGER.warning(
+            f"Solver finished with issues: {num_not_converged} / {total_cells} cells"
+            " did not converge. Best estimates were used for those cells."
+        )
 
     return solved_temperature
 
