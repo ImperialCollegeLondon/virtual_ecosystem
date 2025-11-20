@@ -84,11 +84,15 @@ def initialise_canopy_and_soil_fluxes(
     canopy_temperature[layer_structure.index_filled_canopy] = air_temperature[
         layer_structure.index_filled_canopy
     ]
+    canopy_temperature[layer_structure.index_surface_scalar] = air_temperature[
+        layer_structure.index_surface_scalar
+    ]
     output["canopy_temperature"] = canopy_temperature
 
     # Initialise sensible heat flux with non-zero minimum values
     sensible_heat_flux = layer_structure.from_template()
     sensible_heat_flux[layer_structure.index_filled_canopy] = initial_flux_value
+    sensible_heat_flux[layer_structure.index_surface_scalar] = initial_flux_value
     sensible_heat_flux[layer_structure.index_topsoil] = initial_flux_value
     output["sensible_heat_flux"] = sensible_heat_flux
 

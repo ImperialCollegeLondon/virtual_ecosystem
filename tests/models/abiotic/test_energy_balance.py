@@ -21,6 +21,7 @@ def test_initialise_canopy_and_soil_fluxes(
     data = dummy_climate_data_varying_canopy
     lyr_str = fixture_core_components.layer_structure
     canopy_index = lyr_str.index_filled_canopy
+    subcanopy_index = lyr_str.index_surface_scalar
     topsoil_index = lyr_str.index_topsoil_scalar
 
     result = initialise_canopy_and_soil_fluxes(
@@ -42,12 +43,19 @@ def test_initialise_canopy_and_soil_fluxes(
             result[var][canopy_index].to_numpy(), np.full((3, 4), 0.001)
         )
         np.testing.assert_allclose(
+            result[var][subcanopy_index].to_numpy(), np.repeat(0.001, 4)
+        )
+        np.testing.assert_allclose(
             result[var][topsoil_index].to_numpy(), np.repeat(0.001, 4)
         )
 
     np.testing.assert_allclose(
         result["canopy_temperature"][canopy_index],
         data["air_temperature"][canopy_index],
+    )
+    np.testing.assert_allclose(
+        result["canopy_temperature"][subcanopy_index],
+        data["air_temperature"][subcanopy_index],
     )
 
 
