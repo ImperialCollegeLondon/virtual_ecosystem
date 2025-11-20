@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from virtual_ecosystem.core.logger import LOGGER
 from virtual_ecosystem.models.abiotic.abiotic_tools import (
     compute_layer_thickness_for_varying_canopy,
 )
@@ -272,7 +273,10 @@ def test_energy_balance_return_fluxes(
 
 
 def test_solve_canopy_temperature(
-    dummy_climate_data_varying_canopy, fixture_core_components, fixture_core_constants
+    dummy_climate_data_varying_canopy,
+    fixture_core_components,
+    fixture_core_constants,
+    caplog,
 ):
     """Test solving canopy temperature with Newton method."""
 
@@ -284,25 +288,33 @@ def test_solve_canopy_temperature(
     canopy_index = fixture_core_components.layer_structure.index_filled_canopy
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
-    result = solve_canopy_temperature(
-        canopy_temperature_initial=data["canopy_temperature"][canopy_index].to_numpy(),
-        air_temperature=data["air_temperature"][canopy_index].to_numpy(),
-        evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 730,
-        absorbed_radiation_canopy=data["shortwave_absorption"][canopy_index].to_numpy(),
-        specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
-        density_air=data["density_air"][canopy_index].to_numpy(),
-        aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
-        latent_heat_vapourisation=data["latent_heat_vapourisation"][
-            canopy_index
-        ].to_numpy()
-        * 1000,
-        emissivity_leaf=0.96,
-        stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
-        zero_Celsius=fixture_core_constants.zero_Celsius,
-        seconds_to_hour=fixture_core_constants.seconds_to_hour,
-        return_fluxes=False,
-        maxiter=100,
-    )
+    with caplog.at_level(LOGGER.level):
+        result = solve_canopy_temperature(
+            canopy_temperature_initial=data["canopy_temperature"][
+                canopy_index
+            ].to_numpy(),
+            air_temperature=data["air_temperature"][canopy_index].to_numpy(),
+            evapotranspiration=evapotranspiration[canopy_index].to_numpy() / 730,
+            absorbed_radiation_canopy=data["shortwave_absorption"][
+                canopy_index
+            ].to_numpy(),
+            specific_heat_air=data["specific_heat_air"][canopy_index].to_numpy(),
+            density_air=data["density_air"][canopy_index].to_numpy(),
+            aerodynamic_resistance=data["aerodynamic_resistance_canopy"].to_numpy(),
+            latent_heat_vapourisation=data["latent_heat_vapourisation"][
+                canopy_index
+            ].to_numpy()
+            * 1000,
+            emissivity_leaf=0.96,
+            stefan_boltzmann_constant=fixture_core_constants.stefan_boltzmann_constant,
+            zero_Celsius=fixture_core_constants.zero_Celsius,
+            seconds_to_hour=fixture_core_constants.seconds_to_hour,
+            return_fluxes=False,
+            maxiter=100,
+        )
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("did not converge" in msg for msg in messages)
 
     assert isinstance(result, np.ndarray)
     assert result.shape == data["canopy_temperature"][canopy_index].shape
