@@ -516,10 +516,17 @@ def solve_canopy_temperature(
         }
     )
 
-    LOGGER.info(
-        f"Solver finished: {sum(not c['converged'] for c in convergence_info)} / "
-        f"{nrows * ncols} cells did not converge"
-    )
+    # Log a message based on whether all cells converged or not
+    num_not_converged = sum(not c["converged"] for c in convergence_info)
+    total_cells = nrows * ncols
+
+    if num_not_converged == 0:
+        LOGGER.info(f"Solver finished successfully: all {total_cells} cells converged.")
+    else:
+        LOGGER.warning(
+            f"Solver finished with issues: {num_not_converged} / {total_cells} cells"
+            " did not converge. Best estimates were used for those cells."
+        )
 
     return solved_temperature
 

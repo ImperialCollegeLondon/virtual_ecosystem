@@ -314,7 +314,7 @@ def test_solve_canopy_temperature(
         )
 
     messages = [record.getMessage() for record in caplog.records]
-    assert any("did not converge" in msg for msg in messages)
+    assert any("converge" in msg for msg in messages)
 
     assert isinstance(result, np.ndarray)
     assert result.shape == data["canopy_temperature"][canopy_index].shape
