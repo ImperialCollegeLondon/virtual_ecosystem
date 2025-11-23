@@ -94,7 +94,7 @@ sphinx-external-toc = "^1.0.0"
 sphinx-hoverxref = "^1.4.1"
 sphinx-rtd-theme = ">=2,<4"
 sphinxcontrib-bibtex = "^2.6.1"
-sphinxcontrib-mermaid = ">=0.9.2,<1.1.0"
+sphinxcontrib-mermaid = ">=0.9.2,<1.2.0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
