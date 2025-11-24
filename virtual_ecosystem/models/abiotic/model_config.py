@@ -164,6 +164,23 @@ class AbioticConstants(AbioticSharedConstants):
     
     Value from :cite:t:`ogee_a_forest_2002`"""
 
+    thermal_conductivity_understorey: float = 0.02
+    """Thermal conductivity of the understorey layer, [W m-1 K-1].
+    
+    Represents heat transfer through litter or herbaceous material to the soil.
+    Value taken from :cite:t:`dimitrakopoulos_measuring_1988`."""
+
+    heat_capacity_understorey: float = 1500.0
+    """Specific heat capacity of the understorey surface layer, [J m-2 K-1].
+
+    This constant represents the effective thermal inertia of a thin
+    vegetation/organic layer (e.g., litter, herbaceous understorey) that
+    covers the soil surface.
+    Value estimated at around 25 C from :cite:t:`Boardman_specific_2021`
+
+    Adjust this constant if the understorey is unusually thick/thin or if
+    you use a dynamic formulation that depends on water content."""
+
 
 class AbioticConfiguration(ModelConfigurationRoot):
     """The abiotic model configuration."""

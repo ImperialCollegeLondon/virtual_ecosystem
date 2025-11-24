@@ -208,6 +208,7 @@ def run_microclimate(
     all_air_temperature = data["air_temperature"][
         layer_structure.index_filled_atmosphere
     ].to_numpy()
+
     air_temperature_canopy = data["air_temperature"][
         layer_structure.index_filled_canopy
     ].to_numpy()
@@ -217,6 +218,9 @@ def run_microclimate(
     canopy_temperature = data["canopy_temperature"][
         layer_structure.index_filled_canopy
     ].to_numpy()
+    understorey_temperature = data["canopy_temperature"][
+        layer_structure.index_surface_scalar
+    ].to_numpy()
     soil_temperature = data["soil_temperature"][
         layer_structure.index_all_soil
     ].to_numpy()
@@ -225,6 +229,7 @@ def run_microclimate(
     ].to_numpy()
 
     # Evapotranspiration from plant and hydrology model, per time interval
+    # TODO current assumption: no canopy evaporation from understory vegetation!!
     evapotranspiration = data["canopy_evaporation"] + data["transpiration"]
 
     # -------------------------------------------------------------------------
@@ -251,8 +256,70 @@ def run_microclimate(
     )
 
     # -------------------------------------------------------------------------
+    # Understorey vegetation energy balance
+    # -------------------------------------------------------------------------
+
+    # Longwave emission from understorey vegetation, [W m-2]
+    longwave_emission_understorey = energy_balance.calculate_longwave_emission(
+        temperature=understorey_temperature + core_constants.zero_Celsius,
+        emissivity=abiotic_constants.leaf_emissivity,
+        stefan_boltzmann=core_constants.stefan_boltzmann_constant,
+    )
+
+    # Net radiation understorey vegetation, shortwave in - longwave out, [W m-2]
+    net_radiation_understorey = (
+        data["shortwave_absorption"][layer_structure.index_surface_scalar].to_numpy()
+        - longwave_emission_understorey
+    )
+
+    #  Sensible heat flux from understorey vegetation, [W m-2]
+    sensible_heat_flux_understorey = energy_balance.calculate_sensible_heat_flux(
+        density_air=density_air[-1],
+        specific_heat_air=specific_heat_air[-1],
+        air_temperature=surface_air_temperature,
+        surface_temperature=understorey_temperature,
+        aerodynamic_resistance=aerodynamic_resistance_understorey,
+    )
+
+    # Latent heat flux understorey vegetation, [W m-2]
+    # TODO currently not returned from plant model
+    # latent_heat_flux_understorey = (
+    #     evapotranspiration[layer_structure.index_surface_scalar].to_numpy()
+    #     / core_constants.seconds_to_hour
+    #     * latent_heat_vapourisation[-1]
+    # )
+
+    # Conductive flux to soil from understorey vegetation = ground heat flux [W m-2]
+    conductive_flux_understorey = -(
+        (
+            abiotic_constants.soil_thermal_conductivity
+            * abiotic_constants.thermal_conductivity_understorey
+        )
+        ** 0.5
+        * (soil_temperature[0] - understorey_temperature)
+        / (above_ground_layer_thickness[-1])
+    )
+
+    # Update understory vegetation temperatures, [C], integration interval 1 hour
+    understorey_temperature = understorey_temperature + (
+        core_constants.seconds_to_hour
+        * (
+            net_radiation_understorey
+            + sensible_heat_flux_understorey
+            # + latent_heat_flux_understorey
+            + conductive_flux_understorey
+        )
+        / (
+            abiotic_constants.heat_capacity_understorey
+            * above_ground_layer_thickness[-1]
+            * 1000.00  # TODO vegetation density parameter
+        )
+    )
+
+    # -------------------------------------------------------------------------
     # Soil energy balance
     # -------------------------------------------------------------------------
+
     # Longwave emission from soil, [W m-2]
     longwave_emission_soil = energy_balance.calculate_longwave_emission(
         temperature=soil_temperature[0] + core_constants.zero_Celsius,
@@ -260,9 +327,11 @@ def run_microclimate(
         stefan_boltzmann=core_constants.stefan_boltzmann_constant,
     )
 
-    # Net radiation topsoil, shortwave in - longwave out, [W m-2]
+    # Net radiation topsoil =
+    # shortwave in + conductive flux from understorey - longwave out, [W m-2]
     net_radiation_soil = (
         data["shortwave_absorption"][layer_structure.index_topsoil_scalar].to_numpy()
+        + conductive_flux_understorey
         - longwave_emission_soil
     )
 
@@ -338,6 +407,7 @@ def run_microclimate(
         mixing_layer_thickness=above_ground_layer_thickness[1:-1],
     )
 
+    # TODO account for understorey vegetation fluxes
     surface_air_temperature = energy_balance.update_air_temperature(
         air_temperature=surface_air_temperature,
         surface_temperature=soil_temperature[0],
@@ -522,6 +592,9 @@ def run_microclimate(
 
     canopy_temperature_out = layer_structure.from_template()
     canopy_temperature_out[layer_structure.index_filled_canopy] = canopy_temperature
+    canopy_temperature_out[layer_structure.index_surface_scalar] = (
+        understorey_temperature
+    )
     output["canopy_temperature"] = canopy_temperature_out
 
     # Write humidity/VPD
