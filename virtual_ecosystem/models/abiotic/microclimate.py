@@ -170,6 +170,20 @@ def run_microclimate(
         aerodynamic_resistance_canopy, dims="cell_id"
     )
 
+    # Aerodynamic resistance understorey, [s m-1]
+    aerodynamic_resistance_understorey = (
+        wind.calculate_aerodynamic_resistance_understorey(
+            wind_speed_understorey=wind_profile[-1],
+            coefficient_aerodynamic_resistance_understorey=(
+                abiotic_constants.coefficient_aerodynamic_resistance_understorey
+            ),
+            min_wind_speed=abiotic_constants.min_windspeed_below_canopy,
+        )
+    )
+    output["aerodynamic_resistance_understorey"] = DataArray(
+        aerodynamic_resistance_understorey, dims="cell_id"
+    )
+
     # Aerodynamic resistance soil, [s m-1]
     aerodynamic_resistance_soil = data["aerodynamic_resistance_surface"].to_numpy()
 

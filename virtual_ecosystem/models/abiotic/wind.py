@@ -506,3 +506,34 @@ def calculate_aerodynamic_resistance(
     # Replace invalid values with a small fallback resistance
     aero_resistance_out = np.where(np.isnan(aero_resistance), 0.001, aero_resistance)
     return np.where(np.isnan(wind_heights), np.nan, aero_resistance_out)
+
+
+def calculate_aerodynamic_resistance_understorey(
+    wind_speed_understorey: NDArray[np.floating],
+    coefficient_aerodynamic_resistance_understorey: float,
+    min_wind_speed: float,
+) -> NDArray[np.floating]:
+    """Calculate aerodynamic resistance in understorey.
+
+    The aerodynamic resistance below the canopy is calculated using an empirical
+    coefficient multiplied by the inverse of the wind speed within the understorey
+    following :cite:t:`ogee_a_forest_2002`
+
+    Args:
+        wind_speed_understorey: Wind speed below the canopy, [m s-1]
+        coefficient_aerodynamic_resistance_understorey: Empirical coefficient for
+            calculating aerodynamic resistance below the canopy, [s m-2]
+        min_wind_speed: Minimum wind speed to avoid division by zero, [m s-1]
+
+    Returns:
+        Aerodynamic resistance below the canopy, [s m-1]
+    """
+
+    # Avoid division by zero by setting a minimum wind speed
+    wind_speed_clipped = np.maximum(wind_speed_understorey, min_wind_speed)
+
+    aerodynamic_resistance_understorey = (
+        coefficient_aerodynamic_resistance_understorey / wind_speed_clipped
+    )
+
+    return aerodynamic_resistance_understorey

@@ -321,3 +321,32 @@ def test_calculate_aerodynamic_resistance(
         von_karman_constant=0.4,
     )
     assert_allclose(result, exp_ra, rtol=1e-3, atol=1e-3)
+
+
+def calculate_aerodynamic_resistance_understorey():
+    """Test calculate aerodynamic resistance below canopy."""
+
+    from virtual_ecosystem.models.abiotic.wind import (
+        compute_aerodynamic_resistance_understorey,
+    )
+
+    min_ws = 0.1
+    coef = 33.0
+
+    # Case 1: normal wind speeds
+    ws = np.array([1.0, 2.0])
+    result = compute_aerodynamic_resistance_understorey(ws, min_ws, coef)
+    expected = coef / ws
+    assert np.allclose(result, expected)
+
+    # Case 2: wind speed below minimum → clipped
+    ws = np.array([0.01, 0.05])
+    result = compute_aerodynamic_resistance_understorey(ws, min_ws, coef)
+    expected = coef / min_ws
+    assert np.all(result == expected)
+
+    # Case 3: zero wind speed → clipped
+    ws = np.array([0.0])
+    result = compute_aerodynamic_resistance_understorey(ws, min_ws, coef)
+    expected = np.array([coef / min_ws])
+    assert np.allclose(result, expected)

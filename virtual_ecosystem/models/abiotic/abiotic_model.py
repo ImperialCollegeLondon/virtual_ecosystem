@@ -56,6 +56,7 @@ class AbioticModel(
         "specific_heat_air",
         "latent_heat_vapourisation",
         "aerodynamic_resistance_canopy",
+        "aerodynamic_resistance_understorey",
         "net_radiation",
     ),
     vars_required_for_update=(
