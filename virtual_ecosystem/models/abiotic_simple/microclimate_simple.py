@@ -21,7 +21,7 @@ from xarray import DataArray
 from virtual_ecosystem.core.core_components import LayerStructure
 from virtual_ecosystem.core.data import Data
 from virtual_ecosystem.core.model_config import CoreConstants
-from virtual_ecosystem.models.abiotic import energy_balance
+from virtual_ecosystem.models.abiotic import abiotic_tools, energy_balance
 from virtual_ecosystem.models.abiotic.model_config import AbioticConstants
 from virtual_ecosystem.models.abiotic_simple.model_config import (
     AbioticSimpleBounds,
@@ -122,25 +122,20 @@ def run_simple_microclimate(
             gradient=gradient,
         ).rename(var)
 
-    # Create atmospheric mask for filling constant values
-    atm_mask = ~np.isnan(
-        output["air_temperature"].isel(layers=layer_structure.index_filled_atmosphere)
-    )
-
     # Mean atmospheric pressure profile, [kPa]
-    output["atmospheric_pressure"] = layer_structure.from_template()
-    atmospheric_pressure = data["atmospheric_pressure_ref"].isel(time_index=time_index)
-    valid_values_atmospheric_pressure = atmospheric_pressure.where(atm_mask)
-    output["atmospheric_pressure"][layer_structure.index_filled_atmosphere] = (
-        valid_values_atmospheric_pressure
+    output["atmospheric_pressure"] = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=output["air_temperature"],
+        variable_name=data["atmospheric_pressure_ref"],
+        time_index=time_index,
     )
 
     # Mean atmospheric C02 profile, [ppm]
-    output["atmospheric_co2"] = layer_structure.from_template()
-    atmospheric_co2 = data["atmospheric_co2_ref"].isel(time_index=time_index)
-    valid_values_atmospheric_co2 = atmospheric_co2.where(atm_mask)
-    output["atmospheric_co2"][layer_structure.index_filled_atmosphere] = (
-        valid_values_atmospheric_co2
+    output["atmospheric_co2"] = abiotic_tools.update_profile_from_reference(
+        layer_structure=layer_structure,
+        mask_variable=output["air_temperature"],
+        variable_name=data["atmospheric_co2_ref"],
+        time_index=time_index,
     )
 
     # Calculate soil temperatures, [C]
